@@ -17,22 +17,19 @@
 package org.apache.rocketmq.example.openmessaging;
 
 import io.openmessaging.Message;
-import io.openmessaging.MessageHeader;
-import io.openmessaging.MessageListener;
 import io.openmessaging.MessagingAccessPoint;
-import io.openmessaging.MessagingAccessPointFactory;
 import io.openmessaging.OMS;
-import io.openmessaging.PushConsumer;
-import io.openmessaging.ReceivedMessageContext;
-import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import io.openmessaging.OMSBuiltinKeys;
+import io.openmessaging.consumer.MessageListener;
+import io.openmessaging.consumer.PushConsumer;
 
 public class SimplePushConsumer {
     public static void main(String[] args) {
-        final MessagingAccessPoint messagingAccessPoint = MessagingAccessPointFactory
-            .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+        final MessagingAccessPoint messagingAccessPoint = OMS
+            .getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
 
         final PushConsumer consumer = messagingAccessPoint.
-            createPushConsumer(OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "OMS_CONSUMER"));
+            createPushConsumer(OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "OMS_CONSUMER"));
 
         messagingAccessPoint.startup();
         System.out.printf("MessagingAccessPoint startup OK%n");
@@ -47,8 +44,8 @@ public class SimplePushConsumer {
 
         consumer.attachQueue("OMS_HELLO_TOPIC", new MessageListener() {
             @Override
-            public void onMessage(final Message message, final ReceivedMessageContext context) {
-                System.out.printf("Received one message: %s%n", message.headers().getString(MessageHeader.MESSAGE_ID));
+            public void onReceived(Message message, Context context) {
+                System.out.printf("Received one message: %s%n", message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID));
                 context.ack();
             }
         });

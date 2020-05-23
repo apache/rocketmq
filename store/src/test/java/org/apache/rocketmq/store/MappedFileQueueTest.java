@@ -229,6 +229,24 @@ public class MappedFileQueueTest {
         assertThat(mappedFileQueue.getMappedFiles().size()).isEqualTo(45);
     }
 
+    @Test
+    public void testFindMappedFile_ByIteration() {
+        MappedFileQueue mappedFileQueue =
+            new MappedFileQueue("target/unit_test_store/g/", 1024, null);
+        for (int i =0 ; i < 3; i++) {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(1024 * i);
+            mappedFile.wrotePosition.set(1024);
+        }
+
+        assertThat(mappedFileQueue.findMappedFileByOffset(1028).getFileFromOffset()).isEqualTo(1024);
+
+        // Switch two MappedFiles and verify findMappedFileByOffset method
+        MappedFile tmpFile = mappedFileQueue.getMappedFiles().get(1);
+        mappedFileQueue.getMappedFiles().set(1, mappedFileQueue.getMappedFiles().get(2));
+        mappedFileQueue.getMappedFiles().set(2, tmpFile);
+        assertThat(mappedFileQueue.findMappedFileByOffset(1028).getFileFromOffset()).isEqualTo(1024);
+    }
+
     @After
     public void destory() {
         File file = new File("target/unit_test_store");

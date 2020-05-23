@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.impl.producer;
 
 import java.util.Set;
 import org.apache.rocketmq.client.producer.TransactionCheckListener;
+import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 
@@ -27,6 +28,7 @@ public interface MQProducerInner {
     boolean isPublishTopicNeedUpdate(final String topic);
 
     TransactionCheckListener checkListener();
+    TransactionListener getCheckListener();
 
     void checkTransactionState(
         final String addr,

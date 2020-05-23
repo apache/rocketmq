@@ -32,7 +32,7 @@ public class PullScheduleService {
         final MQPullConsumerScheduleService scheduleService = new MQPullConsumerScheduleService("GroupName1");
 
         scheduleService.setMessageModel(MessageModel.CLUSTERING);
-        scheduleService.registerPullTaskCallback("TopicTest1", new PullTaskCallback() {
+        scheduleService.registerPullTaskCallback("TopicTest", new PullTaskCallback() {
 
             @Override
             public void doPullTask(MessageQueue mq, PullTaskContext context) {

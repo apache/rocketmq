@@ -48,5 +48,7 @@ public interface RemotingClient extends RemotingService {
 
     void setCallbackExecutor(final ExecutorService callbackExecutor);
 
+    ExecutorService getCallbackExecutor();
+
     boolean isChannelWritable(final String addr);
 }

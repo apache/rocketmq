@@ -126,7 +126,7 @@ public class ConsumerSubCommand implements SubCommand {
                 ConsumerRunningInfo consumerRunningInfo =
                     defaultMQAdminExt.getConsumerRunningInfo(group, clientId, jstack);
                 if (consumerRunningInfo != null) {
-                    System.out.printf(consumerRunningInfo.formatString());
+                    System.out.printf("%s", consumerRunningInfo.formatString());
                 }
             }
         } catch (Exception e) {

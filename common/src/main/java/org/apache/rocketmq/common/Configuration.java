@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.common;
 
+import org.apache.rocketmq.logging.InternalLogger;
+
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -25,11 +27,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.slf4j.Logger;
 
 public class Configuration {
 
-    private final Logger log;
+    private final InternalLogger log;
 
     private List<Object> configObjectList = new ArrayList<Object>(4);
     private String storePath;
@@ -43,11 +44,11 @@ public class Configuration {
      */
     private Properties allConfigs = new Properties();
 
-    public Configuration(Logger log) {
+    public Configuration(InternalLogger log) {
         this.log = log;
     }
 
-    public Configuration(Logger log, Object... configObjects) {
+    public Configuration(InternalLogger log, Object... configObjects) {
         this.log = log;
         if (configObjects == null || configObjects.length == 0) {
             return;
@@ -57,7 +58,7 @@ public class Configuration {
         }
     }
 
-    public Configuration(Logger log, String storePath, Object... configObjects) {
+    public Configuration(InternalLogger log, String storePath, Object... configObjects) {
         this(log, configObjects);
         this.storePath = storePath;
     }

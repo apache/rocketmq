@@ -78,4 +78,13 @@ public class DataVersion extends RemotingSerializable {
         }
         return result;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("DataVersion[");
+        sb.append("timestamp=").append(timestamp);
+        sb.append(", counter=").append(counter);
+        sb.append(']');
+        return sb.toString();
+    }
 }

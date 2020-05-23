@@ -18,11 +18,11 @@ package org.apache.rocketmq.common;
 
 import java.io.IOException;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public abstract class ConfigManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public abstract String encode();
 
@@ -36,11 +36,11 @@ public abstract class ConfigManager {
                 return this.loadBak();
             } else {
                 this.decode(jsonString);
-                log.info("load {} OK", fileName);
+                log.info("load " + fileName + " OK");
                 return true;
             }
         } catch (Exception e) {
-            log.error("load [{}] failed, and try to load backup file", fileName, e);
+            log.error("load " + fileName + " failed, and try to load backup file", e);
             return this.loadBak();
         }
     }
@@ -54,11 +54,11 @@ public abstract class ConfigManager {
             String jsonString = MixAll.file2String(fileName + ".bak");
             if (jsonString != null && jsonString.length() > 0) {
                 this.decode(jsonString);
-                log.info("load [{}] OK", fileName);
+                log.info("load " + fileName + " OK");
                 return true;
             }
         } catch (Exception e) {
-            log.error("load [{}] Failed", fileName, e);
+            log.error("load " + fileName + " Failed", e);
             return false;
         }
 
@@ -74,7 +74,7 @@ public abstract class ConfigManager {
             try {
                 MixAll.string2File(jsonString, fileName);
             } catch (IOException e) {
-                log.error("persist file [{}] exception", fileName, e);
+                log.error("persist file " + fileName + " exception", e);
             }
         }
     }

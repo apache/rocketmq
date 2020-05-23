@@ -17,7 +17,7 @@
 package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.PropertyKeys;
+import io.openmessaging.Message;
 import io.openmessaging.ServiceLifecycle;
 import io.openmessaging.rocketmq.config.ClientConfig;
 import io.openmessaging.rocketmq.domain.ConsumeRequest;
@@ -41,7 +41,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.slf4j.Logger;
+import org.apache.rocketmq.logging.InternalLogger;
 
 class LocalMessageCache implements ServiceLifecycle {
     private final BlockingQueue<ConsumeRequest> consumeRequestCache;
@@ -51,7 +51,7 @@ class LocalMessageCache implements ServiceLifecycle {
     private final ClientConfig clientConfig;
     private final ScheduledExecutorService cleanExpireMsgExecutors;
 
-    private final static Logger log = ClientLogger.getLog();
+    private final static InternalLogger log = ClientLogger.getLog();
 
     LocalMessageCache(final DefaultMQPullConsumer rocketmqPullConsumer, final ClientConfig clientConfig) {
         consumeRequestCache = new LinkedBlockingQueue<>(clientConfig.getRmqPullMessageCacheCapacity());
@@ -73,7 +73,7 @@ class LocalMessageCache implements ServiceLifecycle {
                 pullOffsetTable.putIfAbsent(remoteQueue,
                     rocketmqPullConsumer.fetchConsumeOffset(remoteQueue, false));
             } catch (MQClientException e) {
-                log.error("A error occurred in fetch consume offset process.", e);
+                log.error("An error occurred in fetch consume offset process.", e);
             }
         }
         return pullOffsetTable.get(remoteQueue);
@@ -91,13 +91,13 @@ class LocalMessageCache implements ServiceLifecycle {
     }
 
     MessageExt poll() {
-        return poll(clientConfig.getOmsOperationTimeout());
+        return poll(clientConfig.getOperationTimeout());
     }
 
     MessageExt poll(final KeyValue properties) {
-        int currentPollTimeout = clientConfig.getOmsOperationTimeout();
-        if (properties.containsKey(PropertyKeys.OPERATION_TIMEOUT)) {
-            currentPollTimeout = properties.getInt(PropertyKeys.OPERATION_TIMEOUT);
+        int currentPollTimeout = clientConfig.getOperationTimeout();
+        if (properties.containsKey(Message.BuiltinKeys.TIMEOUT)) {
+            currentPollTimeout = properties.getInt(Message.BuiltinKeys.TIMEOUT);
         }
         return poll(currentPollTimeout);
     }
@@ -124,7 +124,7 @@ class LocalMessageCache implements ServiceLifecycle {
             try {
                 rocketmqPullConsumer.updateConsumeOffset(consumeRequest.getMessageQueue(), offset);
             } catch (MQClientException e) {
-                log.error("A error occurred in update consume offset process.", e);
+                log.error("An error occurred in update consume offset process.", e);
             }
         }
     }
@@ -135,7 +135,7 @@ class LocalMessageCache implements ServiceLifecycle {
         try {
             rocketmqPullConsumer.updateConsumeOffset(messageQueue, offset);
         } catch (MQClientException e) {
-            log.error("A error occurred in update consume offset process.", e);
+            log.error("An error occurred in update consume offset process.", e);
         }
     }
 

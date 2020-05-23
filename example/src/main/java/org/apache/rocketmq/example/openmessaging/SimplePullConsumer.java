@@ -17,42 +17,60 @@
 package org.apache.rocketmq.example.openmessaging;
 
 import io.openmessaging.Message;
-import io.openmessaging.MessageHeader;
 import io.openmessaging.MessagingAccessPoint;
-import io.openmessaging.MessagingAccessPointFactory;
 import io.openmessaging.OMS;
-import io.openmessaging.PullConsumer;
-import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import io.openmessaging.OMSBuiltinKeys;
+import io.openmessaging.consumer.PullConsumer;
+import io.openmessaging.producer.Producer;
+import io.openmessaging.producer.SendResult;
 
 public class SimplePullConsumer {
     public static void main(String[] args) {
-        final MessagingAccessPoint messagingAccessPoint = MessagingAccessPointFactory
-            .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+        final MessagingAccessPoint messagingAccessPoint =
+            OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
 
-        final PullConsumer consumer = messagingAccessPoint.createPullConsumer("OMS_HELLO_TOPIC",
-            OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "OMS_CONSUMER"));
+        messagingAccessPoint.startup();
+
+        final Producer producer = messagingAccessPoint.createProducer();
+
+        final PullConsumer consumer = messagingAccessPoint.createPullConsumer(
+            OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "OMS_CONSUMER"));
 
         messagingAccessPoint.startup();
         System.out.printf("MessagingAccessPoint startup OK%n");
 
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                consumer.shutdown();
-                messagingAccessPoint.shutdown();
-            }
-        }));
+        final String queueName = "TopicTest";
+
+        producer.startup();
+        Message msg = producer.createBytesMessage(queueName, "Hello Open Messaging".getBytes());
+        SendResult sendResult = producer.send(msg);
+        System.out.printf("Send Message OK. MsgId: %s%n", sendResult.messageId());
+        producer.shutdown();
+
+        consumer.attachQueue(queueName);
 
         consumer.startup();
         System.out.printf("Consumer startup OK%n");
 
-        while (true) {
-            Message message = consumer.poll();
+        // Keep running until we find the one that has just been sent
+        boolean stop = false;
+        while (!stop) {
+            Message message = consumer.receive();
             if (message != null) {
-                String msgId = message.headers().getString(MessageHeader.MESSAGE_ID);
+                String msgId = message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID);
                 System.out.printf("Received one message: %s%n", msgId);
                 consumer.ack(msgId);
+
+                if (!stop) {
+                    stop = msgId.equalsIgnoreCase(sendResult.messageId());
+                }
+
+            } else {
+                System.out.printf("Return without any message%n");
             }
         }
+
+        consumer.shutdown();
+        messagingAccessPoint.shutdown();
     }
 }

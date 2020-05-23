@@ -19,8 +19,12 @@ package org.apache.rocketmq.store;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 /**
  * This class defines contracting interfaces to implement, allowing third-party vendor to use customized message store.
@@ -50,6 +54,26 @@ public interface MessageStore {
      * Destroy this message store. Generally, all persistent files should be removed after invocation.
      */
     void destroy();
+
+    /** Store a message into store in async manner, the processor can process the next request
+     *  rather than wait for result
+     *  when result is completed, notify the client in async manner
+     *
+     * @param msg MessageInstance to store
+     * @return a CompletableFuture for the result of store operation
+     */
+    default CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
+        return CompletableFuture.completedFuture(putMessage(msg));
+    }
+
+    /**
+     * Store a batch of messages in async manner
+     * @param messageExtBatch the message batch
+     * @return a CompletableFuture for the result of store operation
+     */
+    default CompletableFuture<PutMessageResult> asyncPutMessages(final MessageExtBatch messageExtBatch) {
+        return CompletableFuture.completedFuture(putMessages(messageExtBatch));
+    }
 
     /**
      * Store a message into store.
@@ -358,4 +382,17 @@ public interface MessageStore {
      * @return Consume queue.
      */
     ConsumeQueue getConsumeQueue(String topic, int queueId);
+
+    /**
+     * Get BrokerStatsManager of the messageStore.
+     *
+     * @return BrokerStatsManager.
+     */
+    BrokerStatsManager getBrokerStatsManager();
+
+    /**
+     * handle
+     * @param brokerRole
+     */
+    void handleScheduleMessageService(BrokerRole brokerRole);
 }

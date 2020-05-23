@@ -36,7 +36,10 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Long brokerId;
 
-    @Override
+    private boolean compressed;
+
+    private Integer bodyCrc32 = 0;
+
     public void checkFields() throws RemotingCommandException {
     }
 
@@ -78,5 +81,21 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
 
     public void setBrokerId(Long brokerId) {
         this.brokerId = brokerId;
+    }
+
+    public boolean isCompressed() {
+        return compressed;
+    }
+
+    public void setCompressed(boolean compressed) {
+        this.compressed = compressed;
+    }
+
+    public Integer getBodyCrc32() {
+        return bodyCrc32;
+    }
+
+    public void setBodyCrc32(Integer bodyCrc32) {
+        this.bodyCrc32 = bodyCrc32;
     }
 }

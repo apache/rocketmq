@@ -18,13 +18,13 @@ package org.apache.rocketmq.namesrv.routeinfo;
 
 import io.netty.channel.Channel;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.ChannelEventListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BrokerHousekeepingService implements ChannelEventListener {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final NamesrvController namesrvController;
 
     public BrokerHousekeepingService(NamesrvController namesrvController) {

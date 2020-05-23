@@ -17,13 +17,14 @@
 package org.apache.rocketmq.store.ha;
 
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class WaitNotifyObject {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable =
         new HashMap<Long, Boolean>(16);
@@ -65,9 +66,9 @@ public class WaitNotifyObject {
         synchronized (this) {
             boolean needNotify = false;
 
-            for (Boolean value : this.waitingThreadTable.values()) {
-                needNotify = needNotify || !value;
-                value = true;
+            for (Map.Entry<Long,Boolean> entry : this.waitingThreadTable.entrySet()) {
+                needNotify = needNotify || !entry.getValue();
+                entry.setValue(true);
             }
 
             if (needNotify) {
@@ -94,6 +95,13 @@ public class WaitNotifyObject {
                 this.waitingThreadTable.put(currentThreadId, false);
                 this.onWaitEnd();
             }
+        }
+    }
+
+    public void removeFromWaitingThreadTable() {
+        long currentThreadId = Thread.currentThread().getId();
+        synchronized (this) {
+            this.waitingThreadTable.remove(currentThreadId);
         }
     }
 }

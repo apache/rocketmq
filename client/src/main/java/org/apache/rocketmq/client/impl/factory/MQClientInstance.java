@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.impl.factory;
 
 import java.io.UnsupportedEncodingException;
-import java.net.DatagramSocket;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -63,6 +64,8 @@ import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
@@ -80,11 +83,10 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.slf4j.Logger;
 
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
-    private final Logger log = ClientLogger.getLog();
+    private final InternalLogger log = ClientLogger.getLog();
     private final ClientConfig clientConfig;
     private final int instanceIndex;
     private final String clientId;
@@ -115,7 +117,6 @@ public class MQClientInstance {
     private final ConsumerStatsManager consumerStatsManager;
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private DatagramSocket datagramSocket;
     private Random random = new Random();
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
@@ -149,7 +150,7 @@ public class MQClientInstance {
 
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
-        log.info("created a new client Instance, FactoryIndex: {} ClinetID: {} {} {}, serializeType={}",
+        log.info("Created a new client Instance, InstanceIndex:{}, ClientID:{}, ClientConfig:{}, ClientVersion:{}, SerializerType:{}",
             this.instanceIndex,
             this.clientId,
             this.clientConfig,
@@ -242,10 +243,6 @@ public class MQClientInstance {
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
-                    break;
-                case RUNNING:
-                    break;
-                case SHUTDOWN_ALREADY:
                     break;
                 case START_FAILED:
                     throw new MQClientException("The Factory object[" + this.getClientId() + "] has been created before, and failed.", null);
@@ -360,6 +357,26 @@ public class MQClientInstance {
         for (String topic : topicList) {
             this.updateTopicRouteInfoFromNameServer(topic);
         }
+    }
+
+    /**
+     * @param offsetTable
+     * @param namespace
+     * @return newOffsetTable
+     */
+    public Map<MessageQueue, Long> parseOffsetTableFromBroker(Map<MessageQueue, Long> offsetTable, String namespace) {
+        HashMap<MessageQueue, Long> newOffsetTable = new HashMap<MessageQueue, Long>();
+        if (StringUtils.isNotEmpty(namespace)) {
+            for (Entry<MessageQueue, Long> entry : offsetTable.entrySet()) {
+                MessageQueue queue = entry.getKey();
+                queue.setTopic(NamespaceUtil.withoutNamespace(queue.getTopic(), namespace));
+                newOffsetTable.put(queue, entry.getValue());
+            }
+        } else {
+            newOffsetTable.putAll(offsetTable);
+        }
+
+        return newOffsetTable;
     }
 
     /**
@@ -548,10 +565,10 @@ public class MQClientInstance {
                                 }
                             } catch (Exception e) {
                                 if (this.isBrokerInNameServer(addr)) {
-                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr);
+                                    log.info("send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
                                 } else {
                                     log.info("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName,
-                                        id, addr);
+                                        id, addr, e);
                                 }
                             }
                         }
@@ -653,10 +670,13 @@ public class MQClientInstance {
                     } else {
                         log.warn("updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}", topic);
                     }
-                } catch (Exception e) {
-                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(MixAll.DEFAULT_TOPIC)) {
+                } catch (MQClientException e) {
+                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
+                } catch (RemotingException e) {
+                    log.error("updateTopicRouteInfoFromNameServer Exception", e);
+                    throw new IllegalStateException(e);
                 } finally {
                     this.lockNamesrv.unlock();
                 }
@@ -721,6 +741,11 @@ public class MQClientInstance {
         return false;
     }
 
+    /**
+     * This method will be removed in the version 5.0.0,because filterServer was removed,and method
+     * <code>subscribe(final String topic, final MessageSelector messageSelector)</code> is recommended.
+     */
+    @Deprecated
     private void uploadFilterClassToAllFilterServer(final String consumerGroup, final String fullClassName,
         final String topic,
         final String filterClassSource) throws UnsupportedEncodingException {
@@ -827,10 +852,6 @@ public class MQClientInstance {
                     this.mQClientAPIImpl.shutdown();
                     this.rebalanceService.shutdown();
 
-                    if (this.datagramSocket != null) {
-                        this.datagramSocket.close();
-                        this.datagramSocket = null;
-                    }
                     MQClientManager.getInstance().removeClientFactory(this.clientId);
                     log.info("the client factory [{}] shutdown OK", this.clientId);
                     break;
@@ -1043,6 +1064,7 @@ public class MQClientInstance {
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);
             }
         }
+        //To do need to fresh the version
         return 0;
     }
 
@@ -1214,5 +1236,9 @@ public class MQClientInstance {
 
     public NettyClientConfig getNettyClientConfig() {
         return nettyClientConfig;
+    }
+
+    public ClientConfig getClientConfig() {
+        return clientConfig;
     }
 }

@@ -17,10 +17,10 @@
 
 package org.apache.rocketmq.test.clientinterface;
 
-import org.apache.rocketmq.test.sendresult.SendResult;
+import org.apache.rocketmq.test.sendresult.ResultWrapper;
 
 public interface MQProducer {
-    SendResult send(Object msg, Object arg);
+    ResultWrapper send(Object msg, Object arg);
 
     void setDebug();
 

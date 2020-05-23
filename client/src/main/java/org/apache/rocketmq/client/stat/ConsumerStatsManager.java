@@ -18,15 +18,15 @@
 package org.apache.rocketmq.client.stat;
 
 import java.util.concurrent.ScheduledExecutorService;
-import org.apache.rocketmq.common.constant.LoggerName;
+
+import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatus;
 import org.apache.rocketmq.common.stats.StatsItemSet;
 import org.apache.rocketmq.common.stats.StatsSnapshot;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConsumerStatsManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.CLIENT_LOGGER_NAME);
+    private static final InternalLogger log = ClientLogger.getLog();
 
     private static final String TOPIC_AND_GROUP_CONSUME_OK_TPS = "CONSUME_OK_TPS";
     private static final String TOPIC_AND_GROUP_CONSUME_FAILED_TPS = "CONSUME_FAILED_TPS";

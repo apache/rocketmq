@@ -146,11 +146,11 @@ public class PrintMessageSubCommand implements SubCommand {
                                 printMessage(pullResult.getMsgFoundList(), charsetName, printBody);
                                 break;
                             case NO_MATCHED_MSG:
-                                System.out.printf(mq + " no matched msg. status=%s, offset=%s", pullResult.getPullStatus(), offset);
+                                System.out.printf("%s no matched msg. status=%s, offset=%s", mq, pullResult.getPullStatus(), offset);
                                 break;
                             case NO_NEW_MSG:
                             case OFFSET_ILLEGAL:
-                                System.out.printf(mq + " print msg finished. status=%s, offset=%s", pullResult.getPullStatus(), offset);
+                                System.out.printf("%s print msg finished. status=%s, offset=%s", mq, pullResult.getPullStatus(), offset);
                                 break READQ;
                         }
                     } catch (Exception e) {
