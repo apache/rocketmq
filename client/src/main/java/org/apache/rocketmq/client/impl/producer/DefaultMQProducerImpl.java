@@ -661,6 +661,20 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
+    /**
+     * 消息发送
+     * @param msg 消息体
+     * @param mq 待发送的消息队列
+     * @param communicationMode  发送模式
+     * @param sendCallback 回调函数  用户异步发送
+     * @param topicPublishInfo topic的路由信息
+     * @param timeout 超时时间
+     * @return SendResult
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     private SendResult sendKernelImpl(final Message msg,
                                       final MessageQueue mq,
                                       final CommunicationMode communicationMode,

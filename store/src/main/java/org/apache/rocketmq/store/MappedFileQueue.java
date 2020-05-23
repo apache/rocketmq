@@ -51,7 +51,7 @@ public class MappedFileQueue {
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
     /**
-     * 创建 MappedFileServic
+     * 创建 MappedFileService
      */
     private final AllocateMappedFileService allocateMappedFileService;
 

@@ -69,13 +69,13 @@ public class MQFaultStrategy {
                     if (pos < 0)
                         pos = 0;
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
-                    // 判断当前的broker是否可用
+                    // 判断当前的消息队列是否可用  只要有一个可用就立刻返回
                     if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
                         if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName))
                             return mq;
                     }
                 }
-
+                //  此时该topic下的所有队列都不可用  todo  没看懂？？
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
                 int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
                 if (writeQueueNums > 0) {

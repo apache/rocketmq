@@ -121,7 +121,7 @@ public class DefaultMessageStoreTest {
 
     private MessageExtBrokerInner buildMessage() {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic("FooBar");
+        msg.setTopic("lcyanxi-test-topic");
         msg.setTags("TAG1");
         msg.setKeys("Hello");
         msg.setBody(MessageBody);
