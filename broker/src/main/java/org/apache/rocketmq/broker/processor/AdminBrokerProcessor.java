@@ -299,7 +299,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         this.brokerController.getTopicConfigManager().deleteTopicConfig(requestHeader.getTopic());
         this.brokerController.getMessageStore()
             .cleanUnusedTopic(this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
-
+        if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
+            this.brokerController.getBrokerStatsManager().onTopicDeleted(requestHeader.getTopic());
+        }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
@@ -715,6 +717,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
 
+        if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
+            this.brokerController.getBrokerStatsManager().onGroupDeleted(requestHeader.getGroupName());
+        }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

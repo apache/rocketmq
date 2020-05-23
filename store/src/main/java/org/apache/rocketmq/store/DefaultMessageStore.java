@@ -1029,6 +1029,10 @@ public class DefaultMessageStore implements MessageStore {
                 }
                 it.remove();
 
+                if (this.brokerConfig.isAutoDeleteUnusedStats()) {
+                    this.brokerStatsManager.onTopicDeleted(topic);
+                }
+
                 log.info("cleanUnusedTopic: {},topic destroyed", topic);
             }
         }
