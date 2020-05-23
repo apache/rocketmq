@@ -30,7 +30,6 @@ public class MessageExt extends Message {
     private String brokerName;
 
     private int queueId;
-
     private int storeSize;
 
     private long queueOffset;
