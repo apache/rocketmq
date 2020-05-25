@@ -142,25 +142,18 @@ public class MessageExt extends Message {
     }
 
     public String getBornHostString() {
-        try {
-            if (this.bornHost != null) {
-                InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
-                return inetSocketAddress.getAddress().getHostAddress();
-            }
-        } catch (Exception e) {
+        if (this.bornHost != null) {
+            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
+            return inetSocketAddress.getAddress().getHostAddress();
         }
 
         return null;
     }
 
     public String getBornHostNameString() {
-        try {
-            if (this.bornHost != null) {
-                InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
-                return inetSocketAddress.getAddress().getHostName();
-            }
-        } catch (Exception e) {
-            return null;
+        if (this.bornHost != null) {
+            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
+            return inetSocketAddress.getAddress().getHostName();
         }
 
         return null;
