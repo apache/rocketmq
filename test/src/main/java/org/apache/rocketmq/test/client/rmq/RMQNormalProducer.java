@@ -26,7 +26,7 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
-import org.apache.rocketmq.test.sendresult.SendResult;
+import org.apache.rocketmq.test.sendresult.ResultWrapper;
 
 public class RMQNormalProducer extends AbstractMQProducer {
     private static Logger logger = Logger.getLogger(RMQNormalProducer.class);
@@ -91,7 +91,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
         }
     }
 
-    public SendResult send(Object msg, Object orderKey) {
+    public ResultWrapper send(Object msg, Object orderKey) {
         org.apache.rocketmq.client.producer.SendResult metaqResult = null;
         Message message = (Message) msg;
         try {
@@ -132,7 +132,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
         }
     }
 
-    public SendResult sendMQ(Message msg, MessageQueue mq) {
+    public ResultWrapper sendMQ(Message msg, MessageQueue mq) {
         org.apache.rocketmq.client.producer.SendResult metaqResult = null;
         try {
             long start = System.currentTimeMillis();

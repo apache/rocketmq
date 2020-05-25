@@ -92,9 +92,9 @@ public class BeanUtilsTest {
     @Test
     public void testPopulate_ExistObj() {
         CustomizedConfig config = new CustomizedConfig();
-        config.setOmsConsumerId("NewConsumerId");
+        config.setConsumerId("NewConsumerId");
 
-        Assert.assertEquals(config.getOmsConsumerId(), "NewConsumerId");
+        Assert.assertEquals(config.getConsumerId(), "NewConsumerId");
 
         config = BeanUtils.populate(properties, config);
 

@@ -58,7 +58,7 @@ public class MomentStatsItemSet {
                 } catch (Throwable ignored) {
                 }
             }
-        }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 5, TimeUnit.MILLISECONDS);
+        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 5, TimeUnit.MILLISECONDS);
     }
 
     private void printAtMinutes() {
@@ -74,15 +74,35 @@ public class MomentStatsItemSet {
         statsItem.getValue().set(value);
     }
 
+    public void delValueByInfixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MomentStatsItem> next = it.next();
+            if (next.getKey().contains(separator + statsKey + separator)) {
+                it.remove();
+            }
+        }
+    }
+
+    public void delValueBySuffixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MomentStatsItem> next = it.next();
+            if (next.getKey().endsWith(separator + statsKey)) {
+                it.remove();
+            }
+        }
+    }
+
     public MomentStatsItem getAndCreateStatsItem(final String statsKey) {
         MomentStatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
             statsItem =
                 new MomentStatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
-            MomentStatsItem prev = this.statsItemTable.put(statsKey, statsItem);
+            MomentStatsItem prev = this.statsItemTable.putIfAbsent(statsKey, statsItem);
 
-            if (null == prev) {
-
+            if (null != prev) {
+                statsItem = prev;
                 // statsItem.init();
             }
         }

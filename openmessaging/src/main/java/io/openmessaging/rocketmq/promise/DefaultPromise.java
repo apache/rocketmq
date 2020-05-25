@@ -17,7 +17,7 @@
 package io.openmessaging.rocketmq.promise;
 
 import io.openmessaging.Promise;
-import io.openmessaging.PromiseListener;
+import io.openmessaging.FutureListener;
 import io.openmessaging.exception.OMSRuntimeException;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -33,7 +33,7 @@ public class DefaultPromise<V> implements Promise<V> {
     private long timeout;
     private long createTime;
     private Throwable exception = null;
-    private List<PromiseListener<V>> promiseListenerList;
+    private List<FutureListener<V>> promiseListenerList;
 
     public DefaultPromise() {
         createTime = System.currentTimeMillis();
@@ -121,7 +121,7 @@ public class DefaultPromise<V> implements Promise<V> {
     }
 
     @Override
-    public void addListener(final PromiseListener<V> listener) {
+    public void addListener(final FutureListener<V> listener) {
         if (listener == null) {
             throw new NullPointerException("FutureListener is null");
         }
@@ -150,7 +150,7 @@ public class DefaultPromise<V> implements Promise<V> {
 
     private void notifyListeners() {
         if (promiseListenerList != null) {
-            for (PromiseListener<V> listener : promiseListenerList) {
+            for (FutureListener<V> listener : promiseListenerList) {
                 notifyListener(listener);
             }
         }
@@ -199,12 +199,9 @@ public class DefaultPromise<V> implements Promise<V> {
         return true;
     }
 
-    private void notifyListener(final PromiseListener<V> listener) {
+    private void notifyListener(final FutureListener<V> listener) {
         try {
-            if (exception != null)
-                listener.operationFailed(this);
-            else
-                listener.operationCompleted(this);
+            listener.operationComplete(this);
         } catch (Throwable t) {
             LOG.error("notifyListener {} Error:{}", listener.getClass().getSimpleName(), t);
         }

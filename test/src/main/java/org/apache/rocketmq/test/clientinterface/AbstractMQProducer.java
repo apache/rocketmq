@@ -21,14 +21,14 @@ import java.util.Date;
 import java.util.List;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.sendresult.SendResult;
+import org.apache.rocketmq.test.sendresult.ResultWrapper;
 import org.apache.rocketmq.test.util.RandomUtil;
 import org.apache.rocketmq.test.util.TestUtil;
 
 public abstract class AbstractMQProducer extends MQCollector implements MQProducer {
     protected String topic = null;
 
-    protected SendResult sendResult = new SendResult();
+    protected ResultWrapper sendResult = new ResultWrapper();
     protected boolean startSuccess = false;
     protected String producerGroupName = null;
     protected String producerInstanceName = null;

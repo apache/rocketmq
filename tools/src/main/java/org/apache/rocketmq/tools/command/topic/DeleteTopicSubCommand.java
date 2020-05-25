@@ -38,8 +38,8 @@ public class DeleteTopicSubCommand implements SubCommand {
         final String topic
     ) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
 
-        Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(adminExt, clusterName);
-        adminExt.deleteTopicInBroker(masterSet, topic);
+        Set<String> brokerAddressSet = CommandUtil.fetchMasterAndSlaveAddrByClusterName(adminExt, clusterName);
+        adminExt.deleteTopicInBroker(brokerAddressSet, topic);
         System.out.printf("delete topic [%s] from cluster [%s] success.%n", topic, clusterName);
 
         Set<String> nameServerSet = null;

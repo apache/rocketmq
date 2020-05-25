@@ -30,11 +30,7 @@ public class NettyRemotingClientTest {
     private NettyRemotingClient remotingClient = new NettyRemotingClient(new NettyClientConfig());
 
     @Test
-    public void testSetCallbackExecutor() throws NoSuchFieldException, IllegalAccessException {
-        Field field = NettyRemotingClient.class.getDeclaredField("publicExecutor");
-        field.setAccessible(true);
-        assertThat(remotingClient.getCallbackExecutor()).isEqualTo(field.get(remotingClient));
-
+    public void testSetCallbackExecutor() throws NoSuchFieldException, IllegalAccessException {        
         ExecutorService customized = Executors.newCachedThreadPool();
         remotingClient.setCallbackExecutor(customized);
 
