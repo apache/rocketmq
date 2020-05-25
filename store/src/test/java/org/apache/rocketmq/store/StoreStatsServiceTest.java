@@ -22,9 +22,18 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class StoreStatsServiceTest {
 
+    @Test
+    public void StoreStatsServiceStringFromat() throws Exception {
+
+        StoreStatsService storeStatsService = new StoreStatsService();
+        new Thread(storeStatsService).start();
+        assertNotNull(storeStatsService.toString());
+    }
+    
     @Test
     public void getSinglePutMessageTopicSizeTotal() throws Exception {
         final StoreStatsService storeStatsService = new StoreStatsService();
