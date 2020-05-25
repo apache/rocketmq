@@ -16,8 +16,9 @@
  */
 package io.openmessaging.rocketmq.promise;
 
+import io.openmessaging.Future;
+import io.openmessaging.FutureListener;
 import io.openmessaging.Promise;
-import io.openmessaging.PromiseListener;
 import io.openmessaging.exception.OMSRuntimeException;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,14 +64,10 @@ public class DefaultPromiseTest {
 
     @Test
     public void testAddListener() throws Exception {
-        promise.addListener(new PromiseListener<String>() {
+        promise.addListener(new FutureListener<String>() {
             @Override
-            public void operationCompleted(final Promise<String> promise) {
+            public void operationComplete(Future<String> future) {
                 assertThat(promise.get()).isEqualTo("Done");
-            }
-
-            @Override
-            public void operationFailed(final Promise<String> promise) {
 
             }
         });
@@ -80,15 +77,10 @@ public class DefaultPromiseTest {
     @Test
     public void testAddListener_ListenerAfterSet() throws Exception {
         promise.set("Done");
-        promise.addListener(new PromiseListener<String>() {
+        promise.addListener(new FutureListener<String>() {
             @Override
-            public void operationCompleted(final Promise<String> promise) {
-                assertThat(promise.get()).isEqualTo("Done");
-            }
-
-            @Override
-            public void operationFailed(final Promise<String> promise) {
-
+            public void operationComplete(Future<String> future) {
+                assertThat(future.get()).isEqualTo("Done");
             }
         });
     }
@@ -97,13 +89,9 @@ public class DefaultPromiseTest {
     public void testAddListener_WithException_ListenerAfterSet() throws Exception {
         final Throwable exception = new OMSRuntimeException("-1", "Test Error");
         promise.setFailure(exception);
-        promise.addListener(new PromiseListener<String>() {
+        promise.addListener(new FutureListener<String>() {
             @Override
-            public void operationCompleted(final Promise<String> promise) {
-            }
-
-            @Override
-            public void operationFailed(final Promise<String> promise) {
+            public void operationComplete(Future<String> future) {
                 assertThat(promise.getThrowable()).isEqualTo(exception);
             }
         });
@@ -112,13 +100,9 @@ public class DefaultPromiseTest {
     @Test
     public void testAddListener_WithException() throws Exception {
         final Throwable exception = new OMSRuntimeException("-1", "Test Error");
-        promise.addListener(new PromiseListener<String>() {
+        promise.addListener(new FutureListener<String>() {
             @Override
-            public void operationCompleted(final Promise<String> promise) {
-            }
-
-            @Override
-            public void operationFailed(final Promise<String> promise) {
+            public void operationComplete(Future<String> future) {
                 assertThat(promise.getThrowable()).isEqualTo(exception);
             }
         });

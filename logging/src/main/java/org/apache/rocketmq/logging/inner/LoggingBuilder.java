@@ -966,7 +966,7 @@ public class LoggingBuilder {
                     rollingCalendar.setType(i);
                     Date next = new Date(rollingCalendar.getNextCheckMillis(epoch));
                     String r1 = simpleDateFormat.format(next);
-                    if (r0.equals(r1)) {
+                    if (r0 != null && r1 != null && !r0.equals(r1)) {
                         return i;
                     }
                 }

@@ -18,11 +18,11 @@ package io.openmessaging.rocketmq.utils;
 
 import io.openmessaging.BytesMessage;
 import io.openmessaging.KeyValue;
-import io.openmessaging.MessageHeader;
+import io.openmessaging.Message.BuiltinKeys;
 import io.openmessaging.OMS;
-import io.openmessaging.SendResult;
+import io.openmessaging.producer.SendResult;
 import io.openmessaging.rocketmq.domain.BytesMessageImpl;
-import io.openmessaging.rocketmq.domain.NonStandardKeys;
+import io.openmessaging.rocketmq.domain.RocketMQConstants;
 import io.openmessaging.rocketmq.domain.SendResultImpl;
 import java.lang.reflect.Field;
 import java.util.Iterator;
@@ -46,27 +46,28 @@ public class OMSUtil {
 
     public static org.apache.rocketmq.common.message.Message msgConvert(BytesMessage omsMessage) {
         org.apache.rocketmq.common.message.Message rmqMessage = new org.apache.rocketmq.common.message.Message();
-        rmqMessage.setBody(omsMessage.getBody());
+        rmqMessage.setBody(omsMessage.getBody(byte[].class));
 
-        KeyValue headers = omsMessage.headers();
-        KeyValue properties = omsMessage.properties();
+        KeyValue sysHeaders = omsMessage.sysHeaders();
+        KeyValue userHeaders = omsMessage.userHeaders();
 
         //All destinations in RocketMQ use Topic
-        if (headers.containsKey(MessageHeader.TOPIC)) {
-            rmqMessage.setTopic(headers.getString(MessageHeader.TOPIC));
-            rmqMessage.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "TOPIC");
-        } else {
-            rmqMessage.setTopic(headers.getString(MessageHeader.QUEUE));
-            rmqMessage.putUserProperty(NonStandardKeys.MESSAGE_DESTINATION, "QUEUE");
+        rmqMessage.setTopic(sysHeaders.getString(BuiltinKeys.DESTINATION));
+
+        if (sysHeaders.containsKey(BuiltinKeys.START_TIME)) {
+            long deliverTime = sysHeaders.getLong(BuiltinKeys.START_TIME, 0);
+            if (deliverTime > 0) {
+                rmqMessage.putUserProperty(RocketMQConstants.START_DELIVER_TIME, String.valueOf(deliverTime));
+            }
         }
 
-        for (String key : properties.keySet()) {
-            MessageAccessor.putProperty(rmqMessage, key, properties.getString(key));
+        for (String key : userHeaders.keySet()) {
+            MessageAccessor.putProperty(rmqMessage, key, userHeaders.getString(key));
         }
 
-        //Headers has a high priority
-        for (String key : headers.keySet()) {
-            MessageAccessor.putProperty(rmqMessage, key, headers.getString(key));
+        //System headers has a high priority
+        for (String key : sysHeaders.keySet()) {
+            MessageAccessor.putProperty(rmqMessage, key, sysHeaders.getString(key));
         }
 
         return rmqMessage;
@@ -76,8 +77,8 @@ public class OMSUtil {
         BytesMessage omsMsg = new BytesMessageImpl();
         omsMsg.setBody(rmqMsg.getBody());
 
-        KeyValue headers = omsMsg.headers();
-        KeyValue properties = omsMsg.properties();
+        KeyValue headers = omsMsg.sysHeaders();
+        KeyValue properties = omsMsg.userHeaders();
 
         final Set<Map.Entry<String, String>> entries = rmqMsg.getProperties().entrySet();
 
@@ -89,25 +90,22 @@ public class OMSUtil {
             }
         }
 
-        omsMsg.putHeaders(MessageHeader.MESSAGE_ID, rmqMsg.getMsgId());
-        if (!rmqMsg.getProperties().containsKey(NonStandardKeys.MESSAGE_DESTINATION) ||
-            rmqMsg.getProperties().get(NonStandardKeys.MESSAGE_DESTINATION).equals("TOPIC")) {
-            omsMsg.putHeaders(MessageHeader.TOPIC, rmqMsg.getTopic());
-        } else {
-            omsMsg.putHeaders(MessageHeader.QUEUE, rmqMsg.getTopic());
-        }
-        omsMsg.putHeaders(MessageHeader.SEARCH_KEY, rmqMsg.getKeys());
-        omsMsg.putHeaders(MessageHeader.BORN_HOST, String.valueOf(rmqMsg.getBornHost()));
-        omsMsg.putHeaders(MessageHeader.BORN_TIMESTAMP, rmqMsg.getBornTimestamp());
-        omsMsg.putHeaders(MessageHeader.STORE_HOST, String.valueOf(rmqMsg.getStoreHost()));
-        omsMsg.putHeaders(MessageHeader.STORE_TIMESTAMP, rmqMsg.getStoreTimestamp());
+        omsMsg.putSysHeaders(BuiltinKeys.MESSAGE_ID, rmqMsg.getMsgId());
+
+        omsMsg.putSysHeaders(BuiltinKeys.DESTINATION, rmqMsg.getTopic());
+
+        omsMsg.putSysHeaders(BuiltinKeys.SEARCH_KEYS, rmqMsg.getKeys());
+        omsMsg.putSysHeaders(BuiltinKeys.BORN_HOST, String.valueOf(rmqMsg.getBornHost()));
+        omsMsg.putSysHeaders(BuiltinKeys.BORN_TIMESTAMP, rmqMsg.getBornTimestamp());
+        omsMsg.putSysHeaders(BuiltinKeys.STORE_HOST, String.valueOf(rmqMsg.getStoreHost()));
+        omsMsg.putSysHeaders(BuiltinKeys.STORE_TIMESTAMP, rmqMsg.getStoreTimestamp());
         return omsMsg;
     }
 
     public static boolean isOMSHeader(String value) {
-        for (Field field : MessageHeader.class.getDeclaredFields()) {
+        for (Field field : BuiltinKeys.class.getDeclaredFields()) {
             try {
-                if (field.get(MessageHeader.class).equals(value)) {
+                if (field.get(BuiltinKeys.class).equals(value)) {
                     return true;
                 }
             } catch (IllegalAccessException e) {

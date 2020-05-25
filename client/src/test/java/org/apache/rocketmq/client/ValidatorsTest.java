@@ -49,12 +49,12 @@ public class ValidatorsTest {
 
     @Test
     public void testCheckTopic_UseDefaultTopic() {
-        String defaultTopic = MixAll.DEFAULT_TOPIC;
+        String defaultTopic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
         try {
             Validators.checkTopic(defaultTopic);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith(String.format("The topic[%s] is conflict with default topic.", defaultTopic));
+            assertThat(e).hasMessageStartingWith(String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", defaultTopic));
         }
     }
 
@@ -71,13 +71,13 @@ public class ValidatorsTest {
 
     @Test
     public void testCheckTopic_TooLongTopic() {
-        String tooLongTopic = StringUtils.rightPad("TooLongTopic", Validators.CHARACTER_MAX_LENGTH + 1, "_");
-        assertThat(tooLongTopic.length()).isGreaterThan(Validators.CHARACTER_MAX_LENGTH);
+        String tooLongTopic = StringUtils.rightPad("TooLongTopic", Validators.TOPIC_MAX_LENGTH + 1, "_");
+        assertThat(tooLongTopic.length()).isGreaterThan(Validators.TOPIC_MAX_LENGTH);
         try {
             Validators.checkTopic(tooLongTopic);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith("The specified topic is longer than topic max length 255.");
+            assertThat(e).hasMessageStartingWith("The specified topic is longer than topic max length");
         }
     }
 }

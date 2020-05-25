@@ -18,13 +18,11 @@ package io.openmessaging.rocketmq.consumer;
 
 import io.openmessaging.BytesMessage;
 import io.openmessaging.Message;
-import io.openmessaging.MessageHeader;
-import io.openmessaging.MessageListener;
+import io.openmessaging.OMSBuiltinKeys;
+import io.openmessaging.consumer.MessageListener;
 import io.openmessaging.MessagingAccessPoint;
-import io.openmessaging.MessagingAccessPointFactory;
 import io.openmessaging.OMS;
-import io.openmessaging.PushConsumer;
-import io.openmessaging.ReceivedMessageContext;
+import io.openmessaging.consumer.PushConsumer;
 import io.openmessaging.rocketmq.domain.NonStandardKeys;
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -49,10 +47,10 @@ public class PushConsumerImplTest {
 
     @Before
     public void init() throws NoSuchFieldException, IllegalAccessException {
-        final MessagingAccessPoint messagingAccessPoint = MessagingAccessPointFactory
-            .getMessagingAccessPoint("openmessaging:rocketmq://IP1:9876,IP2:9876/namespace");
+        final MessagingAccessPoint messagingAccessPoint = OMS
+            .getMessagingAccessPoint("oms:rocketmq://IP1:9876,IP2:9876/namespace");
         consumer = messagingAccessPoint.createPushConsumer(
-            OMS.newKeyValue().put(NonStandardKeys.CONSUMER_GROUP, "TestGroup"));
+            OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "TestGroup"));
 
         Field field = PushConsumerImpl.class.getDeclaredField("rocketmqPushConsumer");
         field.setAccessible(true);
@@ -75,9 +73,9 @@ public class PushConsumerImplTest {
         consumedMsg.setTopic("HELLO_QUEUE");
         consumer.attachQueue("HELLO_QUEUE", new MessageListener() {
             @Override
-            public void onMessage(final Message message, final ReceivedMessageContext context) {
-                assertThat(message.headers().getString(MessageHeader.MESSAGE_ID)).isEqualTo("NewMsgId");
-                assertThat(((BytesMessage) message).getBody()).isEqualTo(testBody);
+            public void onReceived(Message message, Context context) {
+                assertThat(message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID)).isEqualTo("NewMsgId");
+                assertThat(((BytesMessage) message).getBody(byte[].class)).isEqualTo(testBody);
                 context.ack();
             }
         });

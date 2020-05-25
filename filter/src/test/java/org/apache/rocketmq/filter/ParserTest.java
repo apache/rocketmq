@@ -84,14 +84,17 @@ public class ParserTest {
     @Test
     public void testParse_floatOverFlow() {
         try {
-            String str = "1";
-            for (int i = 0; i < 2048; i++) {
-                str += "111111111111111111111111111111111111111111111111111";
+            StringBuffer sb = new StringBuffer(210000);
+            sb.append("1");
+            for (int i = 0; i < 2048; i ++) {
+                sb.append("111111111111111111111111111111111111111111111111111");
             }
-            str += ".";
-            for (int i = 0; i < 2048; i++) {
-                str += "111111111111111111111111111111111111111111111111111";
+            sb.append(".");
+            for (int i = 0; i < 2048; i ++) {
+                sb.append("111111111111111111111111111111111111111111111111111");
             }
+            String str = sb.toString();
+
 
             SelectorParser.parse("a > " + str);
 
