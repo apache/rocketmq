@@ -279,7 +279,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
     private boolean isSystemTopic(RemotingCommand response, String topic) {
         if (this.brokerController.getTopicConfigManager().isSystemTopic(topic)) {
-            String errorMsg = "The topic[" + topic + "] is conflict with system reserved words.";
+            String errorMsg = "The topic[" + topic + "] is conflict with system topic.";
             log.warn(errorMsg);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorMsg);

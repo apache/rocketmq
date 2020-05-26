@@ -43,6 +43,8 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 public class TopicConfigManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
+    private static final int SCHEDULE_TOPIC_QUEUE_NUM = 18;
+
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
 
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
@@ -128,8 +130,8 @@ public class TopicConfigManager extends ConfigManager {
             String topic = MixAll.SCHEDULE_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
             this.systemTopicList.add(topic);
-            topicConfig.setReadQueueNums(18);
-            topicConfig.setWriteQueueNums(18);
+            topicConfig.setReadQueueNums(SCHEDULE_TOPIC_QUEUE_NUM);
+            topicConfig.setWriteQueueNums(SCHEDULE_TOPIC_QUEUE_NUM);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
