@@ -27,6 +27,9 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 
+/**
+ * 消息拉取
+ */
 public class PullMessageService extends ServiceThread {
     private final InternalLogger log = ClientLogger.getLog();
     private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();
@@ -48,6 +51,7 @@ public class PullMessageService extends ServiceThread {
             this.scheduledExecutorService.schedule(new Runnable() {
                 @Override
                 public void run() {
+                    // 延迟放入
                     PullMessageService.this.executePullRequestImmediately(pullRequest);
                 }
             }, timeDelay, TimeUnit.MILLISECONDS);
@@ -58,6 +62,7 @@ public class PullMessageService extends ServiceThread {
 
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         try {
+            // 立即放入
             this.pullRequestQueue.put(pullRequest);
         } catch (InterruptedException e) {
             log.error("executePullRequestImmediately pullRequestQueue.put", e);
@@ -92,6 +97,11 @@ public class PullMessageService extends ServiceThread {
 
         while (!this.isStopped()) {
             try {
+                /**
+                 * 那么pullRequest是什么时候放入的呢？ @see executePullRequestImmediately
+                 */
+
+                // 从LinkedBlockingQueue中拉取pullRequest （如果pullRequestQueue为空，那么线程将阻塞直到有pullRequest放入）
                 PullRequest pullRequest = this.pullRequestQueue.take();
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {

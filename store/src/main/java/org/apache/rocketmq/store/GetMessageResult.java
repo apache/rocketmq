@@ -29,8 +29,17 @@ public class GetMessageResult {
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
 
     private GetMessageStatus status;
+    /**
+     * 待查找的队列的偏移量
+     */
     private long nextBeginOffset;
+    /**
+     * 当前队列最小偏移量
+     */
     private long minOffset;
+    /**
+     * 当前队列最大偏移量
+     */
     private long maxOffset;
 
     private int bufferTotalSize = 0;

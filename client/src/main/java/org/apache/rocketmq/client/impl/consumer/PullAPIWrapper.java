@@ -153,9 +153,11 @@ public class PullAPIWrapper {
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        // 查找Broker信息
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                 this.recalculatePullFromWhichNode(mq), false);
+        // 如果没有找到对应的broker，那么重新从nameServer拉取信息
         if (null == findBrokerResult) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
@@ -210,17 +212,17 @@ public class PullAPIWrapper {
     }
 
     public PullResult pullKernelImpl(
-        final MessageQueue mq,
-        final String subExpression,
-        final long subVersion,
+        final MessageQueue mq, // 消息消费队列
+        final String subExpression, // 消息订阅子模式subscribe( topicName, "模式")
+        final long subVersion,// 版本
         final long offset,
         final int maxNums,
-        final int sysFlag,
-        final long commitOffset,
-        final long brokerSuspendMaxTimeMillis,
-        final long timeoutMillis,
-        final CommunicationMode communicationMode,
-        final PullCallback pullCallback
+        final int sysFlag,// 系统标记，FLAG_COMMIT_OFFSET FLAG_SUSPEND FLAG_SUBSCRIPTION FLAG_CLASS_FILTER
+        final long commitOffset,//  当前消息队列 commitlog日志中当前的最新偏移量（内存中）
+        final long brokerSuspendMaxTimeMillis,// 允许的broker 暂停的时间，毫秒为单位，默认为15s
+        final long timeoutMillis,// 超时时间,默认为30s
+        final CommunicationMode communicationMode,// SYNC ASYNC ONEWAY
+        final PullCallback pullCallback //回调
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return pullKernelImpl(
             mq,
