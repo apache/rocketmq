@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.topic;
+package org.apache.rocketmq.common.topic;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -24,6 +24,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TopicValidator {
+
+    public static final String RMQ_SYS_SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
+    public static final String RMQ_SYS_BENCHMARK_TOPIC = "BenchmarkTest";
+    public static final String RMQ_SYS_TRANS_HALF_TOPIC = "RMQ_SYS_TRANS_HALF_TOPIC";
+    public static final String RMQ_SYS_TRACE_TOPIC = "RMQ_SYS_TRACE_TOPIC";
+    public static final String RMQ_SYS_TRANS_OP_HALF_TOPIC = "RMQ_SYS_TRANS_OP_HALF_TOPIC";
+    public static final String RMQ_SYS_TRANS_CHECK_MAX_TIME_TOPIC = "TRANS_CHECK_MAX_TIME_TOPIC";
+    public static final String RMQ_SYS_SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
+    public static final String RMQ_SYS_OFFSET_MOVED_EVENT = "OFFSET_MOVED_EVENT";
 
     private static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
     private static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);

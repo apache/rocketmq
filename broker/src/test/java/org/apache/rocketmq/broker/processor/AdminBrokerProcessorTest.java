@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResumeCheckHalfMessageRequestHeader;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -83,10 +84,10 @@ public class AdminBrokerProcessorTest {
         adminBrokerProcessor = new AdminBrokerProcessor(brokerController);
 
         systemTopicSet = Sets.newHashSet(
-                MixAll.SELF_TEST_TOPIC,
-                MixAll.BENCHMARK_TOPIC,
-                MixAll.SCHEDULE_TOPIC,
-                MixAll.OFFSET_MOVED_EVENT,
+                TopicValidator.RMQ_SYS_SELF_TEST_TOPIC,
+                TopicValidator.RMQ_SYS_BENCHMARK_TOPIC,
+                TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+                TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT,
                 MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC,
                 this.brokerController.getBrokerConfig().getBrokerClusterName(),
                 this.brokerController.getBrokerConfig().getBrokerName(),
@@ -123,7 +124,7 @@ public class AdminBrokerProcessorTest {
             RemotingCommand request = buildCreateTopicRequest(topic);
             RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
             assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-            assertThat(response.getRemark()).isEqualTo("the topic[" + topic + "] is conflict with system reserved words.");
+            assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
         }
 
         //test validate error topic
@@ -146,7 +147,7 @@ public class AdminBrokerProcessorTest {
             RemotingCommand request = buildDeleteTopicRequest(topic);
             RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
             assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-            assertThat(response.getRemark()).isEqualTo("the topic[" + topic + "] is conflict with system reserved words.");
+            assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
         }
 
         String topic = "TEST_DELETE_TOPIC";

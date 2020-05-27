@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.topic;
 
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Test;
 

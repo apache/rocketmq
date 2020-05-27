@@ -25,7 +25,7 @@ import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
-import org.apache.rocketmq.broker.topic.TopicValidator;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -173,7 +173,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             return response;
         }
 
-        if (MixAll.SCHEDULE_TOPIC.equals(requestHeader.getTopic())) {
+        if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("sending message to topic[" + requestHeader.getTopic() + "] is forbidden");
             return response;
