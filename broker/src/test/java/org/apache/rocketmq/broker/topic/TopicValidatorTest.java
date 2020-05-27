@@ -46,6 +46,11 @@ public class TopicValidatorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
         assertThat(response.getRemark()).contains("The specified topic is longer than topic max length.");
 
+        clearResponse(response);
+        res = TopicValidator.validateTopic(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC, response);
+        assertThat(res).isFalse();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).contains("The topic[" + TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC + "] is conflict with system topic.");
     }
 
     @Test
@@ -56,6 +61,13 @@ public class TopicValidatorTest {
         assertThat(res).isTrue();
         assertThat(response.getCode()).isEqualTo(-1);
         assertThat(response.getRemark()).isEmpty();
+    }
+
+    @Test
+    public void testAddSystemTopic() {
+        String topic = "SYSTEM_TOPIC_TEST";
+        TopicValidator.addSystemTopic(topic);
+        assertThat(TopicValidator.getSystemTopicSet()).contains(topic);
     }
 
     private static void clearResponse(RemotingCommand response) {
