@@ -254,9 +254,6 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         log.info("updateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         String topic = requestHeader.getTopic();
-        if (isSystemTopic(response, topic)) {
-            return response;
-        }
 
         if (!TopicValidator.validateTopic(topic, response)) {
             return response;
@@ -277,17 +274,6 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         return response;
     }
 
-    private boolean isSystemTopic(RemotingCommand response, String topic) {
-        if (this.brokerController.getTopicConfigManager().isSystemTopic(topic)) {
-            String errorMsg = "The topic[" + topic + "] is conflict with system topic.";
-            log.warn(errorMsg);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(errorMsg);
-            return true;
-        }
-        return false;
-    }
-
     private synchronized RemotingCommand deleteTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -297,7 +283,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         log.info("deleteTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         String topic = requestHeader.getTopic();
-        if (isSystemTopic(response, topic)) {
+        if (!TopicValidator.validateTopic(topic, response)) {
             return response;
         }
 
@@ -1118,7 +1104,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        Set<String> topics = this.brokerController.getTopicConfigManager().getSystemTopic();
+        Set<String> topics = TopicValidator.getSystemTopicSet();
         TopicList topicList = new TopicList();
         topicList.setTopicList(topics);
         response.setBody(topicList.encode());

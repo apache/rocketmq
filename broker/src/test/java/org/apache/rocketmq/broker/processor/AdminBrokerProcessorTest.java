@@ -88,7 +88,7 @@ public class AdminBrokerProcessorTest {
                 TopicValidator.RMQ_SYS_BENCHMARK_TOPIC,
                 TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                 TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT,
-                MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC,
+                TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC,
                 this.brokerController.getBrokerConfig().getBrokerClusterName(),
                 this.brokerController.getBrokerConfig().getBrokerName(),
                 this.brokerController.getBrokerConfig().getBrokerClusterName() + "_" + MixAll.REPLY_TOPIC_POSTFIX);

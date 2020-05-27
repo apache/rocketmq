@@ -20,11 +20,14 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TopicValidator {
 
+    public static final String AUTO_CREATE_TOPIC_KEY_TOPIC = "TBW102"; // Will be created at broker when isAutoCreateTopicEnable
     public static final String RMQ_SYS_SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     public static final String RMQ_SYS_BENCHMARK_TOPIC = "BenchmarkTest";
     public static final String RMQ_SYS_TRANS_HALF_TOPIC = "RMQ_SYS_TRANS_HALF_TOPIC";
@@ -34,9 +37,25 @@ public class TopicValidator {
     public static final String RMQ_SYS_SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
     public static final String RMQ_SYS_OFFSET_MOVED_EVENT = "OFFSET_MOVED_EVENT";
 
+    public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
+
     private static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
     private static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
     private static final int TOPIC_MAX_LENGTH = 127;
+
+    private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<String>();
+
+    static {
+        SYSTEM_TOPIC_SET.add(AUTO_CREATE_TOPIC_KEY_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_SYS_SCHEDULE_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_SYS_BENCHMARK_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_SYS_TRANS_HALF_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_SYS_TRACE_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_SYS_TRANS_OP_HALF_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_SYS_TRANS_CHECK_MAX_TIME_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_SYS_SELF_TEST_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_SYS_OFFSET_MOVED_EVENT);
+    }
 
     private static boolean regularExpressionMatcher(String origin, Pattern pattern) {
         if (pattern == null) {
@@ -66,6 +85,24 @@ public class TopicValidator {
             return false;
         }
 
+        if (isSystemTopic(topic)) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The topic[" + topic + "] is conflict with system topic.");
+            return false;
+        }
+
         return true;
+    }
+
+    public static boolean isSystemTopic(String topic) {
+        return SYSTEM_TOPIC_SET.contains(topic) || topic.startsWith(SYSTEM_TOPIC_PREFIX);
+    }
+
+    public static void addSystemTopic(String systemTopic) {
+        SYSTEM_TOPIC_SET.add(systemTopic);
+    }
+
+    public static Set<String> getSystemTopicSet() {
+        return SYSTEM_TOPIC_SET;
     }
 }

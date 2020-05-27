@@ -19,7 +19,7 @@ package org.apache.rocketmq.client;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,12 +49,12 @@ public class ValidatorsTest {
 
     @Test
     public void testCheckTopic_UseDefaultTopic() {
-        String defaultTopic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
+        String defaultTopic = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
         try {
             Validators.checkTopic(defaultTopic);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith(String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", defaultTopic));
+            assertThat(e).hasMessageStartingWith(String.format("The topic[%s] is conflict with system topic.", defaultTopic));
         }
     }
 

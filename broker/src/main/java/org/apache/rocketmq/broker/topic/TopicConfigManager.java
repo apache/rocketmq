@@ -51,7 +51,6 @@ public class TopicConfigManager extends ConfigManager {
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
         new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
-    private final Set<String> systemTopicList = new HashSet<String>();
     private transient BrokerController brokerController;
 
     public TopicConfigManager() {
@@ -62,17 +61,16 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = TopicValidator.RMQ_SYS_SELF_TEST_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
-            this.systemTopicList.add(topic);
+            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
-            // MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
-                String topic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
+                String topic = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
                 TopicConfig topicConfig = new TopicConfig(topic);
-                this.systemTopicList.add(topic);
+                TopicValidator.addSystemTopic(topic);
                 topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig()
                     .getDefaultTopicQueueNums());
                 topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig()
@@ -85,7 +83,7 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = TopicValidator.RMQ_SYS_BENCHMARK_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
-            this.systemTopicList.add(topic);
+            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1024);
             topicConfig.setWriteQueueNums(1024);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -94,7 +92,7 @@ public class TopicConfigManager extends ConfigManager {
 
             String topic = this.brokerController.getBrokerConfig().getBrokerClusterName();
             TopicConfig topicConfig = new TopicConfig(topic);
-            this.systemTopicList.add(topic);
+            TopicValidator.addSystemTopic(topic);
             int perm = PermName.PERM_INHERIT;
             if (this.brokerController.getBrokerConfig().isClusterTopicEnable()) {
                 perm |= PermName.PERM_READ | PermName.PERM_WRITE;
@@ -106,7 +104,7 @@ public class TopicConfigManager extends ConfigManager {
 
             String topic = this.brokerController.getBrokerConfig().getBrokerName();
             TopicConfig topicConfig = new TopicConfig(topic);
-            this.systemTopicList.add(topic);
+            TopicValidator.addSystemTopic(topic);
             int perm = PermName.PERM_INHERIT;
             if (this.brokerController.getBrokerConfig().isBrokerTopicEnable()) {
                 perm |= PermName.PERM_READ | PermName.PERM_WRITE;
@@ -119,7 +117,7 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT;
             TopicConfig topicConfig = new TopicConfig(topic);
-            this.systemTopicList.add(topic);
+            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -127,7 +125,7 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
-            this.systemTopicList.add(topic);
+            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(SCHEDULE_TOPIC_QUEUE_NUM);
             topicConfig.setWriteQueueNums(SCHEDULE_TOPIC_QUEUE_NUM);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -136,7 +134,7 @@ public class TopicConfigManager extends ConfigManager {
             if (this.brokerController.getBrokerConfig().isTraceTopicEnable()) {
                 String topic = this.brokerController.getBrokerConfig().getMsgTraceTopicName();
                 TopicConfig topicConfig = new TopicConfig(topic);
-                this.systemTopicList.add(topic);
+                TopicValidator.addSystemTopic(topic);
                 topicConfig.setReadQueueNums(1);
                 topicConfig.setWriteQueueNums(1);
                 this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
@@ -145,19 +143,11 @@ public class TopicConfigManager extends ConfigManager {
         {
             String topic = this.brokerController.getBrokerConfig().getBrokerClusterName() + "_" + MixAll.REPLY_TOPIC_POSTFIX;
             TopicConfig topicConfig = new TopicConfig(topic);
-            this.systemTopicList.add(topic);
+            TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
-    }
-
-    public boolean isSystemTopic(final String topic) {
-        return this.systemTopicList.contains(topic);
-    }
-
-    public Set<String> getSystemTopic() {
-        return this.systemTopicList;
     }
 
     public TopicConfig selectTopicConfig(final String topic) {
@@ -178,7 +168,7 @@ public class TopicConfigManager extends ConfigManager {
 
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
-                        if (defaultTopic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
+                        if (defaultTopic.equals(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                             if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                                 defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
                             }

@@ -21,10 +21,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.topic.TopicValidator;
 
 /**
  * Common Validator
@@ -117,10 +117,9 @@ public class Validators {
                 String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
         }
 
-        //whether the same with system reserved keyword
-        if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
+        if (TopicValidator.isSystemTopic(topic)) {
             throw new MQClientException(
-                String.format("The topic[%s] is conflict with AUTO_CREATE_TOPIC_KEY_TOPIC.", topic), null);
+                String.format("The topic[%s] is conflict with system topic.", topic), null);
         }
     }
 
