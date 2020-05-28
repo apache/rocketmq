@@ -24,6 +24,10 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
+ * 平均分配队列策略算法：
+ * 1.如果消费者的个数可以除尽队列的个数，那么就完全平均分。
+ * 2.如果不能除尽。那么靠前的消费者多消费一个队列，靠后的消费平均数个队列。
+ * 3.如果消费者的个数大于队列的个数，那么靠前的消费者消费一个队列，后面的不消费。
  * Average Hashing queue algorithm
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {

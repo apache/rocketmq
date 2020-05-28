@@ -612,7 +612,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 // 构建消费队列平衡（负载均衡）
                 this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
                 this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
-                // 队列默认分配算法   默认平均hash队列算法，建议不要使用默认的算法
+                // 队列默认分配算法   默认平均分配算法
                 this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy());
                 this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
 
