@@ -157,7 +157,7 @@ public class PullAPIWrapper {
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                 this.recalculatePullFromWhichNode(mq), false);
-        // 如果没有找到对应的broker，那么重新从nameServer拉取信息
+        // 16.如果没有找到对应的broker，那么重新从nameServer拉取信息
         if (null == findBrokerResult) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
