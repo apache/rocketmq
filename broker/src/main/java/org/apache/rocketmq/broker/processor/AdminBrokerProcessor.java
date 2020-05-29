@@ -258,6 +258,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (!TopicValidator.validateTopic(topic, response)) {
             return response;
         }
+        if (!TopicValidator.validateSystemTopic(topic, response)) {
+            return response;
+        }
 
         TopicConfig topicConfig = new TopicConfig(topic);
         topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
@@ -284,6 +287,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         String topic = requestHeader.getTopic();
         if (!TopicValidator.validateTopic(topic, response)) {
+            return response;
+        }
+        if (!TopicValidator.validateSystemTopic(topic, response)) {
             return response;
         }
 

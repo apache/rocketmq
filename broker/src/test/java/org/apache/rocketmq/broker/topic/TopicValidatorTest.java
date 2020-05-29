@@ -45,12 +45,6 @@ public class TopicValidatorTest {
         assertThat(res).isFalse();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
         assertThat(response.getRemark()).contains("The specified topic is longer than topic max length.");
-
-        clearResponse(response);
-        res = TopicValidator.validateTopic(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC, response);
-        assertThat(res).isFalse();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).contains("The topic[" + TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC + "] is conflict with system topic.");
     }
 
     @Test
@@ -68,6 +62,62 @@ public class TopicValidatorTest {
         String topic = "SYSTEM_TOPIC_TEST";
         TopicValidator.addSystemTopic(topic);
         assertThat(TopicValidator.getSystemTopicSet()).contains(topic);
+    }
+
+    @Test
+    public void testValidateSystemTopic() {
+        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
+
+        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
+        Boolean res = TopicValidator.validateSystemTopic(topic, response);
+        assertThat(res).isFalse();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
+
+        topic = "test_topic";
+        res = TopicValidator.validateSystemTopic(topic, response);
+        assertThat(res).isTrue();
+    }
+
+    @Test
+    public void testValidateBlacklistTopic() {
+        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
+
+        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
+        Boolean res = TopicValidator.validateBlacklistTopic(topic, response);
+        assertThat(res).isFalse();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).isEqualTo("Sending message to topic[" + topic + "] is forbidden.");
+
+        topic = "test_topic";
+        res = TopicValidator.validateBlacklistTopic(topic, response);
+        assertThat(res).isTrue();
+    }
+
+    @Test
+    public void testIsSystemTopic() {
+        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
+        boolean res = TopicValidator.isSystemTopic(topic);
+        assertThat(res).isTrue();
+
+        topic = "rmq_sys_test";
+        res = TopicValidator.isSystemTopic(topic);
+        assertThat(res).isTrue();
+
+        topic = "test_topic";
+        res = TopicValidator.isSystemTopic(topic);
+        assertThat(res).isFalse();
+    }
+
+    @Test
+    public void testIsBlacklistTopic() {
+        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
+        boolean res = TopicValidator.isSystemTopic(topic);
+        assertThat(res).isTrue();
+
+        topic = "test_topic";
+        res = TopicValidator.isSystemTopic(topic);
+        assertThat(res).isFalse();
     }
 
     private static void clearResponse(RemotingCommand response) {

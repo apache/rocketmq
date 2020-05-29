@@ -173,13 +173,10 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             return response;
         }
 
-        if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(requestHeader.getTopic())) {
-            response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark("sending message to topic[" + requestHeader.getTopic() + "] is forbidden");
+        if (!TopicValidator.validateTopic(requestHeader.getTopic(), response)) {
             return response;
         }
-
-        if (!TopicValidator.validateTopic(requestHeader.getTopic(), response)) {
+        if (!TopicValidator.validateBlacklistTopic(requestHeader.getTopic(), response)) {
             return response;
         }
 
