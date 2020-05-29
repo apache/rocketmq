@@ -85,6 +85,7 @@ public class Validators {
         }
         // topic
         Validators.checkTopic(msg.getTopic());
+        Validators.checkBlacklistTopic(msg.getTopic());
 
         // body
         if (null == msg.getBody()) {
@@ -116,10 +117,19 @@ public class Validators {
             throw new MQClientException(
                 String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
         }
+    }
 
+    public static void checkSystemTopic(String topic) throws MQClientException {
         if (TopicValidator.isSystemTopic(topic)) {
             throw new MQClientException(
-                String.format("The topic[%s] is conflict with system topic.", topic), null);
+                    String.format("The topic[%s] is conflict with system topic.", topic), null);
+        }
+    }
+
+    public static void checkBlacklistTopic(String topic) throws MQClientException {
+        if (TopicValidator.isBlacklistTopic(topic)) {
+            throw new MQClientException(
+                    String.format("Sending message to topic[%s] is forbidden.", topic), null);
         }
     }
 

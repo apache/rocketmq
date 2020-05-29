@@ -45,6 +45,11 @@ public class TopicValidator {
 
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<String>();
 
+    /**
+     * Topics'set which client can not send msg!
+     */
+    private static final Set<String> CLIENT_BLACKLIST_TOPIC_SET = new HashSet<String>();
+
     static {
         SYSTEM_TOPIC_SET.add(AUTO_CREATE_TOPIC_KEY_TOPIC);
         SYSTEM_TOPIC_SET.add(RMQ_SYS_SCHEDULE_TOPIC);
@@ -55,6 +60,8 @@ public class TopicValidator {
         SYSTEM_TOPIC_SET.add(RMQ_SYS_TRANS_CHECK_MAX_TIME_TOPIC);
         SYSTEM_TOPIC_SET.add(RMQ_SYS_SELF_TEST_TOPIC);
         SYSTEM_TOPIC_SET.add(RMQ_SYS_OFFSET_MOVED_EVENT);
+
+        CLIENT_BLACKLIST_TOPIC_SET.add(RMQ_SYS_SCHEDULE_TOPIC);
     }
 
     private static boolean regularExpressionMatcher(String origin, Pattern pattern) {
@@ -85,17 +92,33 @@ public class TopicValidator {
             return false;
         }
 
+        return true;
+    }
+
+    public static boolean validateSystemTopic(String topic, RemotingCommand response) {
         if (isSystemTopic(topic)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("The topic[" + topic + "] is conflict with system topic.");
             return false;
         }
-
         return true;
     }
 
     public static boolean isSystemTopic(String topic) {
         return SYSTEM_TOPIC_SET.contains(topic) || topic.startsWith(SYSTEM_TOPIC_PREFIX);
+    }
+
+    public static boolean isBlacklistTopic(String topic) {
+        return CLIENT_BLACKLIST_TOPIC_SET.contains(topic);
+    }
+
+    public static boolean validateBlacklistTopic(String topic, RemotingCommand response) {
+        if (isBlacklistTopic(topic)) {
+            response.setCode(ResponseCode.NO_PERMISSION);
+            response.setRemark("Sending message to topic[" + topic + "] is forbidden.");
+            return false;
+        }
+        return true;
     }
 
     public static void addSystemTopic(String systemTopic) {
