@@ -258,7 +258,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (!TopicValidator.validateTopic(topic, response)) {
             return response;
         }
-        if (!TopicValidator.validateSystemTopic(topic, response)) {
+        if (TopicValidator.isSystemTopic(topic, response)) {
             return response;
         }
 
@@ -289,7 +289,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (!TopicValidator.validateTopic(topic, response)) {
             return response;
         }
-        if (!TopicValidator.validateSystemTopic(topic, response)) {
+        if (TopicValidator.isSystemTopic(topic, response)) {
             return response;
         }
 

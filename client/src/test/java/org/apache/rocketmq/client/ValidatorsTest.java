@@ -72,26 +72,28 @@ public class ValidatorsTest {
     }
 
     @Test
-    public void testCheckSystemTopic() {
-        String topic = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
-        try {
-            Validators.checkSystemTopic(topic);
-            fail("excepted MQClientException for system topic");
-        } catch (MQClientException e) {
-            assertThat(e.getResponseCode()).isEqualTo(-1);
-            assertThat(e.getErrorMessage()).isEqualTo(String.format("The topic[%s] is conflict with system topic.", topic));
+    public void testIsSystemTopic() {
+        for (String topic : TopicValidator.getSystemTopicSet()) {
+            try {
+                Validators.isSystemTopic(topic);
+                fail("excepted MQClientException for system topic");
+            } catch (MQClientException e) {
+                assertThat(e.getResponseCode()).isEqualTo(-1);
+                assertThat(e.getErrorMessage()).isEqualTo(String.format("The topic[%s] is conflict with system topic.", topic));
+            }
         }
     }
 
     @Test
-    public void testCheckBlacklistTopic() {
-        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-        try {
-            Validators.checkBlacklistTopic(topic);
-            fail("excepted MQClientException for blacklist topic");
-        } catch (MQClientException e) {
-            assertThat(e.getResponseCode()).isEqualTo(-1);
-            assertThat(e.getErrorMessage()).isEqualTo(String.format("Sending message to topic[%s] is forbidden.", topic));
+    public void testIsNotAllowedSendTopic() {
+        for (String topic : TopicValidator.getNotAllowedSendTopicSet()) {
+            try {
+                Validators.isNotAllowedSendTopic(topic);
+                fail("excepted MQClientException for blacklist topic");
+            } catch (MQClientException e) {
+                assertThat(e.getResponseCode()).isEqualTo(-1);
+                assertThat(e.getErrorMessage()).isEqualTo(String.format("Sending message to topic[%s] is forbidden.", topic));
+            }
         }
     }
 }

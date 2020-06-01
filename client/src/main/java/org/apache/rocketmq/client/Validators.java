@@ -85,7 +85,7 @@ public class Validators {
         }
         // topic
         Validators.checkTopic(msg.getTopic());
-        Validators.checkBlacklistTopic(msg.getTopic());
+        Validators.isNotAllowedSendTopic(msg.getTopic());
 
         // body
         if (null == msg.getBody()) {
@@ -119,15 +119,15 @@ public class Validators {
         }
     }
 
-    public static void checkSystemTopic(String topic) throws MQClientException {
+    public static void isSystemTopic(String topic) throws MQClientException {
         if (TopicValidator.isSystemTopic(topic)) {
             throw new MQClientException(
                     String.format("The topic[%s] is conflict with system topic.", topic), null);
         }
     }
 
-    public static void checkBlacklistTopic(String topic) throws MQClientException {
-        if (TopicValidator.isBlacklistTopic(topic)) {
+    public static void isNotAllowedSendTopic(String topic) throws MQClientException {
+        if (TopicValidator.isNotAllowedSendTopic(topic)) {
             throw new MQClientException(
                     String.format("Sending message to topic[%s] is forbidden.", topic), null);
         }

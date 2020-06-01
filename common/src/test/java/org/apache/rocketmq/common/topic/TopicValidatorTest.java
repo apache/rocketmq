@@ -13,8 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
-package org.apache.rocketmq.broker.topic;
+ */
+package org.apache.rocketmq.common.topic;
 
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
@@ -65,58 +65,65 @@ public class TopicValidatorTest {
     }
 
     @Test
-    public void testValidateSystemTopic() {
-        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
-
-        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-        Boolean res = TopicValidator.validateSystemTopic(topic, response);
-        assertThat(res).isFalse();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
-
-        topic = "test_topic";
-        res = TopicValidator.validateSystemTopic(topic, response);
-        assertThat(res).isTrue();
-    }
-
-    @Test
-    public void testValidateBlacklistTopic() {
-        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
-
-        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-        Boolean res = TopicValidator.validateBlacklistTopic(topic, response);
-        assertThat(res).isFalse();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).isEqualTo("Sending message to topic[" + topic + "] is forbidden.");
-
-        topic = "test_topic";
-        res = TopicValidator.validateBlacklistTopic(topic, response);
-        assertThat(res).isTrue();
-    }
-
-    @Test
     public void testIsSystemTopic() {
-        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-        boolean res = TopicValidator.isSystemTopic(topic);
-        assertThat(res).isTrue();
+        boolean res;
+        for (String topic : TopicValidator.getSystemTopicSet()) {
+            res = TopicValidator.isSystemTopic(topic);
+            assertThat(res).isTrue();
+        }
 
-        topic = "rmq_sys_test";
+        String topic = TopicValidator.SYSTEM_TOPIC_PREFIX + "_test";
         res = TopicValidator.isSystemTopic(topic);
         assertThat(res).isTrue();
 
-        topic = "test_topic";
+        topic = "test_not_system_topic";
         res = TopicValidator.isSystemTopic(topic);
         assertThat(res).isFalse();
     }
 
     @Test
-    public void testIsBlacklistTopic() {
-        String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-        boolean res = TopicValidator.isSystemTopic(topic);
-        assertThat(res).isTrue();
+    public void testIsSystemTopicWithResponse() {
+        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
+        boolean res;
+        for (String topic : TopicValidator.getSystemTopicSet()) {
+            res = TopicValidator.isSystemTopic(topic, response);
+            assertThat(res).isTrue();
+            assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+            assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
+        }
 
-        topic = "test_topic";
-        res = TopicValidator.isSystemTopic(topic);
+        String topic = "test_not_system_topic";
+        res = TopicValidator.isSystemTopic(topic, response);
+        assertThat(res).isFalse();
+    }
+
+    @Test
+    public void testIsNotAllowedSendTopic() {
+        boolean res;
+        for (String topic : TopicValidator.getNotAllowedSendTopicSet()) {
+            res = TopicValidator.isNotAllowedSendTopic(topic);
+            assertThat(res).isTrue();
+        }
+
+        String topic = "test_allowed_send_topic";
+        res = TopicValidator.isNotAllowedSendTopic(topic);
+        assertThat(res).isFalse();
+    }
+
+    @Test
+    public void testIsNotAllowedSendTopicWithResponse() {
+        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
+
+        boolean res;
+        for (String topic : TopicValidator.getNotAllowedSendTopicSet()) {
+            res = TopicValidator.isNotAllowedSendTopic(topic, response);
+            assertThat(res).isTrue();
+            assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+            assertThat(response.getRemark()).isEqualTo("Sending message to topic[" + topic + "] is forbidden.");
+        }
+
+        String topic = "test_allowed_send_topic";
+        res = TopicValidator.isNotAllowedSendTopic(topic, response);
         assertThat(res).isFalse();
     }
 

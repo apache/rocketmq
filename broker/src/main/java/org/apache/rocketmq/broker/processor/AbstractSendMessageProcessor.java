@@ -176,7 +176,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         if (!TopicValidator.validateTopic(requestHeader.getTopic(), response)) {
             return response;
         }
-        if (!TopicValidator.validateBlacklistTopic(requestHeader.getTopic(), response)) {
+        if (TopicValidator.isNotAllowedSendTopic(requestHeader.getTopic(), response)) {
             return response;
         }
 
