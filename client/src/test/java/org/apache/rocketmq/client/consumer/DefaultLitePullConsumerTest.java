@@ -305,6 +305,30 @@ public class DefaultLitePullConsumerTest {
     }
 
     @Test
+    public void testPullTaskImpl_ProcessQueueDropped() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            Field field = DefaultLitePullConsumer.class.getDeclaredField("defaultLitePullConsumerImpl");
+            field.setAccessible(true);
+            // set ProcessQueue dropped = true
+            DefaultLitePullConsumerImpl localLitePullConsumerImpl = (DefaultLitePullConsumerImpl) field.get(litePullConsumer);
+            field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
+            field.setAccessible(true);
+            AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(localLitePullConsumerImpl);
+            assignedMessageQueue.getProcessQueue(messageQueue).setDropped(true);
+
+            litePullConsumer.start();
+
+            List<MessageExt> result = litePullConsumer.poll(100);
+            assertThat(result.isEmpty()).isTrue();
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
     public void testRegisterTopicMessageQueueChangeListener_Success() throws Exception {
         flag = false;
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
