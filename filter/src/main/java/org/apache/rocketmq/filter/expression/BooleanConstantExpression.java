@@ -14,22 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.consumer.listener;
 
-import java.util.List;
-import org.apache.rocketmq.common.message.MessageExt;
+package org.apache.rocketmq.filter.expression;
 
 /**
- * A MessageListenerOrderly object is used to receive messages orderly. One queue by one thread
+ * BooleanConstantExpression
  */
-public interface MessageListenerOrderly extends MessageListener {
-    /**
-     * It is not recommend to throw exception,rather than returning ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT
-     * if consumption failure
-     *
-     * @param msgs msgs.size() >= 1<br> DefaultMQPushConsumer.consumeMessageBatchMaxSize=1,you can modify here
-     * @return The consume status
-     */
-    ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-        final ConsumeOrderlyContext context);
+public class BooleanConstantExpression extends ConstantExpression implements BooleanExpression {
+
+    public static final BooleanConstantExpression NULL = new BooleanConstantExpression(null);
+    public static final BooleanConstantExpression TRUE = new BooleanConstantExpression(Boolean.TRUE);
+    public static final BooleanConstantExpression FALSE = new BooleanConstantExpression(Boolean.FALSE);
+
+    public BooleanConstantExpression(Object value) {
+        super(value);
+    }
+
+    public boolean matches(EvaluationContext context) throws Exception {
+        Object object = evaluate(context);
+        return object != null && object == Boolean.TRUE;
+    }
 }
