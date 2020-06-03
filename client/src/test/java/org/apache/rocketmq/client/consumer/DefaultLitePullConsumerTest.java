@@ -318,7 +318,6 @@ public class DefaultLitePullConsumerTest {
             field.setAccessible(true);
             AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(localLitePullConsumerImpl);
             assignedMessageQueue.getProcessQueue(messageQueue).setDropped(true);
-
             litePullConsumer.start();
 
             List<MessageExt> result = litePullConsumer.poll(100);
