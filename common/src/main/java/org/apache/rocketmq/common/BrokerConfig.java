@@ -184,6 +184,8 @@ public class BrokerConfig {
 
     private boolean storeReplyMessageEnable = true;
 
+    private boolean autoDeleteUnusedStats = false;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -792,5 +794,13 @@ public class BrokerConfig {
 
     public void setStoreReplyMessageEnable(boolean storeReplyMessageEnable) {
         this.storeReplyMessageEnable = storeReplyMessageEnable;
+    }
+
+    public boolean isAutoDeleteUnusedStats() {
+        return autoDeleteUnusedStats;
+    }
+
+    public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
+        this.autoDeleteUnusedStats = autoDeleteUnusedStats;
     }
 }
