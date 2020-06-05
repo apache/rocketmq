@@ -14,15 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace;
 
-import org.apache.rocketmq.common.topic.TopicValidator;
+package org.apache.rocketmq.filter.expression;
 
-public class TraceConstants {
+/**
+ * BooleanConstantExpression
+ */
+public class BooleanConstantExpression extends ConstantExpression implements BooleanExpression {
 
-    public static final String GROUP_NAME_PREFIX = "_INNER_TRACE_PRODUCER";
-    public static final char CONTENT_SPLITOR = (char) 1;
-    public static final char FIELD_SPLITOR = (char) 2;
-    public static final String TRACE_INSTANCE_NAME = "PID_CLIENT_INNER_TRACE_PRODUCER";
-    public static final String TRACE_TOPIC_PREFIX = TopicValidator.SYSTEM_TOPIC_PREFIX + "TRACE_DATA_";
+    public static final BooleanConstantExpression NULL = new BooleanConstantExpression(null);
+    public static final BooleanConstantExpression TRUE = new BooleanConstantExpression(Boolean.TRUE);
+    public static final BooleanConstantExpression FALSE = new BooleanConstantExpression(Boolean.FALSE);
+
+    public BooleanConstantExpression(Object value) {
+        super(value);
+    }
+
+    public boolean matches(EvaluationContext context) throws Exception {
+        Object object = evaluate(context);
+        return object != null && object == Boolean.TRUE;
+    }
 }

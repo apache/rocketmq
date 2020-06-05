@@ -258,7 +258,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
-
+                this.timer.cancel();
                 log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 break;
@@ -421,6 +421,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         this.makeSureStateOK();
         Validators.checkTopic(newTopic);
+        Validators.isSystemTopic(newTopic);
 
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
     }

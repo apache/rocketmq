@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -52,7 +53,7 @@ public class BrokerConfig {
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
     @ImportantField
-    private String msgTraceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
+    private String msgTraceTopicName = TopicValidator.RMQ_SYS_TRACE_TOPIC;
     @ImportantField
     private boolean traceTopicEnable = false;
     /**
@@ -183,6 +184,8 @@ public class BrokerConfig {
     private boolean aclEnable = false;
 
     private boolean storeReplyMessageEnable = true;
+
+    private boolean autoDeleteUnusedStats = false;
 
     public static String localHostName() {
         try {
@@ -792,5 +795,13 @@ public class BrokerConfig {
 
     public void setStoreReplyMessageEnable(boolean storeReplyMessageEnable) {
         this.storeReplyMessageEnable = storeReplyMessageEnable;
+    }
+
+    public boolean isAutoDeleteUnusedStats() {
+        return autoDeleteUnusedStats;
+    }
+
+    public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
+        this.autoDeleteUnusedStats = autoDeleteUnusedStats;
     }
 }

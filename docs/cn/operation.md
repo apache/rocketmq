@@ -1161,7 +1161,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=3 height=119 class=xl69 width=87 style='border-bottom:1.0pt
-  height:89.0pt;border-top:none;width:65pt'>consumerConnec tion</td>
+  height:89.0pt;border-top:none;width:65pt'>consumerConnection</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>查询 Consumer 的网络连接</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1177,7 +1177,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=142 class=xl69 width=87 style='border-bottom:1.0pt
-  height:106.0pt;border-top:none;width:65pt'>producerConnec tion</td>
+  height:106.0pt;border-top:none;width:65pt'>producerConnection</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>查询 Producer 的网络连接</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>

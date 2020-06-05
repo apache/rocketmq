@@ -226,7 +226,6 @@ public abstract class NettyRemotingAbstract {
                         } else {
                             NettyRequestProcessor processor = pair.getObject1();
                             RemotingCommand response = processor.processRequest(ctx, cmd);
-                            doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
                             callback.callback(response);
                         }
                     } catch (Throwable e) {
