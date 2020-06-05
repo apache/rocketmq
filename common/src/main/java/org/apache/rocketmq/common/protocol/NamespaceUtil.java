@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.protocol;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.topic.TopicValidator;
 
 public class NamespaceUtil {
     public static final char NAMESPACE_SEPARATOR = '%';
@@ -155,11 +156,11 @@ public class NamespaceUtil {
             return false;
         }
 
-        if (MixAll.isSystemTopic(resource) || MixAll.isSysConsumerGroup(resource)) {
+        if (TopicValidator.isSystemTopic(resource) || MixAll.isSysConsumerGroup(resource)) {
             return true;
         }
 
-        return MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC.equals(resource);
+        return false;
     }
 
     public static boolean isRetryTopic(String resource) {
