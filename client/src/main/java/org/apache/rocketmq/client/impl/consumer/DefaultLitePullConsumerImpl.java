@@ -691,7 +691,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
 
-                if (processQueue == null && processQueue.isDropped()) {
+                if (null == processQueue || processQueue.isDropped()) {
                     log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), this.messageQueue);
                     return;
                 }
