@@ -158,6 +158,43 @@ public class StatsItemSet {
         statsItem.getTimes().addAndGet(incTimes);
     }
 
+    public void delValue(final String statsKey) {
+        StatsItem statsItem = this.statsItemTable.get(statsKey);
+        if (null != statsItem) {
+            this.statsItemTable.remove(statsKey);
+        }
+    }
+
+    public void delValueByPrefixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().startsWith(statsKey + separator)) {
+                it.remove();
+            }
+        }
+    }
+
+    public void delValueByInfixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().contains(separator + statsKey + separator)) {
+                it.remove();
+            }
+        }
+    }
+
+    public void delValueBySuffixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().endsWith(separator + statsKey)) {
+                it.remove();
+            }
+        }
+    }
+
     public StatsItem getAndCreateStatsItem(final String statsKey) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
