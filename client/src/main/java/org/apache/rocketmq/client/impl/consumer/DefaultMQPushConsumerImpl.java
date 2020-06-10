@@ -544,7 +544,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public void shutdown(long awaitTerminateMillis) {
+    public void shutdown() {
+        shutdown(0);
+    }
+
+    public synchronized void shutdown(long awaitTerminateMillis) {
         switch (this.serviceState) {
             case CREATE_JUST:
                 break;
