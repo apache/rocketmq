@@ -544,12 +544,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public synchronized void shutdown() {
+    public void shutdown(long awaitTerminateMillis) {
         switch (this.serviceState) {
             case CREATE_JUST:
                 break;
             case RUNNING:
-                this.consumeMessageService.shutdown();
+                this.consumeMessageService.shutdown(awaitTerminateMillis);
                 this.persistConsumerOffset();
                 this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
                 this.mQClientFactory.shutdown();
@@ -623,7 +623,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
-                    this.consumeMessageService.shutdown();
+                    this.consumeMessageService.shutdown(defaultMQPushConsumer.getAwaitTerminationMillisWhenShutdown());
                     throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
                         + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
                         null);
