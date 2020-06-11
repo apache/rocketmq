@@ -90,17 +90,17 @@ public class NamespaceUtil {
         }
 
         String resourceWithoutRetryAndDLQ = withOutRetryAndDLQ(resourceWithOutNamespace);
-        StringBuffer strBuffer = new StringBuffer();
+        StringBuilder stringBuilder = new StringBuilder();
 
         if (isRetryTopic(resourceWithOutNamespace)) {
-            strBuffer.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+            stringBuilder.append(MixAll.RETRY_GROUP_TOPIC_PREFIX);
         }
 
         if (isDLQTopic(resourceWithOutNamespace)) {
-            strBuffer.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
+            stringBuilder.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
         }
 
-        return strBuffer.append(namespace).append(NAMESPACE_SEPARATOR).append(resourceWithoutRetryAndDLQ).toString();
+        return stringBuilder.append(namespace).append(NAMESPACE_SEPARATOR).append(resourceWithoutRetryAndDLQ).toString();
 
     }
 
