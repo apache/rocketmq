@@ -81,8 +81,7 @@ public class PullRequest {
         } else if (!consumerGroup.equals(other.consumerGroup))
             return false;
         if (messageQueue == null) {
-            if (other.messageQueue != null)
-                return false;
+            return other.messageQueue == null;
         } else if (!messageQueue.equals(other.messageQueue))
             return false;
         return true;
