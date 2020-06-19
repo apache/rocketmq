@@ -16,14 +16,6 @@
  */
 package org.apache.rocketmq.acl.plain;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
@@ -31,8 +23,21 @@ import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SuppressWarnings("unchecked")
 public class PlainPermissionManagerTest {
 
     PlainPermissionManager plainPermissionManager;
@@ -44,8 +49,13 @@ public class PlainPermissionManagerTest {
     PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
     Set<Integer> adminCode = new HashSet<>();
 
+    @BeforeClass
+    public static void initBeforeClass() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+    }
+
     @Before
-    public void init() throws NoSuchFieldException, SecurityException, IOException {
+    public void init() throws Exception {
         // UPDATE_AND_CREATE_TOPIC
         adminCode.add(17);
         // UPDATE_BROKER_CONFIG
@@ -63,11 +73,80 @@ public class PlainPermissionManagerTest {
         DENYPlainAccessResource = clonePlainAccessResource(Permission.DENY);
 
         System.setProperty("rocketmq.home.dir", "src/test/resources");
-        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
-        
+
         plainPermissionManager = new PlainPermissionManager();
+    }
+
+    @Test
+    public void testLoad() throws Exception {
+        Field field = PlainPermissionManager.class.getDeclaredField("globalWhiteRemoteAddressStrategy");
+        field.setAccessible(true);
+        Map<String, RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = (Map<String, RemoteAddressStrategy>) field.get(plainPermissionManager);
+        assertThat(globalWhiteRemoteAddressStrategy.size()).isEqualTo(3);
+        assertThat(globalWhiteRemoteAddressStrategy.keySet()).containsExactlyInAnyOrder("1.1.1.1", "1.1.1.2", "1.1.2.*");
+
+        field = PlainPermissionManager.class.getDeclaredField("akFilepathMap");
+        field.setAccessible(true);
+        Map<String, String> akFilepathMap = (Map<String, String>) field.get(plainPermissionManager);
+        assertThat(akFilepathMap.entrySet().size()).isEqualTo(2);
+        for (Map.Entry<String, String> entry : akFilepathMap.entrySet()) {
+            String ak = entry.getKey();
+            String filepath = entry.getValue();
+            switch (ak) {
+                case "RocketMQ":
+                    assertThat(new File(filepath).getName()).isEqualTo("plain_acl_default.yml");
+                    break;
+                case "rocketmq2_acl_ak":
+                    assertThat(new File(filepath).getName()).isEqualTo("plain_acl_rocketmq2.yml");
+                    break;
+            }
+        }
+
+        field = PlainPermissionManager.class.getDeclaredField("plainAccessResourceMap");
+        field.setAccessible(true);
+        Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) field.get(plainPermissionManager);
+        assertThat(plainAccessResourceMap.entrySet().size()).isEqualTo(2);
+        for (Map.Entry<String, PlainAccessResource> entry : plainAccessResourceMap.entrySet()) {
+            String ak = entry.getKey();
+            PlainAccessResource par = entry.getValue();
+            assertThat(par.getAccessKey()).isEqualTo(ak);
+            switch (ak) {
+                case "RocketMQ":
+                    assertThat(par.getSecretKey()).isEqualTo("12345678");
+                    assertThat(par.getWhiteRemoteAddress()).isEqualTo("192.168.0.*");
+                    assertThat(par.isAdmin()).isFalse();
+                    assertThat(par.getDefaultTopicPerm()).isEqualTo(Permission.DENY);
+                    assertThat(par.getDefaultGroupPerm()).isEqualTo(Permission.SUB);
+                    assertThat(par.getResourcePermMap().size()).isEqualTo(5);
+                    for (Map.Entry<String, Byte> permEntry : par.getResourcePermMap().entrySet()) {
+                        String key = permEntry.getKey();
+                        assertThat(key.equals("topicA") || key.equals("topicB") || key.equals("topicC") || key.equals("%RETRY%groupA") || key.equals("%RETRY%groupB")).isTrue();
+                        Byte perm = permEntry.getValue();
+                        switch (key) {
+                            case "topicA":
+                            case "%RETRY%groupA":
+                                assertThat(perm).isEqualTo(Permission.DENY);
+                                break;
+                            case "topicB":
+                                assertThat(perm).isEqualTo((byte) (Permission.PUB | Permission.SUB));
+                                break;
+                            case "topicC":
+                            case "%RETRY%groupB":
+                                assertThat(perm).isEqualTo(Permission.SUB);
+                                break;
+                        }
+                    }
+                    break;
+                case "rocketmq2_acl_ak":
+                    assertThat(par.getSecretKey()).isEqualTo("rocketmq2_acl_sk");
+                    assertThat(par.getWhiteRemoteAddress()).isEqualTo("192.168.1.*");
+                    assertThat(par.isAdmin()).isTrue();
+                    break;
+            }
+        }
 
     }
+
 
     public PlainAccessResource clonePlainAccessResource(byte perm) {
         PlainAccessResource painAccessResource = new PlainAccessResource();
@@ -117,7 +196,7 @@ public class PlainPermissionManagerTest {
         Assert.assertEquals(resourcePermMap.size(), 3);
 
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupA")).byteValue(), Permission.DENY);
-        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.PUB|Permission.SUB);
+        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.PUB | Permission.SUB);
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupC")).byteValue(), Permission.PUB);
 
         List<String> topics = new ArrayList<String>();
@@ -130,7 +209,7 @@ public class PlainPermissionManagerTest {
         Assert.assertEquals(resourcePermMap.size(), 6);
 
         Assert.assertEquals(resourcePermMap.get("topicA").byteValue(), Permission.DENY);
-        Assert.assertEquals(resourcePermMap.get("topicB").byteValue(), Permission.PUB|Permission.SUB);
+        Assert.assertEquals(resourcePermMap.get("topicB").byteValue(), Permission.PUB | Permission.SUB);
         Assert.assertEquals(resourcePermMap.get("topicC").byteValue(), Permission.PUB);
     }
 
@@ -157,6 +236,7 @@ public class PlainPermissionManagerTest {
         plainPermissionManager.checkPerm(plainAccessResource, ANYPlainAccessResource);
 
     }
+
     @Test(expected = AclException.class)
     public void checkErrorPermDefaultValueNotMatch() {
 
@@ -164,6 +244,7 @@ public class PlainPermissionManagerTest {
         plainAccessResource.addResourceAndPerm("topicF", Permission.PUB);
         plainPermissionManager.checkPerm(plainAccessResource, SUBPlainAccessResource);
     }
+
     @Test(expected = AclException.class)
     public void accountNullTest() {
         plainAccessConfig.setAccessKey(null);
@@ -218,57 +299,55 @@ public class PlainPermissionManagerTest {
 
 
     @Test
-    public void testWatch() throws IOException, IllegalAccessException ,InterruptedException{
-        System.setProperty("rocketmq.home.dir", "src/test/resources");
-        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl-test.yml");
-        String fileName =System.getProperty("rocketmq.home.dir", "src/test/resources")+System.getProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
-        File transport = new File(fileName);
-        transport.delete();
-        transport.createNewFile();
-        FileWriter writer = new FileWriter(transport);
-        writer.write("accounts:\r\n");
-        writer.write("- accessKey: watchrocketmq\r\n");
-        writer.write("  secretKey: 12345678\r\n");
-        writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
-        writer.write("  admin: true\r\n");
-        writer.flush();
-        writer.close();
+    public void testWatch() throws Exception {
+        System.setProperty("rocketmq.acl.plain.dir", "/conf/plain_acl");
+        String dirPath = System.getProperty("rocketmq.home.dir") + System.getProperty("rocketmq.acl.plain.dir");
+        assertThat(plainPermissionManager.isWatchStart()).isTrue();
+        File watchFileAdd = new File(dirPath + File.separator + "plain_acl_watch_add.yml");
+        try {
+            //test add new plain acl file
+            try (FileWriter fw = new FileWriter(watchFileAdd)) {
+                fw.write("accounts:\r\n");
+                fw.write("- accessKey: new-rocketmq-ak\r\n");
+                fw.write("  secretKey: new-rocketmq-sk\r\n");
+                fw.write("  whiteRemoteAddress: 127.0.0.2\r\n");
+                fw.write("  admin: false\r\n");
+                fw.flush();
+            }
 
+            Thread.sleep(1000L);
+            Field field = PlainPermissionManager.class.getDeclaredField("plainAccessResourceMap");
+            field.setAccessible(true);
+            Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) field.get(plainPermissionManager);
+            assertThat(plainAccessResourceMap.entrySet().size()).isEqualTo(3);
+            PlainAccessResource par = plainAccessResourceMap.get("new-rocketmq-ak");
+            assertThat(par.getSecretKey()).isEqualTo("new-rocketmq-sk");
+            assertThat(par.getWhiteRemoteAddress()).isEqualTo("127.0.0.2");
+            assertThat(par.isAdmin()).isFalse();
 
-        PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
-        Assert.assertTrue(plainPermissionManager.isWatchStart());
+            //test update plain acl file
+            Map<String, Object> updatedMap = AclUtils.getYamlDataObject(watchFileAdd.getAbsolutePath(), Map.class);
+            List<Map<String, Object>> accounts = (List<Map<String, Object>>) updatedMap.get("accounts");
+            accounts.get(0).remove("accessKey");
+            accounts.get(0).remove("secretKey");
+            accounts.get(0).put("accessKey", "update-ak");
+            accounts.get(0).put("secretKey", "update-sk");
+            accounts.get(0).put("admin", "true");
+            // Update file and flush to yaml file
+            AclUtils.writeDataObject(watchFileAdd.getAbsolutePath(), updatedMap);
 
-        {
-            Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) FieldUtils.readDeclaredField(plainPermissionManager, "plainAccessResourceMap", true);
-            PlainAccessResource accessResource = plainAccessResourceMap.get("watchrocketmq");
-            Assert.assertNotNull(accessResource);
-            Assert.assertEquals(accessResource.getSecretKey(), "12345678");
-            Assert.assertTrue(accessResource.isAdmin());
-
+            Thread.sleep(1000);
+            plainAccessResourceMap = (Map<String, PlainAccessResource>) field.get(plainPermissionManager);
+            assertThat(plainAccessResourceMap.size()).isEqualTo(3);
+            PlainAccessResource updatePAR = plainAccessResourceMap.get("update-ak");
+            assertThat(updatePAR).isNotNull();
+            assertThat(updatePAR.getSecretKey()).isEqualTo("update-sk");
+            assertThat(updatePAR.getWhiteRemoteAddress()).isEqualTo("127.0.0.2");
+            assertThat(updatePAR.isAdmin()).isTrue();
+        } finally {
+            watchFileAdd.delete();
         }
 
-        Map<String, Object> updatedMap = AclUtils.getYamlDataObject(fileName, Map.class);
-        List<Map<String, Object>> accounts = (List<Map<String, Object>>) updatedMap.get("accounts");
-        accounts.get(0).remove("accessKey");
-        accounts.get(0).remove("secretKey");
-        accounts.get(0).put("accessKey", "watchrocketmq1");
-        accounts.get(0).put("secretKey", "88888888");
-        accounts.get(0).put("admin", "false");
-        // Update file and flush to yaml file
-        AclUtils.writeDataObject(fileName, updatedMap);
-
-        Thread.sleep(1000);
-        {
-            Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) FieldUtils.readDeclaredField(plainPermissionManager, "plainAccessResourceMap", true);
-            PlainAccessResource accessResource = plainAccessResourceMap.get("watchrocketmq1");
-            Assert.assertNotNull(accessResource);
-            Assert.assertEquals(accessResource.getSecretKey(), "88888888");
-            Assert.assertFalse(accessResource.isAdmin());
-
-        }
-        transport.delete();
-        System.setProperty("rocketmq.home.dir", "src/test/resources");
-        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
     }
 
     @Test(expected = AclException.class)
