@@ -1,0 +1,17 @@
+globalWhiteRemoteAddresses:
+  - 1.1.1.1
+  - 1.1.1.2
+accounts:
+  - accessKey: RocketMQ
+    secretKey: 12345678
+    whiteRemoteAddress: 192.168.0.*
+    admin: false
+    defaultTopicPerm: DENY
+    defaultGroupPerm: SUB
+    topicPerms:
+      - topicA=DENY
+      - topicB=PUB|SUB
+      - topicC=SUB
+    groupPerms:
+      - groupA=DEN1
+      - groupB=SUB

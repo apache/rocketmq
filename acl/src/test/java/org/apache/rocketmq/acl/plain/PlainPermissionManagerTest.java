@@ -16,11 +16,15 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -29,6 +33,8 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileWriter;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -49,9 +55,13 @@ public class PlainPermissionManagerTest {
     PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
     Set<Integer> adminCode = new HashSet<>();
 
+    static String DEFAULT_PLAIN_ACL_FILE_PATH;
+
     @BeforeClass
     public static void initBeforeClass() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.dir", "/conf/plain_acl");
+        DEFAULT_PLAIN_ACL_FILE_PATH = System.getProperty("rocketmq.home.dir") + File.separator + System.getProperty("rocketmq.acl.plain.dir") + File.separator + "plain_acl_default.yml";
     }
 
     @Before
@@ -269,12 +279,6 @@ public class PlainPermissionManagerTest {
         plainPermissionManager.buildPlainAccessResource(plainAccessConfig);
     }
 
-    @Test(expected = AclException.class)
-    public void testPlainAclPlugEngineInit() {
-        System.setProperty("rocketmq.home.dir", "");
-        new PlainPermissionManager().load();
-    }
-
     @SuppressWarnings("unchecked")
     @Test
     public void cleanAuthenticationInfoTest() throws IllegalAccessException {
@@ -289,18 +293,7 @@ public class PlainPermissionManagerTest {
     }
 
     @Test
-    public void isWatchStartTest() {
-
-        PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
-        Assert.assertTrue(plainPermissionManager.isWatchStart());
-        // RemoveDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
-
-    }
-
-
-    @Test
     public void testWatch() throws Exception {
-        System.setProperty("rocketmq.acl.plain.dir", "/conf/plain_acl");
         String dirPath = System.getProperty("rocketmq.home.dir") + System.getProperty("rocketmq.acl.plain.dir");
         assertThat(plainPermissionManager.isWatchStart()).isTrue();
         File watchFileAdd = new File(dirPath + File.separator + "plain_acl_watch_add.yml");
@@ -350,10 +343,77 @@ public class PlainPermissionManagerTest {
 
     }
 
-    @Test(expected = AclException.class)
-    public void initializeTest() {
-        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_null.yml");
-        new PlainPermissionManager();
+    @Test
+    public void testUpdateAccessConfig() throws Exception {
+        File defaultAclFile = new File(DEFAULT_PLAIN_ACL_FILE_PATH);
+        String aclFileBakDirPath = System.getProperty("rocketmq.home.dir") + File.separator + "conf" + File.separator + "plain_acl_bak";
+        File defaultBakAclFile = new File(aclFileBakDirPath + File.separator +  "plain_acl_default_bak");
+        String rocketmq2AclFilePath = System.getProperty("rocketmq.home.dir") + File.separator + System.getProperty("rocketmq.acl.plain.dir") + File.separator + "plain_acl_rocketmq2.yml";
+        File rocketmq2AclFile = new File(rocketmq2AclFilePath);
+        File rocketmq2BakAclFile = new File(aclFileBakDirPath + File.separator +  "plain_acl_rocketmq2_bak");
+        Files.copy(defaultAclFile.toPath(), defaultBakAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(rocketmq2AclFile.toPath(), rocketmq2BakAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        try {
+            //a new account
+            String ak = "ak-" + System.currentTimeMillis();
+            String sk = "sk-" + System.currentTimeMillis();
+            PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+            plainAccessConfig.setAccessKey(ak);
+            plainAccessConfig.setSecretKey(sk);
+            plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA=DENY", "groupB=SUB"));
+            plainAccessConfig.setTopicPerms(Lists.newArrayList("topicA=PUB|SUB", "topicB=SUB"));
+            plainPermissionManager.updateAccessConfig(plainAccessConfig);
+            JSONObject plainAclConfData = AclUtils.getYamlDataObject(DEFAULT_PLAIN_ACL_FILE_PATH, JSONObject.class);
+            JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
+            boolean writeToFileOk = false;
+            for (PlainAccessConfig accessConfig : accounts.toJavaList(PlainAccessConfig.class)) {
+                if (accessConfig.getAccessKey().equals(ak)) {
+                    assertThat(accessConfig.getSecretKey()).isEqualTo(sk);
+                    assertThat(accessConfig.getGroupPerms()).containsExactlyInAnyOrder("groupA=DENY", "groupB=SUB");
+                    assertThat(accessConfig.getTopicPerms()).containsExactlyInAnyOrder("topicA=PUB|SUB", "topicB=SUB");
+                    writeToFileOk = true;
+                }
+            }
+            assertThat(writeToFileOk).isTrue();
 
+            //no default plain acl file
+            defaultAclFile.delete();
+            plainPermissionManager.updateAccessConfig(plainAccessConfig);
+            plainAclConfData = AclUtils.getYamlDataObject(DEFAULT_PLAIN_ACL_FILE_PATH, JSONObject.class);
+            accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
+            writeToFileOk = false;
+            for (PlainAccessConfig accessConfig : accounts.toJavaList(PlainAccessConfig.class)) {
+                if (accessConfig.getAccessKey().equals(ak)) {
+                    assertThat(accessConfig.getSecretKey()).isEqualTo(sk);
+                    assertThat(accessConfig.getGroupPerms()).containsExactlyInAnyOrder("groupA=DENY", "groupB=SUB");
+                    assertThat(accessConfig.getTopicPerms()).containsExactlyInAnyOrder("topicA=PUB|SUB", "topicB=SUB");
+                    writeToFileOk = true;
+                }
+            }
+            assertThat(writeToFileOk).isTrue();
+
+            //old account existed in other acl file
+            plainAccessConfig = new PlainAccessConfig();
+            plainAccessConfig.setAccessKey("rocketmq2_acl_ak");
+            plainAccessConfig.setSecretKey(sk);
+            plainAccessConfig.setGroupPerms(Lists.newArrayList("groupA=DENY", "groupB=SUB"));
+            plainAccessConfig.setTopicPerms(Lists.newArrayList("topicA=PUB|SUB", "topicB=SUB"));
+            plainPermissionManager.updateAccessConfig(plainAccessConfig);
+            plainAclConfData = AclUtils.getYamlDataObject(rocketmq2AclFilePath, JSONObject.class);
+            accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
+            writeToFileOk = false;
+            for (PlainAccessConfig accessConfig : accounts.toJavaList(PlainAccessConfig.class)) {
+                if (accessConfig.getAccessKey().equals("rocketmq2_acl_ak")) {
+                    assertThat(accessConfig.getSecretKey()).isEqualTo(sk);
+                    assertThat(accessConfig.getGroupPerms()).containsExactlyInAnyOrder("groupA=DENY", "groupB=SUB");
+                    assertThat(accessConfig.getTopicPerms()).containsExactlyInAnyOrder("topicA=PUB|SUB", "topicB=SUB");
+                    writeToFileOk = true;
+                }
+            }
+            assertThat(writeToFileOk).isTrue();
+        } finally {
+            Files.move(defaultBakAclFile.toPath(), defaultAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(rocketmq2BakAclFile.toPath(), rocketmq2AclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 }

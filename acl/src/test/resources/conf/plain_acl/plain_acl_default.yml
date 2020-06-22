@@ -13,6 +13,5 @@ accounts:
   - topicB=PUB|SUB
   - topicC=SUB
   groupPerms:
-  # the group should convert to retry topic
-  - groupA=DENY
+  - groupA=DEN1
   - groupB=SUB
