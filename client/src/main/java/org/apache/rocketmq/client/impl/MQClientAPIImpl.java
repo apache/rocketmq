@@ -383,7 +383,7 @@ public class MQClientAPIImpl {
                 clusterAclVersionInfo.setClusterName(responseHeader.getClusterName());
                 clusterAclVersionInfo.setBrokerName(responseHeader.getBrokerName());
                 clusterAclVersionInfo.setBrokerAddr(responseHeader.getBrokerAddr());
-                clusterAclVersionInfo.setAclConfigDataVersion(DataVersion.fromJson(responseHeader.getVersion(), DataVersion.class));
+                clusterAclVersionInfo.setAclConfigDataVersion(responseHeader.getVersion());
                 return clusterAclVersionInfo;
             }
             default:
