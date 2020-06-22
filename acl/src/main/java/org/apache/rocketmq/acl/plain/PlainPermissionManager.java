@@ -243,9 +243,11 @@ public class PlainPermissionManager {
             log.error("Parameter value accesskey is null or empty String,Please check your parameter");
             return false;
         }
-
-        Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
-                Map.class);
+        String filepath = akFilepathMap.get(accesskey);
+        if (filepath == null) {
+            throw new AclException(String.format("Accesskey: %s not existed, Please check it again", accesskey));
+        }
+        Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(filepath, Map.class);
 
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get("accounts");
         if (accounts != null) {
@@ -257,12 +259,10 @@ public class PlainPermissionManager {
                     itemIterator.remove();
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
 
-                    return AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap));
+                    return AclUtils.writeDataObject(filepath, updateAclConfigFileVersion(aclAccessConfigMap));
                 }
             }
         }
-        log.error("Users must ensure that the acl yaml config file has related acl config elements");
-
         return false;
     }
 

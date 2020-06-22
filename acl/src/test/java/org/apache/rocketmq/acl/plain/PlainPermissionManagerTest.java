@@ -345,12 +345,12 @@ public class PlainPermissionManagerTest {
 
     @Test
     public void testUpdateAccessConfig() throws Exception {
-        File defaultAclFile = new File(DEFAULT_PLAIN_ACL_FILE_PATH);
         String aclFileBakDirPath = System.getProperty("rocketmq.home.dir") + File.separator + "conf" + File.separator + "plain_acl_bak";
-        File defaultBakAclFile = new File(aclFileBakDirPath + File.separator +  "plain_acl_default_bak");
         String rocketmq2AclFilePath = System.getProperty("rocketmq.home.dir") + File.separator + System.getProperty("rocketmq.acl.plain.dir") + File.separator + "plain_acl_rocketmq2.yml";
+        File defaultAclFile = new File(DEFAULT_PLAIN_ACL_FILE_PATH);
+        File defaultBakAclFile = new File(aclFileBakDirPath + File.separator + "plain_acl_default_bak");
         File rocketmq2AclFile = new File(rocketmq2AclFilePath);
-        File rocketmq2BakAclFile = new File(aclFileBakDirPath + File.separator +  "plain_acl_rocketmq2_bak");
+        File rocketmq2BakAclFile = new File(aclFileBakDirPath + File.separator + "plain_acl_rocketmq2_bak");
         Files.copy(defaultAclFile.toPath(), defaultBakAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         Files.copy(rocketmq2AclFile.toPath(), rocketmq2BakAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         try {
@@ -414,6 +414,24 @@ public class PlainPermissionManagerTest {
         } finally {
             Files.move(defaultBakAclFile.toPath(), defaultAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Files.move(rocketmq2BakAclFile.toPath(), rocketmq2AclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    @Test
+    public void testDeleteAccessConfig() throws Exception {
+        File defaultAclFile = new File(DEFAULT_PLAIN_ACL_FILE_PATH);
+        String aclFileBakDirPath = System.getProperty("rocketmq.home.dir") + File.separator + "conf" + File.separator + "plain_acl_bak";
+        File defaultBakAclFile = new File(aclFileBakDirPath + File.separator + "plain_acl_default_bak");
+        Files.copy(defaultAclFile.toPath(), defaultBakAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        try {
+            String ak = "RocketMQ";
+            boolean result = plainPermissionManager.deleteAccessConfig(ak);
+            assertThat(result).isTrue();
+            JSONObject plainAclConfData = AclUtils.getYamlDataObject(DEFAULT_PLAIN_ACL_FILE_PATH, JSONObject.class);
+            JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
+            assertThat(accounts.toJavaList(PlainAccessConfig.class)).isEmpty();
+        } finally {
+            Files.move(defaultBakAclFile.toPath(), defaultAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
     }
 }
