@@ -37,6 +37,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -127,8 +128,21 @@ public class PlainPermissionManager {
         }
     }
 
-    public String getAclConfigDataVersion() {
-        return this.dataVersion.toJson();
+    public Map<String, String> getAclConfigDataVersion() {
+        File[] files = new File(DEFAULT_PLAIN_ACL_FILE_DIR_PATH).listFiles();
+        if (files == null) {
+            return Collections.emptyMap();
+        }
+        Map<String, String> versionMap = new HashMap<>();
+        for (File file : files) {
+            JSONObject plainAclConfData = AclUtils.getYamlDataObject(file.getAbsolutePath(), JSONObject.class);
+            JSONArray tempDataVersion = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
+            if (tempDataVersion != null && !tempDataVersion.isEmpty()) {
+                List<DataVersion> dataVersion = tempDataVersion.toJavaList(DataVersion.class);
+                versionMap.putIfAbsent(file.getName(), dataVersion.get(0).toString());
+            }
+        }
+        return versionMap;
     }
 
     private Map<String, Object> updateAclConfigFileVersion(Map<String, Object> updateAclConfigMap) {

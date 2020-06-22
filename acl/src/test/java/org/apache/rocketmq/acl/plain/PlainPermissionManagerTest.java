@@ -460,4 +460,12 @@ public class PlainPermissionManagerTest {
         assertThat(aclConfig.getPlainAccessConfigs().size()).isEqualTo(2);
         assertThat(aclConfig.getGlobalWhiteAddrs()).containsExactlyInAnyOrder("1.1.1.1", "1.1.1.2", "1.1.2.*");
     }
+
+    @Test
+    public void testGetAclConfigDataVersion() {
+        Map<String, String> versionMap = plainPermissionManager.getAclConfigDataVersion();
+        assertThat(versionMap.size()).isEqualTo(2);
+        assertThat(versionMap.get("plain_acl_default.yml")).isEqualTo("DataVersion[timestamp=1592825106625, counter=1]");
+        assertThat(versionMap.get("plain_acl_rocketmq2.yml")).isEqualTo("DataVersion[timestamp=1592825100000, counter=2]");
+    }
 }

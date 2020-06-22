@@ -5,4 +5,6 @@ accounts:
   secretKey: rocketmq2_acl_sk
   whiteRemoteAddress: 192.168.1.*
   admin: true
-
+dataVersion:
+  - counter: 2
+    timestamp: 1592825100000

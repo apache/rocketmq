@@ -150,7 +150,7 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.deleteAccessConfig(accesskey);
     }
 
-    @Override public String getAclConfigVersion() {
+    @Override public Map<String, String> getAclConfigVersion() {
         return aclPlugEngine.getAclConfigDataVersion();
     }
 

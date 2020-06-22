@@ -15,3 +15,6 @@ accounts:
   groupPerms:
   - groupA=DEN1
   - groupB=SUB
+dataVersion:
+  - counter: 1
+    timestamp: 1592825106625
