@@ -23,6 +23,7 @@ import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
+import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
@@ -433,5 +434,30 @@ public class PlainPermissionManagerTest {
         } finally {
             Files.move(defaultBakAclFile.toPath(), defaultAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+    @Test
+    public void testUpdateGlobalWhiteAddrsConfig() throws Exception {
+        File defaultAclFile = new File(DEFAULT_PLAIN_ACL_FILE_PATH);
+        String aclFileBakDirPath = System.getProperty("rocketmq.home.dir") + File.separator + "conf" + File.separator + "plain_acl_bak";
+        File defaultBakAclFile = new File(aclFileBakDirPath + File.separator + "plain_acl_default_bak");
+        Files.copy(defaultAclFile.toPath(), defaultBakAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        try {
+            List<String> globalWhiteAddrsList = Lists.newArrayList("2.2.2.2", "1.2.3.*");
+            boolean result = plainPermissionManager.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList);
+            assertThat(result).isTrue();
+            JSONObject plainAclConfData = AclUtils.getYamlDataObject(DEFAULT_PLAIN_ACL_FILE_PATH, JSONObject.class);
+            JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+            assertThat(globalWhiteRemoteAddressesList.toJavaList(String.class)).containsExactlyInAnyOrder("2.2.2.2", "1.2.3.*");
+        } finally {
+            Files.move(defaultBakAclFile.toPath(), defaultAclFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    @Test
+    public void testGetAllAclConfig() {
+        AclConfig aclConfig = plainPermissionManager.getAllAclConfig();
+        assertThat(aclConfig.getPlainAccessConfigs().size()).isEqualTo(2);
+        assertThat(aclConfig.getGlobalWhiteAddrs()).containsExactlyInAnyOrder("1.1.1.1", "1.1.1.2", "1.1.2.*");
     }
 }

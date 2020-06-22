@@ -43,16 +43,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("unchecked")
 public class PlainPermissionManager {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    private static String fileName = "plain_acl_default.yml";
-
+    private static final String FILE_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     private static final String DEFAULT_PLAIN_ACL_FILE_DIR = System.getProperty("rocketmq.acl.plain.dir", "/conf/plain_acl");
+    private static final String DEFAULT_PLAIN_ACL_FILE_DIR_PATH = FILE_HOME + File.separator + DEFAULT_PLAIN_ACL_FILE_DIR;
     private static final String DEFAULT_PLAIN_ACL_FILE = "plain_acl_default.yml";
+    private static final String DEFAULT_PLAIN_ACL_FILE_PATH = FILE_HOME + File.separator + DEFAULT_PLAIN_ACL_FILE_DIR + File.separator + DEFAULT_PLAIN_ACL_FILE;
 
-    private final String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     private Map<String/** AccessKey **/, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
     private Map<String, String> akFilepathMap = new HashMap<>();
@@ -71,7 +72,7 @@ public class PlainPermissionManager {
 
     public void load() {
         try {
-            File aclFileDir = new File(fileHome + File.separator + DEFAULT_PLAIN_ACL_FILE_DIR);
+            File aclFileDir = new File(FILE_HOME + File.separator + DEFAULT_PLAIN_ACL_FILE_DIR);
             File[] aclFiles = aclFileDir.listFiles();
             if (aclFiles == null) {
                 return;
@@ -100,7 +101,7 @@ public class PlainPermissionManager {
             return;
         }
         log.info("File:{}, Broker plain acl conf data is : {}", new File(filepath).getName(), plainAclConfData.toString());
-        JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
+        JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
         if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
             for (int i = 0; i < globalWhiteRemoteAddressesList.size(); i++) {
                 String remoteAddress = globalWhiteRemoteAddressesList.getString(i);
@@ -154,7 +155,7 @@ public class PlainPermissionManager {
         String filepath = akFilepathMap.get(plainAccessConfig.getAccessKey());
         if (filepath == null) {
             //new account use default acl file
-            filepath = fileHome + File.separator + DEFAULT_PLAIN_ACL_FILE_DIR + File.separator + DEFAULT_PLAIN_ACL_FILE;
+            filepath = DEFAULT_PLAIN_ACL_FILE_PATH;
             File defaultFile = new File(filepath);
             if (!defaultFile.exists()) {
                 try {
@@ -267,15 +268,12 @@ public class PlainPermissionManager {
     }
 
     public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
-
         if (globalWhiteAddrsList == null) {
             log.error("Parameter value globalWhiteAddrsList is null,Please check your parameter");
             return false;
         }
 
-        Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
-                Map.class);
-
+        Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(DEFAULT_PLAIN_ACL_FILE_PATH, Map.class);
         List<String> globalWhiteRemoteAddrList = (List<String>) aclAccessConfigMap.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
 
         if (globalWhiteRemoteAddrList != null) {
@@ -284,10 +282,8 @@ public class PlainPermissionManager {
 
             // Update globalWhiteRemoteAddr element in memeory map firstly
             aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS, globalWhiteRemoteAddrList);
-            return AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap));
+            return AclUtils.writeDataObject(DEFAULT_PLAIN_ACL_FILE_PATH, updateAclConfigFileVersion(aclAccessConfigMap));
         }
-
-        log.error("Users must ensure that the acl yaml config file has globalWhiteRemoteAddresses flag firstly");
         return false;
     }
 
@@ -295,18 +291,23 @@ public class PlainPermissionManager {
         AclConfig aclConfig = new AclConfig();
         List<PlainAccessConfig> configs = new ArrayList<>();
         List<String> whiteAddrs = new ArrayList<>();
-        JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
-                JSONObject.class);
-        if (plainAclConfData == null || plainAclConfData.isEmpty()) {
-            throw new AclException(String.format("%s file  is not data", fileHome + File.separator + fileName));
+        File[] files = new File(DEFAULT_PLAIN_ACL_FILE_DIR_PATH).listFiles();
+        if (files == null) {
+            return aclConfig;
         }
-        JSONArray globalWhiteAddrs = plainAclConfData.getJSONArray(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
-        if (globalWhiteAddrs != null && !globalWhiteAddrs.isEmpty()) {
-            whiteAddrs = globalWhiteAddrs.toJavaList(String.class);
-        }
-        JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
-        if (accounts != null && !accounts.isEmpty()) {
-            configs = accounts.toJavaList(PlainAccessConfig.class);
+        for (File file : files) {
+            JSONObject plainAclConfData = AclUtils.getYamlDataObject(file.getAbsolutePath(), JSONObject.class);
+            if (plainAclConfData == null || plainAclConfData.isEmpty()) {
+                continue;
+            }
+            JSONArray globalWhiteAddrs = plainAclConfData.getJSONArray(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
+            if (globalWhiteAddrs != null && !globalWhiteAddrs.isEmpty()) {
+                whiteAddrs.addAll(globalWhiteAddrs.toJavaList(String.class));
+            }
+            JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
+            if (accounts != null && !accounts.isEmpty()) {
+                configs.addAll(accounts.toJavaList(PlainAccessConfig.class));
+            }
         }
         aclConfig.setGlobalWhiteAddrs(whiteAddrs);
         aclConfig.setPlainAccessConfigs(configs);
@@ -314,7 +315,7 @@ public class PlainPermissionManager {
     }
 
     private void watch() {
-        String watchDirPath = fileHome + DEFAULT_PLAIN_ACL_FILE_DIR;
+        String watchDirPath = FILE_HOME + DEFAULT_PLAIN_ACL_FILE_DIR;
         try {
             FileAlterationMonitor monitor = new FileAlterationMonitor(500L);
             FileAlterationObserver observer = new FileAlterationObserver(new File(watchDirPath));
