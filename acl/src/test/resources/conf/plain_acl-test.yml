@@ -1,5 +1,0 @@
-accounts:
-- accessKey: watchrocketmq
-  secretKey: 12345678
-  whiteRemoteAddress: 127.0.0.1
-  admin: true

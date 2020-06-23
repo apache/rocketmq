@@ -291,7 +291,6 @@ public class PlainPermissionManagerTest {
         plainPermissionManager.clearPermissionInfo();
         plainAccessResourceMap = (Map<String, List<PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionManager, "plainAccessResourceMap", true);
         Assert.assertTrue(plainAccessResourceMap.isEmpty());
-        // RemoveDataVersionFromYamlFile("src/test/resources/conf/plain_acl.yml");
     }
 
     @Test
