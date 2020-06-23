@@ -128,18 +128,18 @@ public class PlainPermissionManager {
         }
     }
 
-    public Map<String, String> getAclConfigDataVersion() {
+    public Map<String, DataVersion> getAclConfigDataVersion() {
         File[] files = new File(DEFAULT_PLAIN_ACL_FILE_DIR_PATH).listFiles();
         if (files == null) {
             return Collections.emptyMap();
         }
-        Map<String, String> versionMap = new HashMap<>();
+        Map<String, DataVersion> versionMap = new HashMap<>();
         for (File file : files) {
             JSONObject plainAclConfData = AclUtils.getYamlDataObject(file.getAbsolutePath(), JSONObject.class);
             JSONArray tempDataVersion = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
             if (tempDataVersion != null && !tempDataVersion.isEmpty()) {
                 List<DataVersion> dataVersion = tempDataVersion.toJavaList(DataVersion.class);
-                versionMap.putIfAbsent(file.getName(), dataVersion.get(0).toString());
+                versionMap.putIfAbsent(file.getName(), dataVersion.get(0));
             }
         }
         return versionMap;

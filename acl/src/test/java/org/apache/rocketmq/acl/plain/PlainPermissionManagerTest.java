@@ -24,6 +24,7 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
@@ -463,9 +464,21 @@ public class PlainPermissionManagerTest {
 
     @Test
     public void testGetAclConfigDataVersion() {
-        Map<String, String> versionMap = plainPermissionManager.getAclConfigDataVersion();
+        Map<String, DataVersion> versionMap = plainPermissionManager.getAclConfigDataVersion();
         assertThat(versionMap.size()).isEqualTo(2);
-        assertThat(versionMap.get("plain_acl_default.yml")).isEqualTo("DataVersion[timestamp=1592825106625, counter=1]");
-        assertThat(versionMap.get("plain_acl_rocketmq2.yml")).isEqualTo("DataVersion[timestamp=1592825100000, counter=2]");
+        for (Map.Entry<String, DataVersion> entry : versionMap.entrySet()) {
+            String fileName = entry.getKey();
+            DataVersion dataVersion = entry.getValue();
+            switch (fileName) {
+                case "plain_acl_default.yml":
+                    assertThat(dataVersion.getCounter().get()).isEqualTo(1L);
+                    assertThat(dataVersion.getTimestamp()).isEqualTo(1592825106625L);
+                    break;
+                case "plain_acl_rocketmq2.yml":
+                    assertThat(dataVersion.getCounter().get()).isEqualTo(2L);
+                    assertThat(dataVersion.getTimestamp()).isEqualTo(1592825100000L);
+                    break;
+            }
+        }
     }
 }

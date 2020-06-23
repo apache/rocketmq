@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -25,7 +26,7 @@ import java.util.Map;
 public class GetBrokerAclConfigResponseHeader implements CommandCustomHeader {
 
     @CFNotNull
-    private Map<String,String> version;
+    private Map<String, DataVersion> version;
 
     @CFNotNull
     private String brokerName;
@@ -39,11 +40,11 @@ public class GetBrokerAclConfigResponseHeader implements CommandCustomHeader {
     @Override public void checkFields() throws RemotingCommandException {
     }
 
-    public Map<String,String> getVersion() {
+    public Map<String, DataVersion> getVersion() {
         return version;
     }
 
-    public void setVersion(Map<String, String> versionMap) {
+    public void setVersion(Map<String, DataVersion> versionMap) {
         this.version = versionMap;
     }
 
