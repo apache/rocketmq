@@ -17,42 +17,25 @@
 
 package org.apache.rocketmq.common.stats;
 
-public class StatsSnapshot {
-    private long sum;
-    private double tps;
+import org.apache.rocketmq.logging.InternalLogger;
 
-    private long times;
-    private double avgpt;
+import java.util.concurrent.ScheduledExecutorService;
 
-    public long getSum() {
-        return sum;
+/**
+ * A StatItem for response time, the only difference between from StatsItem is it has a different log output.
+ */
+public class RTStatsItem extends StatsItem {
+
+    public RTStatsItem(String statsName, String statsKey, ScheduledExecutorService scheduledExecutorService, InternalLogger log) {
+        super(statsName, statsKey, scheduledExecutorService, log);
     }
 
-    public void setSum(long sum) {
-        this.sum = sum;
-    }
-
-    public double getTps() {
-        return tps;
-    }
-
-    public void setTps(double tps) {
-        this.tps = tps;
-    }
-
-    public double getAvgpt() {
-        return avgpt;
-    }
-
-    public void setAvgpt(double avgpt) {
-        this.avgpt = avgpt;
-    }
-
-    public long getTimes() {
-        return times;
-    }
-
-    public void setTimes(long times) {
-        this.times = times;
+    /**
+     *   For Response Time stat Item, the print detail should be a little different, TPS and SUM makes no sense.
+     *   And we give a name "AVGRT" rather than AVGPT for value getAvgpt()
+      */
+    @Override
+    protected String statPrintDetail(StatsSnapshot ss) {
+        return String.format("TIMES: %d AVGRT: %.2f", ss.getTimes(), ss.getAvgpt());
     }
 }
