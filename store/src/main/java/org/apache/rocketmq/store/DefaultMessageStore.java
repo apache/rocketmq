@@ -1020,7 +1020,8 @@ public class DefaultMessageStore implements MessageStore {
             Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             String topic = next.getKey();
 
-            if (!topics.contains(topic) && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
+            if (!topics.contains(topic) && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)
+                    && !topic.equals(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC)) {
                 ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 for (ConsumeQueue cq : queueTable.values()) {
                     cq.destroy();
