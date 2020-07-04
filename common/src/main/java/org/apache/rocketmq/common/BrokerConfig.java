@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -52,7 +53,7 @@ public class BrokerConfig {
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
     @ImportantField
-    private String msgTraceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
+    private String msgTraceTopicName = TopicValidator.RMQ_SYS_TRACE_TOPIC;
     @ImportantField
     private boolean traceTopicEnable = false;
     /**
@@ -61,6 +62,7 @@ public class BrokerConfig {
      */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
 
     private int adminBrokerThreadPoolNums = 16;
@@ -83,6 +85,7 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
+    private int replyThreadPoolQueueCapacity = 10000;
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
@@ -179,6 +182,10 @@ public class BrokerConfig {
      */
     @ImportantField
     private boolean aclEnable = false;
+
+    private boolean storeReplyMessageEnable = true;
+
+    private boolean autoDeleteUnusedStats = false;
 
     public static String localHostName() {
         try {
@@ -374,6 +381,14 @@ public class BrokerConfig {
         this.pullMessageThreadPoolNums = pullMessageThreadPoolNums;
     }
 
+    public int getProcessReplyMessageThreadPoolNums() {
+        return processReplyMessageThreadPoolNums;
+    }
+
+    public void setProcessReplyMessageThreadPoolNums(int processReplyMessageThreadPoolNums) {
+        this.processReplyMessageThreadPoolNums = processReplyMessageThreadPoolNums;
+    }
+
     public int getQueryMessageThreadPoolNums() {
         return queryMessageThreadPoolNums;
     }
@@ -468,6 +483,14 @@ public class BrokerConfig {
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
+    }
+
+    public int getReplyThreadPoolQueueCapacity() {
+        return replyThreadPoolQueueCapacity;
+    }
+
+    public void setReplyThreadPoolQueueCapacity(int replyThreadPoolQueueCapacity) {
+        this.replyThreadPoolQueueCapacity = replyThreadPoolQueueCapacity;
     }
 
     public int getQueryThreadPoolQueueCapacity() {
@@ -749,7 +772,7 @@ public class BrokerConfig {
     public void setMsgTraceTopicName(String msgTraceTopicName) {
         this.msgTraceTopicName = msgTraceTopicName;
     }
-    
+
     public boolean isTraceTopicEnable() {
         return traceTopicEnable;
     }
@@ -764,5 +787,21 @@ public class BrokerConfig {
 
     public void setAclEnable(boolean aclEnable) {
         this.aclEnable = aclEnable;
+    }
+
+    public boolean isStoreReplyMessageEnable() {
+        return storeReplyMessageEnable;
+    }
+
+    public void setStoreReplyMessageEnable(boolean storeReplyMessageEnable) {
+        this.storeReplyMessageEnable = storeReplyMessageEnable;
+    }
+
+    public boolean isAutoDeleteUnusedStats() {
+        return autoDeleteUnusedStats;
+    }
+
+    public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
+        this.autoDeleteUnusedStats = autoDeleteUnusedStats;
     }
 }

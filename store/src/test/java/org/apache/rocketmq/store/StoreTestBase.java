@@ -20,12 +20,12 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.After;
 
 public class StoreTestBase {
@@ -59,6 +59,33 @@ public class StoreTestBase {
         return msg;
     }
 
+    protected MessageExtBrokerInner buildIPv6HostMessage() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("StoreTest");
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(MessageBody);
+        msg.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setSysFlag(0);
+        msg.setBornHostV6Flag();
+        msg.setStoreHostAddressV6Flag();
+        msg.setBornTimestamp(System.currentTimeMillis());
+        try {
+            msg.setBornHost(new InetSocketAddress(InetAddress.getByName("1050:0000:0000:0000:0005:0600:300c:326b"), 8123));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            msg.setStoreHost(new InetSocketAddress(InetAddress.getByName("::1"), 8123));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        return msg;
+    }
+
     public static String createBaseDir() {
         String baseDir = System.getProperty("user.home") + File.separator + "unitteststore" + File.separator + UUID.randomUUID();
         final File file = new File(baseDir);
@@ -73,7 +100,6 @@ public class StoreTestBase {
         MappedFile.ensureDirOK(file.getParent());
         return file.createNewFile();
     }
-
 
     public static void deleteFile(String fileName) {
         deleteFile(new File(fileName));
