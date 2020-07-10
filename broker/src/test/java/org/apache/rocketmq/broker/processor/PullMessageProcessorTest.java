@@ -208,7 +208,7 @@ public class PullMessageProcessorTest {
         return request;
     }
 
-    static ConsumerData createConsumerData(String group, String topic) {
+    public static ConsumerData createConsumerData(String group, String topic) {
         ConsumerData consumerData = new ConsumerData();
         consumerData.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumerData.setConsumeType(ConsumeType.CONSUME_PASSIVELY);

@@ -33,6 +33,8 @@ public class RequestCode {
 
     public static final int GET_TOPIC_NAME_LIST = 23;
 
+    public static final int ALLOCATE_MESSAGE_QUEUE = 24;
+
     public static final int UPDATE_BROKER_CONFIG = 25;
 
     public static final int GET_BROKER_CONFIG = 26;

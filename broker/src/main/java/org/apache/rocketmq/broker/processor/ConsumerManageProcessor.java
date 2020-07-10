@@ -18,12 +18,18 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
+import org.apache.rocketmq.common.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.AllocateMessageQueueRequestBody;
+import org.apache.rocketmq.common.protocol.header.AllocateMessageQueueRequestHeader;
+import org.apache.rocketmq.common.protocol.header.AllocateMessageQueueResponseBody;
+import org.apache.rocketmq.common.protocol.header.AllocateMessageQueueResponseHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
@@ -31,6 +37,14 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHead
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueAveragely;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueAveragelyByCircle;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueByConfig;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueByMachineRoom;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueConsistentHash;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueSticky;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueStrategyConstants;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -57,6 +71,8 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                 return this.updateConsumerOffset(ctx, request);
             case RequestCode.QUERY_CONSUMER_OFFSET:
                 return this.queryConsumerOffset(ctx, request);
+            case RequestCode.ALLOCATE_MESSAGE_QUEUE:
+                return this.allocateMessageQueue(ctx, request);
             default:
                 break;
         }
@@ -149,6 +165,75 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                 response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
             }
         }
+
+        return response;
+    }
+
+    private synchronized RemotingCommand allocateMessageQueue(ChannelHandlerContext ctx, RemotingCommand request)
+        throws RemotingCommandException {
+        final RemotingCommand response =
+            RemotingCommand.createResponseCommand(AllocateMessageQueueResponseHeader.class);
+        final AllocateMessageQueueRequestHeader requestHeader =
+            (AllocateMessageQueueRequestHeader) request.decodeCommandCustomHeader(AllocateMessageQueueRequestHeader.class);
+        final AllocateMessageQueueRequestBody requestBody = AllocateMessageQueueRequestBody.decode(request.getBody(),
+            AllocateMessageQueueRequestBody.class);
+
+        AllocateMessageQueueStrategy strategy = null;
+        String consumerGroup = requestHeader.getConsumerGroup();
+        String strategyName = requestHeader.getStrategyName();
+        Map<String, AllocateMessageQueueStrategy> strategyTable = this.brokerController.getAllocateMessageQueueStrategyTable();
+
+        if (strategyTable.containsKey(consumerGroup) && strategyName.equals(strategyTable.get(consumerGroup).getName())) {
+            strategy = strategyTable.get(consumerGroup);
+        } else {
+            switch (strategyName) {
+                case AllocateMessageQueueStrategyConstants.ALLOCATE_MESSAGE_QUEUE_AVERAGELY:
+                    strategy = new AllocateMessageQueueAveragely();
+                    break;
+                case AllocateMessageQueueStrategyConstants.ALLOCATE_MESSAGE_QUEUE_AVERAGELY_BY_CIRCLE:
+                    strategy = new AllocateMessageQueueAveragelyByCircle();
+                    break;
+                case AllocateMessageQueueStrategyConstants.ALLOCATE_MESSAGE_QUEUE_BY_CONFIG:
+                    strategy = new AllocateMessageQueueByConfig();
+                    break;
+                case AllocateMessageQueueStrategyConstants.ALLOCATE_MESSAGE_QUEUE_BY_MACHINE_ROOM:
+                    strategy = new AllocateMessageQueueByMachineRoom();
+                    break;
+                case AllocateMessageQueueStrategyConstants.ALLOCATE_MESSAGE_QUEUE_CONSISTENT_HASH:
+                    strategy = new AllocateMessageQueueConsistentHash();
+                    break;
+                case AllocateMessageQueueStrategyConstants.ALLOCATE_MESSAGE_QUEUE_STICKY:
+                    strategy = new AllocateMessageQueueSticky();
+                    break;
+                default:
+                    response.setCode(ResponseCode.ALLOCATE_MESSAGE_QUEUE_FAILED);
+                    response.setRemark("AllocateMessageQueueStrategy[" + strategyName + "] is not supported by broker");
+                    return response;
+            }
+            strategyTable.put(consumerGroup, strategy);
+        }
+
+        ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(consumerGroup);
+        List<MessageQueue> allocateResult = null;
+        try {
+            allocateResult = strategy.allocate(
+                requestHeader.getConsumerGroup(),
+                requestHeader.getClientID(),
+                requestBody.getMqAll(),
+                consumerGroupInfo != null ? consumerGroupInfo.getAllClientId() : null);
+        } catch (Throwable e) {
+            log.error("AllocateMessageQueueStrategy.allocate Exception. allocateMessageQueueStrategyName={}",
+                strategy.getName(), e);
+            response.setCode(ResponseCode.ALLOCATE_MESSAGE_QUEUE_FAILED);
+            response.setRemark(e.getMessage());
+            return response;
+        }
+
+        AllocateMessageQueueResponseBody body = new AllocateMessageQueueResponseBody();
+        body.setAllocateResult(allocateResult);
+        response.setBody(body.encode());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
 
         return response;
     }

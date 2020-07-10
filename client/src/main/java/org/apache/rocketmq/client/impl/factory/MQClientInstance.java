@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.impl.factory;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -442,7 +443,7 @@ public class MQClientInstance {
                 }
                 // may need to check one broker every cluster...
                 // assume that the configs of every broker in cluster are the the same.
-                String addr = findBrokerAddrByTopic(subscriptionData.getTopic());
+                String addr = findRandomBrokerAddrByTopic(subscriptionData.getTopic());
 
                 if (addr != null) {
                     try {
@@ -1069,10 +1070,10 @@ public class MQClientInstance {
     }
 
     public List<String> findConsumerIdList(final String topic, final String group) {
-        String brokerAddr = this.findBrokerAddrByTopic(topic);
+        String brokerAddr = this.findRandomBrokerAddrByTopic(topic);
         if (null == brokerAddr) {
             this.updateTopicRouteInfoFromNameServer(topic);
-            brokerAddr = this.findBrokerAddrByTopic(topic);
+            brokerAddr = this.findRandomBrokerAddrByTopic(topic);
         }
 
         if (null != brokerAddr) {
@@ -1086,13 +1087,31 @@ public class MQClientInstance {
         return null;
     }
 
-    public String findBrokerAddrByTopic(final String topic) {
+    public String findRandomBrokerAddrByTopic(final String topic) {
         TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
         if (topicRouteData != null) {
             List<BrokerData> brokers = topicRouteData.getBrokerDatas();
             if (!brokers.isEmpty()) {
                 int index = random.nextInt(brokers.size());
                 BrokerData bd = brokers.get(index % brokers.size());
+                return bd.selectBrokerAddr();
+            }
+        }
+
+        return null;
+    }
+
+    public String findUniqueBrokerAddrByTopic(final String topic) {
+        TopicRouteData topicRouteData = this.topicRouteTable.get(topic);
+        if (topicRouteData != null) {
+            List<BrokerData> brokers = topicRouteData.getBrokerDatas();
+            if (!brokers.isEmpty()) {
+                Collections.sort(brokers, new Comparator<BrokerData>() {
+                    @Override public int compare(BrokerData o1, BrokerData o2) {
+                        return o1.getBrokerName().compareTo(o2.getBrokerName());
+                    }
+                });
+                BrokerData bd = brokers.get(0);
                 return bd.selectBrokerAddr();
             }
         }
@@ -1159,6 +1178,26 @@ public class MQClientInstance {
         } else {
             return Collections.EMPTY_MAP;
         }
+    }
+
+    public List<MessageQueue> getAllocateResult(final String topic, final String group, final String strategyName,
+        final List<MessageQueue> mqAll) {
+        String brokerAddr = this.findUniqueBrokerAddrByTopic(topic);
+        if (null == brokerAddr) {
+            this.updateTopicRouteInfoFromNameServer(topic);
+            brokerAddr = this.findUniqueBrokerAddrByTopic(topic);
+        }
+
+        if (null != brokerAddr) {
+            try {
+                return this.mQClientAPIImpl.getAllocateResultByStrategy(brokerAddr, group, clientId, strategyName,
+                    mqAll, 3000);
+            } catch (Exception e) {
+                log.warn("getAllocateResultByStrategy exception, {} {}", brokerAddr, group, e);
+            }
+        }
+
+        return null;
     }
 
     public TopicRouteData getAnExistTopicRouteData(final String topic) {

@@ -20,17 +20,18 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
-import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
+import org.apache.rocketmq.common.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
@@ -65,6 +66,10 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      * Consumption pattern,default is clustering
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
+    /**
+     * The switch for applying the rebalancing calculation task at the broker side
+     */
+    private boolean rebalanceByBroker = false;
     /**
      * Message queue listener
      */
@@ -243,6 +248,14 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     public void setMessageModel(MessageModel messageModel) {
         this.messageModel = messageModel;
+    }
+
+    public boolean isRebalanceByBroker() {
+        return rebalanceByBroker;
+    }
+
+    public void setRebalanceByBroker(boolean rebalanceByBroker) {
+        this.rebalanceByBroker = rebalanceByBroker;
     }
 
     public MessageQueueListener getMessageQueueListener() {

@@ -63,6 +63,7 @@ import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.AllocateMessageQueueRequestBody;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.common.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
@@ -86,6 +87,8 @@ import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
+import org.apache.rocketmq.common.protocol.header.AllocateMessageQueueRequestHeader;
+import org.apache.rocketmq.common.protocol.header.AllocateMessageQueueResponseBody;
 import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
@@ -892,6 +895,39 @@ public class MQClientAPIImpl {
                     GetConsumerListByGroupResponseBody body =
                         GetConsumerListByGroupResponseBody.decode(response.getBody(), GetConsumerListByGroupResponseBody.class);
                     return body.getConsumerIdList();
+                }
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public List<MessageQueue> getAllocateResultByStrategy(final String addr, final String group, final String clientId,
+        final String strategyName, final List<MessageQueue> mqAll, final long timeoutMillis)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+        MQBrokerException, InterruptedException {
+        AllocateMessageQueueRequestHeader requestHeader = new AllocateMessageQueueRequestHeader();
+        requestHeader.setConsumerGroup(group);
+        requestHeader.setClientID(clientId);
+        requestHeader.setStrategyName(strategyName);
+
+        AllocateMessageQueueRequestBody requestBody = new AllocateMessageQueueRequestBody();
+        requestBody.setMqAll(mqAll);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.ALLOCATE_MESSAGE_QUEUE, requestHeader);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                if (response.getBody() != null) {
+                    AllocateMessageQueueResponseBody body = AllocateMessageQueueRequestBody.decode(response.getBody(),
+                        AllocateMessageQueueResponseBody.class);
+                    return body.getAllocateResult();
                 }
             }
             default:

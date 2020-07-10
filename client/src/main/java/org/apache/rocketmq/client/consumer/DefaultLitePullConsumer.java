@@ -19,10 +19,10 @@ package org.apache.rocketmq.client.consumer;
 import java.util.Collection;
 import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
+import org.apache.rocketmq.common.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
@@ -66,6 +67,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Consumption pattern,default is clustering
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
+
+    /**
+     * The switch for applying the rebalancing calculation task at the broker side
+     */
+    private boolean rebalanceByBroker = false;
     /**
      * Message queue listener
      */
@@ -407,6 +413,14 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setMessageModel(MessageModel messageModel) {
         this.messageModel = messageModel;
+    }
+
+    public boolean isRebalanceByBroker() {
+        return rebalanceByBroker;
+    }
+
+    public void setRebalanceByBroker(boolean rebalanceByBroker) {
+        this.rebalanceByBroker = rebalanceByBroker;
     }
 
     public String getConsumerGroup() {

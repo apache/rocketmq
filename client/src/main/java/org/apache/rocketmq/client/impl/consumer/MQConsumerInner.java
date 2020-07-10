@@ -32,6 +32,8 @@ public interface MQConsumerInner {
 
     MessageModel messageModel();
 
+    boolean rebalanceByBroker();
+
     ConsumeType consumeType();
 
     ConsumeFromWhere consumeFromWhere();

@@ -18,9 +18,9 @@ package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.List;
 import java.util.Set;
-import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -75,5 +75,10 @@ public class RebalancePullImpl extends RebalanceImpl {
 
     @Override
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {
+    }
+
+    @Override
+    public boolean isRebalanceByBroker() {
+        return this.defaultMQPullConsumerImpl.rebalanceByBroker();
     }
 }

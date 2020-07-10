@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.consumer.rebalance;
+package org.apache.rocketmq.common.rebalance;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
  * An allocate strategy proxy for based on machine room nearside priority. An actual allocate strategy can be
@@ -35,7 +36,7 @@ import org.apache.rocketmq.logging.InternalLogger;
  * no alive consumer to monopolize them.
  */
 public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
-    private final InternalLogger log = ClientLogger.getLog();
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private final AllocateMessageQueueStrategy allocateMessageQueueStrategy;//actual allocate strategy
     private final MachineRoomResolver machineRoomResolver;
