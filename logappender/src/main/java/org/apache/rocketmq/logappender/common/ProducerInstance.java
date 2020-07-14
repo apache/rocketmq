@@ -41,6 +41,8 @@ public class ProducerInstance {
     public static final String DEFAULT_GROUP = "rocketmq_appender";
 
     private ConcurrentHashMap<String, MQProducer> producerMap = new ConcurrentHashMap<String, MQProducer>();
+    
+    private ProducerInstance(){}
 
     private static ProducerInstance instance = new ProducerInstance();
 
