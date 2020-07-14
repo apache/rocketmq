@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.processor;
 import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.Objects;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.BrokerController;
@@ -323,6 +324,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         try {
 
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
+            if (Objects.isNull(accessValidator)) {
+                log.error("Maybe you forget the broker configuration aclEnable=true");
+                throw new NullPointerException("Maybe you forget the broker configuration aclEnable=true");
+            }
             if (accessValidator.updateAccessConfig(accessConfig)) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setOpaque(request.getOpaque());
