@@ -19,7 +19,8 @@ package org.apache.rocketmq.broker.client;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import java.lang.reflect.Field;
-import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,7 +75,7 @@ public class ProducerManagerTest {
     @Test
     public void testRegisterProducer() throws Exception {
         producerManager.registerProducer(group, clientInfo);
-        HashMap<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
+        Map<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
         Channel channel1 = producerManager.findChannel("clientId");
         assertThat(channelMap).isNotNull();
         assertThat(channel1).isNotNull();
@@ -85,7 +86,7 @@ public class ProducerManagerTest {
     @Test
     public void unregisterProducer() throws Exception {
         producerManager.registerProducer(group, clientInfo);
-        HashMap<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
+        Map<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
         assertThat(channelMap).isNotNull();
         assertThat(channelMap.get(channel)).isEqualTo(clientInfo);
         Channel channel1 = producerManager.findChannel("clientId");
@@ -102,9 +103,28 @@ public class ProducerManagerTest {
     @Test
     public void testGetGroupChannelTable() throws Exception {
         producerManager.registerProducer(group, clientInfo);
-        HashMap<Channel, ClientChannelInfo> oldMap = producerManager.getGroupChannelTable().get(group);
+        Map<Channel, ClientChannelInfo> oldMap = producerManager.getGroupChannelTable().get(group);
         
         producerManager.unregisterProducer(group, clientInfo);
-        assertThat(oldMap.size()).isNotEqualTo(0);
+        assertThat(oldMap.size()).isEqualTo(0);
     }
+
+    @Test
+    public void testGetAvaliableChannel() {
+        producerManager.registerProducer(group, clientInfo);
+
+        when(channel.isActive()).thenReturn(true);
+        when(channel.isWritable()).thenReturn(true);
+        Channel c = producerManager.getAvaliableChannel(group);
+        assertThat(c).isSameAs(channel);
+
+        when(channel.isWritable()).thenReturn(false);
+        c = producerManager.getAvaliableChannel(group);
+        assertThat(c).isSameAs(channel);
+
+        when(channel.isActive()).thenReturn(false);
+        c = producerManager.getAvaliableChannel(group);
+        assertThat(c).isNull();
+    }
+
 }

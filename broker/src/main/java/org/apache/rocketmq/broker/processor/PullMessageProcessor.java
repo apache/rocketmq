@@ -52,11 +52,13 @@ import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -67,7 +69,7 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
-public class PullMessageProcessor implements NettyRequestProcessor {
+public class PullMessageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
     private List<ConsumeMessageHook> consumeMessageHookList;
@@ -522,7 +524,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     private void generateOffsetMovedEvent(final OffsetMovedEvent event) {
         try {
             MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-            msgInner.setTopic(MixAll.OFFSET_MOVED_EVENT);
+            msgInner.setTopic(TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT);
             msgInner.setTags(event.getConsumerGroup());
             msgInner.setDelayTimeLevel(0);
             msgInner.setKeys(event.getConsumerGroup());

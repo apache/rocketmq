@@ -519,9 +519,11 @@ public class MQClientAPIImpl {
         final SendMessageContext context,
         final DefaultMQProducerImpl producer
     ) throws InterruptedException, RemotingException {
+        final long beginStartTime = System.currentTimeMillis();
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
+                long cost = System.currentTimeMillis() - beginStartTime;
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (null == sendCallback && response != null) {
 
@@ -555,23 +557,23 @@ public class MQClientAPIImpl {
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
                     } catch (Exception e) {
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
-                        onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
+                        onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                             retryTimesWhenSendFailed, times, e, context, false, producer);
                     }
                 } else {
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
                     if (!responseFuture.isSendRequestOK()) {
                         MQClientException ex = new MQClientException("send request failed", responseFuture.getCause());
-                        onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
+                        onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                             retryTimesWhenSendFailed, times, ex, context, true, producer);
                     } else if (responseFuture.isTimeout()) {
                         MQClientException ex = new MQClientException("wait response timeout " + responseFuture.getTimeoutMillis() + "ms",
                             responseFuture.getCause());
-                        onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
+                        onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                             retryTimesWhenSendFailed, times, ex, context, true, producer);
                     } else {
                         MQClientException ex = new MQClientException("unknow reseaon", responseFuture.getCause());
-                        onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
+                        onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                             retryTimesWhenSendFailed, times, ex, context, true, producer);
                     }
                 }
@@ -641,72 +643,64 @@ public class MQClientAPIImpl {
         final Message msg,
         final RemotingCommand response
     ) throws MQBrokerException, RemotingCommandException {
+        SendStatus sendStatus;
         switch (response.getCode()) {
-            case ResponseCode.FLUSH_DISK_TIMEOUT:
-            case ResponseCode.FLUSH_SLAVE_TIMEOUT:
+            case ResponseCode.FLUSH_DISK_TIMEOUT: {
+                sendStatus = SendStatus.FLUSH_DISK_TIMEOUT;
+                break;
+            }
+            case ResponseCode.FLUSH_SLAVE_TIMEOUT: {
+                sendStatus = SendStatus.FLUSH_SLAVE_TIMEOUT;
+                break;
+            }
             case ResponseCode.SLAVE_NOT_AVAILABLE: {
+                sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
+                break;
             }
             case ResponseCode.SUCCESS: {
-                SendStatus sendStatus = SendStatus.SEND_OK;
-                switch (response.getCode()) {
-                    case ResponseCode.FLUSH_DISK_TIMEOUT:
-                        sendStatus = SendStatus.FLUSH_DISK_TIMEOUT;
-                        break;
-                    case ResponseCode.FLUSH_SLAVE_TIMEOUT:
-                        sendStatus = SendStatus.FLUSH_SLAVE_TIMEOUT;
-                        break;
-                    case ResponseCode.SLAVE_NOT_AVAILABLE:
-                        sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
-                        break;
-                    case ResponseCode.SUCCESS:
-                        sendStatus = SendStatus.SEND_OK;
-                        break;
-                    default:
-                        assert false;
-                        break;
-                }
-
-                SendMessageResponseHeader responseHeader =
-                    (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
-
-                //If namespace not null , reset Topic without namespace.
-                String topic = msg.getTopic();
-                if (StringUtils.isNotEmpty(this.clientConfig.getNamespace())) {
-                    topic = NamespaceUtil.withoutNamespace(topic, this.clientConfig.getNamespace());
-                }
-
-                MessageQueue messageQueue = new MessageQueue(topic, brokerName, responseHeader.getQueueId());
-
-                String uniqMsgId = MessageClientIDSetter.getUniqID(msg);
-                if (msg instanceof MessageBatch) {
-                    StringBuilder sb = new StringBuilder();
-                    for (Message message : (MessageBatch) msg) {
-                        sb.append(sb.length() == 0 ? "" : ",").append(MessageClientIDSetter.getUniqID(message));
-                    }
-                    uniqMsgId = sb.toString();
-                }
-                SendResult sendResult = new SendResult(sendStatus,
-                    uniqMsgId,
-                    responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
-                sendResult.setTransactionId(responseHeader.getTransactionId());
-                String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
-                String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
-                if (regionId == null || regionId.isEmpty()) {
-                    regionId = MixAll.DEFAULT_TRACE_REGION_ID;
-                }
-                if (traceOn != null && traceOn.equals("false")) {
-                    sendResult.setTraceOn(false);
-                } else {
-                    sendResult.setTraceOn(true);
-                }
-                sendResult.setRegionId(regionId);
-                return sendResult;
-            }
-            default:
+                sendStatus = SendStatus.SEND_OK;
                 break;
+            }
+            default: {
+                throw new MQBrokerException(response.getCode(), response.getRemark());
+            }
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        SendMessageResponseHeader responseHeader =
+                (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
+
+        //If namespace not null , reset Topic without namespace.
+        String topic = msg.getTopic();
+        if (StringUtils.isNotEmpty(this.clientConfig.getNamespace())) {
+            topic = NamespaceUtil.withoutNamespace(topic, this.clientConfig.getNamespace());
+        }
+
+        MessageQueue messageQueue = new MessageQueue(topic, brokerName, responseHeader.getQueueId());
+
+        String uniqMsgId = MessageClientIDSetter.getUniqID(msg);
+        if (msg instanceof MessageBatch) {
+            StringBuilder sb = new StringBuilder();
+            for (Message message : (MessageBatch) msg) {
+                sb.append(sb.length() == 0 ? "" : ",").append(MessageClientIDSetter.getUniqID(message));
+            }
+            uniqMsgId = sb.toString();
+        }
+        SendResult sendResult = new SendResult(sendStatus,
+                uniqMsgId,
+                responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+        sendResult.setTransactionId(responseHeader.getTransactionId());
+        String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
+        String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
+        if (regionId == null || regionId.isEmpty()) {
+            regionId = MixAll.DEFAULT_TRACE_REGION_ID;
+        }
+        if (traceOn != null && traceOn.equals("false")) {
+            sendResult.setTraceOn(false);
+        } else {
+            sendResult.setTraceOn(true);
+        }
+        sendResult.setRegionId(regionId);
+        return sendResult;
     }
 
     public PullResult pullMessage(
@@ -1364,13 +1358,13 @@ public class MQClientAPIImpl {
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
         requestHeader.setTopic(topic);
 
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.TOPIC_NOT_EXIST: {
-                if (allowTopicNotExist && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
+                if (allowTopicNotExist) {
                     log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
                 }
 
