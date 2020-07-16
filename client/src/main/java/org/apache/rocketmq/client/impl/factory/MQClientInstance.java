@@ -1028,6 +1028,11 @@ public class MQClientInstance {
         return null;
     }
 
+    // for unit test
+    public static ConcurrentMap<String, HashMap<Long, String>> getBrokerAddrTable(MQClientInstance mqClientInstance) {
+        return mqClientInstance.brokerAddrTable;
+    }
+
     public FindBrokerResult findBrokerAddressInSubscribe(
         final String brokerName,
         final long brokerId,
@@ -1044,9 +1049,14 @@ public class MQClientInstance {
             found = brokerAddr != null;
 
             if (!found && !onlyThisBroker) {
-                Entry<Long, String> entry = map.entrySet().iterator().next();
-                brokerAddr = entry.getValue();
-                slave = entry.getKey() != MixAll.MASTER_ID;
+                if (brokerId == 1 && map.size() > 2) {
+                    brokerAddr = map.get(2L);
+                    slave = true;
+                } else {
+                    Entry<Long, String> entry = map.entrySet().iterator().next();
+                    brokerAddr = entry.getValue();
+                    slave = entry.getKey() != MixAll.MASTER_ID;
+                }
                 found = true;
             }
         }
