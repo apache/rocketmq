@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
@@ -72,6 +73,34 @@ public class MQClientInstanceTest {
 
         assertThat(topicPublishInfo.isHaveTopicRouterInfo()).isFalse();
         assertThat(topicPublishInfo.getMessageQueueList().size()).isEqualTo(4);
+    }
+
+    @Test
+    public void testFindBrokerAddressInSubscribe() {
+        // dledger normal case
+        String brokerName = "BrokerA";
+        HashMap<Long, String> addrMap = new HashMap<Long, String>();
+        addrMap.put(0L, "127.0.0.1:10911");
+        addrMap.put(1L, "127.0.0.1:10912");
+        addrMap.put(2L, "127.0.0.1:10913");
+        MQClientInstance.getBrokerAddrTable(mqClientInstance).put(brokerName, addrMap);
+        long brokerId = 1;
+        FindBrokerResult brokerResult = mqClientInstance.findBrokerAddressInSubscribe(brokerName, brokerId, false);
+        assertThat(brokerResult).isNotNull();
+        assertThat(brokerResult.getBrokerAddr()).isEqualTo("127.0.0.1:10912");
+        assertThat(brokerResult.isSlave()).isTrue();
+
+        // dledger case, when node n0 was voted as the leader
+        brokerName = "BrokerB";
+        HashMap<Long, String> addrMapNew = new HashMap<Long, String>();
+        addrMapNew.put(0L, "127.0.0.1:10911");
+        addrMapNew.put(2L, "127.0.0.1:10912");
+        addrMapNew.put(3L, "127.0.0.1:10913");
+        MQClientInstance.getBrokerAddrTable(mqClientInstance).put(brokerName, addrMapNew);
+        brokerResult = mqClientInstance.findBrokerAddressInSubscribe(brokerName, brokerId, false);
+        assertThat(brokerResult).isNotNull();
+        assertThat(brokerResult.getBrokerAddr()).isEqualTo("127.0.0.1:10912");
+        assertThat(brokerResult.isSlave()).isTrue();
     }
 
     @Test
