@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -31,6 +34,7 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -43,6 +47,14 @@ public class MQClientInstanceTest {
     private MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     private String topic = "FooBar";
     private String group = "FooBarGroup";
+    private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
+
+    @Before
+    public void init() throws Exception {
+        Field field = MQClientInstance.class.getDeclaredField("brokerAddrTable");
+        field.setAccessible(true);
+        field.set(mqClientInstance, brokerAddrTable);
+    }
 
     @Test
     public void testTopicRouteData2TopicPublishInfo() {
@@ -83,7 +95,7 @@ public class MQClientInstanceTest {
         addrMap.put(0L, "127.0.0.1:10911");
         addrMap.put(1L, "127.0.0.1:10912");
         addrMap.put(2L, "127.0.0.1:10913");
-        MQClientInstance.getBrokerAddrTable(mqClientInstance).put(brokerName, addrMap);
+        brokerAddrTable.put(brokerName, addrMap);
         long brokerId = 1;
         FindBrokerResult brokerResult = mqClientInstance.findBrokerAddressInSubscribe(brokerName, brokerId, false);
         assertThat(brokerResult).isNotNull();
@@ -96,7 +108,7 @@ public class MQClientInstanceTest {
         addrMapNew.put(0L, "127.0.0.1:10911");
         addrMapNew.put(2L, "127.0.0.1:10912");
         addrMapNew.put(3L, "127.0.0.1:10913");
-        MQClientInstance.getBrokerAddrTable(mqClientInstance).put(brokerName, addrMapNew);
+        brokerAddrTable.put(brokerName, addrMapNew);
         brokerResult = mqClientInstance.findBrokerAddressInSubscribe(brokerName, brokerId, false);
         assertThat(brokerResult).isNotNull();
         assertThat(brokerResult.getBrokerAddr()).isEqualTo("127.0.0.1:10912");

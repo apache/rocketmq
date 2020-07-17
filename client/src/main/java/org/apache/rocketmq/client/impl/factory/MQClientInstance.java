@@ -1028,11 +1028,6 @@ public class MQClientInstance {
         return null;
     }
 
-    // for unit test
-    public static ConcurrentMap<String, HashMap<Long, String>> getBrokerAddrTable(MQClientInstance mqClientInstance) {
-        return mqClientInstance.brokerAddrTable;
-    }
-
     public FindBrokerResult findBrokerAddressInSubscribe(
         final String brokerName,
         final long brokerId,
