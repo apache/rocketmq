@@ -32,9 +32,9 @@ import org.junit.Test;
 public class AclUtilsTest {
 
     @Test
-    public void getAddreeStrArray() {
+    public void getAddressStrArray() {
         String address = "1.1.1.{1,2,3,4}";
-        String[] addressArray = AclUtils.getAddreeStrArray(address, "{1,2,3,4}");
+        String[] addressArray = AclUtils.getAddressStrArray(address, "{1,2,3,4}");
         List<String> newAddressList = new ArrayList<>();
         for (String a : addressArray) {
             newAddressList.add(a);
@@ -49,7 +49,7 @@ public class AclUtilsTest {
 
 //        IPv6 test
         String ipv6Address = "1:ac41:9987::bb22:666:{1,2,3,4}";
-        String[] ipv6AddressArray = AclUtils.getAddreeStrArray(ipv6Address, "{1,2,3,4}");
+        String[] ipv6AddressArray = AclUtils.getAddressStrArray(ipv6Address, "{1,2,3,4}");
         List<String> newIPv6AddressList = new ArrayList<>();
         for (String a : ipv6AddressArray) {
             newIPv6AddressList.add(a);
