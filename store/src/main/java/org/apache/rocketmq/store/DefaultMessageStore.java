@@ -50,6 +50,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.running.RunningStats;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -113,6 +114,9 @@ public class DefaultMessageStore implements MessageStore {
     private FileLock lock;
 
     boolean shutDownNormal = false;
+
+    private final ScheduledExecutorService diskCheckScheduledExecutorService =
+            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DiskCheckScheduledThread"));
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
@@ -293,7 +297,7 @@ public class DefaultMessageStore implements MessageStore {
             this.shutdown = true;
 
             this.scheduledExecutorService.shutdown();
-
+            this.diskCheckScheduledExecutorService.shutdown();
             try {
 
                 Thread.sleep(1000);
@@ -1016,7 +1020,7 @@ public class DefaultMessageStore implements MessageStore {
             Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             String topic = next.getKey();
 
-            if (!topics.contains(topic) && !topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)) {
+            if (!topics.contains(topic) && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
                 ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 for (ConsumeQueue cq : queueTable.values()) {
                     cq.destroy();
@@ -1028,6 +1032,10 @@ public class DefaultMessageStore implements MessageStore {
                     this.commitLog.removeQueueFromTopicQueueTable(cq.getTopic(), cq.getQueueId());
                 }
                 it.remove();
+
+                if (this.brokerConfig.isAutoDeleteUnusedStats()) {
+                    this.brokerStatsManager.onTopicDeleted(topic);
+                }
 
                 log.info("cleanUnusedTopic: {},topic destroyed", topic);
             }
@@ -1043,7 +1051,7 @@ public class DefaultMessageStore implements MessageStore {
         while (it.hasNext()) {
             Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             String topic = next.getKey();
-            if (!topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)) {
+            if (!topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
                 ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 Iterator<Entry<Integer, ConsumeQueue>> itQT = queueTable.entrySet().iterator();
                 while (itQT.hasNext()) {
@@ -1325,6 +1333,11 @@ public class DefaultMessageStore implements MessageStore {
         // DefaultMessageStore.this.cleanExpiredConsumerQueue();
         // }
         // }, 1, 1, TimeUnit.HOURS);
+        this.diskCheckScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            public void run() {
+                DefaultMessageStore.this.cleanCommitLogService.isSpaceFull();
+            }
+        }, 1000L, 10000L, TimeUnit.MILLISECONDS);
     }
 
     private void cleanFilesPeriodically() {
@@ -1722,6 +1735,30 @@ public class DefaultMessageStore implements MessageStore {
 
         public void setManualDeleteFileSeveralTimes(int manualDeleteFileSeveralTimes) {
             this.manualDeleteFileSeveralTimes = manualDeleteFileSeveralTimes;
+        }
+        public boolean isSpaceFull() {
+            String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
+            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            double ratio = DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
+            if (physicRatio > ratio) {
+                DefaultMessageStore.log.info("physic disk of commitLog used: " + physicRatio);
+            }
+            if (physicRatio > this.diskSpaceWarningLevelRatio) {
+                boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
+                if (diskok) {
+                    DefaultMessageStore.log.error("physic disk of commitLog maybe full soon, used " + physicRatio + ", so mark disk full");
+                }
+
+                return true;
+            } else {
+                boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
+
+                if (!diskok) {
+                    DefaultMessageStore.log.info("physic disk space of commitLog OK " + physicRatio + ", so mark disk ok");
+                }
+
+                return false;
+            }
         }
     }
 
