@@ -83,31 +83,24 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
                 jjmatchedKind = 24;
                 return jjMoveStringLiteralDfa1_0(0x2000000L);
             case 65:
-                return jjMoveStringLiteralDfa1_0(0x200L);
-            case 66:
-                return jjMoveStringLiteralDfa1_0(0x800L);
-            case 70:
-                return jjMoveStringLiteralDfa1_0(0x4000L);
-            case 73:
-                return jjMoveStringLiteralDfa1_0(0x11000L);
-            case 78:
-                return jjMoveStringLiteralDfa1_0(0x8100L);
-            case 79:
-                return jjMoveStringLiteralDfa1_0(0x400L);
-            case 84:
-                return jjMoveStringLiteralDfa1_0(0x2000L);
             case 97:
                 return jjMoveStringLiteralDfa1_0(0x200L);
+            case 66:
             case 98:
                 return jjMoveStringLiteralDfa1_0(0x800L);
+            case 70:
             case 102:
                 return jjMoveStringLiteralDfa1_0(0x4000L);
+            case 73:
             case 105:
                 return jjMoveStringLiteralDfa1_0(0x11000L);
+            case 78:
             case 110:
                 return jjMoveStringLiteralDfa1_0(0x8100L);
+            case 79:
             case 111:
                 return jjMoveStringLiteralDfa1_0(0x400L);
+            case 84:
             case 116:
                 return jjMoveStringLiteralDfa1_0(0x2000L);
             default:
@@ -138,55 +131,36 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
                 }
                 break;
             case 65:
-                return jjMoveStringLiteralDfa2_0(active0, 0x4000L);
-            case 69:
-                return jjMoveStringLiteralDfa2_0(active0, 0x800L);
-            case 78:
-                if ((active0 & 0x1000L) != 0L) {
-                    jjmatchedKind = 12;
-                    jjmatchedPos = 1;
-                }
-                return jjMoveStringLiteralDfa2_0(active0, 0x200L);
-            case 79:
-                return jjMoveStringLiteralDfa2_0(active0, 0x100L);
-            case 82:
-                if ((active0 & 0x400L) != 0L) {
-                    jjmatchedKind = 10;
-                    jjmatchedPos = 1;
-                }
-                return jjMoveStringLiteralDfa2_0(active0, 0x2000L);
-            case 83:
-                if ((active0 & 0x10000L) != 0L) {
-                    jjmatchedKind = 16;
-                    jjmatchedPos = 1;
-                }
-                break;
-            case 85:
-                return jjMoveStringLiteralDfa2_0(active0, 0x8000L);
             case 97:
                 return jjMoveStringLiteralDfa2_0(active0, 0x4000L);
+            case 69:
             case 101:
                 return jjMoveStringLiteralDfa2_0(active0, 0x800L);
+            case 78:
             case 110:
                 if ((active0 & 0x1000L) != 0L) {
                     jjmatchedKind = 12;
                     jjmatchedPos = 1;
                 }
                 return jjMoveStringLiteralDfa2_0(active0, 0x200L);
+            case 79:
             case 111:
                 return jjMoveStringLiteralDfa2_0(active0, 0x100L);
+            case 82:
             case 114:
                 if ((active0 & 0x400L) != 0L) {
                     jjmatchedKind = 10;
                     jjmatchedPos = 1;
                 }
                 return jjMoveStringLiteralDfa2_0(active0, 0x2000L);
+            case 83:
             case 115:
                 if ((active0 & 0x10000L) != 0L) {
                     jjmatchedKind = 16;
                     jjmatchedPos = 1;
                 }
                 break;
+            case 85:
             case 117:
                 return jjMoveStringLiteralDfa2_0(active0, 0x8000L);
             default:
@@ -205,35 +179,23 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         }
         switch (curChar) {
             case 68:
-                if ((active0 & 0x200L) != 0L) {
-                    jjmatchedKind = 9;
-                    jjmatchedPos = 2;
-                }
-                break;
-            case 76:
-                return jjMoveStringLiteralDfa3_0(active0, 0xc000L);
-            case 84:
-                if ((active0 & 0x100L) != 0L) {
-                    jjmatchedKind = 8;
-                    jjmatchedPos = 2;
-                }
-                return jjMoveStringLiteralDfa3_0(active0, 0x800L);
-            case 85:
-                return jjMoveStringLiteralDfa3_0(active0, 0x2000L);
             case 100:
                 if ((active0 & 0x200L) != 0L) {
                     jjmatchedKind = 9;
                     jjmatchedPos = 2;
                 }
                 break;
+            case 76:
             case 108:
                 return jjMoveStringLiteralDfa3_0(active0, 0xc000L);
+            case 84:
             case 116:
                 if ((active0 & 0x100L) != 0L) {
                     jjmatchedKind = 8;
                     jjmatchedPos = 2;
                 }
                 return jjMoveStringLiteralDfa3_0(active0, 0x800L);
+            case 85:
             case 117:
                 return jjMoveStringLiteralDfa3_0(active0, 0x2000L);
             default:
@@ -252,35 +214,23 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         }
         switch (curChar) {
             case 69:
-                if ((active0 & 0x2000L) != 0L) {
-                    jjmatchedKind = 13;
-                    jjmatchedPos = 3;
-                }
-                break;
-            case 76:
-                if ((active0 & 0x8000L) != 0L) {
-                    jjmatchedKind = 15;
-                    jjmatchedPos = 3;
-                }
-                break;
-            case 83:
-                return jjMoveStringLiteralDfa4_0(active0, 0x4000L);
-            case 87:
-                return jjMoveStringLiteralDfa4_0(active0, 0x800L);
             case 101:
                 if ((active0 & 0x2000L) != 0L) {
                     jjmatchedKind = 13;
                     jjmatchedPos = 3;
                 }
                 break;
+            case 76:
             case 108:
                 if ((active0 & 0x8000L) != 0L) {
                     jjmatchedKind = 15;
                     jjmatchedPos = 3;
                 }
                 break;
+            case 83:
             case 115:
                 return jjMoveStringLiteralDfa4_0(active0, 0x4000L);
+            case 87:
             case 119:
                 return jjMoveStringLiteralDfa4_0(active0, 0x800L);
             default:
@@ -299,11 +249,6 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         }
         switch (curChar) {
             case 69:
-                if ((active0 & 0x4000L) != 0L) {
-                    jjmatchedKind = 14;
-                    jjmatchedPos = 4;
-                }
-                return jjMoveStringLiteralDfa5_0(active0, 0x800L);
             case 101:
                 if ((active0 & 0x4000L) != 0L) {
                     jjmatchedKind = 14;
@@ -326,7 +271,6 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         }
         switch (curChar) {
             case 69:
-                return jjMoveStringLiteralDfa6_0(active0, 0x800L);
             case 101:
                 return jjMoveStringLiteralDfa6_0(active0, 0x800L);
             default:
@@ -345,11 +289,6 @@ public class SelectorParserTokenManager implements SelectorParserConstants {
         }
         switch (curChar) {
             case 78:
-                if ((active0 & 0x800L) != 0L) {
-                    jjmatchedKind = 11;
-                    jjmatchedPos = 6;
-                }
-                break;
             case 110:
                 if ((active0 & 0x800L) != 0L) {
                     jjmatchedKind = 11;
