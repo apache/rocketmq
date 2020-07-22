@@ -18,6 +18,7 @@ package org.apache.rocketmq.acl.plain;
 
 import java.util.HashSet;
 import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.acl.common.AclException;
@@ -57,13 +58,13 @@ public class RemoteAddressStrategyFactory {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
 
                 // However a right IP String provided by user,it always can be divided into 4 parts by '.'.
-                if(strArray.length < 4){
-                    throw new AclException(String.format("MultipleRemoteAddressStrategy has got a/some wrong format IP(s) ",remoteAddr));
+                if (strArray.length < 4) {
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy has got a/some wrong format IP(s) ", remoteAddr));
                 }
 
                 String lastStr = strArray[strArray.length - 1];
-                if(!lastStr.startsWith("{")){
-                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress",remoteAddr));
+                if (!lastStr.startsWith("{")) {
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
                 }
                 return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, lastStr));
             }
