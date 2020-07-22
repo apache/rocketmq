@@ -62,7 +62,9 @@ public class RemoteAddressStrategyFactory {
                 }
 
                 String lastStr = strArray[strArray.length - 1];
-                System.out.println(lastStr);
+                if(!lastStr.startsWith("{")){
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress",remoteAddr));
+                }
                 return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, lastStr));
             }
         } else if (AclUtils.isComma(remoteAddr)) {

@@ -103,27 +103,6 @@ public class RemoteAddressStrategyTest {
 
     }
 
-    @Test
-    public void ipv4FormatTest(){
-
-        PlainAccessResource plainAccessResource = new PlainAccessResource();
-
-        plainAccessResource.setWhiteRemoteAddress("127.0.0.{1}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-        plainAccessResource.setWhiteRemoteAddress("127.0.0.{1,2}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-        plainAccessResource.setWhiteRemoteAddress("127.0.{1,2}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-        plainAccessResource.setWhiteRemoteAddress("{127.0.1}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-    }
-
-
-
     @Test(expected = AclException.class)
     public void verifyTest() {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
