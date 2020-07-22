@@ -114,12 +114,6 @@ public class RemoteAddressStrategyTest {
         plainAccessResource.setWhiteRemoteAddress("127.0.0.{1,2}");
         this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
 
-        plainAccessResource.setWhiteRemoteAddress("127.0.{1,2}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-        plainAccessResource.setWhiteRemoteAddress("{127.0.1}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
     }
 
 
