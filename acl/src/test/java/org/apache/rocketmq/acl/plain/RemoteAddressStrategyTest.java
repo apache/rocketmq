@@ -113,11 +113,11 @@ public class RemoteAddressStrategyTest {
         plainAccessResource.setWhiteRemoteAddress("192.168.1.{1,2}");
         remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
 
-        plainAccessResource.setWhiteRemoteAddress("192.168.{1}");
-        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+//        plainAccessResource.setWhiteRemoteAddress("192.168.{1}");
+//        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
 
-        plainAccessResource.setWhiteRemoteAddress("{192.168.1}");
-        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+//        plainAccessResource.setWhiteRemoteAddress("{192.168.1}");
+//        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
     }
 
 
