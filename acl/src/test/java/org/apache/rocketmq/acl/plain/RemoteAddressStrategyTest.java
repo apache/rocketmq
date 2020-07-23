@@ -29,7 +29,7 @@ public class RemoteAddressStrategyTest {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         Assert.assertEquals(remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource).getClass(),
-            RemoteAddressStrategyFactory.BlankRemoteAddressStrategy.class);
+                RemoteAddressStrategyFactory.BlankRemoteAddressStrategy.class);
     }
 
     @Test
@@ -102,27 +102,6 @@ public class RemoteAddressStrategyTest {
         Assert.assertEquals(remoteAddressStrategy.getClass(), RemoteAddressStrategyFactory.RangeRemoteAddressStrategy.class);
 
     }
-
-    @Test
-    public void ipv4FormatTest(){
-
-        PlainAccessResource plainAccessResource = new PlainAccessResource();
-
-        plainAccessResource.setWhiteRemoteAddress("127.0.0.{1}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-        plainAccessResource.setWhiteRemoteAddress("127.0.0.{1,2}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-        plainAccessResource.setWhiteRemoteAddress("127.0.{1,2}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-        plainAccessResource.setWhiteRemoteAddress("{127.0.1}");
-        this.remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
-
-    }
-
-
 
     @Test(expected = AclException.class)
     public void verifyTest() {
@@ -220,6 +199,19 @@ public class RemoteAddressStrategyTest {
         remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
         plainAccessResource.setWhiteRemoteAddress("::1,2,3}");
         remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+
+        plainAccessResource.setWhiteRemoteAddress("192.168.1.{1}");
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+
+        plainAccessResource.setWhiteRemoteAddress("192.168.1.{1,2}");
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+
+        plainAccessResource.setWhiteRemoteAddress("192.168.{1}");
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+
+        plainAccessResource.setWhiteRemoteAddress("{192.168.1}");
+        remoteAddressStrategyFactory.getRemoteAddressStrategy(plainAccessResource);
+
     }
 
     private void multipleNetaddressStrategyTest(RemoteAddressStrategy remoteAddressStrategy) {
@@ -322,8 +314,8 @@ public class RemoteAddressStrategyTest {
     }
 
     private void rangeNetaddressStrategyTest(RemoteAddressStrategy remoteAddressStrategy, String head, int start,
-        int end,
-        boolean isFalse) {
+                                             int end,
+                                             boolean isFalse) {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         for (int i = -10; i < 300; i++) {
             plainAccessResource.setWhiteRemoteAddress(head + i);
@@ -338,7 +330,7 @@ public class RemoteAddressStrategyTest {
     }
 
     private void rangeNetaddressStrategyThirdlyTest(RemoteAddressStrategy remoteAddressStrategy, String head, int start,
-        int end) {
+                                                    int end) {
         String newHead;
         for (int i = -10; i < 300; i++) {
             newHead = head + i;
@@ -349,8 +341,8 @@ public class RemoteAddressStrategyTest {
     }
 
     private void rangeIPv6NetaddressStrategyTest(RemoteAddressStrategy remoteAddressStrategy, String head, String start,
-        String end,
-        boolean isFalse) {
+                                                 String end,
+                                                 boolean isFalse) {
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         for (int i = -10; i < 65536 + 100; i++) {
             String hex = Integer.toHexString(i);
