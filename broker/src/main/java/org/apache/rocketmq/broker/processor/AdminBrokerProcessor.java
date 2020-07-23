@@ -299,7 +299,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
             this.brokerController.getBrokerStatsManager().onTopicDeleted(requestHeader.getTopic());
         }
-        if(this.brokerController.getBrokerConfig().isAutoDeleteConsumerOffset()) {
+        if (this.brokerController.getBrokerConfig().isAutoDeleteConsumerOffset()) {
             this.brokerController.getConsumerOffsetManager().deleteOffsetByTopic(requestHeader.getTopic());
         }
         response.setCode(ResponseCode.SUCCESS);
@@ -720,7 +720,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
             this.brokerController.getBrokerStatsManager().onGroupDeleted(requestHeader.getGroupName());
         }
-        if(this.brokerController.getBrokerConfig().isAutoDeleteConsumerOffset()) {
+        if (this.brokerController.getBrokerConfig().isAutoDeleteConsumerOffset()) {
             this.brokerController.getConsumerOffsetManager().deleteOffsetByGroup(requestHeader.getGroupName());
         }
         response.setCode(ResponseCode.SUCCESS);
