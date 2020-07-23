@@ -52,14 +52,14 @@ public class RemoteAddressStrategyFactory {
                 if (!last.startsWith("{")) {
                     throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
                 }
-                return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, last));
+                return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, last));
             } else {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
                 String four = strArray[3];
                 if (!four.startsWith("{")) {
                     throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
                 }
-                return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, four));
+                return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, four));
             }
         } else if (AclUtils.isComma(remoteAddr)) {
             return new MultipleRemoteAddressStrategy(StringUtils.split(remoteAddr, ","));
