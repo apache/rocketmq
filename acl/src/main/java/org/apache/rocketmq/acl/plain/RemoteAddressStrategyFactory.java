@@ -56,12 +56,10 @@ public class RemoteAddressStrategyFactory {
                 return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, last));
             } else {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
-
                 // However a right IP String provided by user,it always can be divided into 4 parts by '.'.
                 if (strArray.length < 4) {
                     throw new AclException(String.format("MultipleRemoteAddressStrategy has got a/some wrong format IP(s) ", remoteAddr));
                 }
-
                 String lastStr = strArray[strArray.length - 1];
                 if (!lastStr.startsWith("{")) {
                     throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
