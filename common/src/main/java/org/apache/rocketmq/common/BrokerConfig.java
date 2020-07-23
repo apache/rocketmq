@@ -61,9 +61,9 @@ public class BrokerConfig {
      * value is 1.
      */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
-    private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2; //服务端处理消息拉取线程池线程数量 默认为16加上当前操作系统CPU核数的两倍
     private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
-    private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
+    private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();//服务端处理查询消息线程池数量默认为8加上当前操作系统CPU核数的两倍
 
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;

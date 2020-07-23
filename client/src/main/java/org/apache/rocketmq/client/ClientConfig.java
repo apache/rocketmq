@@ -37,7 +37,7 @@ public class ClientConfig {
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
-    private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
+    private int clientCallbackExecutorThreads = 8;//Runtime.getRuntime().availableProcessors();
     protected String namespace;
     protected AccessChannel accessChannel = AccessChannel.LOCAL;
 
