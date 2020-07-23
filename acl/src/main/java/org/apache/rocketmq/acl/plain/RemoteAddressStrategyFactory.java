@@ -52,7 +52,7 @@ public class RemoteAddressStrategyFactory {
                 if (!last.startsWith("{")) {
                     throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
                 }
-                return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, last));
+                return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, last));
             } else {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
                 // However a right IP String provided by user,it always can be divided into 4 parts by '.'.
@@ -63,7 +63,7 @@ public class RemoteAddressStrategyFactory {
                 if (!lastStr.startsWith("{")) {
                     throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
                 }
-                return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, lastStr));
+                return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, lastStr));
             }
         } else if (AclUtils.isComma(remoteAddr)) {
             return new MultipleRemoteAddressStrategy(StringUtils.split(remoteAddr, ","));
