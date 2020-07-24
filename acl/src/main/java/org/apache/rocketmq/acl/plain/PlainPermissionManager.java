@@ -165,8 +165,7 @@ public class PlainPermissionManager {
     }
 
     private Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccountMap, PlainAccessConfig plainAccessConfig) {
-
-
+        
         Map<String, Object> newAccountsMap = null;
         if (existedAccountMap == null) {
             newAccountsMap = new LinkedHashMap<String, Object>();
