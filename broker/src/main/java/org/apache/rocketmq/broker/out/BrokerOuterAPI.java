@@ -149,7 +149,7 @@ public class BrokerOuterAPI {
                         try {
                             RegisterBrokerResult result = registerBroker(namesrvAddr,oneway, timeoutMills,requestHeader,body);
                             if (result != null) {
-				// make ArrayList thread safe
+                                // make ArrayList thread safe
                                 synchronized (registerBrokerResultList) {
                                     registerBrokerResultList.add(result);
                                 }
