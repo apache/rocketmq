@@ -94,7 +94,7 @@ public class AclUtils {
         }
     }
 
-    public static String v6ipProcess(String netaddress, String[] strArray, int index) {
+    public static String v6ipProcess(String netaddress) {
         int part;
         String subAddress;
         boolean isAsterisk = isAsterisk(netaddress);
