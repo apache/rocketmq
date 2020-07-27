@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -123,7 +124,7 @@ public class BrokerOuterAPI {
         final int timeoutMills,
         final boolean compressed) {
 
-        final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
+        final List<RegisterBrokerResult> registerBrokerResultList = new Vector<>();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
 
@@ -149,10 +150,7 @@ public class BrokerOuterAPI {
                         try {
                             RegisterBrokerResult result = registerBroker(namesrvAddr,oneway, timeoutMills,requestHeader,body);
                             if (result != null) {
-                                // make ArrayList thread safe
-                                synchronized (registerBrokerResultList) {
-                                    registerBrokerResultList.add(result);
-                                }
+                                registerBrokerResultList.add(result);
                             }
 
                             log.info("register broker[{}]to name server {} OK", brokerId, namesrvAddr);
