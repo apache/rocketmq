@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker.out;
 
-import com.google.common.collect.Lists;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
