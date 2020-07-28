@@ -90,7 +90,6 @@ public class AdminBrokerProcessorTest {
                 TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT,
                 TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC,
                 this.brokerController.getBrokerConfig().getBrokerClusterName(),
-                this.brokerController.getBrokerConfig().getBrokerName(),
                 this.brokerController.getBrokerConfig().getBrokerClusterName() + "_" + MixAll.REPLY_TOPIC_POSTFIX);
         if (this.brokerController.getBrokerConfig().isTraceTopicEnable()) {
             systemTopicSet.add(this.brokerController.getBrokerConfig().getMsgTraceTopicName());

@@ -120,7 +120,7 @@ public class AclUtils {
         }
     }
 
-    public static String[] getAddreeStrArray(String netaddress, String partialAddress) {
+    public static String[] getAddresses(String netaddress, String partialAddress) {
         String[] parAddStrArray = StringUtils.split(partialAddress.substring(1, partialAddress.length() - 1), ",");
         String address = netaddress.substring(0, netaddress.indexOf("{"));
         String[] addreeStrArray = new String[parAddStrArray.length];

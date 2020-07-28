@@ -62,9 +62,6 @@ choose_gc_log_directory()
     esac
 }
 
-choose_gc_log_directory
-
-
 version=$($JAVA -version 2>&1 | awk -F '"' '/version/ {print $2}')
 version=${version%.*.*}
 if [[ "$version" -ge 9 ]]; then
