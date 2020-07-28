@@ -36,8 +36,17 @@ export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
 #===========================================================================================
 # JVM Configuration
 #===========================================================================================
-JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn256m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext:${JAVA_HOME}/lib/ext"
-JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
+
+version=$($JAVA -version 2>&1 | awk -F '"' '/version/ {print $2}')
+version=${version%.*.*}
+
+if [[ "$version" -ge 9 ]]; then
+        JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn256m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m"
+        JAVA_OPT="${JAVA_OPT} --class-path=${JAVA_HOME}/jre/lib/ext/*:${BASE_DIR}/lib/*:${CLASSPATH}"
+else
+        JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn256m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m"
+        JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext:${JAVA_HOME}/lib/ext"
+        JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
+fi
 
 $JAVA ${JAVA_OPT} $@

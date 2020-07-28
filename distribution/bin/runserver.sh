@@ -67,10 +67,10 @@ choose_gc_log_directory
 
 version=$($JAVA -version 2>&1 | awk -F '"' '/version/ {print $2}')
 version=${version%.*.*}
-if [[ "$version" -eq 11 ]]; then
+if [[ "$version" -ge 9 ]]; then
         JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
         JAVA_OPT="${JAVA_OPT} -XX:SurvivorRatio=8"
-        JAVA_OPT="${JAVA_OPT} -verbose:gc -Xlog:gc*=info,safepoint=info:file=${GC_LOG_DIR}/rmq_srv_gc.log:utctime,level,tags:filecount=5,filesize=30M"
+        JAVA_OPT="${JAVA_OPT} -Xlog:gc*=info,safepoint=debug:file=${GC_LOG_DIR}/rmq_srv_gc_%p_%t.log:utctime,level,tags:filecount=5,filesize=30M"
         JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
         JAVA_OPT="${JAVA_OPT}  -XX:-UseLargePages"
         JAVA_OPT="${JAVA_OPT} --class-path=${JAVA_HOME}/jre/lib/ext/*:${BASE_DIR}/lib/*:${CLASSPATH}"
