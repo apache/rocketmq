@@ -38,6 +38,7 @@ public class ClientConfig {
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
+    private int clientWorkerThreads = 4;
     protected String namespace;
     protected AccessChannel accessChannel = AccessChannel.LOCAL;
 
@@ -146,6 +147,7 @@ public class ClientConfig {
         this.clientIP = cc.clientIP;
         this.instanceName = cc.instanceName;
         this.clientCallbackExecutorThreads = cc.clientCallbackExecutorThreads;
+        this.clientWorkerThreads = cc.clientWorkerThreads;
         this.pollNameServerInterval = cc.pollNameServerInterval;
         this.heartbeatBrokerInterval = cc.heartbeatBrokerInterval;
         this.persistConsumerOffsetInterval = cc.persistConsumerOffsetInterval;
@@ -164,6 +166,7 @@ public class ClientConfig {
         cc.clientIP = clientIP;
         cc.instanceName = instanceName;
         cc.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
+        cc.clientWorkerThreads = clientWorkerThreads;
         cc.pollNameServerInterval = pollNameServerInterval;
         cc.heartbeatBrokerInterval = heartbeatBrokerInterval;
         cc.persistConsumerOffsetInterval = persistConsumerOffsetInterval;
@@ -199,6 +202,14 @@ public class ClientConfig {
 
     public void setClientCallbackExecutorThreads(int clientCallbackExecutorThreads) {
         this.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
+    }
+
+    public int getClientWorkerThreads() {
+        return clientWorkerThreads;
+    }
+
+    public void setClientWorkerThreads(int clientWorkerThreads) {
+        this.clientWorkerThreads = clientWorkerThreads;
     }
 
     public int getPollNameServerInterval() {
@@ -302,7 +313,8 @@ public class ClientConfig {
     @Override
     public String toString() {
         return "ClientConfig [namesrvAddr=" + namesrvAddr + ", clientIP=" + clientIP + ", instanceName=" + instanceName
-            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
+            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads
+            + ", clientWorkerThreads=" + clientWorkerThreads + ", pollNameServerInterval=" + pollNameServerInterval
             + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
             + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
             + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + "]";
