@@ -49,4 +49,4 @@ else
         JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 fi
 
-$JAVA ${JAVA_OPT} $@
+$JAVA ${JAVA_OPT} "$@"
