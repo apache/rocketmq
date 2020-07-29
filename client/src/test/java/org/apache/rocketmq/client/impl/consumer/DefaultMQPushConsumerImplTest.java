@@ -46,6 +46,7 @@ public class DefaultMQPushConsumerImplTest {
 
         consumer.setConsumeThreadMin(10);
         consumer.setConsumeThreadMax(9);
+        consumer.setClientWorkerThreads(2);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
