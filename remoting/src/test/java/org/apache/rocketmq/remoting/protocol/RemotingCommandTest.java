@@ -203,17 +203,9 @@ public class RemotingCommandTest {
 
     @Test
     public void testSerializeTypeProtocol() {
-        System.setProperty(RemotingCommand.SERIALIZE_TYPE_PROPERTY, "1");
         RemotingCommand remotingCommand = new RemotingCommand();
         SerializeType serializeType = remotingCommand.getSerializeTypeCurrentRPC();
-        Assert.assertEquals(serializeType, SerializeType.ROCKETMQ);
-    }
-
-    @Test(expected = Throwable.class)
-    public void testSerializeTypeProtocolException() {
-        System.setProperty(RemotingCommand.SERIALIZE_TYPE_PROPERTY, "2");
-        RemotingCommand remotingCommand = new RemotingCommand();
-        SerializeType serializeType = remotingCommand.getSerializeTypeCurrentRPC();
+        Assert.assertEquals(serializeType, SerializeType.JSON);
     }
 
 }

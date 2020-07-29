@@ -68,7 +68,7 @@ public class RemotingCommand {
                 protocolByte = (byte) Integer.parseInt(protocol);
                 serializeTypeConfigInThisServer = SerializeType.valueOf(protocolByte);
             } catch (IllegalArgumentException e) {
-                throw new RuntimeException("parser specified protocol error. protocol=" + serializeTypeConfigInThisServer, e);
+                e.printStackTrace();
             }
         }
     }
