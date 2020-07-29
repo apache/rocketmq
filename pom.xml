@@ -34,10 +34,6 @@
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
 
-    <prerequisites>
-        <maven>3.2.5</maven>
-    </prerequisites>
-
     <scm>
         <url>git@github.com:apache/rocketmq.git</url>
         <connection>scm:git:git@github.com:apache/rocketmq.git</connection>
@@ -543,11 +539,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-example</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-acl</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
