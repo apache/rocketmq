@@ -2,21 +2,31 @@ package org.apache.rocketmq.remoting.protocol;
 
 import org.junit.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 public class SerializeTypeTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testSerializeTypeException() {
-        // the right code
-        byte typeCode1 = (byte) 1;
-
+        byte typeCode1 = (byte) 0;
+        byte typeCode2 = (byte) 1;
         // the wrong code
-        byte typeCode2 = (byte) 3;
+        byte typeCode3 = (byte) 2;
 
-        SerializeType protocolType1 = SerializeType.valueOf(typeCode1);
-        System.out.println(protocolType1);
+        assertThat(SerializeType.valueOf(typeCode1).equals(SerializeType.JSON));
+        assertThat(SerializeType.valueOf(typeCode2).equals(SerializeType.ROCKETMQ));
 
-        SerializeType serializeType2 = SerializeType.valueOf(typeCode2);
-        System.out.println(serializeType2);
+        // will cause Exception
+        SerializeType.valueOf(typeCode3);
+    }
+
+    @Test
+    public void testSerializeTypeGetCode(){
+        SerializeType json = SerializeType.JSON;
+        SerializeType rocketmq = SerializeType.ROCKETMQ;
+
+        assertThat(json.getCode()).isEqualTo((byte) 0);
+        assertThat(rocketmq.getCode()).isEqualTo((byte) 1);
     }
 
 
