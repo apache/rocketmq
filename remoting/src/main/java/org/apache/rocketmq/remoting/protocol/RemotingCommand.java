@@ -61,10 +61,13 @@ public class RemotingCommand {
     static {
         final String protocol = System.getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV));
         if (!isBlank(protocol)) {
+            byte protocolByte = -1;
             try {
-                serializeTypeConfigInThisServer = SerializeType.valueOf(protocol);
+                protocolByte = (byte) Integer.parseInt(protocol);
+                System.out.println(protocolByte);
+                serializeTypeConfigInThisServer = SerializeType.valueOf(protocolByte);
             } catch (IllegalArgumentException e) {
-                throw new RuntimeException("parser specified protocol error. protocol=" + protocol, e);
+                throw new RuntimeException("parser specified protocol error. protocol=" + protocolByte, e);
             }
         }
     }

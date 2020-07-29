@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -198,6 +199,22 @@ public class RemotingCommandTest {
         Field value = FieldTestClass.class.getDeclaredField("value");
         assertThat(method.invoke(remotingCommand, value)).isEqualTo(false);
     }
+
+    @Test
+    public void testSerializeTypeProtocol(){
+        System.setProperty(RemotingCommand.SERIALIZE_TYPE_PROPERTY,"1");
+        RemotingCommand remotingCommand = new RemotingCommand();
+        SerializeType serializeType = remotingCommand.getSerializeTypeCurrentRPC();
+        Assert.assertEquals(serializeType,SerializeType.ROCKETMQ);
+    }
+
+    @Test(expected = Throwable.class)
+    public void testSerializeTypeProtocolException(){
+        System.setProperty(RemotingCommand.SERIALIZE_TYPE_PROPERTY,"2");
+        RemotingCommand remotingCommand = new RemotingCommand();
+        SerializeType serializeType = remotingCommand.getSerializeTypeCurrentRPC();
+    }
+
 }
 
 class FieldTestClass {
