@@ -33,7 +33,7 @@ public enum SerializeType {
                 return serializeType;
             }
         }
-        return null;
+        throw new IllegalArgumentException("can not match right SerializeType by the code: " + code);
     }
 
     public byte getCode() {
