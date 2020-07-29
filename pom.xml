@@ -119,7 +119,6 @@
         <module>namesrv</module>
         <module>remoting</module>
         <module>logappender</module>
-        <module>example</module>
         <module>srvutil</module>
         <module>filter</module>
         <module>test</module>
@@ -127,6 +126,7 @@
         <module>openmessaging</module>
         <module>logging</module>
         <module>acl</module>
+        <module>example</module>
     </modules>
 
     <build>
@@ -532,6 +532,16 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-acl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-openmessaging</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-example</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -548,11 +558,6 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.0.13</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
                 <version>1.0.13</version>
             </dependency>
             <dependency>
