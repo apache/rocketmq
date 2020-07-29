@@ -153,7 +153,7 @@ public class RemoteAddressStrategyFactory {
                 for (int i = 1; i < strArray.length; i++) {
                     if (ipv6Analysis(strArray, i)) {
                         AclUtils.verify(remoteAddr, index - 1);
-                        String preAddress = AclUtils.v6ipProcess(remoteAddr, strArray, index);
+                        String preAddress = AclUtils.v6ipProcess(remoteAddr);
                         this.index = StringUtils.split(preAddress, ":").length;
                         this.head = preAddress;
                         break;
