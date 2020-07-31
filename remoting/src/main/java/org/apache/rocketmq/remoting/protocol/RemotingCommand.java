@@ -63,13 +63,8 @@ public class RemotingCommand {
     static {
         final String protocol = System.getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV));
         if (!isBlank(protocol)) {
-            byte protocolByte = -1;
-            try {
-                protocolByte = (byte) Integer.parseInt(protocol);
-                serializeTypeConfigInThisServer = SerializeType.valueOf(protocolByte);
-            } catch (IllegalArgumentException e) {
-                e.printStackTrace();
-            }
+            byte protocolByte = (byte) Integer.parseInt(protocol);
+            serializeTypeConfigInThisServer = SerializeType.valueOf(protocolByte);
         }
     }
 
