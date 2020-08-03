@@ -79,7 +79,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
     @Override
     public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemotingResponseCallback responseCallback) throws Exception {
-        asyncProcessRequest(ctx, request).thenAccept(responseCallback::callback);
+        asyncProcessRequest(ctx, request).thenAcceptAsync(responseCallback::callback, this.brokerController.getSendMessageExecutor());
     }
 
     public CompletableFuture<RemotingCommand> asyncProcessRequest(ChannelHandlerContext ctx,
@@ -281,6 +281,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setBornHost(ctx.channel().remoteAddress());
         msgInner.setStoreHost(this.getStoreHost());
         msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
+        String clusterName = this.brokerController.getBrokerConfig().getBrokerClusterName();
+        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_CLUSTER, clusterName);
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
         CompletableFuture<PutMessageResult> putMessageResult = null;
         Map<String, String> origProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);

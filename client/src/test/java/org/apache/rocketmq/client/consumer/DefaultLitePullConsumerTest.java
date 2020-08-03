@@ -81,6 +81,8 @@ public class DefaultLitePullConsumerTest {
     private MQClientAPIImpl mQClientAPIImpl;
     @Mock
     private MQAdminImpl mQAdminImpl;
+    @Mock
+    private AssignedMessageQueue assignedMQ;
 
     private RebalanceImpl rebalanceImpl;
     private OffsetStore offsetStore;
@@ -299,6 +301,53 @@ public class DefaultLitePullConsumerTest {
             result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
             assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
+    public void testPullTaskImpl_ProcessQueueNull() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            Field field = DefaultLitePullConsumer.class.getDeclaredField("defaultLitePullConsumerImpl");
+            field.setAccessible(true);
+            // set ProcessQueue dropped = true
+            DefaultLitePullConsumerImpl localLitePullConsumerImpl = (DefaultLitePullConsumerImpl) field.get(litePullConsumer);
+            field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
+            field.setAccessible(true);
+            when(assignedMQ.isPaused(any(MessageQueue.class))).thenReturn(false);
+            when(assignedMQ.getProcessQueue(any(MessageQueue.class))).thenReturn(null);
+            litePullConsumer.start();
+            field.set(localLitePullConsumerImpl, assignedMQ);
+
+            List<MessageExt> result = litePullConsumer.poll(100);
+            assertThat(result.isEmpty()).isTrue();
+        } finally {
+            litePullConsumer.shutdown();
+        }
+    }
+
+    @Test
+    public void testPullTaskImpl_ProcessQueueDropped() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        try {
+            MessageQueue messageQueue = createMessageQueue();
+            litePullConsumer.assign(Collections.singletonList(messageQueue));
+            Field field = DefaultLitePullConsumer.class.getDeclaredField("defaultLitePullConsumerImpl");
+            field.setAccessible(true);
+            // set ProcessQueue dropped = true
+            DefaultLitePullConsumerImpl localLitePullConsumerImpl = (DefaultLitePullConsumerImpl) field.get(litePullConsumer);
+            field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
+            field.setAccessible(true);
+            AssignedMessageQueue assignedMessageQueue = (AssignedMessageQueue) field.get(localLitePullConsumerImpl);
+            assignedMessageQueue.getProcessQueue(messageQueue).setDropped(true);
+            litePullConsumer.start();
+
+            List<MessageExt> result = litePullConsumer.poll(100);
+            assertThat(result.isEmpty()).isTrue();
         } finally {
             litePullConsumer.shutdown();
         }

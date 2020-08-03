@@ -205,14 +205,13 @@ public class PlainPermissionManager {
         return AclUtils.writeDataObject(filepath, updateAclConfigFileVersion(aclAccessConfigMap));
     }
 
-    private Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccoutMap, PlainAccessConfig plainAccessConfig) {
-
-
+    private Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccountMap, PlainAccessConfig plainAccessConfig) {
+        
         Map<String, Object> newAccountsMap = null;
-        if (existedAccoutMap == null) {
+        if (existedAccountMap == null) {
             newAccountsMap = new LinkedHashMap<String, Object>();
         } else {
-            newAccountsMap = existedAccoutMap;
+            newAccountsMap = existedAccountMap;
         }
 
         if (StringUtils.isEmpty(plainAccessConfig.getAccessKey()) ||

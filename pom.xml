@@ -29,14 +29,10 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.7.1-SNAPSHOT</version>
+    <version>4.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
-
-    <prerequisites>
-        <maven>3.2.5</maven>
-    </prerequisites>
 
     <scm>
         <url>git@github.com:apache/rocketmq.git</url>
@@ -119,7 +115,6 @@
         <module>namesrv</module>
         <module>remoting</module>
         <module>logappender</module>
-        <module>example</module>
         <module>srvutil</module>
         <module>filter</module>
         <module>test</module>
@@ -127,6 +122,7 @@
         <module>openmessaging</module>
         <module>logging</module>
         <module>acl</module>
+        <module>example</module>
     </modules>
 
     <build>
@@ -280,7 +276,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.7.8</version>
+                <version>0.8.5</version>
                 <executions>
                     <execution>
                         <id>default-prepare-agent</id>
@@ -532,12 +528,17 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-example</artifactId>
+                <artifactId>rocketmq-acl</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>rocketmq-acl</artifactId>
+                <artifactId>rocketmq-openmessaging</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-example</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -548,11 +549,6 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.0.13</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
                 <version>1.0.13</version>
             </dependency>
             <dependency>
@@ -568,7 +564,7 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.62</version>
+                <version>1.2.69</version>
             </dependency>
             <dependency>
                 <groupId>org.javassist</groupId>

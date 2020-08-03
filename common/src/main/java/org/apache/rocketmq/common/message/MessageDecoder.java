@@ -414,6 +414,9 @@ public class MessageDecoder {
                 final String name = entry.getKey();
                 final String value = entry.getValue();
 
+                if (value == null) {
+                    continue;
+                }
                 sb.append(name);
                 sb.append(NAME_VALUE_SEPARATOR);
                 sb.append(value);

@@ -25,7 +25,7 @@ import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
-import org.apache.rocketmq.broker.topic.TopicValidator;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -174,6 +174,9 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         }
 
         if (!TopicValidator.validateTopic(requestHeader.getTopic(), response)) {
+            return response;
+        }
+        if (TopicValidator.isNotAllowedSendTopic(requestHeader.getTopic(), response)) {
             return response;
         }
 
