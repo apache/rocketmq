@@ -1340,7 +1340,7 @@ public class MQClientAPIImpl {
                 break;
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark(), null);
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
     public TopicRouteData getDefaultTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
