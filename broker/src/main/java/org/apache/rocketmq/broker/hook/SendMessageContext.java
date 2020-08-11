@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.mqtrace;
+package org.apache.rocketmq.broker.hook;
 
 import java.util.Properties;
 import org.apache.rocketmq.common.message.MessageType;

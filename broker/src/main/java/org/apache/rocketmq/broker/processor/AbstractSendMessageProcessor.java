@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
-import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.broker.hook.SendMessageContext;
+import org.apache.rocketmq.broker.hook.SendMessageHook;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -273,8 +273,10 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                     if (requestHeader != null) {
                         requestHeader.setProperties(context.getMsgProps());
                     }
-                } catch (Throwable e) {
-                    // Ignore
+                } catch (RemotingCommandException e) {
+                    // ignore
+                } catch (RuntimeException e) {
+                    // ignore
                 }
             }
         }
