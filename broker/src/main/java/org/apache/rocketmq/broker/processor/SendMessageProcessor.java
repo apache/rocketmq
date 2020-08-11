@@ -24,9 +24,9 @@ import java.util.concurrent.ExecutionException;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
-import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
-import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
+import org.apache.rocketmq.broker.hook.ConsumeMessageContext;
+import org.apache.rocketmq.broker.hook.ConsumeMessageHook;
+import org.apache.rocketmq.broker.hook.SendMessageContext;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;

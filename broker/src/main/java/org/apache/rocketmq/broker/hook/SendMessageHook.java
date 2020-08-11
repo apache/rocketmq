@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.mqtrace;
+package org.apache.rocketmq.broker.hook;
 
-public interface ConsumeMessageHook {
-    String hookName();
+public interface SendMessageHook {
+    public String hookName();
 
-    void consumeMessageBefore(final ConsumeMessageContext context);
+    public void sendMessageBefore(final SendMessageContext context);
 
-    void consumeMessageAfter(final ConsumeMessageContext context);
+    public void sendMessageAfter(final SendMessageContext context);
 }
