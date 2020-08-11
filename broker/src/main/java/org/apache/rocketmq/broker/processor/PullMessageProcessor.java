@@ -29,6 +29,7 @@ import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionForRetryMessageFilter;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
+import org.apache.rocketmq.broker.hook.AbortProcessException;
 import org.apache.rocketmq.broker.longpolling.PullRequest;
 import org.apache.rocketmq.broker.hook.ConsumeMessageContext;
 import org.apache.rocketmq.broker.hook.ConsumeMessageHook;
@@ -364,8 +365,14 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                         assert false;
                         break;
                 }
+                try {
+                    this.executeConsumeMessageHookBefore(context);
+                } catch (AbortProcessException e) {
+                    response.setCode(e.getResponseCode());
+                    response.setRemark(e.getErrorMessage());
+                    return response;
+                }
 
-                this.executeConsumeMessageHookBefore(context);
             }
 
             switch (response.getCode()) {
@@ -481,7 +488,9 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageBefore(context);
-                } catch (Throwable e) {
+                } catch(AbortProcessException e) {
+                    throw e;
+                } catch (RuntimeException e) {
                 }
             }
         }
