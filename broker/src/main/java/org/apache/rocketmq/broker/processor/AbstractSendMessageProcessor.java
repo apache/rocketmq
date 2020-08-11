@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.hook.AbortProcessException;
 import org.apache.rocketmq.broker.hook.SendMessageContext;
 import org.apache.rocketmq.broker.hook.SendMessageHook;
 import org.apache.rocketmq.common.topic.TopicValidator;
@@ -273,6 +274,9 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                     if (requestHeader != null) {
                         requestHeader.setProperties(context.getMsgProps());
                     }
+                }
+                catch (AbortProcessException e) {
+                    throw e;
                 } catch (RemotingCommandException e) {
                     // ignore
                 } catch (RuntimeException e) {
@@ -321,7 +325,9 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                         context.setErrorMsg(response.getRemark());
                     }
                     hook.sendMessageAfter(context);
-                } catch (Throwable e) {
+                } catch (AbortProcessException e) {
+                    throw e;
+                } catch (RuntimeException e) {
                     // Ignore
                 }
             }

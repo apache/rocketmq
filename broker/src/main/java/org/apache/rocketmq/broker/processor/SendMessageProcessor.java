@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutionException;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.hook.AbortProcessException;
 import org.apache.rocketmq.broker.hook.ConsumeMessageContext;
 import org.apache.rocketmq.broker.hook.ConsumeMessageHook;
 import org.apache.rocketmq.broker.hook.SendMessageContext;
@@ -87,6 +88,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final SendMessageContext mqtraceContext;
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:
+                // TODO should this be counted to flow control ?
                 return this.asyncConsumerSendMsgBack(ctx, request);
             default:
                 SendMessageRequestHeader requestHeader = parseRequestHeader(request);
@@ -94,7 +96,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     return CompletableFuture.completedFuture(null);
                 }
                 mqtraceContext = buildMsgContext(ctx, requestHeader);
-                this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+                try {
+                    this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+                } catch (AbortProcessException e) {
+                    final RemotingCommand errorResponse = RemotingCommand.createResponseCommand(e.getResponseCode(),e.getErrorMessage());
+                    return CompletableFuture.completedFuture(errorResponse);
+                }
+
                 if (requestHeader.isBatch()) {
                     return this.asyncSendBatchMessage(ctx, request, mqtraceContext, requestHeader);
                 } else {
@@ -117,7 +125,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getGroup());
         if (this.hasConsumeMessageHook() && !UtilAll.isBlank(requestHeader.getOriginMsgId())) {
             ConsumeMessageContext context = buildConsumeMessageContext(namespace, requestHeader, request);
-            this.executeConsumeMessageHookAfter(context);
+            try {
+                this.executeConsumeMessageHookAfter(context);
+            } catch (AbortProcessException e) {
+                // TODO what if the code is not a valid response code ?
+                response.setCode(e.getResponseCode());
+                response.setRemark(e.getErrorMessage());
+            }
+
         }
         SubscriptionGroupConfig subscriptionGroupConfig =
             this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getGroup());
@@ -599,6 +614,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageAfter(context);
+                } catch (AbortProcessException e) {
+                    throw e;
                 } catch (Throwable e) {
                     // Ignore
                 }

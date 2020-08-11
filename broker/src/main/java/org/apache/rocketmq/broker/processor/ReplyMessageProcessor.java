@@ -20,6 +20,7 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.hook.AbortProcessException;
 import org.apache.rocketmq.broker.hook.SendMessageContext;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -45,6 +46,8 @@ import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+import java.util.concurrent.CompletableFuture;
+
 public class ReplyMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
@@ -62,11 +65,22 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         }
 
         mqtraceContext = buildMsgContext(ctx, requestHeader);
-        this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+        try {
+            this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+        } catch (AbortProcessException e) {
+            final RemotingCommand errorResponse = RemotingCommand.createResponseCommand(e.getResponseCode(),e.getErrorMessage());
+            return errorResponse;
+        }
 
         RemotingCommand response = this.processReplyMessageRequest(ctx, request, mqtraceContext, requestHeader);
 
-        this.executeSendMessageHookAfter(response, mqtraceContext);
+        try {
+            this.executeSendMessageHookAfter(response, mqtraceContext);
+        } catch (AbortProcessException e) {
+            final RemotingCommand errorResponse = RemotingCommand.createResponseCommand(e.getResponseCode(),e.getErrorMessage());
+            return errorResponse;
+        }
+
         return response;
     }
 
