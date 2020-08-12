@@ -628,6 +628,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             case ResponseCode.NO_BUYER_ID:
                             case ResponseCode.NOT_IN_CURRENT_UNIT:
                                 continue;
+                            case ResponseCode.FLOW_CONTROL:
+                                break;
                             default:
                                 if (sendResult != null) {
                                     return sendResult;

@@ -88,7 +88,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         final SendMessageContext mqtraceContext;
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:
-                // TODO should this be counted to flow control ?
                 return this.asyncConsumerSendMsgBack(ctx, request);
             default:
                 SendMessageRequestHeader requestHeader = parseRequestHeader(request);
@@ -128,7 +127,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             try {
                 this.executeConsumeMessageHookAfter(context);
             } catch (AbortProcessException e) {
-                // TODO what if the code is not a valid response code ?
                 response.setCode(e.getResponseCode());
                 response.setRemark(e.getErrorMessage());
             }

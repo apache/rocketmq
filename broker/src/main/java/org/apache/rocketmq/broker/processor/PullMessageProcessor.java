@@ -488,16 +488,17 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             for (ConsumeMessageHook hook : this.consumeMessageHookList) {
                 try {
                     hook.consumeMessageBefore(context);
-                } catch(AbortProcessException e) {
+                } catch (AbortProcessException e) {
                     throw e;
                 } catch (RuntimeException e) {
+
                 }
             }
         }
     }
 
     private byte[] readGetMessageResult(final GetMessageResult getMessageResult, final String group, final String topic,
-        final int queueId) {
+         final int queueId) {
         final ByteBuffer byteBuffer = ByteBuffer.allocate(getMessageResult.getBufferTotalSize());
 
         long storeTimestamp = 0;
