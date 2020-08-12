@@ -20,11 +20,16 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
+import org.apache.rocketmq.broker.hook.AbortProcessException;
+import org.apache.rocketmq.broker.hook.SendMessageContext;
+import org.apache.rocketmq.broker.hook.SendMessageHook;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -99,6 +104,71 @@ public class ReplyMessageProcessorTest {
         when(brokerController.getBroker2Client().callClient(any(Channel.class), any(RemotingCommand.class))).thenReturn(createResponse(ResponseCode.SUCCESS, request));
         RemotingCommand responseToReturn = replyMessageProcessor.processRequest(handlerContext, request);
         assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
+    }
+
+    @Test
+    public void testProcessRequest_WithAbortProcessSendMessageBeforeHook() throws RemotingCommandException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException {
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        brokerController.getProducerManager().registerProducer(group, clientInfo);
+        final RemotingCommand request = createSendMessageRequestHeaderCommand(RequestCode.SEND_REPLY_MESSAGE);
+        when(brokerController.getBroker2Client().callClient(any(Channel.class), any(RemotingCommand.class))).thenReturn(createResponse(ResponseCode.SUCCESS, request));
+        List<SendMessageHook> sendMessageHookList = new ArrayList<>();
+        final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
+        SendMessageHook sendMessageHook = new SendMessageHook() {
+            @Override
+            public String hookName() {
+                return null;
+            }
+
+            @Override
+            public void sendMessageBefore(SendMessageContext context) {
+                sendMessageContext[0] = context;
+                throw new AbortProcessException(ResponseCode.FLOW_CONTROL, "flow control test");
+            }
+
+            @Override
+            public void sendMessageAfter(SendMessageContext context) {
+
+            }
+        };
+        sendMessageHookList.add(sendMessageHook);
+        replyMessageProcessor.registerSendMessageHook(sendMessageHookList);
+        RemotingCommand responseToReturn = replyMessageProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.FLOW_CONTROL);
+        assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
+    }
+
+
+    @Test
+    public void testProcessRequest_WithAbortProcessSendMessageAfterHook() throws RemotingCommandException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException {
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        brokerController.getProducerManager().registerProducer(group, clientInfo);
+        final RemotingCommand request = createSendMessageRequestHeaderCommand(RequestCode.SEND_REPLY_MESSAGE);
+        when(brokerController.getBroker2Client().callClient(any(Channel.class), any(RemotingCommand.class))).thenReturn(createResponse(ResponseCode.SUCCESS, request));
+        List<SendMessageHook> sendMessageHookList = new ArrayList<>();
+        final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
+        SendMessageHook sendMessageHook = new SendMessageHook() {
+            @Override
+            public String hookName() {
+                return null;
+            }
+
+            @Override
+            public void sendMessageBefore(SendMessageContext context) {
+
+            }
+
+            @Override
+            public void sendMessageAfter(SendMessageContext context) {
+                sendMessageContext[0] = context;
+                throw new AbortProcessException(ResponseCode.FLOW_CONTROL, "flow control test");
+            }
+        };
+        sendMessageHookList.add(sendMessageHook);
+        replyMessageProcessor.registerSendMessageHook(sendMessageHookList);
+        RemotingCommand responseToReturn = replyMessageProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.FLOW_CONTROL);
         assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
     }
 

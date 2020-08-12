@@ -43,6 +43,7 @@ import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
@@ -164,11 +165,31 @@ public class DefaultMQProducerTest {
     @Test
     public void testSendMessageSync_WithBodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        SendResult sendResult = producer.send(bigMessage);
 
+        SendResult sendResult = producer.send(bigMessage);
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
         assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+
+    }
+
+    @Test
+    public void testSendMessageSync_FlowControl() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        when(mQClientAPIImpl.sendMessage(anyString(),
+                anyString(),
+                any(),
+                any(),
+                anyLong(),
+                any(),
+                any(),
+                any())).thenThrow(new MQBrokerException(ResponseCode.FLOW_CONTROL, "flow control test"));
+        try {
+            SendResult sendResult = producer.send(message);
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e.getResponseCode()).isEqualTo(ResponseCode.FLOW_CONTROL);
+        }
     }
 
     @Test
@@ -415,6 +436,7 @@ public class DefaultMQProducerTest {
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(1);
     }
+
 
     public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();

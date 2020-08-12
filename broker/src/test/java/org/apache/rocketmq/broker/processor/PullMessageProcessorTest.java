@@ -26,8 +26,7 @@ import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
-import org.apache.rocketmq.broker.hook.ConsumeMessageContext;
-import org.apache.rocketmq.broker.hook.ConsumeMessageHook;
+import org.apache.rocketmq.broker.hook.*;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -190,6 +189,40 @@ public class PullMessageProcessorTest {
         RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_OFFSET_MOVED);
+    }
+
+    @Test
+    public void testProcessRequest_WithAbortProcessConsumeMessageBeforeHook() throws RemotingCommandException {
+        GetMessageResult getMessageResult = createGetMessageResult();
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
+        List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+        final ConsumeMessageContext[] messageContext = new ConsumeMessageContext[1];
+        ConsumeMessageHook consumeMessageHook = new ConsumeMessageHook() {
+            @Override
+            public String hookName() {
+                return "TestHook";
+            }
+
+            @Override
+            public void consumeMessageBefore(ConsumeMessageContext context) {
+                messageContext[0] = context;
+                throw new AbortProcessException(ResponseCode.FLOW_CONTROL, "flow control test");
+            }
+
+            @Override
+            public void consumeMessageAfter(ConsumeMessageContext context) {
+            }
+        };
+        consumeMessageHookList.add(consumeMessageHook);
+        pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+        final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.FLOW_CONTROL);
+        assertThat(messageContext[0]).isNotNull();
+        assertThat(messageContext[0].getConsumerGroup()).isEqualTo(group);
+        assertThat(messageContext[0].getTopic()).isEqualTo(topic);
+        assertThat(messageContext[0].getQueueId()).isEqualTo(1);
     }
 
     private RemotingCommand createPullMsgCommand(int requestCode) {

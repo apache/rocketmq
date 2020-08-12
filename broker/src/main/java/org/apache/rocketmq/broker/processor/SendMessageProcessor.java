@@ -78,6 +78,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return response;
     }
 
+    // TODO why can we send to client in two different places
     @Override
     public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemotingResponseCallback responseCallback) throws Exception {
         asyncProcessRequest(ctx, request).thenAcceptAsync(responseCallback::callback, this.brokerController.getSendMessageExecutor());
@@ -99,11 +100,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
                 } catch (AbortProcessException e) {
                     final RemotingCommand errorResponse = RemotingCommand.createResponseCommand(e.getResponseCode(),e.getErrorMessage());
+                    errorResponse.setOpaque(request.getOpaque());
                     return CompletableFuture.completedFuture(errorResponse);
                 }
-
                 if (requestHeader.isBatch()) {
                     return this.asyncSendBatchMessage(ctx, request, mqtraceContext, requestHeader);
+
                 } else {
                     return this.asyncSendMessage(ctx, request, mqtraceContext, requestHeader);
                 }
@@ -130,7 +132,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setCode(e.getResponseCode());
                 response.setRemark(e.getErrorMessage());
             }
-
         }
         SubscriptionGroupConfig subscriptionGroupConfig =
             this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getGroup());

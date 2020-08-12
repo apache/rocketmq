@@ -617,18 +617,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     } catch (MQBrokerException e) {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
-                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
-                        log.warn(msg.toString());
                         exception = e;
+                        boolean needRetry = true;
                         switch (e.getResponseCode()) {
-                            case ResponseCode.TOPIC_NOT_EXIST:
                             case ResponseCode.SERVICE_NOT_AVAILABLE:
                             case ResponseCode.SYSTEM_ERROR:
                             case ResponseCode.NO_PERMISSION:
                             case ResponseCode.NO_BUYER_ID:
                             case ResponseCode.NOT_IN_CURRENT_UNIT:
                                 continue;
+                            case ResponseCode.TOPIC_NOT_EXIST:
                             case ResponseCode.FLOW_CONTROL:
+                                needRetry = false;
                                 break;
                             default:
                                 if (sendResult != null) {
@@ -637,6 +637,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                                 throw e;
                         }
+                        if (!needRetry) {
+                            break;
+                        }
+                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
+                        log.warn(msg.toString());
                     } catch (InterruptedException e) {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);

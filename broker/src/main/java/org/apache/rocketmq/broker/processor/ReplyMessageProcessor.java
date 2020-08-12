@@ -67,6 +67,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
             this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
         } catch (AbortProcessException e) {
             final RemotingCommand errorResponse = RemotingCommand.createResponseCommand(e.getResponseCode(),e.getErrorMessage());
+            errorResponse.setOpaque(request.getOpaque());
             return errorResponse;
         }
 
@@ -76,6 +77,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
             this.executeSendMessageHookAfter(response, mqtraceContext);
         } catch (AbortProcessException e) {
             final RemotingCommand errorResponse = RemotingCommand.createResponseCommand(e.getResponseCode(),e.getErrorMessage());
+            errorResponse.setOpaque(request.getOpaque());
             return errorResponse;
         }
 

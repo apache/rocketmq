@@ -431,7 +431,7 @@ public class MQClientAPIImpl {
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
 
-    public SendResult sendMessage(
+    public SendResult  sendMessage(
         final String addr,
         final String brokerName,
         final Message msg,

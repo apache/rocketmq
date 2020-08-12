@@ -19,8 +19,7 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.hook.SendMessageContext;
-import org.apache.rocketmq.broker.hook.SendMessageHook;
+import org.apache.rocketmq.broker.hook.*;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -129,6 +128,73 @@ public class SendMessageProcessorTest {
         assertThat(sendMessageContext[0].getTopic()).isEqualTo(topic);
         assertThat(sendMessageContext[0].getProducerGroup()).isEqualTo(group);
     }
+
+    @Test
+    public void testProcessRequest_WithAbortProcessSendMessageBeforeHook() throws RemotingCommandException {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+        List<SendMessageHook> sendMessageHookList = new ArrayList<>();
+        final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
+        SendMessageHook sendMessageHook = new SendMessageHook() {
+            @Override
+            public String hookName() {
+                return null;
+            }
+
+            @Override
+            public void sendMessageBefore(SendMessageContext context) {
+                sendMessageContext[0] = context;
+                throw new AbortProcessException(ResponseCode.FLOW_CONTROL, "flow control test");
+            }
+
+            @Override
+            public void sendMessageAfter(SendMessageContext context) {
+
+            }
+        };
+        sendMessageHookList.add(sendMessageHook);
+        sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
+        assertPutResult(ResponseCode.FLOW_CONTROL);
+        System.out.println(sendMessageContext[0]);
+        assertThat(sendMessageContext[0]).isNotNull();
+        assertThat(sendMessageContext[0].getTopic()).isEqualTo(topic);
+        assertThat(sendMessageContext[0].getProducerGroup()).isEqualTo(group);
+    }
+
+
+    @Test
+    public void testProcessRequest_WithMsgBackWithConsumeMessageAfterHook() throws RemotingCommandException {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+        final RemotingCommand request = createSendMsgBackCommand(RequestCode.CONSUMER_SEND_MSG_BACK);
+
+        sendMessageProcessor = new SendMessageProcessor(brokerController);
+        List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+        final ConsumeMessageContext[] messageContext = new ConsumeMessageContext[1];
+        ConsumeMessageHook consumeMessageHook = new ConsumeMessageHook() {
+            @Override
+            public String hookName() {
+                return "TestHook";
+            }
+
+            @Override
+            public void consumeMessageBefore(ConsumeMessageContext context) {
+
+            }
+
+            @Override
+            public void consumeMessageAfter(ConsumeMessageContext context) {
+                messageContext[0] = context;
+                throw new AbortProcessException(ResponseCode.FLOW_CONTROL, "flow control test");
+            }
+        };
+        consumeMessageHookList.add(consumeMessageHook);
+        sendMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+        final RemotingCommand response = sendMessageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
 
     @Test
     public void testProcessRequest_FlushTimeOut() throws RemotingCommandException {
@@ -270,6 +336,17 @@ public class SendMessageProcessorTest {
         return request;
     }
 
+
+    /**
+     * We will explain the logic of this method so you can get a better feeling of
+     * how to use it:
+     * This method assumes that if responseToReturn is not null, then there would be
+     * an error, which means the writeAndFlush are never reached. If responseToReturn is
+     * null, means everything ok, so writeAndFlush should record the actual response.
+     *
+     * @param responseCode
+     * @throws RemotingCommandException
+     */
     private void assertPutResult(int responseCode) throws RemotingCommandException {
         final RemotingCommand request = createSendMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
