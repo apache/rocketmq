@@ -131,8 +131,6 @@ public class SendMessageProcessorTest {
 
     @Test
     public void testProcessRequest_WithAbortProcessSendMessageBeforeHook() throws RemotingCommandException {
-        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         List<SendMessageHook> sendMessageHookList = new ArrayList<>();
         final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
         SendMessageHook sendMessageHook = new SendMessageHook() {

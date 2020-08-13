@@ -109,10 +109,8 @@ public class ReplyMessageProcessorTest {
 
     @Test
     public void testProcessRequest_WithAbortProcessSendMessageBeforeHook() throws RemotingCommandException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException {
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         brokerController.getProducerManager().registerProducer(group, clientInfo);
         final RemotingCommand request = createSendMessageRequestHeaderCommand(RequestCode.SEND_REPLY_MESSAGE);
-        when(brokerController.getBroker2Client().callClient(any(Channel.class), any(RemotingCommand.class))).thenReturn(createResponse(ResponseCode.SUCCESS, request));
         List<SendMessageHook> sendMessageHookList = new ArrayList<>();
         final SendMessageContext[] sendMessageContext = new SendMessageContext[1];
         SendMessageHook sendMessageHook = new SendMessageHook() {

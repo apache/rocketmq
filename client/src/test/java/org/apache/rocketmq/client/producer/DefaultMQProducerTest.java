@@ -178,12 +178,12 @@ public class DefaultMQProducerTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         when(mQClientAPIImpl.sendMessage(anyString(),
                 anyString(),
-                any(),
-                any(),
+                any(Message.class),
+                any(SendMessageRequestHeader.class),
                 anyLong(),
-                any(),
-                any(),
-                any())).thenThrow(new MQBrokerException(ResponseCode.FLOW_CONTROL, "flow control test"));
+                any(CommunicationMode.class),
+                nullable(SendMessageContext.class),
+                any(DefaultMQProducerImpl.class))).thenThrow(new MQBrokerException(ResponseCode.FLOW_CONTROL, "flow control test"));
         try {
             SendResult sendResult = producer.send(message);
             failBecauseExceptionWasNotThrown(MQClientException.class);
