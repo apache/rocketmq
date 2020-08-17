@@ -16,14 +16,6 @@
  */
 package org.apache.rocketmq.broker.mqtrace;
 
-/**
- * These interfaces and classes will moved into org.apache.rocketmq.broker.hook package
- * in later version, please refactor your code to use the newest interface and location.
- *
- * Hooks are first introduced to solve tracing but it should not be limited to tracing only.
- * So we decided to move it to a package with a more general name.
- */
-@Deprecated
 public interface ConsumeMessageHook {
     String hookName();
 

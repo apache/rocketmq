@@ -16,19 +16,10 @@
  */
 package org.apache.rocketmq.broker.mqtrace;
 
+import java.util.Properties;
 import org.apache.rocketmq.common.message.MessageType;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
-import java.util.Properties;
-
-/**
- * These interfaces and classes will moved into org.apache.rocketmq.broker.hook package
- * in later version, please refactor your code to use the newest interface and location.
- *
- * Hooks are first introduced to solve tracing but it should not be limited to tracing only.
- * So we decided to move it to a package with a more general name.
- */
-@Deprecated
 public class SendMessageContext {
     private String producerGroup;
     private String topic;
