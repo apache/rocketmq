@@ -381,25 +381,15 @@ public abstract class NettyRemotingAbstract {
      * </p>
      */
     public void scanResponseTable() {
-        final List<ResponseFuture> rfList = new LinkedList<ResponseFuture>();
         Iterator<Entry<Integer, ResponseFuture>> it = this.responseTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Integer, ResponseFuture> next = it.next();
             ResponseFuture rep = next.getValue();
 
-            if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
+            if((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()){
                 rep.release();
                 it.remove();
-                rfList.add(rep);
-                log.warn("remove timeout request, " + rep);
-            }
-        }
-
-        for (ResponseFuture rf : rfList) {
-            try {
-                executeInvokeCallback(rf);
-            } catch (Throwable e) {
-                log.warn("scanResponseTable, operationComplete Exception", e);
+                log.warn("remove the timeout request, " + rep);
             }
         }
     }

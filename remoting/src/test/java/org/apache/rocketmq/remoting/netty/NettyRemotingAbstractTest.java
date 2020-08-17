@@ -107,4 +107,15 @@ public class NettyRemotingAbstractTest {
         remotingAbstract.scanResponseTable();
         assertNull(remotingAbstract.responseTable.get(dummyId));
     }
+
+    @Test
+    public void testScanResponseTableRemoveTimeoutItem() {
+        int[] timemoutArr = {1000, 2000, 3000, -1000, -1000};
+        for (int i = 0; i < 5; i++) {
+            remotingAbstract.responseTable.putIfAbsent(i, new ResponseFuture(null, i, timemoutArr[i], null, null));
+        }
+
+        remotingAbstract.scanResponseTable();
+        assertThat(remotingAbstract.responseTable.size()).isEqualTo(3);
+    }
 }
