@@ -385,7 +385,7 @@ public abstract class NettyRemotingAbstract {
             Entry<Integer, ResponseFuture> next = it.next();
             ResponseFuture rep = next.getValue();
 
-            if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) > System.currentTimeMillis()) {
+            if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
                 rep.release();
                 it.remove();
                 log.warn("remove the timeout request, " + rep);
