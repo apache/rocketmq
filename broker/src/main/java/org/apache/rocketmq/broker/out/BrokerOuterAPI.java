@@ -209,7 +209,7 @@ public class BrokerOuterAPI {
                 break;
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        throw new MQBrokerException(response.getCode(), response.getRemark(), requestHeader == null ? null : requestHeader.getBrokerAddr());
     }
 
     public void unregisterBrokerAll(
@@ -255,7 +255,7 @@ public class BrokerOuterAPI {
                 break;
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        throw new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr);
     }
 
     public List<Boolean> needRegister(
@@ -338,7 +338,7 @@ public class BrokerOuterAPI {
                 break;
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
     public ConsumerOffsetSerializeWrapper getAllConsumerOffset(
@@ -355,7 +355,7 @@ public class BrokerOuterAPI {
                 break;
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
     public String getAllDelayOffset(
@@ -372,7 +372,7 @@ public class BrokerOuterAPI {
                 break;
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
     public SubscriptionGroupWrapper getAllSubscriptionGroupConfig(
@@ -389,7 +389,7 @@ public class BrokerOuterAPI {
                 break;
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
     public void registerRPCHook(RPCHook rpcHook) {
