@@ -307,6 +307,22 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.autoCommit = autoCommit;
     }
 
+    public boolean isConnectBrokerByUser() {
+        return this.defaultLitePullConsumerImpl.getPullAPIWrapper().isConnectBrokerByUser();
+    }
+
+    public void setConnectBrokerByUser(boolean connectBrokerByUser) {
+        this.defaultLitePullConsumerImpl.getPullAPIWrapper().setConnectBrokerByUser(connectBrokerByUser);
+    }
+
+    public long getDefaultBrokerId() {
+        return this.defaultLitePullConsumerImpl.getPullAPIWrapper().getDefaultBrokerId();
+    }
+
+    public void setDefaultBrokerId(long defaultBrokerId) {
+        this.defaultLitePullConsumerImpl.getPullAPIWrapper().setDefaultBrokerId(defaultBrokerId);
+    }
+
     public int getPullThreadNums() {
         return pullThreadNums;
     }
