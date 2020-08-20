@@ -1,3 +1,6 @@
+
+**Make sure set the target branch to `develop`**
+
 ## What is the purpose of the change
 
 XXXXX
