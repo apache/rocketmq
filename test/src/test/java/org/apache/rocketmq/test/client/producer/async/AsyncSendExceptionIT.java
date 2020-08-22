@@ -53,6 +53,10 @@ public class AsyncSendExceptionIT extends BaseConf {
         super.shutdown();
     }
 
+    /**
+     * 同步
+     * @throws Exception
+     */
     @Test
     public void testSendCallBackNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
