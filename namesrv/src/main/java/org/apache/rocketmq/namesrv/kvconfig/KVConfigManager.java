@@ -32,8 +32,13 @@ public class KVConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
     private final NamesrvController namesrvController;
-
+    /**
+     * 读写锁
+     */
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    /**
+     * 非线程安全，但结合读写锁对资源读写进行保护，提高线程并发度
+     */
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
         new HashMap<String, HashMap<String, String>>();
 

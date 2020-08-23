@@ -45,17 +45,30 @@ public class NamesrvController {
     private final NamesrvConfig namesrvConfig;
 
     private final NettyServerConfig nettyServerConfig;
-
+    /**
+     * 定时任务线程池
+     */
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
+
+    /**
+     * 管理NameServer的配置属性
+     */
     private final KVConfigManager kvConfigManager;
+
+    /**
+     * NameServer数据载体，记录Broker、Topic、Cluster信息
+     */
     private final RouteInfoManager routeInfoManager;
 
     private RemotingServer remotingServer;
 
+    /**
+     * 通道在发送异常时的回调方法（Nameserver与 Broker的连接通道在关闭、通道发送异常、通道空闲时），移除已宕机的 Broker。
+     */
     private BrokerHousekeepingService brokerHousekeepingService;
-
     private ExecutorService remotingExecutor;
+
 
     private Configuration configuration;
     private FileWatchService fileWatchService;
@@ -83,7 +96,9 @@ public class NamesrvController {
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
-
+        /**
+         * 定时任务：每间隔10秒检测broker，维护存活的broker信息。
+         */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -92,6 +107,9 @@ public class NamesrvController {
             }
         }, 5, 10, TimeUnit.SECONDS);
 
+        /**
+         * 每间隔10秒 打印KvConfig信息
+         */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

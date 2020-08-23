@@ -47,12 +47,29 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    /**
+     * NameServer和Broker连接空闲时间，默认2分钟，在2分钟内NameSever没有收到Broker的心跳包，则关闭该连接。
+     */
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    /**
+     * 记录一个主题的队列分布在哪些Broker上，每个Broker上存在该主题的队列个数
+     */
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+
+    /**
+     * 记录所有Broker的信息，使用 brokerName 当key, BrokerData 信息描述每一个 broker 信息
+     */
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    /**
+     * 当前存活的 Broker,该信息不是实时的，NameServer 每10S扫描一次所有的 broker,根据心跳包的时间得知 broker的状态，
+     * 该机制也是导致当一个 Broker 进程假死后，消息生产者无法立即感知，可能继续向其发送消息，导致失败（非高可用），有其他手段来保证？
+     */
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+
+
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
