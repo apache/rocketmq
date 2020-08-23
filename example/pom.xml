@@ -58,5 +58,21 @@
             <artifactId>rocketmq-acl</artifactId>
             <version>4.5.2</version>
         </dependency>
+
+        <!--
+        <dependency>
+            <groupId>com.caucho</groupId>
+            <artifactId>hessian</artifactId>
+            <version>4.0.38</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>dubbo-rpc-hessian</artifactId>
+            <version>2.6.3</version>
+        </dependency>
+-->
+
+
     </dependencies>
 </project>
