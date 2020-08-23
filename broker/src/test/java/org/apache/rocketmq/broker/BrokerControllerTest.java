@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.broker;
 
-import java.io.File;
-
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
@@ -29,8 +27,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.File;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,14 +38,20 @@ public class BrokerControllerTest {
     @Test
     public void testBrokerRestart() throws Exception {
         BrokerController brokerController = new BrokerController(
-            new BrokerConfig(),
-            new NettyServerConfig(),
-            new NettyClientConfig(),
-            new MessageStoreConfig());
+                new BrokerConfig(),
+                new NettyServerConfig(),
+                new NettyClientConfig(),
+                new MessageStoreConfig());
         assertThat(brokerController.initialize());
         brokerController.start();
         brokerController.shutdown();
     }
+
+    @After
+    public void destroy() {
+        UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));
+    }
+
 
     public static void main(String[] args) throws Exception {
         // 设置版本号
@@ -54,7 +59,6 @@ public class BrokerControllerTest {
         // NettyServerConfig 配置
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(10911);
-
         // BrokerConfig 配置
         final BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerName("broker-a");
@@ -77,10 +81,5 @@ public class BrokerControllerTest {
         // 睡觉，就不起来
         System.out.println("你猜");
         Thread.sleep(DateUtils.MILLIS_PER_DAY);
-    }
-
-    @After
-    public void destroy() {
-        UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));
     }
 }

@@ -48,6 +48,8 @@ public class Producer {
         /*
          * Launch the instance.
          */
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.setSendMsgTimeout(1000000);
         producer.start();
 
         for (int i = 0; i < 1000; i++) {

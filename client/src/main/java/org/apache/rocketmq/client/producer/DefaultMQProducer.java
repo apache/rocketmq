@@ -89,6 +89,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
+     * 超过4M，则启动压缩
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
