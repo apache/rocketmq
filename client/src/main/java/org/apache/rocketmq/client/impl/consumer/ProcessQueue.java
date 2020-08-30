@@ -280,7 +280,7 @@ public class ProcessQueue {
         return -1;
     }
 
-    public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
+    public void makeMessageToConsumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
@@ -292,7 +292,7 @@ public class ProcessQueue {
                 this.lockTreeMap.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            log.error("makeMessageToCosumeAgain exception", e);
+            log.error("makeMessageToConsumeAgain exception", e);
         }
     }
 
