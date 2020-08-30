@@ -200,14 +200,20 @@ public class UtilAll {
     }
 
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
-        if (null == path || path.isEmpty())
+        if (null == path || path.isEmpty()) {
+            log.error("Error when measuring disk space usage, path is null or empty, path : {}", path);
             return -1;
+        }
+
 
         try {
             File file = new File(path);
 
-            if (!file.exists())
+            if (!file.exists()) {
+                log.error("Error when measuring disk space usage, file doesn't exist on this path: {}", path);
                 return -1;
+            }
+
 
             long totalSpace = file.getTotalSpace();
 
@@ -218,6 +224,7 @@ public class UtilAll {
                 return usedSpace / (double) totalSpace;
             }
         } catch (Exception e) {
+            log.error("Error when measuring disk space usage, got exception: :", e);
             return -1;
         }
 
