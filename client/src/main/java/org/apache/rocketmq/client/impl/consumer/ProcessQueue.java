@@ -280,6 +280,15 @@ public class ProcessQueue {
         return -1;
     }
 
+    /**
+     * This method will be removed, makeMessageToCosumeAgain->makeMessageToConsumeAgain
+     * @param msgs
+     */
+    @Deprecated
+    public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
+        this.makeMessageToConsumeAgain(msgs);
+    }
+
     public void makeMessageToConsumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
