@@ -804,13 +804,22 @@ public class DefaultMessageStore implements MessageStore {
         return this.storeStatsService.toString();
     }
 
+    private String getStorePathPhysic() {
+        String storePathPhysic = "";
+        if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog()) {
+            storePathPhysic = ((DLedgerCommitLog)DefaultMessageStore.this.getCommitLog()).getdLedgerServer().getdLedgerConfig().getDataStorePath();
+        } else {
+            storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
+        }
+        return storePathPhysic;
+    }
+
     @Override
     public HashMap<String, String> getRuntimeInfo() {
         HashMap<String, String> result = this.storeStatsService.getRuntimeInfo();
 
         {
-            String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathPhysic());
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
 
         }
@@ -1676,8 +1685,7 @@ public class DefaultMessageStore implements MessageStore {
             cleanImmediately = false;
 
             {
-                String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathPhysic());
                 if (physicRatio > diskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
