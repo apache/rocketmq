@@ -631,7 +631,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public long committed(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
-        long offset = this.offsetStore.readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE);
+        long offset = this.offsetStore.readOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
         if (offset == -2)
             throw new MQClientException("Fetch consume offset from broker exception", null);
         return offset;
@@ -691,7 +691,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
 
-                if (processQueue == null && processQueue.isDropped()) {
+                if (null == processQueue || processQueue.isDropped()) {
                     log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), this.messageQueue);
                     return;
                 }

@@ -65,7 +65,6 @@ public class Permission {
             case "SUB":
                 return Permission.SUB;
             case "PUB|SUB":
-                return Permission.PUB | Permission.SUB;
             case "SUB|PUB":
                 return Permission.PUB | Permission.SUB;
             case "DENY":

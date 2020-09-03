@@ -279,7 +279,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public Long committed(MessageQueue messageQueue) throws MQClientException {
-        return this.defaultLitePullConsumerImpl.committed(messageQueue);
+        return this.defaultLitePullConsumerImpl.committed(queueWithNamespace(messageQueue));
     }
 
     @Override
@@ -289,12 +289,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void seekToBegin(MessageQueue messageQueue) throws MQClientException {
-        this.defaultLitePullConsumerImpl.seekToBegin(messageQueue);
+        this.defaultLitePullConsumerImpl.seekToBegin(queueWithNamespace(messageQueue));
     }
 
     @Override
     public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
-        this.defaultLitePullConsumerImpl.seekToEnd(messageQueue);
+        this.defaultLitePullConsumerImpl.seekToEnd(queueWithNamespace(messageQueue));
     }
 
     @Override
@@ -305,6 +305,22 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void setAutoCommit(boolean autoCommit) {
         this.autoCommit = autoCommit;
+    }
+
+    public boolean isConnectBrokerByUser() {
+        return this.defaultLitePullConsumerImpl.getPullAPIWrapper().isConnectBrokerByUser();
+    }
+
+    public void setConnectBrokerByUser(boolean connectBrokerByUser) {
+        this.defaultLitePullConsumerImpl.getPullAPIWrapper().setConnectBrokerByUser(connectBrokerByUser);
+    }
+
+    public long getDefaultBrokerId() {
+        return this.defaultLitePullConsumerImpl.getPullAPIWrapper().getDefaultBrokerId();
+    }
+
+    public void setDefaultBrokerId(long defaultBrokerId) {
+        this.defaultLitePullConsumerImpl.getPullAPIWrapper().setDefaultBrokerId(defaultBrokerId);
     }
 
     public int getPullThreadNums() {
