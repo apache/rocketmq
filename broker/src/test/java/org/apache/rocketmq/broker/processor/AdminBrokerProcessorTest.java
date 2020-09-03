@@ -17,15 +17,12 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.message.MessageAccessor;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.header.ResetOffsetByOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -47,9 +44,12 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AdminBrokerProcessorTest {
@@ -61,17 +61,19 @@ public class AdminBrokerProcessorTest {
 
     @Spy
     private BrokerController
-        brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
-        new MessageStoreConfig());
+            brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
+            new MessageStoreConfig());
 
     @Mock
     private MessageStore messageStore;
+    private Broker2Client broker2Client;
 
 
     @Before
     public void init() {
         brokerController.setMessageStore(messageStore);
         adminBrokerProcessor = new AdminBrokerProcessor(brokerController);
+        broker2Client = mock(Broker2Client.class);
     }
 
     @Test
@@ -94,22 +96,31 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
     }
 
-    private MessageExt createDefaultMessageExt() {
-        MessageExt messageExt = new MessageExt();
-        messageExt.setMsgId("12345678");
-        messageExt.setQueueId(0);
-        messageExt.setCommitLogOffset(123456789L);
-        messageExt.setQueueOffset(1234);
-        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
-        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_TOPIC, "testTopic");
-        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, "15");
-        return messageExt;
+    @Test
+    public void testResetOffsetByOffset() throws Exception {
+        RemotingCommand notOnlineResponse = RemotingCommand.createResponseCommand(ResponseCode.CONSUMER_NOT_ONLINE, "notOnlineRemark");
+
+        ResetOffsetByOffsetRequestHeader header = new ResetOffsetByOffsetRequestHeader();
+        header.setOffset(1);
+        header.setQueueId(0);
+        header.setGroup("group");
+        header.setTopic("topic");
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET_BY_OFFSET, header);
+        request.makeCustomHeaderToNet();
+
+        when(brokerController.getBroker2Client()).thenReturn(broker2Client);
+        when(broker2Client.resetOffsetByOffset(anyString(), anyString(), anyInt(), anyLong(), anyBoolean())).thenReturn(notOnlineResponse);
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getRemark()).isEqualToIgnoringCase("[reset-offset] consumer not online, so only update the broker's offset");
     }
 
-    private SelectMappedBufferResult createSelectMappedBufferResult(){
-        SelectMappedBufferResult result = new SelectMappedBufferResult(0, ByteBuffer.allocate(1024) ,0, new MappedFile());
+    private SelectMappedBufferResult createSelectMappedBufferResult() {
+        SelectMappedBufferResult result = new SelectMappedBufferResult(0, ByteBuffer.allocate(1024), 0, new MappedFile());
         return result;
     }
+
     private ResumeCheckHalfMessageRequestHeader createResumeCheckHalfMessageRequestHeader() {
         ResumeCheckHalfMessageRequestHeader header = new ResumeCheckHalfMessageRequestHeader();
         header.setMsgId("C0A803CA00002A9F0000000000031367");
