@@ -189,10 +189,16 @@ public class MQClientInstance {
                         continue;
                     }
 
+                    /**
+                     * 只有Master节点的Broker才能接收消息，对于非Master节点的需要过滤掉
+                     */
                     if (!brokerData.getBrokerAddrs().containsKey(MixAll.MASTER_ID)) {
                         continue;
                     }
 
+                    /**
+                     * 写队列，构建MessageQueue
+                     */
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                         info.getMessageQueueList().add(mq);
@@ -236,6 +242,12 @@ public class MQClientInstance {
                     // Start various schedule tasks
                     this.startScheduledTask();
                     // Start pull service
+                    /**
+                     * pullMessageService和rebalanceService协助使用
+                     *
+                     * rebalanceService将新加入的MessageQueue拉取任务加入到pullMessageService中，
+                     * 将旧的messageQueue的拉取任务从pullMessageService中停止，两者之间通过消息队里通信{@link PullMessageService#pullRequestQueue}
+                     */
                     this.pullMessageService.start();
                     // Start rebalance service
                     this.rebalanceService.start();
@@ -267,6 +279,9 @@ public class MQClientInstance {
             }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
         }
 
+        /**
+         * 周期性的从NameSrv拉取路由信息
+         */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -324,6 +339,9 @@ public class MQClientInstance {
     public void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<String>();
 
+        /**
+         * 从消费者和生产者中收集被订阅的主题和需要发送消息的主题
+         */
         // Consumer
         {
             Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
@@ -554,6 +572,9 @@ public class MQClientInstance {
                             }
 
                             try {
+                                /**
+                                 * 同步给broker的信息是最终一致性的，非强一致性
+                                 */
                                 int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
                                 if (!this.brokerVersionTable.containsKey(brokerName)) {
                                     this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
@@ -602,13 +623,25 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 获取每个Topic路由信息
+     *
+     * @param topic
+     * @param isDefault
+     * @param defaultMQProducer
+     * @return
+     */
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
         DefaultMQProducer defaultMQProducer) {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
                     TopicRouteData topicRouteData;
+                    /**
+                     * 从Namesrv中获取Topic对应的Broker路由信息
+                     */
                     if (isDefault && defaultMQProducer != null) {
+                        //查询默认Topic TBW102的路由信息
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
@@ -968,6 +1001,11 @@ public class MQClientInstance {
         this.rebalanceService.wakeup();
     }
 
+    /**
+     * consumerTable中缓存的数据为：key=ConsumeGroupName, value=Topic的订阅消息
+     *
+     * Rebalance就是要这些Topic下的所有messageQueue按照一定的规则分发给consumerGroup下的consumer进行消费
+     */
     public void doRebalance() {
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();

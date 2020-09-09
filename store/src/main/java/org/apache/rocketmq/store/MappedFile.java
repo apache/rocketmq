@@ -294,6 +294,11 @@ public class MappedFile extends ReferenceResource {
         return this.getFlushedPosition();
     }
 
+    /**
+     *
+     * @param commitLeastPages commit最小页数
+     * @return
+     */
     public int commit(final int commitLeastPages) {
         if (writeBuffer == null) {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
@@ -317,6 +322,11 @@ public class MappedFile extends ReferenceResource {
         return this.committedPosition.get();
     }
 
+    /**
+     * commit实现，将writeBuffer写入fileChannel
+     *
+     * @param commitLeastPages
+     */
     protected void commit0(final int commitLeastPages) {
         int writePos = this.wrotePosition.get();
         int lastCommittedPosition = this.committedPosition.get();
@@ -335,6 +345,15 @@ public class MappedFile extends ReferenceResource {
         }
     }
 
+    /**
+     * 是否可以进行flush, 满足如下任意条件：
+     * 1. 映射文件已经写满
+     * 2. flushLeastPages > 0 && 未flush部分超过 flushLeastPages
+     * 3. flushLeastPages = 0 && 有新写入部分
+     *
+     * @param flushLeastPages flush最小分页
+     * @return
+     */
     private boolean isAbleToFlush(final int flushLeastPages) {
         int flush = this.flushedPosition.get();
         int write = getReadPosition();
@@ -398,7 +417,13 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
+    /**
+     *
+     * @param pos
+     * @return
+     */
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
+        //最大可读位置
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {
             if (this.hold()) {
@@ -471,6 +496,9 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
+     * 若WriteBuffer有数据，表示是通过 CommitRealTimeService+FlushRealTimeService -> TransientStorePool缓存池。则需要读取committedPosition
+     * 否则直接取wrotePosition
+     *
      * @return The max position which have valid data
      */
     public int getReadPosition() {

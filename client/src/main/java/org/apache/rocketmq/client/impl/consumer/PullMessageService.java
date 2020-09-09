@@ -56,6 +56,11 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
+    /**
+     * rebalanceService中将MessageQueue封装成PullRequest，加入到队列中，给PullMessageService使用
+     *
+     * @param pullRequest
+     */
     public void executePullRequestImmediately(final PullRequest pullRequest) {
         try {
             this.pullRequestQueue.put(pullRequest);
@@ -86,12 +91,16 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
+
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
             try {
+                /**
+                 * 拉消息的所有请求队列，这里的请求【PullRequest】是从rebalanceService中写入的。
+                 */
                 PullRequest pullRequest = this.pullRequestQueue.take();
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {

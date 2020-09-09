@@ -78,6 +78,9 @@ public class HAConnection {
         return socketChannel;
     }
 
+    /**
+     * 读取slave上报的数据并更新同步进度
+     */
     class ReadSocketService extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024;
         private final Selector selector;
@@ -190,6 +193,9 @@ public class HAConnection {
         }
     }
 
+    /**
+     * 源源不断的往slave发送数据
+     */
     class WriteSocketService extends ServiceThread {
         private final Selector selector;
         private final SocketChannel socketChannel;

@@ -128,6 +128,7 @@ public class RouteInfoManager {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
             try {
+                //写锁，不影响 读性能
                 this.lock.writeLock().lockInterruptibly();
 
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
@@ -172,7 +173,9 @@ public class RouteInfoManager {
                         }
                     }
                 }
-
+                /**
+                 * 注册topic到Broker中
+                 */
                 BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr,
                     new BrokerLiveInfo(
                         System.currentTimeMillis(),
@@ -444,6 +447,7 @@ public class RouteInfoManager {
     }
 
     public void scanNotActiveBroker() {
+        //遍历目前存活的Broker列表，根据最新的更新时间判断是否还存活
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();

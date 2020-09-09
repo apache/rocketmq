@@ -47,6 +47,9 @@ public abstract class ServiceThread implements Runnable {
         if (!started.compareAndSet(false, true)) {
             return;
         }
+        /**
+         * 控制是否可以开始拉消息 @run()
+         */
         stopped = false;
         this.thread = new Thread(this, getServiceName());
         this.thread.setDaemon(isDaemon);

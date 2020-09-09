@@ -494,6 +494,12 @@ public class HAService {
             return result;
         }
 
+        /**
+         * 从节点连接主节点
+         *
+         * @return
+         * @throws ClosedChannelException
+         */
         private boolean connectMaster() throws ClosedChannelException {
             if (null == socketChannel) {
                 String addr = this.masterAddress.get();
@@ -508,6 +514,9 @@ public class HAService {
                     }
                 }
 
+                /**
+                 * 从节点当然的同步进度 偏移位置
+                 */
                 this.currentReportedOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
 
                 this.lastWriteTimestamp = System.currentTimeMillis();

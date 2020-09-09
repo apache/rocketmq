@@ -37,8 +37,14 @@ public class MappedFileQueue {
 
     private final String storePath;
 
+    /**
+     * MappedFile的文件大小，默认1G = 1024 * 1024 * 1024
+     */
     private final int mappedFileSize;
 
+    /**
+     * 一个MappedFileQueue包含多个MappedFile
+     */
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
     private final AllocateMappedFileService allocateMappedFileService;
@@ -194,7 +200,7 @@ public class MappedFileQueue {
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
         long createOffset = -1;
         MappedFile mappedFileLast = getLastMappedFile();
-
+        // mappedFileList为空或者已满，则计算新文件的物理偏移量 -> 生成新的文件起始位置
         if (mappedFileLast == null) {
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
@@ -204,6 +210,7 @@ public class MappedFileQueue {
         }
 
         if (createOffset != -1 && needCreate) {
+            //通过物理偏移量获得文件名
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
             String nextNextFilePath = this.storePath + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
@@ -424,6 +431,7 @@ public class MappedFileQueue {
 
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
+        //根据对应位移获取对应的文件
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
@@ -439,6 +447,11 @@ public class MappedFileQueue {
         return result;
     }
 
+    /**
+     *
+     * @param commitLeastPages commit最小页数
+     * @return
+     */
     public boolean commit(final int commitLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);
@@ -472,6 +485,7 @@ public class MappedFileQueue {
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
+                    //计算offset所在的MappedFile位置，再从MappedQueue中获取
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {
@@ -479,11 +493,13 @@ public class MappedFileQueue {
                     } catch (Exception ignored) {
                     }
 
+                    //判断获取到的MappedFile是否满足offset
                     if (targetFile != null && offset >= targetFile.getFileFromOffset()
                         && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
                         return targetFile;
                     }
 
+                    //若通过计算index找到的MappedFile不正确，则直接遍历MappedQueue中的每个File进行获取
                     for (MappedFile tmpMappedFile : this.mappedFiles) {
                         if (offset >= tmpMappedFile.getFileFromOffset()
                             && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
@@ -492,6 +508,7 @@ public class MappedFileQueue {
                     }
                 }
 
+                //若是第一次加载数据且没有找到，则直接返回第一个
                 if (returnFirstOnNotFound) {
                     return firstMappedFile;
                 }

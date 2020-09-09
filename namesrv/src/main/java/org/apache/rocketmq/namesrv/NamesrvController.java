@@ -46,7 +46,7 @@ public class NamesrvController {
 
     private final NettyServerConfig nettyServerConfig;
     /**
-     * 定时任务线程池
+     * 定时任务线程池（检测Broker是否还存活）
      */
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
