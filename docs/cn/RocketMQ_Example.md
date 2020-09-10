@@ -543,7 +543,7 @@ public class ListSplitter implements Iterator<List<Message>> {
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             tmpSize += entry.getKey().length() + entry.getValue().length(); 
         }
-        tmpSize = tmpSize + 20; // 增加⽇日志的开销20字节
+        tmpSize = tmpSize + 20; // 增加日志的开销20字节
         return tmpSize; 
     }
 }
