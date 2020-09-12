@@ -532,13 +532,13 @@ public class ListSplitter implements Iterator<List<Message>> {
         int tmpSize = calcMessageSize(currMessage); 
         while(tmpSize > SIZE_LIMIT) {
             currIndex += 1;
-            Message message = messages.get(curIndex); 
+            Message message = messages.get(currIndex); 
             tmpSize = calcMessageSize(message);
         }
         return currIndex; 
     }
     private int calcMessageSize(Message message) {
-        int tmpSize = message.getTopic().length() + message.getBody().length(); 
+        int tmpSize = message.getTopic().length() + message.getBody().length; 
         Map<String, String> properties = message.getProperties();
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             tmpSize += entry.getKey().length() + entry.getValue().length(); 
@@ -635,7 +635,7 @@ producer.shutdown();
 ```java
 DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
 // 只有订阅的消息有这个属性a, a >=0 and a <= 3
-consumer.subscribe("TopicTest", MessageSelector.bySql("a between 0 and 3");
+consumer.subscribe("TopicTest", MessageSelector.bySql("a between 0 and 3"));
 consumer.registerMessageListener(new MessageListenerConcurrently() {
    @Override
    public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
