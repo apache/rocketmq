@@ -14,20 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.consumer.rebalance;
+package org.apache.rocketmq.common.rebalance;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.common.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
- * Average Hashing queue algorithm
+ * Cycle average Hashing queue algorithm
  */
-public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
-    private final InternalLogger log = ClientLogger.getLog();
+public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQueueStrategy {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
@@ -52,20 +53,16 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         }
 
         int index = cidAll.indexOf(currentCID);
-        int mod = mqAll.size() % cidAll.size();
-        int averageSize =
-            mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
-                + 1 : mqAll.size() / cidAll.size());
-        int startIndex = (mod > 0 && index < mod) ? index * averageSize : index * averageSize + mod;
-        int range = Math.min(averageSize, mqAll.size() - startIndex);
-        for (int i = 0; i < range; i++) {
-            result.add(mqAll.get((startIndex + i) % mqAll.size()));
+        for (int i = index; i < mqAll.size(); i++) {
+            if (i % cidAll.size() == index) {
+                result.add(mqAll.get(i));
+            }
         }
         return result;
     }
 
     @Override
     public String getName() {
-        return "AVG";
+        return "AVG_BY_CIRCLE";
     }
 }

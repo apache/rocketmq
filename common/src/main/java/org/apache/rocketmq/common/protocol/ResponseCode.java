@@ -80,4 +80,5 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 211;
 
+    public static final int ALLOCATE_MESSAGE_QUEUE_FAILED = 212;
 }

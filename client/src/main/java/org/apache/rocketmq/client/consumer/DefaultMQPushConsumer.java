@@ -24,7 +24,6 @@ import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
-import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -33,6 +32,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
+import org.apache.rocketmq.common.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -91,6 +92,19 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * This field defaults to clustering.
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
+
+    /**
+     * The switch for applying the rebalancing calculation task at the broker side.
+     * </p>
+     *
+     * RocketMQ supports two message models: clustering and broadcasting. If clustering is set, consumer clients with
+     * the same {@link #consumerGroup} would execute rebalancing calculations at the client side in default. The switch
+     * is responsible for shifting the rebalancing calculation task to the broker side.
+     * </p>
+     *
+     * This field defaults to false.
+     */
+    private boolean rebalanceByBroker = false;
 
     /**
      * Consuming point on consumer booting.
@@ -572,6 +586,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setMessageModel(MessageModel messageModel) {
         this.messageModel = messageModel;
+    }
+
+    public boolean isRebalanceByBroker() {
+        return rebalanceByBroker;
+    }
+
+    public void setRebalanceByBroker(boolean rebalanceByBroker) {
+        this.rebalanceByBroker = rebalanceByBroker;
     }
 
     public int getPullBatchSize() {

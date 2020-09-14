@@ -14,31 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.consumer.rebalance;
+
+package org.apache.rocketmq.common.protocol.header;
 
 import java.util.List;
-import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class AllocateMessageQueueByConfig implements AllocateMessageQueueStrategy {
-    private List<MessageQueue> messageQueueList;
+public class AllocateMessageQueueResponseBody extends RemotingSerializable {
+    private List<MessageQueue> allocateResult;
 
-    @Override
-    public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-        List<String> cidAll) {
-        return this.messageQueueList;
+    public List<MessageQueue> getAllocateResult() {
+        return allocateResult;
     }
 
-    @Override
-    public String getName() {
-        return "CONFIG";
-    }
-
-    public List<MessageQueue> getMessageQueueList() {
-        return messageQueueList;
-    }
-
-    public void setMessageQueueList(List<MessageQueue> messageQueueList) {
-        this.messageQueueList = messageQueueList;
+    public void setAllocateResult(List<MessageQueue> allocateResult) {
+        this.allocateResult = allocateResult;
     }
 }

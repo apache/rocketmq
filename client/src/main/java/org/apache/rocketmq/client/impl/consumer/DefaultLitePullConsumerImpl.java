@@ -874,6 +874,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     @Override
+    public boolean rebalanceByBroker() {
+        return this.defaultLitePullConsumer.isRebalanceByBroker();
+    }
+
+    @Override
     public ConsumeType consumeType() {
         return ConsumeType.CONSUME_ACTIVELY;
     }

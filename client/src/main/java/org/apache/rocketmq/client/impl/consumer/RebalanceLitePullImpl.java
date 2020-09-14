@@ -18,11 +18,11 @@ package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.List;
 import java.util.Set;
-import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -140,6 +140,11 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
 
     @Override
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {
+    }
+
+    @Override
+    public boolean isRebalanceByBroker() {
+        return this.litePullConsumerImpl.rebalanceByBroker();
     }
 
 }

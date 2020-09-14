@@ -991,6 +991,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     @Override
+    public boolean rebalanceByBroker() {
+        return this.defaultMQPushConsumer.isRebalanceByBroker();
+    }
+
+    @Override
     public ConsumeType consumeType() {
         return ConsumeType.CONSUME_PASSIVELY;
     }
