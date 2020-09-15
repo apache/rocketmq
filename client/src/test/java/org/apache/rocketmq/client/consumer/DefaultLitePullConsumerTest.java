@@ -513,6 +513,32 @@ public class DefaultLitePullConsumerTest {
         assertThat(offset).isEqualTo(100);
     }
 
+    @Test
+    public void testConsumerAfterShutdown() throws Exception {
+        DefaultLitePullConsumer defaultLitePullConsumer = createStartLitePullConsumer();
+        defaultLitePullConsumer.setNamesrvAddr("127.0.0.1:9876");
+        defaultLitePullConsumer.subscribe(topic, "*");
+        new AsyncConsumer().executeAsync(defaultLitePullConsumer);
+        Thread.sleep(10 * 1000);
+        defaultLitePullConsumer.shutdown();
+        assertThat(defaultLitePullConsumer.isRunning()).isFalse();
+    }
+
+    static class AsyncConsumer {
+        public void executeAsync(final DefaultLitePullConsumer consumer) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (consumer.isRunning()) {
+                        List<MessageExt> poll = consumer.poll(2 * 1000);
+                        System.out.println("consumer is still running");
+                    }
+                    System.out.println("consumer shutdown");
+                }
+            }).start();
+        }
+    }
+
     private void initDefaultLitePullConsumer(DefaultLitePullConsumer litePullConsumer) throws Exception {
 
         Field field = DefaultLitePullConsumer.class.getDeclaredField("defaultLitePullConsumerImpl");
