@@ -34,6 +34,7 @@ import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
@@ -55,12 +56,13 @@ public class Consumer {
         final String filterType = commandLine.hasOption('f') ? commandLine.getOptionValue('f').trim() : null;
         final String expression = commandLine.hasOption('e') ? commandLine.getOptionValue('e').trim() : null;
         final double failRate = commandLine.hasOption('r') ? Double.parseDouble(commandLine.getOptionValue('r').trim()) : 0.0;
+        final boolean msgTraceEnable = commandLine.hasOption('m') && Boolean.parseBoolean(commandLine.getOptionValue('m'));
         String group = groupPrefix;
         if (Boolean.parseBoolean(isSuffixEnable)) {
             group = groupPrefix + "_" + (System.currentTimeMillis() % 100);
         }
 
-        System.out.printf("topic: %s, group: %s, suffix: %s, filterType: %s, expression: %s%n", topic, group, isSuffixEnable, filterType, expression);
+        System.out.printf("topic: %s, group: %s, suffix: %s, filterType: %s, expression: %s, msgTraceEnable: %s%n", topic, group, isSuffixEnable, filterType, expression, msgTraceEnable);
 
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
@@ -111,7 +113,7 @@ public class Consumer {
             }
         }, 10000, 10000);
 
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group, AclClient.getAclRPCHook(), new AllocateMessageQueueAveragely(), msgTraceEnable, null);
         if (commandLine.hasOption('n')) {
             String ns = commandLine.getOptionValue('n');
             consumer.setNamesrvAddr(ns);
@@ -189,6 +191,10 @@ public class Consumer {
         options.addOption(opt);
 
         opt = new Option("r", "fail rate", true, "consumer fail rate, default 0");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("m", "msgTraceEnable", true, "Message Trace Enable, Default: false");
         opt.setRequired(false);
         options.addOption(opt);
 

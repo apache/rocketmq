@@ -122,7 +122,7 @@ public class TransactionProducer {
         }, 10000, 10000);
 
         final TransactionListener transactionCheckListener = new TransactionListenerImpl(statsBenchmark, config);
-        final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
+        final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer", AclClient.getAclRPCHook());
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
         producer.setTransactionListener(transactionCheckListener);
         producer.setDefaultTopicQueueNums(1000);
