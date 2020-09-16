@@ -35,6 +35,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -54,8 +55,10 @@ public class Producer {
         final boolean keyEnable = commandLine.hasOption('k') && Boolean.parseBoolean(commandLine.getOptionValue('k'));
         final int propertySize = commandLine.hasOption('p') ? Integer.parseInt(commandLine.getOptionValue('p')) : 0;
         final boolean msgTraceEnable = commandLine.hasOption('m') && Boolean.parseBoolean(commandLine.getOptionValue('m'));
+        final boolean aclEnable = commandLine.hasOption('a') && Boolean.parseBoolean(commandLine.getOptionValue('a'));
 
-        System.out.printf("topic %s threadCount %d messageSize %d keyEnable %s traceEnable %s%n", topic, threadCount, messageSize, keyEnable, msgTraceEnable);
+        System.out.printf("topic %s threadCount %d messageSize %d keyEnable %s traceEnable %s aclEnable %s%n",
+            topic, threadCount, messageSize, keyEnable, msgTraceEnable, aclEnable);
 
         final InternalLogger log = ClientLogger.getLog();
 
@@ -101,7 +104,8 @@ public class Producer {
             }
         }, 10000, 10000);
 
-        final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer", AclClient.getAclRPCHook(), msgTraceEnable, null);
+        RPCHook rpcHook = aclEnable ? AclClient.getAclRPCHook() : null;
+        final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer", rpcHook, msgTraceEnable, null);
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         if (commandLine.hasOption('n')) {
@@ -212,6 +216,10 @@ public class Producer {
         options.addOption(opt);
 
         opt = new Option("m", "msgTraceEnable", true, "Message Trace Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("a", "aclEnable", true, "Acl Enable, Default: false");
         opt.setRequired(false);
         options.addOption(opt);
 

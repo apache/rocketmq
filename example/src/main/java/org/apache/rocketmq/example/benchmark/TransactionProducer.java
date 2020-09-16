@@ -68,6 +68,7 @@ public class TransactionProducer {
         config.checkUnknownRate = commandLine.hasOption("cu") ? Double.parseDouble(commandLine.getOptionValue("cu")) : 0.0;
         config.batchId = commandLine.hasOption("b") ? Long.parseLong(commandLine.getOptionValue("b")) : System.currentTimeMillis();
         config.sendInterval = commandLine.hasOption("i") ? Integer.parseInt(commandLine.getOptionValue("i")) : 0;
+        config.aclEnable = commandLine.hasOption('a') && Boolean.parseBoolean(commandLine.getOptionValue('a'));
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(config.threadCount);
 
@@ -122,7 +123,8 @@ public class TransactionProducer {
         }, 10000, 10000);
 
         final TransactionListener transactionCheckListener = new TransactionListenerImpl(statsBenchmark, config);
-        final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer", AclClient.getAclRPCHook());
+        final TransactionMQProducer producer =
+            new TransactionMQProducer("benchmark_transaction_producer", config.aclEnable ? AclClient.getAclRPCHook() : null);
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
         producer.setTransactionListener(transactionCheckListener);
         producer.setDefaultTopicQueueNums(1000);
@@ -247,6 +249,10 @@ public class TransactionProducer {
         options.addOption(opt);
 
         opt = new Option("i", "send interval", true, "sleep interval in millis between messages, Default: 0");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("a", "aclEnable", true, "Acl Enable, Default: false");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -432,6 +438,7 @@ class TxSendConfig {
     double checkUnknownRate;
     long batchId;
     int sendInterval;
+    boolean aclEnable;
 }
 
 class LRUMap<K, V> extends LinkedHashMap<K, V> {
