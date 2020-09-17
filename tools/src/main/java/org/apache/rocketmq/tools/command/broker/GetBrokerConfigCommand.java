@@ -48,11 +48,11 @@ public class GetBrokerConfigCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(final Options options) {
-        Option opt = new Option("b", "brokerAddr", true, "update which broker");
+        Option opt = new Option("b", "brokerAddr", true, "get which broker");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "update which cluster");
+        opt = new Option("c", "clusterName", true, "get which cluster");
         opt.setRequired(false);
         options.addOption(opt);
 

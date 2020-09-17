@@ -28,10 +28,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
-/**
- * BrokerFastFailure will cover {@link BrokerController#sendThreadPoolQueue} and
- * {@link BrokerController#pullThreadPoolQueue}
- */
 public class BrokerFastFailure {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
@@ -92,6 +88,9 @@ public class BrokerFastFailure {
 
         cleanExpiredRequestInQueue(this.brokerController.getHeartbeatThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInHeartbeatQueue());
+
+        cleanExpiredRequestInQueue(this.brokerController.getEndTransactionThreadPoolQueue(), this
+            .brokerController.getBrokerConfig().getWaitTimeMillsInTransactionQueue());
     }
 
     void cleanExpiredRequestInQueue(final BlockingQueue<Runnable> blockingQueue, final long maxWaitTimeMillsInQueue) {

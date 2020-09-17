@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -51,19 +52,28 @@ public class BrokerConfig {
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
-
+    @ImportantField
+    private String msgTraceTopicName = TopicValidator.RMQ_SYS_TRACE_TOPIC;
+    @ImportantField
+    private boolean traceTopicEnable = false;
     /**
      * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
      * value is 1.
      */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
 
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
-    private int heartbeatThreadPoolNums = Math.min(32,Runtime.getRuntime().availableProcessors());
+    private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
+
+    /**
+     * Thread numbers for EndTransactionProcessor
+     */
+    private int endTransactionThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors() * 2;
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -75,10 +85,12 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
+    private int replyThreadPoolQueueCapacity = 10000;
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
     private int heartbeatThreadPoolQueueCapacity = 50000;
+    private int endTransactionPoolQueueCapacity = 100000;
 
     private int filterServerNums = 0;
 
@@ -111,6 +123,7 @@ public class BrokerConfig {
     private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
+    private long waitTimeMillsInTransactionQueue = 3 * 1000;
 
     private long startAcceptSendRequestTimeStamp = 0L;
 
@@ -150,19 +163,39 @@ public class BrokerConfig {
      * that can be checked.
      */
     @ImportantField
-    private long transactionTimeOut = 3 * 1000;
+    private long transactionTimeOut = 6 * 1000;
 
     /**
      * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
      */
     @ImportantField
-    private int transactionCheckMax = 5;
+    private int transactionCheckMax = 15;
 
     /**
      * Transaction message check interval.
      */
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;
+
+    /**
+     * Acl feature switch
+     */
+    @ImportantField
+    private boolean aclEnable = false;
+
+    private boolean storeReplyMessageEnable = true;
+
+    private boolean autoDeleteUnusedStats = false;
+
+    public static String localHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Failed to obtain the host name", e);
+        }
+
+        return "DEFAULT_BROKER";
+    }
 
     public boolean isTraceOn() {
         return traceOn;
@@ -226,16 +259,6 @@ public class BrokerConfig {
 
     public void setSlaveReadEnable(final boolean slaveReadEnable) {
         this.slaveReadEnable = slaveReadEnable;
-    }
-
-    public static String localHostName() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            log.error("Failed to obtain the host name", e);
-        }
-
-        return "DEFAULT_BROKER";
     }
 
     public int getRegisterBrokerTimeoutMills() {
@@ -358,6 +381,14 @@ public class BrokerConfig {
         this.pullMessageThreadPoolNums = pullMessageThreadPoolNums;
     }
 
+    public int getProcessReplyMessageThreadPoolNums() {
+        return processReplyMessageThreadPoolNums;
+    }
+
+    public void setProcessReplyMessageThreadPoolNums(int processReplyMessageThreadPoolNums) {
+        this.processReplyMessageThreadPoolNums = processReplyMessageThreadPoolNums;
+    }
+
     public int getQueryMessageThreadPoolNums() {
         return queryMessageThreadPoolNums;
     }
@@ -452,6 +483,14 @@ public class BrokerConfig {
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
+    }
+
+    public int getReplyThreadPoolQueueCapacity() {
+        return replyThreadPoolQueueCapacity;
+    }
+
+    public void setReplyThreadPoolQueueCapacity(int replyThreadPoolQueueCapacity) {
+        this.replyThreadPoolQueueCapacity = replyThreadPoolQueueCapacity;
     }
 
     public int getQueryThreadPoolQueueCapacity() {
@@ -700,5 +739,69 @@ public class BrokerConfig {
 
     public void setTransactionCheckInterval(long transactionCheckInterval) {
         this.transactionCheckInterval = transactionCheckInterval;
+    }
+
+    public int getEndTransactionThreadPoolNums() {
+        return endTransactionThreadPoolNums;
+    }
+
+    public void setEndTransactionThreadPoolNums(int endTransactionThreadPoolNums) {
+        this.endTransactionThreadPoolNums = endTransactionThreadPoolNums;
+    }
+
+    public int getEndTransactionPoolQueueCapacity() {
+        return endTransactionPoolQueueCapacity;
+    }
+
+    public void setEndTransactionPoolQueueCapacity(int endTransactionPoolQueueCapacity) {
+        this.endTransactionPoolQueueCapacity = endTransactionPoolQueueCapacity;
+    }
+
+    public long getWaitTimeMillsInTransactionQueue() {
+        return waitTimeMillsInTransactionQueue;
+    }
+
+    public void setWaitTimeMillsInTransactionQueue(long waitTimeMillsInTransactionQueue) {
+        this.waitTimeMillsInTransactionQueue = waitTimeMillsInTransactionQueue;
+    }
+
+    public String getMsgTraceTopicName() {
+        return msgTraceTopicName;
+    }
+
+    public void setMsgTraceTopicName(String msgTraceTopicName) {
+        this.msgTraceTopicName = msgTraceTopicName;
+    }
+
+    public boolean isTraceTopicEnable() {
+        return traceTopicEnable;
+    }
+
+    public void setTraceTopicEnable(boolean traceTopicEnable) {
+        this.traceTopicEnable = traceTopicEnable;
+    }
+
+    public boolean isAclEnable() {
+        return aclEnable;
+    }
+
+    public void setAclEnable(boolean aclEnable) {
+        this.aclEnable = aclEnable;
+    }
+
+    public boolean isStoreReplyMessageEnable() {
+        return storeReplyMessageEnable;
+    }
+
+    public void setStoreReplyMessageEnable(boolean storeReplyMessageEnable) {
+        this.storeReplyMessageEnable = storeReplyMessageEnable;
+    }
+
+    public boolean isAutoDeleteUnusedStats() {
+        return autoDeleteUnusedStats;
+    }
+
+    public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
+        this.autoDeleteUnusedStats = autoDeleteUnusedStats;
     }
 }

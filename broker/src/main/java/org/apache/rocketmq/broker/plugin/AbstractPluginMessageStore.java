@@ -20,7 +20,9 @@ package org.apache.rocketmq.broker.plugin;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.CommitLogDispatcher;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -30,6 +32,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
     protected MessageStore next = null;
@@ -83,6 +86,16 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         return next.putMessage(msg);
+    }
+
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
+        return next.asyncPutMessage(msg);
+    }
+
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessages(MessageExtBatch messageExtBatch) {
+        return next.asyncPutMessages(messageExtBatch);
     }
 
     @Override
@@ -246,4 +259,9 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public ConsumeQueue getConsumeQueue(String topic, int queueId) {
         return next.getConsumeQueue(topic, queueId);
     }
+
+    @Override
+    public BrokerStatsManager getBrokerStatsManager() {
+        return next.getBrokerStatsManager();
+    };
 }
