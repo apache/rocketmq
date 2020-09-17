@@ -20,10 +20,8 @@ package org.apache.rocketmq.client.consumer;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -515,11 +513,14 @@ public class DefaultLitePullConsumerTest {
 
     @Test
     public void testConsumerAfterShutdown() throws Exception {
-        DefaultLitePullConsumer defaultLitePullConsumer = createStartLitePullConsumer();
-        defaultLitePullConsumer.setNamesrvAddr("127.0.0.1:9876");
-        defaultLitePullConsumer.subscribe(topic, "*");
+        DefaultLitePullConsumer defaultLitePullConsumer = createSubscribeLitePullConsumer();
+
+        DefaultLitePullConsumer mockConsumer = spy(defaultLitePullConsumer);
+        when(mockConsumer.poll(anyLong())).thenReturn(new ArrayList<>());
+
         new AsyncConsumer().executeAsync(defaultLitePullConsumer);
-        Thread.sleep(10 * 1000);
+
+        Thread.sleep(100);
         defaultLitePullConsumer.shutdown();
         assertThat(defaultLitePullConsumer.isRunning()).isFalse();
     }
@@ -531,9 +532,7 @@ public class DefaultLitePullConsumerTest {
                 public void run() {
                     while (consumer.isRunning()) {
                         List<MessageExt> poll = consumer.poll(2 * 1000);
-                        System.out.println("consumer is still running");
                     }
-                    System.out.println("consumer shutdown");
                 }
             }).start();
         }
