@@ -36,6 +36,13 @@ public interface LitePullConsumer {
     void shutdown();
 
     /**
+     * This consumer is still running
+     *
+     * @return true if consumer is still running
+     */
+    boolean isRunning();
+
+    /**
      * Subscribe some topic with subExpression
      *
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if

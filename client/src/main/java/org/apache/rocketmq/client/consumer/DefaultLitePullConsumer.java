@@ -212,6 +212,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
+    public boolean isRunning() {
+        return this.defaultLitePullConsumerImpl.isRunning();
+    }
+
+    @Override
     public void subscribe(String topic, String subExpression) throws MQClientException {
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression);
     }
