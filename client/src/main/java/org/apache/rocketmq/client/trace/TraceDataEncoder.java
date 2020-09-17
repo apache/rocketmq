@@ -103,6 +103,11 @@ public class TraceDataEncoder {
                     // add the context type
                     subAfterContext.setContextCode(Integer.parseInt(line[6]));
                 }
+                // compatible with the old version
+                if (line.length >= 9) {
+                    subAfterContext.setTimeStamp(Long.parseLong(line[7]));
+                    subAfterContext.setGroupName(line[8]);
+                }
                 resList.add(subAfterContext);
             }
         }
@@ -165,7 +170,10 @@ public class TraceDataEncoder {
                         .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getContextCode()).append(TraceConstants.FIELD_SPLITOR);
+                        .append(ctx.getContextCode()).append(TraceConstants.CONTENT_SPLITOR)
+                        .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)
+                        .append(ctx.getGroupName()).append(TraceConstants.FIELD_SPLITOR);
+                    
                 }
             }
             break;
