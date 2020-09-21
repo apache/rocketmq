@@ -269,11 +269,13 @@ public class DefaultMQProducerTest {
         }
         producer.send(msgs, sendCallback);
         producer.send(msgs, sendCallback, 1000);
-        producer.send(msgs, new MessageQueue(), sendCallback);
+        MessageQueue mq = new MessageQueue("test", "BrokerA", 1);
+        producer.send(msgs, mq, sendCallback);
+        // this message is send failed
         producer.send(msgs, new MessageQueue(), sendCallback, 1000);
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        assertThat(cc.get()).isEqualTo(2);
+        assertThat(cc.get()).isEqualTo(1);
     }
 
     @Test
