@@ -63,9 +63,9 @@ public class MessageStoreTestBase extends StoreTestBase {
         if (leaderId != null) {
             dLegerServer.getdLedgerConfig().setEnableLeaderElector(false);
             if (selfId.equals(leaderId)) {
-                dLegerServer.getMemberState().changeToLeader(-1);
+                dLegerServer.getMemberState().changeToLeader(0);
             } else {
-                dLegerServer.getMemberState().changeToFollower(-1, leaderId);
+                dLegerServer.getMemberState().changeToFollower(0, leaderId);
             }
 
         }
