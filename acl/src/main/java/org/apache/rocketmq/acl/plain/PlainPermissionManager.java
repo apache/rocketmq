@@ -128,8 +128,11 @@ public class PlainPermissionManager {
 
         if (plainAccessConfig == null) {
             log.error("Parameter value plainAccessConfig is null,Please check your parameter");
-            return false;
+            throw new AclException("Parameter value plainAccessConfig is null, Please check your parameter");
         }
+
+        Permission.checkResourcePerms(plainAccessConfig.getTopicPerms());
+        Permission.checkResourcePerms(plainAccessConfig.getGroupPerms());
 
         Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             Map.class);
