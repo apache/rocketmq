@@ -475,7 +475,7 @@ public class MQClientInstance {
                 this.lockHeartbeat.unlock();
             }
         } else {
-            log.warn("lock heartBeat, but failed.");
+            log.warn("lock heartBeat, but failed. [{}]", this.clientId);
         }
     }
 
@@ -532,7 +532,7 @@ public class MQClientInstance {
         final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
         if (producerEmpty && consumerEmpty) {
-            log.warn("sending heartbeat, but no consumer and no producer");
+            log.warn("sending heartbeat, but no consumer and no producer. [{}]", this.clientId);
             return;
         }
 
@@ -668,7 +668,7 @@ public class MQClientInstance {
                             return true;
                         }
                     } else {
-                        log.warn("updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}", topic);
+                        log.warn("updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}. [{}]", topic, this.clientId);
                     }
                 } catch (MQClientException e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -681,7 +681,7 @@ public class MQClientInstance {
                     this.lockNamesrv.unlock();
                 }
             } else {
-                log.warn("updateTopicRouteInfoFromNameServer tryLock timeout {}ms", LOCK_TIMEOUT_MILLIS);
+                log.warn("updateTopicRouteInfoFromNameServer tryLock timeout {}ms. [{}]", LOCK_TIMEOUT_MILLIS, this.clientId);
             }
         } catch (InterruptedException e) {
             log.warn("updateTopicRouteInfoFromNameServer Exception", e);
@@ -893,7 +893,7 @@ public class MQClientInstance {
                     this.lockHeartbeat.unlock();
                 }
             } else {
-                log.warn("lock heartBeat, but failed.");
+                log.warn("lock heartBeat, but failed. [{}]", this.clientId);
             }
         } catch (InterruptedException e) {
             log.warn("unregisterClientWithLock exception", e);
