@@ -392,7 +392,7 @@ public class DefaultMessageStore implements MessageStore {
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
-                log.warn("message store has shutdown, so putMessage is forbidden");
+                log.warn("broke role is slave, so putMessage is forbidden");
             }
             return PutMessageStatus.SERVICE_NOT_AVAILABLE;
         }
@@ -400,7 +400,7 @@ public class DefaultMessageStore implements MessageStore {
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
-                log.warn("message store has shutdown, so putMessage is forbidden");
+                log.warn("message store could not write (may be disk full) so putMessage is forbidden");
             }
             return PutMessageStatus.SERVICE_NOT_AVAILABLE;
         } else {

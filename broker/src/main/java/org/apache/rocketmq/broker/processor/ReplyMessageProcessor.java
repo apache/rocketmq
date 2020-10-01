@@ -263,7 +263,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
                 break;
             case SERVICE_NOT_AVAILABLE:
                 log.info(
-                    "service not available now, maybe disk full, maybe your broker machine memory too small.");
+                    "service not available now, maybe disk full, maybe put messages to slave, maybe message store shutdown, etc.");
                 break;
             case OS_PAGECACHE_BUSY:
                 log.info("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
