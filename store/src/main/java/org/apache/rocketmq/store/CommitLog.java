@@ -1797,7 +1797,8 @@ public class CommitLog {
 
             // extended properties from MessageExtBatch
             final byte[] batchPropData =
-                    messageExtBatch.getPropertiesString() == null ? null : messageExtBatch.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
+                    messageExtBatch.getPropertiesString() == null ? null :
+                            messageExtBatch.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
             final short batchPropLen = (short) (batchPropData == null ? 0 : batchPropData.length);
 
             while (messagesByteBuff.hasRemaining()) {
@@ -1823,7 +1824,8 @@ public class CommitLog {
 
                 final int topicLength = topicData.length;
 
-                final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, propertiesLen + batchPropLen);
+                final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength,
+                        propertiesLen + batchPropLen);
 
                 // Exceeds the maximum message
                 if (msgLen > this.maxMessageSize) {
@@ -1877,10 +1879,10 @@ public class CommitLog {
                 this.msgBatchMemory.put(topicData);
                 // 17 PROPERTIES
                 this.msgBatchMemory.putShort((short) (propertiesLen + batchPropLen));
-                if (propertiesLen > 0){
+                if (propertiesLen > 0) {
                     this.msgBatchMemory.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
                 }
-                if (batchPropLen > 0){
+                if (batchPropLen > 0) {
                     this.msgBatchMemory.put(batchPropData, 0, batchPropLen);
                 }
             }
