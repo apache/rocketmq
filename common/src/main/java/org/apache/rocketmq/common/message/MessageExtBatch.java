@@ -23,6 +23,8 @@ public class MessageExtBatch extends MessageExt {
 
     private static final long serialVersionUID = -2353110995348498537L;
 
+    private String propertiesString;
+
     public ByteBuffer wrap() {
         assert getBody() != null;
         return ByteBuffer.wrap(getBody(), 0, getBody().length);
@@ -36,5 +38,13 @@ public class MessageExtBatch extends MessageExt {
 
     public void setEncodedBuff(ByteBuffer encodedBuff) {
         this.encodedBuff = encodedBuff;
+    }
+
+    public String getPropertiesString() {
+        return propertiesString;
+    }
+
+    public void setPropertiesString(String propertiesString) {
+        this.propertiesString = propertiesString;
     }
 }

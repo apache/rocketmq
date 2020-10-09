@@ -35,6 +35,7 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +81,11 @@ public class BatchPutMessageTest {
 
     @Test
     public void testPutMessages() throws Exception {
+        Map<String, String> batchProp = new HashMap<>(1);
+        batchProp.put("extraKey", "extraValue");
+        String batchPropStr = messageProperties2String(batchProp);
+        short batchPropLen = (short) batchPropStr.getBytes(MessageDecoder.CHARSET_UTF8).length;
+
         List<Message> messages = new ArrayList<>();
         String topic = "batch-write-topic";
         int queue = 0;
@@ -98,7 +104,7 @@ public class BatchPutMessageTest {
             short propertiesLength = (short) propertiesBytes.length;
             final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
             final int topicLength = topicData.length;
-            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength) + msgLengthArr[j - 1];
+            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength+batchPropLen) + msgLengthArr[j - 1];
             j++;
         }
         byte[] batchMessageBody = MessageDecoder.encodeMessages(messages);
@@ -106,6 +112,7 @@ public class BatchPutMessageTest {
         messageExtBatch.setTopic(topic);
         messageExtBatch.setQueueId(queue);
         messageExtBatch.setBody(batchMessageBody);
+        messageExtBatch.setPropertiesString(batchPropStr);
         messageExtBatch.setBornTimestamp(System.currentTimeMillis());
         messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
         messageExtBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));

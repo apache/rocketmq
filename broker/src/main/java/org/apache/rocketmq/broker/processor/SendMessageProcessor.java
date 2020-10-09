@@ -577,6 +577,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         messageExtBatch.setFlag(requestHeader.getFlag());
         MessageAccessor.setProperties(messageExtBatch, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
         messageExtBatch.setBody(request.getBody());
+        messageExtBatch.setPropertiesString(requestHeader.getProperties());
         messageExtBatch.setBornTimestamp(requestHeader.getBornTimestamp());
         messageExtBatch.setBornHost(ctx.channel().remoteAddress());
         messageExtBatch.setStoreHost(this.getStoreHost());
