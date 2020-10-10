@@ -400,7 +400,8 @@ public class DefaultMessageStore implements MessageStore {
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
-                log.warn("message store could not write (may be disk full) so putMessage is forbidden");
+                log.warn("the message store is not writable. It may be caused by one of the following reasons: " +
+                    "the broker's disk is full, write to logic queue error, write to index file error, etc");
             }
             return PutMessageStatus.SERVICE_NOT_AVAILABLE;
         } else {
