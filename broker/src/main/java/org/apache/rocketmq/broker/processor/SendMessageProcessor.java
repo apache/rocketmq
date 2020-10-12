@@ -480,7 +480,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                 response.setRemark(
-                    "service not available now, maybe disk full, " + diskUtil() + ", maybe your broker machine memory too small.");
+                    "service not available now. It may be caused by one of the following reasons: " +
+                        "the broker's disk is full [" + diskUtil() + "], messages are put to the slave, message store has been shut down, etc.");
                 break;
             case OS_PAGECACHE_BUSY:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
