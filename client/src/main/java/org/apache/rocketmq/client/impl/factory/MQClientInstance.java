@@ -1043,15 +1043,20 @@ public class MQClientInstance {
             slave = brokerId != MixAll.MASTER_ID;
             found = brokerAddr != null;
 
-            if (!found && !onlyThisBroker) {
-                if (brokerId == 1 && map.size() > 2) {
-                    brokerAddr = map.get(2L);
-                    slave = true;
-                } else {
-                    Entry<Long, String> entry = map.entrySet().iterator().next();
-                    brokerAddr = entry.getValue();
-                    slave = entry.getKey() != MixAll.MASTER_ID;
+            if (!found && slave && brokerId == 1) {
+                for (Long key : map.keySet()) {
+                    if (key != 0) {
+                        brokerAddr = map.get(key);
+                        found = true;
+                        break;
+                    }
                 }
+            }
+
+            if (!found && !onlyThisBroker) {
+                Entry<Long, String> entry = map.entrySet().iterator().next();
+                brokerAddr = entry.getValue();
+                slave = entry.getKey() != MixAll.MASTER_ID;
                 found = true;
             }
         }
