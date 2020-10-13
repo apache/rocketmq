@@ -1795,11 +1795,10 @@ public class CommitLog {
             ByteBuffer bornHostHolder = ByteBuffer.allocate(bornHostLength);
             ByteBuffer storeHostHolder = ByteBuffer.allocate(storeHostLength);
 
-            // extended properties from MessageExtBatch
-            final byte[] batchPropData =
-                    messageExtBatch.getPropertiesString() == null ? null :
-                            messageExtBatch.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
-            final short batchPropLen = (short) (batchPropData == null ? 0 : batchPropData.length);
+            // properties from MessageExtBatch
+            String batchPropStr = MessageDecoder.messageProperties2String(messageExtBatch.getProperties());
+            final byte[] batchPropData = batchPropStr.getBytes(MessageDecoder.CHARSET_UTF8);
+            final short batchPropLen = (short) batchPropData.length;
 
             while (messagesByteBuff.hasRemaining()) {
                 // 1 TOTALSIZE

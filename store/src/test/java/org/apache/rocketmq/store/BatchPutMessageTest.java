@@ -81,10 +81,11 @@ public class BatchPutMessageTest {
 
     @Test
     public void testPutMessages() throws Exception {
+        String batchPropK = "extraKey";
+        String batchPropV = "extraValue";
         Map<String, String> batchProp = new HashMap<>(1);
-        batchProp.put("extraKey", "extraValue");
-        String batchPropStr = messageProperties2String(batchProp);
-        short batchPropLen = (short) batchPropStr.getBytes(MessageDecoder.CHARSET_UTF8).length;
+        batchProp.put(batchPropK, batchPropV);
+        short batchPropLen = (short) messageProperties2String(batchProp).getBytes(MessageDecoder.CHARSET_UTF8).length;
 
         List<Message> messages = new ArrayList<>();
         String topic = "batch-write-topic";
@@ -112,7 +113,7 @@ public class BatchPutMessageTest {
         messageExtBatch.setTopic(topic);
         messageExtBatch.setQueueId(queue);
         messageExtBatch.setBody(batchMessageBody);
-        messageExtBatch.setPropertiesString(batchPropStr);
+        messageExtBatch.putUserProperty(batchPropK,batchPropV);
         messageExtBatch.setBornTimestamp(System.currentTimeMillis());
         messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
         messageExtBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
