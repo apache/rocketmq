@@ -1043,14 +1043,9 @@ public class MQClientInstance {
             slave = brokerId != MixAll.MASTER_ID;
             found = brokerAddr != null;
 
-            if (!found && slave && brokerId == 1) {
-                for (Long key : map.keySet()) {
-                    if (key != 0) {
-                        brokerAddr = map.get(key);
-                        found = true;
-                        break;
-                    }
-                }
+            if (!found && slave) {
+                brokerAddr = map.get(brokerId + 1);
+                found = brokerAddr != null;
             }
 
             if (!found && !onlyThisBroker) {
