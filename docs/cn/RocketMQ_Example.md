@@ -81,7 +81,8 @@ public class AsyncProducer {
                 producer.send(msg, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {
-                        System.out.printf("%-10d OK %s %n", index,
+                        countDownLatch.countDown();
+			System.out.printf("%-10d OK %s %n", index,
                             sendResult.getMsgId());
                     }
                     @Override
