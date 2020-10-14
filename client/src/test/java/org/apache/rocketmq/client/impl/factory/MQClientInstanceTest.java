@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,9 +51,7 @@ public class MQClientInstanceTest {
 
     @Before
     public void init() throws Exception {
-        Field field = MQClientInstance.class.getDeclaredField("brokerAddrTable");
-        field.setAccessible(true);
-        field.set(mqClientInstance, brokerAddrTable);
+        FieldSetter.setField(mqClientInstance, MQClientInstance.class.getDeclaredField("brokerAddrTable"), brokerAddrTable);
     }
 
     @Test
