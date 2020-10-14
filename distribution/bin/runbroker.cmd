@@ -30,7 +30,6 @@ rem  JVM Configuration
 rem ===========================================================================================
 
 for /f tokens^=2-5^ delims^=.-_^" %%j in ('java -fullversion 2^>^&1') do @set "JAVA_VERSION=%%j"
-rem 1代表1.8及以前的版本，其他代表9及以后的版本
 if %JAVA_VERSION% EQU 1 goto java8-
 goto java9+
 
