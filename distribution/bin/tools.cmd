@@ -25,11 +25,22 @@ for %%d in (%BASE_DIR%) do set BASE_DIR=%%~dpd
 
 set CLASSPATH=.;%BASE_DIR%conf;%CLASSPATH%
 
+for /f tokens^=2-5^ delims^=.-_^" %%j in ('java -fullversion 2^>^&1') do @set "JAVA_VERSION=%%j"
+if %JAVA_VERSION% EQU 1 goto java8-
+goto java9+
+
 rem ===========================================================================================
 rem JVM Configuration
 rem ===========================================================================================
+
+:java8-
 set "JAVA_OPT=%JAVA_OPT% -server -Xms1g -Xmx1g -Xmn256m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m"
 set "JAVA_OPT=%JAVA_OPT% -Djava.ext.dirs="%BASE_DIR%\lib";"%JAVA_HOME%\jre\lib\ext";"%JAVA_HOME%\lib\ext""
 set "JAVA_OPT=%JAVA_OPT% -cp "%CLASSPATH%""
+goto end
+:java9+
+set "JAVA_OPT=%JAVA_OPT% --add-exports java.base/jdk.internal.ref=ALL-UNNAMED -server -Xms1g -Xmx1g -Xmn256m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m"
+set "JAVA_OPT=%JAVA_OPT% --class-path="%CLASSPATH%";"%BASE_DIR%\lib\*";"%JAVA_HOME%\jre\lib\ext";"%JAVA_HOME%\lib\ext""
+:end
 
-"%JAVA%" %JAVA_OPT% %*
+"%JAVA%" %JAVA_OPT% -version
