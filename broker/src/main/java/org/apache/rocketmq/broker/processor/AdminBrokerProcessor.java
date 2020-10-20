@@ -1431,6 +1431,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 runtimeInfo.put("remainHowManyDataToCommit", MixAll.humanReadableByteCount(defaultMessageStore.getCommitLog().remainHowManyDataToCommit(), false));
             }
             runtimeInfo.put("remainHowManyDataToFlush", MixAll.humanReadableByteCount(defaultMessageStore.getCommitLog().remainHowManyDataToFlush(), false));
+            
+            runtimeInfo.put("totalMappedFiles", String.valueOf(MappedFile.getTotalMappedFiles()));
+            runtimeInfo.put("totalMappedVirtualMemory", String.valueOf(MappedFile.getTotalMappedVirtualMemory()));
         }
 
         java.io.File commitLogDir = new java.io.File(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
