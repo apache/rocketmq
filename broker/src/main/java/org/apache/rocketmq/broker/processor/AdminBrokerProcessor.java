@@ -125,6 +125,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.MappedFile;
 
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
