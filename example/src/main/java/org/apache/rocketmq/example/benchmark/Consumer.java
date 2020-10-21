@@ -51,7 +51,7 @@ public class Consumer {
 
         final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
         final String groupPrefix = commandLine.hasOption('g') ? commandLine.getOptionValue('g').trim() : "benchmark_consumer";
-        final String isSuffixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "true";
+        final String isSuffixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "false";
         final String filterType = commandLine.hasOption('f') ? commandLine.getOptionValue('f').trim() : null;
         final String expression = commandLine.hasOption('e') ? commandLine.getOptionValue('e').trim() : null;
         final double failRate = commandLine.hasOption('r') ? Double.parseDouble(commandLine.getOptionValue('r').trim()) : 0.0;
