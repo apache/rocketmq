@@ -154,6 +154,14 @@ public class AdminBrokerProcessorTest {
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
+    
+    @Test
+    public void testGetBrokerRuntimeInfo() throws Exception {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_RUNTIME_INFO, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        KVTable kvTable = KVTable.decode(response.getBody(), KVTable.class);
+        assert kvTable != null;
+    }
 
     private RemotingCommand buildCreateTopicRequest(String topic) {
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
