@@ -16,19 +16,25 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.impl.MQAdminImpl;
+import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
+import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -111,5 +117,35 @@ public class MQClientInstanceTest {
         mqClientInstance.unregisterAdminExt(group);
         flag = mqClientInstance.registerAdminExt(group, mock(MQAdminExtInner.class));
         assertThat(flag).isTrue();
+    }
+
+    @Test
+    public void testSendHeartbeat() throws RemotingException, InterruptedException, MQBrokerException {
+        MQClientAPIImpl mqClientAPIImpl = mqClientInstance.getMQClientAPIImpl();
+        String addr = "127.0.0.1:10911";
+        HeartbeatData heartbeatData = new HeartbeatData();
+
+        Set<ProducerData> producerDataSet = new HashSet<>();
+        Set<ConsumerData> consumerDataSet = new HashSet<>();
+        Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
+        ProducerData producerData = new ProducerData();
+        producerData.setGroupName("producerGroupA");
+        ConsumerData consumerData = new ConsumerData();
+        consumerData.setGroupName("consumerGroupA");
+        SubscriptionData subscriptionData = new SubscriptionData();
+        subscriptionData.setTopic("topicC");
+        producerDataSet.add(producerData);
+        consumerDataSet.add(consumerData);
+        subscriptionDataSet.add(subscriptionData);
+        consumerData.setSubscriptionDataSet(subscriptionDataSet);
+        heartbeatData.setProducerDataSet(producerDataSet);
+        heartbeatData.setConsumerDataSet(consumerDataSet);
+
+        long timeoutMillis = 0L;
+        try {
+            mqClientAPIImpl.sendHeartbeat(addr, heartbeatData, timeoutMillis);
+        } catch (RemotingConnectException ex) {
+            System.out.println(ex.toString());
+        }
     }
 }
