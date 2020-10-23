@@ -125,9 +125,9 @@ public class MQClientInstanceTest {
         String addr = "127.0.0.1:10911";
         HeartbeatData heartbeatData = new HeartbeatData();
 
-        Set<ProducerData> producerDataSet = new HashSet<>();
-        Set<ConsumerData> consumerDataSet = new HashSet<>();
-        Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
+        Set<ProducerData> producerDataSet = new HashSet<ProducerData>();
+        Set<ConsumerData> consumerDataSet = new HashSet<ConsumerData>();
+        Set<SubscriptionData> subscriptionDataSet = new HashSet<SubscriptionData>();
         ProducerData producerData = new ProducerData();
         producerData.setGroupName("producerGroupA");
         ConsumerData consumerData = new ConsumerData();
