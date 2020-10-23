@@ -383,7 +383,7 @@ public class DLedgerCommitLog extends CommitLog {
                 }
 
 
-                String topic = ScheduleMessageService.SCHEDULE_TOPIC;
+                String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
                 int queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 
                 // Backup real topic, queueId
