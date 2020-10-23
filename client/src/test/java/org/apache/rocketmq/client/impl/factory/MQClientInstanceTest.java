@@ -120,6 +120,11 @@ public class MQClientInstanceTest {
     }
 
     @Test
+    public void testSendHeartbeatToAllBroker(){
+        mqClientInstance.sendHeartbeatToAllBrokerWithLock();
+    }
+
+    @Test
     public void testSendHeartbeat() throws RemotingException, InterruptedException, MQBrokerException {
         MQClientAPIImpl mqClientAPIImpl = mqClientInstance.getMQClientAPIImpl();
         String addr = "127.0.0.1:10911";
