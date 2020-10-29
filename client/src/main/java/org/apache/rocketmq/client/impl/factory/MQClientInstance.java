@@ -1209,6 +1209,9 @@ public class MQClientInstance {
 
     public ConsumerRunningInfo consumerRunningInfo(final String consumerGroup) {
         MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
+        if (mqConsumerInner == null) {
+            return null;
+        }
 
         ConsumerRunningInfo consumerRunningInfo = mqConsumerInner.consumerRunningInfo();
 

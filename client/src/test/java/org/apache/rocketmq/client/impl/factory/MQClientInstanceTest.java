@@ -19,6 +19,8 @@ package org.apache.rocketmq.client.impl.factory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -26,6 +28,8 @@ import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -36,6 +40,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
@@ -94,6 +99,31 @@ public class MQClientInstanceTest {
 
         flag = mqClientInstance.registerConsumer(group, mock(MQConsumerInner.class));
         assertThat(flag).isFalse();
+
+        mqClientInstance.unregisterConsumer(group);
+        flag = mqClientInstance.registerConsumer(group, mock(MQConsumerInner.class));
+        assertThat(flag).isTrue();
+    }
+
+
+    @Test
+    public void testConsumerRunningInfoWhenConsumersIsEmptyOrNot() throws RemotingException, InterruptedException, MQBrokerException {
+        MQConsumerInner mockConsumerInner = mock(MQConsumerInner.class);
+        ConsumerRunningInfo mockConsumerRunningInfo = mock(ConsumerRunningInfo.class);
+        when(mockConsumerInner.consumerRunningInfo()).thenReturn(mockConsumerRunningInfo);
+        when(mockConsumerInner.consumeType()).thenReturn(ConsumeType.CONSUME_PASSIVELY);
+        Properties properties = new Properties();
+        when(mockConsumerRunningInfo.getProperties()).thenReturn(properties);
+        mqClientInstance.unregisterConsumer(group);
+
+        ConsumerRunningInfo runningInfo = mqClientInstance.consumerRunningInfo(group);
+        assertThat(runningInfo).isNull();
+        boolean flag = mqClientInstance.registerConsumer(group, mockConsumerInner);
+        assertThat(flag).isTrue();
+
+        runningInfo = mqClientInstance.consumerRunningInfo(group);
+        assertThat(runningInfo).isNotNull();
+        assertThat(mockConsumerInner.consumerRunningInfo().getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE));
 
         mqClientInstance.unregisterConsumer(group);
         flag = mqClientInstance.registerConsumer(group, mock(MQConsumerInner.class));
