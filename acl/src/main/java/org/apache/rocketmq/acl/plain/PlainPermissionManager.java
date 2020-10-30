@@ -73,7 +73,7 @@ public class PlainPermissionManager {
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             JSONObject.class);
         if (plainAclConfData == null || plainAclConfData.isEmpty()) {
-            throw new AclException(String.format("%s file  is not data", fileHome + File.separator + fileName));
+            throw new AclException(String.format("%s file is not data", fileHome + File.separator + fileName));
         }
         log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
         JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
@@ -164,14 +164,13 @@ public class PlainPermissionManager {
         return false;
     }
 
-    private Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccoutMap, PlainAccessConfig plainAccessConfig) {
-
-
+    private Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccountMap, PlainAccessConfig plainAccessConfig) {
+        
         Map<String, Object> newAccountsMap = null;
-        if (existedAccoutMap == null) {
+        if (existedAccountMap == null) {
             newAccountsMap = new LinkedHashMap<String, Object>();
         } else {
-            newAccountsMap = existedAccoutMap;
+            newAccountsMap = existedAccountMap;
         }
 
         if (StringUtils.isEmpty(plainAccessConfig.getAccessKey()) ||
@@ -278,7 +277,7 @@ public class PlainPermissionManager {
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
                 JSONObject.class);
         if (plainAclConfData == null || plainAclConfData.isEmpty()) {
-            throw new AclException(String.format("%s file  is not data", fileHome + File.separator + fileName));
+            throw new AclException(String.format("%s file is not data", fileHome + File.separator + fileName));
         }
         JSONArray globalWhiteAddrs = plainAclConfData.getJSONArray(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
         if (globalWhiteAddrs != null && !globalWhiteAddrs.isEmpty()) {

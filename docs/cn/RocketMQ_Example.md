@@ -323,13 +323,6 @@ public class Producer {
 ### 2.2 顺序消费消息
 
 ```java
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.common.message.MessageExt;
-import java.util.List;
-
 package org.apache.rocketmq.example.order2;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;

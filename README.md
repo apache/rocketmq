@@ -12,7 +12,7 @@
 
 It offers a variety of features:
 
-* Messageing patterns including publish/subscribe, request/reply and streaming
+* Messaging patterns including publish/subscribe, request/reply and streaming
 * Financial grade transactional message
 * Built-in fault tolerance and high availability configuration options base on [DLedger](https://github.com/openmessaging/openmessaging-storage-dledger)
 * A variety of cross language clients, such as Java, C/C++, Python, Go

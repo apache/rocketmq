@@ -280,7 +280,7 @@ public class ProcessQueue {
         return -1;
     }
 
-    public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
+    public void makeMessageToConsumeAgain(List<MessageExt> msgs) {
         try {
             this.lockTreeMap.writeLock().lockInterruptibly();
             try {
