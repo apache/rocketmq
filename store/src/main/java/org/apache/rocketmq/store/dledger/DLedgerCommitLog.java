@@ -562,8 +562,7 @@ public class DLedgerCommitLog extends CommitLog {
             dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
             if (dledgerFuture.getPos() == -1) {
                 log.warn("[DEBUG_CTR] handleAppend return false due to error code {}", dledgerFuture.get().getCode());
-                return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult
-                        (AppendMessageStatus.UNKNOWN_ERROR));
+                return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
             }
             long wroteOffset = 0;
 
@@ -780,8 +779,7 @@ public class DLedgerCommitLog extends CommitLog {
             dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
             if (dledgerFuture.getPos() == -1) {
                 log.warn("[DEBUG_CTR] handleAppend return false due to error code {}", dledgerFuture.get().getCode());
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult
-                        (AppendMessageStatus.UNKNOWN_ERROR)));
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             }
             long wroteOffset = 0;
 
