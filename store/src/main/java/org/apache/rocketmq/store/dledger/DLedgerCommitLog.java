@@ -571,7 +571,7 @@ public class DLedgerCommitLog extends CommitLog {
 
             boolean isFirstOffset = true;
             for (long pos : dledgerFuture.getPositions()) {
-                if(isFirstOffset) {
+                if (isFirstOffset) {
                     wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
                     isFirstOffset = false;
                 }
@@ -793,7 +793,7 @@ public class DLedgerCommitLog extends CommitLog {
 
             boolean isFirstOffset = true;
             for (long pos : dledgerFuture.getPositions()) {
-                if(isFirstOffset) {
+                if (isFirstOffset) {
                     wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
                     isFirstOffset = false;
                 }
