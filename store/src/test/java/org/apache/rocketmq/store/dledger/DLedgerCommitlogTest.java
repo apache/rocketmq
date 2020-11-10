@@ -216,8 +216,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             MessageExt messageExt = MessageDecoder.decode(buffer);
             Assert.assertEquals(i * batchMessageSize, messageExt.getQueueOffset());
             Assert.assertEquals(results.get(i).getAppendMessageResult().getMsgId().split(",").length, batchMessageSize);
-            // FIXME not equals. Is this correct or not?
-//            Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
         }
         messageStore.destroy();
         messageStore.shutdown();
@@ -305,8 +304,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             MessageExt messageExt = MessageDecoder.decode(buffer);
             Assert.assertEquals(i * batchMessageSize, messageExt.getQueueOffset());
             Assert.assertEquals(results.get(i).getAppendMessageResult().getMsgId().split(",").length, batchMessageSize);
-            // FIXME not equals. Is this correct or not?
-//            Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
         }
         messageStore.destroy();
         messageStore.shutdown();

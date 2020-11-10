@@ -561,7 +561,7 @@ public class DLedgerCommitLog extends CommitLog {
             request.setBatchMsgs(encodeResult.batchData);
             dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
             if (dledgerFuture.getPos() == -1) {
-                log.warn("[DEBUG_CTR] handleAppend return false due to error code {}", dledgerFuture.get().getCode());
+                log.warn("HandleAppend return false due to error code {}", dledgerFuture.get().getCode());
                 return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
             }
             long wroteOffset = 0;
@@ -569,8 +569,12 @@ public class DLedgerCommitLog extends CommitLog {
             int msgIdLength = (messageExtBatch.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
             ByteBuffer buffer = ByteBuffer.allocate(msgIdLength);
 
+            boolean isFirstOffset = true;
             for (long pos : dledgerFuture.getPositions()) {
-                wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
+                if(isFirstOffset) {
+                    wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
+                    isFirstOffset = false;
+                }
                 String msgId = MessageDecoder.createMessageId(buffer, messageExtBatch.getStoreHostBytes(), wroteOffset);
                 if (msgIdBuilder.length() > 0) {
                     msgIdBuilder.append(',').append(msgId);
@@ -579,6 +583,7 @@ public class DLedgerCommitLog extends CommitLog {
                 }
                 msgNum++;
             }
+
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
             appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.totalMsgLen,
                     msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
@@ -778,7 +783,7 @@ public class DLedgerCommitLog extends CommitLog {
             request.setBatchMsgs(encodeResult.batchData);
             dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
             if (dledgerFuture.getPos() == -1) {
-                log.warn("[DEBUG_CTR] handleAppend return false due to error code {}", dledgerFuture.get().getCode());
+                log.warn("HandleAppend return false due to error code {}", dledgerFuture.get().getCode());
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             }
             long wroteOffset = 0;
@@ -786,8 +791,12 @@ public class DLedgerCommitLog extends CommitLog {
             int msgIdLength = (messageExtBatch.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
             ByteBuffer buffer = ByteBuffer.allocate(msgIdLength);
 
+            boolean isFirstOffset = true;
             for (long pos : dledgerFuture.getPositions()) {
-                wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
+                if(isFirstOffset) {
+                    wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
+                    isFirstOffset = false;
+                }
                 String msgId = MessageDecoder.createMessageId(buffer, messageExtBatch.getStoreHostBytes(), wroteOffset);
                 if (msgIdBuilder.length() > 0) {
                     msgIdBuilder.append(',').append(msgId);
@@ -796,6 +805,7 @@ public class DLedgerCommitLog extends CommitLog {
                 }
                 msgNum++;
             }
+
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
             appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.totalMsgLen,
                     msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
