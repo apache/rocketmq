@@ -29,4 +29,11 @@ public class ThreadLocalIndexTest {
         assertThat(localIndex.getAndIncrement()).isEqualTo(initialVal + 1);
     }
 
+    @Test
+    public void testGetAndIncrement2() throws Exception {
+        ThreadLocalIndex localIndex = new ThreadLocalIndex();
+        int initialVal = localIndex.getAndIncrement();
+        assertThat(initialVal >= 0);
+    }
+
 }
