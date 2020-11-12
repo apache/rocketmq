@@ -570,9 +570,11 @@ public class DLedgerCommitLog extends CommitLog {
             ByteBuffer buffer = ByteBuffer.allocate(msgIdLength);
 
             boolean isFirstOffset = true;
+            long firstWroteOffset = 0;
             for (long pos : dledgerFuture.getPositions()) {
+                wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
                 if (isFirstOffset) {
-                    wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
+                    firstWroteOffset = wroteOffset;
                     isFirstOffset = false;
                 }
                 String msgId = MessageDecoder.createMessageId(buffer, messageExtBatch.getStoreHostBytes(), wroteOffset);
@@ -585,7 +587,7 @@ public class DLedgerCommitLog extends CommitLog {
             }
 
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
-            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.totalMsgLen,
+            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, firstWroteOffset, encodeResult.totalMsgLen,
                     msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + msgNum);
         } catch (Exception e) {
@@ -792,9 +794,11 @@ public class DLedgerCommitLog extends CommitLog {
             ByteBuffer buffer = ByteBuffer.allocate(msgIdLength);
 
             boolean isFirstOffset = true;
+            long firstWroteOffset = 0;
             for (long pos : dledgerFuture.getPositions()) {
+                wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
                 if (isFirstOffset) {
-                    wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
+                    firstWroteOffset = wroteOffset;
                     isFirstOffset = false;
                 }
                 String msgId = MessageDecoder.createMessageId(buffer, messageExtBatch.getStoreHostBytes(), wroteOffset);
@@ -807,7 +811,7 @@ public class DLedgerCommitLog extends CommitLog {
             }
 
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
-            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.totalMsgLen,
+            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, firstWroteOffset, encodeResult.totalMsgLen,
                     msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + msgNum);
         } catch (Exception e) {
