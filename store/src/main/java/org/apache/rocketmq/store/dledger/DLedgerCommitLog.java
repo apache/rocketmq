@@ -766,6 +766,12 @@ public class DLedgerCommitLog extends CommitLog {
         BatchAppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
 
+        encodeResult = this.messageSerializer.serialize(messageExtBatch);
+        if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult
+                    .status)));
+        }
+
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         msgIdBuilder.setLength(0);
         long elapsedTimeInLock;
@@ -773,12 +779,7 @@ public class DLedgerCommitLog extends CommitLog {
         long msgNum = 0;
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
-            encodeResult = this.messageSerializer.serialize(messageExtBatch);
             queueOffset = topicQueueTable.get(encodeResult.queueOffsetKey);
-            if (encodeResult.status != AppendMessageStatus.PUT_OK) {
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult
-                        .status)));
-            }
             BatchAppendEntryRequest request = new BatchAppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
