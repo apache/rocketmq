@@ -461,33 +461,9 @@ public class UtilAll {
         if (ip.length != 4) {
             throw new RuntimeException("illegal ipv4 bytes");
         }
-
-        if (ip[0] >= (byte) 1 && ip[0] <= (byte) 126) {
-            if (ip[1] == (byte) 1 && ip[2] == (byte) 1 && ip[3] == (byte) 1) {
-                return false;
-            }
-            if (ip[1] == (byte) 0 && ip[2] == (byte) 0 && ip[3] == (byte) 0) {
-                return false;
-            }
-            return true;
-        } else if (ip[0] >= (byte) 128 && ip[0] <= (byte) 191) {
-            if (ip[2] == (byte) 1 && ip[3] == (byte) 1) {
-                return false;
-            }
-            if (ip[2] == (byte) 0 && ip[3] == (byte) 0) {
-                return false;
-            }
-            return true;
-        } else if (ip[0] >= (byte) 192 && ip[0] <= (byte) 223) {
-            if (ip[3] == (byte) 1) {
-                return false;
-            }
-            if (ip[3] == (byte) 0) {
-                return false;
-            }
-            return true;
-        }
-        return false;
+    
+        InetAddressValidator validator = InetAddressValidator.getInstance();
+        return validator.isValidInet4Address(ipToIPv4Str(ip));
     }
 
     private static boolean ipV6Check(byte[] ip) {
