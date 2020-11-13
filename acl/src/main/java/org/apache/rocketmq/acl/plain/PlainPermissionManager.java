@@ -209,11 +209,13 @@ public class PlainPermissionManager {
         if (!StringUtils.isEmpty(plainAccessConfig.getDefaultGroupPerm())) {
             newAccountsMap.put(AclConstants.CONFIG_DEFAULT_GROUP_PERM, plainAccessConfig.getDefaultGroupPerm());
         }
-        if (plainAccessConfig.getTopicPerms() != null) {
-            newAccountsMap.put(AclConstants.CONFIG_TOPIC_PERMS, plainAccessConfig.getTopicPerms());
+        if (plainAccessConfig.getTopicPerms() != null && !plainAccessConfig.getTopicPerms().isEmpty()) {
+            List<String> topicPerms = mergePerms((List<String>) newAccountsMap.get(AclConstants.CONFIG_TOPIC_PERMS), plainAccessConfig.getTopicPerms());
+            newAccountsMap.put(AclConstants.CONFIG_TOPIC_PERMS, topicPerms);
         }
-        if (plainAccessConfig.getGroupPerms() != null) {
-            newAccountsMap.put(AclConstants.CONFIG_GROUP_PERMS, plainAccessConfig.getGroupPerms());
+        if (plainAccessConfig.getGroupPerms() != null && !plainAccessConfig.getGroupPerms().isEmpty()) {
+            List<String> groupPerms = mergePerms((List<String>) newAccountsMap.get(AclConstants.CONFIG_GROUP_PERMS), plainAccessConfig.getGroupPerms());
+            newAccountsMap.put(AclConstants.CONFIG_GROUP_PERMS, groupPerms);
         }
 
         return newAccountsMap;
@@ -422,6 +424,29 @@ public class PlainPermissionManager {
         // Check perm of each resource
 
         checkPerm(plainAccessResource, ownedAccess);
+    }
+
+    private List<String> mergePerms(List<String> existPerms, List<String> updatePerms) {
+
+        if (existPerms == null) {
+            return updatePerms;
+        }
+
+        if (updatePerms == null) {
+            return existPerms;
+        }
+
+        Map<String, String> permsMap = new LinkedHashMap<>();
+
+        for (String perm : existPerms) {
+            permsMap.put(perm.split("=")[0], perm);
+        }
+
+        for (String perm : updatePerms) {
+            permsMap.put(perm.split("=")[0], perm);
+        }
+
+        return new ArrayList(permsMap.values());
     }
 
     public boolean isWatchStart() {
