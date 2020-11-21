@@ -12,11 +12,11 @@ RocketMQ架构上主要分为四部分，如上图所示:
 - NameServer：NameServer是一个非常简单的Topic路由注册中心，其角色类似Dubbo中的zookeeper，支持Broker的动态注册与发现。主要包括两个功能：Broker管理，NameServer接受Broker集群的注册信息并且保存下来作为路由信息的基本数据。然后提供心跳检测机制，检查Broker是否还存活；路由信息管理，每个NameServer将保存关于Broker集群的整个路由信息和用于客户端查询的队列信息。然后Producer和Conumser通过NameServer就可以知道整个Broker集群的路由信息，从而进行消息的投递和消费。NameServer通常也是集群的方式部署，各实例间相互不进行信息通讯。Broker是向每一台NameServer注册自己的路由信息，所以每一个NameServer实例上面都保存一份完整的路由信息。当某个NameServer因某种原因下线了，Broker仍然可以向其它NameServer同步其路由信息，Producer,Consumer仍然可以动态感知Broker的路由的信息。 
 
 - BrokerServer：Broker主要负责消息的存储、投递和查询以及服务高可用保证，为了实现这些功能，Broker包含了以下几个重要子模块。
-1. Remoting Module：整个Broker的实体，负责处理来自clients端的请求。
-2. Client Manager：负责管理客户端(Producer/Consumer)和维护Consumer的Topic订阅信息
-3. Store Service：提供方便简单的API接口处理消息存储到物理硬盘和查询功能。
-4. HA Service：高可用服务，提供Master Broker 和 Slave Broker之间的数据同步功能。
-5. Index Service：根据特定的Message key对投递到Broker的消息进行索引服务，以提供消息的快速查询。
+    1. Remoting Module：整个Broker的实体，负责处理来自clients端的请求。
+    2. Client Manager：负责管理客户端(Producer/Consumer)和维护Consumer的Topic订阅信息
+    3. Store Service：提供方便简单的API接口处理消息存储到物理硬盘和查询功能。
+    4. HA Service：高可用服务，提供Master Broker 和 Slave Broker之间的数据同步功能。
+    5. Index Service：根据特定的Message key对投递到Broker的消息进行索引服务，以提供消息的快速查询。
 
 ![](image/rocketmq_architecture_2.png)
 
