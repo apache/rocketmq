@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -66,8 +67,8 @@ public class BatchPutMessageTest {
 
     private MessageStore buildMessageStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMapedFileSizeCommitLog(1024 * 8);
-        messageStoreConfig.setMapedFileSizeConsumeQueue(1024 * 4);
+        messageStoreConfig.setMappedFileSizeCommitLog(1024 * 8);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
@@ -125,6 +126,58 @@ public class BatchPutMessageTest {
 
     }
 
+    @Test
+    public void testPutIPv6HostMessages() throws Exception {
+        List<Message> messages = new ArrayList<>();
+        String topic = "batch-write-topic";
+        int queue = 0;
+        int[] msgLengthArr = new int[11];
+        msgLengthArr[0] = 0;
+        int j = 1;
+        for (int i = 0; i < 10; i++) {
+            Message msg = new Message();
+            msg.setBody(("body" + i).getBytes());
+            msg.setTopic(topic);
+            msg.setTags("TAG1");
+            msg.setKeys(String.valueOf(System.currentTimeMillis()));
+            messages.add(msg);
+            String properties = messageProperties2String(msg.getProperties());
+            byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
+            short propertiesLength = (short) propertiesBytes.length;
+            final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+            final int topicLength = topicData.length;
+            msgLengthArr[j] = calIPv6HostMsgLength(msg.getBody().length, topicLength, propertiesLength) + msgLengthArr[j - 1];
+            j++;
+        }
+        byte[] batchMessageBody = MessageDecoder.encodeMessages(messages);
+        MessageExtBatch messageExtBatch = new MessageExtBatch();
+        messageExtBatch.setTopic(topic);
+        messageExtBatch.setQueueId(queue);
+        messageExtBatch.setBody(batchMessageBody);
+        messageExtBatch.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
+        messageExtBatch.setBornTimestamp(System.currentTimeMillis());
+        messageExtBatch.setSysFlag(0);
+        messageExtBatch.setBornHostV6Flag();
+        messageExtBatch.setStoreHostAddressV6Flag();
+        messageExtBatch.setStoreHost(new InetSocketAddress("1050:0000:0000:0000:0005:0600:300c:326b", 125));
+        messageExtBatch.setBornHost(new InetSocketAddress("::1", 126));
+
+        PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
+        assertThat(putMessageResult.isOk()).isTrue();
+
+        Thread.sleep(3 * 1000);
+
+        for (long i = 0; i < 10; i++) {
+            MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) i]);
+            assertThat(messageExt).isNotNull();
+            GetMessageResult result = messageStore.getMessage("batch_write_group", topic, queue, i, 1024 * 1024, null);
+            assertThat(result).isNotNull();
+            assertThat(result.getStatus()).isEqualTo(GetMessageStatus.FOUND);
+            result.release();
+        }
+
+    }
+
     private int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {
         final int msgLen = 4 //TOTALSIZE
                 + 4 //MAGICCODE
@@ -144,6 +197,28 @@ public class BatchPutMessageTest {
                 + 1 + topicLength //TOPIC
                 + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
                 + 0;
+        return msgLen;
+    }
+
+    private int calIPv6HostMsgLength(int bodyLength, int topicLength, int propertiesLength) {
+        final int msgLen = 4 //TOTALSIZE
+            + 4 //MAGICCODE
+            + 4 //BODYCRC
+            + 4 //QUEUEID
+            + 4 //FLAG
+            + 8 //QUEUEOFFSET
+            + 8 //PHYSICALOFFSET
+            + 4 //SYSFLAG
+            + 8 //BORNTIMESTAMP
+            + 20 //BORNHOST
+            + 8 //STORETIMESTAMP
+            + 20 //STOREHOSTADDRESS
+            + 4 //RECONSUMETIMES
+            + 8 //Prepared Transaction Offset
+            + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
+            + 1 + topicLength //TOPIC
+            + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
+            + 0;
         return msgLen;
     }
 

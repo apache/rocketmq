@@ -21,6 +21,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class WaitNotifyObject {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -65,9 +66,9 @@ public class WaitNotifyObject {
         synchronized (this) {
             boolean needNotify = false;
 
-            for (Boolean value : this.waitingThreadTable.values()) {
-                needNotify = needNotify || !value;
-                value = true;
+            for (Map.Entry<Long,Boolean> entry : this.waitingThreadTable.entrySet()) {
+                needNotify = needNotify || !entry.getValue();
+                entry.setValue(true);
             }
 
             if (needNotify) {

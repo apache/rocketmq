@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.exception.MQClientException;
 import java.io.IOException;
 
@@ -23,11 +24,14 @@ import java.io.IOException;
  * Interface of asynchronous transfer data
  */
 public interface TraceDispatcher {
-
+    enum Type {
+        PRODUCE,
+        CONSUME
+    }
     /**
      * Initialize asynchronous transfer data module
      */
-    void start(String nameSrvAddr) throws MQClientException;
+    void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException;
 
     /**
      * Append the transfering data

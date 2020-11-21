@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common.message;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -24,6 +26,8 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;
+
+    private String brokerName;
 
     private int queueId;
 
@@ -66,14 +70,26 @@ public class MessageExt extends Message {
 
     public static ByteBuffer socketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
-        byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
+        InetAddress address = inetSocketAddress.getAddress();
+        if (address instanceof Inet4Address) {
+            byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
+        } else {
+            byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 16);
+        }
         byteBuffer.putInt(inetSocketAddress.getPort());
         byteBuffer.flip();
         return byteBuffer;
     }
 
     public static ByteBuffer socketAddress2ByteBuffer(SocketAddress socketAddress) {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(8);
+        InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+        InetAddress address = inetSocketAddress.getAddress();
+        ByteBuffer byteBuffer;
+        if (address instanceof Inet4Address) {
+            byteBuffer = ByteBuffer.allocate(4 + 4);
+        } else {
+            byteBuffer = ByteBuffer.allocate(16 + 4);
+        }
         return socketAddress2ByteBuffer(socketAddress, byteBuffer);
     }
 
@@ -91,6 +107,14 @@ public class MessageExt extends Message {
 
     public ByteBuffer getStoreHostBytes(ByteBuffer byteBuffer) {
         return socketAddress2ByteBuffer(this.storeHost, byteBuffer);
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 
     public int getQueueId() {
@@ -118,18 +142,20 @@ public class MessageExt extends Message {
     }
 
     public String getBornHostString() {
-        if (this.bornHost != null) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
-            return inetSocketAddress.getAddress().getHostAddress();
+        if (null != this.bornHost) {
+            InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
+
+            return null != inetAddress ? inetAddress.getHostAddress() : null;
         }
 
         return null;
     }
 
     public String getBornHostNameString() {
-        if (this.bornHost != null) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
-            return inetSocketAddress.getAddress().getHostName();
+        if (null != this.bornHost) {
+            InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
+
+            return null != inetAddress ? inetAddress.getHostName() : null;
         }
 
         return null;
@@ -166,6 +192,10 @@ public class MessageExt extends Message {
     public void setSysFlag(int sysFlag) {
         this.sysFlag = sysFlag;
     }
+
+    public void setStoreHostAddressV6Flag() { this.sysFlag = this.sysFlag | MessageSysFlag.STOREHOSTADDRESS_V6_FLAG; }
+
+    public void setBornHostV6Flag() { this.sysFlag = this.sysFlag | MessageSysFlag.BORNHOST_V6_FLAG; }
 
     public int getBodyCRC() {
         return bodyCRC;
@@ -217,7 +247,7 @@ public class MessageExt extends Message {
 
     @Override
     public String toString() {
-        return "MessageExt [queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
+        return "MessageExt [brokerName=" + brokerName + ", queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
             + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
             + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
             + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="

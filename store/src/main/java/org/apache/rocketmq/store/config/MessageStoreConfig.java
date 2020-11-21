@@ -31,9 +31,9 @@ public class MessageStoreConfig {
         + File.separator + "commitlog";
 
     // CommitLog file size,default is 1G
-    private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
+    private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size,default is 30W
-    private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
+    private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
     private boolean enableConsumeQueueExt = false;
     // ConsumeQueue extend file size, 48M
@@ -80,7 +80,7 @@ public class MessageStoreConfig {
     private int fileReservedTime = 72;
     // Flow control for ConsumeQueue
     private int putMsgIndexHightWater = 600000;
-    // The maximum size of a single log file,default is 512K
+    // The maximum size of message,default is 4M
     private int maxMessageSize = 1024 * 1024 * 4;
     // Whether check the CRC32 of the records consumed.
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
@@ -188,22 +188,22 @@ public class MessageStoreConfig {
         this.warmMapedFileEnable = warmMapedFileEnable;
     }
 
-    public int getMapedFileSizeCommitLog() {
-        return mapedFileSizeCommitLog;
+    public int getMappedFileSizeCommitLog() {
+        return mappedFileSizeCommitLog;
     }
 
-    public void setMapedFileSizeCommitLog(int mapedFileSizeCommitLog) {
-        this.mapedFileSizeCommitLog = mapedFileSizeCommitLog;
+    public void setMappedFileSizeCommitLog(int mappedFileSizeCommitLog) {
+        this.mappedFileSizeCommitLog = mappedFileSizeCommitLog;
     }
 
-    public int getMapedFileSizeConsumeQueue() {
+    public int getMappedFileSizeConsumeQueue() {
 
-        int factor = (int) Math.ceil(this.mapedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
+        int factor = (int) Math.ceil(this.mappedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
         return (int) (factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
     }
 
-    public void setMapedFileSizeConsumeQueue(int mapedFileSizeConsumeQueue) {
-        this.mapedFileSizeConsumeQueue = mapedFileSizeConsumeQueue;
+    public void setMappedFileSizeConsumeQueue(int mappedFileSizeConsumeQueue) {
+        this.mappedFileSizeConsumeQueue = mappedFileSizeConsumeQueue;
     }
 
     public boolean isEnableConsumeQueueExt() {

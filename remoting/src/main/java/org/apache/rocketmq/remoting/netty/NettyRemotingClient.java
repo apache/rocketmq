@@ -354,11 +354,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 Collections.shuffle(addrs);
                 log.info("name server address updated. NEW : {} , OLD: {}", addrs, old);
                 this.namesrvAddrList.set(addrs);
+
+                if (!addrs.contains(this.namesrvAddrChoosed.get())) {
+                    this.namesrvAddrChoosed.set(null);
+                }
             }
         }
     }
-
-
 
     @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
@@ -393,7 +395,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    private Channel getAndCreateChannel(final String addr) throws InterruptedException {
+    private Channel getAndCreateChannel(final String addr) throws RemotingConnectException, InterruptedException {
         if (null == addr) {
             return getAndCreateNameserverChannel();
         }
@@ -406,7 +408,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return this.createChannel(addr);
     }
 
-    private Channel getAndCreateNameserverChannel() throws InterruptedException {
+    private Channel getAndCreateNameserverChannel() throws RemotingConnectException, InterruptedException {
         String addr = this.namesrvAddrChoosed.get();
         if (addr != null) {
             ChannelWrapper cw = this.channelTables.get(addr);
@@ -440,9 +442,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             return channelNew;
                         }
                     }
+                    throw new RemotingConnectException(addrList.toString());
                 }
-            } catch (Exception e) {
-                log.error("getAndCreateNameserverChannel: create name server channel exception", e);
             } finally {
                 this.lockNamesrvChannel.unlock();
             }
@@ -456,8 +457,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private Channel createChannel(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            cw.getChannel().close();
-            channelTables.remove(addr);
+            return cw.getChannel();
         }
 
         if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
@@ -467,9 +467,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 if (cw != null) {
 
                     if (cw.isOK()) {
-                        cw.getChannel().close();
-                        this.channelTables.remove(addr);
-                        createNewConnection = true;
+                        return cw.getChannel();
                     } else if (!cw.getChannelFuture().isDone()) {
                         createNewConnection = false;
                     } else {
@@ -586,7 +584,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public ChannelEventListener getChannelEventListener() {
         return channelEventListener;
     }
-
 
     @Override
     public ExecutorService getCallbackExecutor() {

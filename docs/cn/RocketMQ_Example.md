@@ -1,5 +1,7 @@
-1 基本样例
---------
+# 样例
+-----
+## 1 基本样例
+
 
 在基本样例中我们提供如下的功能场景：
 
@@ -64,7 +66,11 @@ public class AsyncProducer {
     	// 启动Producer实例
         producer.start();
         producer.setRetryTimesWhenSendAsyncFailed(0);
-    	for (int i = 0; i < 100; i++) {
+	
+	int messageCount = 100;
+        // 根据消息数量实例化倒计时计算器
+	final CountDownLatch2 countDownLatch = new CountDownLatch2(messageCount);
+    	for (int i = 0; i < messageCount; i++) {
                 final int index = i;
             	// 创建消息，并指定Topic，Tag和消息体
                 Message msg = new Message("TopicTest",
@@ -85,6 +91,8 @@ public class AsyncProducer {
                     }
             	});
     	}
+	// 等待5s
+	countDownLatch.await(5, TimeUnit.SECONDS);
     	// 如果不再发送消息，关闭Producer实例。
     	producer.shutdown();
     }
@@ -492,48 +500,52 @@ try {
 复杂度只有当你发送大批量时才会增长，你可能不确定它是否超过了大小限制（4MB）。这时候你最好把你的消息列表分割一下：
 
 ```java
-
-public class ListSplitter implements Iterator<List<Message>> {
-   private final int SIZE_LIMIT = 1024 * 1024 * 4;
-   private final List<Message> messages;
-   private int currIndex;
-   public ListSplitter(List<Message> messages) {
-           this.messages = messages;
-   }
-   @Override public boolean hasNext() {
-       return currIndex < messages.size();
-   }
-   @Override public List<Message> next() {
-       int nextIndex = currIndex;
-       int totalSize = 0;
-       for (; nextIndex < messages.size(); nextIndex++) {
-           Message message = messages.get(nextIndex);
-           int tmpSize = message.getTopic().length() + message.getBody().length;
-           Map<String, String> properties = message.getProperties();
-           for (Map.Entry<String, String> entry : properties.entrySet()) {
-               tmpSize += entry.getKey().length() + entry.getValue().length();
-           }
-           tmpSize = tmpSize + 20; // 增加日志的开销20字节
-           if (tmpSize > SIZE_LIMIT) {
-               //单个消息超过了最大的限制
-               //忽略,否则会阻塞分裂的进程
-               if (nextIndex - currIndex == 0) {
-                  //假如下一个子列表没有元素,则添加这个子列表然后退出循环,否则只是退出循环
-                  nextIndex++;
-               }
-               break;
-           }
-           if (tmpSize + totalSize > SIZE_LIMIT) {
-               break;
-           } else {
-               totalSize += tmpSize;
-           }
-
-       }
-       List<Message> subList = messages.subList(currIndex, nextIndex);
-       currIndex = nextIndex;
-       return subList;
-   }
+public class ListSplitter implements Iterator<List<Message>> { 
+    private final int SIZE_LIMIT = 1024 * 1024 * 4;
+    private final List<Message> messages;
+    private int currIndex;
+    public ListSplitter(List<Message> messages) { 
+        this.messages = messages;
+    }
+    @Override public boolean hasNext() {
+        return currIndex < messages.size(); 
+    }
+    @Override public List<Message> next() { 
+        int startIndex = getStartIndex();
+        int nextIndex = startIndex;
+        int totalSize = 0;
+        for (; nextIndex < messages.size(); nextIndex++) {
+            Message message = messages.get(nextIndex); 
+            int tmpSize = calcMessageSize(message);
+            if (tmpSize + totalSize > SIZE_LIMIT) {
+                break; 
+            } else {
+                totalSize += tmpSize; 
+            }
+        }
+        List<Message> subList = messages.subList(startIndex, nextIndex); 
+        currIndex = nextIndex;
+        return subList;
+    }
+    private int getStartIndex() {
+        Message currMessage = messages.get(currIndex); 
+        int tmpSize = calcMessageSize(currMessage); 
+        while(tmpSize > SIZE_LIMIT) {
+            currIndex += 1;
+            Message message = messages.get(curIndex); 
+            tmpSize = calcMessageSize(message);
+        }
+        return currIndex; 
+    }
+    private int calcMessageSize(Message message) {
+        int tmpSize = message.getTopic().length() + message.getBody().length(); 
+        Map<String, String> properties = message.getProperties();
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            tmpSize += entry.getKey().length() + entry.getValue().length(); 
+        }
+        tmpSize = tmpSize + 20; // 增加⽇日志的开销20字节
+        return tmpSize; 
+    }
 }
 //把大的消息分裂成若干个小的消息
 ListSplitter splitter = new ListSplitter(messages);
@@ -694,7 +706,7 @@ public class TransactionProducer {
 ```
 #### 2、实现事务的监听接口
 
-当发送半消息成功时，我们使用 `executeLocalTransaction` 方法来执行本地事务。它返回前一节中提到的三个事务状态之一。`checkLocalTranscation` 方法用于检查本地事务状态，并回应消息队列的检查请求。它也是返回前一节中提到的三个事务状态之一。
+当发送半消息成功时，我们使用 `executeLocalTransaction` 方法来执行本地事务。它返回前一节中提到的三个事务状态之一。`checkLocalTransaction` 方法用于检查本地事务状态，并回应消息队列的检查请求。它也是返回前一节中提到的三个事务状态之一。
 
 ```java
 public class TransactionListenerImpl implements TransactionListener {
@@ -729,8 +741,8 @@ public class TransactionListenerImpl implements TransactionListener {
 ### 6.2 事务消息使用上的限制
 
 1. 事务消息不支持延时消息和批量消息。
-2. 为了避免单个消息被检查太多次而导致半队列消息累积，我们默认将单个消息的检查次数限制为 15 次，但是用户可以通过 Broker 配置文件的 `transactionCheckMax`参数来修改此限制。如果已经检查某条消息超过 N 次的话（ N = `transactionCheckMax` ） 则 Broker 将丢弃此消息，并在默认情况下同时打印错误日志。用户可以通过重写 `AbstractTransactionCheckListener` 类来修改这个行为。
-3. 事务消息将在 Broker 配置文件中的参数 transactionMsgTimeout 这样的特定时间长度之后被检查。当发送事务消息时，用户还可以通过设置用户属性 CHECK_IMMUNITY_TIME_IN_SECONDS 来改变这个限制，该参数优先于 `transactionMsgTimeout` 参数。
+2. 为了避免单个消息被检查太多次而导致半队列消息累积，我们默认将单个消息的检查次数限制为 15 次，但是用户可以通过 Broker 配置文件的 `transactionCheckMax`参数来修改此限制。如果已经检查某条消息超过 N 次的话（ N = `transactionCheckMax` ） 则 Broker 将丢弃此消息，并在默认情况下同时打印错误日志。用户可以通过重写 `AbstractTransactionalMessageCheckListener` 类来修改这个行为。
+3. 事务消息将在 Broker 配置文件中的参数 transactionTimeout 这样的特定时间长度之后被检查。当发送事务消息时，用户还可以通过设置用户属性 CHECK_IMMUNITY_TIME_IN_SECONDS 来改变这个限制，该参数优先于 `transactionTimeout` 参数。
 4. 事务性消息可能不止一次被检查或消费。
 5. 提交给用户的目标主题消息可能会失败，目前这依日志的记录而定。它的高可用性通过 RocketMQ 本身的高可用性机制来保证，如果希望确保事务消息不丢失、并且事务完整性得到保证，建议使用同步的双重写入机制。
 6. 事务消息的生产者 ID 不能与其他类型消息的生产者 ID 共享。与其他类型的消息不同，事务消息允许反向查询、MQ服务器能通过它们的生产者 ID 查询到消费者。
