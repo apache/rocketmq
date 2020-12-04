@@ -558,7 +558,16 @@ public class HAService {
                             }
                         }
 
-                        this.selector.select(1000);
+                        long now = HAService.this.getDefaultMessageStore().getSystemClock().now();
+                        int selResult = this.selector.select(1000);
+                        if (0 == selResult && HAService.this.getDefaultMessageStore().getSystemClock().now() - now < 100) {
+                            this.waitForRunning(1000 * 1);
+                            log.warn("HAClient, select result 0 and not block, may be selector error, then regen it !");
+                            this.closeMaster();
+                            this.selector.close();
+                            this.selector = RemotingUtil.openSelector();
+                            continue;
+                        }
 
                         boolean ok = this.processReadEvent();
                         if (!ok) {
