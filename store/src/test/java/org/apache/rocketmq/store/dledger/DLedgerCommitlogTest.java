@@ -19,14 +19,17 @@ package org.apache.rocketmq.store.dledger;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
 import io.openmessaging.storage.dledger.store.file.MmapFileList;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -41,7 +44,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testTruncateCQ() throws Exception {
-        String base =  createBaseDir();
+        String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         String topic = UUID.randomUUID().toString();
@@ -94,10 +97,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     }
 
 
-
     @Test
     public void testRecover() throws Exception {
-        String base =  createBaseDir();
+        String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         String topic = UUID.randomUUID().toString();
@@ -135,10 +137,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     }
 
 
-
     @Test
     public void testPutAndGetMessage() throws Exception {
-        String base =  createBaseDir();
+        String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
@@ -148,7 +149,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         List<PutMessageResult> results = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             MessageExtBrokerInner msgInner =
-                i < 5 ? buildMessage() : buildIPv6HostMessage();
+                    i < 5 ? buildMessage() : buildIPv6HostMessage();
             msgInner.setTopic(topic);
             msgInner.setQueueId(0);
             PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
@@ -160,7 +161,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(10, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-        GetMessageResult getMessageResult =  messageStore.getMessage("group", topic, 0, 0, 32, null);
+        GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 0, 32, null);
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
 
         Assert.assertEquals(10, getMessageResult.getMessageBufferList().size());
@@ -178,8 +179,52 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     }
 
     @Test
+    public void testBatchPutAndGetMessage() throws Exception {
+        String base = createBaseDir();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
+        Thread.sleep(1000);
+        String topic = UUID.randomUUID().toString();
+        // should be less than 4
+        int batchMessageSize = 2;
+        int repeat = 10;
+        List<PutMessageResult> results = new ArrayList<>();
+        for (int i = 0; i < repeat; i++) {
+            MessageExtBatch messageExtBatch =
+                    i < repeat / 10 ? buildBatchMessage(batchMessageSize) : buildIPv6HostBatchMessage(batchMessageSize);
+            messageExtBatch.setTopic(topic);
+            messageExtBatch.setQueueId(0);
+            PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
+            results.add(putMessageResult);
+            Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+            Assert.assertEquals(i * batchMessageSize, putMessageResult.getAppendMessageResult().getLogicsOffset());
+        }
+        Thread.sleep(100);
+        Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+        Assert.assertEquals(repeat * batchMessageSize, messageStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+        GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 0, 100, null);
+        Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
+
+        Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageBufferList().size());
+        Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageMapedList().size());
+        Assert.assertEquals(repeat * batchMessageSize, getMessageResult.getMaxOffset());
+
+        for (int i = 0; i < results.size(); i++) {
+            ByteBuffer buffer = getMessageResult.getMessageBufferList().get(i * batchMessageSize);
+            MessageExt messageExt = MessageDecoder.decode(buffer);
+            Assert.assertEquals(i * batchMessageSize, messageExt.getQueueOffset());
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getMsgId().split(",").length, batchMessageSize);
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
+        }
+        messageStore.destroy();
+        messageStore.shutdown();
+    }
+
+    @Test
     public void testAsyncPutAndGetMessage() throws Exception {
-        String base =  createBaseDir();
+        String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
@@ -189,7 +234,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         List<PutMessageResult> results = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             MessageExtBrokerInner msgInner =
-                i < 5 ? buildMessage() : buildIPv6HostMessage();
+                    i < 5 ? buildMessage() : buildIPv6HostMessage();
             msgInner.setTopic(topic);
             msgInner.setQueueId(0);
             CompletableFuture<PutMessageResult> futureResult = messageStore.asyncPutMessage(msgInner);
@@ -202,7 +247,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(10, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-        GetMessageResult getMessageResult =  messageStore.getMessage("group", topic, 0, 0, 32, null);
+        GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 0, 32, null);
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
 
         Assert.assertEquals(10, getMessageResult.getMessageBufferList().size());
@@ -219,15 +264,60 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         messageStore.shutdown();
     }
 
+    @Test
+    public void testAsyncBatchPutAndGetMessage() throws Exception {
+        String base = createBaseDir();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
+        Thread.sleep(1000);
+        String topic = UUID.randomUUID().toString();
+        // should be less than 4
+        int batchMessageSize = 2;
+        int repeat = 10;
+
+        List<PutMessageResult> results = new ArrayList<>();
+        for (int i = 0; i < repeat; i++) {
+            MessageExtBatch messageExtBatch =
+                    i < 5 ? buildBatchMessage(batchMessageSize) : buildIPv6HostBatchMessage(batchMessageSize);
+            messageExtBatch.setTopic(topic);
+            messageExtBatch.setQueueId(0);
+            CompletableFuture<PutMessageResult> futureResult = messageStore.asyncPutMessages(messageExtBatch);
+            PutMessageResult putMessageResult = futureResult.get(3000, TimeUnit.MILLISECONDS);
+            results.add(putMessageResult);
+            Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+            Assert.assertEquals(i * batchMessageSize, putMessageResult.getAppendMessageResult().getLogicsOffset());
+        }
+        Thread.sleep(100);
+        Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+        Assert.assertEquals(repeat * batchMessageSize, messageStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+        GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 0, 32, null);
+        Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
+
+        Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageBufferList().size());
+        Assert.assertEquals(repeat * batchMessageSize > 32 ? 32 : repeat * batchMessageSize, getMessageResult.getMessageMapedList().size());
+        Assert.assertEquals(repeat * batchMessageSize, getMessageResult.getMaxOffset());
+
+        for (int i = 0; i < results.size(); i++) {
+            ByteBuffer buffer = getMessageResult.getMessageBufferList().get(i * batchMessageSize);
+            MessageExt messageExt = MessageDecoder.decode(buffer);
+            Assert.assertEquals(i * batchMessageSize, messageExt.getQueueOffset());
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getMsgId().split(",").length, batchMessageSize);
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
+        }
+        messageStore.destroy();
+        messageStore.shutdown();
+    }
 
     @Test
     public void testCommittedPos() throws Exception {
         String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
         String group = UUID.randomUUID().toString();
-        DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group,"n0", peers, "n0", false, 0);
+        DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group, "n0", peers, "n0", false, 0);
 
         String topic = UUID.randomUUID().toString();
-        MessageExtBrokerInner msgInner =  buildMessage();
+        MessageExtBrokerInner msgInner = buildMessage();
         msgInner.setTopic(topic);
         msgInner.setQueueId(0);
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
@@ -239,7 +329,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));
 
 
-        DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group,"n1", peers, "n0", false, 0);
+        DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group, "n1", peers, "n0", false, 0);
         Thread.sleep(2000);
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
@@ -258,10 +348,10 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     public void testIPv6HostMsgCommittedPos() throws Exception {
         String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
         String group = UUID.randomUUID().toString();
-        DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group,"n0", peers, "n0", false, 0);
+        DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group, "n0", peers, "n0", false, 0);
 
         String topic = UUID.randomUUID().toString();
-        MessageExtBrokerInner msgInner =  buildIPv6HostMessage();
+        MessageExtBrokerInner msgInner = buildIPv6HostMessage();
         msgInner.setTopic(topic);
         msgInner.setQueueId(0);
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
@@ -273,7 +363,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));
 
 
-        DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group,"n1", peers, "n0", false, 0);
+        DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group, "n1", peers, "n0", false, 0);
         Thread.sleep(2000);
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
