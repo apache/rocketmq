@@ -219,7 +219,7 @@ class SampleCommandCustomHeader implements CommandCustomHeader {
 class ExtFieldsHeader implements CommandCustomHeader {
     private String stringValue = "bilibili";
     private int intValue = 2333;
-    private long longValue = 23333333l;
+    private long longValue = 23333333L;
     private boolean booleanValue = true;
     private double doubleValue = 0.618;
 

@@ -109,8 +109,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private MessageListener messageListenerInner;
     private OffsetStore offsetStore;
     private ConsumeMessageService consumeMessageService;
-    private long queueFlowControlTimes = 0;
-    private long queueMaxSpanFlowControlTimes = 0;
+    private long queueFlowControlTimes = 0L;
+    private long queueMaxSpanFlowControlTimes = 0L;
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
         this.defaultMQPushConsumer = defaultMQPushConsumer;

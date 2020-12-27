@@ -37,7 +37,7 @@ public class ConsumerFilterData {
     private String expressionType;
     private transient Expression compiledExpression;
     private long bornTime;
-    private long deadTime = 0;
+    private long deadTime = 0L;
     private BloomFilterData bloomFilterData;
     private long clientVersion;
 

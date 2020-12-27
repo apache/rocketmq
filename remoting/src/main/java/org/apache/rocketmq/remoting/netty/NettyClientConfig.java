@@ -25,7 +25,7 @@ public class NettyClientConfig {
     private int clientOnewaySemaphoreValue = NettySystemConfig.CLIENT_ONEWAY_SEMAPHORE_VALUE;
     private int clientAsyncSemaphoreValue = NettySystemConfig.CLIENT_ASYNC_SEMAPHORE_VALUE;
     private int connectTimeoutMillis = 3000;
-    private long channelNotActiveInterval = 1000 * 60;
+    private long channelNotActiveInterval = 1000L * 60;
 
     /**
      * IdleStateEvent will be triggered when neither read nor write was performed for

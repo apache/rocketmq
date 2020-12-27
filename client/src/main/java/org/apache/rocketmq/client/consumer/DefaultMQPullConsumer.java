@@ -51,16 +51,16 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     /**
      * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
      */
-    private long brokerSuspendMaxTimeMillis = 1000 * 20;
+    private long brokerSuspendMaxTimeMillis = 1000L * 20;
     /**
      * Long polling mode, the Consumer connection timeout(must greater than brokerSuspendMaxTimeMillis), it is not
      * recommended to modify
      */
-    private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
+    private long consumerTimeoutMillisWhenSuspend = 1000L * 30;
     /**
      * The socket timeout in milliseconds
      */
-    private long consumerPullTimeoutMillis = 1000 * 10;
+    private long consumerPullTimeoutMillis = 1000L * 10;
     /**
      * Consumption pattern,default is clustering
      */

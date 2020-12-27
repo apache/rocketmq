@@ -74,7 +74,7 @@ public class DLedgerCommitLog extends CommitLog {
     private volatile long beginTimeInDledgerLock = 0;
 
     //This offset separate the old commitlog from dledger commitlog
-    private long dividedCommitlogOffset = -1;
+    private long dividedCommitlogOffset = -1L;
 
     private boolean isInrecoveringOldCommitlog = false;
 

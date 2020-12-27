@@ -61,7 +61,7 @@ public class MQAdminImpl {
 
     private final InternalLogger log = ClientLogger.getLog();
     private final MQClientInstance mQClientFactory;
-    private long timeoutMillis = 6000;
+    private long timeoutMillis = 6000L;
 
     public MQAdminImpl(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;

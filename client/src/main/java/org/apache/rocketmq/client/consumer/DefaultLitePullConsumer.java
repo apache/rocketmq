@@ -49,18 +49,18 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     /**
      * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
      */
-    private long brokerSuspendMaxTimeMillis = 1000 * 20;
+    private long brokerSuspendMaxTimeMillis = 1000L * 20;
 
     /**
      * Long polling mode, the Consumer connection timeout(must greater than brokerSuspendMaxTimeMillis), it is not
      * recommended to modify
      */
-    private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
+    private long consumerTimeoutMillisWhenSuspend = 1000L * 30;
 
     /**
      * The socket timeout in milliseconds
      */
-    private long consumerPullTimeoutMillis = 1000 * 10;
+    private long consumerPullTimeoutMillis = 1000L * 10;
 
     /**
      * Consumption pattern,default is clustering
@@ -97,12 +97,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     /**
      * Minimum commit offset interval time in milliseconds.
      */
-    private static final long MIN_AUTOCOMMIT_INTERVAL_MILLIS = 1000;
+    private static final long MIN_AUTOCOMMIT_INTERVAL_MILLIS = 1000L;
 
     /**
      * Maximum commit offset interval time in milliseconds.
      */
-    private long autoCommitIntervalMillis = 5 * 1000;
+    private long autoCommitIntervalMillis = 1000L * 5;
 
     /**
      * Maximum number of messages pulled each time.
@@ -113,7 +113,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Flow control threshold for consume request, each consumer will cache at most 10000 consume requests by default.
      * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
      */
-    private long pullThresholdForAll = 10000;
+    private long pullThresholdForAll = 10000L;
 
     /**
      * Consume max span offset.
@@ -138,12 +138,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     /**
      * The poll timeout in milliseconds
      */
-    private long pollTimeoutMillis = 1000 * 5;
+    private long pollTimeoutMillis = 1000L * 5;
 
     /**
      * Interval time in in milliseconds for checking changes in topic metadata.
      */
-    private long topicMetadataCheckIntervalMillis = 30 * 1000;
+    private long topicMetadataCheckIntervalMillis = 1000L * 30;
 
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
 

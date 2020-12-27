@@ -332,7 +332,7 @@ public class HAService {
         private Selector selector;
         private long lastWriteTimestamp = System.currentTimeMillis();
 
-        private long currentReportedOffset = 0;
+        private long currentReportedOffset = 0L;
         private int dispatchPosition = 0;
         private ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
         private ByteBuffer byteBufferBackup = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);

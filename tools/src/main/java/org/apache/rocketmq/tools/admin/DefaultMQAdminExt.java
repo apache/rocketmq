@@ -63,7 +63,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private String adminExtGroup = "admin_ext_group";
     private String createTopicKey = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
-    private long timeoutMillis = 5000;
+    private long timeoutMillis = 5000L;
 
     public DefaultMQAdminExt() {
         this.defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this, null, timeoutMillis);

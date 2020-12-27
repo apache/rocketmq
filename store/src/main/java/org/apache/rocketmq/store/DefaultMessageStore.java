@@ -1772,7 +1772,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     class CleanConsumeQueueService {
-        private long lastPhysicalMinOffset = 0;
+        private long lastPhysicalMinOffset = 0L;
 
         public void run() {
             try {
@@ -1815,7 +1815,7 @@ public class DefaultMessageStore implements MessageStore {
 
     class FlushConsumeQueueService extends ServiceThread {
         private static final int RETRY_TIMES_OVER = 3;
-        private long lastFlushTimestamp = 0;
+        private long lastFlushTimestamp = 0L;
 
         private void doFlush(int retryTimes) {
             int flushConsumeQueueLeastPages = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueLeastPages();

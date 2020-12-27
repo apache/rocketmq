@@ -34,7 +34,7 @@ import java.util.Set;
 public class ConsumeMessageCommand implements SubCommand {
 
     private String topic = null;
-    private long messageCount = 128;
+    private long messageCount = 128L;
     private DefaultMQPullConsumer defaultMQPullConsumer;
 
 

@@ -58,8 +58,8 @@ public class StoreStatsService extends ServiceThread {
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
     private volatile AtomicLong[] putMessageDistributeTime;
     private long messageStoreBootTimestamp = System.currentTimeMillis();
-    private volatile long putMessageEntireTimeMax = 0;
-    private volatile long getMessageEntireTimeMax = 0;
+    private volatile long putMessageEntireTimeMax = 0L;
+    private volatile long getMessageEntireTimeMax = 0L;
     // for putMessageEntireTimeMax
     private ReentrantLock lockPut = new ReentrantLock();
     // for getMessageEntireTimeMax

@@ -127,7 +127,7 @@ public class MessageStoreConfig {
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
     private int syncFlushTimeout = 1000 * 5;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
-    private long flushDelayOffsetInterval = 1000 * 10;
+    private long flushDelayOffsetInterval = 1000L * 10;
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
     private boolean warmMapedFileEnable = false;
@@ -135,7 +135,7 @@ public class MessageStoreConfig {
     private boolean debugLockEnable = false;
     private boolean duplicationEnable = false;
     private boolean diskFallRecorded = true;
-    private long osPageCacheBusyTimeOutMills = 1000;
+    private long osPageCacheBusyTimeOutMills = 1000L;
     private int defaultQueryMaxNum = 32;
 
     @ImportantField

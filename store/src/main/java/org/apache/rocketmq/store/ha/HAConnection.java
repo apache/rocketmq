@@ -196,7 +196,7 @@ public class HAConnection {
 
         private final int headerSize = 8 + 4;
         private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(headerSize);
-        private long nextTransferFromWhere = -1;
+        private long nextTransferFromWhere = -1L;
         private SelectMappedBufferResult selectMappedBufferResult;
         private boolean lastWriteOver = true;
         private long lastWriteTimestamp = System.currentTimeMillis();
