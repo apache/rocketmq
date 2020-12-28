@@ -37,7 +37,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class FilterServerManager {
 
-    public static final long FILTER_SERVER_MAX_IDLE_TIME_MILLS = 30000;
+    public static final long FILTER_SERVER_MAX_IDLE_TIME_MILLS = 30000L;
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ConcurrentMap<Channel, FilterServerInfo> filterServerTable =
         new ConcurrentHashMap<Channel, FilterServerInfo>(16);
@@ -61,7 +61,7 @@ public class FilterServerManager {
                     log.error("", e);
                 }
             }
-        }, 1000 * 5, 1000 * 30, TimeUnit.MILLISECONDS);
+        }, 1000L * 5, 1000L * 30, TimeUnit.MILLISECONDS);
     }
 
     public void createFilterServer() {

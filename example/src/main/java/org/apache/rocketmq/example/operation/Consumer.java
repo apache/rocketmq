@@ -47,7 +47,7 @@ public class Consumer {
             consumer.subscribe(topic, subscription);
 
             consumer.registerMessageListener(new MessageListenerConcurrently() {
-                AtomicLong consumeTimes = new AtomicLong(0);
+                AtomicLong consumeTimes= new AtomicLong(0L);
 
                 @Override
                 public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,

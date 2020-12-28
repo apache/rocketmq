@@ -90,7 +90,7 @@ public class RemotingServerTest {
         requestHeader.setCount(1);
         requestHeader.setMessageTitle("Welcome");
         RemotingCommand request = RemotingCommand.createRequestCommand(0, requestHeader);
-        RemotingCommand response = remotingClient.invokeSync("localhost:8888", request, 1000 * 3);
+        RemotingCommand response = remotingClient.invokeSync("localhost:8888", request, 1000L * 3);
         assertTrue(response != null);
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(response.getExtFields()).hasSize(2);
@@ -103,7 +103,7 @@ public class RemotingServerTest {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
         request.setRemark("messi");
-        remotingClient.invokeOneway("localhost:8888", request, 1000 * 3);
+        remotingClient.invokeOneway("localhost:8888", request, 1000L * 3);
     }
 
     @Test
@@ -113,7 +113,7 @@ public class RemotingServerTest {
         final CountDownLatch latch = new CountDownLatch(1);
         RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
         request.setRemark("messi");
-        remotingClient.invokeAsync("localhost:8888", request, 1000 * 3, new InvokeCallback() {
+        remotingClient.invokeAsync("localhost:8888", request, 1000L * 3, new InvokeCallback() {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
                 latch.countDown();

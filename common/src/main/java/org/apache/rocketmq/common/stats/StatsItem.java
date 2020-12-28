@@ -26,9 +26,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 
 public class StatsItem {
 
-    private final AtomicLong value = new AtomicLong(0);
+    private final AtomicLong value = new AtomicLong(0L);
 
-    private final AtomicLong times = new AtomicLong(0);
+    private final AtomicLong times = new AtomicLong(0L);
 
     private final LinkedList<CallSnapshot> csListMinute = new LinkedList<CallSnapshot>();
 
@@ -99,7 +99,7 @@ public class StatsItem {
                 } catch (Throwable ignored) {
                 }
             }
-        }, 0, 10, TimeUnit.SECONDS);
+        }, 0L, 10L, TimeUnit.SECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -109,7 +109,7 @@ public class StatsItem {
                 } catch (Throwable ignored) {
                 }
             }
-        }, 0, 10, TimeUnit.MINUTES);
+        }, 0L, 10L, TimeUnit.MINUTES);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -119,7 +119,7 @@ public class StatsItem {
                 } catch (Throwable ignored) {
                 }
             }
-        }, 0, 1, TimeUnit.HOURS);
+        }, 0L, 1L, TimeUnit.HOURS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -129,7 +129,7 @@ public class StatsItem {
                 } catch (Throwable ignored) {
                 }
             }
-        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
+        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000L * 60, TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -139,7 +139,7 @@ public class StatsItem {
                 } catch (Throwable ignored) {
                 }
             }
-        }, Math.abs(UtilAll.computeNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
+        }, Math.abs(UtilAll.computeNextHourTimeMillis() - System.currentTimeMillis()), 1000L * 60 * 60, TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -149,13 +149,13 @@ public class StatsItem {
                 } catch (Throwable ignored) {
                 }
             }
-        }, Math.abs(UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis()) - 2000, 1000 * 60 * 60 * 24, TimeUnit.MILLISECONDS);
+        }, Math.abs(UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis()) - 2000L, 1000L * 60 * 60 * 24, TimeUnit.MILLISECONDS);
     }
 
     public void samplingInSeconds() {
         synchronized (this.csListMinute) {
             if (this.csListMinute.size() == 0) {
-                this.csListMinute.add(new CallSnapshot(System.currentTimeMillis() - 10 * 1000, 0, 0));
+                this.csListMinute.add(new CallSnapshot(System.currentTimeMillis() - 1000L * 10, 0, 0));
             }
             this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));
@@ -168,7 +168,7 @@ public class StatsItem {
     public void samplingInMinutes() {
         synchronized (this.csListHour) {
             if (this.csListHour.size() == 0) {
-                this.csListHour.add(new CallSnapshot(System.currentTimeMillis() - 10 * 60 * 1000, 0, 0));
+                this.csListHour.add(new CallSnapshot(System.currentTimeMillis() - 1000L * 10 * 60, 0, 0));
             }
             this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));
@@ -181,7 +181,7 @@ public class StatsItem {
     public void samplingInHour() {
         synchronized (this.csListDay) {
             if (this.csListDay.size() == 0) {
-                this.csListDay.add(new CallSnapshot(System.currentTimeMillis() - 1 * 60 * 60 * 1000, 0, 0));
+                this.csListDay.add(new CallSnapshot(System.currentTimeMillis() - 1000L * 60 * 60, 0, 0));
             }
             this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
                 .get()));

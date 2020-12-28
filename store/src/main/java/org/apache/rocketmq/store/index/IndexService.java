@@ -144,7 +144,7 @@ public class IndexService {
         try {
             this.readWriteLock.writeLock().lock();
             for (IndexFile f : this.indexFileList) {
-                f.destroy(1000 * 3);
+                f.destroy(1000L * 3);
             }
             this.indexFileList.clear();
         } catch (Exception e) {

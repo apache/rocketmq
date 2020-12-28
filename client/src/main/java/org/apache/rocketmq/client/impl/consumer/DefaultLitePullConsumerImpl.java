@@ -109,11 +109,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     /**
      * Flow control interval
      */
-    private static final long PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL = 50;
+    private static final long PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL = 50L;
     /**
      * Delay some time when suspend pull service
      */
-    private static final long PULL_TIME_DELAY_MILLS_WHEN_PAUSE = 1000;
+    private static final long PULL_TIME_DELAY_MILLS_WHEN_PAUSE = 1000L;
 
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
@@ -331,7 +331,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         log.error("ScheduledTask fetchMessageQueuesAndCompare exception", e);
                     }
                 }
-            }, 1000 * 10, this.getDefaultLitePullConsumer().getTopicMetadataCheckIntervalMillis(), TimeUnit.MILLISECONDS);
+            }, 1000L * 10, this.getDefaultLitePullConsumer().getTopicMetadataCheckIntervalMillis(), TimeUnit.MILLISECONDS);
     }
 
     private void operateAfterRunning() throws MQClientException {

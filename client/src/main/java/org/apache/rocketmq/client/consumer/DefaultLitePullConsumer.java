@@ -151,7 +151,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Backtracking consumption time with second precision. Time format is 20131223171201<br> Implying Seventeen twelve
      * and 01 seconds on December 23, 2013 year<br> Default backtracking consumption time Half an hour ago.
      */
-    private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000 * 60 * 30));
+    private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000L * 60 * 30));
 
     /**
      * Default constructor.

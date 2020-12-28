@@ -44,7 +44,7 @@ public class ConsumerFilterManager extends ConfigManager {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
 
-    private static final long MS_24_HOUR = 24 * 3600 * 1000;
+    private static final long MS_24_HOUR = 24 * 3600 * 1000L;
 
     private ConcurrentMap<String/*Topic*/, FilterDataMapByTopic>
         filterDataByTopic = new ConcurrentHashMap<String/*Topic*/, FilterDataMapByTopic>(256);

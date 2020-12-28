@@ -50,7 +50,7 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class TransactionProducer {
     private static final long START_TIME = System.currentTimeMillis();
-    private static final AtomicLong MSG_COUNT = new AtomicLong(0);
+    private static final AtomicLong MSG_COUNT= new AtomicLong(0L);
 
     //broker max check times should less than this value
     static final int MAX_CHECK_RESULT_IN_MSG = 20;
@@ -384,7 +384,7 @@ class StatsBenchmarkTProducer {
 
     private final AtomicLong unexpectedCheckCount = new AtomicLong(0L);
 
-    private final AtomicLong duplicatedCheckCount = new AtomicLong(0);
+    private final AtomicLong duplicatedCheckCount= new AtomicLong(0L);
 
     public Snapshot createSnapshot() {
         Snapshot s = new Snapshot();

@@ -49,7 +49,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
                     log.error("Error occurred when scan not active client channels.", e);
                 }
             }
-        }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+        }, 1000L * 10, 1000L * 10, TimeUnit.MILLISECONDS);
     }
 
     private void scanExceptionChannel() {

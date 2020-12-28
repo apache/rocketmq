@@ -163,7 +163,7 @@ public class MonitorService {
                     log.error("doMonitorWork Exception", e);
                 }
             }
-        }, 1000 * 20, this.monitorConfig.getRoundInterval(), TimeUnit.MILLISECONDS);
+        }, 1000L * 20, this.monitorConfig.getRoundInterval(), TimeUnit.MILLISECONDS);
     }
 
     public void doMonitorWork() throws RemotingException, MQClientException, InterruptedException {

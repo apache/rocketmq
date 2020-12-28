@@ -408,7 +408,7 @@ public class MappedFileQueue {
                     break;
                 }
 
-                if (destroy && mappedFile.destroy(1000 * 60)) {
+                if (destroy && mappedFile.destroy(1000L * 60)) {
                     files.add(mappedFile);
                     deleteCount++;
                 } else {
@@ -568,7 +568,7 @@ public class MappedFileQueue {
 
     public void destroy() {
         for (MappedFile mf : this.mappedFiles) {
-            mf.destroy(1000 * 3);
+            mf.destroy(1000L * 3);
         }
         this.mappedFiles.clear();
         this.flushedWhere = 0;

@@ -1365,7 +1365,7 @@ public class CommitLog {
 
         @Override
         public long getJointime() {
-            return 1000 * 60 * 5;
+            return 1000L * 60 * 5;
         }
     }
 
@@ -1489,7 +1489,7 @@ public class CommitLog {
 
         @Override
         public long getJointime() {
-            return 1000 * 60 * 5;
+            return 1000L * 60 * 5;
         }
     }
 

@@ -25,7 +25,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 public abstract class ServiceThread implements Runnable {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    private static final long JOIN_TIME = 90 * 1000;
+    private static final long JOIN_TIME = 1000L * 90;
 
     private Thread thread;
     protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);

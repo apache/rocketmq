@@ -126,7 +126,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.defaultAsyncSenderExecutor = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
             Runtime.getRuntime().availableProcessors(),
-            1000 * 60,
+            1000L * 60,
             TimeUnit.MILLISECONDS,
             this.asyncSenderThreadPoolQueue,
             new ThreadFactory() {
@@ -154,7 +154,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.checkExecutor = new ThreadPoolExecutor(
                 producer.getCheckThreadPoolMinSize(),
                 producer.getCheckThreadPoolMaxSize(),
-                1000 * 60,
+                1000L * 60,
                 TimeUnit.MILLISECONDS,
                 this.checkRequestQueue);
         }
@@ -228,7 +228,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     log.error("scan RequestFutureTable exception", e);
                 }
             }
-        }, 1000 * 3, 1000);
+        }, 1000L * 3, 1000L);
     }
 
     private void checkConfig() throws MQClientException {

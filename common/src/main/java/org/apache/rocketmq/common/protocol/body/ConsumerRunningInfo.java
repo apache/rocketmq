@@ -65,7 +65,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             if (property == null) {
                 property = String.valueOf(prev.getProperties().get(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP));
             }
-            startForAWhile = (System.currentTimeMillis() - Long.parseLong(property)) > (1000 * 60 * 2);
+            startForAWhile = (System.currentTimeMillis() - Long.parseLong(property)) > (1000L * 60 * 2);
         }
 
         if (push && startForAWhile) {
@@ -146,7 +146,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                 } else {
                     long diff = System.currentTimeMillis() - pq.getLastConsumeTimestamp();
 
-                    if (diff > (1000 * 60) && pq.getCachedMsgCount() > 0) {
+                    if (diff > (1000L * 60) && pq.getCachedMsgCount() > 0) {
                         sb.append(String.format("%s %s can't consume for a while, maybe blocked, %dms%n",
                             clientId,
                             mq,

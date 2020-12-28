@@ -246,7 +246,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     log.error("scanResponseTable exception", e);
                 }
             }
-        }, 1000 * 3, 1000);
+        }, 1000L * 3, 1000L);
     }
 
     @Override

@@ -41,16 +41,16 @@ public class StoreStatsService extends ServiceThread {
 
     private static int printTPSInterval = 60 * 1;
 
-    private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
+    private final AtomicLong putMessageFailedTimes= new AtomicLong(0L);
 
     private final ConcurrentMap<String, AtomicLong> putMessageTopicTimesTotal =
         new ConcurrentHashMap<String, AtomicLong>(128);
     private final ConcurrentMap<String, AtomicLong> putMessageTopicSizeTotal =
         new ConcurrentHashMap<String, AtomicLong>(128);
 
-    private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
-    private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
-    private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
+    private final AtomicLong getMessageTimesTotalFound= new AtomicLong(0L);
+    private final AtomicLong getMessageTransferedMsgCount= new AtomicLong(0L);
+    private final AtomicLong getMessageTimesTotalMiss= new AtomicLong(0L);
     private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
 
     private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
@@ -77,7 +77,7 @@ public class StoreStatsService extends ServiceThread {
     private AtomicLong[] initPutMessageDistributeTime() {
         AtomicLong[] next = new AtomicLong[13];
         for (int i = 0; i < next.length; i++) {
-            next[i] = new AtomicLong(0);
+            next[i]= new AtomicLong(0L);
         }
 
         AtomicLong[] old = this.putMessageDistributeTime;
@@ -201,7 +201,7 @@ public class StoreStatsService extends ServiceThread {
 
     private String getFormatRuntime() {
         final long millisecond = 1;
-        final long second = 1000 * millisecond;
+        final long second = 1000L * millisecond;
         final long minute = 60 * second;
         final long hour = 60 * minute;
         final long day = 24 * hour;
@@ -545,7 +545,7 @@ public class StoreStatsService extends ServiceThread {
     public AtomicLong getSinglePutMessageTopicSizeTotal(String topic) {
         AtomicLong rs = putMessageTopicSizeTotal.get(topic);
         if (null == rs) {
-            rs = new AtomicLong(0);
+            rs= new AtomicLong(0L);
             AtomicLong previous = putMessageTopicSizeTotal.putIfAbsent(topic, rs);
             if (previous != null) {
                 rs = previous;
@@ -557,7 +557,7 @@ public class StoreStatsService extends ServiceThread {
     public AtomicLong getSinglePutMessageTopicTimesTotal(String topic) {
         AtomicLong rs = putMessageTopicTimesTotal.get(topic);
         if (null == rs) {
-            rs = new AtomicLong(0);
+            rs= new AtomicLong(0L);
             AtomicLong previous = putMessageTopicTimesTotal.putIfAbsent(topic, rs);
             if (previous != null) {
                 rs = previous;

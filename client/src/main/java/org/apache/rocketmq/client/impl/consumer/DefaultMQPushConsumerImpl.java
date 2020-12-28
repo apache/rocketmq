@@ -83,17 +83,17 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     /**
      * Delay some time when exception occur
      */
-    private long pullTimeDelayMillsWhenException = 3000;
+    private long pullTimeDelayMillsWhenException = 3000L;
     /**
      * Flow control interval
      */
-    private static final long PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL = 50;
+    private static final long PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL = 50L;
     /**
      * Delay some time when suspend pull service
      */
-    private static final long PULL_TIME_DELAY_MILLS_WHEN_SUSPEND = 1000;
-    private static final long BROKER_SUSPEND_MAX_TIME_MILLIS = 1000 * 15;
-    private static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
+    private static final long PULL_TIME_DELAY_MILLS_WHEN_SUSPEND = 1000L;
+    private static final long BROKER_SUSPEND_MAX_TIME_MILLIS = 1000L * 15;
+    private static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000L * 30;
     private final InternalLogger log = ClientLogger.getLog();
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);

@@ -73,7 +73,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         this.consumeExecutor = new ThreadPoolExecutor(
             this.defaultMQPushConsumer.getConsumeThreadMin(),
             this.defaultMQPushConsumer.getConsumeThreadMax(),
-            1000 * 60,
+            1000L * 60,
             TimeUnit.MILLISECONDS,
             this.consumeRequestQueue,
             new ThreadFactoryImpl("ConsumeMessageThread_"));

@@ -71,7 +71,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
-    private static final long LOCK_TIMEOUT_MILLIS = 3000;
+    private static final long LOCK_TIMEOUT_MILLIS = 3000L;
 
     private final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
@@ -198,7 +198,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     log.error("scanResponseTable exception", e);
                 }
             }
-        }, 1000 * 3, 1000);
+        }, 1000L * 3, 1000L);
 
         if (this.channelEventListener != null) {
             this.nettyEventExecutor.start();

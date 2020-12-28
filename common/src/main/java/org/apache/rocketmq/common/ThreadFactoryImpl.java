@@ -21,7 +21,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ThreadFactoryImpl implements ThreadFactory {
-    private final AtomicLong threadIndex = new AtomicLong(0);
+    private final AtomicLong threadIndex= new AtomicLong(0L);
     private final String threadNamePrefix;
     private final boolean daemon;
 

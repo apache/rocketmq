@@ -95,7 +95,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.traceExecutor = new ThreadPoolExecutor(//
             10, //
             20, //
-            1000 * 60, //
+            1000L * 60, //
             TimeUnit.MILLISECONDS, //
             this.appenderQueue, //
             new ThreadFactoryImpl("MQTraceSendThread_"));

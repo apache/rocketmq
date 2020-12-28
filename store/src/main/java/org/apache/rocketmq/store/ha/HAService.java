@@ -53,7 +53,7 @@ public class HAService {
     private final DefaultMessageStore defaultMessageStore;
 
     private final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
-    private final AtomicLong push2SlaveMaxOffset = new AtomicLong(0);
+    private final AtomicLong push2SlaveMaxOffset= new AtomicLong(0L);
 
     private final GroupTransferService groupTransferService;
 
@@ -203,7 +203,7 @@ public class HAService {
 
             while (!this.isStopped()) {
                 try {
-                    this.selector.select(1000);
+                    this.selector.select(1000L);
                     Set<SelectionKey> selected = this.selector.selectedKeys();
 
                     if (selected != null) {
@@ -282,7 +282,7 @@ public class HAService {
                         long waitUntilWhen = HAService.this.defaultMessageStore.getSystemClock().now()
                             + HAService.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout();
                         while (!transferOK && HAService.this.defaultMessageStore.getSystemClock().now() < waitUntilWhen) {
-                            this.notifyTransferObject.waitForRunning(1000);
+                            this.notifyTransferObject.waitForRunning(1000L);
                             transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                         }
 
@@ -558,7 +558,7 @@ public class HAService {
                             }
                         }
 
-                        this.selector.select(1000);
+                        this.selector.select(1000L);
 
                         boolean ok = this.processReadEvent();
                         if (!ok) {
@@ -580,11 +580,11 @@ public class HAService {
                             log.warn("HAClient, master not response some time, so close connection");
                         }
                     } else {
-                        this.waitForRunning(1000 * 5);
+                        this.waitForRunning(1000L * 5);
                     }
                 } catch (Exception e) {
                     log.warn(this.getServiceName() + " service has exception. ", e);
-                    this.waitForRunning(1000 * 5);
+                    this.waitForRunning(1000L * 5);
                 }
             }
 

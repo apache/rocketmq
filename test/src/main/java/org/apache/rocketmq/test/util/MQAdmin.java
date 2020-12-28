@@ -92,7 +92,7 @@ public class MQAdmin {
                         addr));
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Thread.sleep(1000 * 1);
+                    Thread.sleep(1000L);
                 }
             }
         } catch (Exception e) {
@@ -152,7 +152,7 @@ public class MQAdmin {
                         addr);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Thread.sleep(1000 * 1);
+                    Thread.sleep(1000L);
                 }
             }
         } catch (Exception e) {

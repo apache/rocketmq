@@ -105,7 +105,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private StoreCheckpoint storeCheckpoint;
 
-    private AtomicLong printTimes = new AtomicLong(0);
+    private AtomicLong printTimes= new AtomicLong(0L);
 
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
@@ -1307,7 +1307,7 @@ public class DefaultMessageStore implements MessageStore {
             public void run() {
                 DefaultMessageStore.this.cleanFilesPeriodically();
             }
-        }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
+        }, 1000L * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -1878,7 +1878,7 @@ public class DefaultMessageStore implements MessageStore {
 
         @Override
         public long getJointime() {
-            return 1000 * 60;
+            return 1000L * 60;
         }
     }
 

@@ -29,10 +29,10 @@ public class IndexHeader {
     private static int hashSlotcountIndex = 32;
     private static int indexCountIndex = 36;
     private final ByteBuffer byteBuffer;
-    private AtomicLong beginTimestamp = new AtomicLong(0);
-    private AtomicLong endTimestamp = new AtomicLong(0);
-    private AtomicLong beginPhyOffset = new AtomicLong(0);
-    private AtomicLong endPhyOffset = new AtomicLong(0);
+    private AtomicLong beginTimestamp = new AtomicLong(0L);
+    private AtomicLong endTimestamp = new AtomicLong(0L);
+    private AtomicLong beginPhyOffset = new AtomicLong(0L);
+    private AtomicLong endPhyOffset = new AtomicLong(0L);
     private AtomicInteger hashSlotCount = new AtomicInteger(0);
 
     private AtomicInteger indexCount = new AtomicInteger(1);

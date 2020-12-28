@@ -53,7 +53,7 @@ public class ProcessQueue {
      * A subset of msgTreeMap, will only be used when orderly consume
      */
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
-    private final AtomicLong tryUnlockTimes = new AtomicLong(0);
+    private final AtomicLong tryUnlockTimes= new AtomicLong(0L);
     private volatile long queueOffsetMax = 0L;
     private volatile boolean dropped = false;
     private volatile long lastPullTimestamp = System.currentTimeMillis();

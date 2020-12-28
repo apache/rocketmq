@@ -25,7 +25,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 
 public class MomentStatsItem {
 
-    private final AtomicLong value = new AtomicLong(0);
+    private final AtomicLong value= new AtomicLong(0L);
 
     private final String statsName;
     private final String statsKey;
@@ -51,7 +51,7 @@ public class MomentStatsItem {
                 } catch (Throwable e) {
                 }
             }
-        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 5, TimeUnit.MILLISECONDS);
+        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000L * 60 * 5, TimeUnit.MILLISECONDS);
     }
 
     public void printAtMinutes() {
