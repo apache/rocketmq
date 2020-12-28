@@ -64,7 +64,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Thread.sleep(1000);
+            Thread.sleep(1000L);
         }
         // simulate schedule task execution , tps stat
         {
@@ -111,7 +111,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Thread.sleep(1000);
+            Thread.sleep(1000L);
         }
         return statsItemSet.getStatsItem("topicTest").getValue();
     }
@@ -132,7 +132,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Thread.sleep(1000);
+            Thread.sleep(1000L);
         }
         return statsItemSet.getAndCreateStatsItem("test").getValue();
     }

@@ -67,7 +67,7 @@ public class ClusterListSubCommand implements SubCommand {
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-        long printInterval = 1;
+        long printInterval = 1L;
         boolean enableInterval = commandLine.hasOption('i');
 
         if (enableInterval) {

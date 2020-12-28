@@ -38,7 +38,7 @@ public class JDBCTransactionStore implements TransactionStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
     private final JDBCTransactionStoreConfig jdbcTransactionStoreConfig;
     private Connection connection;
-    private AtomicLong totalRecordsValue= new AtomicLong(0L);
+    private AtomicLong totalRecordsValue = new AtomicLong(0L);
 
     public JDBCTransactionStore(JDBCTransactionStoreConfig jdbcTransactionStoreConfig) {
         this.jdbcTransactionStoreConfig = jdbcTransactionStoreConfig;

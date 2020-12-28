@@ -56,14 +56,14 @@ public class TransactionProducer {
                 SendResult sendResult = producer.sendMessageInTransaction(msg, null);
                 System.out.printf("%s%n", sendResult);
 
-                Thread.sleep(10);
+                Thread.sleep(10L);
             } catch (MQClientException | UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         }
 
         for (int i = 0; i < 100000; i++) {
-            Thread.sleep(1000);
+            Thread.sleep(1000L);
         }
         producer.shutdown();
     }

@@ -268,7 +268,7 @@ public class DefaultMQPushConsumerTest {
                                                             ConsumeConcurrentlyContext context) {
                 countDownLatch.countDown();
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(1000L);
                     messageConsumedFlag.set(true);
                 } catch (InterruptedException e) {
                 }

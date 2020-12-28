@@ -83,7 +83,7 @@ public class Consumer {
                     snapshotList.removeFirst();
                 }
             }
-        }, 1000, 1000);
+        }, 1000L, 1000L);
 
         timer.scheduleAtFixedRate(new TimerTask() {
             private void printStats() {
@@ -116,7 +116,7 @@ public class Consumer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000);
+        }, 10000L, 10000L);
 
         RPCHook rpcHook = aclEnable ? AclClient.getAclRPCHook() : null;
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group, rpcHook, new AllocateMessageQueueAveragely(), msgTraceEnable, null);

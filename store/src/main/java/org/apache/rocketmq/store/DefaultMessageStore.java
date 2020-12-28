@@ -105,7 +105,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private StoreCheckpoint storeCheckpoint;
 
-    private AtomicLong printTimes= new AtomicLong(0L);
+    private AtomicLong printTimes = new AtomicLong(0L);
 
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
@@ -272,7 +272,7 @@ public class DefaultMessageStore implements MessageStore {
                 if (dispatchBehindBytes() <= 0) {
                     break;
                 }
-                Thread.sleep(1000);
+                Thread.sleep(1000L);
                 log.info("Try to finish doing reput the messages fall behind during the starting, reputOffset={} maxOffset={} behind={}", this.reputMessageService.getReputFromOffset(), this.getMaxPhyOffset(), this.dispatchBehindBytes());
             }
             this.recoverTopicQueueTable();
@@ -300,7 +300,7 @@ public class DefaultMessageStore implements MessageStore {
             this.diskCheckScheduledExecutorService.shutdown();
             try {
 
-                Thread.sleep(1000);
+                Thread.sleep(1000L);
             } catch (InterruptedException e) {
                 log.error("shutdown Exception, ", e);
             }

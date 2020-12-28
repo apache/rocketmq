@@ -25,7 +25,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 
 public class MomentStatsItem {
 
-    private final AtomicLong value= new AtomicLong(0L);
+    private final AtomicLong value = new AtomicLong(0L);
 
     private final String statsName;
     private final String statsKey;

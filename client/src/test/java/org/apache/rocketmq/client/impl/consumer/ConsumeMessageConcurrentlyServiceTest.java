@@ -162,7 +162,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await();
 
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
 
         org.apache.rocketmq.common.protocol.body.ConsumeStatus stats = normalServie.getConsumerStatsManager().consumeStatus(pushConsumer.getDefaultMQPushConsumerImpl().groupName(),topic);
 

@@ -55,7 +55,7 @@ public class Producer {
                     System.out.printf("%-8d %s%n", i, sendResult);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Thread.sleep(1000);
+                    Thread.sleep(1000L);
                 }
             }
 

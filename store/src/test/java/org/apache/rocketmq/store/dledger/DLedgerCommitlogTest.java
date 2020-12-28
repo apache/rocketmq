@@ -54,14 +54,14 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
             DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
             MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
-            Thread.sleep(2000);
-            doPutMessages(messageStore, topic, 0, 2000, 0);
-            Thread.sleep(100);
+            Thread.sleep(2000L);
+            doPutMessages(messageStore, topic, 0, 2000, 0L);
+            Thread.sleep(100L);
             Assert.assertEquals(24, mmapFileList.getMappedFiles().size());
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(2000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-            doGetMessages(messageStore, topic, 0, 2000, 0);
+            doGetMessages(messageStore, topic, 0, 2000, 0L);
             messageStore.shutdown();
         }
 
@@ -72,12 +72,12 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
             DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
             MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
-            Thread.sleep(1000);
+            Thread.sleep(1000L);
             Assert.assertEquals(20, mmapFileList.getMappedFiles().size());
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1700, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-            doGetMessages(messageStore, topic, 0, 1700, 0);
+            doGetMessages(messageStore, topic, 0, 1700, 0L);
             messageStore.shutdown();
         }
         {
@@ -87,7 +87,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
             DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
             MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
-            Thread.sleep(1000);
+            Thread.sleep(1000L);
             Assert.assertEquals(0, mmapFileList.getMappedFiles().size());
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, 0));
@@ -105,13 +105,13 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         String topic = UUID.randomUUID().toString();
         {
             DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
-            Thread.sleep(1000);
-            doPutMessages(messageStore, topic, 0, 1000, 0);
-            Thread.sleep(100);
+            Thread.sleep(1000L);
+            doPutMessages(messageStore, topic, 0, 1000, 0L);
+            Thread.sleep(100L);
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-            doGetMessages(messageStore, topic, 0, 1000, 0);
+            doGetMessages(messageStore, topic, 0, 1000, 0L);
             messageStore.shutdown();
         }
 
@@ -121,7 +121,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-            doGetMessages(messageStore, topic, 0, 1000, 0);
+            doGetMessages(messageStore, topic, 0, 1000, 0L);
             messageStore.shutdown();
         }
 
@@ -131,7 +131,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, messageStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-            doGetMessages(messageStore, topic, 0, 1000, 0);
+            doGetMessages(messageStore, topic, 0, 1000, 0L);
             messageStore.shutdown();
         }
     }
@@ -143,7 +143,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
         String topic = UUID.randomUUID().toString();
 
         List<PutMessageResult> results = new ArrayList<>();
@@ -157,7 +157,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Assert.assertEquals(i, putMessageResult.getAppendMessageResult().getLogicsOffset());
         }
-        Thread.sleep(100);
+        Thread.sleep(100L);
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(10, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.dispatchBehindBytes());
@@ -184,7 +184,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
         String topic = UUID.randomUUID().toString();
         // should be less than 4
         int batchMessageSize = 2;
@@ -200,7 +200,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Assert.assertEquals(i * batchMessageSize, putMessageResult.getAppendMessageResult().getLogicsOffset());
         }
-        Thread.sleep(100);
+        Thread.sleep(100L);
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(repeat * batchMessageSize, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.dispatchBehindBytes());
@@ -228,7 +228,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
         String topic = UUID.randomUUID().toString();
 
         List<PutMessageResult> results = new ArrayList<>();
@@ -243,7 +243,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Assert.assertEquals(i, putMessageResult.getAppendMessageResult().getLogicsOffset());
         }
-        Thread.sleep(100);
+        Thread.sleep(100L);
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(10, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.dispatchBehindBytes());
@@ -270,7 +270,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
         String topic = UUID.randomUUID().toString();
         // should be less than 4
         int batchMessageSize = 2;
@@ -288,7 +288,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Assert.assertEquals(i * batchMessageSize, putMessageResult.getAppendMessageResult().getLogicsOffset());
         }
-        Thread.sleep(100);
+        Thread.sleep(100L);
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(repeat * batchMessageSize, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.dispatchBehindBytes());
@@ -323,7 +323,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
         Assert.assertEquals(PutMessageStatus.OS_PAGECACHE_BUSY, putMessageResult.getPutMessageStatus());
 
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
 
         Assert.assertEquals(0, leaderStore.getCommitLog().getMaxOffset());
         Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));
@@ -357,7 +357,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
         Assert.assertEquals(PutMessageStatus.OS_PAGECACHE_BUSY, putMessageResult.getPutMessageStatus());
 
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
 
         Assert.assertEquals(0, leaderStore.getCommitLog().getMaxOffset());
         Assert.assertEquals(0, leaderStore.getMaxOffsetInQueue(topic, 0));

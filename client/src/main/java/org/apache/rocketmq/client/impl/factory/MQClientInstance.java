@@ -115,7 +115,7 @@ public class MQClientInstance {
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
     private final ConsumerStatsManager consumerStatsManager;
-    private final AtomicLong sendHeartbeatTimesTotal= new AtomicLong(0L);
+    private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0L);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private Random random = new Random();
 

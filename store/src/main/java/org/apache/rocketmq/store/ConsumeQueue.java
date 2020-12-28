@@ -410,7 +410,7 @@ public class ConsumeQueue {
                     + " failed, retry " + i + " times");
 
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(1000L);
                 } catch (InterruptedException e) {
                     log.warn("", e);
                 }

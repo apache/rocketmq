@@ -21,7 +21,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class DataVersion extends RemotingSerializable {
     private long timestamp = System.currentTimeMillis();
-    private AtomicLong counter= new AtomicLong(0L);
+    private AtomicLong counter = new AtomicLong(0L);
 
     public void assignNewOne(final DataVersion dataVersion) {
         this.timestamp = dataVersion.timestamp;

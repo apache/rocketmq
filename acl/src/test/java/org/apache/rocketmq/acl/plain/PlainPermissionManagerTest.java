@@ -257,7 +257,7 @@ public class PlainPermissionManagerTest {
         // Update file and flush to yaml file
         AclUtils.writeDataObject(fileName, updatedMap);
 
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
         {
             Map<String, PlainAccessResource> plainAccessResourceMap = (Map<String, PlainAccessResource>) FieldUtils.readDeclaredField(plainPermissionManager, "plainAccessResourceMap", true);
             PlainAccessResource accessResource = plainAccessResourceMap.get("watchrocketmq1");

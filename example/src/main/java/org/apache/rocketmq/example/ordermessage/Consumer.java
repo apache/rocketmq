@@ -36,7 +36,7 @@ public class Consumer {
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 
         consumer.registerMessageListener(new MessageListenerOrderly() {
-            AtomicLong consumeTimes= new AtomicLong(0L);
+            AtomicLong consumeTimes = new AtomicLong(0L);
 
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {

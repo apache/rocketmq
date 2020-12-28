@@ -50,7 +50,7 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class TransactionProducer {
     private static final long START_TIME = System.currentTimeMillis();
-    private static final AtomicLong MSG_COUNT= new AtomicLong(0L);
+    private static final AtomicLong MSG_COUNT = new AtomicLong(0L);
 
     //broker max check times should less than this value
     static final int MAX_CHECK_RESULT_IN_MSG = 20;
@@ -86,7 +86,7 @@ public class TransactionProducer {
                     snapshotList.removeFirst();
                 }
             }
-        }, 1000, 1000);
+        }, 1000L, 1000L);
 
         timer.scheduleAtFixedRate(new TimerTask() {
             private void printStats() {
@@ -120,7 +120,7 @@ public class TransactionProducer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000);
+        }, 10000L, 10000L);
 
         final TransactionListener transactionCheckListener = new TransactionListenerImpl(statsBenchmark, config);
         final TransactionMQProducer producer =
@@ -384,7 +384,7 @@ class StatsBenchmarkTProducer {
 
     private final AtomicLong unexpectedCheckCount = new AtomicLong(0L);
 
-    private final AtomicLong duplicatedCheckCount= new AtomicLong(0L);
+    private final AtomicLong duplicatedCheckCount = new AtomicLong(0L);
 
     public Snapshot createSnapshot() {
         Snapshot s = new Snapshot();
