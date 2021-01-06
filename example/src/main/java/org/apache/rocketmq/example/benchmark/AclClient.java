@@ -14,26 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.common;
 
-import org.junit.Test;
+package org.apache.rocketmq.example.benchmark;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.remoting.RPCHook;
 
-public class ThreadLocalIndexTest {
-    @Test
-    public void testGetAndIncrement() throws Exception {
-        ThreadLocalIndex localIndex = new ThreadLocalIndex();
-        int initialVal = localIndex.getAndIncrement();
+public class AclClient {
 
-        assertThat(localIndex.getAndIncrement()).isEqualTo(initialVal + 1);
+    private static final String ACL_ACCESS_KEY = "rocketmq2";
+
+    private static final String ACL_SECRET_KEY = "12345678";
+
+    static RPCHook getAclRPCHook() {
+        return new AclClientRPCHook(new SessionCredentials(ACL_ACCESS_KEY,ACL_SECRET_KEY));
     }
-
-    @Test
-    public void testGetAndIncrement2() throws Exception {
-        ThreadLocalIndex localIndex = new ThreadLocalIndex();
-        int initialVal = localIndex.getAndIncrement();
-        assertThat(initialVal >= 0);
-    }
-
 }

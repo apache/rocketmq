@@ -20,7 +20,7 @@
     <parent>
         <artifactId>rocketmq-all</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>4.7.1</version>
+        <version>4.8.0</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -31,7 +31,6 @@
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

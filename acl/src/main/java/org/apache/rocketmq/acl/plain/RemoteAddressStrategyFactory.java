@@ -52,14 +52,18 @@ public class RemoteAddressStrategyFactory {
                 if (!last.startsWith("{")) {
                     throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
                 }
-                return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, last));
+                return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, last));
             } else {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
-                String four = strArray[3];
-                if (!four.startsWith("{")) {
+                // However a right IP String provided by user,it always can be divided into 4 parts by '.'.
+                if (strArray.length < 4) {
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy has got a/some wrong format IP(s) ", remoteAddr));
+                }
+                String lastStr = strArray[strArray.length - 1];
+                if (!lastStr.startsWith("{")) {
                     throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
                 }
-                return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, four));
+                return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, lastStr));
             }
         } else if (AclUtils.isComma(remoteAddr)) {
             return new MultipleRemoteAddressStrategy(StringUtils.split(remoteAddr, ","));
@@ -153,7 +157,7 @@ public class RemoteAddressStrategyFactory {
                 for (int i = 1; i < strArray.length; i++) {
                     if (ipv6Analysis(strArray, i)) {
                         AclUtils.verify(remoteAddr, index - 1);
-                        String preAddress = AclUtils.v6ipProcess(remoteAddr, strArray, index);
+                        String preAddress = AclUtils.v6ipProcess(remoteAddr);
                         this.index = StringUtils.split(preAddress, ":").length;
                         this.head = preAddress;
                         break;
