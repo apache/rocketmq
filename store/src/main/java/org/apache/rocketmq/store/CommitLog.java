@@ -1185,7 +1185,7 @@ public class CommitLog {
         this.mappedFileQueue.destroy();
     }
 
-    public boolean appendData(long startOffset, byte[] data) {
+    public boolean appendData(long startOffset, byte[] data, int dataStart, int dataLength) {
         putMessageLock.lock();
         try {
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(startOffset);
@@ -1194,7 +1194,7 @@ public class CommitLog {
                 return false;
             }
 
-            return mappedFile.appendMessage(data);
+            return mappedFile.appendMessage(data, dataStart, dataLength);
         } finally {
             putMessageLock.unlock();
         }
