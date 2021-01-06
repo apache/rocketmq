@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -85,7 +87,7 @@ public class PlainPermissionManager {
         }
 
         JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
-        if (accounts != null && !accounts.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(accounts)) {
             List<PlainAccessConfig> plainAccessConfigList = accounts.toJavaList(PlainAccessConfig.class);
             for (PlainAccessConfig plainAccessConfig : plainAccessConfigList) {
                 PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
@@ -95,7 +97,7 @@ public class PlainPermissionManager {
 
         // For loading dataversion part just
         JSONArray tempDataVersion = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
-        if (tempDataVersion != null && !tempDataVersion.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(tempDataVersion)) {
             List<DataVersion> dataVersion = tempDataVersion.toJavaList(DataVersion.class);
             DataVersion firstElement = dataVersion.get(0);
             this.dataVersion.assignNewOne(firstElement);
@@ -280,7 +282,7 @@ public class PlainPermissionManager {
             throw new AclException(String.format("%s file is not data", fileHome + File.separator + fileName));
         }
         JSONArray globalWhiteAddrs = plainAclConfData.getJSONArray(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
-        if (globalWhiteAddrs != null && !globalWhiteAddrs.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(globalWhiteAddrs)) {
             whiteAddrs = globalWhiteAddrs.toJavaList(String.class);
         }
         JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
