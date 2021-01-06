@@ -440,7 +440,6 @@ public class HAService {
 
         private boolean dispatchReadRequest() {
             final int msgHeaderSize = 8 + 4; // phyoffset + size
-            int readSocketPos = this.byteBufferRead.position();
 
             while (true) {
                 int diff = this.byteBufferRead.position() - this.dispatchPosition;
@@ -459,13 +458,12 @@ public class HAService {
                     }
 
                     if (diff >= (msgHeaderSize + bodySize)) {
-                        byte[] bodyData = new byte[bodySize];
-                        this.byteBufferRead.position(this.dispatchPosition + msgHeaderSize);
-                        this.byteBufferRead.get(bodyData);
+                        byte[] bodyData = byteBufferRead.array();
+                        int dataStart = this.dispatchPosition + msgHeaderSize;
 
-                        HAService.this.defaultMessageStore.appendToCommitLog(masterPhyOffset, bodyData);
+                        HAService.this.defaultMessageStore.appendToCommitLog(
+                                masterPhyOffset, bodyData, dataStart, bodySize);
 
-                        this.byteBufferRead.position(readSocketPos);
                         this.dispatchPosition += msgHeaderSize + bodySize;
 
                         if (!reportSlaveMaxOffsetPlus()) {
