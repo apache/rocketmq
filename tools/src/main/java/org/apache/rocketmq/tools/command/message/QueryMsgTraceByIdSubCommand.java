@@ -38,7 +38,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-
 public class QueryMsgTraceByIdSubCommand implements SubCommand {
 
     @Override
@@ -74,13 +73,15 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
     }
 
     private void queryTraceByMsgId(final DefaultMQAdminExt admin, String msgId)
-            throws MQClientException, InterruptedException {
+        throws MQClientException, InterruptedException {
         admin.start();
-        QueryResult queryResult = admin.queryMessage(TopicValidator.RMQ_SYS_TRACE_TOPIC, msgId, 64, 0, System.currentTimeMillis());
+        QueryResult queryResult = admin.queryMessage(TopicValidator.RMQ_SYS_TRACE_TOPIC, msgId, 64, 0,
+            System.currentTimeMillis());
         List<MessageExt> messageList = queryResult.getMessageList();
         List<TraceView> traceViews = new ArrayList<>();
         for (MessageExt message : messageList) {
-            List<TraceView> traceView = TraceView.decodeFromTraceTransData(msgId, new String(message.getBody(), Charsets.UTF_8));
+            List<TraceView> traceView = TraceView.decodeFromTraceTransData(msgId,
+                new String(message.getBody(), Charsets.UTF_8));
             traceViews.addAll(traceView);
         }
 
@@ -88,58 +89,92 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
     }
 
     private void printMessageTrace(List<TraceView> traceViews) {
-        Map<String, List<TraceView>> consumerTraceMap = new HashMap<>(16);
+        Map<String, List<TraceView>> pushConsumerTraceMap = new HashMap<>(16);
+        Map<String, List<TraceView>> pullConsumerTraceMap = new HashMap<>(16);
         for (TraceView traceView : traceViews) {
             if (traceView.getMsgType().equals(TraceType.Pub.name())) {
                 System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
-                        "#Type",
-                        "#ProducerGroup",
-                        "#ClientHost",
-                        "#SendTime",
-                        "#CostTimes",
-                        "#Status"
+                    "#Type",
+                    "#ProducerGroup",
+                    "#ClientHost",
+                    "#SendTime",
+                    "#CostTimes",
+                    "#Status"
                 );
                 System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
-                        "Pub",
-                        traceView.getGroupName(),
-                        traceView.getClientHost(),
-                        DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
-                        traceView.getCostTime() + "ms",
-                        traceView.getStatus()
+                    "Pub",
+                    traceView.getGroupName(),
+                    traceView.getClientHost(),
+                    DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
+                    traceView.getCostTime() + "ms",
+                    traceView.getStatus()
                 );
                 System.out.printf("\n");
             }
             if (traceView.getMsgType().equals(TraceType.SubAfter.name())) {
                 String groupName = traceView.getGroupName();
-                if (consumerTraceMap.containsKey(groupName)) {
-                    consumerTraceMap.get(groupName).add(traceView);
+                if (pushConsumerTraceMap.containsKey(groupName)) {
+                    pushConsumerTraceMap.get(groupName).add(traceView);
                 } else {
                     ArrayList<TraceView> views = new ArrayList<>();
                     views.add(traceView);
-                    consumerTraceMap.put(groupName, views);
+                    pushConsumerTraceMap.put(groupName, views);
+                }
+            }
+            if (traceView.getMsgType().equals(TraceType.PullAfter.name())) {
+                String groupName = traceView.getGroupName();
+                if (pushConsumerTraceMap.containsKey(groupName)) {
+                    pullConsumerTraceMap.get(groupName).add(traceView);
+                } else {
+                    ArrayList<TraceView> views = new ArrayList<>();
+                    views.add(traceView);
+                    pullConsumerTraceMap.put(groupName, views);
                 }
             }
         }
 
-        Iterator<String> consumers = consumerTraceMap.keySet().iterator();
-        while (consumers.hasNext()) {
+        Iterator<String> pushConsumers = pushConsumerTraceMap.keySet().iterator();
+        while (pushConsumers.hasNext()) {
             System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
-                    "#Type",
-                    "#ConsumerGroup",
-                    "#ClientHost",
-                    "#ConsumerTime",
-                    "#CostTimes",
-                    "#Status"
+                "#Type",
+                "#ConsumerGroup",
+                "#ClientHost",
+                "#ConsumerTime",
+                "#CostTimes",
+                "#Status"
             );
-            List<TraceView> consumerTraces = consumerTraceMap.get(consumers.next());
-            for (TraceView traceView : consumerTraces) {
+            List<TraceView> pushConsumerTraces = pushConsumerTraceMap.get(pushConsumers.next());
+            for (TraceView traceView : pushConsumerTraces) {
                 System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
-                        "Sub",
-                        traceView.getGroupName(),
-                        traceView.getClientHost(),
-                        DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
-                        traceView.getCostTime() + "ms",
-                        traceView.getStatus()
+                    "PushSub",
+                    traceView.getGroupName(),
+                    traceView.getClientHost(),
+                    DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
+                    traceView.getCostTime() + "ms",
+                    traceView.getStatus()
+                );
+            }
+            System.out.printf("\n");
+        }
+        Iterator<String> pullConsumers = pullConsumerTraceMap.keySet().iterator();
+        while (pullConsumers.hasNext()) {
+            System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
+                "#Type",
+                "#ConsumerGroup",
+                "#ClientHost",
+                "#ConsumerTime",
+                "#CostTimes",
+                "#Status"
+            );
+            List<TraceView> pullConsumerTraces = pullConsumerTraceMap.get(pullConsumers.next());
+            for (TraceView traceView : pullConsumerTraces) {
+                System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
+                    "PullSub",
+                    traceView.getGroupName(),
+                    traceView.getClientHost(),
+                    DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
+                    traceView.getCostTime() + "ms",
+                    traceView.getStatus()
                 );
             }
             System.out.printf("\n");

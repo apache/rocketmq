@@ -41,12 +41,15 @@ import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.TopicMessageQueueChangeListener;
+import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.hook.ConsumeMessageContext;
+import org.apache.rocketmq.client.hook.ConsumeMessageHook;
 import org.apache.rocketmq.client.hook.FilterMessageHook;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientManager;
@@ -131,6 +134,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     private Map<String, TopicMessageQueueChangeListener> topicMessageQueueChangeListenerMap = new HashMap<String, TopicMessageQueueChangeListener>();
 
     private Map<String, Set<MessageQueue>> messageQueuesForTopic = new HashMap<String, Set<MessageQueue>>();
+
+    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
 
     private long consumeRequestFlowControlTimes = 0L;
 
@@ -520,6 +525,20 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 List<MessageExt> messages = consumeRequest.getMessageExts();
                 long offset = consumeRequest.getProcessQueue().removeMessage(messages);
                 assignedMessageQueue.updateConsumeOffset(consumeRequest.getMessageQueue(), offset);
+
+                ConsumeMessageContext consumeMessageContext = null;
+                if (this.hasHook()) {
+                    consumeMessageContext = new ConsumeMessageContext();
+                    consumeMessageContext.setNamespace(this.getDefaultLitePullConsumer().getNamespace());
+                    consumeMessageContext.setConsumerGroup(this.getDefaultLitePullConsumer().getConsumerGroup());
+                    consumeMessageContext.setProps(new HashMap<String, String>());
+                    consumeMessageContext.setMq(consumeRequest.getMessageQueue());
+                    consumeMessageContext.setMsgList(messages);
+                    consumeMessageContext.setSuccess(true);
+                    consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, ConsumeReturnType.SUCCESS.name());
+                    this.executeHookAfter(consumeMessageContext);
+                }
+
                 //If namespace not null , reset Topic without namespace.
                 this.resetTopic(messages);
                 return messages;
@@ -1068,5 +1087,36 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public void setPullTimeDelayMillsWhenException(long pullTimeDelayMillsWhenException) {
         this.pullTimeDelayMillsWhenException = pullTimeDelayMillsWhenException;
+    }
+
+    public boolean hasHook() {
+        return !this.consumeMessageHookList.isEmpty();
+    }
+
+    public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
+        this.consumeMessageHookList.add(hook);
+        log.info("register consumeMessageHook Hook, {}", hook.hookName());
+    }
+
+    public void executeHookBefore(final ConsumeMessageContext context) {
+        if (!this.consumeMessageHookList.isEmpty()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageBefore(context);
+                } catch (Throwable e) {
+                }
+            }
+        }
+    }
+
+    public void executeHookAfter(final ConsumeMessageContext context) {
+        if (!this.consumeMessageHookList.isEmpty()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageAfter(context);
+                } catch (Throwable e) {
+                }
+            }
+        }
     }
 }

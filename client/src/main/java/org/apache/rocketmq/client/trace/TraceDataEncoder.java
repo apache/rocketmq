@@ -109,6 +109,22 @@ public class TraceDataEncoder {
                     subAfterContext.setGroupName(line[8]);
                 }
                 resList.add(subAfterContext);
+            } else if (line[0].equals(TraceType.PullAfter.name())) {
+                TraceContext pullAfterContext = new TraceContext();
+                pullAfterContext.setTraceType(TraceType.PullAfter);
+                pullAfterContext.setTimeStamp(Long.parseLong(line[1]));
+                pullAfterContext.setRegionId(line[2]);
+                pullAfterContext.setGroupName(line[3]);
+                pullAfterContext.setRequestId(line[4]);
+                TraceBean bean = new TraceBean();
+                bean.setMsgId(line[5]);
+                bean.setRetryTimes(Integer.parseInt(line[6]));
+                bean.setKeys(line[7]);
+                pullAfterContext.setTraceBeans(new ArrayList<TraceBean>(1));
+                pullAfterContext.getTraceBeans().add(bean);
+                pullAfterContext.setSuccess(Boolean.parseBoolean(line[8]));
+                pullAfterContext.setContextCode(Integer.parseInt(line[9]));
+                resList.add(pullAfterContext);
             }
         }
         return resList;
@@ -173,7 +189,23 @@ public class TraceDataEncoder {
                         .append(ctx.getContextCode()).append(TraceConstants.CONTENT_SPLITOR)
                         .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)
                         .append(ctx.getGroupName()).append(TraceConstants.FIELD_SPLITOR);
-                    
+
+                }
+            }
+            break;
+            case PullAfter: {
+                for (TraceBean bean : ctx.getTraceBeans()) {
+                    sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.getRegionId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getRetryTimes()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
+                        .append(ctx.getContextCode()).append(TraceConstants.FIELD_SPLITOR);
+
                 }
             }
             break;

@@ -18,11 +18,16 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
 import java.util.List;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
+import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceDispatcher;
+import org.apache.rocketmq.client.trace.hook.PullConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -30,9 +35,12 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
+
+    private final InternalLogger log = ClientLogger.getLog();
 
     private final DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
@@ -145,6 +153,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      */
     private long topicMetadataCheckIntervalMillis = 30 * 1000;
 
+    /**
+     * Interface of asynchronous transfer data
+     */
+    private TraceDispatcher traceDispatcher = null;
+
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
 
     /**
@@ -170,6 +183,25 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     /**
+     * Constructor specifying consumer group and enabled msg trace flag.
+     *
+     * @param consumerGroup Consumer group.
+     */
+    public DefaultLitePullConsumer(final String consumerGroup, boolean enableMsgTrace) {
+        this(null, consumerGroup, null, enableMsgTrace, null);
+    }
+
+    /**
+     * Constructor specifying consumer group, enabled msg trace flag and customized trace topic name.
+     *
+     * @param consumerGroup Consumer group.
+     */
+    public DefaultLitePullConsumer(final String consumerGroup, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
+        this(null, consumerGroup, null, enableMsgTrace, customizedTraceTopic);
+    }
+
+    /**
      * Constructor specifying RPC hook.
      *
      * @param rpcHook RPC hook to execute before each remoting command.
@@ -179,20 +211,65 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     /**
+     * Constructor specifying RPC hook and enabled msg trace flag.
+     *
+     * @param rpcHook        RPC hook to execute before each remoting command.
+     * @param enableMsgTrace enabled msg trace flag.
+     */
+    public DefaultLitePullConsumer(RPCHook rpcHook, boolean enableMsgTrace) {
+        this(null, MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, enableMsgTrace, null);
+    }
+
+    /**
+     * Constructor specifying RPC hook, enabled msg trace flag and customized trace topic.
+     *
+     * @param rpcHook              RPC hook to execute before each remoting command.
+     * @param enableMsgTrace       enabled msg trace flag.
+     * @param customizedTraceTopic customized trace topic.
+     */
+    public DefaultLitePullConsumer(RPCHook rpcHook, boolean enableMsgTrace, final String customizedTraceTopic) {
+        this(null, MixAll.DEFAULT_CONSUMER_GROUP, rpcHook, enableMsgTrace, customizedTraceTopic);
+    }
+
+    /**
      * Constructor specifying consumer group, RPC hook
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     public DefaultLitePullConsumer(final String consumerGroup, RPCHook rpcHook) {
         this(null, consumerGroup, rpcHook);
     }
 
     /**
+     * Constructor specifying consumer group, RPC hook and enabled msg trace flag.
+     *
+     * @param consumerGroup  Consumer group.
+     * @param rpcHook        RPC hook to execute before each remoting command.
+     * @param enableMsgTrace enabled msg trace flag.
+     */
+    public DefaultLitePullConsumer(final String consumerGroup, RPCHook rpcHook, boolean enableMsgTrace) {
+        this(null, consumerGroup, rpcHook, enableMsgTrace, null);
+    }
+
+    /**
+     * Constructor specifying consumer group, RPC hook, enabled msg trace flag and customized trace topic.
+     *
+     * @param consumerGroup        Consumer group.
+     * @param rpcHook              RPC hook to execute before each remoting command.
+     * @param enableMsgTrace       enabled msg trace flag.
+     * @param customizedTraceTopic customized trace topic.
+     */
+    public DefaultLitePullConsumer(final String consumerGroup, RPCHook rpcHook, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
+        this(null, consumerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
+    }
+
+    /**
      * Constructor specifying namespace, consumer group and RPC hook.
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
@@ -200,10 +277,56 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
 
+    /**
+     * Constructor specifying namespace, consumer group, RPC hook and enabled msg trace flag.
+     *
+     * @param consumerGroup  Consumer group.
+     * @param rpcHook        RPC hook to execute before each remoting command.
+     * @param enableMsgTrace enabled msg trace flag.
+     */
+    public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
+        boolean enableMsgTrace) {
+        this(namespace, consumerGroup, rpcHook, enableMsgTrace, null);
+    }
+
+    /**
+     * Constructor specifying namespace, consumer group, RPC hook, enabled msg trace flag and customized trace topic.
+     *
+     * @param namespace
+     * @param consumerGroup        Consumer group.
+     * @param rpcHook              RPC hook to execute before each remoting command.
+     * @param enableMsgTrace       enabled msg trace flag.
+     * @param customizedTraceTopic customized trace topic.
+     */
+    public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
+        boolean enableMsgTrace, final String customizedTraceTopic) {
+        this.namespace = namespace;
+        this.consumerGroup = consumerGroup;
+        defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
+        if (enableMsgTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME,
+                    customizedTraceTopic, rpcHook);
+                traceDispatcher = dispatcher;
+                this.defaultLitePullConsumerImpl.registerConsumeMessageHook(
+                    new PullConsumeMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
+    }
+
     @Override
     public void start() throws MQClientException {
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
+        if (null != traceDispatcher) {
+            try {
+                traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
+            } catch (MQClientException e) {
+                log.warn("trace dispatcher start failed ", e);
+            }
+        }
     }
 
     @Override
@@ -274,7 +397,8 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void registerTopicMessageQueueChangeListener(String topic,
         TopicMessageQueueChangeListener topicMessageQueueChangeListener) throws MQClientException {
-        this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(withNamespace(topic), topicMessageQueueChangeListener);
+        this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(withNamespace(topic),
+            topicMessageQueueChangeListener);
     }
 
     @Override
