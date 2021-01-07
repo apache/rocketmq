@@ -132,7 +132,6 @@ public class AsyncProducer {
                     }
             	});
     	}
-	// 等待5s
 	countDownLatch.await();
     	// 如果不再发送消息，关闭Producer实例。
     	producer.shutdown();
