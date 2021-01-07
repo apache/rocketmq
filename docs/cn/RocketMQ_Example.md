@@ -122,16 +122,18 @@ public class AsyncProducer {
                     public void onSuccess(SendResult sendResult) {
                         System.out.printf("%-10d OK %s %n", index,
                             sendResult.getMsgId());
+			    countDownLatch.countDown();
                     }
                     @Override
                     public void onException(Throwable e) {
       	              System.out.printf("%-10d Exception %s %n", index, e);
       	              e.printStackTrace();
+		      countDownLatch.countDown();
                     }
             	});
     	}
-	// 等待5s
-	countDownLatch.await(5, TimeUnit.SECONDS);
+	// 等待
+	countDownLatch.await();
     	// 如果不再发送消息，关闭Producer实例。
     	producer.shutdown();
     }
