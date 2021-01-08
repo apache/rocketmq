@@ -246,6 +246,9 @@ public class ConsumeQueue {
                             this.mappedFileQueue.deleteLastMappedFile();
                             break;
                         } else {
+                            if (offset + size > phyOffset) {
+                                return;
+                            }
                             int pos = i + CQ_STORE_UNIT_SIZE;
                             mappedFile.setWrotePosition(pos);
                             mappedFile.setCommittedPosition(pos);
@@ -260,7 +263,7 @@ public class ConsumeQueue {
 
                         if (offset >= 0 && size > 0) {
 
-                            if (offset + size >= phyOffset) {
+                            if (offset + size > phyOffset) {
                                 return;
                             }
 
