@@ -242,13 +242,10 @@ public class ConsumeQueue {
                     long tagsCode = byteBuffer.getLong();
 
                     if (0 == i) {
-                        if (offset >= phyOffset) {
+                        if (offset + size > phyOffset) {
                             this.mappedFileQueue.deleteLastMappedFile();
                             break;
                         } else {
-                            if (offset + size > phyOffset) {
-                                return;
-                            }
                             int pos = i + CQ_STORE_UNIT_SIZE;
                             mappedFile.setWrotePosition(pos);
                             mappedFile.setCommittedPosition(pos);
