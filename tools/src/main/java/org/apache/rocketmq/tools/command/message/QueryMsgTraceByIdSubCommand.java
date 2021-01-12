@@ -37,9 +37,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-
 public class QueryMsgTraceByIdSubCommand implements SubCommand {
-    
+
     @Override
     public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("i", "msgId", true, "Message Id");
@@ -47,17 +46,17 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
         options.addOption(opt);
         return options;
     }
-    
+
     @Override
     public String commandDesc() {
         return "query a message trace";
     }
-    
+
     @Override
     public String commandName() {
         return "QueryMsgTraceById";
     }
-    
+
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
@@ -71,9 +70,9 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
             defaultMQAdminExt.shutdown();
         }
     }
-    
+
     private void queryTraceByMsgId(final DefaultMQAdminExt admin, String msgId)
-            throws MQClientException, InterruptedException {
+        throws MQClientException, InterruptedException {
         admin.start();
         QueryResult queryResult = admin.queryMessage(TopicValidator.RMQ_SYS_TRACE_TOPIC, msgId, 64, 0, System.currentTimeMillis());
         List<MessageExt> messageList = queryResult.getMessageList();
@@ -82,10 +81,10 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
             List<TraceView> traceView = TraceView.decodeFromTraceTransData(msgId, message);
             traceViews.addAll(traceView);
         }
-        
+
         this.printMessageTrace(traceViews);
     }
-    
+
     private void printMessageTrace(List<TraceView> traceViews) {
         Map<String, List<TraceView>> consumerTraceMap = new HashMap<>(16);
         for (TraceView traceView : traceViews) {
@@ -119,7 +118,7 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
                 }
             }
         }
-        
+
         Iterator<String> consumers = consumerTraceMap.keySet().iterator();
         while (consumers.hasNext()) {
             System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",

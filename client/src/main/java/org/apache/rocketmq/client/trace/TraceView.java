@@ -17,14 +17,13 @@
 
 package org.apache.rocketmq.client.trace;
 
-
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.commons.codec.Charsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TraceView {
-    
+
     private String msgId;
     private String tags;
     private String keys;
@@ -38,16 +37,16 @@ public class TraceView {
     private String topic;
     private String groupName;
     private String status;
-    
+
     public static List<TraceView> decodeFromTraceTransData(String key, MessageExt message) {
         List<TraceView> messageTraceViewList = new ArrayList<TraceView>();
         String messageBody = new String(message.getBody(), Charsets.UTF_8);
         if (messageBody == null || messageBody.length() <= 0) {
             return messageTraceViewList;
         }
-        
+
         List<TraceContext> traceContextList = TraceDataEncoder.decoderFromTraceDataString(messageBody);
-        
+
         for (TraceContext context : traceContextList) {
             TraceView messageTraceView = new TraceView();
             TraceBean traceBean = context.getTraceBeans().get(0);
@@ -58,8 +57,7 @@ public class TraceView {
             messageTraceView.setGroupName(context.getGroupName());
             if (context.isSuccess()) {
                 messageTraceView.setStatus("success");
-            }
-            else {
+            } else {
                 messageTraceView.setStatus("failed");
             }
             messageTraceView.setKeys(traceBean.getKeys());
@@ -75,107 +73,107 @@ public class TraceView {
         }
         return messageTraceViewList;
     }
-    
+
     public String getMsgId() {
         return msgId;
     }
-    
+
     public void setMsgId(String msgId) {
         this.msgId = msgId;
     }
-    
+
     public String getTags() {
         return tags;
     }
-    
+
     public void setTags(String tags) {
         this.tags = tags;
     }
-    
+
     public String getKeys() {
         return keys;
     }
-    
+
     public void setKeys(String keys) {
         this.keys = keys;
     }
-    
+
     public String getStoreHost() {
         return storeHost;
     }
-    
+
     public void setStoreHost(String storeHost) {
         this.storeHost = storeHost;
     }
-    
+
     public String getClientHost() {
         return clientHost;
     }
-    
+
     public void setClientHost(String clientHost) {
         this.clientHost = clientHost;
     }
-    
+
     public int getCostTime() {
         return costTime;
     }
-    
+
     public void setCostTime(int costTime) {
         this.costTime = costTime;
     }
-    
+
     public String getMsgType() {
         return msgType;
     }
-    
+
     public void setMsgType(String msgType) {
         this.msgType = msgType;
     }
-    
+
     public String getOffSetMsgId() {
         return offSetMsgId;
     }
-    
+
     public void setOffSetMsgId(String offSetMsgId) {
         this.offSetMsgId = offSetMsgId;
     }
-    
+
     public long getTimeStamp() {
         return timeStamp;
     }
-    
+
     public void setTimeStamp(long timeStamp) {
         this.timeStamp = timeStamp;
     }
-    
+
     public long getBornTime() {
         return bornTime;
     }
-    
+
     public void setBornTime(long bornTime) {
         this.bornTime = bornTime;
     }
-    
+
     public String getTopic() {
         return topic;
     }
-    
+
     public void setTopic(String topic) {
         this.topic = topic;
     }
-    
+
     public String getGroupName() {
         return groupName;
     }
-    
+
     public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
-    
+
     public String getStatus() {
         return status;
     }
-    
+
     public void setStatus(String status) {
         this.status = status;
     }

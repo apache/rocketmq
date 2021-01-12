@@ -84,19 +84,18 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(DefaultLitePullConsumerImpl.class)
 public class DefaultLitePullConsumerWithTraceTest {
-    
+
     @Spy
     private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-    
+
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
     @Mock
     private MQAdminImpl mQAdminImpl;
-    
+
     private AsyncTraceDispatcher asyncTraceDispatcher;
     private DefaultMQProducer traceProducer;
     private RebalanceImpl rebalanceImpl;
@@ -106,10 +105,9 @@ public class DefaultLitePullConsumerWithTraceTest {
     private String topic = "LitePullConsumerTest";
     private String brokerName = "BrokerA";
     private String producerGroupTraceTemp = TopicValidator.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
-    
+
     private String customerTraceTopic = "rmq_trace_topic_12345";
-    
-    
+
     @Before
     public void init() throws Exception {
         PowerMockito.suppress(PowerMockito.method(DefaultLitePullConsumerImpl.class, "updateTopicSubscribeInfoWhenSubscriptionChanged"));
@@ -120,7 +118,7 @@ public class DefaultLitePullConsumerWithTraceTest {
         field.setAccessible(true);
         field.set(rebalanceService, 100);
     }
-    
+
     @Test
     public void testSubscribe_PollMessageSuccess_WithDefaultTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createLitePullConsumerWithDefaultTraceTopic();
@@ -136,7 +134,7 @@ public class DefaultLitePullConsumerWithTraceTest {
             litePullConsumer.shutdown();
         }
     }
-    
+
     @Test
     public void testSubscribe_PollMessageSuccess_WithCustomizedTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createLitePullConsumerWithCustomizedTraceTopic();
@@ -152,7 +150,7 @@ public class DefaultLitePullConsumerWithTraceTest {
             litePullConsumer.shutdown();
         }
     }
-    
+
     private DefaultLitePullConsumer createLitePullConsumerWithDefaultTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis(), true);
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
@@ -161,7 +159,7 @@ public class DefaultLitePullConsumerWithTraceTest {
         initDefaultLitePullConsumer(litePullConsumer);
         return litePullConsumer;
     }
-    
+
     private DefaultLitePullConsumer createLitePullConsumerWithCustomizedTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis(), true, customerTraceTopic);
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
@@ -170,7 +168,7 @@ public class DefaultLitePullConsumerWithTraceTest {
         initDefaultLitePullConsumer(litePullConsumer);
         return litePullConsumer;
     }
-    
+
     private void initDefaultLitePullConsumer(DefaultLitePullConsumer litePullConsumer) throws Exception {
         asyncTraceDispatcher = (AsyncTraceDispatcher) litePullConsumer.getTraceDispatcher();
         traceProducer = asyncTraceDispatcher.getTraceProducer();
@@ -180,80 +178,79 @@ public class DefaultLitePullConsumerWithTraceTest {
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         field.set(litePullConsumerImpl, mQClientFactory);
-        
+
         PullAPIWrapper pullAPIWrapper = litePullConsumerImpl.getPullAPIWrapper();
         field = PullAPIWrapper.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         field.set(pullAPIWrapper, mQClientFactory);
-        
+
         Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         fieldTrace.setAccessible(true);
         fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientFactory);
-        
+
         field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
-        
+
         field = MQClientInstance.class.getDeclaredField("mQAdminImpl");
         field.setAccessible(true);
         field.set(mQClientFactory, mQAdminImpl);
-        
+
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         rebalanceImpl = (RebalanceImpl) field.get(litePullConsumerImpl);
         field = RebalanceImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         field.set(rebalanceImpl, mQClientFactory);
-        
+
         offsetStore = spy(litePullConsumerImpl.getOffsetStore());
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("offsetStore");
         field.setAccessible(true);
         field.set(litePullConsumerImpl, offsetStore);
-        
+
         traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        
+
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
-                nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
-                .thenReturn(createSendResult(SendStatus.SEND_OK));
-        
+            nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
+            .thenReturn(createSendResult(SendStatus.SEND_OK));
+
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
-                anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
-                .thenAnswer(new Answer<Object>() {
-                    @Override
-                    public Object answer(InvocationOnMock mock) throws Throwable {
-                        PullMessageRequestHeader requestHeader = mock.getArgument(1);
-                        MessageClientExt messageClientExt = new MessageClientExt();
-                        messageClientExt.setTopic(topic);
-                        messageClientExt.setQueueId(0);
-                        messageClientExt.setMsgId("123");
-                        messageClientExt.setBody(new byte[] {'a'});
-                        messageClientExt.setOffsetMsgId("234");
-                        messageClientExt.setBornHost(new InetSocketAddress(8080));
-                        messageClientExt.setStoreHost(new InetSocketAddress(8080));
-                        PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
-                        return pullResult;
-                    }
-                });
-        
+            anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
+            .thenAnswer(new Answer<Object>() {
+                @Override
+                public Object answer(InvocationOnMock mock) throws Throwable {
+                    PullMessageRequestHeader requestHeader = mock.getArgument(1);
+                    MessageClientExt messageClientExt = new MessageClientExt();
+                    messageClientExt.setTopic(topic);
+                    messageClientExt.setQueueId(0);
+                    messageClientExt.setMsgId("123");
+                    messageClientExt.setBody(new byte[] {'a'});
+                    messageClientExt.setOffsetMsgId("234");
+                    messageClientExt.setBornHost(new InetSocketAddress(8080));
+                    messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                    return pullResult;
+                }
+            });
+
         when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
-        
+
         doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
-        
+
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
-        
-        
+
     }
-    
+
     private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
-            List<MessageExt> messageExtList) throws Exception {
+        List<MessageExt> messageExtList) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (MessageExt messageExt : messageExtList) {
             outputStream.write(MessageDecoder.encode(messageExt, false));
         }
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
     }
-    
+
     private MessageQueue createMessageQueue() {
         MessageQueue messageQueue = new MessageQueue();
         messageQueue.setBrokerName(brokerName);
@@ -261,10 +258,10 @@ public class DefaultLitePullConsumerWithTraceTest {
         messageQueue.setTopic(topic);
         return messageQueue;
     }
-    
+
     private TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
-        
+
         topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
         List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
         BrokerData brokerData = new BrokerData();
@@ -275,7 +272,7 @@ public class DefaultLitePullConsumerWithTraceTest {
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
-        
+
         List<QueueData> queueDataList = new ArrayList<QueueData>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
@@ -287,7 +284,7 @@ public class DefaultLitePullConsumerWithTraceTest {
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;
     }
-    
+
     private SendResult createSendResult(SendStatus sendStatus) {
         SendResult sendResult = new SendResult();
         sendResult.setMsgId("123");
@@ -297,5 +294,5 @@ public class DefaultLitePullConsumerWithTraceTest {
         sendResult.setRegionId("HZ");
         return sendResult;
     }
-    
+
 }
