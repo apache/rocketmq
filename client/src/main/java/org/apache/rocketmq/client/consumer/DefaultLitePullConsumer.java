@@ -23,6 +23,10 @@ import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAverage
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
+import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceDispatcher;
+import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -30,9 +34,12 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
+
+    private final InternalLogger log = ClientLogger.getLog();
 
     private final DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
@@ -154,6 +161,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000 * 60 * 30));
 
     /**
+     * Interface of asynchronous transfer data
+     */
+    private TraceDispatcher traceDispatcher = null;
+
+    /**
      * Default constructor.
      */
     public DefaultLitePullConsumer() {
@@ -182,17 +194,68 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Constructor specifying consumer group, RPC hook
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     public DefaultLitePullConsumer(final String consumerGroup, RPCHook rpcHook) {
         this(null, consumerGroup, rpcHook);
     }
 
     /**
+     * Constructor specifying consumer group and enabled msg trace flag.
+     *
+     * @param consumerGroup  Consumer group.
+     * @param enableMsgTrace Switch flag instance for message trace.
+     */
+    public DefaultLitePullConsumer(final String consumerGroup, boolean enableMsgTrace) {
+        this(null, consumerGroup, null, enableMsgTrace, null);
+    }
+
+    /**
+     * Constructor specifying consumer group, enabled msg trace flag and customized trace topic name.
+     *
+     * @param consumerGroup        Consumer group.
+     * @param enableMsgTrace       Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     *                             trace topic name.
+     */
+    public DefaultLitePullConsumer(final String consumerGroup, boolean enableMsgTrace,
+        final String customizedTraceTopic) {
+        this(null, consumerGroup, null, enableMsgTrace, customizedTraceTopic);
+    }
+
+    /**
+     * Constructor specifying namespace, consumer group, RPC hook, enabled msg trace flag and customized trace topic
+     * name.
+     *
+     * @param namespace            Namespace for this MQ Producer instance.
+     * @param consumerGroup        Consume queue.
+     * @param rpcHook              RPC hook to execute before each remoting command.
+     * @param enableMsgTrace       Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     *                             trace topic name.
+     */
+    public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
+        boolean enableMsgTrace, final String customizedTraceTopic) {
+        this.namespace = namespace;
+        this.consumerGroup = consumerGroup;
+        defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
+        if (enableMsgTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, rpcHook);
+                traceDispatcher = dispatcher;
+                this.defaultLitePullConsumerImpl.registerConsumeMessageHook(
+                    new ConsumeMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
+    }
+
+    /**
      * Constructor specifying namespace, consumer group and RPC hook.
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
@@ -204,11 +267,21 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void start() throws MQClientException {
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
+        if (null != traceDispatcher) {
+            try {
+                traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
+            } catch (MQClientException e) {
+                log.warn("trace dispatcher start failed ", e);
+            }
+        }
     }
 
     @Override
     public void shutdown() {
         this.defaultLitePullConsumerImpl.shutdown();
+        if (null != traceDispatcher) {
+            traceDispatcher.shutdown();
+        }
     }
 
     @Override
@@ -489,5 +562,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setConsumeTimestamp(String consumeTimestamp) {
         this.consumeTimestamp = consumeTimestamp;
+    }
+
+    public TraceDispatcher getTraceDispatcher() {
+        return traceDispatcher;
     }
 }
