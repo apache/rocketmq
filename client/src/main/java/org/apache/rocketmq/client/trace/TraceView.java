@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.client.trace;
 
-
-
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.commons.codec.Charsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,8 +38,9 @@ public class TraceView {
     private String groupName;
     private String status;
 
-    public static List<TraceView> decodeFromTraceTransData(String key, String messageBody) {
+    public static List<TraceView> decodeFromTraceTransData(String key, MessageExt message) {
         List<TraceView> messageTraceViewList = new ArrayList<TraceView>();
+        String messageBody = new String(message.getBody(), Charsets.UTF_8);
         if (messageBody == null || messageBody.length() <= 0) {
             return messageTraceViewList;
         }
@@ -56,8 +57,7 @@ public class TraceView {
             messageTraceView.setGroupName(context.getGroupName());
             if (context.isSuccess()) {
                 messageTraceView.setStatus("success");
-            }
-            else {
+            } else {
                 messageTraceView.setStatus("failed");
             }
             messageTraceView.setKeys(traceBean.getKeys());
@@ -68,7 +68,7 @@ public class TraceView {
             messageTraceView.setOffSetMsgId(traceBean.getOffsetMsgId());
             messageTraceView.setTimeStamp(context.getTimeStamp());
             messageTraceView.setStoreHost(traceBean.getStoreHost());
-            messageTraceView.setClientHost(traceBean.getClientHost());
+            messageTraceView.setClientHost(message.getBornHostString());
             messageTraceViewList.add(messageTraceView);
         }
         return messageTraceViewList;

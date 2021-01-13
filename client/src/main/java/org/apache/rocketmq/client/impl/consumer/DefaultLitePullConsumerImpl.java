@@ -41,12 +41,15 @@ import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.TopicMessageQueueChangeListener;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.hook.ConsumeMessageContext;
+import org.apache.rocketmq.client.hook.ConsumeMessageHook;
 import org.apache.rocketmq.client.hook.FilterMessageHook;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientManager;
@@ -142,6 +145,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
 
+    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
+
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
         this.rpcHook = rpcHook;
@@ -156,6 +161,33 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             }
         });
         this.pullTimeDelayMillsWhenException = defaultLitePullConsumer.getPullTimeDelayMillsWhenException();
+    }
+
+    public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
+        this.consumeMessageHookList.add(hook);
+        log.info("register consumeMessageHook Hook, {}", hook.hookName());
+    }
+
+    public void executeHookBefore(final ConsumeMessageContext context) {
+        if (!this.consumeMessageHookList.isEmpty()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageBefore(context);
+                } catch (Throwable e) {
+                }
+            }
+        }
+    }
+
+    public void executeHookAfter(final ConsumeMessageContext context) {
+        if (!this.consumeMessageHookList.isEmpty()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageAfter(context);
+                } catch (Throwable e) {
+                }
+            }
+        }
     }
 
     private void checkServiceState() {
@@ -752,7 +784,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
                             topic, SubscriptionData.SUB_ALL);
                     }
-                    
+
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
 
                     switch (pullResult.getPullStatus()) {
@@ -845,6 +877,19 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             null
         );
         this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+        if (!this.consumeMessageHookList.isEmpty()) {
+            ConsumeMessageContext consumeMessageContext = null;
+            consumeMessageContext = new ConsumeMessageContext();
+            consumeMessageContext.setNamespace(defaultLitePullConsumer.getNamespace());
+            consumeMessageContext.setConsumerGroup(this.groupName());
+            consumeMessageContext.setMq(mq);
+            consumeMessageContext.setMsgList(pullResult.getMsgFoundList());
+            consumeMessageContext.setSuccess(false);
+            this.executeHookBefore(consumeMessageContext);
+            consumeMessageContext.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
+            consumeMessageContext.setSuccess(true);
+            this.executeHookAfter(consumeMessageContext);
+        }
         return pullResult;
     }
 
