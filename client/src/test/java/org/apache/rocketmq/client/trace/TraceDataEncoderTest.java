@@ -49,8 +49,7 @@ public class TraceDataEncoderTest {
             .append(245).append(TraceConstants.CONTENT_SPLITOR)
             .append(MessageType.Normal_Msg.ordinal()).append(TraceConstants.CONTENT_SPLITOR)
             .append("0A9A002600002A9F0000000000002329").append(TraceConstants.CONTENT_SPLITOR)
-            .append(true).append(TraceConstants.CONTENT_SPLITOR)
-            .append(UtilAll.ipToIPv4Str(UtilAll.getIP())).append(TraceConstants.FIELD_SPLITOR)
+            .append(true).append(TraceConstants.FIELD_SPLITOR)
             .toString();
     }
 
@@ -60,7 +59,6 @@ public class TraceDataEncoderTest {
         Assert.assertEquals(contexts.size(), 1);
         Assert.assertEquals(contexts.get(0).getTraceType(), TraceType.Pub);
     }
-
 
     @Test
     public void testEncoderFromContextBean() {
