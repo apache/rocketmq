@@ -20,8 +20,11 @@ package org.apache.rocketmq.client.consumer;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -516,7 +519,7 @@ public class DefaultLitePullConsumerTest {
         DefaultLitePullConsumer defaultLitePullConsumer = createSubscribeLitePullConsumer();
 
         DefaultLitePullConsumer mockConsumer = spy(defaultLitePullConsumer);
-        when(mockConsumer.poll(anyLong())).thenReturn(new ArrayList<>());
+        when(mockConsumer.poll(anyLong())).thenReturn(new ArrayList<MessageExt>());
 
         new AsyncConsumer().executeAsync(defaultLitePullConsumer);
 

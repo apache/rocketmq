@@ -20,14 +20,22 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
 
 /**
  * Average Hashing queue algorithm
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
-    private final InternalLogger log = ClientLogger.getLog();
+    private InternalLogger log;
+
+    public AllocateMessageQueueAveragely() {
+        log = ClientLogger.getLog();
+    }
+
+    public AllocateMessageQueueAveragely(InternalLogger log) {
+        this.log = log;
+    }
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,

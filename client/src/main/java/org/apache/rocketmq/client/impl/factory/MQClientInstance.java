@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -64,25 +63,28 @@ import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageQueueAssignment;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
 
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
@@ -964,6 +966,19 @@ public class MQClientInstance {
         this.adminExtTable.remove(group);
     }
 
+    public void rebalanceLater(long delayMillis) {
+        if (delayMillis <= 0) {
+            this.rebalanceService.wakeup();
+        } else {
+            this.scheduledExecutorService.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    MQClientInstance.this.rebalanceService.wakeup();
+                }
+            }, delayMillis, TimeUnit.MILLISECONDS);
+        }
+    }
+
     public void rebalanceImmediately() {
         this.rebalanceService.wakeup();
     }
@@ -1086,6 +1101,22 @@ public class MQClientInstance {
             } catch (Exception e) {
                 log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
             }
+        }
+
+        return null;
+    }
+
+    public Set<MessageQueueAssignment> queryAssignment(final String topic, final String consumerGroup, final String strategyName, final MessageModel messageModel, int timeout)
+        throws RemotingException, InterruptedException, MQBrokerException {
+        String brokerAddr = this.findBrokerAddrByTopic(topic);
+        if (null == brokerAddr) {
+            this.updateTopicRouteInfoFromNameServer(topic);
+            brokerAddr = this.findBrokerAddrByTopic(topic);
+        }
+
+        if (null != brokerAddr) {
+            return this.mQClientAPIImpl.queryAssignment(brokerAddr, topic, consumerGroup, clientId,  strategyName,
+                messageModel, timeout);
         }
 
         return null;

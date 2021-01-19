@@ -672,7 +672,7 @@ public class DefaultMessageStore implements MessageStore {
                             }
 
                             this.storeStatsService.getGetMessageTransferedMsgCount().incrementAndGet();
-                            getResult.addMessage(selectResult);
+                            getResult.addMessage(selectResult, offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE));
                             status = GetMessageStatus.FOUND;
                             nextPhyFileStartOffset = Long.MIN_VALUE;
                         }
@@ -1496,6 +1496,7 @@ public class DefaultMessageStore implements MessageStore {
         return haService;
     }
 
+    @Override
     public ScheduleMessageService getScheduleMessageService() {
         return scheduleMessageService;
     }

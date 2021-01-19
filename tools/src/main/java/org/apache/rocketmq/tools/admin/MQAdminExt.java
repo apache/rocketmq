@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
@@ -282,4 +283,10 @@ public interface MQAdminExt extends MQAdmin {
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
 
     boolean resumeCheckHalfMessage(final String topic, final String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+
+
+    void setMessageRequestMode(final String brokerAddr, final String topic, final String consumerGroup, final
+    MessageRequestMode mode, final int popWorkGroupSize, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException;
 }

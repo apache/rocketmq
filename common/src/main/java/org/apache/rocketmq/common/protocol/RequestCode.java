@@ -70,15 +70,19 @@ public class RequestCode {
 
     public static final int CHECK_CLIENT_CONFIG = 46;
 
-    public static final int UPDATE_AND_CREATE_ACL_CONFIG = 50;
+    public static final int UPDATE_AND_CREATE_ACL_CONFIG = 550;
 
-    public static final int DELETE_ACL_CONFIG = 51;
+    public static final int DELETE_ACL_CONFIG = 551;
 
-    public static final int GET_BROKER_CLUSTER_ACL_INFO = 52;
+    public static final int GET_BROKER_CLUSTER_ACL_INFO = 552;
 
-    public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG = 53;
+    public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG = 553;
 
-    public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
+    public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 554;
+
+    public static final int POP_MESSAGE = 50;
+    public static final int ACK_MESSAGE = 51;
+    public static final int CHANGE_MESSAGE_INVISIBLETIME = 53;
 
     public static final int PUT_KV_CONFIG = 100;
 
@@ -188,4 +192,7 @@ public class RequestCode {
     public static final int SEND_REPLY_MESSAGE_V2 = 325;
 
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
+
+    public static final int QUERY_ASSIGNMENT = 400;
+    public static final int SET_MESSAGE_REQUEST_MODE = 401;
 }

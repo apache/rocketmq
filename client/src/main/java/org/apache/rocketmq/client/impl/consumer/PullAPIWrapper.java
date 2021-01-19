@@ -23,6 +23,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -37,16 +38,17 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class PullAPIWrapper {
@@ -268,5 +270,56 @@ public class PullAPIWrapper {
 
     public void setDefaultBrokerId(long defaultBrokerId) {
         this.defaultBrokerId = defaultBrokerId;
+    }
+
+
+    /**
+     *
+     * @param mq
+     * @param invisibleTime
+     * @param maxNums
+     * @param consumerGroup
+     * @param timeout
+     * @param popCallback
+     * @param poll
+     * @param initMode
+    //     * @param expressionType
+    //     * @param expression
+     * @param order
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    public void popAsync(MessageQueue mq, long invisibleTime, int maxNums, String consumerGroup,
+                         long timeout, PopCallback popCallback, boolean poll, int initMode, boolean order, String expressionType, String expression)
+        throws MQClientException, RemotingException, InterruptedException {
+        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        if (null == findBrokerResult) {
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        }
+        if (findBrokerResult != null) {
+            PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
+            requestHeader.setConsumerGroup(consumerGroup);
+            requestHeader.setTopic(mq.getTopic());
+            requestHeader.setQueueId(mq.getQueueId());
+            requestHeader.setMaxMsgNums(maxNums);
+            requestHeader.setInvisibleTime(invisibleTime);
+            requestHeader.setInitMode(initMode);
+            requestHeader.setExpType(expressionType);
+            requestHeader.setExp(expression);
+            requestHeader.setOrder(order);
+            //give 1000 ms for server response
+            if (poll) {
+                requestHeader.setPollTime(timeout);
+                requestHeader.setBornTime(System.currentTimeMillis());
+                // timeout + 10s, fix the too earlier timeout of client when long polling.
+                timeout += 10 * 1000;
+            }
+            String brokerAddr = findBrokerResult.getBrokerAddr();
+            this.mQClientFactory.getMQClientAPIImpl().popMessageAsync(mq.getBrokerName(), brokerAddr, requestHeader, timeout, popCallback);
+            return;
+        }
+        throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 }
