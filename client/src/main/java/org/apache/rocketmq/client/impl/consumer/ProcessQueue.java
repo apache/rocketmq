@@ -48,7 +48,7 @@ public class ProcessQueue {
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong msgCount = new AtomicLong();
     private final AtomicLong msgSize = new AtomicLong();
-    private final Lock lockConsume = new ReentrantLock();
+    private final Lock consumeLock = new ReentrantLock();
     /**
      * A subset of msgTreeMap, will only be used when orderly consume
      */
@@ -367,8 +367,8 @@ public class ProcessQueue {
         this.lastLockTimestamp = lastLockTimestamp;
     }
 
-    public Lock getLockConsume() {
-        return lockConsume;
+    public Lock getConsumeLock() {
+        return consumeLock;
     }
 
     public long getLastPullTimestamp() {
