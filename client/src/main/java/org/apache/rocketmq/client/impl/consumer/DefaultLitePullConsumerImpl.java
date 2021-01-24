@@ -174,6 +174,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 try {
                     hook.consumeMessageBefore(context);
                 } catch (Throwable e) {
+                    log.error("consumeMessageHook {} executeHookBefore exception", hook.hookName(), e);
                 }
             }
         }
@@ -185,6 +186,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 try {
                     hook.consumeMessageAfter(context);
                 } catch (Throwable e) {
+                    log.error("consumeMessageHook {} executeHookAfter exception", hook.hookName(), e);
                 }
             }
         }
