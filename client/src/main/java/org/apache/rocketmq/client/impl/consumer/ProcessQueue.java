@@ -98,6 +98,10 @@ public class ProcessQueue {
                 log.error("getExpiredMsg exception", e);
             }
 
+            if (msg == null) {
+                continue;
+            }
+
             try {
 
                 pushConsumer.sendMessageBack(msg, 3);
