@@ -373,6 +373,11 @@ public abstract class RebalanceImpl {
 
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
+                if (isOrder) {
+                    // already locked
+                    pq.setLocked(true);
+                    pq.setLastLockTimestamp(System.currentTimeMillis());
+                }
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
