@@ -95,4 +95,11 @@ public class MixAllTest {
         assertThat(MixAll.LOCALHOST).isNotNull();
         assertThat(MixAll.getLocalhostByNetworkInterface()).isNotNull();
     }
+
+    @Test
+    public void testGetLocalAddress() throws Exception {
+        String localAddress = MixAll.getLocalAddress();
+        assertThat(localAddress).isNotNull();
+        assertThat(localAddress.length()).isGreaterThan(0);
+    }
 }
