@@ -35,6 +35,8 @@ public class ValidatorsTest {
         Validators.checkTopic("_%RETRY%Hello");
         Validators.checkTopic("-%RETRY%Hello");
         Validators.checkTopic("223-%RETRY%Hello");
+        Validators.checkTopic("ThisismeJack5435");
+        Validators.checkTopic("3265");
     }
 
     @Test
@@ -47,6 +49,8 @@ public class ValidatorsTest {
             assertThat(e).hasMessageStartingWith(String.format("The specified topic[%s] contains illegal characters, allowing only %s", illegalTopic, Validators.VALID_PATTERN_STR));
         }
     }
+
+
 
     @Test
     public void testCheckTopic_BlankTopic() {
@@ -70,6 +74,8 @@ public class ValidatorsTest {
             assertThat(e).hasMessageStartingWith("The specified topic is longer than topic max length");
         }
     }
+
+
 
     @Test
     public void testIsSystemTopic() {
