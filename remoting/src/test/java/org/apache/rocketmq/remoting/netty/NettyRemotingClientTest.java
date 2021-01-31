@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import java.lang.reflect.Field;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.Test;
