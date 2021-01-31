@@ -19,22 +19,24 @@ package org.apache.rocketmq.store.schedule;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.running.RunningStats;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -59,7 +61,7 @@ public class ScheduleMessageService extends ConfigManager {
         new ConcurrentHashMap<Integer, Long>(32);
     private final DefaultMessageStore defaultMessageStore;
     private final AtomicBoolean started = new AtomicBoolean(false);
-    private Timer timer;
+    private ScheduledExecutorService scheduledExecutorService;
     private MessageStore writeMessageStore;
     private int maxDelayLevel;
 
@@ -112,7 +114,7 @@ public class ScheduleMessageService extends ConfigManager {
 
     public void start() {
         if (started.compareAndSet(false, true)) {
-            this.timer = new Timer("ScheduleMessageTimerThread", true);
+            this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ScheduleMessageTimerThread", true));
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
                 Integer level = entry.getKey();
                 Long timeDelay = entry.getValue();
@@ -122,11 +124,11 @@ public class ScheduleMessageService extends ConfigManager {
                 }
 
                 if (timeDelay != null) {
-                    this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
+                    this.scheduledExecutorService.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME, TimeUnit.MILLISECONDS);
                 }
             }
 
-            this.timer.scheduleAtFixedRate(new TimerTask() {
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override
                 public void run() {
@@ -136,14 +138,14 @@ public class ScheduleMessageService extends ConfigManager {
                         log.error("scheduleAtFixedRate flush exception", e);
                     }
                 }
-            }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval());
+            }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval(), TimeUnit.MILLISECONDS);
         }
     }
 
     public void shutdown() {
         if (this.started.compareAndSet(true, false)) {
-            if (null != this.timer)
-                this.timer.cancel();
+            if (null != this.scheduledExecutorService)
+                this.scheduledExecutorService.shutdown();
         }
 
     }
@@ -221,7 +223,7 @@ public class ScheduleMessageService extends ConfigManager {
         return true;
     }
 
-    class DeliverDelayedMessageTimerTask extends TimerTask {
+    class DeliverDelayedMessageTimerTask implements Runnable {
         private final int delayLevel;
         private long offset;
 
@@ -239,7 +241,7 @@ public class ScheduleMessageService extends ConfigManager {
             } catch (Exception e) {
                 // XXX: warn and notify me
                 log.error("ScheduleMessageService, executeOnTimeup exception", e);
-                ScheduleMessageService.this.timer.schedule(this, DELAY_FOR_A_PERIOD);
+                ScheduleMessageService.this.scheduledExecutorService.schedule(this, DELAY_FOR_A_PERIOD, TimeUnit.MILLISECONDS);
             }
         }
 
@@ -322,7 +324,7 @@ public class ScheduleMessageService extends ConfigManager {
                                                 "ScheduleMessageService, a message time up, but reput it failed, topic: {} msgId {}",
                                                 msgExt.getTopic(), msgExt.getMsgId());
                                             this.offset = nextOffset;
-                                            ScheduleMessageService.this.timer.schedule(this, DELAY_FOR_A_PERIOD);
+                                            ScheduleMessageService.this.scheduledExecutorService.schedule(this, DELAY_FOR_A_PERIOD, TimeUnit.MILLISECONDS);
                                             ScheduleMessageService.this.updateOffset(this.delayLevel,
                                                 nextOffset);
                                             return;
@@ -342,7 +344,7 @@ public class ScheduleMessageService extends ConfigManager {
                                 }
                             } else {
                                 this.offset = nextOffset;
-                                ScheduleMessageService.this.timer.schedule(this, countdown);
+                                ScheduleMessageService.this.scheduledExecutorService.schedule(this, countdown, TimeUnit.MILLISECONDS);
                                 ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                                 return;
                             }
@@ -350,7 +352,7 @@ public class ScheduleMessageService extends ConfigManager {
 
                         nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
                         this.offset = nextOffset;
-                        ScheduleMessageService.this.timer.schedule(this, DELAY_FOR_A_WHILE);
+                        ScheduleMessageService.this.scheduledExecutorService.schedule(this, DELAY_FOR_A_WHILE, TimeUnit.MILLISECONDS);
                         ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                         return;
                     } finally {
@@ -370,7 +372,7 @@ public class ScheduleMessageService extends ConfigManager {
             } // end of if (cq != null)
 
             this.offset = failScheduleOffset;
-            ScheduleMessageService.this.timer.schedule(this, DELAY_FOR_A_WHILE);
+            ScheduleMessageService.this.scheduledExecutorService.schedule(this, DELAY_FOR_A_WHILE, TimeUnit.MILLISECONDS);
         }
 
         private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
