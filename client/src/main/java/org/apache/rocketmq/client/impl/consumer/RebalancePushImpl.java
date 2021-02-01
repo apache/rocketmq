@@ -88,11 +88,11 @@ public class RebalancePushImpl extends RebalanceImpl {
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             try {
-                if (pq.getLockConsume().tryLock(1000, TimeUnit.MILLISECONDS)) {
+                if (pq.getConsumeLock().tryLock(1000, TimeUnit.MILLISECONDS)) {
                     try {
                         return this.unlockDelay(mq, pq);
                     } finally {
-                        pq.getLockConsume().unlock();
+                        pq.getConsumeLock().unlock();
                     }
                 } else {
                     log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",
