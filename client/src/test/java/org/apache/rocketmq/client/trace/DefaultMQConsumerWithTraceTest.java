@@ -73,6 +73,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -88,6 +89,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(DefaultMQPushConsumerImpl.class)
+@PowerMockIgnore("javax.management.*")
 public class DefaultMQConsumerWithTraceTest {
     private String consumerGroup;
     private String consumerGroupNormal;
