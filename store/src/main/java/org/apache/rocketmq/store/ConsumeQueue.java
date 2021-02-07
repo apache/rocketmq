@@ -212,7 +212,7 @@ public class ConsumeQueue {
                         }
                     }
 
-                    return (mappedFile.getFileFromOffset() + offset) / CQ_STORE_UNIT_SIZE;
+                    return (mappedFile.getFileFromOffset() + offset) / CQ_STORE_UNIT_SIZE + 1;
                 } finally {
                     sbr.release();
                 }

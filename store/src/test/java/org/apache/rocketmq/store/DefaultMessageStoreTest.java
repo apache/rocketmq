@@ -195,7 +195,7 @@ public class DefaultMessageStoreTest {
         ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp());
-            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
+            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset - 1);
             assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
             assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
             indexBuffer.release();
@@ -216,8 +216,8 @@ public class DefaultMessageStoreTest {
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
             long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
-            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
-            SelectMappedBufferResult indexBuffer2 = consumeQueue.getIndexBuffer(offset2);
+            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset - 1);
+            SelectMappedBufferResult indexBuffer2 = consumeQueue.getIndexBuffer(offset2 - 1);
             assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
             assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
             assertThat(indexBuffer2.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
@@ -241,8 +241,8 @@ public class DefaultMessageStoreTest {
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
             long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
-            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
-            SelectMappedBufferResult indexBuffer2 = consumeQueue.getIndexBuffer(offset2);
+            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset - 1);
+            SelectMappedBufferResult indexBuffer2 = consumeQueue.getIndexBuffer(offset2 - 1);
             assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResults[totalCount - 1].getWroteOffset());
             assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResults[totalCount - 1].getWroteBytes());
             assertThat(indexBuffer2.getByteBuffer().getLong()).isEqualTo(appendMessageResults[0].getWroteOffset());
