@@ -160,6 +160,7 @@ public class ConsumeQueue {
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
             long leftIndexValue = -1L, rightIndexValue = -1L;
+            long storeTime = -1L;
             long minPhysicOffset = this.defaultMessageStore.getMinPhyOffset();
             SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
             if (null != sbr) {
@@ -177,7 +178,7 @@ public class ConsumeQueue {
                             continue;
                         }
 
-                        long storeTime =
+                        storeTime =
                             this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                         if (storeTime < 0) {
                             return 0;
@@ -204,7 +205,7 @@ public class ConsumeQueue {
                             offset = rightOffset;
                         } else if (rightIndexValue == -1) {
 
-                            offset = leftOffset;
+                            offset = storeTime != -1 && storeTime < timestamp ? leftOffset + CQ_STORE_UNIT_SIZE : leftOffset;
                         } else {
                             offset =
                                 Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp
