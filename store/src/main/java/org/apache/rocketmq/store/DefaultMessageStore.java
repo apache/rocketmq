@@ -1746,8 +1746,7 @@ public class DefaultMessageStore implements MessageStore {
             this.manualDeleteFileSeveralTimes = manualDeleteFileSeveralTimes;
         }
         public boolean isSpaceFull() {
-            String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathPhysic());
             double ratio = DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
             if (physicRatio > ratio) {
                 DefaultMessageStore.log.info("physic disk of commitLog used: " + physicRatio);
