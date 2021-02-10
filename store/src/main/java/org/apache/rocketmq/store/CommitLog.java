@@ -16,8 +16,11 @@
  */
 package org.apache.rocketmq.store;
 
+import java.net.Inet4Address;
 import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -59,7 +62,7 @@ public class CommitLog {
     private final FlushCommitLogService commitLogService;
 
     private final AppendMessageCallback appendMessageCallback;
-    private final ThreadLocal<MessageExtBatchEncoder> batchEncoderThreadLocal;
+    private final ThreadLocal<MessageExtEncoder> encoderThreadLocal;
     protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
     protected volatile long confirmOffset = -1L;
 
@@ -81,10 +84,10 @@ public class CommitLog {
         this.commitLogService = new CommitRealTimeService();
 
         this.appendMessageCallback = new DefaultAppendMessageCallback(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
-        batchEncoderThreadLocal = new ThreadLocal<MessageExtBatchEncoder>() {
+        encoderThreadLocal = new ThreadLocal<MessageExtEncoder>() {
             @Override
-            protected MessageExtBatchEncoder initialValue() {
-                return new MessageExtBatchEncoder(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
+            protected MessageExtEncoder initialValue() {
+                return new MessageExtEncoder(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
             }
         };
         this.putMessageLock = defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
@@ -598,12 +601,19 @@ public class CommitLog {
             msg.setStoreHostAddressV6Flag();
         }
 
+        MessageExtEncoder encoder = encoderThreadLocal.get();
+        PutMessageResult encodeResult = encoder.encode(msg);
+        if (encodeResult != null) {
+            return CompletableFuture.completedFuture(encodeResult);
+        }
+        msg.setEncodedBuff(encoder.encoderBuffer);
+
         long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
+            MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
             this.beginTimeInLock = beginLockTimestamp;
 
@@ -715,7 +725,7 @@ public class CommitLog {
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
         //fine-grained lock instead of the coarse-grained
-        MessageExtBatchEncoder batchEncoder = batchEncoderThreadLocal.get();
+        MessageExtEncoder batchEncoder = encoderThreadLocal.get();
 
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
 
@@ -1238,12 +1248,8 @@ public class CommitLog {
         DefaultAppendMessageCallback(final int size) {
             this.msgIdMemory = ByteBuffer.allocate(4 + 4 + 8);
             this.msgIdV6Memory = ByteBuffer.allocate(16 + 4 + 8);
-            this.msgStoreItemMemory = ByteBuffer.allocate(size + END_FILE_MIN_BLANK_LENGTH);
+            this.msgStoreItemMemory = ByteBuffer.allocate(END_FILE_MIN_BLANK_LENGTH);
             this.maxMessageSize = size;
-        }
-
-        public ByteBuffer getMsgStoreItemMemory() {
-            return msgStoreItemMemory;
         }
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
@@ -1255,12 +1261,9 @@ public class CommitLog {
 
             int sysflag = msgInner.getSysFlag();
 
-            int bornHostLength = (sysflag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
             int storeHostLength = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
-            ByteBuffer bornHostHolder = ByteBuffer.allocate(bornHostLength);
             ByteBuffer storeHostHolder = ByteBuffer.allocate(storeHostLength);
 
-            this.resetByteBuffer(storeHostHolder, storeHostLength);
             String msgId;
             if ((sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0) {
                 msgId = MessageDecoder.createMessageId(this.msgIdMemory, msgInner.getStoreHostBytes(storeHostHolder), wroteOffset);
@@ -1295,36 +1298,12 @@ public class CommitLog {
                     break;
             }
 
-            /**
-             * Serialize message
-             */
-            final byte[] propertiesData =
-                msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
-
-            final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
-
-            if (propertiesLength > Short.MAX_VALUE) {
-                log.warn("putMessage message properties length too long. length={}", propertiesData.length);
-                return new AppendMessageResult(AppendMessageStatus.PROPERTIES_SIZE_EXCEEDED);
-            }
-
-            final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
-            final int topicLength = topicData.length;
-
-            final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
-
-            final int msgLen = calMsgLength(msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
-
-            // Exceeds the maximum message
-            if (msgLen > this.maxMessageSize) {
-                CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
-                    + ", maxMessageSize: " + this.maxMessageSize);
-                return new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED);
-            }
+            ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
+            final int msgLen = preEncodeBuffer.getInt(0);
 
             // Determines whether there is sufficient free space
             if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
-                this.resetByteBuffer(this.msgStoreItemMemory, maxBlank);
+                this.msgStoreItemMemory.clear();
                 // 1 TOTALSIZE
                 this.msgStoreItemMemory.putInt(maxBlank);
                 // 2 MAGICCODE
@@ -1332,59 +1311,29 @@ public class CommitLog {
                 // 3 The remaining space may be any value
                 // Here the length of the specially set maxBlank
                 final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
-                byteBuffer.put(this.msgStoreItemMemory.array(), 0, maxBlank);
-                return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, maxBlank, msgId, msgInner.getStoreTimestamp(),
-                    queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
+                return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset,
+                        maxBlank, /* only wrote 8 bytes, but declare wrote maxBlank for compute write position */
+                        msgId, msgInner.getStoreTimestamp(),
+                        queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             }
 
-            // Initialization of storage space
-            this.resetByteBuffer(msgStoreItemMemory, msgLen);
-            // 1 TOTALSIZE
-            this.msgStoreItemMemory.putInt(msgLen);
-            // 2 MAGICCODE
-            this.msgStoreItemMemory.putInt(CommitLog.MESSAGE_MAGIC_CODE);
-            // 3 BODYCRC
-            this.msgStoreItemMemory.putInt(msgInner.getBodyCRC());
-            // 4 QUEUEID
-            this.msgStoreItemMemory.putInt(msgInner.getQueueId());
-            // 5 FLAG
-            this.msgStoreItemMemory.putInt(msgInner.getFlag());
+            int pos = 4 + 4 + 4 + 4 + 4;
             // 6 QUEUEOFFSET
-            this.msgStoreItemMemory.putLong(queueOffset);
+            preEncodeBuffer.putLong(pos, queueOffset);
+            pos += 8;
             // 7 PHYSICALOFFSET
-            this.msgStoreItemMemory.putLong(fileFromOffset + byteBuffer.position());
-            // 8 SYSFLAG
-            this.msgStoreItemMemory.putInt(msgInner.getSysFlag());
-            // 9 BORNTIMESTAMP
-            this.msgStoreItemMemory.putLong(msgInner.getBornTimestamp());
-            // 10 BORNHOST
-            this.resetByteBuffer(bornHostHolder, bornHostLength);
-            this.msgStoreItemMemory.put(msgInner.getBornHostBytes(bornHostHolder));
-            // 11 STORETIMESTAMP
-            this.msgStoreItemMemory.putLong(msgInner.getStoreTimestamp());
-            // 12 STOREHOSTADDRESS
-            this.resetByteBuffer(storeHostHolder, storeHostLength);
-            this.msgStoreItemMemory.put(msgInner.getStoreHostBytes(storeHostHolder));
-            // 13 RECONSUMETIMES
-            this.msgStoreItemMemory.putInt(msgInner.getReconsumeTimes());
-            // 14 Prepared Transaction Offset
-            this.msgStoreItemMemory.putLong(msgInner.getPreparedTransactionOffset());
-            // 15 BODY
-            this.msgStoreItemMemory.putInt(bodyLength);
-            if (bodyLength > 0)
-                this.msgStoreItemMemory.put(msgInner.getBody());
-            // 16 TOPIC
-            this.msgStoreItemMemory.put((byte) topicLength);
-            this.msgStoreItemMemory.put(topicData);
-            // 17 PROPERTIES
-            this.msgStoreItemMemory.putShort((short) propertiesLength);
-            if (propertiesLength > 0)
-                this.msgStoreItemMemory.put(propertiesData);
+            preEncodeBuffer.putLong(pos, fileFromOffset + byteBuffer.position());
+            int ipLen = (msgInner.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
+            pos += 8 + 4 + 8 + ipLen;
+            // refresh store time stamp in lock
+            preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
+
 
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             // Write messages to the queue buffer
-            byteBuffer.put(this.msgStoreItemMemory.array(), 0, msgLen);
-
+            byteBuffer.put(preEncodeBuffer);
+            msgInner.setEncodedBuff(null);
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgId,
                 msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
 
@@ -1447,7 +1396,7 @@ public class CommitLog {
                 totalMsgLen += msgLen;
                 // Determines whether there is sufficient free space
                 if ((totalMsgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
-                    this.resetByteBuffer(this.msgStoreItemMemory, 8);
+                    this.msgStoreItemMemory.clear();
                     // 1 TOTALSIZE
                     this.msgStoreItemMemory.putInt(maxBlank);
                     // 2 MAGICCODE
@@ -1462,9 +1411,13 @@ public class CommitLog {
                         beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
                 }
                 //move to add queue offset and commitlog offset
-                messagesByteBuff.position(msgPos + 20);
-                messagesByteBuff.putLong(queueOffset);
-                messagesByteBuff.putLong(wroteOffset + totalMsgLen - msgLen);
+                int pos = msgPos + 20;
+                messagesByteBuff.putLong(pos, queueOffset);
+                pos += 8;
+                messagesByteBuff.putLong(pos, wroteOffset + totalMsgLen - msgLen);
+                pos += 8 + 4 + 8 + storeHostLength;
+                // refresh store time stamp in lock
+                messagesByteBuff.putLong(pos, messageExtBatch.getStoreTimestamp());
 
                 storeHostBytes.rewind();
                 String msgId;
@@ -1503,19 +1456,104 @@ public class CommitLog {
 
     }
 
-    public static class MessageExtBatchEncoder {
+    public static class MessageExtEncoder {
         // Store the message content
-        private final ByteBuffer msgBatchMemory;
+        private final ByteBuffer encoderBuffer;
         // The maximum length of the message
         private final int maxMessageSize;
 
-        MessageExtBatchEncoder(final int size) {
-            this.msgBatchMemory = ByteBuffer.allocateDirect(size);
+        MessageExtEncoder(final int size) {
+            this.encoderBuffer = ByteBuffer.allocateDirect(size);
             this.maxMessageSize = size;
         }
 
-        public ByteBuffer encode(final MessageExtBatch messageExtBatch) {
-            msgBatchMemory.clear(); //not thread-safe
+        private void socketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
+            InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+            InetAddress address = inetSocketAddress.getAddress();
+            if (address instanceof Inet4Address) {
+                byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
+            } else {
+                byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 16);
+            }
+            byteBuffer.putInt(inetSocketAddress.getPort());
+        }
+
+        protected PutMessageResult encode(MessageExtBrokerInner msgInner) {
+            /**
+             * Serialize message
+             */
+            final byte[] propertiesData =
+                    msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
+
+            final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
+
+            if (propertiesLength > Short.MAX_VALUE) {
+                log.warn("putMessage message properties length too long. length={}", propertiesData.length);
+                return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
+            }
+
+            final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+            final int topicLength = topicData.length;
+
+            final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
+
+            final int msgLen = calMsgLength(msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
+
+            // Exceeds the maximum message
+            if (msgLen > this.maxMessageSize) {
+                CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
+                        + ", maxMessageSize: " + this.maxMessageSize);
+                return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+            }
+
+            // Initialization of storage space
+            this.resetByteBuffer(encoderBuffer, msgLen);
+            // 1 TOTALSIZE
+            this.encoderBuffer.putInt(msgLen);
+            // 2 MAGICCODE
+            this.encoderBuffer.putInt(CommitLog.MESSAGE_MAGIC_CODE);
+            // 3 BODYCRC
+            this.encoderBuffer.putInt(msgInner.getBodyCRC());
+            // 4 QUEUEID
+            this.encoderBuffer.putInt(msgInner.getQueueId());
+            // 5 FLAG
+            this.encoderBuffer.putInt(msgInner.getFlag());
+            // 6 QUEUEOFFSET, need update later
+            this.encoderBuffer.putLong(0);
+            // 7 PHYSICALOFFSET, need update later
+            this.encoderBuffer.putLong(0);
+            // 8 SYSFLAG
+            this.encoderBuffer.putInt(msgInner.getSysFlag());
+            // 9 BORNTIMESTAMP
+            this.encoderBuffer.putLong(msgInner.getBornTimestamp());
+            // 10 BORNHOST
+            socketAddress2ByteBuffer(msgInner.getBornHost() ,this.encoderBuffer);
+            // 11 STORETIMESTAMP
+            this.encoderBuffer.putLong(msgInner.getStoreTimestamp());
+            // 12 STOREHOSTADDRESS
+            socketAddress2ByteBuffer(msgInner.getStoreHost() ,this.encoderBuffer);
+            // 13 RECONSUMETIMES
+            this.encoderBuffer.putInt(msgInner.getReconsumeTimes());
+            // 14 Prepared Transaction Offset
+            this.encoderBuffer.putLong(msgInner.getPreparedTransactionOffset());
+            // 15 BODY
+            this.encoderBuffer.putInt(bodyLength);
+            if (bodyLength > 0)
+                this.encoderBuffer.put(msgInner.getBody());
+            // 16 TOPIC
+            this.encoderBuffer.put((byte) topicLength);
+            this.encoderBuffer.put(topicData);
+            // 17 PROPERTIES
+            this.encoderBuffer.putShort((short) propertiesLength);
+            if (propertiesLength > 0)
+                this.encoderBuffer.put(propertiesData);
+
+            encoderBuffer.flip();
+            return null;
+        }
+
+        protected ByteBuffer encode(final MessageExtBatch messageExtBatch) {
+            encoderBuffer.clear(); //not thread-safe
             int totalMsgLen = 0;
             ByteBuffer messagesByteBuff = messageExtBatch.wrap();
 
@@ -1570,53 +1608,53 @@ public class CommitLog {
                 }
 
                 // 1 TOTALSIZE
-                this.msgBatchMemory.putInt(msgLen);
+                this.encoderBuffer.putInt(msgLen);
                 // 2 MAGICCODE
-                this.msgBatchMemory.putInt(CommitLog.MESSAGE_MAGIC_CODE);
+                this.encoderBuffer.putInt(CommitLog.MESSAGE_MAGIC_CODE);
                 // 3 BODYCRC
-                this.msgBatchMemory.putInt(bodyCrc);
+                this.encoderBuffer.putInt(bodyCrc);
                 // 4 QUEUEID
-                this.msgBatchMemory.putInt(messageExtBatch.getQueueId());
+                this.encoderBuffer.putInt(messageExtBatch.getQueueId());
                 // 5 FLAG
-                this.msgBatchMemory.putInt(flag);
+                this.encoderBuffer.putInt(flag);
                 // 6 QUEUEOFFSET
-                this.msgBatchMemory.putLong(0);
+                this.encoderBuffer.putLong(0);
                 // 7 PHYSICALOFFSET
-                this.msgBatchMemory.putLong(0);
+                this.encoderBuffer.putLong(0);
                 // 8 SYSFLAG
-                this.msgBatchMemory.putInt(messageExtBatch.getSysFlag());
+                this.encoderBuffer.putInt(messageExtBatch.getSysFlag());
                 // 9 BORNTIMESTAMP
-                this.msgBatchMemory.putLong(messageExtBatch.getBornTimestamp());
+                this.encoderBuffer.putLong(messageExtBatch.getBornTimestamp());
                 // 10 BORNHOST
                 this.resetByteBuffer(bornHostHolder, bornHostLength);
-                this.msgBatchMemory.put(messageExtBatch.getBornHostBytes(bornHostHolder));
+                this.encoderBuffer.put(messageExtBatch.getBornHostBytes(bornHostHolder));
                 // 11 STORETIMESTAMP
-                this.msgBatchMemory.putLong(messageExtBatch.getStoreTimestamp());
+                this.encoderBuffer.putLong(messageExtBatch.getStoreTimestamp());
                 // 12 STOREHOSTADDRESS
                 this.resetByteBuffer(storeHostHolder, storeHostLength);
-                this.msgBatchMemory.put(messageExtBatch.getStoreHostBytes(storeHostHolder));
+                this.encoderBuffer.put(messageExtBatch.getStoreHostBytes(storeHostHolder));
                 // 13 RECONSUMETIMES
-                this.msgBatchMemory.putInt(messageExtBatch.getReconsumeTimes());
+                this.encoderBuffer.putInt(messageExtBatch.getReconsumeTimes());
                 // 14 Prepared Transaction Offset, batch does not support transaction
-                this.msgBatchMemory.putLong(0);
+                this.encoderBuffer.putLong(0);
                 // 15 BODY
-                this.msgBatchMemory.putInt(bodyLen);
+                this.encoderBuffer.putInt(bodyLen);
                 if (bodyLen > 0)
-                    this.msgBatchMemory.put(messagesByteBuff.array(), bodyPos, bodyLen);
+                    this.encoderBuffer.put(messagesByteBuff.array(), bodyPos, bodyLen);
                 // 16 TOPIC
-                this.msgBatchMemory.put((byte) topicLength);
-                this.msgBatchMemory.put(topicData);
+                this.encoderBuffer.put((byte) topicLength);
+                this.encoderBuffer.put(topicData);
                 // 17 PROPERTIES
-                this.msgBatchMemory.putShort((short) (propertiesLen + batchPropLen));
+                this.encoderBuffer.putShort((short) (propertiesLen + batchPropLen));
                 if (propertiesLen > 0) {
-                    this.msgBatchMemory.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
+                    this.encoderBuffer.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
                 }
                 if (batchPropLen > 0) {
-                    this.msgBatchMemory.put(batchPropData, 0, batchPropLen);
+                    this.encoderBuffer.put(batchPropData, 0, batchPropLen);
                 }
             }
-            msgBatchMemory.flip();
-            return msgBatchMemory;
+            encoderBuffer.flip();
+            return encoderBuffer;
         }
 
         private void resetByteBuffer(final ByteBuffer byteBuffer, final int limit) {

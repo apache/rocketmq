@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.store.CommitLog.MessageExtEncoder;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -42,7 +43,7 @@ public class AppendCallbackTest {
 
     AppendMessageCallback callback;
 
-    CommitLog.MessageExtBatchEncoder batchEncoder = new CommitLog.MessageExtBatchEncoder(10 * 1024 * 1024);
+    MessageExtEncoder batchEncoder = new MessageExtEncoder(10 * 1024 * 1024);
 
     @Before
     public void init() throws Exception {
