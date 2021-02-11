@@ -149,9 +149,8 @@ public class RocketMQSerializable {
         // String remark
         int remarkLength = headerBuffer.getInt();
         if (remarkLength > 0) {
-            byte[] remarkContent = new byte[remarkLength];
-            headerBuffer.get(remarkContent);
-            cmd.setRemark(new String(remarkContent, CHARSET_UTF8));
+            cmd.setRemark(new String(headerArray, headerBuffer.position(), remarkLength, CHARSET_UTF8));
+            headerBuffer.position(headerBuffer.position() + remarkLength);
         }
 
         // HashMap<String, String> extFields
@@ -172,19 +171,16 @@ public class RocketMQSerializable {
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
 
         short keySize;
-        byte[] keyContent;
         int valSize;
-        byte[] valContent;
         while (byteBuffer.hasRemaining()) {
             keySize = byteBuffer.getShort();
-            keyContent = new byte[keySize];
-            byteBuffer.get(keyContent);
-
+            String key = new String(bytes, byteBuffer.position(), keySize, CHARSET_UTF8);
+            byteBuffer.position(byteBuffer.position() + keySize);
             valSize = byteBuffer.getInt();
-            valContent = new byte[valSize];
-            byteBuffer.get(valContent);
+            String val = new String(bytes, byteBuffer.position(), valSize, CHARSET_UTF8);
+            byteBuffer.position(byteBuffer.position() + valSize);
 
-            map.put(new String(keyContent, CHARSET_UTF8), new String(valContent, CHARSET_UTF8));
+            map.put(key, val);
         }
         return map;
     }
