@@ -79,7 +79,8 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     /**
-     * @param writeMessageStore the writeMessageStore to set
+     * @param writeMessageStore
+     *     the writeMessageStore to set
      */
     public void setWriteMessageStore(MessageStore writeMessageStore) {
         this.writeMessageStore = writeMessageStore;
@@ -132,8 +133,7 @@ public class ScheduleMessageService extends ConfigManager {
                 @Override
                 public void run() {
                     try {
-                        if (started.get())
-                            ScheduleMessageService.this.persist();
+                        if (started.get()) ScheduleMessageService.this.persist();
                     } catch (Throwable e) {
                         log.error("scheduleAtFixedRate flush exception", e);
                     }
@@ -308,7 +308,7 @@ public class ScheduleMessageService extends ConfigManager {
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                         if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                                             log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
-                                                msgInner.getTopic(), msgInner);
+                                                    msgInner.getTopic(), msgInner);
                                             continue;
                                         }
                                         PutMessageResult putMessageResult =
