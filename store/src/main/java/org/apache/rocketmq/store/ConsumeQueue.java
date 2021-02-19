@@ -41,6 +41,7 @@ public class ConsumeQueue {
     private final String storePath;
     private final int mappedFileSize;
     private long maxPhysicOffset = -1;
+    private long maxStoreTime = -1;
     private volatile long minLogicOffset = 0;
     private ConsumeQueueExt consumeQueueExt = null;
 
@@ -108,6 +109,7 @@ public class ConsumeQueue {
                     if (offset >= 0 && size > 0) {
                         mappedFileOffset = i + CQ_STORE_UNIT_SIZE;
                         this.maxPhysicOffset = offset + size;
+                        this.maxStoreTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(offset, size);
                         if (isExtAddr(tagsCode)) {
                             maxExtAddr = tagsCode;
                         }
@@ -153,6 +155,9 @@ public class ConsumeQueue {
     }
 
     public long getOffsetInQueueByTime(final long timestamp) {
+        if (timestamp >= maxStoreTime) {
+            return getMaxOffsetInQueue();
+        }
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
             long offset = 0;
@@ -251,6 +256,7 @@ public class ConsumeQueue {
                             mappedFile.setCommittedPosition(pos);
                             mappedFile.setFlushedPosition(pos);
                             this.maxPhysicOffset = offset + size;
+                            this.maxStoreTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(offset, size);
                             // This maybe not take effect, when not every consume queue has extend file.
                             if (isExtAddr(tagsCode)) {
                                 maxExtAddr = tagsCode;
@@ -269,6 +275,7 @@ public class ConsumeQueue {
                             mappedFile.setCommittedPosition(pos);
                             mappedFile.setFlushedPosition(pos);
                             this.maxPhysicOffset = offset + size;
+                            this.maxStoreTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(offset, size);
                             if (isExtAddr(tagsCode)) {
                                 maxExtAddr = tagsCode;
                             }
@@ -471,6 +478,7 @@ public class ConsumeQueue {
                 }
             }
             this.maxPhysicOffset = offset + size;
+            this.maxStoreTime = this.defaultMessageStore.getCommitLog().pickupStoreTimestamp(offset, size);
             return mappedFile.appendMessage(this.byteBufferIndex.array());
         }
         return false;
@@ -583,5 +591,13 @@ public class ConsumeQueue {
      */
     public boolean isExtAddr(long tagsCode) {
         return ConsumeQueueExt.isExtAddr(tagsCode);
+    }
+
+    public long getMaxStoreTime() {
+        return maxStoreTime;
+    }
+
+    public void setMaxStoreTime(long maxStoreTime) {
+        this.maxStoreTime = maxStoreTime;
     }
 }
