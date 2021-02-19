@@ -584,7 +584,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));
     }
 
-    public void registerConsumeMessageHook(List<ConsumeMessageHook> sendMessageHookList) {
-        this.consumeMessageHookList = sendMessageHookList;
+    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
+        this.consumeMessageHookList = consumeMessageHookList;
     }
 }
