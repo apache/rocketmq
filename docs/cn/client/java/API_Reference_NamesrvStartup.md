@@ -78,7 +78,7 @@ createNamesrvController中会创建并初始化namesrvConfig和nettyServerConfig
 |类型|参数名称|描述|
 |------|-------|-------|
 |int|listenPort|nameServer监听的端口，是8888，后面会被初始化为9876|
-|int|serverWorkerThreads|netty的线程池线程个数|
+|int|serverWorkerThreads|netty的worker线程池线程个数|
 |int|serverCallbackExecutorThreads|netty的公共任务（发送，消费，心跳检测）的线程池线程个数|
 |int|serverSelectorThreads|io任务的线程池线程个数|
 |int|serverOnewaySemaphoreValue|发送oneway消息时的请求并发度|
@@ -96,7 +96,7 @@ createNamesrvController中会创建并初始化namesrvConfig和nettyServerConfig
 - serverWorkerThreads<br>
 `private int serverWorkerThreads = 8;`
     
-    netty业务线程池个数
+    netty的worker线程池个数，处理namesrv的业务逻辑线程
     
 - serverCallbackExecutorThreads<br>
 `private int serverCallbackExecutorThreads = 0;`
@@ -121,7 +121,7 @@ createNamesrvController中会创建并初始化namesrvConfig和nettyServerConfig
 - serverChannelMaxIdleTimeSeconds<br>
 `private int serverChannelMaxIdleTimeSeconds = 120;`
     
-    网络连接最大空闲时间，单位为秒。如果链接空闲时间超过此参数设置的值，连接将被关闭，这里的链接指的应该是producer，broker,consumer到namesrv的链接
+    网络连接最大空闲时间，单位为秒。如果链接空闲时间超过此参数设置的值，连接将被关闭，这里的链接指的应该是producer，broker,consumer到namesrv的长链接
     
 - serverSocketSndBufSize<br>
 `private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;`
@@ -164,7 +164,7 @@ namesrvConfig和nettyServerConfig里的这些配置都可以通过在命令行�
     
 
 - 创建netty处理响应的线程池，然后注册
-- 创建了一个定时线程池，调用scanNotActiveBroker方法每隔10s来检查哪些broker宕机了
+- 创建了一个定时线程池，调用scanNotActiveBroker方法每隔10s来检查哪些broker失去心跳了，如broker每30s上报一次，若连着45s没收到心跳的则剔除该broker
 - 创建一个定时线程池，调用printAllPeriodically方法每隔10秒来刷新kv配置
 - FileWatchService的作用应该是监听配置文件的改变，有变化有重新加载下
 ###namesrv启动过程三：释放资源
