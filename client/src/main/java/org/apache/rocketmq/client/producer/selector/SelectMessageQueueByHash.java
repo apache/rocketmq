@@ -27,7 +27,13 @@ public class SelectMessageQueueByHash implements MessageQueueSelector {
     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
         int value = arg.hashCode() % mqs.size();
         if (value < 0) {
-            value = Math.abs(value);
+            //when value=Integer.MIN_VALUE，Math.abs will return the nagative value
+            if (value == Integer.MIN_VALUE) {
+                //give a special positive value
+                value = 0;
+            } else {
+                value = Math.abs(value);
+            }
         }
         return mqs.get(value);
     }
