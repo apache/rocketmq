@@ -228,7 +228,8 @@ public class Producer {
                     statsBenchmark.getSendRequestFailedCount().get(), statsBenchmark.getReceiveResponseFailedCount().get());
             }
             producer.shutdown();
-        } catch (InterruptedException ignored) {
+        } catch (InterruptedException e) {
+            log.error("[Exit] Thread Interrupted Exception", e);
         }
     }
 
