@@ -65,6 +65,12 @@ public class ScheduleMessageService extends ConfigManager {
     private MessageStore writeMessageStore;
     private int maxDelayLevel;
 
+    public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
+        this.defaultMessageStore = defaultMessageStore;
+        this.writeMessageStore = defaultMessageStore;
+        this.brokerStatsManager = null;
+    }
+
     public ScheduleMessageService(final DefaultMessageStore defaultMessageStore, final BrokerStatsManager brokerStatsManager) {
         this.defaultMessageStore = defaultMessageStore;
         this.writeMessageStore = defaultMessageStore;
