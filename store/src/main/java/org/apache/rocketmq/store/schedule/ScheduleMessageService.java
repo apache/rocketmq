@@ -325,6 +325,9 @@ public class ScheduleMessageService extends ConfigManager {
 
                                         if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+                                            if (ScheduleMessageService.this.brokerStatsManager == null) {
+                                                continue;
+                                            }
                                             ScheduleMessageService.this.brokerStatsManager.incTopicPutNums(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
                                             ScheduleMessageService.this.brokerStatsManager.incTopicPutSize(msgInner.getTopic(),
                                                 putMessageResult.getAppendMessageResult().getWroteBytes());
