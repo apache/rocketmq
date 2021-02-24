@@ -573,7 +573,7 @@ public abstract class NettyRemotingAbstract {
             if (currentSize <= maxSize) {
                 this.eventQueue.add(event);
             } else {
-                log.warn("event queue size[{}] enough, so drop this event {}", currentSize, event.toString());
+                log.warn("event queue size [{}] over the limit [{}], so drop this event {}", currentSize, maxSize, event.toString());
             }
         }
 
