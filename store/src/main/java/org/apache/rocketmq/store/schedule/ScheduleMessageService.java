@@ -44,7 +44,6 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class ScheduleMessageService extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -59,7 +58,6 @@ public class ScheduleMessageService extends ConfigManager {
     private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
         new ConcurrentHashMap<Integer, Long>(32);
     private final DefaultMessageStore defaultMessageStore;
-    private final BrokerStatsManager brokerStatsManager;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private Timer timer;
     private MessageStore writeMessageStore;
@@ -68,13 +66,6 @@ public class ScheduleMessageService extends ConfigManager {
     public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
         this.writeMessageStore = defaultMessageStore;
-        this.brokerStatsManager = null;
-    }
-
-    public ScheduleMessageService(final DefaultMessageStore defaultMessageStore, final BrokerStatsManager brokerStatsManager) {
-        this.defaultMessageStore = defaultMessageStore;
-        this.writeMessageStore = defaultMessageStore;
-        this.brokerStatsManager = brokerStatsManager;
     }
 
     public static int queueId2DelayLevel(final int queueId) {
@@ -325,13 +316,12 @@ public class ScheduleMessageService extends ConfigManager {
 
                                         if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
-                                            if (ScheduleMessageService.this.brokerStatsManager == null) {
-                                                continue;
+                                            if (ScheduleMessageService.this.defaultMessageStore.getMessageStoreConfig().isEnableScheduleMessageStats()) {
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
+                                                    putMessageResult.getAppendMessageResult().getWroteBytes());
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
                                             }
-                                            ScheduleMessageService.this.brokerStatsManager.incTopicPutNums(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
-                                            ScheduleMessageService.this.brokerStatsManager.incTopicPutSize(msgInner.getTopic(),
-                                                putMessageResult.getAppendMessageResult().getWroteBytes());
-                                            ScheduleMessageService.this.brokerStatsManager.incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
                                             continue;
                                         } else {
                                             // XXX: warn and notify me

@@ -144,7 +144,7 @@ public class DefaultMessageStore implements MessageStore {
         }
         this.reputMessageService = new ReputMessageService();
 
-        this.scheduleMessageService = new ScheduleMessageService(this, brokerStatsManager);
+        this.scheduleMessageService = new ScheduleMessageService(this);
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
