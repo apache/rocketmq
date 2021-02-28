@@ -472,9 +472,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                             .putNettyEvent(new NettyEvent(NettyEventType.IDLE, remoteAddress, ctx.channel()));
                     }
                 }
+            }else{
+                ctx.fireUserEventTriggered(evt);
             }
-
-            ctx.fireUserEventTriggered(evt);
         }
 
         @Override
