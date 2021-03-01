@@ -83,7 +83,6 @@ public class MomentStatsItemSet {
 
             if (null != prev) {
                 statsItem = prev;
-                // statsItem.init();
             }
         }
 

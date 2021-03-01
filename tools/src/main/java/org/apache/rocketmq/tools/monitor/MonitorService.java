@@ -177,13 +177,11 @@ public class MonitorService {
                 try {
                     this.reportUndoneMsgs(consumerGroup);
                 } catch (Exception e) {
-                    // log.error("reportUndoneMsgs Exception", e);
                 }
 
                 try {
                     this.reportConsumerRunningInfo(consumerGroup);
                 } catch (Exception e) {
-                    // log.error("reportConsumerRunningInfo Exception", e);
                 }
             }
         }

@@ -166,7 +166,6 @@ public class StatsItemSet {
 
             if (null != prev) {
                 statsItem = prev;
-                // statsItem.init();
             }
         }
 

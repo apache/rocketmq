@@ -208,6 +208,8 @@ public class PrintMessageByQueueCommand implements SubCommand {
                         case NO_NEW_MSG:
                         case OFFSET_ILLEGAL:
                             break READQ;
+                        default:
+                            break;
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

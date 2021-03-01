@@ -258,6 +258,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                         responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
                     }
                     break;
+                default:
+                    break;
             }
 
             if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) {

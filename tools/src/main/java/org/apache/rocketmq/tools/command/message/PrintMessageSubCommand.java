@@ -152,6 +152,8 @@ public class PrintMessageSubCommand implements SubCommand {
                             case OFFSET_ILLEGAL:
                                 System.out.printf("%s print msg finished. status=%s, offset=%s", mq, pullResult.getPullStatus(), offset);
                                 break READQ;
+                            default:
+                                break;
                         }
                     } catch (Exception e) {
                         e.printStackTrace();

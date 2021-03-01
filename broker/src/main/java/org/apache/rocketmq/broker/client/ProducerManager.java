@@ -76,7 +76,6 @@ public class ProducerManager {
                         Iterator<Entry<Channel, ClientChannelInfo>> it = chlMap.entrySet().iterator();
                         while (it.hasNext()) {
                             Entry<Channel, ClientChannelInfo> item = it.next();
-                            // final Integer id = item.getKey();
                             final ClientChannelInfo info = item.getValue();
 
                             long diff = System.currentTimeMillis() - info.getLastUpdateTimestamp();

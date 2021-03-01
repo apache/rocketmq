@@ -217,6 +217,8 @@ public class IndexService {
                     break;
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
                     return;
+                default:
+                    break;
             }
 
             if (req.getUniqKey() != null) {
