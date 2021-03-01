@@ -9,6 +9,9 @@ notifications:
 
 language: java
 
+jdk:
+  - oraclejdk8
+
 matrix:
   include:
   # On OSX, run with default JDK only.
@@ -20,8 +23,8 @@ matrix:
 before_install:
   - echo 'MAVEN_OPTS="$MAVEN_OPTS -Xmx1024m -XX:MaxPermSize=512m -XX:+BytecodeVerificationLocal"' >> ~/.mavenrc
   - cat ~/.mavenrc
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then jdk_switcher use "$CUSTOM_JDK"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then jdk_switcher use "$CUSTOM_JDK"; fi
 
 script:
   - travis_retry mvn -B clean apache-rat:check
@@ -30,3 +33,4 @@ script:
 after_success:
   - mvn clean install -Pit-test
   - mvn sonar:sonar -Psonar-apache
+  - bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'

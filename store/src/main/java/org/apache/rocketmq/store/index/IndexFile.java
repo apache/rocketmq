@@ -77,7 +77,7 @@ public class IndexFile {
             this.indexHeader.updateByteBuffer();
             this.mappedByteBuffer.force();
             this.mappedFile.release();
-            log.info("flush index file eclipse time(ms) " + (System.currentTimeMillis() - beginTime));
+            log.info("flush index file elapsed time(ms) " + (System.currentTimeMillis() - beginTime));
         }
     }
 
@@ -134,7 +134,9 @@ public class IndexFile {
                     this.indexHeader.setBeginTimestamp(storeTimestamp);
                 }
 
-                this.indexHeader.incHashSlotCount();
+                if (invalidIndex == slotValue) {
+                    this.indexHeader.incHashSlotCount();
+                }
                 this.indexHeader.incIndexCount();
                 this.indexHeader.setEndPhyOffset(phyOffset);
                 this.indexHeader.setEndTimestamp(storeTimestamp);

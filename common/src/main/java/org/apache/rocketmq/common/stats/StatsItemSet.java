@@ -81,7 +81,7 @@ public class StatsItemSet {
                 } catch (Throwable ignored) {
                 }
             }
-        }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
+        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -91,7 +91,7 @@ public class StatsItemSet {
                 } catch (Throwable ignored) {
                 }
             }
-        }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
+        }, Math.abs(UtilAll.computeNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -101,7 +101,7 @@ public class StatsItemSet {
                 } catch (Throwable ignored) {
                 }
             }
-        }, Math.abs(UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60 * 24, TimeUnit.MILLISECONDS);
+        }, Math.abs(UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60 * 24, TimeUnit.MILLISECONDS);
     }
 
     private void samplingInSeconds() {
@@ -158,10 +158,65 @@ public class StatsItemSet {
         statsItem.getTimes().addAndGet(incTimes);
     }
 
+    public void addRTValue(final String statsKey, final int incValue, final int incTimes) {
+        StatsItem statsItem = this.getAndCreateRTStatsItem(statsKey);
+        statsItem.getValue().addAndGet(incValue);
+        statsItem.getTimes().addAndGet(incTimes);
+    }
+
+    public void delValue(final String statsKey) {
+        StatsItem statsItem = this.statsItemTable.get(statsKey);
+        if (null != statsItem) {
+            this.statsItemTable.remove(statsKey);
+        }
+    }
+
+    public void delValueByPrefixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().startsWith(statsKey + separator)) {
+                it.remove();
+            }
+        }
+    }
+
+    public void delValueByInfixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().contains(separator + statsKey + separator)) {
+                it.remove();
+            }
+        }
+    }
+
+    public void delValueBySuffixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().endsWith(separator + statsKey)) {
+                it.remove();
+            }
+        }
+    }
+
     public StatsItem getAndCreateStatsItem(final String statsKey) {
+        return getAndCreateItem(statsKey, false);
+    }
+
+    public StatsItem getAndCreateRTStatsItem(final String statsKey) {
+        return getAndCreateItem(statsKey, true);
+    }
+
+    public StatsItem getAndCreateItem(final String statsKey, boolean rtItem) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
-            statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
+            if (rtItem) {
+                statsItem = new RTStatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
+            } else {
+                statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
+            }
             StatsItem prev = this.statsItemTable.putIfAbsent(statsKey, statsItem);
 
             if (null != prev) {

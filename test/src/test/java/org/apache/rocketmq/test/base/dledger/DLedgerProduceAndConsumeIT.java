@@ -35,7 +35,6 @@ import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.factory.ProducerFactory;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.rocketmq.test.base.IntegrationTestBase.nextPort;
@@ -58,7 +57,7 @@ public class DLedgerProduceAndConsumeIT {
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
         storeConfig.setHaListenPort(nextPort());
-        storeConfig.setMapedFileSizeCommitLog(10 * 1024 * 1024);
+        storeConfig.setMappedFileSizeCommitLog(10 * 1024 * 1024);
         storeConfig.setEnableDLegerCommitLog(true);
         storeConfig.setdLegerGroup(brokerName);
         storeConfig.setdLegerSelfId(selfId);

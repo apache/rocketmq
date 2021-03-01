@@ -86,6 +86,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
             throw new MQClientException("TransactionListener is null", null);
         }
 
+        msg.setTopic(NamespaceUtil.wrapNamespace(this.getNamespace(), msg.getTopic()));
         return this.defaultMQProducerImpl.sendMessageInTransaction(msg, null, arg);
     }
 

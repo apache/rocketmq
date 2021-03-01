@@ -31,12 +31,12 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
 import org.junit.Before;
@@ -60,7 +60,7 @@ import static org.mockito.Mockito.when;
 public class DefaultMQProducerWithTraceTest {
 
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
 
@@ -75,7 +75,7 @@ public class DefaultMQProducerWithTraceTest {
     private String topic = "FooBar";
     private String producerGroupPrefix = "FooBar_PID";
     private String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
-    private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
+    private String producerGroupTraceTemp = TopicValidator.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
     private String customerTraceTopic = "rmq_trace_topic_12345";
 
     @Before
@@ -87,7 +87,7 @@ public class DefaultMQProducerWithTraceTest {
         producer.setNamesrvAddr("127.0.0.1:9876");
         normalProducer.setNamesrvAddr("127.0.0.1:9877");
         customTraceTopicproducer.setNamesrvAddr("127.0.0.1:9878");
-        message = new Message(topic, new byte[]{'a', 'b', 'c'});
+        message = new Message(topic, new byte[] {'a', 'b', 'c'});
         asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
         asyncTraceDispatcher.setTraceTopicName(customerTraceTopic);
         asyncTraceDispatcher.getHostProducer();
@@ -108,14 +108,13 @@ public class DefaultMQProducerWithTraceTest {
         field.setAccessible(true);
         field.set(mQClientFactory, mQClientAPIImpl);
 
-
         producer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
 
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
-                nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
+            nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
         when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
-                nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
-                .thenReturn(createSendResult(SendStatus.SEND_OK));
+            nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
+            .thenReturn(createSendResult(SendStatus.SEND_OK));
 
     }
 

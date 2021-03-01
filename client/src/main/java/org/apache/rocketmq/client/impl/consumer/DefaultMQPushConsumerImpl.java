@@ -83,7 +83,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     /**
      * Delay some time when exception occur
      */
-    private static final long PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION = 3000;
+    private long pullTimeDelayMillsWhenException = 3000;
     /**
      * Flow control interval
      */
@@ -115,6 +115,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
         this.defaultMQPushConsumer = defaultMQPushConsumer;
         this.rpcHook = rpcHook;
+        this.pullTimeDelayMillsWhenException = defaultMQPushConsumer.getPullTimeDelayMillsWhenException();
     }
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {
@@ -222,7 +223,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             this.makeSureStateOK();
         } catch (MQClientException e) {
             log.warn("pullMessage exception, consumer state not ok", e);
-            this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
+            this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
             return;
         }
 
@@ -282,7 +283,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     pullRequest.setNextOffset(offset);
                 }
             } else {
-                this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
+                this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
                 log.info("pull message later because not locked in broker, {}", pullRequest);
                 return;
             }
@@ -290,7 +291,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         final SubscriptionData subscriptionData = this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
         if (null == subscriptionData) {
-            this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
+            this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
             log.warn("find the consumer's subscription failed, {}", pullRequest);
             return;
         }
@@ -347,12 +348,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                             break;
                         case NO_NEW_MSG:
-                            pullRequest.setNextOffset(pullResult.getNextBeginOffset());
-
-                            DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
-
-                            DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
-                            break;
                         case NO_MATCHED_MSG:
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
@@ -397,7 +392,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     log.warn("execute the pull request exception", e);
                 }
 
-                DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
+                DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
             }
         };
 
@@ -444,7 +439,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             );
         } catch (Exception e) {
             log.error("pullKernelImpl exception", e);
-            this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);
+            this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
         }
     }
 
@@ -527,6 +522,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
             MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
             MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
+            MessageAccessor.clearProperty(newMsg, MessageConst.PROPERTY_TRANSACTION_PREPARED);
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
             this.mQClientFactory.getDefaultMQProducer().send(newMsg);
@@ -544,12 +540,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public synchronized void shutdown() {
+    public void shutdown() {
+        shutdown(0);
+    }
+
+    public synchronized void shutdown(long awaitTerminateMillis) {
         switch (this.serviceState) {
             case CREATE_JUST:
                 break;
             case RUNNING:
-                this.consumeMessageService.shutdown();
+                this.consumeMessageService.shutdown(awaitTerminateMillis);
                 this.persistConsumerOffset();
                 this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
                 this.mQClientFactory.shutdown();
@@ -579,7 +579,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.defaultMQPushConsumer.changeInstanceNameToPID();
                 }
 
-                this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);
+                this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);
 
                 this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
                 this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
@@ -623,7 +623,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
-                    this.consumeMessageService.shutdown();
+                    this.consumeMessageService.shutdown(defaultMQPushConsumer.getAwaitTerminationMillisWhenShutdown());
                     throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
                         + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
                         null);
@@ -1167,5 +1167,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     public void setConsumeMessageService(ConsumeMessageService consumeMessageService) {
         this.consumeMessageService = consumeMessageService;
 
+    }
+
+    public void setPullTimeDelayMillsWhenException(long pullTimeDelayMillsWhenException) {
+        this.pullTimeDelayMillsWhenException = pullTimeDelayMillsWhenException;
     }
 }

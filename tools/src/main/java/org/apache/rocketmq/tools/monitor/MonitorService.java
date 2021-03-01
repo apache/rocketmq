@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -83,7 +84,7 @@ public class MonitorService {
         try {
             this.defaultMQPushConsumer.setConsumeThreadMin(1);
             this.defaultMQPushConsumer.setConsumeThreadMax(1);
-            this.defaultMQPushConsumer.subscribe(MixAll.OFFSET_MOVED_EVENT, "*");
+            this.defaultMQPushConsumer.subscribe(TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT, "*");
             this.defaultMQPushConsumer.registerMessageListener(new MessageListenerConcurrently() {
 
                 @Override

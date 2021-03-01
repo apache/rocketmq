@@ -255,6 +255,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private long consumeTimeout = 15;
 
     /**
+     * Maximum time to await message consuming when shutdown consumer, 0 indicates no await.
+     */
+    private long awaitTerminationMillisWhenShutdown = 0;
+
+    /**
      * Interface of asynchronous transfer data
      */
     private TraceDispatcher traceDispatcher = null;
@@ -388,7 +393,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
         if (enableMsgTrace) {
             try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, rpcHook);
                 dispatcher.setHostConsumer(this.getDefaultMQPushConsumerImpl());
                 traceDispatcher = dispatcher;
                 this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
@@ -705,7 +710,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Override
     public void shutdown() {
-        this.defaultMQPushConsumerImpl.shutdown();
+        this.defaultMQPushConsumerImpl.shutdown(awaitTerminationMillisWhenShutdown);
         if (null != traceDispatcher) {
             traceDispatcher.shutdown();
         }
@@ -884,6 +889,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumeTimeout(final long consumeTimeout) {
         this.consumeTimeout = consumeTimeout;
+    }
+
+    public long getAwaitTerminationMillisWhenShutdown() {
+        return awaitTerminationMillisWhenShutdown;
+    }
+
+    public void setAwaitTerminationMillisWhenShutdown(long awaitTerminationMillisWhenShutdown) {
+        this.awaitTerminationMillisWhenShutdown = awaitTerminationMillisWhenShutdown;
     }
 
     public TraceDispatcher getTraceDispatcher() {

@@ -36,7 +36,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         {
             DefaultMessageStore originalStore = createMessageStore(base, false);
             doPutMessages(originalStore, topic, 0, 1000, 0);
-            Assert.assertEquals(11, originalStore.getMaxPhyOffset()/originalStore.getMessageStoreConfig().getMapedFileSizeCommitLog());
+            Assert.assertEquals(11, originalStore.getMaxPhyOffset()/originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog());
             Thread.sleep(500);
             Assert.assertEquals(0, originalStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
@@ -83,7 +83,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, originalStore.dispatchBehindBytes());
             dividedOffset = originalStore.getCommitLog().getMaxOffset();
-            dividedOffset = dividedOffset - dividedOffset % originalStore.getMessageStoreConfig().getMapedFileSizeCommitLog() + originalStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+            dividedOffset = dividedOffset - dividedOffset % originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog() + originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
             doGetMessages(originalStore, topic, 0, 1000, 0);
             originalStore.shutdown();
         }
@@ -144,7 +144,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, originalStore.dispatchBehindBytes());
             dividedOffset = originalStore.getCommitLog().getMaxOffset();
-            dividedOffset = dividedOffset - dividedOffset % originalStore.getMessageStoreConfig().getMapedFileSizeCommitLog() + originalStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+            dividedOffset = dividedOffset - dividedOffset % originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog() + originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
             originalStore.shutdown();
         }
         long maxPhysicalOffset;

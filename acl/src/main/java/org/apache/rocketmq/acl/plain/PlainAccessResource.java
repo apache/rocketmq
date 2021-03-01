@@ -43,7 +43,7 @@ public class PlainAccessResource implements AccessResource {
 
     private int requestCode;
 
-    //the content to calculate the content
+    // The content to calculate the content
     private byte[] content;
 
     private String signature;
