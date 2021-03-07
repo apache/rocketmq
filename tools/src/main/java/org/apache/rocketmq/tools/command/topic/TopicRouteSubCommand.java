@@ -109,7 +109,7 @@ public class TopicRouteSubCommand implements SubCommand {
         for (int i = 0; i < 158; i++) {
             System.out.print("-");
         }
-        System.out.print("%n");
+        System.out.printf("%n");
         System.out.printf(FORMAT, "Total:", map.keySet().size(), "", totalReadQueue, totalWriteQueue, "");
     }
 }
