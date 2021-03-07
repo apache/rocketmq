@@ -80,7 +80,7 @@ public class TopicRouteSubCommand implements SubCommand {
 
     private void printData(TopicRouteData topicRouteData, boolean useListFormat) {
         if (!useListFormat) {
-            System.out.printf("%s%n", topicRouteData.toJson(true));
+            System.out.printf("%s\n", topicRouteData.toJson(true));
             return;
         }
 
