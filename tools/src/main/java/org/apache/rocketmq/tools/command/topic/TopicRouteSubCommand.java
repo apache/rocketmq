@@ -34,7 +34,7 @@ import java.util.Map;
 
 public class TopicRouteSubCommand implements SubCommand {
 
-    private static final String FORMAT = "%-45s %-32s %-50s %-10s %-11s %-5s\n";
+    private static final String FORMAT = "%-45s %-32s %-50s %-10s %-11s %-5s%n";
 
     @Override
     public String commandName() {
@@ -80,7 +80,7 @@ public class TopicRouteSubCommand implements SubCommand {
 
     private void printData(TopicRouteData topicRouteData, boolean useListFormat) {
         if (!useListFormat) {
-            System.out.printf("%s\n", topicRouteData.toJson(true));
+            System.out.printf("%s%n", topicRouteData.toJson(true));
             return;
         }
 
@@ -109,7 +109,7 @@ public class TopicRouteSubCommand implements SubCommand {
         for (int i = 0; i < 158; i++) {
             System.out.print("-");
         }
-        System.out.print("\n");
+        System.out.print("%n");
         System.out.printf(FORMAT, "Total:", map.keySet().size(), "", totalReadQueue, totalWriteQueue, "");
     }
 }
