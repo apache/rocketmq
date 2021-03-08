@@ -63,7 +63,7 @@ public class CommitLog {
     private final FlushCommitLogService commitLogService;
 
     private final AppendMessageCallback appendMessageCallback;
-    private final ThreadLocal<MessageExtEncoder> encoderThreadLocal;
+    private final ThreadLocal<PutMessageThreadLocal> putMessageThreadLocal;
     protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
     protected volatile long confirmOffset = -1L;
 
@@ -85,10 +85,10 @@ public class CommitLog {
         this.commitLogService = new CommitRealTimeService();
 
         this.appendMessageCallback = new DefaultAppendMessageCallback(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
-        encoderThreadLocal = new ThreadLocal<MessageExtEncoder>() {
+        putMessageThreadLocal = new ThreadLocal<PutMessageThreadLocal>() {
             @Override
-            protected MessageExtEncoder initialValue() {
-                return new MessageExtEncoder(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
+            protected PutMessageThreadLocal initialValue() {
+                return new PutMessageThreadLocal(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
             }
         };
         this.putMessageLock = defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
@@ -556,6 +556,14 @@ public class CommitLog {
         return beginTimeInLock;
     }
 
+    private String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
+        keyBuilder.setLength(0);
+        keyBuilder.append(messageExt.getTopic());
+        keyBuilder.append('-');
+        keyBuilder.append(messageExt.getQueueId());
+        return keyBuilder.toString();
+    }
+
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -602,12 +610,13 @@ public class CommitLog {
             msg.setStoreHostAddressV6Flag();
         }
 
-        MessageExtEncoder encoder = encoderThreadLocal.get();
-        PutMessageResult encodeResult = encoder.encode(msg);
+        PutMessageThreadLocal putMessageThreadLocal = this.putMessageThreadLocal.get();
+        PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
         if (encodeResult != null) {
             return CompletableFuture.completedFuture(encodeResult);
         }
-        msg.setEncodedBuff(encoder.encoderBuffer);
+        msg.setEncodedBuff(putMessageThreadLocal.getEncoder().encoderBuffer);
+        PutMessageContext putMessageContext = new PutMessageContext(generateKey(putMessageThreadLocal.getKeyBuilder(), msg));
 
         long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
@@ -631,7 +640,7 @@ public class CommitLog {
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
             }
 
-            result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+            result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
             switch (result.getStatus()) {
                 case PUT_OK:
                     break;
@@ -645,7 +654,7 @@ public class CommitLog {
                         beginTimeInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
                     }
-                    result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+                    result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
@@ -726,9 +735,12 @@ public class CommitLog {
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
         //fine-grained lock instead of the coarse-grained
-        MessageExtEncoder batchEncoder = encoderThreadLocal.get();
+        PutMessageThreadLocal pmThreadLocal = this.putMessageThreadLocal.get();
+        MessageExtEncoder batchEncoder = pmThreadLocal.getEncoder();
 
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+
+        PutMessageContext putMessageContext = new PutMessageContext(generateKey(pmThreadLocal.getKeyBuilder(), messageExtBatch));
 
         putMessageLock.lock();
         try {
@@ -748,7 +760,7 @@ public class CommitLog {
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
             }
 
-            result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
+            result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback, putMessageContext);
             switch (result.getStatus()) {
                 case PUT_OK:
                     break;
@@ -762,7 +774,7 @@ public class CommitLog {
                         beginTimeInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
                     }
-                    result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback);
+                    result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback, putMessageContext);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
@@ -1241,8 +1253,6 @@ public class CommitLog {
         private final ByteBuffer msgStoreItemMemory;
         // The maximum length of the message
         private final int maxMessageSize;
-        // Build Message Key
-        private final StringBuilder keyBuilder = new StringBuilder();
 
         private final StringBuilder msgIdBuilder = new StringBuilder();
 
@@ -1254,7 +1264,7 @@ public class CommitLog {
         }
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
-            final MessageExtBrokerInner msgInner) {
+            final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             // PHY OFFSET
@@ -1271,11 +1281,7 @@ public class CommitLog {
             };
 
             // Record ConsumeQueue information
-            keyBuilder.setLength(0);
-            keyBuilder.append(msgInner.getTopic());
-            keyBuilder.append('-');
-            keyBuilder.append(msgInner.getQueueId());
-            String key = keyBuilder.toString();
+            String key = putMessageContext.getTopicQueueTableKey();
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
             if (null == queueOffset) {
                 queueOffset = 0L;
@@ -1352,16 +1358,12 @@ public class CommitLog {
         }
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
-            final MessageExtBatch messageExtBatch) {
+            final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
             byteBuffer.mark();
             //physical offset
             long wroteOffset = fileFromOffset + byteBuffer.position();
             // Record ConsumeQueue information
-            keyBuilder.setLength(0);
-            keyBuilder.append(messageExtBatch.getTopic());
-            keyBuilder.append('-');
-            keyBuilder.append(messageExtBatch.getQueueId());
-            String key = keyBuilder.toString();
+            String key = putMessageContext.getTopicQueueTableKey();
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
             if (null == queueOffset) {
                 queueOffset = 0L;
@@ -1661,5 +1663,34 @@ public class CommitLog {
             byteBuffer.limit(limit);
         }
 
+    }
+
+    static class PutMessageThreadLocal {
+        private MessageExtEncoder encoder;
+        private StringBuilder keyBuilder;
+        PutMessageThreadLocal(int size) {
+            encoder = new MessageExtEncoder(size);
+            keyBuilder = new StringBuilder();
+        }
+
+        public MessageExtEncoder getEncoder() {
+            return encoder;
+        }
+
+        public StringBuilder getKeyBuilder() {
+            return keyBuilder;
+        }
+    }
+
+    static class PutMessageContext {
+        private String topicQueueTableKey;
+
+        public PutMessageContext(String topicQueueTableKey) {
+            this.topicQueueTableKey = topicQueueTableKey;
+        }
+
+        public String getTopicQueueTableKey() {
+            return topicQueueTableKey;
+        }
     }
 }
