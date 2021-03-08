@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.CommitLog.MessageExtEncoder;
+import org.apache.rocketmq.store.CommitLog.PutMessageContext;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -88,7 +89,8 @@ public class AppendCallbackTest {
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
-        AppendMessageResult result = callback.doAppend(0, buff, 1000, messageExtBatch);
+        AppendMessageResult result =
+                callback.doAppend(0, buff, 1000, messageExtBatch, new PutMessageContext(topic + "-" + queue));
         assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
         assertEquals(0, result.getWroteOffset());
         assertEquals(0, result.getLogicsOffset());
@@ -125,7 +127,8 @@ public class AppendCallbackTest {
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
-        AppendMessageResult result = callback.doAppend(0, buff, 1000, messageExtBatch);
+        AppendMessageResult result =
+                callback.doAppend(0, buff, 1000, messageExtBatch, new PutMessageContext(topic + "-" + queue));
         assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
         assertEquals(0, result.getWroteOffset());
         assertEquals(0, result.getLogicsOffset());
@@ -157,7 +160,8 @@ public class AppendCallbackTest {
 
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
-        AppendMessageResult allresult = callback.doAppend(0, buff, 1024 * 10, messageExtBatch);
+        AppendMessageResult allresult =
+                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, new PutMessageContext(topic + "-" + queue));
 
         assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         assertEquals(0, allresult.getWroteOffset());
@@ -217,7 +221,8 @@ public class AppendCallbackTest {
 
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
-        AppendMessageResult allresult = callback.doAppend(0, buff, 1024 * 10, messageExtBatch);
+        AppendMessageResult allresult =
+                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, new PutMessageContext(topic + "-" + queue));
 
         assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         assertEquals(0, allresult.getWroteOffset());
