@@ -86,11 +86,12 @@ public class AppendCallbackTest {
         messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+        PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
         AppendMessageResult result =
-                callback.doAppend(0, buff, 1000, messageExtBatch, new PutMessageContext(topic + "-" + queue));
+                callback.doAppend(0, buff, 1000, messageExtBatch, putMessageContext);
         assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
         assertEquals(0, result.getWroteOffset());
         assertEquals(0, result.getLogicsOffset());
@@ -124,11 +125,12 @@ public class AppendCallbackTest {
         messageExtBatch.setStoreHost(new InetSocketAddress("::1", 124));
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+        PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
         AppendMessageResult result =
-                callback.doAppend(0, buff, 1000, messageExtBatch, new PutMessageContext(topic + "-" + queue));
+                callback.doAppend(0, buff, 1000, messageExtBatch, putMessageContext);
         assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
         assertEquals(0, result.getWroteOffset());
         assertEquals(0, result.getLogicsOffset());
@@ -158,10 +160,11 @@ public class AppendCallbackTest {
         messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+        PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         AppendMessageResult allresult =
-                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, new PutMessageContext(topic + "-" + queue));
+                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
 
         assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         assertEquals(0, allresult.getWroteOffset());
@@ -219,10 +222,11 @@ public class AppendCallbackTest {
         messageExtBatch.setStoreHost(new InetSocketAddress("::1", 124));
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+        PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         AppendMessageResult allresult =
-                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, new PutMessageContext(topic + "-" + queue));
+                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
 
         assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         assertEquals(0, allresult.getWroteOffset());
