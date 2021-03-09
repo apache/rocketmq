@@ -80,4 +80,7 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 211;
 
+    public static final int POLLING_FULL = 209;
+
+    public static final int POLLING_TIMEOUT = 210;
 }

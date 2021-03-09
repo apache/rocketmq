@@ -52,6 +52,8 @@ public class MessageConst {
     public static final String PROPERTY_PUSH_REPLY_TIME = "PUSH_REPLY_TIME";
     public static final String PROPERTY_CLUSTER = "CLUSTER";
     public static final String PROPERTY_MESSAGE_TYPE = "MSG_TYPE";
+    public static final String PROPERTY_POP_CK = "POP_CK";
+    public static final String PROPERTY_FIRST_POP_TIME = "1ST_POP_TIME";
 
     public static final String KEY_SEPARATOR = " ";
 
@@ -80,6 +82,8 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
         STRING_HASH_SET.add(PROPERTY_MAX_RECONSUME_TIMES);
         STRING_HASH_SET.add(PROPERTY_CONSUME_START_TIMESTAMP);
+        STRING_HASH_SET.add(PROPERTY_POP_CK);
+        STRING_HASH_SET.add(PROPERTY_FIRST_POP_TIME);
         STRING_HASH_SET.add(PROPERTY_INSTANCE_ID);
         STRING_HASH_SET.add(PROPERTY_CORRELATION_ID);
         STRING_HASH_SET.add(PROPERTY_MESSAGE_REPLY_TO_CLIENT);
