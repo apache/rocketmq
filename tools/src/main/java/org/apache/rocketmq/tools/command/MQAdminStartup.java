@@ -48,6 +48,7 @@ import org.apache.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
 import org.apache.rocketmq.tools.command.consumer.ConsumerStatusSubCommand;
 import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
 import org.apache.rocketmq.tools.command.consumer.GetConsumerConfigSubCommand;
+import org.apache.rocketmq.tools.command.consumer.SetConsumeModeSubCommand;
 import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
@@ -160,6 +161,7 @@ public class MQAdminStartup {
         initCommand(new UpdateTopicSubCommand());
         initCommand(new DeleteTopicSubCommand());
         initCommand(new UpdateSubGroupSubCommand());
+        initCommand(new SetConsumeModeSubCommand());
         initCommand(new DeleteSubscriptionGroupCommand());
         initCommand(new UpdateBrokerConfigSubCommand());
         initCommand(new UpdateTopicPermSubCommand());
