@@ -20,8 +20,10 @@ package org.apache.rocketmq.client.consumer;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-import java.util.*;
-
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -52,11 +54,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
@@ -70,9 +69,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(DefaultLitePullConsumerImpl.class)
-@PowerMockIgnore("javax.management.*")
+@RunWith(MockitoJUnitRunner.class)
 public class DefaultLitePullConsumerTest {
     @Spy
     private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
@@ -94,13 +91,16 @@ public class DefaultLitePullConsumerTest {
 
     @Before
     public void init() throws Exception {
-        PowerMockito.suppress(PowerMockito.method(DefaultLitePullConsumerImpl.class, "updateTopicSubscribeInfoWhenSubscriptionChanged"));
         Field field = MQClientInstance.class.getDeclaredField("rebalanceService");
         field.setAccessible(true);
         RebalanceService rebalanceService = (RebalanceService) field.get(mQClientFactory);
         field = RebalanceService.class.getDeclaredField("waitInterval");
         field.setAccessible(true);
         field.set(rebalanceService, 100);
+
+        field = DefaultLitePullConsumerImpl.class.getDeclaredField("doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged");
+        field.setAccessible(true);
+        field.set(null, true);
     }
 
     @Test
@@ -183,6 +183,7 @@ public class DefaultLitePullConsumerTest {
         when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
         MessageQueue messageQueue = createMessageQueue();
         litePullConsumer.assign(Collections.singletonList(messageQueue));
+        litePullConsumer.pause(Collections.singletonList(messageQueue));
         long offset = litePullConsumer.committed(messageQueue);
         litePullConsumer.seek(messageQueue, offset);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
@@ -199,6 +200,7 @@ public class DefaultLitePullConsumerTest {
         when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
         MessageQueue messageQueue = createMessageQueue();
         litePullConsumer.assign(Collections.singletonList(messageQueue));
+        litePullConsumer.pause(Collections.singletonList(messageQueue));
         litePullConsumer.seekToBegin(messageQueue);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
         field.setAccessible(true);
@@ -214,6 +216,7 @@ public class DefaultLitePullConsumerTest {
         when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
         MessageQueue messageQueue = createMessageQueue();
         litePullConsumer.assign(Collections.singletonList(messageQueue));
+        litePullConsumer.pause(Collections.singletonList(messageQueue));
         litePullConsumer.seekToEnd(messageQueue);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
         field.setAccessible(true);
@@ -229,6 +232,7 @@ public class DefaultLitePullConsumerTest {
         when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(100L);
         MessageQueue messageQueue = createMessageQueue();
         litePullConsumer.assign(Collections.singletonList(messageQueue));
+        litePullConsumer.pause(Collections.singletonList(messageQueue));
         try {
             litePullConsumer.seek(messageQueue, -1);
             failBecauseExceptionWasNotThrown(MQClientException.class);
@@ -516,9 +520,6 @@ public class DefaultLitePullConsumerTest {
     @Test
     public void testConsumerAfterShutdown() throws Exception {
         DefaultLitePullConsumer defaultLitePullConsumer = createSubscribeLitePullConsumer();
-
-        DefaultLitePullConsumer mockConsumer = spy(defaultLitePullConsumer);
-        when(mockConsumer.poll(anyLong())).thenReturn(new ArrayList<>());
 
         new AsyncConsumer().executeAsync(defaultLitePullConsumer);
 
