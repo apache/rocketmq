@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.base;
 
+import com.google.common.truth.Truth;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,16 +27,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.test.util.MQAdmin;
 import org.apache.rocketmq.test.util.TestUtils;
-import org.junit.Assert;
 
 public class IntegrationTestBase {
     public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
@@ -113,7 +113,7 @@ public class IntegrationTestBase {
         nameServerNettyServerConfig.setListenPort(nextPort());
         NamesrvController namesrvController = new NamesrvController(namesrvConfig, nameServerNettyServerConfig);
         try {
-            Assert.assertTrue(namesrvController.initialize());
+            Truth.assertThat(namesrvController.initialize()).isTrue();
             logger.info("Name Server Start:{}", nameServerNettyServerConfig.getListenPort());
             namesrvController.start();
         } catch (Exception e) {
@@ -149,7 +149,7 @@ public class IntegrationTestBase {
         storeConfig.setHaListenPort(nextPort());
         BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, nettyClientConfig, storeConfig);
         try {
-            Assert.assertTrue(brokerController.initialize());
+            Truth.assertThat(brokerController.initialize()).isTrue();
             logger.info("Broker Start name:{} addr:{}", brokerConfig.getBrokerName(), brokerController.getBrokerAddr());
             brokerController.start();
         } catch (Throwable t) {
@@ -169,8 +169,8 @@ public class IntegrationTestBase {
             if (createResult) {
                 break;
             } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
-                Assert.fail(String.format("topic[%s] is created failed after:%d ms", topic,
-                    System.currentTimeMillis() - startTime));
+                Truth.assertWithMessage(String.format("topic[%s] is created failed after:%d ms", topic,
+                    System.currentTimeMillis() - startTime)).fail();
                 break;
             } else {
                 TestUtils.waitForMoment(500);
