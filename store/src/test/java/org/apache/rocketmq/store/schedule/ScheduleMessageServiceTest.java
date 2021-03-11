@@ -40,6 +40,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.rocketmq.store.stats.BrokerStatsManager.BROKER_PUT_NUMS;
+import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_NUMS;
+import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
@@ -112,6 +115,10 @@ public class ScheduleMessageServiceTest {
 
     @Test
     public void deliverDelayedMessageTimerTaskTest() throws Exception {
+        assertThat(messageStore.getMessageStoreConfig().isEnableScheduleMessageStats()).isTrue();
+
+        assertThat(messageStore.getBrokerStatsManager().getStatsItem(TOPIC_PUT_NUMS, topic)).isNull();
+
         MessageExtBrokerInner msg = buildMessage();
         int realQueueId = msg.getQueueId();
         // set delayLevel,and send delay message
@@ -141,6 +148,10 @@ public class ScheduleMessageServiceTest {
         // now,found the message
         assertThat(messageResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
 
+        // get the stats change
+        assertThat(messageStore.getBrokerStatsManager().getStatsItem(BROKER_PUT_NUMS, brokerConfig.getBrokerClusterName()).getValue().get()).isEqualTo(1);
+        assertThat(messageStore.getBrokerStatsManager().getStatsItem(TOPIC_PUT_NUMS, topic).getValue().get()).isEqualTo(1L);
+        assertThat(messageStore.getBrokerStatsManager().getStatsItem(TOPIC_PUT_SIZE, topic).getValue().get()).isEqualTo(messageResult.getBufferTotalSize());
 
         // get the message body
         ByteBuffer byteBuffer = ByteBuffer.allocate(messageResult.getBufferTotalSize());
