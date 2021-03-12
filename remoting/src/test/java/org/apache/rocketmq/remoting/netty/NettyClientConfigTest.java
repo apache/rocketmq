@@ -43,5 +43,6 @@ public class NettyClientConfigTest {
     assertThat(changedConfig.getClientSocketSndBufSize()).isEqualTo(16383);
     assertThat(changedConfig.getClientSocketRcvBufSize()).isEqualTo(16384);
     assertThat(changedConfig.isClientCloseSocketIfTimeout()).isEqualTo(false);
+
   }
 }
