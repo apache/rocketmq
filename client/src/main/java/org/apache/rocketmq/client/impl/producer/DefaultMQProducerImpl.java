@@ -620,20 +620,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
                         log.warn(msg.toString());
                         exception = e;
-                        switch (e.getResponseCode()) {
-                            case ResponseCode.TOPIC_NOT_EXIST:
-                            case ResponseCode.SERVICE_NOT_AVAILABLE:
-                            case ResponseCode.SYSTEM_ERROR:
-                            case ResponseCode.NO_PERMISSION:
-                            case ResponseCode.NO_BUYER_ID:
-                            case ResponseCode.NOT_IN_CURRENT_UNIT:
-                                continue;
-                            default:
-                                if (sendResult != null) {
-                                    return sendResult;
-                                }
+                        if (this.defaultMQProducer.getRetryResponseCodes().contains(e.getResponseCode())) {
+                            continue;
+                        } else {
+                            if (sendResult != null) {
+                                return sendResult;
+                            }
 
-                                throw e;
+                            throw e;
                         }
                     } catch (InterruptedException e) {
                         endTimestamp = System.currentTimeMillis();
