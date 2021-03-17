@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -62,12 +63,14 @@ public class BrokerConfig {
      */
     private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    private int ackMessageThreadPoolNums = 3;
     private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
 
     private int adminBrokerThreadPoolNums = 16;
     private int clientManageThreadPoolNums = 32;
     private int consumerManageThreadPoolNums = 32;
+    private int loadBalanceProcessorThreadPoolNums = 32;
     private int heartbeatThreadPoolNums = Math.min(32, Runtime.getRuntime().availableProcessors());
 
     /**
@@ -85,6 +88,7 @@ public class BrokerConfig {
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
+    private int ackThreadPoolQueueCapacity = 100000;
     private int replyThreadPoolQueueCapacity = 10000;
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
@@ -158,6 +162,37 @@ public class BrokerConfig {
      */
     private int registerNameServerPeriod = 1000 * 30;
 
+    private int popPollingSize = 1024;
+    private int popPollingMapSize = 100000;
+    // 20w cost 200M heap memory.
+    private long maxPopPollingSize = 100000;
+    private int reviveQueueNum = 8;
+    private long reviveInterval = 1000;
+    private long reviveMaxSlow = 3;
+    private long reviveScanTime = 10000;
+    private boolean enablePopLog = true;
+    private boolean enablePopBufferMerge = false;
+    private int popCkStayBufferTime = 10 * 1000;
+    private int popCkStayBufferTimeOut = 3 * 1000;
+    private int popCkMaxBufferSize = 200000;
+    private int popCkOffsetMaxQueueSize = 20000;
+
+    /**
+     * the interval of pulling topic information from the named server
+     */
+    private long loadBalancePollNameServerInterval = 1000 * 30;
+
+    /**
+     * the interval of cleaning
+     */
+    private int cleanOfflineBrokerInterval = 1000 * 30;
+
+    private boolean serverLoadBalancerEnabled = true;
+
+    private MessageRequestMode defaultMessageRequestMode = MessageRequestMode.PULL;
+
+    private int defaultPopShareQueueNum = -1;
+
     /**
      * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
      * that can be checked.
@@ -195,6 +230,58 @@ public class BrokerConfig {
         }
 
         return "DEFAULT_BROKER";
+    }
+
+    public long getMaxPopPollingSize() {
+        return maxPopPollingSize;
+    }
+
+    public int getReviveQueueNum() {
+        return reviveQueueNum;
+    }
+
+    public long getReviveInterval() {
+        return reviveInterval;
+    }
+
+    public int getPopCkStayBufferTime() {
+        return popCkStayBufferTime;
+    }
+
+    public int getPopCkStayBufferTimeOut() {
+        return popCkStayBufferTimeOut;
+    }
+
+    public int getPopPollingMapSize() {
+        return popPollingMapSize;
+    }
+
+    public long getReviveScanTime() {
+        return reviveScanTime;
+    }
+
+    public long getReviveMaxSlow() {
+        return reviveMaxSlow;
+    }
+
+    public int getPopPollingSize() {
+        return popPollingSize;
+    }
+
+    public boolean isEnablePopBufferMerge() {
+        return enablePopBufferMerge;
+    }
+
+    public int getPopCkMaxBufferSize() {
+        return popCkMaxBufferSize;
+    }
+
+    public int getPopCkOffsetMaxQueueSize() {
+        return popCkOffsetMaxQueueSize;
+    }
+
+    public boolean isEnablePopLog() {
+        return enablePopLog;
     }
 
     public boolean isTraceOn() {
@@ -381,6 +468,14 @@ public class BrokerConfig {
         this.pullMessageThreadPoolNums = pullMessageThreadPoolNums;
     }
 
+    public int getAckMessageThreadPoolNums() {
+        return ackMessageThreadPoolNums;
+    }
+
+    public void setAckMessageThreadPoolNums(int ackMessageThreadPoolNums) {
+        this.ackMessageThreadPoolNums = ackMessageThreadPoolNums;
+    }
+
     public int getProcessReplyMessageThreadPoolNums() {
         return processReplyMessageThreadPoolNums;
     }
@@ -483,6 +578,14 @@ public class BrokerConfig {
 
     public void setPullThreadPoolQueueCapacity(int pullThreadPoolQueueCapacity) {
         this.pullThreadPoolQueueCapacity = pullThreadPoolQueueCapacity;
+    }
+
+    public int getAckThreadPoolQueueCapacity() {
+        return ackThreadPoolQueueCapacity;
+    }
+
+    public void setAckThreadPoolQueueCapacity(int ackThreadPoolQueueCapacity) {
+        this.ackThreadPoolQueueCapacity = ackThreadPoolQueueCapacity;
     }
 
     public int getReplyThreadPoolQueueCapacity() {
@@ -803,5 +906,56 @@ public class BrokerConfig {
 
     public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
         this.autoDeleteUnusedStats = autoDeleteUnusedStats;
+    }
+
+
+    public long getLoadBalancePollNameServerInterval() {
+        return loadBalancePollNameServerInterval;
+    }
+
+    public void setLoadBalancePollNameServerInterval(long loadBalancePollNameServerInterval) {
+        this.loadBalancePollNameServerInterval = loadBalancePollNameServerInterval;
+    }
+
+    public int getCleanOfflineBrokerInterval() {
+        return cleanOfflineBrokerInterval;
+    }
+
+    public void setCleanOfflineBrokerInterval(int cleanOfflineBrokerInterval) {
+        this.cleanOfflineBrokerInterval = cleanOfflineBrokerInterval;
+    }
+
+    public int getLoadBalanceProcessorThreadPoolNums() {
+        return loadBalanceProcessorThreadPoolNums;
+    }
+
+    public void setLoadBalanceProcessorThreadPoolNums(int loadBalanceProcessorThreadPoolNums) {
+        this.loadBalanceProcessorThreadPoolNums = loadBalanceProcessorThreadPoolNums;
+    }
+
+    public boolean isServerLoadBalancerEnabled() {
+        return serverLoadBalancerEnabled;
+    }
+
+    public void setServerLoadBalancerEnabled(boolean serverLoadBalancerEnabled) {
+        this.serverLoadBalancerEnabled = serverLoadBalancerEnabled;
+    }
+
+    public MessageRequestMode getDefaultMessageRequestMode() {
+        return defaultMessageRequestMode;
+    }
+
+    public void setDefaultMessageRequestMode(String defaultMessageRequestMode) {
+        this.defaultMessageRequestMode = MessageRequestMode.valueOf(defaultMessageRequestMode);
+    }
+
+
+    public int getDefaultPopShareQueueNum() {
+        return defaultPopShareQueueNum;
+    }
+
+
+    public void setDefaultPopShareQueueNum(int defaultPopShareQueueNum) {
+        this.defaultPopShareQueueNum = defaultPopShareQueueNum;
     }
 }
