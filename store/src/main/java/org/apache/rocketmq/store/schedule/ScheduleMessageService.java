@@ -19,14 +19,15 @@ package org.apache.rocketmq.store.schedule;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -46,7 +48,6 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 public class ScheduleMessageService extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
@@ -56,15 +57,15 @@ public class ScheduleMessageService extends ConfigManager {
 
     private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
         new ConcurrentHashMap<Integer, Long>(32);
-
-    private final Timer timer = new Timer("ScheduleMessageTimerThread", true);
-
     private final DefaultMessageStore defaultMessageStore;
-
+    private final AtomicBoolean started = new AtomicBoolean(false);
+    private Timer timer;
+    private MessageStore writeMessageStore;
     private int maxDelayLevel;
 
     public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
+        this.writeMessageStore = defaultMessageStore;
     }
 
     public static int queueId2DelayLevel(final int queueId) {
@@ -75,13 +76,21 @@ public class ScheduleMessageService extends ConfigManager {
         return delayLevel - 1;
     }
 
+    /**
+     * @param writeMessageStore
+     *     the writeMessageStore to set
+     */
+    public void setWriteMessageStore(MessageStore writeMessageStore) {
+        this.writeMessageStore = writeMessageStore;
+    }
+
     public void buildRunningStats(HashMap<String, String> stats) {
-        Iterator<Entry<Integer, Long>> it = this.offsetTable.entrySet().iterator();
+        Iterator<Map.Entry<Integer, Long>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<Integer, Long> next = it.next();
+            Map.Entry<Integer, Long> next = it.next();
             int queueId = delayLevel2QueueId(next.getKey());
             long delayOffset = next.getValue();
-            long maxOffset = this.defaultMessageStore.getMaxOffsetInQueue(SCHEDULE_TOPIC, queueId);
+            long maxOffset = this.defaultMessageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, queueId);
             String value = String.format("%d,%d", delayOffset, maxOffset);
             String key = String.format("%s_%d", RunningStats.scheduleMessageOffset.name(), next.getKey());
             stats.put(key, value);
@@ -102,35 +111,45 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     public void start() {
+        if (started.compareAndSet(false, true)) {
+            this.timer = new Timer("ScheduleMessageTimerThread", true);
+            for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
+                Integer level = entry.getKey();
+                Long timeDelay = entry.getValue();
+                Long offset = this.offsetTable.get(level);
+                if (null == offset) {
+                    offset = 0L;
+                }
 
-        for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
-            Integer level = entry.getKey();
-            Long timeDelay = entry.getValue();
-            Long offset = this.offsetTable.get(level);
-            if (null == offset) {
-                offset = 0L;
-            }
-
-            if (timeDelay != null) {
-                this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
-            }
-        }
-
-        this.timer.scheduleAtFixedRate(new TimerTask() {
-
-            @Override
-            public void run() {
-                try {
-                    ScheduleMessageService.this.persist();
-                } catch (Throwable e) {
-                    log.error("scheduleAtFixedRate flush exception", e);
+                if (timeDelay != null) {
+                    this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
                 }
             }
-        }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval());
+
+            this.timer.scheduleAtFixedRate(new TimerTask() {
+
+                @Override
+                public void run() {
+                    try {
+                        if (started.get()) ScheduleMessageService.this.persist();
+                    } catch (Throwable e) {
+                        log.error("scheduleAtFixedRate flush exception", e);
+                    }
+                }
+            }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval());
+        }
     }
 
     public void shutdown() {
-        this.timer.cancel();
+        if (this.started.compareAndSet(true, false)) {
+            if (null != this.timer)
+                this.timer.cancel();
+        }
+
+    }
+
+    public boolean isStarted() {
+        return started.get();
     }
 
     public int getMaxDelayLevel() {
@@ -214,7 +233,9 @@ public class ScheduleMessageService extends ConfigManager {
         @Override
         public void run() {
             try {
-                this.executeOnTimeup();
+                if (isStarted()) {
+                    this.executeOnTimeup();
+                }
             } catch (Exception e) {
                 // XXX: warn and notify me
                 log.error("ScheduleMessageService, executeOnTimeup exception", e);
@@ -240,7 +261,7 @@ public class ScheduleMessageService extends ConfigManager {
 
         public void executeOnTimeup() {
             ConsumeQueue cq =
-                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
+                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));
 
             long failScheduleOffset = offset;
@@ -284,8 +305,13 @@ public class ScheduleMessageService extends ConfigManager {
                                 if (msgExt != null) {
                                     try {
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
+                                        if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
+                                            log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
+                                                    msgInner.getTopic(), msgInner);
+                                            continue;
+                                        }
                                         PutMessageResult putMessageResult =
-                                            ScheduleMessageService.this.defaultMessageStore
+                                            ScheduleMessageService.this.writeMessageStore
                                                 .putMessage(msgInner);
 
                                         if (putMessageResult != null

@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.trace.hook;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
+import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceContext;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceBean;
@@ -29,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 
 public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
 
@@ -51,7 +53,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         TraceContext traceContext = new TraceContext();
         context.setMqTraceContext(traceContext);
         traceContext.setTraceType(TraceType.SubBefore);//
-        traceContext.setGroupName(context.getConsumerGroup());//
+        traceContext.setGroupName(NamespaceUtil.withoutNamespace(context.getConsumerGroup()));//
         List<TraceBean> beans = new ArrayList<TraceBean>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
@@ -65,13 +67,14 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
                 continue;
             }
             TraceBean traceBean = new TraceBean();
-            traceBean.setTopic(msg.getTopic());//
+            traceBean.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic()));//
             traceBean.setMsgId(msg.getMsgId());//
             traceBean.setTags(msg.getTags());//
             traceBean.setKeys(msg.getKeys());//
             traceBean.setStoreTime(msg.getStoreTimestamp());//
             traceBean.setBodyLength(msg.getStoreSize());//
             traceBean.setRetryTimes(msg.getReconsumeTimes());//
+            traceBean.setClientHost(((AsyncTraceDispatcher)localDispatcher).getHostConsumer().getmQClientFactory().getClientId());
             traceContext.setRegionId(regionId);//
             beans.add(traceBean);
         }
@@ -96,7 +99,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         TraceContext subAfterContext = new TraceContext();
         subAfterContext.setTraceType(TraceType.SubAfter);//
         subAfterContext.setRegionId(subBeforeContext.getRegionId());//
-        subAfterContext.setGroupName(subBeforeContext.getGroupName());//
+        subAfterContext.setGroupName(NamespaceUtil.withoutNamespace(subBeforeContext.getGroupName()));//
         subAfterContext.setRequestId(subBeforeContext.getRequestId());//
         subAfterContext.setSuccess(context.isSuccess());//
 
