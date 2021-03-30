@@ -525,8 +525,8 @@ public class MappedFileQueue {
 
         MappedFile[] mfs = this.copyMappedFiles(0);
         if (mfs != null) {
-            for (Object mf : mfs) {
-                if (((ReferenceResource) mf).isAvailable()) {
+            for (MappedFile mf : mfs) {
+                if (mf.isAvailable()) {
                     size += this.mappedFileSize;
                 }
             }
