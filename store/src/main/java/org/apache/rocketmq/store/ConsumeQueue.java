@@ -61,7 +61,7 @@ public class ConsumeQueue {
             + File.separator + topic
             + File.separator + queueId;
 
-        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize);
 
         this.byteBufferIndex = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
 

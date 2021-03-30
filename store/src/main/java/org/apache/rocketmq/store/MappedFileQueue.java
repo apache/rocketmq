@@ -48,6 +48,10 @@ public class MappedFileQueue {
 
     private volatile long storeTimestamp = 0;
 
+    public MappedFileQueue(final String storePath, int mappedFileSize) {
+        this(storePath,mappedFileSize,null);
+    }
+
     public MappedFileQueue(final String storePath, int mappedFileSize,
         AllocateMappedFileService allocateMappedFileService) {
         this.storePath = storePath;
