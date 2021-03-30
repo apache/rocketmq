@@ -32,7 +32,7 @@ public class MappedFileQueueTest {
         final String fixedMsg = "0123456789abcdef";
 
         MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/a/", 1024, null);
+            new MappedFileQueue("target/unit_test_store/a/", 1024);
 
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
@@ -50,7 +50,7 @@ public class MappedFileQueueTest {
         final String fixedMsg = "abcd";
 
         MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/b/", 1024, null);
+            new MappedFileQueue("target/unit_test_store/b/", 1024);
 
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
@@ -98,7 +98,7 @@ public class MappedFileQueueTest {
     @Test
     public void testFindMappedFileByOffset_StartOffsetIsNonZero() {
         MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/b/", 1024, null);
+            new MappedFileQueue("target/unit_test_store/b/", 1024);
 
         //Start from a non-zero offset
         MappedFile mappedFile = mappedFileQueue.getLastMappedFile(1024);
@@ -122,7 +122,7 @@ public class MappedFileQueueTest {
         final String fixedMsg = "0123456789abcdef";
 
         MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/c/", 1024, null);
+            new MappedFileQueue("target/unit_test_store/c/", 1024);
 
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
@@ -157,7 +157,7 @@ public class MappedFileQueueTest {
         final String fixedMsg = "abcd";
 
         MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/d/", 1024, null);
+            new MappedFileQueue("target/unit_test_store/d/", 1024);
 
         for (int i = 0; i < 1024; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
@@ -173,7 +173,7 @@ public class MappedFileQueueTest {
     @Test
     public void testDeleteExpiredFileByOffset() {
         MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/e", 5120, null);
+            new MappedFileQueue("target/unit_test_store/e", 5120);
 
         for (int i = 0; i < 2048; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
@@ -205,7 +205,7 @@ public class MappedFileQueueTest {
     @Test
     public void testDeleteExpiredFileByTime() throws Exception {
         MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/f/", 1024, null);
+            new MappedFileQueue("target/unit_test_store/f/", 1024);
 
         for (int i = 0; i < 100; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
@@ -232,7 +232,7 @@ public class MappedFileQueueTest {
     @Test
     public void testFindMappedFile_ByIteration() {
         MappedFileQueue mappedFileQueue =
-            new MappedFileQueue("target/unit_test_store/g/", 1024, null);
+            new MappedFileQueue("target/unit_test_store/g/", 1024);
         for (int i =0 ; i < 3; i++) {
             MappedFile mappedFile = mappedFileQueue.getLastMappedFile(1024 * i);
             mappedFile.wrotePosition.set(1024);
