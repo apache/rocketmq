@@ -80,7 +80,7 @@ public class ConsumeQueueExt {
             + File.separator + topic
             + File.separator + queueId;
 
-        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize);
 
         if (bitMapLength > 0) {
             this.tempContainer = ByteBuffer.allocate(
