@@ -53,7 +53,7 @@ import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAM
 
 public class AsyncTraceDispatcher implements TraceDispatcher {
 
-    private final static InternalLogger log = ClientLogger.getLog();
+    private static final InternalLogger log = ClientLogger.getLog();
     private final int queueSize;
     private final int batchSize;
     private final int maxMsgSize;

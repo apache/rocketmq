@@ -31,14 +31,14 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageDecoder {
-//    public final static int MSG_ID_LENGTH = 8 + 8;
+//    public static final int MSG_ID_LENGTH = 8 + 8;
 
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
-    public final static int MESSAGE_MAGIC_CODE_POSTION = 4;
-    public final static int MESSAGE_FLAG_POSTION = 16;
-    public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
-    //    public final static int MESSAGE_STORE_TIMESTAMP_POSTION = 56;
-    public final static int MESSAGE_MAGIC_CODE = -626843481;
+    public static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    public static final int MESSAGE_MAGIC_CODE_POSTION = 4;
+    public static final int MESSAGE_FLAG_POSTION = 16;
+    public static final int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
+    //    public static final int MESSAGE_STORE_TIMESTAMP_POSTION = 56;
+    public static final int MESSAGE_MAGIC_CODE = -626843481;
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
     public static final int PHY_POS_POSITION = 4 + 4 + 4 + 4 + 4 + 8;

@@ -28,7 +28,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 
 public final class BeanUtils {
-    final static InternalLogger log = ClientLogger.getLog();
+    static final InternalLogger log = ClientLogger.getLog();
 
     /**
      * Maps primitive {@code Class}es to their corresponding wrapper {@code Class}.

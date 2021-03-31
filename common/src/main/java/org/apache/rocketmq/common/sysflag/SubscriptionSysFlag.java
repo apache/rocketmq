@@ -18,7 +18,7 @@ package org.apache.rocketmq.common.sysflag;
 
 public class SubscriptionSysFlag {
 
-    private final static int FLAG_UNIT = 0x1 << 0;
+    private static final int FLAG_UNIT = 0x1 << 0;
 
     public static int buildSysFlag(final boolean unit) {
         int sysFlag = 0;

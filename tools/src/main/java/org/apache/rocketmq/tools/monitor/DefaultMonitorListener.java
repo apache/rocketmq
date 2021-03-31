@@ -25,8 +25,8 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 
 public class DefaultMonitorListener implements MonitorListener {
-    private final static String LOG_PREFIX = "[MONITOR] ";
-    private final static String LOG_NOTIFY = LOG_PREFIX + " [NOTIFY] ";
+    private static final String LOG_PREFIX = "[MONITOR] ";
+    private static final String LOG_NOTIFY = LOG_PREFIX + " [NOTIFY] ";
     private final InternalLogger log = ClientLogger.getLog();
 
     public DefaultMonitorListener() {

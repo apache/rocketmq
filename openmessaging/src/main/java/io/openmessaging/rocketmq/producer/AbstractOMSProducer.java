@@ -42,7 +42,7 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import static io.openmessaging.rocketmq.utils.OMSUtil.buildInstanceName;
 
 abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
-    final static InternalLogger log = ClientLogger.getLog();
+    static final InternalLogger log = ClientLogger.getLog();
     final KeyValue properties;
     final DefaultMQProducer rocketmqProducer;
     private boolean started = false;

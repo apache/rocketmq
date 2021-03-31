@@ -39,7 +39,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
     private BrokerController brokerController;
 
     //queue nums of topic TRANS_CHECK_MAX_TIME_TOPIC
-    protected final static int TCMT_QUEUE_NUMS = 1;
+    protected static final int TCMT_QUEUE_NUMS = 1;
     protected final Random random = new Random(System.currentTimeMillis());
 
     private static ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {

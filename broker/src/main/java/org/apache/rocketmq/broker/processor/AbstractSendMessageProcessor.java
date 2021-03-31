@@ -57,7 +57,7 @@ import org.apache.rocketmq.store.MessageExtBrokerInner;
 public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    protected final static int DLQ_NUMS_PER_GROUP = 1;
+    protected static final int DLQ_NUMS_PER_GROUP = 1;
     protected final BrokerController brokerController;
     protected final Random random = new Random(System.currentTimeMillis());
     protected final SocketAddress storeHost;

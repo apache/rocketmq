@@ -27,7 +27,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class SubscriptionData implements Comparable<SubscriptionData> {
-    public final static String SUB_ALL = "*";
+    public static final String SUB_ALL = "*";
     private boolean classFilterMode = false;
     private String topic;
     private String subString;

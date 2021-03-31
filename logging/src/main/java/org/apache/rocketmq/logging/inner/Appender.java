@@ -29,7 +29,7 @@ public abstract class Appender {
     public static final int CODE_CLOSE_FAILURE = 3;
     public static final int CODE_FILE_OPEN_FAILURE = 4;
 
-    public final static String LINE_SEP = System.getProperty("line.separator");
+    public static final String LINE_SEP = System.getProperty("line.separator");
 
     boolean firstTime = true;
 

@@ -28,13 +28,13 @@ public class BeanUtilsTest {
     private KeyValue properties = OMS.newKeyValue();
 
     public static class CustomizedConfig extends ClientConfig {
-        final static String STRING_TEST = "string.test";
+        static final String STRING_TEST = "string.test";
         String stringTest = "foobar";
 
-        final static String DOUBLE_TEST = "double.test";
+        static final String DOUBLE_TEST = "double.test";
         double doubleTest = 123.0;
 
-        final static String LONG_TEST = "long.test";
+        static final String LONG_TEST = "long.test";
         long longTest = 123L;
 
         String getStringTest() {

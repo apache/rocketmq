@@ -20,7 +20,7 @@ import java.util.List;
 
 public class ServiceProvider {
 
-    private final static Logger LOG = LoggerFactory
+    private static final Logger LOG = LoggerFactory
         .getLogger(ServiceProvider.class);
     /**
      * A reference to the classloader that loaded this class. It's more efficient to compute it once and cache it here.

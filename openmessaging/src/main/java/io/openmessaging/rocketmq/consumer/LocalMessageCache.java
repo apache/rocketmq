@@ -51,7 +51,7 @@ class LocalMessageCache implements ServiceLifecycle {
     private final ClientConfig clientConfig;
     private final ScheduledExecutorService cleanExpireMsgExecutors;
 
-    private final static InternalLogger log = ClientLogger.getLog();
+    private static final InternalLogger log = ClientLogger.getLog();
 
     LocalMessageCache(final DefaultMQPullConsumer rocketmqPullConsumer, final ClientConfig clientConfig) {
         consumeRequestCache = new LinkedBlockingQueue<>(clientConfig.getRmqPullMessageCacheCapacity());
