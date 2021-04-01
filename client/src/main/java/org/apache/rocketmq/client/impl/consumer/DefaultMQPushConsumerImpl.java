@@ -376,7 +376,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                             DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             break;
-                            // 没有匹配的消息
                             // 直接使用服务器端校正的偏移量进行下一次消息的拉取
                         // 偏移量非法
                         case OFFSET_ILLEGAL:

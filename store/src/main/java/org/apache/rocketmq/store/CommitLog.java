@@ -72,7 +72,6 @@ public class CommitLog {
     protected volatile long confirmOffset = -1L;
 
     private volatile long beginTimeInLock = 0;
-    // 在写入CommitLog之前，先申请 putMessageLock，也就是将消息存储到CommitLog 文件中是串行的
     protected final PutMessageLock putMessageLock;
 
     //初始化CommitLog对象，在初始化该对象的过程中，
@@ -1735,7 +1734,6 @@ public class CommitLog {
             final int topicLength = topicData.length;
 
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
-
             final int msgLen = calMsgLength(msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
 
             // Exceeds the maximum message
