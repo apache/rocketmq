@@ -63,6 +63,7 @@ import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
 import org.junit.Before;
@@ -70,8 +71,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -83,11 +86,12 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(DefaultMQPushConsumerImpl.class)
 public class DefaultMQConsumerWithTraceTest {
     private String consumerGroup;
     private String consumerGroupNormal;
-    private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
+    private String producerGroupTraceTemp = TopicValidator.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
 
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
@@ -101,7 +105,6 @@ public class DefaultMQConsumerWithTraceTest {
     private DefaultMQPushConsumer normalPushConsumer;
     private DefaultMQPushConsumer customTraceTopicpushConsumer;
 
-
     private AsyncTraceDispatcher asyncTraceDispatcher;
     private MQClientInstance mQClientTraceFactory;
     @Mock
@@ -112,16 +115,15 @@ public class DefaultMQConsumerWithTraceTest {
     @Before
     public void init() throws Exception {
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
-        pushConsumer = new DefaultMQPushConsumer(consumerGroup,true,"");
+        pushConsumer = new DefaultMQPushConsumer(consumerGroup, true, "");
         consumerGroupNormal = "FooBarGroup" + System.currentTimeMillis();
-        normalPushConsumer = new DefaultMQPushConsumer(consumerGroupNormal,false,"");
-        customTraceTopicpushConsumer = new DefaultMQPushConsumer(consumerGroup,true,customerTraceTopic);
+        normalPushConsumer = new DefaultMQPushConsumer(consumerGroupNormal, false, "");
+        customTraceTopicpushConsumer = new DefaultMQPushConsumer(consumerGroup, true, customerTraceTopic);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
 
-        asyncTraceDispatcher = (AsyncTraceDispatcher)pushConsumer.getTraceDispatcher();
+        asyncTraceDispatcher = (AsyncTraceDispatcher) pushConsumer.getTraceDispatcher();
         traceProducer = asyncTraceDispatcher.getTraceProducer();
-
 
         pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
@@ -131,12 +133,14 @@ public class DefaultMQConsumerWithTraceTest {
             }
         });
 
+        PowerMockito.suppress(PowerMockito.method(DefaultMQPushConsumerImpl.class, "updateTopicSubscribeInfoWhenSubscriptionChanged"));
         DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
         rebalancePushImpl = spy(new RebalancePushImpl(pushConsumer.getDefaultMQPushConsumerImpl()));
         Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         field.set(pushConsumerImpl, rebalancePushImpl);
         pushConsumer.subscribe(topic, "*");
+
         pushConsumer.start();
 
         mQClientFactory = spy(pushConsumerImpl.getmQClientFactory());
@@ -200,9 +204,6 @@ public class DefaultMQConsumerWithTraceTest {
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
         traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
-        //when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        //when(mQClientTraceAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTraceTopicRoute());
-
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final MessageExt[] messageExts = new MessageExt[1];

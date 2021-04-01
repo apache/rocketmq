@@ -61,7 +61,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
-    private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getAndCreateMQClientInstance(new ClientConfig());
+    private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
 
     private static MQClientAPIImpl mQClientAPIImpl;
     private static MQAdminImpl mQAdminImpl;
@@ -226,5 +226,20 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
     }
 
+    @Test
+    public void testExecute() throws SubCommandException {
 
+        System.setProperty("rocketmq.namesrv.addr", "127.0.0.1:9876");
+
+        QueryMsgByUniqueKeySubCommand cmd = new QueryMsgByUniqueKeySubCommand();
+        String[] args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000"};
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
+        cmd.execute(commandLine, options, null);
+
+        args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
+        commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
+        cmd.execute(commandLine, options, null);
+
+    }
 }

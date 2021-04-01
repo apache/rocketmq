@@ -20,6 +20,7 @@ package org.apache.rocketmq.filter.parser;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.apache.rocketmq.filter.expression.BooleanConstantExpression;
 import org.apache.rocketmq.filter.expression.BooleanExpression;
 import org.apache.rocketmq.filter.expression.ComparisonExpression;
 import org.apache.rocketmq.filter.expression.ConstantExpression;
@@ -437,15 +438,15 @@ public class SelectorParser implements SelectorParserConstants {
                 break;
             case TRUE:
                 jj_consume_token(TRUE);
-                left = ConstantExpression.TRUE;
+                left = BooleanConstantExpression.TRUE;
                 break;
             case FALSE:
                 jj_consume_token(FALSE);
-                left = ConstantExpression.FALSE;
+                left = BooleanConstantExpression.FALSE;
                 break;
             case NULL:
                 jj_consume_token(NULL);
-                left = ConstantExpression.NULL;
+                left = BooleanConstantExpression.NULL;
                 break;
             default:
                 jjLa1[12] = jjGen;
