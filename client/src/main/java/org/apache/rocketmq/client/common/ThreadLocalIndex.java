@@ -27,15 +27,10 @@ public class ThreadLocalIndex {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
             index = Math.abs(random.nextInt());
-            if (index < 0)
-                index = 0;
             this.threadLocalIndex.set(index);
         }
 
         index = Math.abs(index + 1);
-        if (index < 0)
-            index = 0;
-
         this.threadLocalIndex.set(index);
         return index;
     }

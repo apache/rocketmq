@@ -146,7 +146,6 @@ public class MappedFile extends ReferenceResource {
 
     private static ByteBuffer viewed(ByteBuffer buffer) {
         String methodName = "viewedBuffer";
-
         Method[] methods = buffer.getClass().getMethods();
         for (int i = 0; i < methods.length; i++) {
             if (methods[i].getName().equals("attachment")) {
@@ -196,10 +195,10 @@ public class MappedFile extends ReferenceResource {
             TOTAL_MAPPED_FILES.incrementAndGet();
             ok = true;
         } catch (FileNotFoundException e) {
-            log.error("create file channel " + this.fileName + " Failed. ", e);
+            log.error("Failed to create file " + this.fileName, e);
             throw e;
         } catch (IOException e) {
-            log.error("map file " + this.fileName + " Failed. ", e);
+            log.error("Failed to map file " + this.fileName, e);
             throw e;
         } finally {
             if (!ok && this.fileChannel != null) {
@@ -247,8 +246,8 @@ public class MappedFile extends ReferenceResource {
             // 获取需要写入的字节缓冲区, 之所以会有writeBuffer != null的判断与使用的刷盘服务有关.
             // 如果 currentPos 小于文件大小，通过 slice() 方法创建一个与 MappedFile 的共享内存区，并设置 position 为当前指针
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
-            byteBuffer.position(currentPos); // 设置写入的 position
-            AppendMessageResult result = null;
+            byteBuffer.position(currentPos);// 设置写入的 position
+            AppendMessageResult result;
             if (messageExt instanceof MessageExtBrokerInner) {
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
             } else if (messageExt instanceof MessageExtBatch) {
@@ -383,7 +382,7 @@ public class MappedFile extends ReferenceResource {
         int writePos = this.wrotePosition.get();
         int lastCommittedPosition = this.committedPosition.get();
 
-        if (writePos - this.committedPosition.get() > 0) {
+        if (writePos - lastCommittedPosition > commitLeastPages) {
             try {
                 //ByteBuffer 使用技巧 : slice() 方法创建 一 个共享缓存区 ， 与原先的 ByteBuffer 共享内存 但维护一套独立的指针 (position、 mark、 limit)。
                 ByteBuffer byteBuffer = writeBuffer.slice();//方法根据现有的缓冲区创建一个 子缓冲区。也就是它创建一个新的缓冲区，新缓冲区与原来的缓冲区的一部分共享数据。
@@ -455,7 +454,6 @@ public class MappedFile extends ReferenceResource {
     public SelectMappedBufferResult selectMappedBuffer(int pos, int size) {
         int readPosition = getReadPosition();
         if ((pos + size) <= readPosition) {
-
             if (this.hold()) {
                 // 操作 ByteBuffer 时,如果使用了 slice() 方法，对其 ByteBuffer 进行读取时一般手动指定
                 // position 与 limit 指针，而不是调用 flip 方法来切换读写状态 。
@@ -542,7 +540,7 @@ public class MappedFile extends ReferenceResource {
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
                     + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"
                     + this.getFlushedPosition() + ", "
-                    + UtilAll.computeEclipseTimeMilliseconds(beginTime));
+                    + UtilAll.computeElapsedTimeMilliseconds(beginTime));
             } catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);
             }

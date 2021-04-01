@@ -103,8 +103,8 @@ public class QueryConsumeTimeSpanBodyTest {
         List<QueueTimeSpan> queueTimeSpans = new ArrayList<QueueTimeSpan>();
         QueueTimeSpan queueTimeSpan = new QueueTimeSpan();
         queueTimeSpan.setMinTimeStamp(System.currentTimeMillis());
-        queueTimeSpan.setMaxTimeStamp(UtilAll.computNextHourTimeMillis());
-        queueTimeSpan.setConsumeTimeStamp(UtilAll.computNextMinutesTimeMillis());
+        queueTimeSpan.setMaxTimeStamp(UtilAll.computeNextHourTimeMillis());
+        queueTimeSpan.setConsumeTimeStamp(UtilAll.computeNextMinutesTimeMillis());
         queueTimeSpan.setDelayTime(5000l);
         MessageQueue messageQueue = new MessageQueue(UUID.randomUUID().toString(), UUID.randomUUID().toString(), new Random().nextInt());
         queueTimeSpan.setMessageQueue(messageQueue);

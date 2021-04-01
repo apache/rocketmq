@@ -135,7 +135,7 @@ public class IntegrationTestBase {
         brokerConfig.setEnablePropertyFilter(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
-        storeConfig.setMapedFileSizeCommitLog(COMMIT_LOG_SIZE);
+        storeConfig.setMappedFileSizeCommitLog(COMMIT_LOG_SIZE);
         storeConfig.setMaxIndexNum(INDEX_NUM);
         storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
         return createAndStartBroker(storeConfig, brokerConfig);

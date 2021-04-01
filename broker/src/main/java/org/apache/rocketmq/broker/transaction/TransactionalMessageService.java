@@ -20,6 +20,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
+import java.util.concurrent.CompletableFuture;
 
 public interface TransactionalMessageService {
 
@@ -30,6 +31,14 @@ public interface TransactionalMessageService {
      * @return Prepare message storage result.
      */
     PutMessageResult prepareMessage(MessageExtBrokerInner messageInner);
+
+    /**
+     * Process prepare message in async manner, we should put this message to storage service
+     *
+     * @param messageInner Prepare(Half) message.
+     * @return CompletableFuture of put result, will be completed at put success(flush and replica done)
+     */
+    CompletableFuture<PutMessageResult> asyncPrepareMessage(MessageExtBrokerInner messageInner);
 
     /**
      * Delete prepare message when this message has been committed or rolled back.

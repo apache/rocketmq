@@ -22,7 +22,7 @@ A type of Consumer, Under this high real-time performance mode, it will push the
 ## 9 Producer Group
 A collection of the same type of Producer, which sends the same type of messages with consistent logic. If a transaction message is sent and the original producer crashes after sending, the broker server will contact other producers in the same producer group to commit or rollback the transactional message.
 ## 10 Consumer Group
-A collection of the same type of Consumer, which sends the same type of messages with consistent logic. The consumer group makes load-balance and fault-tolerance super easy in terms of message consuming.
+A collection of the same type of Consumer, which consume the same type of messages with consistent logic. The consumer group makes load-balance and fault-tolerance super easy in terms of message consuming.
 Warning: consumer instances of one consumer group must have exactly the same topic subscription(s).   
 
 RocketMQ supports two types of consumption mode:Clustering and Broadcasting.

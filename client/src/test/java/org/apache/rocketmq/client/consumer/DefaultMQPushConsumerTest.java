@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
@@ -59,8 +60,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
@@ -73,7 +76,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(DefaultMQPushConsumerImpl.class)
 public class DefaultMQPushConsumerTest {
     private String consumerGroup;
     private String topic = "FooBar";
@@ -102,10 +106,12 @@ public class DefaultMQPushConsumerTest {
         });
 
         DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
+        PowerMockito.suppress(PowerMockito.method(DefaultMQPushConsumerImpl.class, "updateTopicSubscribeInfoWhenSubscriptionChanged"));
         rebalancePushImpl = spy(new RebalancePushImpl(pushConsumer.getDefaultMQPushConsumerImpl()));
         Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         field.set(pushConsumerImpl, rebalancePushImpl);
+
         pushConsumer.subscribe(topic, "*");
         pushConsumer.start();
 
@@ -249,6 +255,34 @@ public class DefaultMQPushConsumerTest {
         } catch (MQClientException e) {
             assertThat(e).hasMessageContaining("pullThresholdSizeForTopic Out of range [1, 102400]");
         }
+    }
+
+    @Test
+    public void testGracefulShutdown() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        pushConsumer.setAwaitTerminationMillisWhenShutdown(2000);
+        final AtomicBoolean messageConsumedFlag = new AtomicBoolean(false);
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                                                            ConsumeConcurrentlyContext context) {
+                countDownLatch.countDown();
+                try {
+                    Thread.sleep(1000);
+                    messageConsumedFlag.set(true);
+                } catch (InterruptedException e) {
+                }
+
+                return null;
+            }
+        }));
+
+        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        pullMessageService.executePullRequestImmediately(createPullRequest());
+        countDownLatch.await();
+
+        pushConsumer.shutdown();
+        assertThat(messageConsumedFlag.get()).isTrue();
     }
 
     private DefaultMQPushConsumer createPushConsumer() {

@@ -40,9 +40,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
-/**
- * Base class for rebalance algorithm
- */
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
     // 当前消费者负载的消息队列缓存表
