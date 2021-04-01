@@ -374,6 +374,7 @@ public class BrokerController {
                 TimeUnit.MILLISECONDS,
                 this.replyThreadPoolQueue,
                 new ThreadFactoryImpl("ProcessReplyMessageThread_"));
+            //查询消息的线程池配置
             this.queryMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getQueryMessageThreadPoolNums(),
                 this.brokerConfig.getQueryMessageThreadPoolNums(),
@@ -981,6 +982,7 @@ public class BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
+        // broker 发送心跳包；
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

@@ -213,7 +213,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                             .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
                             .addLast(defaultEventExecutorGroup,
                                 encoder,
-                                new NettyDecoder(),
+                                new NettyDecoder(), // 处理粘包粘包问题
                                 new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
                                 connectionManageHandler,
                                 serverHandler

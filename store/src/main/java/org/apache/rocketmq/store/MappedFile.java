@@ -56,6 +56,9 @@ public class MappedFile extends ReferenceResource {
     private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
     // 当前该文件的写指针，从0开始(内存映射文件中的写指针)。当前写到哪一个位置.
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
+    //ADD BY ChenYang
+    // 当前文件的提交指针，如果开启 transientStorePoolEnable， 则数据会存储在 TransientStorePool 中，
+    // 然后提交到内存映射 ByteBuffer 中， 再 刷写到磁盘。已经提交(已经持久化到磁盘)的位置.
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
     // 刷写到磁盘指针，该指针之前的数据持久化到磁盘中,已经提交(已经持久化到磁盘)的位置
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
@@ -243,7 +246,7 @@ public class MappedFile extends ReferenceResource {
             // 获取需要写入的字节缓冲区, 之所以会有writeBuffer != null的判断与使用的刷盘服务有关.
             // 如果 currentPos 小于文件大小，通过 slice() 方法创建一个与 MappedFile 的共享内存区，并设置 position 为当前指针
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
-            byteBuffer.position(currentPos);
+            byteBuffer.position(currentPos);// 设置写入的 position
             AppendMessageResult result;
             if (messageExt instanceof MessageExtBrokerInner) {
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);

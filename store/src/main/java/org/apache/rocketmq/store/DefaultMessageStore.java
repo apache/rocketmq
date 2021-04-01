@@ -155,6 +155,7 @@ public class DefaultMessageStore implements MessageStore {
 
     boolean shutDownNormal = false;
 
+    //该对象是应用层访问存储层的访问类
     private final ScheduledExecutorService diskCheckScheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DiskCheckScheduledThread"));
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
@@ -475,6 +476,17 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+
+    /**
+     * 调用 putMessage(MessageExtBrokerInner msg)方法完成消息的写入工作。具体步骤如下：
+     * 1）检查是否shutdown，若是则直接返回服务不可用的错误；
+     * 2）检查是否为备用Broker，若是则直接返回服务不可用的错误；
+     * 3）检查是否有写的权限，若是则直接返回服务不可用的错误；
+     * 4）检查topic的长度是否大于最大值127，若是则返回消息不合法；
+     * 5）检查peroperties的长度是否大于32767，若是则返回消息不合法；
+     * 6）上述检查全部通过之后，调用CommitLog对象的putMessage方法进行消息的写入；
+     * 7）完成消息写入之后，调用StoreStatsService对象进行相关统计工作；
+     * */
     private PutMessageStatus checkMessage(MessageExtBrokerInner msg) {
         if (msg.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("putMessage message topic length too long " + msg.getTopic().length());
@@ -1902,6 +1914,7 @@ public class DefaultMessageStore implements MessageStore {
             cleanImmediately = false;
 
             {
+        
                 double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathPhysic());
                 if (physicRatio > diskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();

@@ -365,9 +365,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             }
 
                             break;
-                            // 没有新消息
+                        // 没有新消息
                         case NO_NEW_MSG:
+                        // 没有匹配的消息
                         case NO_MATCHED_MSG:
+                            // 直接使用服务器端校正的偏移量进行下一次消息的拉取
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                             DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);

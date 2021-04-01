@@ -416,6 +416,8 @@ public class CommitLog {
         return new DispatchRequest(-1, false /* success */);
     }
 
+
+    // 获取该消息在消息 队列的偏移量。 CommitLog 中保存了当前所有消息队列的当 前待写入偏移量。
     protected static int calMsgLength(int sysFlag, int bodyLength, int topicLength, int propertiesLength) {
         int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
         int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
@@ -554,6 +556,7 @@ public class CommitLog {
             return false;
         }
 
+        //Step2 :如果文件中 第一条消息的存储 时间 等于 0， 返回 false，说明该消息存储文件中 未存储任何消息 。
         int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
         int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
         int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
@@ -960,7 +963,8 @@ public class CommitLog {
         return putMessageResult;
     }
 
-
+    //同步刷盘，指的是在消息追加到内存映射文件的内存中后，立即将数据从内存刷写到
+    //磁盘文件，由CommitLog 的handleDiskFlush 方法实现
     public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, MessageExt messageExt) {
         // Synchronization flush
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
@@ -1491,6 +1495,7 @@ public class CommitLog {
     public static class GroupCommitRequest {
         //1 ) long nextOffset ：刷盘点偏移量。
         private final long nextOffset;
+
         private CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
         private final long startTimestamp = System.currentTimeMillis();
         private long timeoutMillis = Long.MAX_VALUE;
@@ -1508,6 +1513,7 @@ public class CommitLog {
         public long getNextOffset() {
             return nextOffset;
         }
+
 
         public void wakeupCustomer(final PutMessageStatus putMessageStatus) {
             this.flushOKFuture.complete(putMessageStatus);
@@ -1535,6 +1541,7 @@ public class CommitLog {
             synchronized (this.requestsWrite) {
                 this.requestsWrite.add(request);
             }
+
             this.wakeup();
         }
 
@@ -1563,7 +1570,6 @@ public class CommitLog {
                             CommitLog.this.mappedFileQueue.flush(0);
                             flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
                         }
-
                         req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
                     }
 
@@ -1663,6 +1669,7 @@ public class CommitLog {
 
             // PHY OFFSET
             long wroteOffset = fileFromOffset + byteBuffer.position();
+
 
             int sysflag = msgInner.getSysFlag();
 
@@ -1775,7 +1782,7 @@ public class CommitLog {
             this.msgStoreItemMemory.putInt(msgInner.getSysFlag());
             // 9 BORNTIMESTAMP 消息生产者调用消息发送 API 的时间戳， 8 字节
             this.msgStoreItemMemory.putLong(msgInner.getBornTimestamp());
-            // 10 BORNHOST
+            // 10 BORNHOST 消息发送者IP、端口号， 8字节
             this.resetByteBuffer(bornHostHolder, bornHostLength);
             this.msgStoreItemMemory.put(msgInner.getBornHostBytes(bornHostHolder));
             // 11 STORETIMESTAMP

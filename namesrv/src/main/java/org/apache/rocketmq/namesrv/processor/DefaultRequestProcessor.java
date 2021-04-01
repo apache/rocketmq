@@ -58,6 +58,7 @@ import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+// nameServer的主要逻辑，根据上报消息里的请求码做相应的处理，更新存储的对应信息 。
 public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 

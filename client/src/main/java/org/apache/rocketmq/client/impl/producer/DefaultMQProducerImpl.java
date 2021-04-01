@@ -537,6 +537,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mqFaultStrategy.updateFaultItem(brokerName, currentLatency, isolation);
     }
 
+
     private void validateNameServerSetting() throws MQClientException {
         List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
         if (null == nsList || nsList.isEmpty()) {
@@ -546,6 +547,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     }
 
+    // 验证消息，查找路由，消息发送；
     private SendResult sendDefaultImpl(
         Message msg,
         final CommunicationMode communicationMode,
@@ -711,12 +713,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
-    private SendResult sendKernelImpl(final Message msg,
-        final MessageQueue mq,
-        final CommunicationMode communicationMode,
-        final SendCallback sendCallback,
-        final TopicPublishInfo topicPublishInfo,
-        final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+
+    private SendResult sendKernelImpl(final Message msg, // 待发送消息
+                                      final MessageQueue mq, // 消息将发送到该消息队列中。
+                                      final CommunicationMode communicationMode, // 消息发送模式
+                                      final SendCallback sendCallback,// 异步消息回调函数
+                                      final TopicPublishInfo topicPublishInfo, // 主题路由信息
+                                      final long timeout // 消息发送超时时间
+    ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
         // 根据 MessageQueue获取Broker的网络地址。
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
