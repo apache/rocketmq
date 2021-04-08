@@ -16,19 +16,30 @@
  */
 package org.apache.rocketmq.store.pop;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PopCheckPoint {
+    @JSONField(name = "so")
     private long startOffset;
+    @JSONField(name = "pt")
     private long popTime;
+    @JSONField(name = "it")
     private long invisibleTime;
+    @JSONField(name = "bm")
     private int bitMap;
+    @JSONField(name = "n")
     private byte num;
+    @JSONField(name = "q")
     private byte queueId;
+    @JSONField(name = "t")
     private String topic;
+    @JSONField(name = "c")
     private String cid;
+    @JSONField(name = "ro")
     private long reviveOffset;
+    @JSONField(name = "d")
     private List<Integer> queueOffsetDiff;
 
     public long getReviveOffset() {
