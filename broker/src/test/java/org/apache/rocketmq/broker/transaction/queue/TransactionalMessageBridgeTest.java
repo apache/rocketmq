@@ -20,11 +20,11 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.AppendMessageResult;
@@ -47,6 +47,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -88,8 +89,16 @@ public class TransactionalMessageBridgeTest {
     }
 
     @Test
+    public void testAsyncPutHalfMessage() throws Exception {
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+        CompletableFuture<PutMessageResult> result = transactionBridge.asyncPutHalfMessage(createMessageBrokerInner());
+        assertThat(result.get().getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+    }
+
+    @Test
     public void testFetchMessageQueues() {
-        Set<MessageQueue> messageQueues = transactionBridge.fetchMessageQueues(MixAll.RMQ_SYS_TRANS_HALF_TOPIC);
+        Set<MessageQueue> messageQueues = transactionBridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
         assertThat(messageQueues.size()).isEqualTo(1);
     }
 

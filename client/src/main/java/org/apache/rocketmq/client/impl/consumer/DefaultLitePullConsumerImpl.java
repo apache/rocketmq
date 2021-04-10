@@ -222,6 +222,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
+    public synchronized boolean isRunning() {
+        return this.serviceState == ServiceState.RUNNING;
+    }
+
     public synchronized void start() throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
@@ -421,8 +425,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 throw new IllegalArgumentException("Topic can not be null or empty.");
             }
             setSubscriptionType(SubscriptionType.SUBSCRIBE);
-            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
-                topic, subExpression);
+            SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
@@ -554,8 +557,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
-        long begin = maxOffset(messageQueue);
-        this.seek(messageQueue, begin);
+        long end = maxOffset(messageQueue);
+        this.seek(messageQueue, end);
     }
 
     private long maxOffset(MessageQueue messageQueue) throws MQClientException {
@@ -624,7 +627,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public long committed(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
-        long offset = this.offsetStore.readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE);
+        long offset = this.offsetStore.readOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
         if (offset == -2)
             throw new MQClientException("Fetch consume offset from broker exception", null);
         return offset;
@@ -684,7 +687,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
 
-                if (processQueue == null && processQueue.isDropped()) {
+                if (null == processQueue || processQueue.isDropped()) {
                     log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), this.messageQueue);
                     return;
                 }
@@ -738,8 +741,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
                     } else {
                         String topic = this.messageQueue.getTopic();
-                        subscriptionData = FilterAPI.buildSubscriptionData(defaultLitePullConsumer.getConsumerGroup(),
-                            topic, SubscriptionData.SUB_ALL);
+                        subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
                     }
                     
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());

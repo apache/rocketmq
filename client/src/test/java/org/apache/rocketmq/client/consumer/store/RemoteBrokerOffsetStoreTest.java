@@ -84,7 +84,7 @@ public class RemoteBrokerOffsetStoreTest {
 
         offsetStore.updateOffset(messageQueue, 1024, false);
 
-        doThrow(new MQBrokerException(-1, ""))
+        doThrow(new MQBrokerException(-1, "", null))
             .when(mqClientAPI).queryConsumerOffset(anyString(), any(QueryConsumerOffsetRequestHeader.class), anyLong());
         assertThat(offsetStore.readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE)).isEqualTo(-1);
 

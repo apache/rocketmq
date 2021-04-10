@@ -54,6 +54,10 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("r", "removeOffset", true, "remove offset");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -65,11 +69,16 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
             // groupName
             String groupName = commandLine.getOptionValue('g').trim();
 
+            boolean removeOffset = false;
+            if (commandLine.hasOption('r')) {
+                removeOffset = Boolean.valueOf(commandLine.getOptionValue("r").trim());
+            }
+
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
                 adminExt.start();
 
-                adminExt.deleteSubscriptionGroup(addr, groupName);
+                adminExt.deleteSubscriptionGroup(addr, groupName, removeOffset);
                 System.out.printf("delete subscription group [%s] from broker [%s] success.%n", groupName,
                     addr);
 
@@ -80,7 +89,7 @@ public class DeleteSubscriptionGroupCommand implements SubCommand {
 
                 Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(adminExt, clusterName);
                 for (String master : masterSet) {
-                    adminExt.deleteSubscriptionGroup(master, groupName);
+                    adminExt.deleteSubscriptionGroup(master, groupName, removeOffset);
                     System.out.printf(
                         "delete subscription group [%s] from broker [%s] in cluster [%s] success.%n",
                         groupName, master, clusterName);

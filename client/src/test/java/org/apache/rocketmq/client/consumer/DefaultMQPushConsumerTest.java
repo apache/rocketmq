@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
@@ -61,6 +62,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -77,6 +79,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(DefaultMQPushConsumerImpl.class)
+@PowerMockIgnore("javax.management.*")
 public class DefaultMQPushConsumerTest {
     private String consumerGroup;
     private String topic = "FooBar";
@@ -254,6 +257,34 @@ public class DefaultMQPushConsumerTest {
         } catch (MQClientException e) {
             assertThat(e).hasMessageContaining("pullThresholdSizeForTopic Out of range [1, 102400]");
         }
+    }
+
+    @Test
+    public void testGracefulShutdown() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        pushConsumer.setAwaitTerminationMillisWhenShutdown(2000);
+        final AtomicBoolean messageConsumedFlag = new AtomicBoolean(false);
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                                                            ConsumeConcurrentlyContext context) {
+                countDownLatch.countDown();
+                try {
+                    Thread.sleep(1000);
+                    messageConsumedFlag.set(true);
+                } catch (InterruptedException e) {
+                }
+
+                return null;
+            }
+        }));
+
+        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        pullMessageService.executePullRequestImmediately(createPullRequest());
+        countDownLatch.await();
+
+        pushConsumer.shutdown();
+        assertThat(messageConsumedFlag.get()).isTrue();
     }
 
     private DefaultMQPushConsumer createPushConsumer() {

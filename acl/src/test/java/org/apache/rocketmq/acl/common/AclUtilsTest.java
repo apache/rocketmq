@@ -32,9 +32,9 @@ import org.junit.Test;
 public class AclUtilsTest {
 
     @Test
-    public void getAddreeStrArray() {
+    public void getAddresses() {
         String address = "1.1.1.{1,2,3,4}";
-        String[] addressArray = AclUtils.getAddreeStrArray(address, "{1,2,3,4}");
+        String[] addressArray = AclUtils.getAddresses(address, "{1,2,3,4}");
         List<String> newAddressList = new ArrayList<>();
         for (String a : addressArray) {
             newAddressList.add(a);
@@ -49,7 +49,7 @@ public class AclUtilsTest {
 
 //        IPv6 test
         String ipv6Address = "1:ac41:9987::bb22:666:{1,2,3,4}";
-        String[] ipv6AddressArray = AclUtils.getAddreeStrArray(ipv6Address, "{1,2,3,4}");
+        String[] ipv6AddressArray = AclUtils.getAddresses(ipv6Address, "{1,2,3,4}");
         List<String> newIPv6AddressList = new ArrayList<>();
         for (String a : ipv6AddressArray) {
             newIPv6AddressList.add(a);
@@ -181,19 +181,23 @@ public class AclUtilsTest {
     public void v6ipProcessTest() {
         String remoteAddr = "5::7:6:1-200:*";
         String[] strArray = StringUtils.split(remoteAddr, ":");
-        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr, strArray, 3), "0005:0000:0000:0000:0007:0006");
+        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0007:0006");
+//        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr, strArray, 3), "0005:0000:0000:0000:0007:0006");
 
         remoteAddr = "5::7:6:1-200";
         strArray = StringUtils.split(remoteAddr, ":");
-        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr, strArray, 3), "0005:0000:0000:0000:0000:0007:0006");
+        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0000:0007:0006");
+//        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr, strArray, 3), "0005:0000:0000:0000:0000:0007:0006");
 
         remoteAddr = "5::7:6:*";
         strArray = StringUtils.split(remoteAddr, ":");
-        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr, strArray, 3), "0005:0000:0000:0000:0000:0007:0006");
+        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0000:0007:0006");
+//        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr, strArray, 3), "0005:0000:0000:0000:0000:0007:0006");
 
         remoteAddr = "5:7:6:*";
         strArray = StringUtils.split(remoteAddr, ":");
-        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr, strArray, 3), "0005:0007:0006");
+        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0007:0006");
+//        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr, strArray, 3), "0005:0007:0006");
     }
 
     @Test
