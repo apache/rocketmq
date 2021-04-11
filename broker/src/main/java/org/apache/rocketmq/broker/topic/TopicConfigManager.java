@@ -177,8 +177,7 @@ public class TopicConfigManager extends ConfigManager {
                             topicConfig = new TopicConfig(topic);
 
                             int queueNums =
-                                clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
-                                    .getWriteQueueNums() : clientDefaultTopicQueueNums;
+                                    Math.min(clientDefaultTopicQueueNums, defaultTopicConfig.getWriteQueueNums());
 
                             if (queueNums < 0) {
                                 queueNums = 0;
