@@ -24,6 +24,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.remoting.common.ThreadFactoryImpl;
 import org.junit.After;
 import org.junit.Test;
 
