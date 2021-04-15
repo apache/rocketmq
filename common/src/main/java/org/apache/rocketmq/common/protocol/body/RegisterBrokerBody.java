@@ -42,7 +42,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
 
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
-    private List<String> filterServerList = new ArrayList<String>();
+    private List<String> filterServerList = new ArrayList<>();
 
     public byte[] encode(boolean compress) {
 
@@ -54,7 +54,6 @@ public class RegisterBrokerBody extends RemotingSerializable {
         DeflaterOutputStream outputStream = new DeflaterOutputStream(byteArrayOutputStream, new Deflater(Deflater.BEST_COMPRESSION));
         DataVersion dataVersion = topicConfigSerializeWrapper.getDataVersion();
         ConcurrentMap<String, TopicConfig> topicConfigTable = cloneTopicConfigTable(topicConfigSerializeWrapper.getTopicConfigTable());
-        assert topicConfigTable != null;
         try {
             byte[] buffer = dataVersion.encode();
 
@@ -126,7 +125,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
 
         byte[] filterServerListBuffer = readBytes(inflaterInputStream, filterServerListJsonLength);
         String filterServerListJson = new String(filterServerListBuffer, MixAll.DEFAULT_CHARSET);
-        List<String> filterServerList = new ArrayList<String>();
+        List<String> filterServerList = new ArrayList<>();
         try {
             filterServerList = JSON.parseArray(filterServerListJson, String.class);
         } catch (Exception e) {
@@ -185,7 +184,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
 
     public static ConcurrentMap<String, TopicConfig> cloneTopicConfigTable(
         ConcurrentMap<String, TopicConfig> topicConfigConcurrentMap) {
-        ConcurrentHashMap<String, TopicConfig> result = new ConcurrentHashMap<String, TopicConfig>();
+        ConcurrentHashMap<String, TopicConfig> result = new ConcurrentHashMap<>();
         if (topicConfigConcurrentMap != null) {
             for (Map.Entry<String, TopicConfig> entry : topicConfigConcurrentMap.entrySet()) {
                 result.put(entry.getKey(), entry.getValue());
