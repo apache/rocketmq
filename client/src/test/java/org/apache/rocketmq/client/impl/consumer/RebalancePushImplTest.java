@@ -22,23 +22,28 @@ import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageQueueAssignment;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -51,6 +56,7 @@ public class RebalancePushImplTest {
     private OffsetStore offsetStore;
     private String consumerGroup = "CID_RebalancePushImplTest";
     private String topic = "TopicA";
+    private final String brokerName = "BrokerA";
 
     @Test
     public void testMessageQueueChanged_CountThreshold() {
@@ -88,16 +94,15 @@ public class RebalancePushImplTest {
 
         rebalancePush.subscriptionInner.putIfAbsent(topic, new SubscriptionData());
 
+        try {
+            when(mqClientInstance.queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt())).thenThrow(new RemotingTimeoutException("unsupported"));
+        } catch (RemotingException ignored) {
+        } catch (InterruptedException ignored) {
+        } catch (MQBrokerException ignored) {
+        }
         when(mqClientInstance.findConsumerIdList(anyString(), anyString())).thenReturn(Collections.singletonList(consumerGroup));
         when(mqClientInstance.getClientId()).thenReturn(consumerGroup);
         when(defaultMQPushConsumer.getOffsetStore()).thenReturn(offsetStore);
-
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                return null;
-            }
-        }).when(defaultMQPushConsumer).executePullRequestImmediately(any(PullRequest.class));
     }
 
     @Test
@@ -134,8 +139,8 @@ public class RebalancePushImplTest {
         defaultMQPushConsumer.getDefaultMQPushConsumer().setPullThresholdSizeForQueue(1024);
         defaultMQPushConsumer.getDefaultMQPushConsumer().setPullThresholdForQueue(1024);
         Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
-        allocateResultSet.add(new MessageQueue(topic, "BrokerA", 0));
-        allocateResultSet.add(new MessageQueue(topic, "BrokerA", 1));
+        allocateResultSet.add(new MessageQueue(topic, brokerName, 0));
+        allocateResultSet.add(new MessageQueue(topic, brokerName, 1));
         doRebalanceForcibly(rebalancePush, allocateResultSet);
 
         defaultMQPushConsumer.setConsumeMessageService(new ConsumeMessageConcurrentlyService(defaultMQPushConsumer, null));
@@ -159,5 +164,23 @@ public class RebalancePushImplTest {
         assertThat(defaultMQPushConsumer.consumerRunningInfo().getProperties().get("pullThresholdForQueue")).isEqualTo("341");
         assertThat(defaultMQPushConsumer.consumerRunningInfo().getProperties().get("pullThresholdSizeForTopic")).isEqualTo("1024");
         assertThat(defaultMQPushConsumer.consumerRunningInfo().getProperties().get("pullThresholdForTopic")).isEqualTo("1024");
+    }
+
+    @Test
+    public void testDoRebalancePull() throws Exception {
+        RebalancePushImpl rebalancePush = new RebalancePushImpl(consumerGroup, MessageModel.CLUSTERING,
+            new AllocateMessageQueueAveragely(), mqClientInstance, defaultMQPushConsumer);
+        rebalancePush.getSubscriptionInner().putIfAbsent(topic, new SubscriptionData());
+        rebalancePush.subscriptionInner.putIfAbsent(topic, new SubscriptionData());
+
+        when(mqClientInstance.getClientId()).thenReturn(consumerGroup);
+        when(defaultMQPushConsumer.getOffsetStore()).thenReturn(offsetStore);
+        doNothing().when(defaultMQPushConsumer).executePullRequestLater(any(PullRequest.class), anyLong());
+        MessageQueueAssignment queueAssignment = new MessageQueueAssignment();
+        queueAssignment.setMode(MessageRequestMode.PULL);
+        queueAssignment.setMessageQueue(new MessageQueue(topic, brokerName, 0));
+        when(mqClientInstance.queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt())).thenReturn(Collections.singleton(queueAssignment));
+
+        assertThat(rebalancePush.doRebalance(false)).isTrue();
     }
 }
