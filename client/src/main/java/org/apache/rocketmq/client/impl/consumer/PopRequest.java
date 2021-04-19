@@ -16,15 +16,17 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 
-public class PullRequest implements MessageRequest {
+public class PopRequest implements MessageRequest {
+    private String topic;
     private String consumerGroup;
     private MessageQueue messageQueue;
-    private ProcessQueue processQueue;
-    private long nextOffset;
+    private PopProcessQueue popProcessQueue;
     private boolean lockedFirst = false;
+    private int initMode = ConsumeInitMode.MAX;
 
     public boolean isLockedFirst() {
         return lockedFirst;
@@ -50,18 +52,35 @@ public class PullRequest implements MessageRequest {
         this.messageQueue = messageQueue;
     }
 
-    public long getNextOffset() {
-        return nextOffset;
+    public String getTopic() {
+        return topic;
     }
 
-    public void setNextOffset(long nextOffset) {
-        this.nextOffset = nextOffset;
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public PopProcessQueue getPopProcessQueue() {
+        return popProcessQueue;
+    }
+
+    public void setPopProcessQueue(PopProcessQueue popProcessQueue) {
+        this.popProcessQueue = popProcessQueue;
+    }
+
+    public int getInitMode() {
+        return initMode;
+    }
+
+    public void setInitMode(int initMode) {
+        this.initMode = initMode;
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
+        result = prime * result + ((topic == null) ? 0 : topic.hashCode());
         result = prime * result + ((consumerGroup == null) ? 0 : consumerGroup.hashCode());
         result = prime * result + ((messageQueue == null) ? 0 : messageQueue.hashCode());
         return result;
@@ -75,36 +94,38 @@ public class PullRequest implements MessageRequest {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        PullRequest other = (PullRequest) obj;
+
+        PopRequest other = (PopRequest) obj;
+
+        if (topic == null) {
+            if (other.topic != null)
+                return false;
+        } else if (!topic.equals(other.topic)) {
+            return false;
+        }
+
         if (consumerGroup == null) {
             if (other.consumerGroup != null)
                 return false;
         } else if (!consumerGroup.equals(other.consumerGroup))
             return false;
+
         if (messageQueue == null) {
             if (other.messageQueue != null)
                 return false;
-        } else if (!messageQueue.equals(other.messageQueue))
+        } else if (!messageQueue.equals(other.messageQueue)) {
             return false;
+        }
         return true;
     }
 
     @Override
     public String toString() {
-        return "PullRequest [consumerGroup=" + consumerGroup + ", messageQueue=" + messageQueue
-            + ", nextOffset=" + nextOffset + "]";
-    }
-
-    public ProcessQueue getProcessQueue() {
-        return processQueue;
-    }
-
-    public void setProcessQueue(ProcessQueue processQueue) {
-        this.processQueue = processQueue;
+        return "PopRequest [topic=" + topic + ", consumerGroup=" + consumerGroup + ", messageQueue=" + messageQueue + "]";
     }
 
     @Override
     public MessageRequestMode getMessageRequestMode() {
-        return MessageRequestMode.PULL;
+        return MessageRequestMode.POP;
     }
 }
