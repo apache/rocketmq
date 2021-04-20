@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -133,6 +134,7 @@ public class DefaultMQPushConsumerImplTest {
         defaultMQPushConsumerImpl.executeHookAfter(new ConsumeMessageContext());
     }
 
+    @Ignore
     @Test
     public void testPush() throws Exception {
         when(defaultMQPushConsumer.getMessageListener()).thenReturn(new MessageListenerConcurrently() {
