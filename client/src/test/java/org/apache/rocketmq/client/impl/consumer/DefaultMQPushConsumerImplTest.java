@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -52,31 +53,6 @@ public class DefaultMQPushConsumerImplTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    @Before
-    public void setUp() throws Exception {
-        when(defaultMQPushConsumer.getConsumerGroup()).thenReturn("test_group");
-        when(defaultMQPushConsumer.getMessageModel()).thenReturn(MessageModel.CLUSTERING);
-        when(defaultMQPushConsumer.getConsumeFromWhere()).thenReturn(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        when(defaultMQPushConsumer.getConsumeTimestamp()).thenReturn(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000 * 60 * 30)));
-        when(defaultMQPushConsumer.getAllocateMessageQueueStrategy()).thenReturn(new AllocateMessageQueueAveragely());
-        when(defaultMQPushConsumer.getConsumeThreadMin()).thenReturn(20);
-        when(defaultMQPushConsumer.getConsumeThreadMax()).thenReturn(30);
-        when(defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()).thenReturn(2000);
-        when(defaultMQPushConsumer.getPullThresholdForQueue()).thenReturn(1000);
-        when(defaultMQPushConsumer.getPullThresholdForTopic()).thenReturn(-1);
-        when(defaultMQPushConsumer.getPullThresholdSizeForQueue()).thenReturn(100);
-        when(defaultMQPushConsumer.getPullThresholdSizeForTopic()).thenReturn(-1);
-        when(defaultMQPushConsumer.getConsumeMessageBatchMaxSize()).thenReturn(1);
-        when(defaultMQPushConsumer.getPullBatchSize()).thenReturn(32);
-        when(defaultMQPushConsumer.getPopInvisibleTime()).thenReturn(60000L);
-        when(defaultMQPushConsumer.getPopBatchNums()).thenReturn(32);
-        when(defaultMQPushConsumer.getClientIP()).thenReturn("127.0.0.1");
-        when(defaultMQPushConsumer.getInstanceName()).thenReturn("test_instance");
-        when(defaultMQPushConsumer.buildMQClientId()).thenCallRealMethod();
-        ClientConfig clientConfig = new ClientConfig();
-        when(defaultMQPushConsumer.cloneClientConfig()).thenReturn(clientConfig);
-        when(defaultMQPushConsumer.getConsumeTimeout()).thenReturn(15L);
-    }
 
     @Test
     public void checkConfigTest() throws MQClientException {
@@ -133,6 +109,7 @@ public class DefaultMQPushConsumerImplTest {
         defaultMQPushConsumerImpl.executeHookAfter(new ConsumeMessageContext());
     }
 
+    @Ignore
     @Test
     public void testPush() throws Exception {
         when(defaultMQPushConsumer.getMessageListener()).thenReturn(new MessageListenerConcurrently() {
