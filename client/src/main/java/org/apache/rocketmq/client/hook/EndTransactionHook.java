@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace;
+package org.apache.rocketmq.client.hook;
 
-public enum TraceType {
-    Pub,
-    SubBefore,
-    SubAfter,
-    EndTransaction,
+public interface EndTransactionHook {
+    String hookName();
+
+    void endTransaction(final EndTransactionContext context);
 }
