@@ -612,9 +612,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private void updatePullOffset(MessageQueue messageQueue, long nextPullOffset) {
+    private void updatePullOffset(MessageQueue messageQueue, long nextPullOffset, ProcessQueue processQueue) {
         if (assignedMessageQueue.getSeekOffset(messageQueue) == -1) {
-            assignedMessageQueue.updatePullOffset(messageQueue, nextPullOffset);
+            assignedMessageQueue.updatePullOffset(messageQueue, nextPullOffset, processQueue);
         }
     }
 
@@ -740,6 +740,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 }
 
                 long offset = nextPullOffset(messageQueue);
+                if (this.isCancelled() || processQueue.isDropped()) {
+                    return;
+                }
                 long pullDelayTimeMills = 0;
                 try {
                     SubscriptionData subscriptionData;
@@ -752,7 +755,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     }
                     
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
-
+                    if (this.isCancelled() || processQueue.isDropped()) {
+                        return;
+                    }
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
                             final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
@@ -769,7 +774,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         default:
                             break;
                     }
-                    updatePullOffset(messageQueue, pullResult.getNextBeginOffset());
+                    updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
                 } catch (Throwable e) {
                     pullDelayTimeMills = pullTimeDelayMillsWhenException;
                     log.error("An error occurred in pull message process.", e);
