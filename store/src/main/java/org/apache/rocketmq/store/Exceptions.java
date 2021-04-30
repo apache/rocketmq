@@ -39,10 +39,6 @@ public class Exceptions {
             this.errorCode = errorCode;
         }
 
-//        public PutMessageStatus errorCode() {
-//            return errorCode;
-//        }
-
         public PutMessageResult toPutMessageResult() {
             return new PutMessageResult(this.errorCode, this.result);
         }
