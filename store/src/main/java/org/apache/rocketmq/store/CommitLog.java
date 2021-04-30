@@ -556,17 +556,11 @@ public class CommitLog {
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
-        String topic = prepareMessage(msg);
         // Back to Results
         AppendMessageResult result = null;
 
         try {
-            result = appendPutMessage(msg);
-
-            // Statistics
-            StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
-            storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
-            storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
+            result = appendPutMessageAndTrackStats(msg);
         } catch (Exceptions.PutMessageException ex) {
             return CompletableFuture.completedFuture(ex.toPutMessageResult());
         }
@@ -589,7 +583,7 @@ public class CommitLog {
         });
     }
 
-    private String prepareMessage(MessageExtBrokerInner msg) {
+    private AppendMessageResult appendPutMessageAndTrackStats(MessageExtBrokerInner msg) throws Exceptions.PutMessageException {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
         // Set the message body BODY CRC (consider the most appropriate setting
@@ -620,7 +614,70 @@ public class CommitLog {
                 msg.setQueueId(queueId);
             }
         }
-        return topic;
+        AppendMessageResult result;
+        long elapsedTimeInLock = 0;
+        MappedFile unlockMappedFile = null;
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+
+        putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
+        try {
+            long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+            this.beginTimeInLock = beginLockTimestamp;
+
+            // Here settings are stored timestamp, in order to ensure an orderly
+            // global
+            msg.setStoreTimestamp(this.beginTimeInLock);
+
+            if (null == mappedFile || mappedFile.isFull()) {
+                mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
+            }
+            if (null == mappedFile) {
+                log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                throw new Exceptions.CreateMappedfileFailedException();
+            }
+
+            result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+            switch (result.getStatus()) {
+                case PUT_OK:
+                    break;
+                case END_OF_FILE:
+                    unlockMappedFile = mappedFile;
+                    // Create a new file, re-write the message
+                    mappedFile = this.mappedFileQueue.getLastMappedFile(0);
+                    if (null == mappedFile) {
+                        // XXX: warn and notify me
+                        log.error("create mapped file error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                        throw new Exceptions.CreateMappedfileFailedException(result);
+                    }
+                    result = mappedFile.appendMessage(msg, this.appendMessageCallback);
+                    break;
+                case MESSAGE_SIZE_EXCEEDED:
+                case PROPERTIES_SIZE_EXCEEDED:
+                    throw new Exceptions.MessageIllegalException(result);
+                case UNKNOWN_ERROR:
+                default:
+                    throw new Exceptions.PutMessageException(result);
+            }
+
+            elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+        } finally {
+            beginTimeInLock = 0;
+            putMessageLock.unlock();
+        }
+
+        if (elapsedTimeInLock > 500) {
+            log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
+        }
+
+        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+            this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
+        }
+
+        // Statistics
+        StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
+        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
+        storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
+        return result;
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessages(final MessageExtBatch messageExtBatch) {
@@ -731,16 +788,10 @@ public class CommitLog {
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
         setIPV6Flags(msg);
 
-        String topic = prepareMessage(msg);
         // Back to Results
         AppendMessageResult result = null;
         try {
-            result = appendPutMessage(msg);
-
-            // Statistics
-            StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
-            storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
-            storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
+            result = appendPutMessageAndTrackStats(msg);
         } catch (Exceptions.PutMessageException ex) {
             return ex.toPutMessageResult();
         }
@@ -750,68 +801,6 @@ public class CommitLog {
         handleHA(result, putMessageResult, msg);
 
         return putMessageResult;
-    }
-
-    private AppendMessageResult appendPutMessage(MessageExtBrokerInner msg) throws Exceptions.PutMessageException {
-        AppendMessageResult result;
-        long elapsedTimeInLock = 0;
-        MappedFile unlockMappedFile = null;
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
-
-        putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
-        try {
-            long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
-            this.beginTimeInLock = beginLockTimestamp;
-
-            // Here settings are stored timestamp, in order to ensure an orderly
-            // global
-            msg.setStoreTimestamp(this.beginTimeInLock);
-
-            if (null == mappedFile || mappedFile.isFull()) {
-                mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
-            }
-            if (null == mappedFile) {
-                log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                throw new Exceptions.CreateMappedfileFailedException();
-            }
-
-            result = mappedFile.appendMessage(msg, this.appendMessageCallback);
-            switch (result.getStatus()) {
-                case PUT_OK:
-                    break;
-                case END_OF_FILE:
-                    unlockMappedFile = mappedFile;
-                    // Create a new file, re-write the message
-                    mappedFile = this.mappedFileQueue.getLastMappedFile(0);
-                    if (null == mappedFile) {
-                        // XXX: warn and notify me
-                        log.error("create mapped file error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                        throw new Exceptions.CreateMappedfileFailedException(result);
-                    }
-                    result = mappedFile.appendMessage(msg, this.appendMessageCallback);
-                    break;
-                case MESSAGE_SIZE_EXCEEDED:
-                case PROPERTIES_SIZE_EXCEEDED:
-                    throw new Exceptions.MessageIllegalException(result);
-                case UNKNOWN_ERROR:
-                default:
-                    throw new Exceptions.PutMessageException(result);
-            }
-
-            elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-        } finally {
-            beginTimeInLock = 0;
-            putMessageLock.unlock();
-        }
-
-        if (elapsedTimeInLock > 500) {
-            log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
-        }
-
-        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
-            this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
-        }
-        return result;
     }
 
     private void setIPV6Flags(MessageExtBrokerInner msg) {
