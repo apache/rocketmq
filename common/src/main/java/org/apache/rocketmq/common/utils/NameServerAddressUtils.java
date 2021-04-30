@@ -34,7 +34,7 @@ public class NameServerAddressUtils {
         if (StringUtils.isEmpty(endpoint)) {
             return null;
         }
-        return endpoint.substring(endpoint.lastIndexOf("/")+1, endpoint.indexOf('.'));
+        return endpoint.substring(endpoint.lastIndexOf("/") + 1, endpoint.indexOf('.'));
     }
 
     public static String getNameSrvAddrFromNamesrvEndpoint(String nameSrvEndpoint) {
