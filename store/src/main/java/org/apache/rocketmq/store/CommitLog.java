@@ -562,16 +562,15 @@ public class CommitLog {
 
         try {
             result = appendPutMessage(msg);
+
+            // Statistics
+            StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
+            storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
+            storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
         } catch (Exceptions.PutMessageException ex) {
             return CompletableFuture.completedFuture(ex.toPutMessageResult());
         }
-
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
-
-        // Statistics
-        StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
-        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
-        storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
         CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
         CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
@@ -730,24 +729,22 @@ public class CommitLog {
     }
 
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
+        setIPV6Flags(msg);
+
         String topic = prepareMessage(msg);
         // Back to Results
         AppendMessageResult result = null;
-
-        setIPV6Flags(msg);
-
         try {
             result = appendPutMessage(msg);
+
+            // Statistics
+            StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
+            storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
+            storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
         } catch (Exceptions.PutMessageException ex) {
             return ex.toPutMessageResult();
         }
-
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
-
-        // Statistics
-        StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
-        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
-        storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
         handleDiskFlush(result, putMessageResult, msg);
         handleHA(result, putMessageResult, msg);
