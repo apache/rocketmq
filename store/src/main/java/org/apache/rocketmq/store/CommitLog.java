@@ -556,38 +556,9 @@ public class CommitLog {
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
-        // Set the storage time
-        msg.setStoreTimestamp(System.currentTimeMillis());
-        // Set the message body BODY CRC (consider the most appropriate setting
-        // on the client)
-        msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
+        String topic = prepareMessage(msg);
         // Back to Results
         AppendMessageResult result = null;
-
-        String topic = msg.getTopic();
-        int queueId = msg.getQueueId();
-
-        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
-        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
-                || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {
-                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
-                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
-                }
-
-                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
-
-                // Backup real topic, queueId
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
-                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
-
-                msg.setTopic(topic);
-                msg.setQueueId(queueId);
-            }
-        }
 
         long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
@@ -600,15 +571,14 @@ public class CommitLog {
 
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
-            msg.setStoreTimestamp(beginLockTimestamp);
+            msg.setStoreTimestamp(this.beginTimeInLock);
 
             if (null == mappedFile || mappedFile.isFull()) {
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
             if (null == mappedFile) {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                beginTimeInLock = 0;
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
+                throw new Exceptions.CreateMappedfileFailedException();
             }
 
             result = mappedFile.appendMessage(msg, this.appendMessageCallback);
@@ -622,26 +592,23 @@ public class CommitLog {
                     if (null == mappedFile) {
                         // XXX: warn and notify me
                         log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                        beginTimeInLock = 0;
-                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
+                        throw new Exceptions.CreateMappedfileFailedException(result);
                     }
                     result = mappedFile.appendMessage(msg, this.appendMessageCallback);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
-                    beginTimeInLock = 0;
-                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
+                    throw new Exceptions.MessageIllegalException(result);
                 case UNKNOWN_ERROR:
-                    beginTimeInLock = 0;
-                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
                 default:
-                    beginTimeInLock = 0;
-                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                    throw new Exceptions.PutMessageException(result);
             }
 
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-            beginTimeInLock = 0;
+        } catch (Exceptions.PutMessageException ex) {
+            return CompletableFuture.completedFuture(ex.toPutMessageResult());
         } finally {
+            beginTimeInLock = 0;
             putMessageLock.unlock();
         }
 
@@ -675,6 +642,40 @@ public class CommitLog {
             }
             return putMessageResult;
         });
+    }
+
+    private String prepareMessage(MessageExtBrokerInner msg) {
+        // Set the storage time
+        msg.setStoreTimestamp(System.currentTimeMillis());
+        // Set the message body BODY CRC (consider the most appropriate setting
+        // on the client)
+        msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
+
+        String topic = msg.getTopic();
+        int queueId = msg.getQueueId();
+
+        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
+                || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            // Delay Delivery
+            if (msg.getDelayTimeLevel() > 0) {
+                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
+                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
+                }
+
+                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
+                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+
+                // Backup real topic, queueId
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+
+                msg.setTopic(topic);
+                msg.setQueueId(queueId);
+            }
+        }
+        return topic;
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessages(final MessageExtBatch messageExtBatch) {
@@ -783,48 +784,11 @@ public class CommitLog {
     }
 
     public PutMessageResult putMessage(final MessageExtBrokerInner msg) {
-        // Set the storage time
-        msg.setStoreTimestamp(System.currentTimeMillis());
-        // Set the message body BODY CRC (consider the most appropriate setting
-        // on the client)
-        msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
+        String topic = prepareMessage(msg);
         // Back to Results
         AppendMessageResult result = null;
 
-        String topic = msg.getTopic();
-        int queueId = msg.getQueueId();
-
-        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
-        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
-            || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {
-                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
-                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
-                }
-
-                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
-
-                // Backup real topic, queueId
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
-                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
-
-                msg.setTopic(topic);
-                msg.setQueueId(queueId);
-            }
-        }
-
-        InetSocketAddress bornSocketAddress = (InetSocketAddress) msg.getBornHost();
-        if (bornSocketAddress.getAddress() instanceof Inet6Address) {
-            msg.setBornHostV6Flag();
-        }
-
-        InetSocketAddress storeSocketAddress = (InetSocketAddress) msg.getStoreHost();
-        if (storeSocketAddress.getAddress() instanceof Inet6Address) {
-            msg.setStoreHostAddressV6Flag();
-        }
+        setIPV6Flags(msg);
 
         long elapsedTimeInLock = 0;
 
@@ -838,15 +802,14 @@ public class CommitLog {
 
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
-            msg.setStoreTimestamp(beginLockTimestamp);
+            msg.setStoreTimestamp(this.beginTimeInLock);
 
             if (null == mappedFile || mappedFile.isFull()) {
                 mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
             }
             if (null == mappedFile) {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                beginTimeInLock = 0;
-                return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
+                throw new Exceptions.CreateMappedfileFailedException();
             }
 
             result = mappedFile.appendMessage(msg, this.appendMessageCallback);
@@ -860,26 +823,23 @@ public class CommitLog {
                     if (null == mappedFile) {
                         // XXX: warn and notify me
                         log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                        beginTimeInLock = 0;
-                        return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
+                        throw new Exceptions.CreateMappedfileFailedException(result);
                     }
                     result = mappedFile.appendMessage(msg, this.appendMessageCallback);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
-                    beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
+                    throw new Exceptions.MessageIllegalException(result);
                 case UNKNOWN_ERROR:
-                    beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
                 default:
-                    beginTimeInLock = 0;
-                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+                    throw new Exceptions.PutMessageException(result);
             }
 
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-            beginTimeInLock = 0;
+        } catch (Exceptions.PutMessageException ex) {
+            return ex.toPutMessageResult();
         } finally {
+            beginTimeInLock = 0;
             putMessageLock.unlock();
         }
 
@@ -902,6 +862,18 @@ public class CommitLog {
         handleHA(result, putMessageResult, msg);
 
         return putMessageResult;
+    }
+
+    private void setIPV6Flags(MessageExtBrokerInner msg) {
+        InetSocketAddress bornSocketAddress = (InetSocketAddress) msg.getBornHost();
+        if (bornSocketAddress.getAddress() instanceof Inet6Address) {
+            msg.setBornHostV6Flag();
+        }
+
+        InetSocketAddress storeSocketAddress = (InetSocketAddress) msg.getStoreHost();
+        if (storeSocketAddress.getAddress() instanceof Inet6Address) {
+            msg.setStoreHostAddressV6Flag();
+        }
     }
 
     public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, MessageExt messageExt) {
