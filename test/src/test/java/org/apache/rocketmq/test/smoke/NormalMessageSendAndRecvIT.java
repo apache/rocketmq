@@ -18,6 +18,8 @@
 package org.apache.rocketmq.test.smoke;
 
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.common.message.MessageClientExt;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -58,5 +60,9 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
+        for (Object o : consumer.getListener().getAllOriginMsg()) {
+            MessageClientExt msg = (MessageClientExt) o;
+            assertThat(msg.getProperty(MessageConst.PROPERTY_POP_CK)).isNull();
+        }
     }
 }
