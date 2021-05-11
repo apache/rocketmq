@@ -426,17 +426,18 @@ public class DLedgerCommitLog extends CommitLog {
         AppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
 
+        encodeResult = this.messageSerializer.serialize(msg);
+        if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status));
+        }
+
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         long elapsedTimeInLock;
         long queueOffset;
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
-            encodeResult = this.messageSerializer.serialize(msg);
             queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
-            encodeResult.setQueueOffsetKey(queueOffset);
-            if (encodeResult.status != AppendMessageStatus.PUT_OK) {
-                return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status));
-            }
+            encodeResult.setQueueOffsetKey(queueOffset, false);
             AppendEntryRequest request = new AppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
@@ -542,6 +543,12 @@ public class DLedgerCommitLog extends CommitLog {
         BatchAppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
 
+        encodeResult = this.messageSerializer.serialize(messageExtBatch);
+        if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult
+                    .status));
+        }
+
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         msgIdBuilder.setLength(0);
         long elapsedTimeInLock;
@@ -549,12 +556,8 @@ public class DLedgerCommitLog extends CommitLog {
         long msgNum = 0;
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
-            encodeResult = this.messageSerializer.serialize(messageExtBatch);
-            queueOffset = topicQueueTable.get(encodeResult.queueOffsetKey);
-            if (encodeResult.status != AppendMessageStatus.PUT_OK) {
-                return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult
-                        .status));
-            }
+            queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
+            encodeResult.setQueueOffsetKey(queueOffset, true);
             BatchAppendEntryRequest request = new BatchAppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
@@ -664,7 +667,7 @@ public class DLedgerCommitLog extends CommitLog {
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
             queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
-            encodeResult.setQueueOffsetKey(queueOffset);
+            encodeResult.setQueueOffsetKey(queueOffset, false);
             AppendEntryRequest request = new AppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
@@ -779,7 +782,8 @@ public class DLedgerCommitLog extends CommitLog {
         long msgNum = 0;
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
-            queueOffset = topicQueueTable.get(encodeResult.queueOffsetKey);
+            queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
+            encodeResult.setQueueOffsetKey(queueOffset, true);
             BatchAppendEntryRequest request = new BatchAppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
@@ -957,8 +961,15 @@ public class DLedgerCommitLog extends CommitLog {
             this.queueOffsetKey = queueOffsetKey;
         }
 
-        public void setQueueOffsetKey(long offset) {
-            data.putLong(MessageDecoder.QUEUE_OFFSET_POSITION, offset);
+        public void setQueueOffsetKey(long offset, boolean isBatch) {
+            if (!isBatch) {
+                this.data.putLong(MessageDecoder.QUEUE_OFFSET_POSITION, offset);
+                return;
+            }
+
+            for (byte[] data : batchData) {
+                ByteBuffer.wrap(data).putLong(MessageDecoder.QUEUE_OFFSET_POSITION, offset++);
+            }
         }
 
         public byte[] getData() {
@@ -1085,12 +1096,6 @@ public class DLedgerCommitLog extends CommitLog {
             keyBuilder.append(messageExtBatch.getQueueId());
             String key = keyBuilder.toString();
 
-            Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(key);
-            if (null == queueOffset) {
-                queueOffset = 0L;
-                DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
-            }
-
             int totalMsgLen = 0;
             ByteBuffer messagesByteBuff = messageExtBatch.wrap();
             List<byte[]> batchBody = new LinkedList<>();
@@ -1154,7 +1159,7 @@ public class DLedgerCommitLog extends CommitLog {
                 // 5 FLAG
                 msgStoreItemMemory.putInt(flag);
                 // 6 QUEUEOFFSET
-                msgStoreItemMemory.putLong(queueOffset++);
+                msgStoreItemMemory.putLong(0L);
                 // 7 PHYSICALOFFSET
                 msgStoreItemMemory.putLong(0);
                 // 8 SYSFLAG
@@ -1210,6 +1215,7 @@ public class DLedgerCommitLog extends CommitLog {
             this.sbr = sbr;
         }
 
+        @Override
         public synchronized void release() {
             super.release();
             if (sbr != null) {
