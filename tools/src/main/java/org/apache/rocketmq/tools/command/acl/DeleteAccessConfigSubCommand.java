@@ -44,10 +44,10 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("b", "brokerAddr", true, "delete acl config account to which broker");
+        Option opt = new Option("b", "brokerAddr", true, "delete acl config account from which broker");
         optionGroup.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "delete cl config account to which cluster");
+        opt = new Option("c", "clusterName", true, "delete acl config account from which cluster");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
