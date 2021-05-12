@@ -29,6 +29,7 @@ import java.net.NetworkInterface;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -583,5 +584,24 @@ public class UtilAll {
 
         String[] addrArray = str.split(splitor);
         return Arrays.asList(addrArray);
+    }
+
+    @SafeVarargs
+    public static <E> List<E> newArrayList(E... elements) {
+        if (null == elements || elements.length == 0) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(Arrays.asList(elements));
+    }
+
+    public static <T> List<T> newArrayList(Iterable<T> elements) {
+        List<T> list = new ArrayList<>();
+        if (null == elements) {
+            return list;
+        }
+        for (T element : elements) {
+            list.add(element);
+        }
+        return list;
     }
 }
