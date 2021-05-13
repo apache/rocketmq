@@ -988,8 +988,6 @@ public class DLedgerCommitLog extends CommitLog {
 
         // The maximum length of the message
         private final int maxMessageSize;
-        // Build Message Key
-        private final StringBuilder keyBuilder = new StringBuilder();
 
         MessageSerializer(final int size) {
             this.maxMessageSize = size;
@@ -1090,11 +1088,7 @@ public class DLedgerCommitLog extends CommitLog {
         }
 
         public EncodeResult serialize(final MessageExtBatch messageExtBatch) {
-            keyBuilder.setLength(0);
-            keyBuilder.append(messageExtBatch.getTopic());
-            keyBuilder.append('-');
-            keyBuilder.append(messageExtBatch.getQueueId());
-            String key = keyBuilder.toString();
+            String key = messageExtBatch.getTopic() + "-" + messageExtBatch.getQueueId();
 
             int totalMsgLen = 0;
             ByteBuffer messagesByteBuff = messageExtBatch.wrap();
