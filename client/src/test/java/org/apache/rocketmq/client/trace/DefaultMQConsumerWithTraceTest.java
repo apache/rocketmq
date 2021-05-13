@@ -73,6 +73,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -88,6 +89,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(DefaultMQPushConsumerImpl.class)
+@PowerMockIgnore("javax.management.*")
 public class DefaultMQConsumerWithTraceTest {
     private String consumerGroup;
     private String consumerGroupNormal;
@@ -271,7 +273,7 @@ public class DefaultMQConsumerWithTraceTest {
         queueData.setPerm(6);
         queueData.setReadQueueNums(3);
         queueData.setWriteQueueNums(4);
-        queueData.setTopicSynFlag(0);
+        queueData.setTopicSysFlag(0);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;
@@ -307,7 +309,7 @@ public class DefaultMQConsumerWithTraceTest {
         queueData.setPerm(6);
         queueData.setReadQueueNums(1);
         queueData.setWriteQueueNums(1);
-        queueData.setTopicSynFlag(1);
+        queueData.setTopicSysFlag(1);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;

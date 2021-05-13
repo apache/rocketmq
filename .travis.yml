@@ -18,11 +18,11 @@ matrix:
     arch: amd64
   - name: Linux aarch64
     arch: arm64
-    
+
 cache:
   directories:
     - $HOME/.m2/repository
-    
+
 before_install:
   - lscpu
   - echo 'MAVEN_OPTS="$MAVEN_OPTS -Xmx1024m -XX:MaxPermSize=512m -XX:+BytecodeVerificationLocal"' >> ~/.mavenrc
@@ -30,17 +30,18 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
 
 install: |
-  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
+  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     sudo apt update
     sudo apt install -y openjdk-8-jdk maven
     export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-${TRAVIS_CPU_ARCH}/"
     export PATH="$JAVA_HOME/bin:/usr/share/maven/bin:$PATH"
   fi
-  
+
 before_script:
   - java -version
   - mvn -version
-  
+  - ulimit -c unlimited
+
 script:
   - travis_retry mvn -B clean apache-rat:check
   - travis_retry mvn -B package jacoco:report coveralls:report
