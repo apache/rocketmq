@@ -50,7 +50,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         Option opt = new Option("b", "brokerAddr", true, "update acl config file to which broker");
         optionGroup.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "update cl config file to which cluster");
+        opt = new Option("c", "clusterName", true, "update acl config file to which cluster");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
