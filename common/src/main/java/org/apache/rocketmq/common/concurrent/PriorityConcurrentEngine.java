@@ -2,14 +2,9 @@ package org.apache.rocketmq.common.concurrent;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.queue.ConcurrentTreeMap;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Queue;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -30,13 +25,9 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
      */
     public static final Integer MIN_PRIORITY = Integer.MAX_VALUE;
 
-    private static final PeriodicConcurrentConsumeService CONSUME_SERVICE = new PeriodicConcurrentConsumeService();
+    private static PeriodicConcurrentConsumeService CONSUME_SERVICE;
 
     private static final ConcurrentNavigableMap<Integer, Queue<Object>> PRIORITY_MAP = new ConcurrentSkipListMap<>();
-
-    static {
-        CONSUME_SERVICE.start();
-    }
 
     public static void runPriorityAsync(Runnable... tasks) {
         runPriorityAsync(MIN_PRIORITY, tasks);
@@ -59,14 +50,16 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
     }
 
     public static void runPriorityAsync(Integer priority, Collection<Runnable> tasks) {
-        Queue<Object> queue = PRIORITY_MAP.get(priority);
+        if (CollectionUtils.isEmpty(tasks)) {
+            return;
+        }
+        Queue<Object> queue = PRIORITY_MAP.putIfAbsent(priority, new ConcurrentLinkedQueue<>());
         if (null == queue) {
-            queue = new ConcurrentLinkedQueue<>();
+            queue = PRIORITY_MAP.get(priority);
         }
         for (Runnable runnable : tasks) {
             queue.offer(runnable);
         }
-        PRIORITY_MAP.put(priority, queue);
     }
 
     @SafeVarargs
@@ -95,14 +88,13 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
         if (CollectionUtils.isEmpty(tasks)) {
             return;
         }
-        Queue<Object> queue = PRIORITY_MAP.get(priority);
+        Queue<Object> queue = PRIORITY_MAP.putIfAbsent(priority, new ConcurrentLinkedQueue<>());
         if (null == queue) {
-            queue = new ConcurrentLinkedQueue<>();
+            queue = PRIORITY_MAP.get(priority);
         }
         for (CallableSupplier<T> supplier : tasks) {
             queue.offer(supplier);
         }
-        PRIORITY_MAP.put(priority, queue);
     }
 
     public static synchronized void invokeAllNow() {
@@ -122,8 +114,19 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
         }
     }
 
+    public static synchronized void startAutoConsumer() {
+        if (null == CONSUME_SERVICE) {
+            CONSUME_SERVICE = new PeriodicConcurrentConsumeService();
+        }
+        if (!CONSUME_SERVICE.isStopped()) {
+            CONSUME_SERVICE.start();
+        }
+    }
+
     public static void shutdown() {
-        CONSUME_SERVICE.shutdown();
+        if (CONSUME_SERVICE != null && !CONSUME_SERVICE.isStopped()) {
+            CONSUME_SERVICE.shutdown();
+        }
         ConcurrentEngine.shutdown();
     }
 }

@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -27,13 +27,13 @@ public abstract class ConcurrentEngine {
 
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    protected static ExecutorService enginePool = Executors.newFixedThreadPool(20);
+    protected static ThreadPoolExecutor enginePool = (ThreadPoolExecutor) Executors.newFixedThreadPool(20);
 
-    public static ExecutorService getEnginePool() {
+    public static ThreadPoolExecutor getEnginePool() {
         return enginePool;
     }
 
-    public static void setEnginePool(ExecutorService enginePool) {
+    public static void setEnginePool(ThreadPoolExecutor enginePool) {
         ConcurrentEngine.enginePool = enginePool;
     }
 

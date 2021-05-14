@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -741,6 +742,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Override
     public void registerMessageListener(MessageListenerOrderly messageListener) {
+        this.messageListener = messageListener;
+        this.defaultMQPushConsumerImpl.registerMessageListener(messageListener);
+    }
+
+    @Override
+    public void registerMessageListener(MessageListenerPeriodicConcurrently messageListener) {
         this.messageListener = messageListener;
         this.defaultMQPushConsumerImpl.registerMessageListener(messageListener);
     }

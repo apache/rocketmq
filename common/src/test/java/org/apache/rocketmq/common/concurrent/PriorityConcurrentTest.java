@@ -3,7 +3,6 @@ package org.apache.rocketmq.common.concurrent;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,6 +11,7 @@ public class PriorityConcurrentTest {
 
     @Test
     public void testPriorityConcurrent() throws Exception {
+        PriorityConcurrentEngine.startAutoConsumer();
         PriorityConcurrentEngine.runPriorityAsync(() -> System.out.println("hello"));
         AtomicInteger count = new AtomicInteger(0);
         List<Integer> list = new CopyOnWriteArrayList<>();
