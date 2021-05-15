@@ -104,7 +104,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         Assert.assertEquals(periodicConcurrentlyService.consumeMessageDirectly(msg, brokerName).getConsumeResult(), CMResult.CR_THROW_EXCEPTION);
     }
 
-    @Test
+    //@Test
     public void test03MessageListenerOrderly() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
         producer.setNamesrvAddr("localhost:9876");
@@ -155,7 +155,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         Thread.sleep(3000);
     }
 
-    @Test
+    //@Test
     public void test03EvolveIntoMessageListenerOrderly() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
         producer.setNamesrvAddr("localhost:9876");
@@ -223,7 +223,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         Thread.sleep(3000);
     }
 
-    @Test
+    //@Test
     public void test04MessageListenerConcurrently() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
         producer.setNamesrvAddr("localhost:9876");
@@ -273,7 +273,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         Thread.sleep(3000);
     }
 
-    @Test
+    //@Test
     public void test04DegenerateIntoMessageListenerConcurrently() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
         producer.setNamesrvAddr("localhost:9876");
@@ -325,7 +325,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         Thread.sleep(3000);
     }
 
-    @Test
+    //@Test
     public void test05MessageListenerOrderlyToConcurrently() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
         producer.setNamesrvAddr("localhost:9876");
