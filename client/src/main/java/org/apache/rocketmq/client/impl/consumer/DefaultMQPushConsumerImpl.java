@@ -620,7 +620,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 } else if (this.getMessageListenerInner() instanceof MessageListenerPeriodicConcurrently) {
                     this.consumeOrderly = true;
                     this.consumeMessageService =
-                            new ConsumeMessagePeriodicConcurrentlyService(this, (MessageListenerPeriodicConcurrently) this.getMessageListenerInner());
+                        new ConsumeMessagePeriodicConcurrentlyService(this, (MessageListenerPeriodicConcurrently) this.getMessageListenerInner());
                 }
 
                 this.consumeMessageService.start();

@@ -21,10 +21,7 @@ import java.util.Collection;
 import java.util.function.Supplier;
 
 /**
- * 弥补原生{@link Supplier}没有回调用的痛点
- *
- * @author ZhangZiCheng
- * @date 2021/05/12
+ * To make up for the pain point of the original {@link Supplier} without callback
  */
 public interface CallableSupplier<T> extends Supplier<T> {
 

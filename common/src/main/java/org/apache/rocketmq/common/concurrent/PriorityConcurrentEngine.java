@@ -25,19 +25,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-/**
- * @author ZhangZiCheng
- * @date 2021/05/12
- */
 public class PriorityConcurrentEngine extends ConcurrentEngine {
 
     /**
-     * 最高优先级
+     * highest priority
      */
     public static final Integer MAX_PRIORITY = Integer.MIN_VALUE;
 
     /**
-     * 最低优先级
+     * lowest priority
      */
     public static final Integer MIN_PRIORITY = Integer.MAX_VALUE;
 

@@ -23,23 +23,13 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A MessageListenerConcurrently object is used to receive
- * asynchronously delivered messages periodically and concurrently.
- * For example, the top 10 orders can get an extra laptop,
- * the top 10-30 orders can get an extra tablet,
- * the top 30-100 orders can get an extra mobile phone,
- * and there is no extra reward for placing orders after 100.
- * We call the interval from 1-10 as "stage one",
- * the interval from 10-30 as "stage two",
- * the interval from 30-100 as "stage three",
- * and the interval from 100+ as "stage" four".
- * From an overall point of view, stages one, two, three, and four
- * are in order; from a partial point of view, such as stage one,
- * the internal stage is out of order.
- * The rewards are the same, why not consume concurrently?
- *
- * @author ZhangZiCheng
- * @date 2021/05/14
+ * A MessageListenerConcurrently object is used to receive asynchronously delivered messages periodically and
+ * concurrently. For example, the top 10 orders can get an extra laptop, the top 10-30 orders can get an extra tablet,
+ * the top 30-100 orders can get an extra mobile phone, and there is no extra reward for placing orders after 100. We
+ * call the interval from 1-10 as "stage one", the interval from 10-30 as "stage two", the interval from 30-100 as
+ * "stage three", and the interval from 100+ as "stage" four". From an overall point of view, stages one, two, three,
+ * and four are in order; from a partial point of view, such as stage one, the internal stage is out of order. The
+ * rewards are the same, why not consume concurrently?
  */
 public interface MessageListenerPeriodicConcurrently extends MessageListener {
     /**
@@ -50,15 +40,13 @@ public interface MessageListenerPeriodicConcurrently extends MessageListener {
      * @return The consume status
      */
     ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-                                        final ConsumeOrderlyContext context,
-                                        final int stageIndex);
+        final ConsumeOrderlyContext context,
+        final int stageIndex);
 
     /**
-     * If returns empty collection, {@link MessageListenerPeriodicConcurrently}
-     * will degenerate into {@link MessageListenerConcurrently};
-     * If returns a collection whose elements are all 1,
-     * {@link MessageListenerPeriodicConcurrently} will temporarily
-     * evolve into {@link MessageListenerOrderly};
+     * If returns empty collection, {@link MessageListenerPeriodicConcurrently} will degenerate into {@link
+     * MessageListenerConcurrently}; If returns a collection whose elements are all 1, {@link
+     * MessageListenerPeriodicConcurrently} will temporarily evolve into {@link MessageListenerOrderly};
      */
     default List<Integer> getStageDefinitions() {
         return new ArrayList<>();
@@ -71,9 +59,8 @@ public interface MessageListenerPeriodicConcurrently extends MessageListener {
     }
 
     /**
-     * if {@code System.currentTimeMillis()}>={@code #getConsumeFromTimeStamp},
-     * then start consume message, this method will be called every time when
-     * pulled message successfully.
+     * if {@code System.currentTimeMillis()}>={@code #getConsumeFromTimeStamp}, then start consume message, this method
+     * will be called every time when pulled message successfully.
      */
     default long getConsumeFromTimeStamp() {
         return 0;

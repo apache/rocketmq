@@ -32,8 +32,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 /**
- * call {@link PeriodicConcurrentlyConsumer#main(java.lang.String[])} first,
- * then call {@link Producer#main(java.lang.String[])}
+ * call {@link PeriodicConcurrentlyConsumer#main(java.lang.String[])} first, then call {@link
+ * Producer#main(java.lang.String[])}
  */
 public class Producer {
     public static void main(String[] args) throws UnsupportedEncodingException {
@@ -44,8 +44,8 @@ public class Producer {
 
             for (int i = 0; i < 5000; i++) {
                 Message msg =
-                        new Message("TopicTest", "TagA", "KEY" + i,
-                                ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+                    new Message("TopicTest", "TagA", "KEY" + i,
+                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
                 SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
                     @Override
                     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {

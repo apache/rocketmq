@@ -30,8 +30,8 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
- * call {@link PeriodicConcurrentlyConsumer#main(java.lang.String[])} first,
- * then call {@link Producer#main(java.lang.String[])}
+ * call {@link PeriodicConcurrentlyConsumer#main(java.lang.String[])} first, then call {@link
+ * Producer#main(java.lang.String[])}
  */
 public class PeriodicConcurrentlyConsumer {
     public static void main(String[] args) throws MQClientException {
@@ -42,13 +42,14 @@ public class PeriodicConcurrentlyConsumer {
         consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
 
             @Override
-            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context, int stageIndex) {
+            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context,
+                int stageIndex) {
                 context.setAutoCommit(true);
                 for (MessageExt msg : msgs) {
                     // stageIndex从0开始递增，每个stageIndex代表的"阶段"之间是有序的，
                     // 而"阶段"内部是乱序的，当到达最后一个阶段时，stageIndex为-1
                     // 可以看到MessageListenerOrderly和一样, 订单对每个queue(分区)有序
-                    System.out.println("consumeThread=" + Thread.currentThread().getName() +", stageIndex="+stageIndex+ ", queueId=" + msg.getQueueId() + ", content:" + new String(msg.getBody()));
+                    System.out.println("consumeThread=" + Thread.currentThread().getName() + ", stageIndex=" + stageIndex + ", queueId=" + msg.getQueueId() + ", content:" + new String(msg.getBody()));
                 }
 
                 try {

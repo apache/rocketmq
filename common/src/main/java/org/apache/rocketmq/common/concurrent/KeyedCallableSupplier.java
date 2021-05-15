@@ -17,10 +17,7 @@
 package org.apache.rocketmq.common.concurrent;
 
 /**
- * 结合{@link KeyedSupplier}和{@link CallableSupplier}的优点
- *
- * @author ZhangZiCheng
- * @date 2021/05/12
+ * Combine the advantages of {@link KeyedSupplier} and {@link CallableSupplier}
  */
 public interface KeyedCallableSupplier<K, V> extends KeyedSupplier<K, V>, CallableSupplier<V> {
 }

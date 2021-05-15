@@ -73,8 +73,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             MessageListenerPeriodicConcurrently periodicConcurrently = new MessageListenerPeriodicConcurrently() {
                 @Override
                 public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-                                                           final ConsumeOrderlyContext context,
-                                                           final int stageIndex) {
+                    final ConsumeOrderlyContext context,
+                    final int stageIndex) {
                     return status;
                 }
             };
@@ -92,8 +92,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         MessageListenerPeriodicConcurrently periodicConcurrently = new MessageListenerPeriodicConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-                                                       final ConsumeOrderlyContext context,
-                                                       final int stageIndex) {
+                final ConsumeOrderlyContext context,
+                final int stageIndex) {
                 throw new RuntimeException();
             }
         };
@@ -113,9 +113,9 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
 
         for (int i = 0; i < 50; i++) {
             Message message = new Message(topic + "orderly",
-                    //tag用于过滤消息
-                    "orderly",
-                    ("AsyncProducer2 say " + i).getBytes());
+                //tag用于过滤消息
+                "orderly",
+                ("AsyncProducer2 say " + i).getBytes());
 
             SendResult result = producer.send(message, new MessageQueueSelector() {
                 @Override
@@ -139,7 +139,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.registerMessageListener(new MessageListenerOrderly() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-                                                       ConsumeOrderlyContext context) {
+                ConsumeOrderlyContext context) {
                 try {
                     Thread.sleep(new Random().nextInt(20));
                 } catch (InterruptedException e) {
@@ -164,9 +164,9 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
 
         for (int i = 0; i < 50; i++) {
             Message message = new Message(topic + "2",
-                    //tag用于过滤消息
-                    "ssss2",
-                    ("AsyncProducer2 say " + i).getBytes());
+                //tag用于过滤消息
+                "ssss2",
+                ("AsyncProducer2 say " + i).getBytes());
 
             SendResult result = producer.send(message, new MessageQueueSelector() {
                 @Override
@@ -190,8 +190,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-                                                       ConsumeOrderlyContext context,
-                                                       int stageIndex) {
+                ConsumeOrderlyContext context,
+                int stageIndex) {
                 try {
                     Thread.sleep(new Random().nextInt(20));
                 } catch (InterruptedException e) {
@@ -232,9 +232,9 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
 
         for (int i = 0; i < 50; i++) {
             Message message = new Message(topic + "concurrently",
-                    //tag用于过滤消息
-                    "concurrently",
-                    ("AsyncProducer2 say " + i).getBytes());
+                //tag用于过滤消息
+                "concurrently",
+                ("AsyncProducer2 say " + i).getBytes());
 
             SendResult result = producer.send(message, new MessageQueueSelector() {
                 @Override
@@ -282,9 +282,9 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
 
         for (int i = 0; i < 50; i++) {
             Message message = new Message(topic + "1",
-                    //tag用于过滤消息
-                    "ssss1",
-                    ("AsyncProducer1 say " + i).getBytes());
+                //tag用于过滤消息
+                "ssss1",
+                ("AsyncProducer1 say " + i).getBytes());
 
             SendResult result = producer.send(message, new MessageQueueSelector() {
                 @Override
@@ -308,8 +308,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-                                                       ConsumeOrderlyContext context,
-                                                       int stageIndex) {
+                ConsumeOrderlyContext context,
+                int stageIndex) {
                 try {
                     Thread.sleep(new Random().nextInt(20));
                 } catch (InterruptedException e) {
@@ -334,9 +334,9 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
 
         for (int i = 0; i < 10000; i++) {
             Message message = new Message(topic + "3",
-                    //tag用于过滤消息
-                    "ssss3",
-                    ("AsyncProducer1 say " + i).getBytes());
+                //tag用于过滤消息
+                "ssss3",
+                ("AsyncProducer1 say " + i).getBytes());
 
             SendResult result = producer.send(message, new MessageQueueSelector() {
                 @Override
@@ -360,8 +360,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-                                                       ConsumeOrderlyContext context,
-                                                       int stageIndex) {
+                ConsumeOrderlyContext context,
+                int stageIndex) {
                 try {
                     Thread.sleep(new Random().nextInt(20));
                 } catch (InterruptedException e) {

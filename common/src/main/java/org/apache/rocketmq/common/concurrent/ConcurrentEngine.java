@@ -35,10 +35,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-/**
- * @author ZhangZiCheng
- * @date 2021/05/12
- */
 public abstract class ConcurrentEngine {
 
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -51,7 +47,7 @@ public abstract class ConcurrentEngine {
 
     public static void setEnginePool(ThreadPoolExecutor enginePool) {
         if (enginePool == null) {
-            throw new IllegalArgumentException("enginePool can not set to null !");
+            throw new RuntimeException("enginePool can not set to null !");
         }
         ConcurrentEngine.enginePool = enginePool;
     }
@@ -272,17 +268,19 @@ public abstract class ConcurrentEngine {
         return UtilAll.newArrayList(result.values());
     }
 
-
     @SafeVarargs
-    public static <K, V> Map<K, V> supplyKeyedCallableAsync(long timeout, TimeUnit unit, KeyedCallableSupplier<K, V>... tasks) {
+    public static <K, V> Map<K, V> supplyKeyedCallableAsync(long timeout, TimeUnit unit,
+        KeyedCallableSupplier<K, V>... tasks) {
         return supplyKeyedCallableAsync(timeout, unit, UtilAll.newArrayList(tasks));
     }
 
-    public static <K, V> Map<K, V> supplyKeyedCallableAsync(long timeout, TimeUnit unit, Queue<KeyedCallableSupplier<K, V>> tasks) {
+    public static <K, V> Map<K, V> supplyKeyedCallableAsync(long timeout, TimeUnit unit,
+        Queue<KeyedCallableSupplier<K, V>> tasks) {
         return supplyKeyedCallableAsync(timeout, unit, pollAllTask(tasks));
     }
 
-    public static <K, V> Map<K, V> supplyKeyedCallableAsync(long timeout, TimeUnit unit, Collection<KeyedCallableSupplier<K, V>> tasks) {
+    public static <K, V> Map<K, V> supplyKeyedCallableAsync(long timeout, TimeUnit unit,
+        Collection<KeyedCallableSupplier<K, V>> tasks) {
         if (CollectionUtils.isEmpty(tasks)) {
             return new HashMap<>();
         }
@@ -321,7 +319,8 @@ public abstract class ConcurrentEngine {
         return getResultIgnoreException(tasks, timeout, unit);
     }
 
-    public static <T> List<T> getResultIgnoreException(Collection<CompletableFuture<T>> tasks, long timeout, TimeUnit unit) {
+    public static <T> List<T> getResultIgnoreException(Collection<CompletableFuture<T>> tasks, long timeout,
+        TimeUnit unit) {
         List<T> result = new ArrayList<>(tasks.size());
         for (CompletableFuture<T> completableFuture : tasks) {
             if (null == completableFuture) {
@@ -401,7 +400,8 @@ public abstract class ConcurrentEngine {
         return supplyKeyedAsync(pollAllTask(tasks), timeout, unit);
     }
 
-    public static <K, V> Map<K, V> supplyKeyedAsync(Collection<KeyedSupplier<K, V>> tasks, long timeout, TimeUnit unit) {
+    public static <K, V> Map<K, V> supplyKeyedAsync(Collection<KeyedSupplier<K, V>> tasks, long timeout,
+        TimeUnit unit) {
         if (CollectionUtils.isEmpty(tasks)) {
             return new HashMap<>(0);
         }
@@ -425,7 +425,8 @@ public abstract class ConcurrentEngine {
         return getKeyedResultIgnoreException(tasks, timeout, unit);
     }
 
-    public static <K, V> Map<K, V> getKeyedResultIgnoreException(Map<K, CompletableFuture<V>> tasks, long timeout, TimeUnit unit) {
+    public static <K, V> Map<K, V> getKeyedResultIgnoreException(Map<K, CompletableFuture<V>> tasks, long timeout,
+        TimeUnit unit) {
         Map<K, V> result = new HashMap<>(tasks.size());
         for (Map.Entry<K, CompletableFuture<V>> entry : tasks.entrySet()) {
             K key = entry.getKey();
