@@ -128,6 +128,10 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         producer.shutdown();
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
+        int pullBatchSize = consumer.getPullBatchSize();
+        int poolSize = 4 * pullBatchSize;
+        consumer.setConsumeThreadMin(poolSize);
+        consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
         consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
@@ -174,6 +178,10 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         producer.shutdown();
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
+        int pullBatchSize = consumer.getPullBatchSize();
+        int poolSize = 4 * pullBatchSize;
+        consumer.setConsumeThreadMin(poolSize);
+        consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
         consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
@@ -237,6 +245,10 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         producer.shutdown();
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
+        int pullBatchSize = consumer.getPullBatchSize();
+        int poolSize = 4 * pullBatchSize;
+        consumer.setConsumeThreadMin(poolSize);
+        consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
         consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
@@ -282,6 +294,10 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         producer.shutdown();
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
+        int pullBatchSize = consumer.getPullBatchSize();
+        int poolSize = 4 * pullBatchSize;
+        consumer.setConsumeThreadMin(poolSize);
+        consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
         consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
@@ -329,6 +345,10 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         producer.shutdown();
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
+        int pullBatchSize = consumer.getPullBatchSize();
+        int poolSize = 4 * pullBatchSize;
+        consumer.setConsumeThreadMin(poolSize);
+        consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
         consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));

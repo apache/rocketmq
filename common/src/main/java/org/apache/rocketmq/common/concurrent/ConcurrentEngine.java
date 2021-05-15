@@ -34,7 +34,16 @@ public abstract class ConcurrentEngine {
     }
 
     public static void setEnginePool(ThreadPoolExecutor enginePool) {
+        if (enginePool == null) {
+            throw new IllegalArgumentException("enginePool can not set to null !");
+        }
         ConcurrentEngine.enginePool = enginePool;
+    }
+
+    public static void setEnginePoolCoreSize(int corePoolSize) {
+        if (corePoolSize > 0 && corePoolSize <= Short.MAX_VALUE) {
+            ConcurrentEngine.enginePool.setCorePoolSize(corePoolSize);
+        }
     }
 
     public static void runAsync(Runnable... tasks) {
