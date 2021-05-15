@@ -37,7 +37,7 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
      */
     public static final Integer MIN_PRIORITY = Integer.MAX_VALUE;
 
-    private static PeriodicConcurrentConsumeService CONSUME_SERVICE;
+    private static PeriodicConcurrentConsumeService consumeService = null;
 
     private static final ConcurrentNavigableMap<Integer, Queue<Object>> PRIORITY_MAP = new ConcurrentSkipListMap<>();
 
@@ -127,17 +127,17 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
     }
 
     public static synchronized void startAutoConsumer() {
-        if (null == CONSUME_SERVICE) {
-            CONSUME_SERVICE = new PeriodicConcurrentConsumeService();
+        if (null == consumeService) {
+            consumeService = new PeriodicConcurrentConsumeService();
         }
-        if (!CONSUME_SERVICE.isStopped()) {
-            CONSUME_SERVICE.start();
+        if (!consumeService.isStopped()) {
+            consumeService.start();
         }
     }
 
     public static void shutdown() {
-        if (CONSUME_SERVICE != null && !CONSUME_SERVICE.isStopped()) {
-            CONSUME_SERVICE.shutdown();
+        if (consumeService != null && !consumeService.isStopped()) {
+            consumeService.shutdown();
         }
         ConcurrentEngine.shutdown();
     }

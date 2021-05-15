@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.example.periodic;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
@@ -23,11 +27,6 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcu
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 /**
  * call {@link PeriodicConcurrentlyConsumer#main(java.lang.String[])} first, then call {@link
@@ -46,14 +45,15 @@ public class PeriodicConcurrentlyConsumer {
                 int stageIndex) {
                 context.setAutoCommit(true);
                 for (MessageExt msg : msgs) {
-                    // stageIndex从0开始递增，每个stageIndex代表的"阶段"之间是有序的，
-                    // 而"阶段"内部是乱序的，当到达最后一个阶段时，stageIndex为-1
-                    // 可以看到MessageListenerOrderly和一样, 订单对每个queue(分区)有序
-                    System.out.println("consumeThread=" + Thread.currentThread().getName() + ", stageIndex=" + stageIndex + ", queueId=" + msg.getQueueId() + ", content:" + new String(msg.getBody()));
+                    // The stageIndex increases from 0. The "stages" represented by each stageIndex are in order,
+                    // and the "stages" are out of order. When the last stage is reached, the stageIndex is -1.
+                    // You can see that MessageListenerOrderly is the same as the order. Order for each queue (partition)
+                    System.out.printf("consumeThread=%s, stageIndex=%s, queueId=%s, content:%s",
+                        Thread.currentThread().getName(), stageIndex, msg.getQueueId(), new String(msg.getBody()));
                 }
 
                 try {
-                    //模拟业务逻辑处理中...
+                    // Simulating business logic processing...
                     TimeUnit.MILLISECONDS.sleep(new Random().nextInt(10));
                 } catch (Exception e) {
                     e.printStackTrace();
