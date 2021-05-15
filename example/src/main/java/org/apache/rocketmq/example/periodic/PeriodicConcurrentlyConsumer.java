@@ -21,13 +21,13 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 /**
  * call {@link PeriodicConcurrentlyConsumer#main(java.lang.String[])} first,
@@ -37,20 +37,26 @@ public class PeriodicConcurrentlyConsumer {
     public static void main(String[] args) throws MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
-        consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis()));
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumer.subscribe("TopicTest", "TagA");
         consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
 
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context, int stageIndex) {
+                context.setAutoCommit(true);
+                for (MessageExt msg : msgs) {
+                    // stageIndex从0开始递增，每个stageIndex代表的"阶段"之间是有序的，
+                    // 而"阶段"内部是乱序的，当到达最后一个阶段时，stageIndex为-1
+                    // 可以看到MessageListenerOrderly和一样, 订单对每个queue(分区)有序
+                    System.out.println("consumeThread=" + Thread.currentThread().getName() +", stageIndex="+stageIndex+ ", queueId=" + msg.getQueueId() + ", content:" + new String(msg.getBody()));
+                }
+
                 try {
-                    Thread.sleep(new Random().nextInt(20));
-                } catch (InterruptedException e) {
+                    //模拟业务逻辑处理中...
+                    TimeUnit.MILLISECONDS.sleep(new Random().nextInt(10));
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
-                MessageExt messageExt = msgs.get(0);
-                System.out.printf("%s Receive StageIndex:%s New Messages:%s %s %n", Thread.currentThread().getName(), stageIndex, messageExt.getMsgId(), new String(messageExt.getBody()));
                 return ConsumeOrderlyStatus.SUCCESS;
             }
 
