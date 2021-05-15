@@ -3,7 +3,7 @@ package org.apache.rocketmq.common.concurrent;
 import org.apache.rocketmq.common.ServiceThread;
 
 /**
- * @author zhangzicheng
+ * @author ZhangZiCheng
  * @date 2021/05/12
  */
 public class PeriodicConcurrentConsumeService extends ServiceThread {

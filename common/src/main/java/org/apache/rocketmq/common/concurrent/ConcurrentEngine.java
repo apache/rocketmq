@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
- * @author zhangzicheng
+ * @author ZhangZiCheng
  * @date 2021/05/12
  */
 public abstract class ConcurrentEngine {

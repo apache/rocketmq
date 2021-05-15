@@ -37,6 +37,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * are in order; from a partial point of view, such as stage one,
  * the internal stage is out of order.
  * The rewards are the same, why not consume concurrently?
+ *
+ * @author ZhangZiCheng
+ * @date 2021/05/14
  */
 public interface MessageListenerPeriodicConcurrently extends MessageListener {
     /**

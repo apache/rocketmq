@@ -1,7 +1,7 @@
 package org.apache.rocketmq.common.concurrent;
 
 /**
- * @author zhangzicheng
+ * @author ZhangZiCheng
  * @date 2021/05/12
  */
 @FunctionalInterface
