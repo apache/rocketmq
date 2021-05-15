@@ -10,9 +10,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PriorityConcurrentTest {
 
     @Test
-    public void testPriorityConcurrent() throws Exception {
-        PriorityConcurrentEngine.startAutoConsumer();
-        PriorityConcurrentEngine.runPriorityAsync(() -> System.out.println("hello"));
+    public void testPriorityConcurrent() {
+        PriorityConcurrentEngine.runPriorityAsync(PriorityConcurrentEngine.MAX_PRIORITY,
+                () -> System.out.println("hello"));
         AtomicInteger count = new AtomicInteger(0);
         List<Integer> list = new CopyOnWriteArrayList<>();
         for (int i = 0; i < 50; i++) {
@@ -22,7 +22,7 @@ public class PriorityConcurrentTest {
                     @Override
                     public Integer get() {
                         try {
-                            Thread.sleep(new Random().nextInt(100));
+                            Thread.sleep(new Random().nextInt(10));
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -38,7 +38,6 @@ public class PriorityConcurrentTest {
                 count.getAndIncrement();
             }
         }
-        Thread.sleep(5000);
         PriorityConcurrentEngine.runPriorityAsync(() -> {
             List<Integer> copy = new CopyOnWriteArrayList<>(list);
             copy.sort(Integer::compareTo);
@@ -47,6 +46,6 @@ public class PriorityConcurrentTest {
             System.out.println(count.get());
             System.out.println(list);
         });
-        PriorityConcurrentEngine.shutdown();
+        PriorityConcurrentEngine.invokeAllNow();
     }
 }

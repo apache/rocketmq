@@ -151,7 +151,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         });
         consumer.start();
-        Thread.sleep(300000);
+        //本地跑请改大一些
+        Thread.sleep(3000);
     }
 
     @Test
@@ -218,7 +219,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         });
         consumer.start();
-        Thread.sleep(300000);
+        //本地跑请改大一些
+        Thread.sleep(3000);
     }
 
     @Test
@@ -267,7 +269,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         });
         consumer.start();
-        Thread.sleep(300000);
+        //本地跑请改大一些
+        Thread.sleep(3000);
     }
 
     @Test
@@ -318,7 +321,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         });
         consumer.start();
-        Thread.sleep(300000);
+        //本地跑请改大一些
+        Thread.sleep(3000);
     }
 
     @Test
@@ -381,6 +385,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         });
         consumer.start();
-        Thread.sleep(300000);
+        //本地跑请改大一些
+        Thread.sleep(3000);
     }
 }
