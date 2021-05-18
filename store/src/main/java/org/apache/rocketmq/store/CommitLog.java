@@ -1326,7 +1326,8 @@ public class CommitLog {
             pos += 8;
             // 7 PHYSICALOFFSET
             preEncodeBuffer.putLong(pos, fileFromOffset + byteBuffer.position());
-            int ipLen = (msgInner.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
+            int ipLen = (msgInner.getSysFlag() & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
+            // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
             pos += 8 + 4 + 8 + ipLen;
             // refresh store time stamp in lock
             preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
@@ -1374,6 +1375,7 @@ public class CommitLog {
             ByteBuffer messagesByteBuff = messageExtBatch.getEncodedBuff();
 
             int sysFlag = messageExtBatch.getSysFlag();
+            int bornHostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
             int storeHostLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
             Supplier<String> msgIdSupplier = () -> {
                 int msgIdLen = storeHostLength + 8;
@@ -1430,7 +1432,8 @@ public class CommitLog {
                 messagesByteBuff.putLong(pos, queueOffset);
                 pos += 8;
                 messagesByteBuff.putLong(pos, wroteOffset + totalMsgLen - msgLen);
-                pos += 8 + 4 + 8 + storeHostLength;
+                // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
+                pos += 8 + 4 + 8 + bornHostLength;
                 // refresh store time stamp in lock
                 messagesByteBuff.putLong(pos, messageExtBatch.getStoreTimestamp());
 
