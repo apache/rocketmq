@@ -300,19 +300,19 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         } else {
             putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
         }
-        return handlePutMessageResultFuture(putMessageResult, response, request, msgInner, responseHeader, mqtraceContext, ctx, queueIdInt);
+        return handlePutMessageResultFuture(putMessageResult, response, request, requestHeader.getTopic(), responseHeader, mqtraceContext, ctx, queueIdInt);
     }
 
     private CompletableFuture<RemotingCommand> handlePutMessageResultFuture(CompletableFuture<PutMessageResult> putMessageResult,
                                                                             RemotingCommand response,
                                                                             RemotingCommand request,
-                                                                            MessageExt msgInner,
+                                                                            String topic,
                                                                             SendMessageResponseHeader responseHeader,
                                                                             SendMessageContext sendMessageContext,
                                                                             ChannelHandlerContext ctx,
                                                                             int queueIdInt) {
         return putMessageResult.thenApply((r) ->
-            handlePutMessageResult(r, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt)
+            handlePutMessageResult(r, response, request, topic, responseHeader, sendMessageContext, ctx, queueIdInt)
         );
     }
 
@@ -432,12 +432,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         }
 
-        return handlePutMessageResult(putMessageResult, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt);
+        return handlePutMessageResult(putMessageResult, response, request, requestHeader.getTopic(), responseHeader, sendMessageContext, ctx, queueIdInt);
 
     }
 
     private RemotingCommand handlePutMessageResult(PutMessageResult putMessageResult, RemotingCommand response,
-                                                   RemotingCommand request, MessageExt msg,
+                                                   RemotingCommand request, String topic,
                                                    SendMessageResponseHeader responseHeader, SendMessageContext sendMessageContext, ChannelHandlerContext ctx,
                                                    int queueIdInt) {
         if (putMessageResult == null) {
@@ -500,8 +500,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
         if (sendOK) {
 
-            this.brokerController.getBrokerStatsManager().incTopicPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
-            this.brokerController.getBrokerStatsManager().incTopicPutSize(msg.getTopic(),
+            this.brokerController.getBrokerStatsManager().incTopicPutNums(topic, putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+            this.brokerController.getBrokerStatsManager().incTopicPutSize(topic,
                 putMessageResult.getAppendMessageResult().getWroteBytes());
             this.brokerController.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
 
@@ -586,7 +586,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_CLUSTER, clusterName);
 
         CompletableFuture<PutMessageResult> putMessageResult = this.brokerController.getMessageStore().asyncPutMessages(messageExtBatch);
-        return handlePutMessageResultFuture(putMessageResult, response, request, messageExtBatch, responseHeader, mqtraceContext, ctx, queueIdInt);
+        return handlePutMessageResultFuture(putMessageResult, response, request, requestHeader.getTopic(), responseHeader, mqtraceContext, ctx, queueIdInt);
     }
 
 
