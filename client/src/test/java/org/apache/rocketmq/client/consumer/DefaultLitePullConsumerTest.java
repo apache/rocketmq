@@ -192,7 +192,6 @@ public class DefaultLitePullConsumerTest {
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
         litePullConsumer.pause(messageQueues);
-        litePullConsumer.pause(Collections.singletonList(messageQueue));
         long offset = litePullConsumer.committed(messageQueue);
         litePullConsumer.seek(messageQueue, offset);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
@@ -211,7 +210,6 @@ public class DefaultLitePullConsumerTest {
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
         litePullConsumer.pause(messageQueues);
-        litePullConsumer.pause(Collections.singletonList(messageQueue));
         litePullConsumer.seekToBegin(messageQueue);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
         field.setAccessible(true);
@@ -229,7 +227,6 @@ public class DefaultLitePullConsumerTest {
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
         litePullConsumer.pause(messageQueues);
-        litePullConsumer.pause(Collections.singletonList(messageQueue));
         litePullConsumer.seekToEnd(messageQueue);
         Field field = DefaultLitePullConsumerImpl.class.getDeclaredField("assignedMessageQueue");
         field.setAccessible(true);
@@ -247,7 +244,6 @@ public class DefaultLitePullConsumerTest {
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
         litePullConsumer.pause(messageQueues);
-        litePullConsumer.pause(Collections.singletonList(messageQueue));
         try {
             litePullConsumer.seek(messageQueue, -1);
             failBecauseExceptionWasNotThrown(MQClientException.class);

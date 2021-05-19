@@ -27,7 +27,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -127,10 +126,6 @@ public class DefaultMQPushConsumerTest {
         field.setAccessible(true);
         field.set(pushConsumerImpl, rebalanceImpl);
 
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged");
-        field.setAccessible(true);
-        field.set(null, true);
-
         pushConsumer.subscribe(topic, "*");
         pushConsumer.start();
 
@@ -207,7 +202,7 @@ public class DefaultMQPushConsumerTest {
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);
-        assertThat(msg.getBody()).isEqualTo(msgBody);
+        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
     }
 
     @Test(timeout = 20000)
@@ -230,11 +225,12 @@ public class DefaultMQPushConsumerTest {
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestLater(createPullRequest(), 100);
 
-        countDownLatch.await();
+
+        countDownLatch.await(10, TimeUnit.SECONDS);
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);
-        assertThat(msg.getBody()).isEqualTo(msgBody);
+        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
     }
 
     @Test
