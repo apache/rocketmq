@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.client.trace;
 
+import io.opentracing.mock.MockSpan;
+import io.opentracing.mock.MockTracer;
+import io.opentracing.tag.Tags;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -27,11 +30,19 @@ import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.client.trace.hook.EndTransactionOpenTracingHookImpl;
+import org.apache.rocketmq.client.trace.hook.SendMessageOpenTracingHookImpl;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageType;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
@@ -47,62 +58,61 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultMQProducerWithTraceTest {
+public class TransactionMQProducerWithOpenTracingTest {
 
     @Spy
     private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
 
-    private AsyncTraceDispatcher asyncTraceDispatcher;
-
-    private DefaultMQProducer producer;
-    private DefaultMQProducer customTraceTopicproducer;
-    private DefaultMQProducer traceProducer;
-    private DefaultMQProducer normalProducer;
+    private TransactionMQProducer producer;
 
     private Message message;
     private String topic = "FooBar";
     private String producerGroupPrefix = "FooBar_PID";
     private String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
     private String producerGroupTraceTemp = TopicValidator.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
-    private String customerTraceTopic = "rmq_trace_topic_12345";
-
+    private MockTracer tracer = new MockTracer();
     @Before
     public void init() throws Exception {
+        TransactionListener transactionListener = new TransactionListener() {
+            @Override
+            public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
 
-        customTraceTopicproducer = new DefaultMQProducer(producerGroupTemp, false, customerTraceTopic);
-        normalProducer = new DefaultMQProducer(producerGroupTemp, false, "");
-        producer = new DefaultMQProducer(producerGroupTemp, true, "");
+            @Override
+            public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+        };
+        producer = new TransactionMQProducer(producerGroupTemp);
+        producer.getDefaultMQProducerImpl().registerSendMessageHook(new SendMessageOpenTracingHookImpl(tracer));
+        producer.getDefaultMQProducerImpl().registerEndTransactionHook(new EndTransactionOpenTracingHookImpl(tracer));
+        producer.setTransactionListener(transactionListener);
+
         producer.setNamesrvAddr("127.0.0.1:9876");
-        normalProducer.setNamesrvAddr("127.0.0.1:9877");
-        customTraceTopicproducer.setNamesrvAddr("127.0.0.1:9878");
         message = new Message(topic, new byte[] {'a', 'b', 'c'});
-        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
-        asyncTraceDispatcher.setTraceTopicName(customerTraceTopic);
-        asyncTraceDispatcher.getHostProducer();
-        asyncTraceDispatcher.getHostConsumer();
-        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         producer.start();
 
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         field.set(producer.getDefaultMQProducerImpl(), mQClientFactory);
-
-        Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
-        fieldTrace.setAccessible(true);
-        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientFactory);
 
         field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
         field.setAccessible(true);
@@ -120,27 +130,18 @@ public class DefaultMQProducerWithTraceTest {
 
     @Test
     public void testSendMessageSync_WithTrace_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
-        traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
+        producer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, producer.getDefaultMQProducerImpl());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        try {
-            producer.send(message);
-        } catch (MQClientException e) {
-        }
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        producer.sendMessageInTransaction(message, null);
 
-    }
-
-    @Test
-    public void testSendMessageSync_WithTrace_NoBrokerSet_Exception() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        try {
-            producer.send(message);
-        } catch (MQClientException e) {
-        }
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-
+        assertThat(tracer.finishedSpans().size()).isEqualTo(2);
+        MockSpan span = tracer.finishedSpans().get(1);
+        assertThat(span.tags().get(Tags.MESSAGE_BUS_DESTINATION.getKey())).isEqualTo(topic);
+        assertThat(span.tags().get(Tags.SPAN_KIND.getKey())).isEqualTo(Tags.SPAN_KIND_PRODUCER);
+        assertThat(span.tags().get(TraceConstants.ROCKETMQ_MSG_ID)).isEqualTo("123");
+        assertThat(span.tags().get(TraceConstants.ROCKETMQ_MSG_TYPE)).isEqualTo(MessageType.Trans_msg_Commit.name());
+        assertThat(span.tags().get(TraceConstants.ROCKETMQ_TRANSACTION_STATE)).isEqualTo(LocalTransactionState.COMMIT_MESSAGE.name());
+        assertThat(span.tags().get(TraceConstants.ROCKETMQ_IS_FROM_TRANSACTION_CHECK)).isEqualTo(false);
     }
 
     @After
@@ -177,36 +178,12 @@ public class DefaultMQProducerWithTraceTest {
     private SendResult createSendResult(SendStatus sendStatus) {
         SendResult sendResult = new SendResult();
         sendResult.setMsgId("123");
-        sendResult.setOffsetMsgId("123");
+        sendResult.setOffsetMsgId(MessageDecoder.createMessageId(new InetSocketAddress("127.0.0.1", 12), 1));
         sendResult.setQueueOffset(456);
         sendResult.setSendStatus(sendStatus);
         sendResult.setRegionId("HZ");
+        sendResult.setMessageQueue(new MessageQueue(topic, "broker-trace", 0));
         return sendResult;
     }
 
-    public static TopicRouteData createTraceTopicRoute() {
-        TopicRouteData topicRouteData = new TopicRouteData();
-
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
-        BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("broker-trace");
-        brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "127.0.0.1:10912");
-        brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
-
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
-        QueueData queueData = new QueueData();
-        queueData.setBrokerName("broker-trace");
-        queueData.setPerm(6);
-        queueData.setReadQueueNums(1);
-        queueData.setWriteQueueNums(1);
-        queueData.setTopicSysFlag(1);
-        queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
-        return topicRouteData;
-    }
 }
