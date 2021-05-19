@@ -32,7 +32,7 @@ public class PopPushConsumer {
     public static final String CONSUMER_GROUP = "CID_JODIE_1";
     public static final String TOPIC = "TopicTest";
 
-    // Or it can use cli directly: mqadmin setConsumeMode -c cluster -t topic -g group -m POP -n 8
+    // Or use AdminTools directly: mqadmin setConsumeMode -c cluster -t topic -g group -m POP -n 8
     private static void switchPop() throws Exception {
         DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.start();
