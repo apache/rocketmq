@@ -33,13 +33,13 @@ public class SysLogger {
 
     public static void debug(String msg) {
         if (debugEnabled && !quietMode) {
-            System.out.printf("%s", PREFIX + msg);
+            System.err.println(PREFIX + msg);
         }
     }
 
     public static void debug(String msg, Throwable t) {
         if (debugEnabled && !quietMode) {
-            System.out.printf("%s", PREFIX + msg);
+            System.err.println(PREFIX + msg);
             if (t != null) {
                 t.printStackTrace(System.out);
             }
