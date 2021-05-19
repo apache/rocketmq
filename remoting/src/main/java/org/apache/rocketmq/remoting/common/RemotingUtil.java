@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting.common;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.Inet6Address;
@@ -98,6 +99,10 @@ public class RemotingUtil {
             ArrayList<String> ipv6Result = new ArrayList<String>();
             while (enumeration.hasMoreElements()) {
                 final NetworkInterface networkInterface = enumeration.nextElement();
+                if (isBridge(networkInterface)) {
+                    continue;
+                }
+
                 final Enumeration<InetAddress> en = networkInterface.getInetAddresses();
                 while (en.hasMoreElements()) {
                     final InetAddress address = en.nextElement();
@@ -158,6 +163,19 @@ public class RemotingUtil {
         sb.append(":");
         sb.append(inetSocketAddress.getPort());
         return sb.toString();
+    }
+
+    private static boolean isBridge(NetworkInterface networkInterface) {
+        try {
+            if (isLinuxPlatform()) {
+                String interfaceName = networkInterface.getName();
+                File file = new File("/sys/class/net/" + interfaceName + "/bridge");
+                return file.exists();
+            }
+        } catch (SecurityException e) {
+            //Ignore
+        }
+        return false;
     }
 
     public static SocketChannel connect(SocketAddress remote) {
