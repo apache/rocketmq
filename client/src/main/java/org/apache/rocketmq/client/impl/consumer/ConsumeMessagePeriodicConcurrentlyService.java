@@ -112,7 +112,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
             this.consumeRequestQueue,
             new ThreadFactoryImpl("ConsumeMessageThread_"));
         PriorityConcurrentEngine.setEnginePool(this.consumeExecutor);
-
+        PriorityConcurrentEngine.startAutoConsumer();
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
     }
 
@@ -552,7 +552,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                                 }
                                 messageListener.resetCurrentStageIfNeed(currentStage);
                             }
-                            PriorityConcurrentEngine.invokeAllNow();
+                            //PriorityConcurrentEngine.invokeAllNow();
                         } else {
                             continueConsume.set(false);
                         }
@@ -684,8 +684,8 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
 
             ConsumeMessagePeriodicConcurrentlyService.this.getConsumerStatsManager()
                 .incConsumeRT(ConsumeMessagePeriodicConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
-            continueConsume.set(continueConsume.get() &&
-                ConsumeMessagePeriodicConcurrentlyService.this.processConsumeResult(msgs, status, context, this));
+            continueConsume.set(ConsumeMessagePeriodicConcurrentlyService.this.processConsumeResult(msgs, status, context, this)
+                && continueConsume.get());
         }
     }
 

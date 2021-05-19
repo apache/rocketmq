@@ -450,6 +450,8 @@ public abstract class ConcurrentEngine {
         if (null == enginePool) {
             return;
         }
-        enginePool.shutdown();
+        if (!enginePool.isShutdown()) {
+            enginePool.shutdown();
+        }
     }
 }

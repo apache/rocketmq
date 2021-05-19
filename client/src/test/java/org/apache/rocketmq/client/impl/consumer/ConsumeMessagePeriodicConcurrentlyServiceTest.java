@@ -133,8 +133,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.setConsumeThreadMin(poolSize);
         consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
-        consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(topic + "orderly", "orderly");
         consumer.registerMessageListener(new MessageListenerOrderly() {
             @Override
@@ -152,7 +151,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         });
         consumer.start();
         //本地跑请改大一些
-        Thread.sleep(3000);
+        Thread.sleep(30000);
     }
 
     //@Test
@@ -184,8 +183,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.setConsumeThreadMin(poolSize);
         consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
-        consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(topic + "2", "ssss2");
         consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
             @Override
@@ -220,7 +218,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         });
         consumer.start();
         //本地跑请改大一些
-        Thread.sleep(3000);
+        Thread.sleep(30000);
     }
 
     //@Test
@@ -252,8 +250,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.setConsumeThreadMin(poolSize);
         consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
-        consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(topic + "concurrently", "concurrently");
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
@@ -270,7 +267,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         });
         consumer.start();
         //本地跑请改大一些
-        Thread.sleep(3000);
+        Thread.sleep(30000);
     }
 
     //@Test
@@ -302,8 +299,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.setConsumeThreadMin(poolSize);
         consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
-        consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(topic + "1", "ssss1");
         consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
             @Override
@@ -322,7 +318,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         });
         consumer.start();
         //本地跑请改大一些
-        Thread.sleep(3000);
+        Thread.sleep(30000);
     }
 
     //@Test
@@ -354,8 +350,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.setConsumeThreadMin(poolSize);
         consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
-        consumer.setConsumeTimestamp(UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - 50));
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(topic + "3", "ssss3");
         consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
             @Override
@@ -386,6 +381,6 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         });
         consumer.start();
         //本地跑请改大一些
-        Thread.sleep(3000);
+        Thread.sleep(30000);
     }
 }

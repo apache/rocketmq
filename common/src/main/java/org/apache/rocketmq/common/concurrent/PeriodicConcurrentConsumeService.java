@@ -23,11 +23,7 @@ public class PeriodicConcurrentConsumeService extends ServiceThread {
     @Override
     public void run() {
         while (!this.isStopped()) {
-            try {
-                Thread.sleep(1);
-                PriorityConcurrentEngine.invokeAllNow();
-            } catch (InterruptedException ignored) {
-            }
+            PriorityConcurrentEngine.invokeAllNow();
         }
     }
 
