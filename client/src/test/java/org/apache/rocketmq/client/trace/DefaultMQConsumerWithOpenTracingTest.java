@@ -75,6 +75,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.waitAtMost;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -209,7 +210,8 @@ public class DefaultMQConsumerWithOpenTracingTest {
         assertThat(msg.getTopic()).isEqualTo(topic);
         assertThat(msg.getBody()).isEqualTo(new byte[]{'a'});
 
-        assertThat(tracer.finishedSpans().size()).isEqualTo(1);
+        // wait until consumeMessageAfter hook of tracer is done surely.
+        waitAtMost(1, TimeUnit.SECONDS).until(() -> tracer.finishedSpans().size() == 1);
         MockSpan span = tracer.finishedSpans().get(0);
         assertThat(span.tags().get(Tags.MESSAGE_BUS_DESTINATION.getKey())).isEqualTo(topic);
         assertThat(span.tags().get(Tags.SPAN_KIND.getKey())).isEqualTo(Tags.SPAN_KIND_CONSUMER);
