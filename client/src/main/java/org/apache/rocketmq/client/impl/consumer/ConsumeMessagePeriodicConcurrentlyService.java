@@ -190,7 +190,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         return increaseCurrentStage(topic, 1);
     }
 
-    public synchronized int increaseCurrentStage(String topic, int delta) {
+    public int increaseCurrentStage(String topic, int delta) {
         final AtomicInteger index = getCurrentStageIndex(topic);
         synchronized (index) {
             return index.getAndAdd(delta);
