@@ -134,7 +134,7 @@ public class PlainPermissionManager {
         Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             Map.class);
         if (aclAccessConfigMap == null || aclAccessConfigMap.isEmpty()) {
-            throw new AclException(String.format("%s file not found or isEmpty", fileHome + File.separator + fileName));
+            throw new AclException(String.format("%s file not found or empty", fileHome + File.separator + fileName));
         }
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
         Map<String, Object> updateAccountMap = null;
@@ -223,7 +223,7 @@ public class PlainPermissionManager {
         Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             Map.class);
         if (aclAccessConfigMap == null || aclAccessConfigMap.isEmpty()) {
-            throw new AclException(String.format("%s file not found or isEmpty", fileHome + File.separator + fileName));
+            throw new AclException(String.format("%s file not found or empty", fileHome + File.separator + fileName));
         }
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get("accounts");
         if (accounts != null) {
@@ -257,7 +257,7 @@ public class PlainPermissionManager {
         Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             Map.class);
         if (aclAccessConfigMap == null || aclAccessConfigMap.isEmpty()) {
-            throw new AclException(String.format("%s file not found or isEmpty", fileHome + File.separator + fileName));
+            throw new AclException(String.format("%s file not found or empty", fileHome + File.separator + fileName));
         }
         List<String> globalWhiteRemoteAddrList = (List<String>) aclAccessConfigMap.get(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
 
