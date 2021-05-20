@@ -17,12 +17,12 @@
 
 package org.apache.rocketmq.client.trace;
 
+import io.opentracing.mock.MockSpan;
+import io.opentracing.mock.MockTracer;
+import io.opentracing.tag.Tags;
 import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,6 +38,8 @@ import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.store.OffsetStore;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.CommunicationMode;
@@ -53,19 +55,12 @@ import org.apache.rocketmq.client.impl.consumer.PullRequest;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalancePushImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.client.trace.hook.ConsumeMessageOpenTracingHookImpl;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
@@ -73,11 +68,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.waitAtMost;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -88,10 +85,8 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultMQConsumerWithTraceTest {
+public class DefaultMQConsumerWithOpenTracingTest {
     private String consumerGroup;
-    private String consumerGroupNormal;
-    private String producerGroupTraceTemp = TopicValidator.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
 
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
@@ -102,15 +97,7 @@ public class DefaultMQConsumerWithTraceTest {
     private PullAPIWrapper pullAPIWrapper;
     private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
-    private DefaultMQPushConsumer normalPushConsumer;
-    private DefaultMQPushConsumer customTraceTopicpushConsumer;
-
-    private AsyncTraceDispatcher asyncTraceDispatcher;
-    private MQClientInstance mQClientTraceFactory;
-    @Mock
-    private MQClientAPIImpl mQClientTraceAPIImpl;
-    private DefaultMQProducer traceProducer;
-    private String customerTraceTopic = "rmq_trace_topic_12345";
+    private MockTracer tracer = new MockTracer();
 
     @Before
     public void init() throws Exception {
@@ -118,69 +105,7 @@ public class DefaultMQConsumerWithTraceTest {
         factoryTable.forEach((s, instance) -> instance.shutdown());
         factoryTable.clear();
 
-        consumerGroup = "FooBarGroup" + System.currentTimeMillis();
-        pushConsumer = new DefaultMQPushConsumer(consumerGroup, true, "");
-        consumerGroupNormal = "FooBarGroup" + System.currentTimeMillis();
-        normalPushConsumer = new DefaultMQPushConsumer(consumerGroupNormal, false, "");
-        customTraceTopicpushConsumer = new DefaultMQPushConsumer(consumerGroup, true, customerTraceTopic);
-        pushConsumer.setNamesrvAddr("127.0.0.1:9876");
-        pushConsumer.setPullInterval(60 * 1000);
-
-        asyncTraceDispatcher = (AsyncTraceDispatcher) pushConsumer.getTraceDispatcher();
-        traceProducer = asyncTraceDispatcher.getTraceProducer();
-
-        pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                return null;
-            }
-        });
-
-        DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
-
-        // suppress updateTopicRouteInfoFromNameServer
-        pushConsumer.changeInstanceNameToPID();
-        mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true)));
-        factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
-
-        rebalancePushImpl = spy(new RebalancePushImpl(pushConsumer.getDefaultMQPushConsumerImpl()));
-        Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
-        field.setAccessible(true);
-        field.set(pushConsumerImpl, rebalancePushImpl);
-        pushConsumer.subscribe(topic, "*");
-
-        pushConsumer.start();
-
-        mQClientFactory = spy(pushConsumerImpl.getmQClientFactory());
-        mQClientTraceFactory = spy(pushConsumerImpl.getmQClientFactory());
-
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");
-        field.setAccessible(true);
-        field.set(pushConsumerImpl, mQClientFactory);
-
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
-
-        Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
-        fieldTrace.setAccessible(true);
-        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientTraceFactory);
-
-        fieldTrace = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        fieldTrace.setAccessible(true);
-        fieldTrace.set(mQClientTraceFactory, mQClientTraceAPIImpl);
-
-        pullAPIWrapper = spy(new PullAPIWrapper(mQClientFactory, consumerGroup, false));
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("pullAPIWrapper");
-        field.setAccessible(true);
-        field.set(pushConsumerImpl, pullAPIWrapper);
-
-        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setmQClientFactory(mQClientFactory);
-        mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
-
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -190,7 +115,7 @@ public class DefaultMQConsumerWithTraceTest {
                     messageClientExt.setTopic(topic);
                     messageClientExt.setQueueId(0);
                     messageClientExt.setMsgId("123");
-                    messageClientExt.setBody(new byte[] {'a'});
+                    messageClientExt.setBody(new byte[]{'a'});
                     messageClientExt.setOffsetMsgId("234");
                     messageClientExt.setBornHost(new InetSocketAddress(8080));
                     messageClientExt.setStoreHost(new InetSocketAddress(8080));
@@ -200,10 +125,44 @@ public class DefaultMQConsumerWithTraceTest {
                 }
             });
 
+
+        consumerGroup = "FooBarGroup" + System.currentTimeMillis();
+        pushConsumer = new DefaultMQPushConsumer(consumerGroup);
+        pushConsumer.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
+                new ConsumeMessageOpenTracingHookImpl(tracer));
+        pushConsumer.setNamesrvAddr("127.0.0.1:9876");
+        pushConsumer.setPullInterval(60 * 1000);
+
+        OffsetStore offsetStore = Mockito.mock(OffsetStore.class);
+        Mockito.when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(0L);
+        pushConsumer.setOffsetStore(offsetStore);
+
+        pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                                                            ConsumeConcurrentlyContext context) {
+                return null;
+            }
+        });
+
+        DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
+
+        // suppress updateTopicRouteInfoFromNameServer
+        pushConsumer.changeInstanceNameToPID();
+        mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
+        FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
+        mQClientFactory = spy(mQClientFactory);
+        factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
+        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
-        pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
+        pushConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
+
+        pushConsumer.subscribe(topic, "*");
+        pushConsumer.start();
     }
 
     @After
@@ -213,17 +172,15 @@ public class DefaultMQConsumerWithTraceTest {
 
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
-        traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
-
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
+                                                            ConsumeConcurrentlyContext context) {
                 messageAtomic.set(msgs.get(0));
                 countDownLatch.countDown();
-                return null;
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         }));
 
@@ -233,7 +190,14 @@ public class DefaultMQConsumerWithTraceTest {
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);
-        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
+        assertThat(msg.getBody()).isEqualTo(new byte[]{'a'});
+
+        // wait until consumeMessageAfter hook of tracer is done surely.
+        waitAtMost(1, TimeUnit.SECONDS).until(() -> tracer.finishedSpans().size() == 1);
+        MockSpan span = tracer.finishedSpans().get(0);
+        assertThat(span.tags().get(Tags.MESSAGE_BUS_DESTINATION.getKey())).isEqualTo(topic);
+        assertThat(span.tags().get(Tags.SPAN_KIND.getKey())).isEqualTo(Tags.SPAN_KIND_CONSUMER);
+        assertThat(span.tags().get(TraceConstants.ROCKETMQ_SUCCESS)).isEqualTo(true);
     }
 
     private PullRequest createPullRequest() {
@@ -255,7 +219,7 @@ public class DefaultMQConsumerWithTraceTest {
     }
 
     private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
-        List<MessageExt> messageExtList) throws Exception {
+                                           List<MessageExt> messageExtList) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (MessageExt messageExt : messageExtList) {
             outputStream.write(MessageDecoder.encode(messageExt, false));
@@ -263,65 +227,4 @@ public class DefaultMQConsumerWithTraceTest {
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
     }
 
-    public static TopicRouteData createTopicRoute() {
-        TopicRouteData topicRouteData = new TopicRouteData();
-
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
-        BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("BrokerA");
-        brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "127.0.0.1:10911");
-        brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
-
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
-        QueueData queueData = new QueueData();
-        queueData.setBrokerName("BrokerA");
-        queueData.setPerm(6);
-        queueData.setReadQueueNums(3);
-        queueData.setWriteQueueNums(4);
-        queueData.setTopicSysFlag(0);
-        queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
-        return topicRouteData;
-    }
-
-    private SendResult createSendResult(SendStatus sendStatus) {
-        SendResult sendResult = new SendResult();
-        sendResult.setMsgId("123");
-        sendResult.setOffsetMsgId("123");
-        sendResult.setQueueOffset(456);
-        sendResult.setSendStatus(sendStatus);
-        sendResult.setRegionId("HZ");
-        return sendResult;
-    }
-
-    public static TopicRouteData createTraceTopicRoute() {
-        TopicRouteData topicRouteData = new TopicRouteData();
-
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
-        BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("broker-trace");
-        brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
-        brokerAddrs.put(0L, "127.0.0.1:10912");
-        brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
-
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
-        QueueData queueData = new QueueData();
-        queueData.setBrokerName("broker-trace");
-        queueData.setPerm(6);
-        queueData.setReadQueueNums(1);
-        queueData.setWriteQueueNums(1);
-        queueData.setTopicSysFlag(1);
-        queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
-        return topicRouteData;
-    }
 }
