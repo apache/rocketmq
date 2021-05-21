@@ -49,7 +49,7 @@ public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueSt
         int startIndex = mod * currentIndex;
         int endIndex = startIndex + mod;
         for (int i = startIndex; i < endIndex; i++) {
-            result.add(mqAll.get(i));
+            result.add(premqAll.get(i));
         }
         if (rem > currentIndex) {
             result.add(premqAll.get(currentIndex + mod * cidAll.size()));

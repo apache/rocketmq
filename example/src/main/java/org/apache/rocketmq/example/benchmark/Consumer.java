@@ -52,8 +52,9 @@ public class Consumer {
         }
 
         final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
+        final int threadCount = commandLine.hasOption('w') ? Integer.parseInt(commandLine.getOptionValue('w')) : 20;
         final String groupPrefix = commandLine.hasOption('g') ? commandLine.getOptionValue('g').trim() : "benchmark_consumer";
-        final String isSuffixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "true";
+        final String isSuffixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "false";
         final String filterType = commandLine.hasOption('f') ? commandLine.getOptionValue('f').trim() : null;
         final String expression = commandLine.hasOption('e') ? commandLine.getOptionValue('e').trim() : null;
         final double failRate = commandLine.hasOption('r') ? Double.parseDouble(commandLine.getOptionValue('r').trim()) : 0.0;
@@ -65,8 +66,8 @@ public class Consumer {
             group = groupPrefix + "_" + (System.currentTimeMillis() % 100);
         }
 
-        System.out.printf("topic: %s, group: %s, suffix: %s, filterType: %s, expression: %s, msgTraceEnable: %s, aclEnable: %s%n",
-            topic, group, isSuffixEnable, filterType, expression, msgTraceEnable, aclEnable);
+        System.out.printf("topic: %s, threadCount %d, group: %s, suffix: %s, filterType: %s, expression: %s, msgTraceEnable: %s, aclEnable: %s%n",
+            topic, threadCount, group, isSuffixEnable, filterType, expression, msgTraceEnable, aclEnable);
 
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
@@ -101,8 +102,8 @@ public class Consumer {
                     statsBenchmarkConsumer.getBorn2ConsumerMaxRT().set(0);
                     statsBenchmarkConsumer.getStore2ConsumerMaxRT().set(0);
 
-                    System.out.printf("TPS: %d FAIL: %d AVG(B2C) RT: %7.3f AVG(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d%n",
-                            consumeTps, failCount, averageB2CRT, averageS2CRT, b2cMax, s2cMax
+                    System.out.printf("Current Time: %s TPS: %d FAIL: %d AVG(B2C) RT(ms): %7.3f AVG(S2C) RT(ms): %7.3f MAX(B2C) RT(ms): %d MAX(S2C) RT(ms): %d%n",
+                            System.currentTimeMillis(), consumeTps, failCount, averageB2CRT, averageS2CRT, b2cMax, s2cMax
                     );
                 }
             }
@@ -123,6 +124,8 @@ public class Consumer {
             String ns = commandLine.getOptionValue('n');
             consumer.setNamesrvAddr(ns);
         }
+        consumer.setConsumeThreadMin(threadCount);
+        consumer.setConsumeThreadMax(threadCount);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         if (filterType == null || expression == null) {
@@ -179,11 +182,15 @@ public class Consumer {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("w", "threadCount", true, "Thread count, Default: 20");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         opt = new Option("g", "group", true, "Consumer group name, Default: benchmark_consumer");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("p", "group prefix enable", true, "Consumer group name, Default: false");
+        opt = new Option("p", "group suffix enable", true, "Consumer group suffix enable, Default: false");
         opt.setRequired(false);
         options.addOption(opt);
 
