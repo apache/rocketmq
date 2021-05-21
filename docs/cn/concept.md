@@ -38,7 +38,7 @@ RocketMQ主要由 Producer、Broker、Consumer 三部分组成，其中Producer 
 广播消费模式下，相同Consumer Group的每个Consumer实例都接收全量的消息。
 
 ## 13 普通顺序消息（Normal Ordered Message）
-普通顺序消费模式下，消费者通过同一个消费队列收到的消息是有顺序的，不同消息队列收到的消息则可能是无顺序的。
+普通顺序消费模式下，消费者通过同一个消息队列（ Topic 分区，称作 Message Queue） 收到的消息是有顺序的，不同消息队列收到的消息则可能是无顺序的。
 
 ## 14 严格顺序消息（Strictly Ordered Message）
 严格顺序消息模式下，消费者收到的所有消息均是有顺序的。
