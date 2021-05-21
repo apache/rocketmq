@@ -661,14 +661,18 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
-        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, putMessageResult, msg);
-        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, putMessageResult, msg);
+        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
+        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
-                putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
+                putMessageResult.setPutMessageStatus(flushStatus);
             }
             if (replicaStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(replicaStatus);
+                if (replicaStatus == PutMessageStatus.FLUSH_SLAVE_TIMEOUT) {
+                    log.error("do sync transfer other node, wait return, but failed, topic: {} tags: {} client address: {}",
+                            msg.getTopic(), msg.getTags(), msg.getBornHostNameString());
+                }
             }
             return putMessageResult;
         });
@@ -762,15 +766,18 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).addAndGet(result.getMsgNum());
         storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).addAndGet(result.getWroteBytes());
 
-        CompletableFuture<PutMessageStatus> flushOKFuture = submitFlushRequest(result, putMessageResult, messageExtBatch);
-        CompletableFuture<PutMessageStatus> replicaOKFuture = submitReplicaRequest(result, putMessageResult, messageExtBatch);
+        CompletableFuture<PutMessageStatus> flushOKFuture = submitFlushRequest(result, messageExtBatch);
+        CompletableFuture<PutMessageStatus> replicaOKFuture = submitReplicaRequest(result, messageExtBatch);
         return flushOKFuture.thenCombine(replicaOKFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
-                putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
+                putMessageResult.setPutMessageStatus(flushStatus);
             }
-
             if (replicaStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(replicaStatus);
+                if (replicaStatus == PutMessageStatus.FLUSH_SLAVE_TIMEOUT) {
+                    log.error("do sync transfer other node, wait return, but failed, topic: {} client address: {}",
+                            messageExtBatch.getTopic(), messageExtBatch.getBornHostNameString());
+                }
             }
             return putMessageResult;
         });
@@ -900,8 +907,7 @@ public class CommitLog {
         return putMessageResult;
     }
 
-    public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, PutMessageResult putMessageResult,
-                                                                  MessageExt messageExt) {
+    public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, MessageExt messageExt) {
         // Synchronization flush
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
@@ -926,8 +932,7 @@ public class CommitLog {
         }
     }
 
-    public CompletableFuture<PutMessageStatus> submitReplicaRequest(AppendMessageResult result, PutMessageResult putMessageResult,
-                                                        MessageExt messageExt) {
+    public CompletableFuture<PutMessageStatus> submitReplicaRequest(AppendMessageResult result, MessageExt messageExt) {
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
             if (messageExt.isWaitStoreMsgOK()) {
@@ -1420,13 +1425,10 @@ public class CommitLog {
                     for (GroupCommitRequest req : this.requestsRead) {
                         // There may be a message in the next file, so a maximum of
                         // two times the flush
-                        boolean flushOK = false;
+                        boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
                         for (int i = 0; i < 2 && !flushOK; i++) {
+                            CommitLog.this.mappedFileQueue.flush(0);
                             flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
-
-                            if (!flushOK) {
-                                CommitLog.this.mappedFileQueue.flush(0);
-                            }
                         }
 
                         req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
@@ -1795,6 +1797,11 @@ public class CommitLog {
             ByteBuffer bornHostHolder = ByteBuffer.allocate(bornHostLength);
             ByteBuffer storeHostHolder = ByteBuffer.allocate(storeHostLength);
 
+            // properties from MessageExtBatch
+            String batchPropStr = MessageDecoder.messageProperties2String(messageExtBatch.getProperties());
+            final byte[] batchPropData = batchPropStr.getBytes(MessageDecoder.CHARSET_UTF8);
+            final short batchPropLen = (short) batchPropData.length;
+
             while (messagesByteBuff.hasRemaining()) {
                 // 1 TOTALSIZE
                 messagesByteBuff.getInt();
@@ -1818,7 +1825,8 @@ public class CommitLog {
 
                 final int topicLength = topicData.length;
 
-                final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, propertiesLen);
+                final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength,
+                        propertiesLen + batchPropLen);
 
                 // Exceeds the maximum message
                 if (msgLen > this.maxMessageSize) {
@@ -1871,9 +1879,13 @@ public class CommitLog {
                 this.msgBatchMemory.put((byte) topicLength);
                 this.msgBatchMemory.put(topicData);
                 // 17 PROPERTIES
-                this.msgBatchMemory.putShort(propertiesLen);
-                if (propertiesLen > 0)
+                this.msgBatchMemory.putShort((short) (propertiesLen + batchPropLen));
+                if (propertiesLen > 0) {
                     this.msgBatchMemory.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
+                }
+                if (batchPropLen > 0) {
+                    this.msgBatchMemory.put(batchPropData, 0, batchPropLen);
+                }
             }
             msgBatchMemory.flip();
             return msgBatchMemory;

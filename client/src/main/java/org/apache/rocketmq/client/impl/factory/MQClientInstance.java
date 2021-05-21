@@ -1043,6 +1043,11 @@ public class MQClientInstance {
             slave = brokerId != MixAll.MASTER_ID;
             found = brokerAddr != null;
 
+            if (!found && slave) {
+                brokerAddr = map.get(brokerId + 1);
+                found = brokerAddr != null;
+            }
+
             if (!found && !onlyThisBroker) {
                 Entry<Long, String> entry = map.entrySet().iterator().next();
                 brokerAddr = entry.getValue();
@@ -1100,7 +1105,7 @@ public class MQClientInstance {
         return null;
     }
 
-    public void resetOffset(String topic, String group, Map<MessageQueue, Long> offsetTable) {
+    public synchronized void resetOffset(String topic, String group, Map<MessageQueue, Long> offsetTable) {
         DefaultMQPushConsumerImpl consumer = null;
         try {
             MQConsumerInner impl = this.consumerTable.get(group);
@@ -1209,6 +1214,9 @@ public class MQClientInstance {
 
     public ConsumerRunningInfo consumerRunningInfo(final String consumerGroup) {
         MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
+        if (mqConsumerInner == null) {
+            return null;
+        }
 
         ConsumerRunningInfo consumerRunningInfo = mqConsumerInner.consumerRunningInfo();
 
