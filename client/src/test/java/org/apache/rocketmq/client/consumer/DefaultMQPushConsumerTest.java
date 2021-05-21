@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashSet;
@@ -45,7 +44,6 @@ import org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyServic
 import org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
-import org.apache.rocketmq.client.impl.consumer.PullAPIWrapper;
 import org.apache.rocketmq.client.impl.consumer.PullMessageService;
 import org.apache.rocketmq.client.impl.consumer.PullRequest;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
@@ -88,7 +86,6 @@ public class DefaultMQPushConsumerTest {
 
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
-    private PullAPIWrapper pullAPIWrapper;
     private RebalanceImpl rebalanceImpl;
     private DefaultMQPushConsumer pushConsumer;
 
@@ -98,51 +95,7 @@ public class DefaultMQPushConsumerTest {
         factoryTable.forEach((s, instance) -> instance.shutdown());
         factoryTable.clear();
 
-        consumerGroup = "FooBarGroup" + System.currentTimeMillis();
-        pushConsumer = new DefaultMQPushConsumer(consumerGroup);
-        pushConsumer.setNamesrvAddr("127.0.0.1:9876");
-        pushConsumer.setPullInterval(60 * 1000);
-
-        pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                return null;
-            }
-        });
-
-        DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
-
-        // suppress updateTopicRouteInfoFromNameServer
-        pushConsumer.changeInstanceNameToPID();
-        mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true)));
-        factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
-
-        rebalanceImpl = spy(pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl());
-        Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
-        field.setAccessible(true);
-        field.set(pushConsumerImpl, rebalanceImpl);
-
-        pushConsumer.subscribe(topic, "*");
-        pushConsumer.start();
-
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");
-        field.setAccessible(true);
-        field.set(pushConsumerImpl, mQClientFactory);
-
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
-
-        pullAPIWrapper = spy(new PullAPIWrapper(mQClientFactory, consumerGroup, false));
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("pullAPIWrapper");
-        field.setAccessible(true);
-        field.set(pushConsumerImpl, pullAPIWrapper);
-
-        mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
-
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -162,11 +115,42 @@ public class DefaultMQPushConsumerTest {
                 }
             });
 
+
+        consumerGroup = "FooBarGroup" + System.currentTimeMillis();
+        pushConsumer = new DefaultMQPushConsumer(consumerGroup);
+        pushConsumer.setNamesrvAddr("127.0.0.1:9876");
+        pushConsumer.setPullInterval(60 * 1000);
+
+        pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeConcurrentlyContext context) {
+                return null;
+            }
+        });
+
+        DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
+
+        // suppress updateTopicRouteInfoFromNameServer
+        pushConsumer.changeInstanceNameToPID();
+        mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
+        FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
+        mQClientFactory = spy(mQClientFactory);
+        factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
+        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+
+        rebalanceImpl = spy(pushConsumerImpl.getRebalanceImpl());
+        doReturn(123L).when(rebalanceImpl).computePullFromWhere(any(MessageQueue.class));
+        FieldUtils.writeDeclaredField(pushConsumerImpl, "rebalanceImpl", rebalanceImpl, true);
+
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
-        pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
-        doReturn(123L).when(rebalanceImpl).computePullFromWhere(any(MessageQueue.class));
+        pushConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
+
+        pushConsumer.subscribe(topic, "*");
+        pushConsumer.start();
     }
 
     @After
@@ -292,7 +276,7 @@ public class DefaultMQPushConsumerTest {
 
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
-        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
+        assertThat(countDownLatch.await(10, TimeUnit.SECONDS)).isTrue();
 
         pushConsumer.shutdown();
         assertThat(messageConsumedFlag.get()).isTrue();

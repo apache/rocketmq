@@ -198,6 +198,7 @@ public class TraceDataEncoder {
 
                 }
             }
+            break;
             case EndTransaction: {
                 TraceBean bean = ctx.getTraceBeans().get(0);
                 sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//

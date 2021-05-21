@@ -439,6 +439,12 @@
             <version>3.10.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.1.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -536,7 +542,7 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.69</version>
+                <version>1.2.76</version>
             </dependency>
             <dependency>
                 <groupId>org.javassist</groupId>
