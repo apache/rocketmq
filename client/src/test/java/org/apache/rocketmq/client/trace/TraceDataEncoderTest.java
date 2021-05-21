@@ -18,7 +18,6 @@
 package org.apache.rocketmq.client.trace;
 
 import org.apache.rocketmq.client.producer.LocalTransactionState;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageType;
 import org.junit.Assert;
 import org.junit.Before;
@@ -50,8 +49,7 @@ public class TraceDataEncoderTest {
             .append(245).append(TraceConstants.CONTENT_SPLITOR)
             .append(MessageType.Normal_Msg.ordinal()).append(TraceConstants.CONTENT_SPLITOR)
             .append("0A9A002600002A9F0000000000002329").append(TraceConstants.CONTENT_SPLITOR)
-            .append(true).append(TraceConstants.CONTENT_SPLITOR)
-            .append(UtilAll.ipToIPv4Str(UtilAll.getIP())).append(TraceConstants.FIELD_SPLITOR)
+            .append(true).append(TraceConstants.FIELD_SPLITOR)
             .toString();
     }
 
@@ -104,7 +102,6 @@ public class TraceDataEncoderTest {
         traceBean.setTags("Tags");
         traceBean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
         traceBean.setStoreHost("127.0.0.1:10911");
-        traceBean.setClientHost("127.0.0.1@41700");
         traceBean.setMsgType(MessageType.Trans_msg_Commit);
         traceBean.setTransactionId("transactionId");
         traceBean.setTransactionState(LocalTransactionState.COMMIT_MESSAGE);
