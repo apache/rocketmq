@@ -38,6 +38,10 @@
          * [8.1 OMSProducer样例](#81-omsproducer样例)
          * [8.2 OMSPullConsumer](#82-omspullconsumer)
          * [8.3 OMSPushConsumer](#83-omspushconsumer)
+      * [9 阶段性消息样例](#9-阶段性消息样例)
+         * [9.1 阶段性并发消费消息](#91-阶段性并发消费消息)
+         * [9.2 阶段性并发使用上的限制](#92-阶段性并发使用上的限制)
+         * [9.3 阶段性并发的优点](#93-阶段性并发的优点)
 -----
 ## 1 基本样例
 
@@ -998,3 +1002,141 @@ public class SimplePushConsumer {
    }
 }
 ```
+
+9 阶段性消息样例
+----------
+
+"阶段"是什么?
+
+比如电商搞活动，前`10`笔订单可以额外获得一台笔记本电脑，前`10-30`笔订单可以额外获得一台平板电脑，前`30-100`笔订单可以额外获得一台手机，而在`100`笔之后订单则没有额外的奖励。
+
+- 将`1-10`的区间称为`阶段1`；
+- 将`10-30`的区间称为`阶段2`；
+- 将`30-100`的区间称为`阶段3`；
+- 将`100+`的区间称为`阶段4`；
+
+由于每个`阶段`的奖励都`相同`，因此只需要阶段之间保证`顺序`(`阶段2`必须在`阶段1`后面)即可，而阶段内可以`乱序`(比如`阶段1`的`10`条消息可以`并发消费`)。
+
+### 9.1 阶段性并发消费消息
+
+#### 1、发送顺序消息
+参考[2.1 顺序消息生产](#21-顺序消息生产)，略微改动：
+
+```java
+package org.apache.rocketmq.example.periodic;
+
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.MQProducer;
+import org.apache.rocketmq.client.producer.MessageQueueSelector;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+
+public class Producer {
+    public static void main(String[] args) throws UnsupportedEncodingException {
+        try {
+            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "localhost:9876");
+            MQProducer producer = new DefaultMQProducer("please_rename_unique_group_name_4");
+            producer.start();
+
+            for (int i = 0; i < 5000; i++) {
+                Message msg =
+                        new Message("TopicTest", "TagA", "KEY" + i,
+                                ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+                SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
+                    @Override
+                    public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                        Integer id = (Integer) arg;
+                        int index = id % mqs.size();
+                        return mqs.get(index);
+                    }
+                }, 0);
+                System.out.printf("%s%n", sendResult);
+            }
+
+            producer.shutdown();
+        } catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+#### 2、阶段性并发消费消息
+
+```java
+package org.apache.rocketmq.example.periodic;
+
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageExt;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+public class PeriodicConcurrentlyConsumer {
+    public static void main(String[] args) throws MQClientException {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+        consumer.setNamesrvAddr("localhost:9876");
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        consumer.subscribe("TopicTest", "TagA");
+        consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
+
+            @Override
+            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context, int stageIndex) {
+                context.setAutoCommit(true);
+                for (MessageExt msg : msgs) {
+                    // stageIndex从0开始递增，每个stageIndex代表的"阶段"之间是有序的，
+                    // 而"阶段"内部是乱序的，当到达最后一个阶段时，stageIndex为-1
+                    // 可以看到MessageListenerOrderly和一样, 订单对每个queue(分区)有序
+                    System.out.println("consumeThread=" + Thread.currentThread().getName() +", stageIndex="+stageIndex+ ", queueId=" + msg.getQueueId() + ", content:" + new String(msg.getBody()));
+                }
+
+                try {
+                    //模拟业务逻辑处理中...
+                    TimeUnit.MILLISECONDS.sleep(new Random().nextInt(10));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return ConsumeOrderlyStatus.SUCCESS;
+            }
+
+            @Override
+            public List<Integer> getStageDefinitions() {
+                List<Integer> list = new ArrayList<>();
+                for (int i = 1; i <= 50; i++) {
+                    list.add(i);
+                }
+                return list;
+            }
+        });
+
+        consumer.start();
+        System.out.printf("Consumer Started.%n");
+    }
+
+}
+
+```
+
+### 9.2 阶段性并发使用上的限制
+与`MessageListenerOrderly`一样，`MessageListenerPeriodicConcurrently`也是`仅保证每个queue(分区)有序`。
+
+### 9.3 阶段性并发的优点
+兼具了`MessageListenerOrderly`的顺序性和`MessageListenerConcurrently`的良好性能。
+
+更多测试结果请参考`org.apache.rocketmq.client.impl.consumer.ConsumeMessagePeriodicConcurrentlyServiceTest`。

@@ -38,6 +38,7 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -616,6 +617,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.consumeOrderly = false;
                     this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
+                } else if (this.getMessageListenerInner() instanceof MessageListenerPeriodicConcurrently) {
+                    this.consumeOrderly = true;
+                    this.consumeMessageService =
+                        new ConsumeMessagePeriodicConcurrentlyService(this, (MessageListenerPeriodicConcurrently) this.getMessageListenerInner());
                 }
 
                 this.consumeMessageService.start();
@@ -717,9 +722,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         boolean orderly = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerOrderly;
         boolean concurrently = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerConcurrently;
-        if (!orderly && !concurrently) {
+        boolean periodicConcurrently = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerPeriodicConcurrently;
+        if (!orderly && !concurrently && !periodicConcurrently) {
             throw new MQClientException(
-                "messageListener must be instanceof MessageListenerOrderly or MessageListenerConcurrently"
+                "messageListener must be instanceof MessageListenerOrderly or MessageListenerConcurrently or MessageListenerPeriodicConcurrently"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
                 null);
         }
