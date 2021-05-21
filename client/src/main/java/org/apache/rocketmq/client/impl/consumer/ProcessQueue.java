@@ -282,7 +282,7 @@ public class ProcessQueue {
 
     public long commitMessages(List<MessageExt> msgs) {
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.treeMapLock.writeLock().lockInterruptibly();
             try {
                 Long offset = this.consumingMsgOrderlyTreeMap.lastKey();
                 msgCount.addAndGet(0 - msgs.size());
@@ -296,7 +296,7 @@ public class ProcessQueue {
                     return offset + 1;
                 }
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
             log.error("commit exception", e);
