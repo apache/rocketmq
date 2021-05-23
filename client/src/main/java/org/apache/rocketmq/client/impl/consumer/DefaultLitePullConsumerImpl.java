@@ -97,7 +97,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private static final String NOT_RUNNING_EXCEPTION_MESSAGE = "The consumer not running, please start it first.";
 
-    private static final String SUBSCRIPTION_CONFILCT_EXCEPTION_MESSAGE = "Subscribe and assign are mutually exclusive.";
+    private static final String SUBSCRIPTION_CONFLICT_EXCEPTION_MESSAGE = "Subscribe and assign are mutually exclusive.";
     /**
      * the type of subscription
      */
@@ -171,7 +171,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (this.subscriptionType == SubscriptionType.NONE)
             this.subscriptionType = type;
         else if (this.subscriptionType != type)
-            throw new IllegalStateException(SUBSCRIPTION_CONFILCT_EXCEPTION_MESSAGE);
+            throw new IllegalStateException(SUBSCRIPTION_CONFLICT_EXCEPTION_MESSAGE);
     }
 
     private void updateAssignedMessageQueue(String topic, Set<MessageQueue> assignedMessageQueue) {
@@ -628,8 +628,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private long fetchConsumeOffset(MessageQueue messageQueue) {
         checkServiceState();
-        long offset = this.rebalanceImpl.computePullFromWhere(messageQueue);
-        return offset;
+        return this.rebalanceImpl.computePullFromWhere(messageQueue);
     }
 
     public long committed(MessageQueue messageQueue) throws MQClientException {
@@ -746,11 +745,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 long pullDelayTimeMills = 0;
                 try {
                     SubscriptionData subscriptionData;
+                    String topic = this.messageQueue.getTopic();
                     if (subscriptionType == SubscriptionType.SUBSCRIBE) {
-                        String topic = this.messageQueue.getTopic();
                         subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
                     } else {
-                        String topic = this.messageQueue.getTopic();
                         subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
                     }
                     
@@ -892,11 +890,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     @Override
     public Set<SubscriptionData> subscriptions() {
-        Set<SubscriptionData> subSet = new HashSet<SubscriptionData>();
-
-        subSet.addAll(this.rebalanceImpl.getSubscriptionInner().values());
-
-        return subSet;
+        return new HashSet<SubscriptionData>(this.rebalanceImpl.getSubscriptionInner().values());
     }
 
     @Override
@@ -1003,8 +997,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             return true;
         }
 
-        if (set1 == null || set2 == null || set1.size() != set2.size()
-            || set1.size() == 0 || set2.size() == 0) {
+        if (set1 == null || set2 == null || set1.size() != set2.size() || set1.size() == 0) {
             return false;
         }
 
