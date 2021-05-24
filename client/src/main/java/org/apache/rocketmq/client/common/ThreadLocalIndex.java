@@ -30,9 +30,8 @@ public class ThreadLocalIndex {
             this.threadLocalIndex.set(index);
         }
 
-        index = Math.abs(index + 1);
-        this.threadLocalIndex.set(index);
-        return index;
+        this.threadLocalIndex.set(++index);
+        return Math.abs(index);
     }
 
     @Override
