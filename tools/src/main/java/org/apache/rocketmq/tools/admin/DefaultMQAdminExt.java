@@ -128,10 +128,16 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
-        long end) throws MQClientException,
-        InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
         return defaultMQAdminExtImpl.queryMessage(topic, key, maxNum, begin, end);
+    }
+
+    public QueryResult queryMessageByUniqueKey(String topic, String key, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
+        return defaultMQAdminExtImpl.queryMessageByUniqKey(topic, key, maxNum, begin, end);
     }
 
     @Override

@@ -991,10 +991,16 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
-        long end) throws MQClientException,
-        InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
         return this.mqClientInstance.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
+    }
+
+    public QueryResult queryMessageByUniqKey(String topic, String key, int maxNum, long begin,
+                                    long end) throws MQClientException,
+            InterruptedException {
+        return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(topic, key, maxNum, begin, end);
     }
 
     @Override
