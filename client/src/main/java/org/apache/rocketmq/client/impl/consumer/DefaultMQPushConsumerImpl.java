@@ -269,12 +269,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
         } else {
             if (processQueue.isLocked()) {
-                if (!pullRequest.isLockedFirst()) {
+                if (!pullRequest.isPreviouslyLocked()) {
                     long offset = -1L;
                     try {
                         offset = this.rebalanceImpl.computePullFromWhereWithException(pullRequest.getMessageQueue());
                     } catch (MQClientException e) {
-                        log.error("compute consume offset failed, maybe timeout exception");
+                        this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
+                        log.error("Failed to compute pull offset", e);
+                        return;
                     }
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
                     log.info("the first time to pull message, so fix offset from broker. pullRequest: {} NewOffset: {} brokerBusy: {}",
@@ -284,7 +286,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             pullRequest, offset);
                     }
 
-                    pullRequest.setLockedFirst(true);
+                    pullRequest.setPreviouslyLocked(true);
                     pullRequest.setNextOffset(offset);
                 }
             } else {

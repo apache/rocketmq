@@ -375,7 +375,7 @@ public abstract class RebalanceImpl {
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
 
-                long nextOffset = 0L;
+                long nextOffset = -1L;
                 try {
                     nextOffset = this.computePullFromWhereWithException(mq);
                 } catch (MQClientException e) {
