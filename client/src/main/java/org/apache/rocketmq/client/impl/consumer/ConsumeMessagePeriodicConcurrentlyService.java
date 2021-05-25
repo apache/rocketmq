@@ -418,6 +418,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                     continueConsume = false;
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
+                    decrementCurrentStage(topic, msgs.size());
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
@@ -434,6 +435,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         }
 
         if (commitOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+            //todo store currentStage in {@code OffsetStore}
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), commitOffset, false);
         }
 
