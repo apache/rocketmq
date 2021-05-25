@@ -626,9 +626,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private long fetchConsumeOffset(MessageQueue messageQueue) {
+    private long fetchConsumeOffset(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
-        long offset = this.rebalanceImpl.computePullFromWhere(messageQueue);
+        long offset = this.rebalanceImpl.computePullFromWhereWithException(messageQueue);
         return offset;
     }
 
@@ -652,7 +652,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private long nextPullOffset(MessageQueue messageQueue) {
+    private long nextPullOffset(MessageQueue messageQueue) throws MQClientException {
         long offset = -1;
         long seekOffset = assignedMessageQueue.getSeekOffset(messageQueue);
         if (seekOffset != -1) {
@@ -739,7 +739,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     return;
                 }
 
-                long offset = nextPullOffset(messageQueue);
+                long offset = 0L;
+                try {
+                    offset = nextPullOffset(messageQueue);
+                } catch (MQClientException e) {
+                    log.error("get next pull offset failed, maybe timeout exception");
+                    return;
+                }
+
                 if (this.isCancelled() || processQueue.isDropped()) {
                     return;
                 }
