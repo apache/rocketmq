@@ -62,9 +62,12 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
                                  final boolean showAll) throws MQClientException,
             RemotingException, MQBrokerException, InterruptedException, IOException {
 
-        QueryResult queryResult = admin.queryMessageByUniqueKey(topic, msgId, 32, 0, Long.MAX_VALUE);
+        QueryResult queryResult = admin.queryMessageByUniqKey(topic, msgId, 32, 0, Long.MAX_VALUE);
         assert queryResult != null;
         List<MessageExt> list = queryResult.getMessageList();
+        if (list == null || list.size() == 0) {
+            return;
+        }
         list.sort((o1, o2) -> (int) (o1.getStoreTimestamp() - o2.getStoreTimestamp()));
         for (int i = 0; i < (showAll ? list.size() : 1); i++) {
             showMessage(admin, list.get(i), i);
