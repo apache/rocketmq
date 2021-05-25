@@ -256,7 +256,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         log.info("consumeMessageDirectly receive new message: {}", msg);
 
         try {
-            ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context, this.getCurrentLeftoverStageIndexAndUpdate(topic));
+            ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context, this.getCurrentLeftoverStageIndexAndUpdate(topic, msgs.size()));
             if (status != null) {
                 switch (status) {
                     case COMMIT:
