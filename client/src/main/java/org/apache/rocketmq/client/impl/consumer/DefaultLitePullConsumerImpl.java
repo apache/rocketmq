@@ -115,6 +115,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
      */
     private static final long PULL_TIME_DELAY_MILLS_WHEN_PAUSE = 1000;
 
+    private static final long PULL_TIME_DELAY_MILLS_ON_EXCEPTION = 3 * 1000;
+
     private DefaultLitePullConsumer defaultLitePullConsumer;
 
     private final ConcurrentMap<MessageQueue, PullTaskImpl> taskTable =
@@ -743,7 +745,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 try {
                     offset = nextPullOffset(messageQueue);
                 } catch (MQClientException e) {
-                    log.error("get next pull offset failed, maybe timeout exception");
+                    log.error("Failed to get next pull offset", e);
+                    scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_ON_EXCEPTION, TimeUnit.MILLISECONDS);
                     return;
                 }
 
