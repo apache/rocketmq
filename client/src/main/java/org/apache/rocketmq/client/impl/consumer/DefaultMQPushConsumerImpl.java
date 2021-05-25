@@ -275,7 +275,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         offset = this.rebalanceImpl.computePullFromWhereWithException(pullRequest.getMessageQueue());
                     } catch (MQClientException e) {
                         this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
-                        log.error("Failed to compute pull offset", e);
+                        log.error("Failed to compute pull offset, pullResult: {}", pullRequest, e);
                         return;
                     }
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
