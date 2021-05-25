@@ -112,6 +112,7 @@ public class ScheduleMessageService extends ConfigManager {
 
     public void start() {
         if (started.compareAndSet(false, true)) {
+            super.load();
             this.timer = new Timer("ScheduleMessageTimerThread", true);
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
                 Integer level = entry.getKey();
