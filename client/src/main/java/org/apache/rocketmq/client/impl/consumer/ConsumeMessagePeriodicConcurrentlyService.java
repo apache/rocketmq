@@ -146,6 +146,8 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     }
 
     public AtomicInteger getCurrentStageIndex(String topic) {
+        /**todo The initial value should be obtained from {@code OffsetStore}
+         * todo instead of directly {@code new AtomicInteger(0)} below*/
         AtomicInteger index = currentStageMap.putIfAbsent(topic, new AtomicInteger(0));
         if (null == index) {
             index = currentStageMap.get(topic);
@@ -572,7 +574,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                                 } else {
                                     engine.runPriorityAsync(consumeRequest);
                                 }
-                                messageListener.resetCurrentStageIfNeed(getCurrentStageIndex(topic));
+                                messageListener.resetCurrentStageIfNeed(topic, getCurrentStageIndex(topic));
                             }
                         } else {
                             continueConsume.set(false);

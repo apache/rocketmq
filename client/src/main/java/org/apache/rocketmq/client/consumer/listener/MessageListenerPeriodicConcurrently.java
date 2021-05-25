@@ -55,7 +55,7 @@ public interface MessageListenerPeriodicConcurrently extends MessageListener {
     /**
      * can be used to reset the current stage by CAS
      */
-    default void resetCurrentStageIfNeed(final AtomicInteger currentStage) {
+    default void resetCurrentStageIfNeed(final String topic, final AtomicInteger currentStage) {
     }
 
     /**
