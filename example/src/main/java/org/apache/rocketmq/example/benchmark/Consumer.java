@@ -190,7 +190,7 @@ public class Consumer {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("p", "group prefix enable", true, "Consumer group name, Default: false");
+        opt = new Option("p", "group prefix enable", true, "Is group prefix enable, Default: false");
         opt.setRequired(false);
         options.addOption(opt);
 
