@@ -48,6 +48,7 @@ import org.apache.rocketmq.client.impl.consumer.PullMessageService;
 import org.apache.rocketmq.client.impl.consumer.PullRequest;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
+import org.apache.rocketmq.client.impl.consumer.RebalancePushImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -74,6 +75,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -87,6 +89,7 @@ public class DefaultMQPushConsumerTest {
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
     private RebalanceImpl rebalanceImpl;
+    private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
 
     @Before
@@ -130,6 +133,7 @@ public class DefaultMQPushConsumerTest {
         });
 
         DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
+        rebalancePushImpl = spy(new RebalancePushImpl(pushConsumer.getDefaultMQPushConsumerImpl()));
 
         // suppress updateTopicRouteInfoFromNameServer
         pushConsumer.changeInstanceNameToPID();
@@ -142,7 +146,7 @@ public class DefaultMQPushConsumerTest {
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
         rebalanceImpl = spy(pushConsumerImpl.getRebalanceImpl());
-        doReturn(123L).when(rebalanceImpl).computePullFromWhere(any(MessageQueue.class));
+        doReturn(123L).when(rebalanceImpl).computePullFromWhereWithException(any(MessageQueue.class));
         FieldUtils.writeDeclaredField(pushConsumerImpl, "rebalanceImpl", rebalanceImpl, true);
 
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
@@ -262,7 +266,7 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                            ConsumeConcurrentlyContext context) {
+                ConsumeConcurrentlyContext context) {
                 countDownLatch.countDown();
                 try {
                     Thread.sleep(1000);
@@ -319,5 +323,22 @@ public class DefaultMQPushConsumerTest {
             outputStream.write(MessageDecoder.encode(messageExt, false));
         }
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
+    }
+
+    @Test
+    public void testPullMessage_ExceptionOccursWhenComputePullFromWhere() throws MQClientException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final MessageExt[] messageExts = new MessageExt[1];
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(
+                new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(),
+                        (msgs, context) -> {
+                            messageExts[0] = msgs.get(0);
+                            return null;
+                        }));
+
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeOrderly(true);
+        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        pullMessageService.executePullRequestImmediately(createPullRequest());
+        assertThat(messageExts[0]).isNull();
     }
 }
