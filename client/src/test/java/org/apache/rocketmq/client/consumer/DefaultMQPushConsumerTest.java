@@ -214,7 +214,7 @@ public class DefaultMQPushConsumerTest {
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);
-        assertThat(msg.getBody()).isEqualTo(new byte[]{'a'});
+        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
     }
 
     @Test
@@ -327,7 +327,6 @@ public class DefaultMQPushConsumerTest {
 
     @Test
     public void testPullMessage_ExceptionOccursWhenComputePullFromWhere() throws MQClientException {
-        doThrow(MQClientException.class).when(rebalancePushImpl).computePullFromWhereWithException(any(MessageQueue.class));
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final MessageExt[] messageExts = new MessageExt[1];
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(
