@@ -85,7 +85,6 @@ public class TraceDataEncoder {
                 bean.setMsgId(line[5]);
                 bean.setRetryTimes(Integer.parseInt(line[6]));
                 bean.setKeys(line[7]);
-                bean.setClientHost(line[8]);
                 subBeforeContext.setTraceBeans(new ArrayList<TraceBean>(1));
                 subBeforeContext.getTraceBeans().add(bean);
                 resList.add(subBeforeContext);
@@ -123,10 +122,9 @@ public class TraceDataEncoder {
                 bean.setKeys(line[7]);
                 bean.setStoreHost(line[8]);
                 bean.setMsgType(MessageType.values()[Integer.parseInt(line[9])]);
-                bean.setClientHost(line[10]);
-                bean.setTransactionId(line[11]);
-                bean.setTransactionState(LocalTransactionState.valueOf(line[12]));
-                bean.setFromTransactionCheck(Boolean.parseBoolean(line[13]));
+                bean.setTransactionId(line[10]);
+                bean.setTransactionState(LocalTransactionState.valueOf(line[11]));
+                bean.setFromTransactionCheck(Boolean.parseBoolean(line[12]));
 
                 endTransactionContext.setTraceBeans(new ArrayList<TraceBean>(1));
                 endTransactionContext.getTraceBeans().add(bean);
@@ -166,8 +164,7 @@ public class TraceDataEncoder {
                     .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getOffsetMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getClientHost()).append(TraceConstants.FIELD_SPLITOR);
+                    .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);//
             }
             break;
             case SubBefore: {
@@ -179,8 +176,7 @@ public class TraceDataEncoder {
                         .append(ctx.getRequestId()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getRetryTimes()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(bean.getClientHost()).append(TraceConstants.FIELD_SPLITOR);//
+                        .append(bean.getKeys()).append(TraceConstants.FIELD_SPLITOR);//
                 }
             }
             break;
@@ -211,7 +207,6 @@ public class TraceDataEncoder {
                     .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getStoreHost()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(bean.getClientHost()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getTransactionId()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getTransactionState().name()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.isFromTransactionCheck()).append(TraceConstants.FIELD_SPLITOR);

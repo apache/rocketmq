@@ -48,6 +48,10 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.opentracing</groupId>
             <artifactId>opentracing-api</artifactId>
             <version>0.33.0</version>
