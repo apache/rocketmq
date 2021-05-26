@@ -19,7 +19,6 @@ package org.apache.rocketmq.tools.command.message;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.codec.Charsets;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -37,7 +36,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 
 public class QueryMsgTraceByIdSubCommand implements SubCommand {
 
@@ -74,13 +72,13 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
     }
 
     private void queryTraceByMsgId(final DefaultMQAdminExt admin, String msgId)
-            throws MQClientException, InterruptedException {
+        throws MQClientException, InterruptedException {
         admin.start();
         QueryResult queryResult = admin.queryMessage(TopicValidator.RMQ_SYS_TRACE_TOPIC, msgId, 64, 0, System.currentTimeMillis());
         List<MessageExt> messageList = queryResult.getMessageList();
         List<TraceView> traceViews = new ArrayList<>();
         for (MessageExt message : messageList) {
-            List<TraceView> traceView = TraceView.decodeFromTraceTransData(msgId, new String(message.getBody(), Charsets.UTF_8));
+            List<TraceView> traceView = TraceView.decodeFromTraceTransData(msgId, message);
             traceViews.addAll(traceView);
         }
 
@@ -92,20 +90,20 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
         for (TraceView traceView : traceViews) {
             if (traceView.getMsgType().equals(TraceType.Pub.name())) {
                 System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
-                        "#Type",
-                        "#ProducerGroup",
-                        "#ClientHost",
-                        "#SendTime",
-                        "#CostTimes",
-                        "#Status"
+                    "#Type",
+                    "#ProducerGroup",
+                    "#ClientHost",
+                    "#SendTime",
+                    "#CostTimes",
+                    "#Status"
                 );
                 System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
-                        "Pub",
-                        traceView.getGroupName(),
-                        traceView.getClientHost(),
-                        DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
-                        traceView.getCostTime() + "ms",
-                        traceView.getStatus()
+                    "Pub",
+                    traceView.getGroupName(),
+                    traceView.getClientHost(),
+                    DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
+                    traceView.getCostTime() + "ms",
+                    traceView.getStatus()
                 );
                 System.out.printf("\n");
             }
@@ -124,22 +122,22 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
         Iterator<String> consumers = consumerTraceMap.keySet().iterator();
         while (consumers.hasNext()) {
             System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
-                    "#Type",
-                    "#ConsumerGroup",
-                    "#ClientHost",
-                    "#ConsumerTime",
-                    "#CostTimes",
-                    "#Status"
+                "#Type",
+                "#ConsumerGroup",
+                "#ClientHost",
+                "#ConsumerTime",
+                "#CostTimes",
+                "#Status"
             );
             List<TraceView> consumerTraces = consumerTraceMap.get(consumers.next());
             for (TraceView traceView : consumerTraces) {
                 System.out.printf("%-10s %-20s %-20s %-20s %-10s %-10s%n",
-                        "Sub",
-                        traceView.getGroupName(),
-                        traceView.getClientHost(),
-                        DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
-                        traceView.getCostTime() + "ms",
-                        traceView.getStatus()
+                    "Sub",
+                    traceView.getGroupName(),
+                    traceView.getClientHost(),
+                    DateFormatUtils.format(traceView.getTimeStamp(), "yyyy-MM-dd HH:mm:ss"),
+                    traceView.getCostTime() + "ms",
+                    traceView.getStatus()
                 );
             }
             System.out.printf("\n");
