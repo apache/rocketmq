@@ -446,7 +446,7 @@ public class ScheduledMessageConsumer {
           public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> messages, ConsumeConcurrentlyContext context) {
               for (MessageExt message : messages) {
                   // Print approximate delay time period
-                  System.out.println("Receive message[msgId=" + message.getMsgId() + "] " + (System.currentTimeMillis() - message.getStoreTimestamp()) + "ms later");
+                  System.out.println("Receive message[msgId=" + message.getMsgId() + "] " + (System.currentTimeMillis() - message.getBornTimestamp()) + "ms later");
               }
               return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
           }

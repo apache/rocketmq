@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -20,25 +20,25 @@ CURRENT_DIR="$(cd "$(dirname "$0")"; pwd)"
 RMQ_DIR=$CURRENT_DIR/../..
 cd $RMQ_DIR
 
-function startNameserver() {
+startNameserver() {
     export JAVA_OPT_EXT=" -Xms512m -Xmx512m  "
     nohup bin/mqnamesrv &
 }
 
-function startBroker() {
+startBroker() {
     export JAVA_OPT_EXT=" -Xms1g -Xmx1g  "
     conf_name=$1
     nohup bin/mqbroker -c $conf_name &
 }
 
-function stopNameserver() {
+stopNameserver() {
     PIDS=$(ps -ef|grep java|grep NamesrvStartup|grep -v grep|awk '{print $2}')
     if [ ! -z "$PIDS" ]; then
         kill -s TERM $PIDS
     fi
 }
 
-function stopBroker() {
+stopBroker() {
     conf_name=$1
     PIDS=$(ps -ef|grep java|grep BrokerStartup|grep $conf_name|grep -v grep|awk '{print $2}')
     i=1
@@ -46,7 +46,7 @@ function stopBroker() {
     do
         echo "Waiting to kill ..."
         kill -s TERM $PIDS
-        ((i=$i+1))
+        i=`expr $i + 1`
         sleep 2
         PIDS=$(ps -ef|grep java|grep BrokerStartup|grep $conf_name|grep -v grep|awk '{print $2}')
     done
@@ -56,7 +56,7 @@ function stopBroker() {
     fi
 }
 
-function stopAll() {
+stopAll() {
     ps -ef|grep java|grep BrokerStartup|grep -v grep|awk '{print $2}'|xargs kill
     stopNameserver
     stopBroker ./conf/dledger/broker-n0.conf
@@ -64,18 +64,18 @@ function stopAll() {
     stopBroker ./conf/dledger/broker-n2.conf
 }
 
-function startAll() {
+startAll() {
     startNameserver
     startBroker ./conf/dledger/broker-n0.conf
     startBroker ./conf/dledger/broker-n1.conf
     startBroker ./conf/dledger/broker-n2.conf
 }
 
-function checkConf() {
+checkConf() {
     if [ ! -f ./conf/dledger/broker-n0.conf -o ! -f ./conf/dledger/broker-n1.conf -o ! -f ./conf/dledger/broker-n2.conf ]; then
         echo "Make sure the ./conf/dledger/broker-n0.conf, ./conf/dledger/broker-n1.conf, ./conf/dledger/broker-n2.conf exists"
-        exit -1
-    fi 
+        exit 1
+    fi
 }
 
 
@@ -83,7 +83,7 @@ function checkConf() {
 ## Main
 if [ $# -lt 1 ]; then
     echo "Usage: sh $0 start|stop"
-    exit -1
+    exit 1
 fi
 action=$1
 checkConf
