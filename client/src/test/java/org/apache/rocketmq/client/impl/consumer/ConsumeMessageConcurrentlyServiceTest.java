@@ -129,7 +129,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
                         messageClientExt.setTopic(topic);
                         messageClientExt.setQueueId(0);
                         messageClientExt.setMsgId("123");
-                        messageClientExt.setBody(new byte[]{'a'});
+                        messageClientExt.setBody(new byte[] {'a'});
                         messageClientExt.setOffsetMsgId("234");
                         messageClientExt.setBornHost(new InetSocketAddress(8080));
                         messageClientExt.setStoreHost(new InetSocketAddress(8080));
@@ -182,7 +182,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);
-        assertThat(msg.getBody()).isEqualTo(new byte[]{'a'});
+        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
     }
 
     @After
