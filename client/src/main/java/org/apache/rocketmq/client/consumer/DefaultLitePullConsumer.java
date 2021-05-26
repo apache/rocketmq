@@ -166,6 +166,16 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private TraceDispatcher traceDispatcher = null;
 
     /**
+     * The flag for message trace
+     */
+    private boolean enableMsgTrace = false;
+
+    /**
+     * The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     */
+    private String customizedTraceTopic;
+
+    /**
      * Default constructor.
      */
     public DefaultLitePullConsumer() {
@@ -201,57 +211,6 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     /**
-     * Constructor specifying consumer group and enabled msg trace flag.
-     *
-     * @param consumerGroup  Consumer group.
-     * @param enableMsgTrace Switch flag instance for message trace.
-     */
-    public DefaultLitePullConsumer(final String consumerGroup, boolean enableMsgTrace) {
-        this(null, consumerGroup, null, enableMsgTrace, null);
-    }
-
-    /**
-     * Constructor specifying consumer group, enabled msg trace flag and customized trace topic name.
-     *
-     * @param consumerGroup        Consumer group.
-     * @param enableMsgTrace       Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
-     *                             trace topic name.
-     */
-    public DefaultLitePullConsumer(final String consumerGroup, boolean enableMsgTrace,
-        final String customizedTraceTopic) {
-        this(null, consumerGroup, null, enableMsgTrace, customizedTraceTopic);
-    }
-
-    /**
-     * Constructor specifying namespace, consumer group, RPC hook, enabled msg trace flag and customized trace topic
-     * name.
-     *
-     * @param namespace            Namespace for this MQ Producer instance.
-     * @param consumerGroup        Consume queue.
-     * @param rpcHook              RPC hook to execute before each remoting command.
-     * @param enableMsgTrace       Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
-     *                             trace topic name.
-     */
-    public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
-        boolean enableMsgTrace, final String customizedTraceTopic) {
-        this.namespace = namespace;
-        this.consumerGroup = consumerGroup;
-        defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
-        if (enableMsgTrace) {
-            try {
-                this.traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, rpcHook);
-                this.defaultLitePullConsumerImpl.registerConsumeMessageHook(
-                    new ConsumeMessageTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
-    }
-
-
-    /**
      * Constructor specifying namespace, consumer group and RPC hook.
      *
      * @param consumerGroup Consumer group.
@@ -265,6 +224,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void start() throws MQClientException {
+        setTraceDispatcher();
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
         if (null != traceDispatcher) {
@@ -566,5 +526,33 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public TraceDispatcher getTraceDispatcher() {
         return traceDispatcher;
+    }
+
+    public void setCustomizedTraceTopic(String customizedTraceTopic) {
+        this.customizedTraceTopic = customizedTraceTopic;
+    }
+
+    private void setTraceDispatcher() {
+        if (isEnableMsgTrace()) {
+            try {
+                this.traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, null);
+                this.defaultLitePullConsumerImpl.registerConsumeMessageHook(
+                    new ConsumeMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
+    }
+
+    public String getCustomizedTraceTopic() {
+        return customizedTraceTopic;
+    }
+
+    public boolean isEnableMsgTrace() {
+        return enableMsgTrace;
+    }
+
+    public void setEnableMsgTrace(boolean enableMsgTrace) {
+        this.enableMsgTrace = enableMsgTrace;
     }
 }
