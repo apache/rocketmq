@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -373,7 +374,15 @@ public abstract class RebalanceImpl {
 
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
-                long nextOffset = this.computePullFromWhere(mq);
+
+                long nextOffset = -1L;
+                try {
+                    nextOffset = this.computePullFromWhereWithException(mq);
+                } catch (MQClientException e) {
+                    log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                    continue;
+                }
+
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
                     if (pre != null) {
@@ -408,7 +417,16 @@ public abstract class RebalanceImpl {
 
     public abstract void removeDirtyOffset(final MessageQueue mq);
 
+    /**
+     * When the network is unstable, using this interface may return wrong offset.
+     * It is recommended to use computePullFromWhereWithException instead.
+     * @param mq
+     * @return offset
+     */
+    @Deprecated
     public abstract long computePullFromWhere(final MessageQueue mq);
+
+    public abstract long computePullFromWhereWithException(final MessageQueue mq) throws MQClientException;
 
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
 
