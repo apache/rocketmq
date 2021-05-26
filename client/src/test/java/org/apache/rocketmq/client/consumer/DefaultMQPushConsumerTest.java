@@ -146,7 +146,6 @@ public class DefaultMQPushConsumerTest {
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
         rebalanceImpl = spy(pushConsumerImpl.getRebalanceImpl());
-        // doReturn(123L).when(rebalancePushImpl).computePullFromWhere(any(MessageQueue.class));
         doReturn(123L).when(rebalanceImpl).computePullFromWhereWithException(any(MessageQueue.class));
         FieldUtils.writeDeclaredField(pushConsumerImpl, "rebalanceImpl", rebalanceImpl, true);
 
@@ -292,7 +291,7 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                            ConsumeConcurrentlyContext context) {
+                ConsumeConcurrentlyContext context) {
                 return null;
             }
         });
@@ -318,7 +317,7 @@ public class DefaultMQPushConsumerTest {
     }
 
     private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
-                                           List<MessageExt> messageExtList) throws Exception {
+        List<MessageExt> messageExtList) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (MessageExt messageExt : messageExtList) {
             outputStream.write(MessageDecoder.encode(messageExt, false));
