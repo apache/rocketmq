@@ -148,7 +148,8 @@ public class DefaultMQLitePullConsumerWithTraceTest {
 
 
     private DefaultLitePullConsumer createLitePullConsumerWithDefaultTraceTopic() throws Exception {
-        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis(), true);
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setEnableMsgTrace(true);
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
         litePullConsumer.subscribe(topic, "*");
         suppressUpdateTopicRouteInfoFromNameServer(litePullConsumer);
@@ -158,7 +159,9 @@ public class DefaultMQLitePullConsumerWithTraceTest {
     }
 
     private DefaultLitePullConsumer createLitePullConsumerWithCustomizedTraceTopic() throws Exception {
-        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis(), true, customerTraceTopic);
+        DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
+        litePullConsumer.setEnableMsgTrace(true);
+        litePullConsumer.setCustomizedTraceTopic(customerTraceTopic);
         litePullConsumer.setNamesrvAddr("127.0.0.1:9876");
         litePullConsumer.subscribe(topic, "*");
         suppressUpdateTopicRouteInfoFromNameServer(litePullConsumer);
