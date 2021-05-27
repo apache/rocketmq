@@ -44,6 +44,10 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
         Option opt = new Option("i", "msgId", true, "Message Id");
         opt.setRequired(true);
         options.addOption(opt);
+
+        opt = new Option("t", "traceTopic", true, "The name value of message trace topic");
+        opt.setRequired(false);
+        options.addOption(opt);
         return options;
     }
 
@@ -63,7 +67,11 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             final String msgId = commandLine.getOptionValue('i').trim();
-            this.queryTraceByMsgId(defaultMQAdminExt, msgId);
+            String traceTopic = TopicValidator.RMQ_SYS_TRACE_TOPIC;
+            if (commandLine.hasOption('t')) {
+                traceTopic = commandLine.getOptionValue('t').trim();
+            }
+            this.queryTraceByMsgId(defaultMQAdminExt, traceTopic, msgId);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + "command failed", e);
         } finally {
@@ -71,10 +79,10 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
         }
     }
 
-    private void queryTraceByMsgId(final DefaultMQAdminExt admin, String msgId)
+    private void queryTraceByMsgId(final DefaultMQAdminExt admin, String traceTopic, String msgId)
         throws MQClientException, InterruptedException {
         admin.start();
-        QueryResult queryResult = admin.queryMessage(TopicValidator.RMQ_SYS_TRACE_TOPIC, msgId, 64, 0, System.currentTimeMillis());
+        QueryResult queryResult = admin.queryMessage(traceTopic, msgId, 64, 0, System.currentTimeMillis());
         List<MessageExt> messageList = queryResult.getMessageList();
         List<TraceView> traceViews = new ArrayList<>();
         for (MessageExt message : messageList) {
