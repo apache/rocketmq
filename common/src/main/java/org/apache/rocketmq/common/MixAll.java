@@ -145,26 +145,46 @@ public class MixAll {
         return 0;
     }
 
+    /**
+     * 将String字符串持久化到指定文件中
+     * @param str 字符串
+     * @param fileName 文件名称,包含完整路径
+     * @throws IOException IO异常
+     */
     public static void string2File(final String str, final String fileName) throws IOException {
 
+        // 1. 创建一个临时文件：${filename}.tmp, 将配置写入该临时文件中
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
+        // 定义备份文件的名称：${filename}.bak
         String bakFile = fileName + ".bak";
+
+        // 2. 读取原本的配置文件：${filename}的内容, 若原本已存在配置文件则将旧的配置文件写入到备份文件中
         String prevContent = file2String(fileName);
         if (prevContent != null) {
             string2FileNotSafe(prevContent, bakFile);
         }
 
+        // 3. 删除旧的配置文件
         File file = new File(fileName);
         file.delete();
 
+        // 4. 将临时文件：${filename}.tmp重命名为${filename} （替换原本的配置文件）
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }
 
+    /**
+     * 将String字符串持久化到指定文件中
+     * @param str 字符串
+     * @param fileName 文件名称,包含完整路径
+     * @throws IOException IO异常
+     */
     public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
         File file = new File(fileName);
+
+        // 父目录不存在创建对应的父目录
         File fileParent = file.getParentFile();
         if (fileParent != null) {
             fileParent.mkdirs();
@@ -172,6 +192,7 @@ public class MixAll {
         FileWriter fileWriter = null;
 
         try {
+            // 将字符串通过文件流写入指定文件中
             fileWriter = new FileWriter(file);
             fileWriter.write(str);
         } catch (IOException e) {
@@ -183,18 +204,32 @@ public class MixAll {
         }
     }
 
+    /**
+     * 读取文件内容为String并返回
+     * @param fileName 文件名称,包含完整路径
+     * @return 字符串
+     * @throws IOException IO异常
+     */
     public static String file2String(final String fileName) throws IOException {
         File file = new File(fileName);
         return file2String(file);
     }
 
+    /**
+     * 读取文件内容为String并返回
+     * @param file 文件对象
+     * @return 字符串
+     * @throws IOException IO异常
+     */
     public static String file2String(final File file) throws IOException {
+        // 文件存在则0读取文件内容,不存在则忽略
         if (file.exists()) {
             byte[] data = new byte[(int) file.length()];
             boolean result;
 
             FileInputStream inputStream = null;
             try {
+                // 读取文件内容为String字符串,读取结束后返回
                 inputStream = new FileInputStream(file);
                 int len = inputStream.read(data);
                 result = len == data.length;

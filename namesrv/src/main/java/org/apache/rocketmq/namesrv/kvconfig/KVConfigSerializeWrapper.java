@@ -19,14 +19,28 @@ package org.apache.rocketmq.namesrv.kvconfig;
 import java.util.HashMap;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+/**
+ * KV配置的序列化包装类,主要用于将kvConfig.json配置文件序列化 / 反序列化为KVConfigSerializeWrapper
+ */
 public class KVConfigSerializeWrapper extends RemotingSerializable {
+
+    // 存储加载kvConfig.json配置文件的内容
     private HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable;
 
+    /**
+     * 获取kv配置
+     * @return kv配置表（k：Namespace, v：(k, v)）
+     */
     public HashMap<String, HashMap<String, String>> getConfigTable() {
         return configTable;
     }
 
+    /**
+     * 设置kv配置
+     * @param configTable kv配置表（k：Namespace, v：(k, v)）
+     */
     public void setConfigTable(HashMap<String, HashMap<String, String>> configTable) {
         this.configTable = configTable;
     }
+
 }
