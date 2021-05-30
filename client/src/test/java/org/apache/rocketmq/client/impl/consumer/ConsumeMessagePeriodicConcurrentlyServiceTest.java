@@ -22,12 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
@@ -101,57 +97,6 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         Assert.assertEquals(periodicConcurrentlyService.consumeMessageDirectly(msg, brokerName).getConsumeResult(), CMResult.CR_THROW_EXCEPTION);
     }
 
-    //@Test
-    public void test03MessageListenerOrderly() throws Throwable {
-        DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
-        producer.setNamesrvAddr("localhost:9876");
-        producer.start();
-        System.out.println("producer started !");
-
-        for (int i = 0; i < 50; i++) {
-            Message message = new Message(topic + "orderly",
-                //tag用于过滤消息
-                "orderly",
-                ("AsyncProducer2 say " + i).getBytes());
-
-            SendResult result = producer.send(message, new MessageQueueSelector() {
-                @Override
-                public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                    return mqs.get(0);
-                }
-            }, i);
-            System.out.println(result);
-        }
-        producer.shutdown();
-
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
-        int pullBatchSize = consumer.getPullBatchSize();
-        int poolSize = 4 * pullBatchSize;
-        consumer.setConsumeThreadMin(poolSize);
-        consumer.setConsumeThreadMax(poolSize);
-        consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
-        consumer.subscribe(topic + "orderly", "orderly");
-        consumer.registerMessageListener(new MessageListenerOrderly() {
-            @Override
-            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeOrderlyContext context) {
-                try {
-                    Thread.sleep(new Random().nextInt(20));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                MessageExt messageExt = msgs.get(0);
-                System.out.println(messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
-                return ConsumeOrderlyStatus.SUCCESS;
-            }
-        });
-        consumer.start();
-        //本地跑请改大一些
-        Thread.sleep(30000);
-        consumer.shutdown();
-    }
-
     @Test
     public void test03EvolveIntoMessageListenerOrderly() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
@@ -159,9 +104,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         producer.start();
         System.out.println("producer started !");
 
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 100; i++) {
             Message message = new Message(topic + "2",
-                //tag用于过滤消息
                 "ssss2",
                 ("AsyncProducer2 say " + i).getBytes());
 
@@ -208,58 +152,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         });
         consumer.start();
-        //本地跑请改大一些
+        //please change to a larger millis when running local
         Thread.sleep(3000);
-        consumer.shutdown();
-    }
-
-    //@Test
-    public void test04MessageListenerConcurrently() throws Throwable {
-        DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
-        producer.setNamesrvAddr("localhost:9876");
-        producer.start();
-        System.out.println("producer started !");
-
-        for (int i = 0; i < 50; i++) {
-            Message message = new Message(topic + "concurrently",
-                //tag用于过滤消息
-                "concurrently",
-                ("AsyncProducer2 say " + i).getBytes());
-
-            SendResult result = producer.send(message, new MessageQueueSelector() {
-                @Override
-                public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                    return mqs.get(0);
-                }
-            }, i);
-            System.out.println(result);
-        }
-        producer.shutdown();
-
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
-        int pullBatchSize = consumer.getPullBatchSize();
-        int poolSize = 4 * pullBatchSize;
-        consumer.setConsumeThreadMin(poolSize);
-        consumer.setConsumeThreadMax(poolSize);
-        consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
-        consumer.subscribe(topic + "concurrently", "concurrently");
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-                try {
-                    Thread.sleep(new Random().nextInt(20));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                MessageExt messageExt = msgs.get(0);
-                System.out.println(messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-            }
-        });
-        consumer.start();
-        //本地跑请改大一些
-        Thread.sleep(30000);
         consumer.shutdown();
     }
 
@@ -270,9 +164,8 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         producer.start();
         System.out.println("producer started !");
 
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 100; i++) {
             Message message = new Message(topic + "1",
-                //tag用于过滤消息
                 "ssss1",
                 ("AsyncProducer1 say " + i).getBytes());
 
@@ -310,7 +203,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         });
         consumer.start();
-        //本地跑请改大一些
+        //please change to a larger millis when running local
         Thread.sleep(3000);
         consumer.shutdown();
     }
@@ -324,7 +217,6 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
 
         for (int i = 0; i < 100; i++) {
             Message message = new Message(topic + "3",
-                //tag用于过滤消息
                 "ssss3",
                 ("AsyncProducer1 say " + i).getBytes());
 
@@ -365,8 +257,10 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
 
             /**
-             * 消费一定消息后，从顺序消费完全进化为并发消费
-             * */
+             * After consuming 1+2+3+4+5+6+7+8+9+10=55 messages,
+             * it has completely evolved from orderly consumer
+             * to concurrently consumer.
+             */
             @Override
             public List<Integer> getStageDefinitions() {
                 List<Integer> list = new ArrayList<>();
@@ -377,7 +271,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         });
         consumer.start();
-        //本地跑请改大一些
+        //please change to a larger millis when running local
         Thread.sleep(3000);
         consumer.shutdown();
     }
