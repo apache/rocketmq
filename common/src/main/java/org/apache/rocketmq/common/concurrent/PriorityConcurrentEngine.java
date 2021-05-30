@@ -65,11 +65,11 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
         runPriorityAsync(priority, UtilAll.newArrayList(tasks));
     }
 
-    public final void runPriorityAsync(Integer priority, Queue<Runnable> tasks) {
+    public final void runPriorityAsync(Integer priority, Queue<? extends Runnable> tasks) {
         runPriorityAsync(priority, pollAllTask(tasks));
     }
 
-    public final void runPriorityAsync(Integer priority, Collection<Runnable> tasks) {
+    public final void runPriorityAsync(Integer priority, Collection<? extends Runnable> tasks) {
         if (CollectionUtils.isEmpty(tasks)) {
             return;
         }
@@ -87,11 +87,11 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
         supplyPriorityAsync(MIN_PRIORITY, tasks);
     }
 
-    public final <T> void supplyPriorityAsync(Queue<CallableSupplier<T>> tasks) {
+    public final <T> void supplyPriorityAsync(Queue<? extends CallableSupplier<T>> tasks) {
         supplyPriorityAsync(MIN_PRIORITY, tasks);
     }
 
-    public final <T> void supplyPriorityAsync(Collection<CallableSupplier<T>> tasks) {
+    public final <T> void supplyPriorityAsync(Collection<? extends CallableSupplier<T>> tasks) {
         supplyPriorityAsync(MIN_PRIORITY, tasks);
     }
 
@@ -100,11 +100,11 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
         supplyPriorityAsync(priority, UtilAll.newArrayList(tasks));
     }
 
-    public final <T> void supplyPriorityAsync(Integer priority, Queue<CallableSupplier<T>> tasks) {
+    public final <T> void supplyPriorityAsync(Integer priority, Queue<? extends CallableSupplier<T>> tasks) {
         supplyPriorityAsync(priority, pollAllTask(tasks));
     }
 
-    public final <T> void supplyPriorityAsync(Integer priority, Collection<CallableSupplier<T>> tasks) {
+    public final <T> void supplyPriorityAsync(Integer priority, Collection<? extends CallableSupplier<T>> tasks) {
         if (CollectionUtils.isEmpty(tasks)) {
             return;
         }

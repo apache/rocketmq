@@ -35,7 +35,7 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
-public abstract class ConcurrentEngine {
+public class ConcurrentEngine {
 
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
@@ -71,11 +71,11 @@ public abstract class ConcurrentEngine {
         }
     }
 
-    public final void runAsync(Queue<Runnable> tasks) {
+    public final void runAsync(Queue<? extends Runnable> tasks) {
         runAsync(pollAllTask(tasks));
     }
 
-    public final void runAsync(Collection<Runnable> tasks) {
+    public final void runAsync(Collection<? extends Runnable> tasks) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return;
         }
@@ -91,11 +91,11 @@ public abstract class ConcurrentEngine {
         return supplyAsync(UtilAll.newArrayList(tasks));
     }
 
-    public final <T> List<T> supplyAsync(Queue<Supplier<T>> tasks) {
+    public final <T> List<T> supplyAsync(Queue<? extends Supplier<T>> tasks) {
         return supplyAsync(pollAllTask(tasks));
     }
 
-    public final <T> List<T> supplyAsync(Collection<Supplier<T>> tasks) {
+    public final <T> List<T> supplyAsync(Collection<? extends Supplier<T>> tasks) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return new ArrayList<>();
         }
@@ -111,11 +111,11 @@ public abstract class ConcurrentEngine {
         return supplyCallableAsync(UtilAll.newArrayList(tasks));
     }
 
-    public final <T> List<T> supplyCallableAsync(Queue<CallableSupplier<T>> tasks) {
+    public final <T> List<T> supplyCallableAsync(Queue<? extends CallableSupplier<T>> tasks) {
         return supplyCallableAsync(pollAllTask(tasks));
     }
 
-    public final <T> List<T> supplyCallableAsync(Collection<CallableSupplier<T>> tasks) {
+    public final <T> List<T> supplyCallableAsync(Collection<? extends CallableSupplier<T>> tasks) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return new ArrayList<>();
         }
@@ -135,11 +135,11 @@ public abstract class ConcurrentEngine {
         return supplyKeyedCallableAsync(UtilAll.newArrayList(tasks));
     }
 
-    public final <K, V> Map<K, V> supplyKeyedCallableAsync(Queue<KeyedCallableSupplier<K, V>> tasks) {
+    public final <K, V> Map<K, V> supplyKeyedCallableAsync(Queue<? extends KeyedCallableSupplier<K, V>> tasks) {
         return supplyKeyedCallableAsync(pollAllTask(tasks));
     }
 
-    public final <K, V> Map<K, V> supplyKeyedCallableAsync(Collection<KeyedCallableSupplier<K, V>> tasks) {
+    public final <K, V> Map<K, V> supplyKeyedCallableAsync(Collection<? extends KeyedCallableSupplier<K, V>> tasks) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return new HashMap<>();
         }
@@ -200,11 +200,11 @@ public abstract class ConcurrentEngine {
         runAsync(timeout, unit, UtilAll.newArrayList(tasks));
     }
 
-    public final void runAsync(long timeout, TimeUnit unit, Queue<Runnable> tasks) {
+    public final void runAsync(long timeout, TimeUnit unit, Queue<? extends Runnable> tasks) {
         runAsync(timeout, unit, pollAllTask(tasks));
     }
 
-    public final void runAsync(long timeout, TimeUnit unit, Collection<Runnable> tasks) {
+    public final void runAsync(long timeout, TimeUnit unit, Collection<? extends Runnable> tasks) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return;
         }
@@ -220,11 +220,11 @@ public abstract class ConcurrentEngine {
         return supplyAsync(timeout, unit, UtilAll.newArrayList(tasks));
     }
 
-    public final <T> List<T> supplyAsync(long timeout, TimeUnit unit, Queue<Supplier<T>> tasks) {
+    public final <T> List<T> supplyAsync(long timeout, TimeUnit unit, Queue<? extends Supplier<T>> tasks) {
         return supplyAsync(timeout, unit, pollAllTask(tasks));
     }
 
-    public final <T> List<T> supplyAsync(long timeout, TimeUnit unit, Collection<Supplier<T>> tasks) {
+    public final <T> List<T> supplyAsync(long timeout, TimeUnit unit, Collection<? extends Supplier<T>> tasks) {
         if (null == tasks || tasks.size() == 0 || enginePool.isShutdown()) {
             return new ArrayList<>();
         }
@@ -240,11 +240,13 @@ public abstract class ConcurrentEngine {
         return supplyCallableAsync(timeout, unit, UtilAll.newArrayList(tasks));
     }
 
-    public final <T> List<T> supplyCallableAsync(long timeout, TimeUnit unit, Queue<CallableSupplier<T>> tasks) {
+    public final <T> List<T> supplyCallableAsync(long timeout, TimeUnit unit,
+        Queue<? extends CallableSupplier<T>> tasks) {
         return supplyCallableAsync(timeout, unit, pollAllTask(tasks));
     }
 
-    public final <T> List<T> supplyCallableAsync(long timeout, TimeUnit unit, Collection<CallableSupplier<T>> tasks) {
+    public final <T> List<T> supplyCallableAsync(long timeout, TimeUnit unit,
+        Collection<? extends CallableSupplier<T>> tasks) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return new ArrayList<>();
         }
@@ -266,12 +268,12 @@ public abstract class ConcurrentEngine {
     }
 
     public final <K, V> Map<K, V> supplyKeyedCallableAsync(long timeout, TimeUnit unit,
-        Queue<KeyedCallableSupplier<K, V>> tasks) {
+        Queue<? extends KeyedCallableSupplier<K, V>> tasks) {
         return supplyKeyedCallableAsync(timeout, unit, pollAllTask(tasks));
     }
 
     public final <K, V> Map<K, V> supplyKeyedCallableAsync(long timeout, TimeUnit unit,
-        Collection<KeyedCallableSupplier<K, V>> tasks) {
+        Collection<? extends KeyedCallableSupplier<K, V>> tasks) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return new HashMap<>();
         }
@@ -334,11 +336,11 @@ public abstract class ConcurrentEngine {
         return supplyKeyedAsync(UtilAll.newArrayList(tasks));
     }
 
-    public final <K, V> Map<K, V> supplyKeyedAsync(Queue<KeyedSupplier<K, V>> tasks) {
+    public final <K, V> Map<K, V> supplyKeyedAsync(Queue<? extends KeyedSupplier<K, V>> tasks) {
         return supplyKeyedAsync(pollAllTask(tasks));
     }
 
-    public final <K, V> Map<K, V> supplyKeyedAsync(Collection<KeyedSupplier<K, V>> tasks) {
+    public final <K, V> Map<K, V> supplyKeyedAsync(Collection<? extends KeyedSupplier<K, V>> tasks) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return new HashMap<>(0);
         }
@@ -387,11 +389,12 @@ public abstract class ConcurrentEngine {
         return supplyKeyedAsync(UtilAll.newArrayList(tasks), timeout, unit);
     }
 
-    public final <K, V> Map<K, V> supplyKeyedAsync(long timeout, TimeUnit unit, Queue<KeyedSupplier<K, V>> tasks) {
+    public final <K, V> Map<K, V> supplyKeyedAsync(long timeout, TimeUnit unit,
+        Queue<? extends KeyedSupplier<K, V>> tasks) {
         return supplyKeyedAsync(pollAllTask(tasks), timeout, unit);
     }
 
-    public final <K, V> Map<K, V> supplyKeyedAsync(Collection<KeyedSupplier<K, V>> tasks, long timeout,
+    public final <K, V> Map<K, V> supplyKeyedAsync(Collection<? extends KeyedSupplier<K, V>> tasks, long timeout,
         TimeUnit unit) {
         if (CollectionUtils.isEmpty(tasks) || enginePool.isShutdown()) {
             return new HashMap<>(0);
