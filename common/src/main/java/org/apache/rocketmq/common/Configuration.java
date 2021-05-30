@@ -261,7 +261,7 @@ public class Configuration {
         // reload from config object ?
         for (Object configObject : this.configObjectList) {
             Properties properties = MixAll.object2Properties(configObject);
-            if (properties != null) {
+            if (!properties.isEmpty()) {
                 merge(properties, this.allConfigs);
             } else {
                 log.warn("getAllConfigsInternal object2Properties is null, {}", configObject.getClass());
