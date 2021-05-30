@@ -17,6 +17,8 @@
 package org.apache.rocketmq.common.concurrent;
 
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -120,18 +122,18 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
     public void invokeAllNow() {
         synchronized (priorityTasks) {
             for (Queue<Object> queue : priorityTasks.values()) {
-                Queue<Runnable> runnables = new ConcurrentLinkedQueue<>();
-                Queue<CallableSupplier<Object>> callableSuppliers = new ConcurrentLinkedQueue<>();
+                List<Runnable> runnableList = new LinkedList<>();
+                List<CallableSupplier<Object>> callableSupplierList = new LinkedList<>();
                 while (!queue.isEmpty()) {
                     Object element = queue.poll();
                     if (element instanceof Runnable) {
-                        runnables.offer((Runnable) element);
+                        runnableList.add((Runnable) element);
                     } else if (element instanceof CallableSupplier) {
-                        callableSuppliers.offer((CallableSupplier<Object>) element);
+                        callableSupplierList.add((CallableSupplier<Object>) element);
                     }
                 }
-                runAsync(runnables);
-                supplyCallableAsync(callableSuppliers);
+                runAsync(runnableList);
+                supplyCallableAsync(callableSupplierList);
             }
         }
     }

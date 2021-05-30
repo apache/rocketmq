@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.concurrent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -54,7 +55,8 @@ public class ConcurrentEngine {
     }
 
     protected static <E> List<E> pollAllTask(Queue<E> tasks) {
-        List<E> list = new ArrayList<>();
+        //avoid list expansion
+        List<E> list = new LinkedList<>();
         while (tasks != null && !tasks.isEmpty()) {
             E task = tasks.poll();
             list.add(task);
