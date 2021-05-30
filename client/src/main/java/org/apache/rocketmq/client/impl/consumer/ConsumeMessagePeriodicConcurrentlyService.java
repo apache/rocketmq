@@ -557,7 +557,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                         final int consumeBatchSize =
                             ConsumeMessagePeriodicConcurrentlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
                         int currentLeftoverStage = ConsumeMessagePeriodicConcurrentlyService.this.getCurrentLeftoverStage(topic);
-                        int takeSize = Math.max(ConsumeMessagePeriodicConcurrentlyService.this.pullBatchSize, consumeBatchSize);
+                        int takeSize = ConsumeMessagePeriodicConcurrentlyService.this.pullBatchSize * consumeBatchSize;
                         if (0 < currentLeftoverStage && currentLeftoverStage < takeSize) {
                             takeSize = currentLeftoverStage;
                         }
