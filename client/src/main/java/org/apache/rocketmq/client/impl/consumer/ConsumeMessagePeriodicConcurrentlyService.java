@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
@@ -40,6 +41,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.consumer.store.StageOffsetStore;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.stat.ConsumerStatsManager;
@@ -78,6 +80,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     private final List<Integer> summedStageDefinitions;
     private final ConcurrentMap<String/*topic*/, AtomicInteger/*currentStageOffset*/> currentStageOffsetMap = new ConcurrentHashMap<>();
     private final int pullBatchSize;
+    private final StageOffsetStore stageOffsetStore;
 
     public ConsumeMessagePeriodicConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerPeriodicConcurrently messageListener) {
@@ -91,6 +94,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                 this.summedStageDefinitions.add(sum = sum + stageDefinition);
             }
         }
+        this.stageOffsetStore = this.defaultMQPushConsumerImpl.getStageOffsetStore();
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
@@ -152,7 +156,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     public AtomicInteger getCurrentStageOffset(MessageQueue messageQueue, String topic) {
         AtomicInteger index = currentStageOffsetMap.get(topic);
         if (null == index) {
-            int stageOffset = this.defaultMQPushConsumerImpl.getStageOffsetStore().readStageOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
+            int stageOffset = stageOffsetStore == null ? 0 : stageOffsetStore.readStageOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
             if (stageOffset < 0) {
                 stageOffset = 0;
             }
@@ -264,10 +268,12 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
 
         Set<MessageQueue> topicSubscribeInfo = this.defaultMQPushConsumerImpl.getRebalanceImpl().getTopicSubscribeInfo(topic);
         MessageQueue messageQueue = null;
-        for (MessageQueue queue : topicSubscribeInfo) {
-            if (queue.getQueueId() == msg.getQueueId()) {
-                messageQueue = queue;
-                break;
+        if (CollectionUtils.isNotEmpty(topicSubscribeInfo)) {
+            for (MessageQueue queue : topicSubscribeInfo) {
+                if (queue.getQueueId() == msg.getQueueId()) {
+                    messageQueue = queue;
+                    break;
+                }
             }
         }
 
@@ -458,8 +464,8 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         if (commitOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(messageQueue, commitOffset, false);
         }
-        if (commitStageOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
-            this.defaultMQPushConsumerImpl.getStageOffsetStore().updateStageOffset(messageQueue, commitStageOffset, false);
+        if (stageOffsetStore != null && commitStageOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+            stageOffsetStore.updateStageOffset(messageQueue, commitStageOffset, false);
         }
 
         return continueConsume;
