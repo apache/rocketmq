@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.stat.ConsumerStatsManager;
@@ -119,6 +121,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
     }
 
+    @Override
     public void start() {
         engine.start();
         if (MessageModel.CLUSTERING.equals(ConsumeMessagePeriodicConcurrentlyService.this.defaultMQPushConsumerImpl.messageModel())) {
@@ -131,6 +134,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         }
     }
 
+    @Override
     public void shutdown(long awaitTerminateMillis) {
         this.stopped = true;
         this.scheduledExecutorService.shutdown();
@@ -145,19 +149,22 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         this.defaultMQPushConsumerImpl.getRebalanceImpl().unlockAll(false);
     }
 
-    public AtomicInteger getCurrentStageOffset(String topic) {
-        /**todo The initial value should be obtained from {@code OffsetStore}
-         * todo instead of directly {@code new AtomicInteger(0)} below*/
-        AtomicInteger index = currentStageOffsetMap.putIfAbsent(topic, new AtomicInteger(0));
+    public AtomicInteger getCurrentStageOffset(MessageQueue messageQueue, String topic) {
+        AtomicInteger index = currentStageOffsetMap.get(topic);
         if (null == index) {
+            int stageOffset = this.defaultMQPushConsumerImpl.getStageOffsetStore().readStageOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
+            if (stageOffset < 0) {
+                stageOffset = 0;
+            }
+            currentStageOffsetMap.putIfAbsent(topic, new AtomicInteger(stageOffset));
             index = currentStageOffsetMap.get(topic);
         }
         return index;
     }
 
-    public int getCurrentLeftoverStage(String topic) {
+    public int getCurrentLeftoverStage(MessageQueue messageQueue, String topic) {
         for (Integer stageDefinition : summedStageDefinitions) {
-            int left = stageDefinition - getCurrentStageOffset(topic).get();
+            int left = stageDefinition - getCurrentStageOffset(messageQueue, topic).get();
             if (left > 0) {
                 return left;
             }
@@ -165,9 +172,9 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         return -1;
     }
 
-    public int getCurrentLeftoverStageIndex(String topic) {
+    public int getCurrentLeftoverStageIndex(MessageQueue messageQueue, String topic) {
         for (int i = 0; i < summedStageDefinitions.size(); i++) {
-            int left = summedStageDefinitions.get(i) - getCurrentStageOffset(topic).get();
+            int left = summedStageDefinitions.get(i) - getCurrentStageOffset(messageQueue, topic).get();
             if (left > 0) {
                 return i;
             }
@@ -175,38 +182,38 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         return -1;
     }
 
-    public int getCurrentLeftoverStageIndexAndUpdate(String topic) {
-        return getCurrentLeftoverStageIndexAndUpdate(topic, 1);
+    public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic) {
+        return getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, 1);
     }
 
-    public int getCurrentLeftoverStageIndexAndUpdate(String topic, int delta) {
+    public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic, int delta) {
         try {
-            return getCurrentLeftoverStageIndex(topic);
+            return getCurrentLeftoverStageIndex(messageQueue, topic);
         } finally {
-            final AtomicInteger index = getCurrentStageOffset(topic);
+            final AtomicInteger index = getCurrentStageOffset(messageQueue, topic);
             synchronized (index) {
                 index.getAndAdd(delta);
             }
         }
     }
 
-    public int increaseCurrentStage(String topic) {
-        return increaseCurrentStage(topic, 1);
+    public int increaseCurrentStage(MessageQueue messageQueue, String topic) {
+        return increaseCurrentStage(messageQueue, topic, 1);
     }
 
-    public int increaseCurrentStage(String topic, int delta) {
-        final AtomicInteger index = getCurrentStageOffset(topic);
+    public int increaseCurrentStage(MessageQueue messageQueue, String topic, int delta) {
+        final AtomicInteger index = getCurrentStageOffset(messageQueue, topic);
         synchronized (index) {
             return index.getAndAdd(delta);
         }
     }
 
-    public int decrementCurrentStage(String topic) {
-        return decrementCurrentStage(topic, 1);
+    public int decrementCurrentStage(MessageQueue messageQueue, String topic) {
+        return decrementCurrentStage(messageQueue, topic, 1);
     }
 
-    public int decrementCurrentStage(String topic, int delta) {
-        final AtomicInteger index = getCurrentStageOffset(topic);
+    public int decrementCurrentStage(MessageQueue messageQueue, String topic, int delta) {
+        final AtomicInteger index = getCurrentStageOffset(messageQueue, topic);
         synchronized (index) {
             return index.getAndSet(index.get() - delta);
         }
@@ -255,8 +262,17 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
 
         log.info("consumeMessageDirectly receive new message: {}", msg);
 
+        Set<MessageQueue> topicSubscribeInfo = this.defaultMQPushConsumerImpl.getRebalanceImpl().getTopicSubscribeInfo(topic);
+        MessageQueue messageQueue = null;
+        for (MessageQueue queue : topicSubscribeInfo) {
+            if (queue.getQueueId() == msg.getQueueId()) {
+                messageQueue = queue;
+                break;
+            }
+        }
+
         try {
-            ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context, this.getCurrentLeftoverStageIndexAndUpdate(topic, msgs.size()));
+            ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context, this.getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, msgs.size()));
             if (status != null) {
                 switch (status) {
                     case COMMIT:
@@ -269,7 +285,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                         result.setConsumeResult(CMResult.CR_SUCCESS);
                         break;
                     case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                        decrementCurrentStage(topic, msgs.size());
+                        decrementCurrentStage(messageQueue, topic, msgs.size());
                         result.setConsumeResult(CMResult.CR_LATER);
                         break;
                     default:
@@ -371,31 +387,35 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         final ConsumeOrderlyContext context,
         final ConsumeRequest consumeRequest
     ) {
-        String topic = consumeRequest.getMessageQueue().getTopic();
+        MessageQueue messageQueue = consumeRequest.getMessageQueue();
+        String topic = messageQueue.getTopic();
         boolean continueConsume = true;
         long commitOffset = -1L;
+        int commitStageOffset = -1;
         if (context.isAutoCommit()) {
             switch (status) {
                 case COMMIT:
                 case ROLLBACK:
                     log.warn("the message queue consume result is illegal, we think you want to ack these message {}",
-                        consumeRequest.getMessageQueue());
+                        messageQueue);
                 case SUCCESS:
                     commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
+                    commitStageOffset = getCurrentStageOffset(messageQueue, topic).get();
                     this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, topic, msgs.size());
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                    decrementCurrentStage(topic, msgs.size());
+                    decrementCurrentStage(messageQueue, topic, msgs.size());
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
                         this.submitConsumeRequestLater(
                             consumeRequest.getProcessQueue(),
-                            consumeRequest.getMessageQueue(),
+                            messageQueue,
                             context.getSuspendCurrentQueueTimeMillis());
                         continueConsume = false;
                     } else {
                         commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
+                        commitStageOffset = getCurrentStageOffset(messageQueue, topic).get();
                     }
                     break;
                 default:
@@ -408,23 +428,24 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                     break;
                 case COMMIT:
                     commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
+                    commitStageOffset = getCurrentStageOffset(messageQueue, topic).get();
                     break;
                 case ROLLBACK:
                     consumeRequest.getProcessQueue().rollback();
                     this.submitConsumeRequestLater(
                         consumeRequest.getProcessQueue(),
-                        consumeRequest.getMessageQueue(),
+                        messageQueue,
                         context.getSuspendCurrentQueueTimeMillis());
                     continueConsume = false;
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                    decrementCurrentStage(topic, msgs.size());
+                    decrementCurrentStage(messageQueue, topic, msgs.size());
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
                         this.submitConsumeRequestLater(
                             consumeRequest.getProcessQueue(),
-                            consumeRequest.getMessageQueue(),
+                            messageQueue,
                             context.getSuspendCurrentQueueTimeMillis());
                         continueConsume = false;
                     }
@@ -435,8 +456,10 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         }
 
         if (commitOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
-            //todo store currentStage in {@code OffsetStore}
-            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), commitOffset, false);
+            this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(messageQueue, commitOffset, false);
+        }
+        if (commitStageOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+            this.defaultMQPushConsumerImpl.getStageOffsetStore().updateStageOffset(messageQueue, commitStageOffset, false);
         }
 
         return continueConsume;
@@ -556,7 +579,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
 
                         final int consumeBatchSize =
                             ConsumeMessagePeriodicConcurrentlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
-                        int currentLeftoverStage = ConsumeMessagePeriodicConcurrentlyService.this.getCurrentLeftoverStage(topic);
+                        int currentLeftoverStage = ConsumeMessagePeriodicConcurrentlyService.this.getCurrentLeftoverStage(this.messageQueue, topic);
                         int takeSize = ConsumeMessagePeriodicConcurrentlyService.this.pullBatchSize * consumeBatchSize;
                         if (0 < currentLeftoverStage && currentLeftoverStage < takeSize) {
                             takeSize = currentLeftoverStage;
@@ -568,7 +591,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                             List<List<MessageExt>> lists = UtilAll.partition(msgs, consumeBatchSize);
                             for (final List<MessageExt> list : lists) {
                                 int currentLeftoverStageIndex =
-                                    ConsumeMessagePeriodicConcurrentlyService.this.getCurrentLeftoverStageIndexAndUpdate(topic, list.size());
+                                    ConsumeMessagePeriodicConcurrentlyService.this.getCurrentLeftoverStageIndexAndUpdate(this.messageQueue, topic, list.size());
                                 ConsumeRequest consumeRequest = new ConsumeRequest(list, this.processQueue, this.messageQueue,
                                     continueConsume, currentLeftoverStageIndex);
                                 if (currentLeftoverStageIndex >= 0) {
@@ -668,7 +691,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                 this.processQueue.getConsumeLock().unlock();
             }
             messageListener.resetCurrentStageIfNeed(topic,
-                ConsumeMessagePeriodicConcurrentlyService.this.getCurrentStageOffset(topic));
+                ConsumeMessagePeriodicConcurrentlyService.this.getCurrentStageOffset(messageQueue, topic));
 
             if (null == status
                 || ConsumeOrderlyStatus.ROLLBACK == status

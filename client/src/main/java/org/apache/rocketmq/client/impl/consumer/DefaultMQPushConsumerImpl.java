@@ -40,9 +40,12 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
+import org.apache.rocketmq.client.consumer.store.LocalFileStageOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
+import org.apache.rocketmq.client.consumer.store.RemoteBrokerStageOffsetStore;
+import org.apache.rocketmq.client.consumer.store.StageOffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
@@ -109,6 +112,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private boolean consumeOrderly = false;
     private MessageListener messageListenerInner;
     private OffsetStore offsetStore;
+    private StageOffsetStore stageOffsetStore;
     private ConsumeMessageService consumeMessageService;
     private long queueFlowControlTimes = 0;
     private long queueMaxSpanFlowControlTimes = 0;
@@ -209,6 +213,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
+    }
+
+    public StageOffsetStore getStageOffsetStore() {
+        return stageOffsetStore;
+    }
+
+    public void setStageOffsetStore(StageOffsetStore stageOffsetStore) {
+        this.stageOffsetStore = stageOffsetStore;
     }
 
     public void pullMessage(final PullRequest pullRequest) {
@@ -628,6 +640,17 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.consumeOrderly = true;
                     this.consumeMessageService =
                         new ConsumeMessagePeriodicConcurrentlyService(this, (MessageListenerPeriodicConcurrently) this.getMessageListenerInner());
+                    switch (this.defaultMQPushConsumer.getMessageModel()) {
+                        case BROADCASTING:
+                            this.stageOffsetStore = new LocalFileStageOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
+                            break;
+                        case CLUSTERING:
+                            this.stageOffsetStore = new RemoteBrokerStageOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
+                            break;
+                        default:
+                            break;
+                    }
+                    this.stageOffsetStore.load();
                 }
 
                 this.consumeMessageService.start();
