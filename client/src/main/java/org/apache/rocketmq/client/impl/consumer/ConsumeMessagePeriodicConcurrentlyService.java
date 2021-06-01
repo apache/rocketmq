@@ -73,20 +73,20 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
     private final ScheduledExecutorService scheduledExecutorService;
     private volatile boolean stopped = false;
-    private final List<Integer> stageDefinitions;
-    private final ConcurrentMap<String/*topic*/, AtomicInteger/*currentStage*/> currentStageMap = new ConcurrentHashMap<>();
+    private final List<Integer> summedStageDefinitions;
+    private final ConcurrentMap<String/*topic*/, AtomicInteger/*currentStageOffset*/> currentStageOffsetMap = new ConcurrentHashMap<>();
     private final int pullBatchSize;
 
     public ConsumeMessagePeriodicConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerPeriodicConcurrently messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
-        this.stageDefinitions = new ArrayList<>();
+        this.summedStageDefinitions = new ArrayList<>();
         Collection<Integer> definitions = messageListener.getStageDefinitions();
         if (definitions != null) {
             int sum = 0;
             for (Integer stageDefinition : definitions) {
-                this.stageDefinitions.add(sum = sum + stageDefinition);
+                this.summedStageDefinitions.add(sum = sum + stageDefinition);
             }
         }
 
@@ -145,19 +145,19 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         this.defaultMQPushConsumerImpl.getRebalanceImpl().unlockAll(false);
     }
 
-    public AtomicInteger getCurrentStageIndex(String topic) {
+    public AtomicInteger getCurrentStageOffset(String topic) {
         /**todo The initial value should be obtained from {@code OffsetStore}
          * todo instead of directly {@code new AtomicInteger(0)} below*/
-        AtomicInteger index = currentStageMap.putIfAbsent(topic, new AtomicInteger(0));
+        AtomicInteger index = currentStageOffsetMap.putIfAbsent(topic, new AtomicInteger(0));
         if (null == index) {
-            index = currentStageMap.get(topic);
+            index = currentStageOffsetMap.get(topic);
         }
         return index;
     }
 
     public int getCurrentLeftoverStage(String topic) {
-        for (Integer stageDefinition : stageDefinitions) {
-            int left = stageDefinition - getCurrentStageIndex(topic).get();
+        for (Integer stageDefinition : summedStageDefinitions) {
+            int left = stageDefinition - getCurrentStageOffset(topic).get();
             if (left > 0) {
                 return left;
             }
@@ -166,8 +166,8 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     }
 
     public int getCurrentLeftoverStageIndex(String topic) {
-        for (int i = 0; i < stageDefinitions.size(); i++) {
-            int left = stageDefinitions.get(i) - getCurrentStageIndex(topic).get();
+        for (int i = 0; i < summedStageDefinitions.size(); i++) {
+            int left = summedStageDefinitions.get(i) - getCurrentStageOffset(topic).get();
             if (left > 0) {
                 return i;
             }
@@ -183,7 +183,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         try {
             return getCurrentLeftoverStageIndex(topic);
         } finally {
-            final AtomicInteger index = getCurrentStageIndex(topic);
+            final AtomicInteger index = getCurrentStageOffset(topic);
             synchronized (index) {
                 index.getAndAdd(delta);
             }
@@ -195,7 +195,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     }
 
     public int increaseCurrentStage(String topic, int delta) {
-        final AtomicInteger index = getCurrentStageIndex(topic);
+        final AtomicInteger index = getCurrentStageOffset(topic);
         synchronized (index) {
             return index.getAndAdd(delta);
         }
@@ -206,7 +206,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     }
 
     public int decrementCurrentStage(String topic, int delta) {
-        final AtomicInteger index = getCurrentStageIndex(topic);
+        final AtomicInteger index = getCurrentStageOffset(topic);
         synchronized (index) {
             return index.getAndSet(index.get() - delta);
         }
@@ -576,7 +576,6 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                                 } else {
                                     engine.runPriorityAsync(consumeRequest);
                                 }
-                                messageListener.resetCurrentStageIfNeed(topic, getCurrentStageIndex(topic));
                             }
                         } else {
                             continueConsume.set(false);
@@ -624,6 +623,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
 
         @Override
         public void run() {
+            String topic = this.messageQueue.getTopic();
             ConsumeOrderlyContext context = new ConsumeOrderlyContext(this.messageQueue);
             ConsumeOrderlyStatus status = null;
 
@@ -667,6 +667,8 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
             } finally {
                 this.processQueue.getConsumeLock().unlock();
             }
+            messageListener.resetCurrentStageIfNeed(topic,
+                ConsumeMessagePeriodicConcurrentlyService.this.getCurrentStageOffset(topic));
 
             if (null == status
                 || ConsumeOrderlyStatus.ROLLBACK == status
