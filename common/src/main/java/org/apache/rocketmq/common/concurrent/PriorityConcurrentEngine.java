@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -122,9 +123,10 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
 
     public void invokeAllNow() {
         synchronized (priorityTasks) {
-            Iterator<Queue<Object>> iterator = priorityTasks.values().iterator();
+            Iterator<Map.Entry<Integer, Queue<Object>>> iterator = priorityTasks.entrySet().iterator();
             while (iterator.hasNext()) {
-                Queue<Object> queue = iterator.next();
+                Map.Entry<Integer, Queue<Object>> entry = iterator.next();
+                Queue<Object> queue = entry.getValue();
                 List<Runnable> runnableList = new LinkedList<>();
                 List<CallableSupplier<Object>> callableSupplierList = new LinkedList<>();
                 while (!queue.isEmpty()) {
@@ -138,7 +140,9 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
                 runAsync(runnableList);
                 supplyCallableAsync(callableSupplierList);
                 //avoid unnecessary running
-                iterator.remove();
+                if (queue.isEmpty()) {
+                    iterator.remove();
+                }
             }
         }
     }

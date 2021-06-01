@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.common.concurrent;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import org.junit.Test;
 
 import java.util.List;
@@ -26,10 +29,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PriorityConcurrentTest {
 
     @Test
-    public void testPriorityConcurrent() {
-        PriorityConcurrentEngine engine=new PriorityConcurrentEngine();
+    public void testPriorityConcurrent() throws InterruptedException {
+        PriorityConcurrentEngine engine = new PriorityConcurrentEngine();
         engine.runPriorityAsync(PriorityConcurrentEngine.MAX_PRIORITY,
             () -> System.out.println("hello"));
+        engine.start();
         AtomicInteger count = new AtomicInteger(0);
         List<Integer> list = new CopyOnWriteArrayList<>();
         for (int i = 0; i < 50; i++) {
@@ -63,7 +67,15 @@ public class PriorityConcurrentTest {
             System.out.println(count.get());
             System.out.println(list);
         });
-        engine.invokeAllNow();
+        Thread.sleep(3000);
         engine.shutdown();
+
+        Map<String,Object> map=new HashMap<>();
+        map.put("1",1);
+        System.out.println(map);
+        Iterator<Map.Entry<String, Object>> iterator = map.entrySet().iterator();
+        iterator.next();
+        iterator.remove();
+        System.out.println(map);
     }
 }
