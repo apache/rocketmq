@@ -716,6 +716,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         if (requestHeader.isRemoveOffset()) {
             this.brokerController.getConsumerOffsetManager().removeOffset(requestHeader.getGroupName());
+            this.brokerController.getConsumerStageOffsetManager().removeStageOffset(requestHeader.getGroupName());
         }
 
         if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
@@ -1243,6 +1244,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             }
 
             this.brokerController.getConsumerOffsetManager().cloneOffset(requestHeader.getSrcGroup(), requestHeader.getDestGroup(),
+                requestHeader.getTopic());
+            this.brokerController.getConsumerStageOffsetManager().cloneStageOffset(requestHeader.getSrcGroup(), requestHeader.getDestGroup(),
                 requestHeader.getTopic());
         }
 
