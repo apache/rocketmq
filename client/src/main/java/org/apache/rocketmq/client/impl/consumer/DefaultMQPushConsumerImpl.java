@@ -1051,6 +1051,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             mqs.addAll(allocateMq);
 
             this.offsetStore.persistAll(mqs);
+            if (this.stageOffsetStore != null) {
+                this.stageOffsetStore.persistAll(mqs);
+            }
         } catch (Exception e) {
             log.error("group: " + this.defaultMQPushConsumer.getConsumerGroup() + " persistConsumerOffset exception", e);
         }
