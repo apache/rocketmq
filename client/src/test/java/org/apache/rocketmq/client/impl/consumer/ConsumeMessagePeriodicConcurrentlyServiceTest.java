@@ -153,7 +153,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         });
         consumer.start();
         //please change to a larger millis when running local
-        Thread.sleep(3000);
+        Thread.sleep(10000);
         consumer.shutdown();
     }
 
@@ -204,7 +204,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         });
         consumer.start();
         //please change to a larger millis when running local
-        Thread.sleep(3000);
+        Thread.sleep(10000);
         consumer.shutdown();
     }
 
@@ -272,7 +272,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         });
         consumer.start();
         //please change to a larger millis when running local
-        Thread.sleep(3000);
+        Thread.sleep(10000);
         consumer.shutdown();
     }
 }

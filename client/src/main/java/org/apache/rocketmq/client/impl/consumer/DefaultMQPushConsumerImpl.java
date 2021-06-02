@@ -637,9 +637,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
                 } else if (this.getMessageListenerInner() instanceof MessageListenerPeriodicConcurrently) {
-                    this.consumeOrderly = true;
-                    this.consumeMessageService =
-                        new ConsumeMessagePeriodicConcurrentlyService(this, (MessageListenerPeriodicConcurrently) this.getMessageListenerInner());
                     switch (this.defaultMQPushConsumer.getMessageModel()) {
                         case BROADCASTING:
                             this.stageOffsetStore = new LocalFileStageOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
@@ -651,6 +648,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             break;
                     }
                     this.stageOffsetStore.load();
+                    this.consumeOrderly = true;
+                    this.consumeMessageService =
+                        new ConsumeMessagePeriodicConcurrentlyService(this, (MessageListenerPeriodicConcurrently) this.getMessageListenerInner());
                 }
 
                 this.consumeMessageService.start();
