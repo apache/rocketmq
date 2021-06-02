@@ -42,7 +42,7 @@ public class Producer {
             MQProducer producer = new DefaultMQProducer("please_rename_unique_group_name_4");
             producer.start();
 
-            for (int i = 0; i < 5000; i++) {
+            for (int i = 0; i < 2000; i++) {
                 Message msg =
                     new Message("TopicTest", "TagA", "KEY" + i,
                         ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));

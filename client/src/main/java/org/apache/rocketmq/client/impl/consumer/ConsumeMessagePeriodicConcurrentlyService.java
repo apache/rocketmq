@@ -696,7 +696,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
             } finally {
                 this.processQueue.getConsumeLock().unlock();
             }
-            messageListener.resetCurrentStageIfNeed(topic,
+            messageListener.resetCurrentStageOffsetIfNeed(topic,
                 ConsumeMessagePeriodicConcurrentlyService.this.getCurrentStageOffset(messageQueue, topic));
 
             if (null == status

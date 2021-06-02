@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
@@ -29,8 +30,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
 /**
- * call {@link PeriodicConcurrentlyConsumer#main(String[])} first, then call {@link
- * Producer#main(String[])}
+ * call {@link PeriodicConcurrentlyConsumer#main(String[])} first, then call {@link Producer#main(String[])}
  */
 public class PeriodicConcurrentlyConsumer {
     public static void main(String[] args) throws MQClientException {
@@ -48,7 +48,7 @@ public class PeriodicConcurrentlyConsumer {
                     // The stageIndex increases from 0. The "stages" represented by each stageIndex are in order,
                     // and the "stages" are out of order. When the last stage is reached, the stageIndex is -1.
                     // You can see that MessageListenerOrderly is the same as the order. Order for each queue (partition)
-                    System.out.printf("consumeThread=%s, stageIndex=%s, queueId=%s, content:%s\n",
+                    System.out.printf("consumeThread=%s\tstageIndex=%s\tqueueId=%s\tcontent:%s\n",
                         Thread.currentThread().getName(), stageIndex, msg.getQueueId(), new String(msg.getBody()));
                 }
 
@@ -68,6 +68,13 @@ public class PeriodicConcurrentlyConsumer {
                     list.add(i);
                 }
                 return list;
+            }
+
+            @Override
+            public void resetCurrentStageOffsetIfNeed(String topic, AtomicInteger currentStageOffset) {
+                if ("TopicTest".equals(topic) && currentStageOffset.get() >= 1999) {
+                    currentStageOffset.set(0);
+                }
             }
         });
 
