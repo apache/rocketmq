@@ -201,22 +201,22 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
         }
     }
 
-    public int increaseCurrentStage(MessageQueue messageQueue, String topic) {
-        return increaseCurrentStage(messageQueue, topic, 1);
+    public int increaseCurrentStageOffset(MessageQueue messageQueue, String topic) {
+        return increaseCurrentStageOffset(messageQueue, topic, 1);
     }
 
-    public int increaseCurrentStage(MessageQueue messageQueue, String topic, int delta) {
+    public int increaseCurrentStageOffset(MessageQueue messageQueue, String topic, int delta) {
         final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic);
         synchronized (offset) {
             return offset.getAndAdd(delta);
         }
     }
 
-    public int decrementCurrentStage(MessageQueue messageQueue, String topic) {
-        return decrementCurrentStage(messageQueue, topic, 1);
+    public int decrementCurrentStageOffset(MessageQueue messageQueue, String topic) {
+        return decrementCurrentStageOffset(messageQueue, topic, 1);
     }
 
-    public int decrementCurrentStage(MessageQueue messageQueue, String topic, int delta) {
+    public int decrementCurrentStageOffset(MessageQueue messageQueue, String topic, int delta) {
         final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic);
         synchronized (offset) {
             return offset.getAndSet(offset.get() - delta);
@@ -291,7 +291,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                         result.setConsumeResult(CMResult.CR_SUCCESS);
                         break;
                     case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                        decrementCurrentStage(messageQueue, topic, msgs.size());
+                        decrementCurrentStageOffset(messageQueue, topic, msgs.size());
                         result.setConsumeResult(CMResult.CR_LATER);
                         break;
                     default:
@@ -410,7 +410,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                     this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, topic, msgs.size());
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                    decrementCurrentStage(messageQueue, topic, msgs.size());
+                    decrementCurrentStageOffset(messageQueue, topic, msgs.size());
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
@@ -445,7 +445,7 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
                     continueConsume = false;
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                    decrementCurrentStage(messageQueue, topic, msgs.size());
+                    decrementCurrentStageOffset(messageQueue, topic, msgs.size());
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
