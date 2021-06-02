@@ -191,12 +191,12 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     }
 
     public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic, int delta) {
-        try {
-            return getCurrentLeftoverStageIndex(messageQueue, topic);
-        } finally {
-            final AtomicInteger index = getCurrentStageOffset(messageQueue, topic);
-            synchronized (index) {
-                index.getAndAdd(delta);
+        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic);
+        synchronized (offset) {
+            try {
+                return getCurrentLeftoverStageIndex(messageQueue, topic);
+            } finally {
+                offset.getAndAdd(delta);
             }
         }
     }
@@ -206,9 +206,9 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     }
 
     public int increaseCurrentStage(MessageQueue messageQueue, String topic, int delta) {
-        final AtomicInteger index = getCurrentStageOffset(messageQueue, topic);
-        synchronized (index) {
-            return index.getAndAdd(delta);
+        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic);
+        synchronized (offset) {
+            return offset.getAndAdd(delta);
         }
     }
 
@@ -217,9 +217,9 @@ public class ConsumeMessagePeriodicConcurrentlyService implements ConsumeMessage
     }
 
     public int decrementCurrentStage(MessageQueue messageQueue, String topic, int delta) {
-        final AtomicInteger index = getCurrentStageOffset(messageQueue, topic);
-        synchronized (index) {
-            return index.getAndSet(index.get() - delta);
+        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic);
+        synchronized (offset) {
+            return offset.getAndSet(offset.get() - delta);
         }
     }
 
