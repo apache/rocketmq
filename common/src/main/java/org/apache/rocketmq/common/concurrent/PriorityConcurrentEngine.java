@@ -17,10 +17,8 @@
 package org.apache.rocketmq.common.concurrent;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -122,11 +120,11 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
     }
 
     public void invokeAllNow() {
+        if (super.isShutdown()) {
+            return;
+        }
         synchronized (priorityTasks) {
-            Iterator<Map.Entry<Integer, Queue<Object>>> iterator = priorityTasks.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<Integer, Queue<Object>> entry = iterator.next();
-                Queue<Object> queue = entry.getValue();
+            for (Queue<Object> queue : priorityTasks.values()) {
                 List<Runnable> runnableList = new LinkedList<>();
                 List<CallableSupplier<Object>> callableSupplierList = new LinkedList<>();
                 while (!queue.isEmpty()) {
@@ -137,12 +135,8 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
                         callableSupplierList.add((CallableSupplier<Object>) element);
                     }
                 }
-                runAsync(runnableList);
-                supplyCallableAsync(callableSupplierList);
-                //avoid unnecessary running
-                if (queue.isEmpty()) {
-                    iterator.remove();
-                }
+                super.runAsync(runnableList);
+                super.supplyCallableAsync(callableSupplierList);
             }
         }
     }

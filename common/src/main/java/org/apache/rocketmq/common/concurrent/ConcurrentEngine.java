@@ -453,4 +453,11 @@ public class ConcurrentEngine {
             ThreadUtils.shutdownGracefully(enginePool, awaitTerminateMillis, TimeUnit.MILLISECONDS);
         }
     }
+
+    public boolean isShutdown() {
+        if (null == enginePool) {
+            return true;
+        }
+        return enginePool.isShutdown();
+    }
 }
