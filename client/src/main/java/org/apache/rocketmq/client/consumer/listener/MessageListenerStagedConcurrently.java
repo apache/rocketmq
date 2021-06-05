@@ -43,13 +43,11 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
         final ConsumeStagedConcurrentlyContext context);
 
     /**
-     * If returns empty collection, {@link MessageListenerStagedConcurrently} will degenerate into {@link
+     * If returns empty collection or null, {@link MessageListenerStagedConcurrently} will degenerate into {@link
      * MessageListenerConcurrently}; If returns a collection whose elements are all 1, {@link
      * MessageListenerStagedConcurrently} will temporarily evolve into {@link MessageListenerOrderly};
      */
-    default List<Integer> getStageDefinitions() {
-        return new ArrayList<>();
-    }
+    List<Integer> getStageDefinitions();
 
     /**
      * can be used to reset the current stage by CAS

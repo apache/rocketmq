@@ -69,6 +69,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
                     final ConsumeStagedConcurrentlyContext context) {
                     return status;
                 }
+
+                @Override
+                public List<Integer> getStageDefinitions() {
+                    return null;
+                }
             };
 
             ConsumeMessageStagedConcurrentlyService stagedConcurrentlyService = new ConsumeMessageStagedConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), stagedConcurrently);
@@ -86,6 +91,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
                 final ConsumeStagedConcurrentlyContext context) {
                 throw new RuntimeException();
+            }
+
+            @Override
+            public List<Integer> getStageDefinitions() {
+                return null;
             }
         };
 
@@ -196,6 +206,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
                 MessageExt messageExt = msgs.get(0);
                 System.out.println(context.getStageIndex() + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
                 return ConsumeOrderlyStatus.SUCCESS;
+            }
+
+            @Override
+            public List<Integer> getStageDefinitions() {
+                return null;
             }
         });
         consumer.start();
