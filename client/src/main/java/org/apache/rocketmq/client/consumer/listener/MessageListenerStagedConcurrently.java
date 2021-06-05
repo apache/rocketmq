@@ -57,12 +57,4 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
      */
     default void resetCurrentStageOffsetIfNeed(final String topic, final AtomicInteger currentStageOffset) {
     }
-
-    /**
-     * if {@code System.currentTimeMillis()}>={@code #getConsumeFromTimeStamp}, then start consume message, this method
-     * will be called every time when pulled message successfully.
-     */
-    default long getConsumeFromTimeStamp() {
-        return 0;
-    }
 }

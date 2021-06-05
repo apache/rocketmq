@@ -324,9 +324,6 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         final ProcessQueue processQueue,
         final MessageQueue messageQueue,
         final boolean dispatchToConsume) {
-        if (System.currentTimeMillis() < ConsumeMessageStagedConcurrentlyService.this.messageListener.getConsumeFromTimeStamp()) {
-            return;
-        }
         if (dispatchToConsume) {
             DispatchRequest dispatchRequest = new DispatchRequest(processQueue, messageQueue);
             this.dispatchExecutor.submit(dispatchRequest);
