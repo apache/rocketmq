@@ -95,7 +95,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
         Assert.assertEquals(stagedConcurrentlyService.consumeMessageDirectly(msg, brokerName).getConsumeResult(), CMResult.CR_THROW_EXCEPTION);
     }
 
-    @Test
+    //@Test
     public void test03EvolveIntoMessageListenerOrderly() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
         producer.setNamesrvAddr("localhost:9876");
@@ -154,7 +154,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
         consumer.shutdown();
     }
 
-    @Test
+    //@Test
     public void test04DegenerateIntoMessageListenerConcurrently() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
         producer.setNamesrvAddr("localhost:9876");
@@ -204,7 +204,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
         consumer.shutdown();
     }
 
-    @Test
+    //@Test
     public void test05MessageListenerOrderlyToConcurrently() throws Throwable {
         DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
         producer.setNamesrvAddr("localhost:9876");
