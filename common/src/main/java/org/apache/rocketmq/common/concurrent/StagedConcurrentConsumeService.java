@@ -18,13 +18,13 @@ package org.apache.rocketmq.common.concurrent;
 
 import org.apache.rocketmq.common.ServiceThread;
 
-public class PeriodicConcurrentConsumeService extends ServiceThread {
+public class StagedConcurrentConsumeService extends ServiceThread {
 
     private long joinTime = 1;
 
     private final PriorityConcurrentEngine engine;
 
-    public PeriodicConcurrentConsumeService(PriorityConcurrentEngine engine) {
+    public StagedConcurrentConsumeService(PriorityConcurrentEngine engine) {
         this.engine = engine;
     }
 
@@ -37,7 +37,7 @@ public class PeriodicConcurrentConsumeService extends ServiceThread {
 
     @Override
     public String getServiceName() {
-        return PeriodicConcurrentConsumeService.class.getSimpleName();
+        return StagedConcurrentConsumeService.class.getSimpleName();
     }
 
     @Override

@@ -1023,7 +1023,7 @@ public class SimplePushConsumer {
 参考[2.1 顺序消息生产](#21-顺序消息生产)，略微改动：
 
 ```java
-package org.apache.rocketmq.example.periodic;
+package org.apache.rocketmq.example.stage;
 
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -1073,12 +1073,12 @@ public class Producer {
 #### 2、阶段性并发消费消息
 
 ```java
-package org.apache.rocketmq.example.periodic;
+package org.apache.rocketmq.example.stage;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerStagedConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -1088,13 +1088,13 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-public class PeriodicConcurrentlyConsumer {
+public class StagedConcurrentlyConsumer {
     public static void main(String[] args) throws MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumer.subscribe("TopicTest", "TagA");
-        consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
+        consumer.registerMessageListener(new MessageListenerStagedcurrently() {
 
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context, int stageIndex) {
@@ -1134,9 +1134,9 @@ public class PeriodicConcurrentlyConsumer {
 ```
 
 ### 9.2 阶段性并发使用上的限制
-与`MessageListenerOrderly`一样，`MessageListenerPeriodicConcurrently`也是`仅保证每个queue(分区)有序`。
+与`MessageListenerOrderly`一样，`MessageListenerStagedConcurrently`也是`仅保证每个queue(分区)有序`。
 
 ### 9.3 阶段性并发的优点
 兼具了`MessageListenerOrderly`的顺序性和`MessageListenerConcurrently`的良好性能。
 
-更多测试结果请参考`org.apache.rocketmq.client.impl.consumer.ConsumeMessagePeriodicConcurrentlyServiceTest`。
+更多测试结果请参考`org.apache.rocketmq.client.impl.consumer.ConsumeMessageStagedConcurrentlyServiceTest`。

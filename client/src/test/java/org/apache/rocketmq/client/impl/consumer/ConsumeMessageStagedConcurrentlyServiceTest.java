@@ -24,7 +24,7 @@ import java.util.Random;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerStagedConcurrently;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -40,7 +40,7 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ConsumeMessagePeriodicConcurrentlyServiceTest {
+public class ConsumeMessageStagedConcurrentlyServiceTest {
     private String consumerGroup;
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
@@ -63,7 +63,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
 
         for (ConsumeOrderlyStatus consumeOrderlyStatus : map.keySet()) {
             final ConsumeOrderlyStatus status = consumeOrderlyStatus;
-            MessageListenerPeriodicConcurrently periodicConcurrently = new MessageListenerPeriodicConcurrently() {
+            MessageListenerStagedConcurrently stagedConcurrently = new MessageListenerStagedConcurrently() {
                 @Override
                 public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
                     final ConsumeOrderlyContext context,
@@ -72,17 +72,17 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
                 }
             };
 
-            ConsumeMessagePeriodicConcurrentlyService periodicConcurrentlyService = new ConsumeMessagePeriodicConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), periodicConcurrently);
+            ConsumeMessageStagedConcurrentlyService stagedConcurrentlyService = new ConsumeMessageStagedConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), stagedConcurrently);
             MessageExt msg = new MessageExt();
             msg.setTopic(topic);
-            Assert.assertEquals(periodicConcurrentlyService.consumeMessageDirectly(msg, brokerName).getConsumeResult(), map.get(consumeOrderlyStatus));
+            Assert.assertEquals(stagedConcurrentlyService.consumeMessageDirectly(msg, brokerName).getConsumeResult(), map.get(consumeOrderlyStatus));
         }
 
     }
 
     @Test
     public void test02ConsumeMessageDirectlyWithException() {
-        MessageListenerPeriodicConcurrently periodicConcurrently = new MessageListenerPeriodicConcurrently() {
+        MessageListenerStagedConcurrently stagedConcurrently = new MessageListenerStagedConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
                 final ConsumeOrderlyContext context,
@@ -91,10 +91,10 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
             }
         };
 
-        ConsumeMessagePeriodicConcurrentlyService periodicConcurrentlyService = new ConsumeMessagePeriodicConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), periodicConcurrently);
+        ConsumeMessageStagedConcurrentlyService stagedConcurrentlyService = new ConsumeMessageStagedConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), stagedConcurrently);
         MessageExt msg = new MessageExt();
         msg.setTopic(topic);
-        Assert.assertEquals(periodicConcurrentlyService.consumeMessageDirectly(msg, brokerName).getConsumeResult(), CMResult.CR_THROW_EXCEPTION);
+        Assert.assertEquals(stagedConcurrentlyService.consumeMessageDirectly(msg, brokerName).getConsumeResult(), CMResult.CR_THROW_EXCEPTION);
     }
 
     @Test
@@ -127,7 +127,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(topic + "2", "ssss2");
-        consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
+        consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeOrderlyContext context,
@@ -187,7 +187,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(topic + "1", "ssss1");
-        consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
+        consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeOrderlyContext context,
@@ -241,7 +241,7 @@ public class ConsumeMessagePeriodicConcurrentlyServiceTest {
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(topic + "3", "ssss3");
-        consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
+        consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeOrderlyContext context,

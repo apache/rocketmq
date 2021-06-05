@@ -39,7 +39,7 @@ public class PriorityConcurrentEngine extends ConcurrentEngine {
      */
     public static final Integer MIN_PRIORITY = Integer.MAX_VALUE;
 
-    private final PeriodicConcurrentConsumeService consumeService = new PeriodicConcurrentConsumeService(this);
+    private final StagedConcurrentConsumeService consumeService = new StagedConcurrentConsumeService(this);
 
     private final ConcurrentNavigableMap<Integer, Queue<Object>> priorityTasks = new ConcurrentSkipListMap<>();
 

@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * and four are in order; from a partial point of view, such as stage one, the internal stage is out of order. The
  * rewards are the same, why not consume concurrently?
  */
-public interface MessageListenerPeriodicConcurrently extends MessageListener {
+public interface MessageListenerStagedConcurrently extends MessageListener {
     /**
      * It is not recommend to throw exception,rather than returning ConsumeConcurrentlyStatus.RECONSUME_LATER if
      * consumption failure
@@ -44,9 +44,9 @@ public interface MessageListenerPeriodicConcurrently extends MessageListener {
         final int stageIndex);
 
     /**
-     * If returns empty collection, {@link MessageListenerPeriodicConcurrently} will degenerate into {@link
+     * If returns empty collection, {@link MessageListenerStagedConcurrently} will degenerate into {@link
      * MessageListenerConcurrently}; If returns a collection whose elements are all 1, {@link
-     * MessageListenerPeriodicConcurrently} will temporarily evolve into {@link MessageListenerOrderly};
+     * MessageListenerStagedConcurrently} will temporarily evolve into {@link MessageListenerOrderly};
      */
     default List<Integer> getStageDefinitions() {
         return new ArrayList<>();

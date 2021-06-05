@@ -38,7 +38,7 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerStagedConcurrently;
 import org.apache.rocketmq.client.consumer.store.LocalFileOffsetStore;
 import org.apache.rocketmq.client.consumer.store.LocalFileStageOffsetStore;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -636,7 +636,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.consumeOrderly = false;
                     this.consumeMessageService =
                         new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
-                } else if (this.getMessageListenerInner() instanceof MessageListenerPeriodicConcurrently) {
+                } else if (this.getMessageListenerInner() instanceof MessageListenerStagedConcurrently) {
                     switch (this.defaultMQPushConsumer.getMessageModel()) {
                         case BROADCASTING:
                             this.stageOffsetStore = new LocalFileStageOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
@@ -650,7 +650,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.stageOffsetStore.load();
                     this.consumeOrderly = true;
                     this.consumeMessageService =
-                        new ConsumeMessagePeriodicConcurrentlyService(this, (MessageListenerPeriodicConcurrently) this.getMessageListenerInner());
+                        new ConsumeMessageStagedConcurrentlyService(this, (MessageListenerStagedConcurrently) this.getMessageListenerInner());
                 }
 
                 this.consumeMessageService.start();
@@ -752,10 +752,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         boolean orderly = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerOrderly;
         boolean concurrently = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerConcurrently;
-        boolean periodicConcurrently = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerPeriodicConcurrently;
-        if (!orderly && !concurrently && !periodicConcurrently) {
+        boolean stagedConcurrently = this.defaultMQPushConsumer.getMessageListener() instanceof MessageListenerStagedConcurrently;
+        if (!orderly && !concurrently && !stagedConcurrently) {
             throw new MQClientException(
-                "messageListener must be instanceof MessageListenerOrderly or MessageListenerConcurrently or MessageListenerPeriodicConcurrently"
+                "messageListener must be instanceof MessageListenerOrderly or MessageListenerConcurrently or MessageListenerStagedConcurrently"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
                 null);
         }

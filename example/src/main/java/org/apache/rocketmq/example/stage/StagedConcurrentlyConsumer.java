@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.example.periodic;
+package org.apache.rocketmq.example.stage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,21 +24,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerPeriodicConcurrently;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerStagedConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
 /**
- * call {@link PeriodicConcurrentlyConsumer#main(String[])} first, then call {@link Producer#main(String[])}
+ * call {@link StagedConcurrentlyConsumer#main(String[])} first, then call {@link Producer#main(String[])}
  */
-public class PeriodicConcurrentlyConsumer {
+public class StagedConcurrentlyConsumer {
     public static void main(String[] args) throws MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
         consumer.setNamesrvAddr("localhost:9876");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe("TopicTest", "TagA");
-        consumer.registerMessageListener(new MessageListenerPeriodicConcurrently() {
+        consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
 
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context,

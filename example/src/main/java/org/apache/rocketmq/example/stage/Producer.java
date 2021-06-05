@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.example.periodic;
+package org.apache.rocketmq.example.stage;
 
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -32,7 +32,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 /**
- * call {@link PeriodicConcurrentlyConsumer#main(String[])} first, then call {@link
+ * call {@link StagedConcurrentlyConsumer#main(String[])} first, then call {@link
  * Producer#main(String[])}
  */
 public class Producer {
