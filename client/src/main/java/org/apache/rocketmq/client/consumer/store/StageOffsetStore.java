@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
- * Stage offset store interface
+ * Refer to {@link org.apache.rocketmq.client.consumer.store.OffsetStore}, manage the stage consumption progress.
  */
 public interface StageOffsetStore {
     /**
