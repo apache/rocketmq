@@ -60,7 +60,7 @@ public interface StageOffsetStore {
     void removeStageOffset(MessageQueue mq);
 
     /**
-     * @return The cloned offset table of given topic
+     * @return The cloned stage offset table of given topic
      */
     Map<MessageQueue, Integer> cloneStageOffsetTable(String topic);
 
