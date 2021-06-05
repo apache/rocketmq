@@ -1076,7 +1076,7 @@ public class Producer {
 package org.apache.rocketmq.example.stage;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeStagedConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerStagedConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -1097,13 +1097,13 @@ public class StagedConcurrentlyConsumer {
         consumer.registerMessageListener(new MessageListenerStagedcurrently() {
 
             @Override
-            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context, int stageIndex) {
+            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeStagedConcurrentlyContext context) {
                 context.setAutoCommit(true);
                 for (MessageExt msg : msgs) {
                     // stageIndex从0开始递增，每个stageIndex代表的"阶段"之间是有序的，
                     // 而"阶段"内部是乱序的，当到达最后一个阶段时，stageIndex为-1
                     // 可以看到MessageListenerOrderly和一样, 订单对每个queue(分区)有序
-                    System.out.println("consumeThread=" + Thread.currentThread().getName() +", stageIndex="+stageIndex+ ", queueId=" + msg.getQueueId() + ", content:" + new String(msg.getBody()));
+                    System.out.println("consumeThread=" + Thread.currentThread().getName() +", stageIndex="+context.getStageIndex()+ ", queueId=" + msg.getQueueId() + ", content:" + new String(msg.getBody()));
                 }
 
                 try {

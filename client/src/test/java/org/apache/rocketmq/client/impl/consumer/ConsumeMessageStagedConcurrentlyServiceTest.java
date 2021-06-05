@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
+import org.apache.rocketmq.client.consumer.listener.ConsumeStagedConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerStagedConcurrently;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
@@ -66,8 +66,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             MessageListenerStagedConcurrently stagedConcurrently = new MessageListenerStagedConcurrently() {
                 @Override
                 public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-                    final ConsumeOrderlyContext context,
-                    final int stageIndex) {
+                    final ConsumeStagedConcurrentlyContext context) {
                     return status;
                 }
             };
@@ -85,8 +84,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
         MessageListenerStagedConcurrently stagedConcurrently = new MessageListenerStagedConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-                final ConsumeOrderlyContext context,
-                final int stageIndex) {
+                final ConsumeStagedConcurrentlyContext context) {
                 throw new RuntimeException();
             }
         };
@@ -130,15 +128,14 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
         consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeOrderlyContext context,
-                int stageIndex) {
+                ConsumeStagedConcurrentlyContext context) {
                 try {
                     Thread.sleep(new Random().nextInt(20));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 MessageExt messageExt = msgs.get(0);
-                System.out.println(stageIndex + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
+                System.out.println(context.getStageIndex() + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
                 return ConsumeOrderlyStatus.SUCCESS;
             }
 
@@ -190,15 +187,14 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
         consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeOrderlyContext context,
-                int stageIndex) {
+                ConsumeStagedConcurrentlyContext context) {
                 try {
                     Thread.sleep(new Random().nextInt(20));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 MessageExt messageExt = msgs.get(0);
-                System.out.println(stageIndex + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
+                System.out.println(context.getStageIndex() + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
                 return ConsumeOrderlyStatus.SUCCESS;
             }
         });
@@ -244,15 +240,14 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
         consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeOrderlyContext context,
-                int stageIndex) {
+                ConsumeStagedConcurrentlyContext context) {
                 try {
                     Thread.sleep(new Random().nextInt(20));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 MessageExt messageExt = msgs.get(0);
-                System.out.println(stageIndex + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
+                System.out.println(context.getStageIndex() + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
                 return ConsumeOrderlyStatus.SUCCESS;
             }
 

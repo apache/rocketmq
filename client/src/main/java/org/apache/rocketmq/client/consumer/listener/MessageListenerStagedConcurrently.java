@@ -40,8 +40,7 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
      * @return The consume status
      */
     ConsumeOrderlyStatus consumeMessage(final List<MessageExt> msgs,
-        final ConsumeOrderlyContext context,
-        final int stageIndex);
+        final ConsumeStagedConcurrentlyContext context);
 
     /**
      * If returns empty collection, {@link MessageListenerStagedConcurrently} will degenerate into {@link

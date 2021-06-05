@@ -22,8 +22,8 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
+import org.apache.rocketmq.client.consumer.listener.ConsumeStagedConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerStagedConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -41,15 +41,14 @@ public class StagedConcurrentlyConsumer {
         consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
 
             @Override
-            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context,
-                int stageIndex) {
+            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeStagedConcurrentlyContext context) {
                 context.setAutoCommit(true);
                 for (MessageExt msg : msgs) {
                     // The stageIndex increases from 0. The "stages" represented by each stageIndex are in order,
                     // and the "stages" are out of order. When the last stage is reached, the stageIndex is -1.
                     // You can see that MessageListenerOrderly is the same as the order. Order for each queue (partition)
                     System.out.printf("consumeThread=%s\tstageIndex=%s\tqueueId=%s\tcontent:%s\n",
-                        Thread.currentThread().getName(), stageIndex, msg.getQueueId(), new String(msg.getBody()));
+                        Thread.currentThread().getName(), context.getStageIndex(), msg.getQueueId(), new String(msg.getBody()));
                 }
 
                 try {

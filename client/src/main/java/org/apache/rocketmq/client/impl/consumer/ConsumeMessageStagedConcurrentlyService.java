@@ -32,13 +32,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
+import org.apache.rocketmq.client.consumer.listener.ConsumeStagedConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerStagedConcurrently;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.consumer.store.StageOffsetStore;
@@ -258,7 +257,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         mq.setTopic(topic);
         mq.setQueueId(msg.getQueueId());
 
-        ConsumeOrderlyContext context = new ConsumeOrderlyContext(mq);
+        ConsumeStagedConcurrentlyContext context = new ConsumeStagedConcurrentlyContext(mq);
 
         this.defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, this.consumerGroup);
 
@@ -278,7 +277,8 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         }
 
         try {
-            ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context, this.getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, msgs.size()));
+            context.setStageIndex(this.getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, msgs.size()));
+            ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context);
             if (status != null) {
                 switch (status) {
                     case COMMIT:
@@ -387,7 +387,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
     public boolean processConsumeResult(
         final List<MessageExt> msgs,
         final ConsumeOrderlyStatus status,
-        final ConsumeOrderlyContext context,
+        final ConsumeStagedConcurrentlyContext context,
         final ConsumeRequest consumeRequest
     ) {
         MessageQueue messageQueue = consumeRequest.getMessageQueue();
@@ -650,7 +650,8 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         @Override
         public void run() {
             String topic = this.messageQueue.getTopic();
-            ConsumeOrderlyContext context = new ConsumeOrderlyContext(this.messageQueue);
+            ConsumeStagedConcurrentlyContext context = new ConsumeStagedConcurrentlyContext(this.messageQueue);
+            context.setStageIndex(currentLeftoverStageIndex);
             ConsumeOrderlyStatus status = null;
 
             ConsumeMessageContext consumeMessageContext = null;
@@ -681,8 +682,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                 for (MessageExt msg : msgs) {
                     MessageAccessor.setConsumeStartTimeStamp(msg, String.valueOf(System.currentTimeMillis()));
                 }
-                status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context,
-                    currentLeftoverStageIndex);
+                status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
             } catch (Throwable e) {
                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
                     RemotingHelper.exceptionSimpleDesc(e),
