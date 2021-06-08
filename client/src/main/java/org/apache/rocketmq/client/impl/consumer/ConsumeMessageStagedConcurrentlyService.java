@@ -86,7 +86,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
         this.summedStageDefinitions = new ArrayList<>();
-        Collection<Integer> definitions = messageListener.getStageDefinitions();
+        Collection<Integer> definitions = messageListener.getStageDefinitionStrategies();
         if (definitions != null) {
             int sum = 0;
             for (Integer stageDefinition : definitions) {

@@ -71,7 +71,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
                 }
 
                 @Override
-                public List<Integer> getStageDefinitions() {
+                public List<Integer> getStageDefinitionStrategies() {
                     return null;
                 }
             };
@@ -94,7 +94,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             }
 
             @Override
-            public List<Integer> getStageDefinitions() {
+            public List<Integer> getStageDefinitionStrategies() {
                 return null;
             }
         };
@@ -150,7 +150,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             }
 
             @Override
-            public List<Integer> getStageDefinitions() {
+            public List<Integer> getStageDefinitionStrategies() {
                 List<Integer> list = new ArrayList<>();
                 for (int i = 0; i < 10000; i++) {
                     list.add(1);
@@ -209,7 +209,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             }
 
             @Override
-            public List<Integer> getStageDefinitions() {
+            public List<Integer> getStageDefinitionStrategies() {
                 return null;
             }
         });
@@ -272,7 +272,7 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
              * to concurrently consumer.
              */
             @Override
-            public List<Integer> getStageDefinitions() {
+            public List<Integer> getStageDefinitionStrategies() {
                 List<Integer> list = new ArrayList<>();
                 for (int i = 1; i <= 10; i++) {
                     list.add(i);

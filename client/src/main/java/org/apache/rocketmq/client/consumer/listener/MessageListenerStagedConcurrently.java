@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.consumer.listener;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.message.MessageExt;
 
@@ -41,11 +42,35 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
         final ConsumeStagedConcurrentlyContext context);
 
     /**
-     * If returns empty collection or null, {@link MessageListenerStagedConcurrently} will degenerate into {@link
+     * If returns empty list or null, {@link MessageListenerStagedConcurrently} will degenerate into {@link
      * MessageListenerConcurrently}; If returns a collection whose elements are all 1, {@link
      * MessageListenerStagedConcurrently} will temporarily evolve into {@link MessageListenerOrderly};
+     *
+     * @see MessageListenerStagedConcurrently#computeStrategyId(java.util.List)
      */
-    List<Integer> getStageDefinitions();
+    Map<Integer, List<Integer>> getStageDefinitionStrategies();
+
+    /**
+     * 根据消息计算用哪个策略
+     *
+     * @see MessageListenerStagedConcurrently#getStageDefinitionStrategies()
+     */
+    Map<MessageExt, Integer> computeStrategyId(List<MessageExt> messages);
+
+    /**
+     * 只有计算出的key在此方法的返回结果中，才会走阶段性并发的逻辑，否则直接并发。
+     * note：最好每次都调用(能够及时感知变化)，而不是只初始化一次
+     *
+     * @see MessageListenerStagedConcurrently#computeUserKey(java.util.List)
+     */
+    List<String> getUserKeys();
+
+    /**
+     * 根据消息计算key
+     *
+     * @see MessageListenerStagedConcurrently#getUserKeys()
+     */
+    Map<MessageExt, String> computeUserKey(List<MessageExt> messages);
 
     /**
      * can be used to reset the current stage by CAS

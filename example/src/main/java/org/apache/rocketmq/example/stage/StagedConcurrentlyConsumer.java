@@ -61,7 +61,7 @@ public class StagedConcurrentlyConsumer {
             }
 
             @Override
-            public List<Integer> getStageDefinitions() {
+            public List<Integer> getStageDefinitionStrategies() {
                 List<Integer> list = new ArrayList<>();
                 for (int i = 1; i <= 50; i++) {
                     list.add(i);
