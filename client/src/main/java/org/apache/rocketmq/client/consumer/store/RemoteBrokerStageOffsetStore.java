@@ -56,7 +56,7 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
     }
 
     @Override
-    public void updateStageOffset(MessageQueue mq, int stageOffset, boolean increaseOnly) {
+    public void updateStageOffset(MessageQueue mq, String strategyId, int stageOffset, boolean increaseOnly) {
         if (mq != null) {
             AtomicInteger offsetOld = this.offsetTable.get(mq);
             if (null == offsetOld) {
@@ -89,7 +89,7 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
                 case READ_FROM_STORE: {
                     try {
                         int brokerOffset = this.fetchConsumeStageOffsetFromBroker(mq);
-                        this.updateStageOffset(mq, brokerOffset, false);
+                        this.updateStageOffset(mq, strategyId, brokerOffset, false);
                         return brokerOffset;
                     }
                     // No stage offset in broker

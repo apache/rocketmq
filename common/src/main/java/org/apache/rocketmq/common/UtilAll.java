@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -41,9 +42,11 @@ import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -207,7 +210,6 @@ public class UtilAll {
             return -1;
         }
 
-
         try {
             File file = new File(path);
 
@@ -215,7 +217,6 @@ public class UtilAll {
                 log.error("Error when measuring disk space usage, file doesn't exist on this path: {}", path);
                 return -1;
             }
-
 
             long totalSpace = file.getTotalSpace();
 
@@ -463,7 +464,7 @@ public class UtilAll {
         if (ip.length != 4) {
             throw new RuntimeException("illegal ipv4 bytes");
         }
-    
+
         InetAddressValidator validator = InetAddressValidator.getInstance();
         return validator.isValidInet4Address(ipToIPv4Str(ip));
     }
@@ -618,5 +619,19 @@ public class UtilAll {
             index = index + size;
         }
         return lists;
+    }
+
+    public static <K, T> Map<K, List<List<T>>> partition(Map<K, List<T>> map, int size) {
+        Map<K, List<List<T>>> newMap = new HashMap<>();
+        if (MapUtils.isEmpty(map)) {
+            return newMap;
+        }
+        for (Map.Entry<K, List<T>> entry : map.entrySet()) {
+            K key = entry.getKey();
+            List<T> list = entry.getValue();
+            List<List<T>> lists = partition(list, size);
+            newMap.put(key, lists);
+        }
+        return newMap;
     }
 }

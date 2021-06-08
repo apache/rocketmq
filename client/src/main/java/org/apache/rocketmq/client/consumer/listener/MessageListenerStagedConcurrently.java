@@ -46,35 +46,23 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
      * MessageListenerConcurrently}; If returns a collection whose elements are all 1, {@link
      * MessageListenerStagedConcurrently} will temporarily evolve into {@link MessageListenerOrderly};
      *
-     * @see MessageListenerStagedConcurrently#computeStrategyId(java.util.List)
+     * @see MessageListenerStagedConcurrently#computeStrategyMapping(java.util.List)
      */
-    Map<Integer, List<Integer>> getStageDefinitionStrategies();
+    Map<String/*strategyId*/, List<Integer>/*StageDefinition*/> getStageDefinitionStrategies();
 
     /**
-     * 根据消息计算用哪个策略
+     * According to which strategy is used for message calculation, only the calculated strategy id is in the return
+     * result of this method, the message will go through the logic of phased concurrency, otherwise it will be directly
+     * concurrent.
      *
      * @see MessageListenerStagedConcurrently#getStageDefinitionStrategies()
      */
-    Map<MessageExt, Integer> computeStrategyId(List<MessageExt> messages);
-
-    /**
-     * 只有计算出的key在此方法的返回结果中，才会走阶段性并发的逻辑，否则直接并发。
-     * note：最好每次都调用(能够及时感知变化)，而不是只初始化一次
-     *
-     * @see MessageListenerStagedConcurrently#computeUserKey(java.util.List)
-     */
-    List<String> getUserKeys();
-
-    /**
-     * 根据消息计算key
-     *
-     * @see MessageListenerStagedConcurrently#getUserKeys()
-     */
-    Map<MessageExt, String> computeUserKey(List<MessageExt> messages);
+    Map<MessageExt, String/*strategyId*/> computeStrategyMapping(List<MessageExt> messages);
 
     /**
      * can be used to reset the current stage by CAS
      */
-    default void resetCurrentStageOffsetIfNeed(final String topic, final AtomicInteger currentStageOffset) {
+    default void resetCurrentStageOffsetIfNeed(final String topic, String strategyId,
+        final AtomicInteger currentStageOffset) {
     }
 }

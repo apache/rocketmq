@@ -26,6 +26,7 @@ public class ConsumeStagedConcurrentlyContext {
     private boolean autoCommit = true;
     private long suspendCurrentQueueTimeMillis = -1;
     private int stageIndex = -1;
+    private String strategyId;
 
     public ConsumeStagedConcurrentlyContext(MessageQueue messageQueue) {
         this.messageQueue = messageQueue;
@@ -57,5 +58,13 @@ public class ConsumeStagedConcurrentlyContext {
 
     public void setStageIndex(int stageIndex) {
         this.stageIndex = stageIndex;
+    }
+
+    public String getStrategyId() {
+        return strategyId;
+    }
+
+    public void setStrategyId(String strategyId) {
+        this.strategyId = strategyId;
     }
 }

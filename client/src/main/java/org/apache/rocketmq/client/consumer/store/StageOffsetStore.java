@@ -18,6 +18,8 @@ package org.apache.rocketmq.client.consumer.store;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -35,14 +37,15 @@ public interface StageOffsetStore {
     /**
      * Update the stage offset,store it in memory
      */
-    void updateStageOffset(final MessageQueue mq, final int stageOffset, final boolean increaseOnly);
+    void updateStageOffset(final MessageQueue mq, String strategyId, final int stageOffset,
+        final boolean increaseOnly);
 
     /**
      * Get stage offset from local storage
      *
      * @return The fetched offset
      */
-    int readStageOffset(final MessageQueue mq, final ReadOffsetType type);
+    ConcurrentMap<String, AtomicInteger> readStageOffset(final MessageQueue mq, final ReadOffsetType type);
 
     /**
      * Persist all offsets,may be in local storage or remote name server

@@ -51,14 +51,14 @@ public class LocalFileStageOffsetStoreTest {
     public void testUpdateStageOffset() throws Exception {
         StageOffsetStore offsetStore = new LocalFileStageOffsetStore(mQClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 1);
-        offsetStore.updateStageOffset(messageQueue, 1024, false);
+        offsetStore.updateStageOffset(messageQueue, strategyId, 1024, false);
 
         assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY)).isEqualTo(1024);
 
-        offsetStore.updateStageOffset(messageQueue, 1023, false);
+        offsetStore.updateStageOffset(messageQueue, strategyId, 1023, false);
         assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY)).isEqualTo(1023);
 
-        offsetStore.updateStageOffset(messageQueue, 1022, true);
+        offsetStore.updateStageOffset(messageQueue, strategyId, 1022, true);
         assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY)).isEqualTo(1023);
     }
 
@@ -67,7 +67,7 @@ public class LocalFileStageOffsetStoreTest {
         StageOffsetStore offsetStore = new LocalFileStageOffsetStore(mQClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 2);
 
-        offsetStore.updateStageOffset(messageQueue, 1024, false);
+        offsetStore.updateStageOffset(messageQueue, strategyId, 1024, false);
         assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE)).isEqualTo(-1);
 
         offsetStore.persistAll(new HashSet<MessageQueue>(Collections.singletonList(messageQueue)));
@@ -78,7 +78,7 @@ public class LocalFileStageOffsetStoreTest {
     public void testCloneStageOffset() throws Exception {
         StageOffsetStore offsetStore = new LocalFileStageOffsetStore(mQClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 3);
-        offsetStore.updateStageOffset(messageQueue, 1024, false);
+        offsetStore.updateStageOffset(messageQueue, strategyId, 1024, false);
         Map<MessageQueue, Integer> cloneOffsetTable = offsetStore.cloneStageOffsetTable(topic);
 
         assertThat(cloneOffsetTable.size()).isEqualTo(1);

@@ -17,10 +17,11 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
@@ -76,8 +78,8 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
     private final ScheduledExecutorService scheduledExecutorService;
     private volatile boolean stopped = false;
-    private final List<Integer> summedStageDefinitions;
-    private final ConcurrentMap<String/*topic*/, AtomicInteger/*currentStageOffset*/> currentStageOffsetMap = new ConcurrentHashMap<>();
+    private final Map<String/*strategyId*/, List<Integer>/*StageDefinition*/> summedStageDefinitionMap;
+    private final ConcurrentMap<String/*topic*/, ConcurrentMap<String/*strategyId*/, AtomicInteger/*currentStageOffset*/>> currentStageOffsetMap = new ConcurrentHashMap<>();
     private final int pullBatchSize;
     private final StageOffsetStore stageOffsetStore;
 
@@ -85,14 +87,20 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         MessageListenerStagedConcurrently messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
-        this.summedStageDefinitions = new ArrayList<>();
-        Collection<Integer> definitions = messageListener.getStageDefinitionStrategies();
-        if (definitions != null) {
-            int sum = 0;
-            for (Integer stageDefinition : definitions) {
-                this.summedStageDefinitions.add(sum = sum + stageDefinition);
+        this.summedStageDefinitionMap = new HashMap<>();
+        for (Map.Entry<String, List<Integer>> entry : messageListener.getStageDefinitionStrategies().entrySet()) {
+            String strategyId = entry.getKey();
+            List<Integer> definitions = entry.getValue();
+            List<Integer> summedStageDefinitions = new ArrayList<>();
+            if (definitions != null) {
+                int sum = 0;
+                for (Integer stageDefinition : definitions) {
+                    summedStageDefinitions.add(sum = sum + stageDefinition);
+                }
             }
+            summedStageDefinitionMap.put(strategyId, summedStageDefinitions);
         }
+
         this.stageOffsetStore = this.defaultMQPushConsumerImpl.getStageOffsetStore();
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
@@ -152,71 +160,66 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         this.defaultMQPushConsumerImpl.getRebalanceImpl().unlockAll(false);
     }
 
-    public AtomicInteger getCurrentStageOffset(MessageQueue messageQueue, String topic) {
-        AtomicInteger index = currentStageOffsetMap.get(topic);
-        if (null == index) {
-            int stageOffset = stageOffsetStore == null ? 0 : stageOffsetStore.readStageOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
-            if (stageOffset < 0) {
-                stageOffset = 0;
-            }
-            currentStageOffsetMap.putIfAbsent(topic, new AtomicInteger(stageOffset));
-            index = currentStageOffsetMap.get(topic);
+    public AtomicInteger getCurrentStageOffset(MessageQueue messageQueue, String topic, String strategyId) {
+        ConcurrentMap<String, AtomicInteger> indexs = currentStageOffsetMap.get(topic);
+        if (null == indexs) {
+            ConcurrentMap<String, AtomicInteger> stageOffset = stageOffsetStore == null ?
+                new ConcurrentHashMap<>() : stageOffsetStore.readStageOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
+            currentStageOffsetMap.putIfAbsent(topic, stageOffset);
+            indexs = currentStageOffsetMap.get(topic);
         }
-        return index;
+        AtomicInteger index = indexs.get(strategyId);
+        return index == null ? new AtomicInteger(-1) : index;
     }
 
-    public int getCurrentLeftoverStage(MessageQueue messageQueue, String topic) {
-        for (Integer stageDefinition : summedStageDefinitions) {
-            int left = stageDefinition - getCurrentStageOffset(messageQueue, topic).get();
-            if (left > 0) {
-                return left;
-            }
-        }
-        return -1;
-    }
-
-    public int getCurrentLeftoverStageIndex(MessageQueue messageQueue, String topic) {
-        for (int i = 0; i < summedStageDefinitions.size(); i++) {
-            int left = summedStageDefinitions.get(i) - getCurrentStageOffset(messageQueue, topic).get();
-            if (left > 0) {
-                return i;
+    public int getCurrentLeftoverStage(MessageQueue messageQueue, String topic, String strategyId) {
+        List<Integer> summedStageDefinition = summedStageDefinitionMap.get(strategyId);
+        if (CollectionUtils.isNotEmpty(summedStageDefinition)) {
+            for (Integer stageDefinition : summedStageDefinition) {
+                int left = stageDefinition - getCurrentStageOffset(messageQueue, topic, strategyId).get();
+                if (left > 0) {
+                    return left;
+                }
             }
         }
         return -1;
     }
 
-    public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic) {
-        return getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, 1);
+    public int getCurrentLeftoverStageIndex(MessageQueue messageQueue, String topic, String strategyId) {
+        List<Integer> summedStageDefinition = summedStageDefinitionMap.get(strategyId);
+        if (CollectionUtils.isNotEmpty(summedStageDefinition)) {
+            for (int i = 0; i < summedStageDefinition.size(); i++) {
+                int left = summedStageDefinition.get(i) - getCurrentStageOffset(messageQueue, topic, strategyId).get();
+                if (left > 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
-    public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic, int delta) {
-        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic);
+    public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic, String strategyId) {
+        return getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, strategyId, 1);
+    }
+
+    public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic, String strategyId,
+        int delta) {
+        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic, strategyId);
         synchronized (offset) {
             try {
-                return getCurrentLeftoverStageIndex(messageQueue, topic);
+                return getCurrentLeftoverStageIndex(messageQueue, topic, strategyId);
             } finally {
                 offset.getAndAdd(delta);
             }
         }
     }
 
-    public int increaseCurrentStageOffset(MessageQueue messageQueue, String topic) {
-        return increaseCurrentStageOffset(messageQueue, topic, 1);
+    public int decrementCurrentStageOffset(MessageQueue messageQueue, String topic, String strategyId) {
+        return decrementCurrentStageOffset(messageQueue, topic, strategyId, 1);
     }
 
-    public int increaseCurrentStageOffset(MessageQueue messageQueue, String topic, int delta) {
-        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic);
-        synchronized (offset) {
-            return offset.getAndAdd(delta);
-        }
-    }
-
-    public int decrementCurrentStageOffset(MessageQueue messageQueue, String topic) {
-        return decrementCurrentStageOffset(messageQueue, topic, 1);
-    }
-
-    public int decrementCurrentStageOffset(MessageQueue messageQueue, String topic, int delta) {
-        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic);
+    public int decrementCurrentStageOffset(MessageQueue messageQueue, String topic, String strategyId, int delta) {
+        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic, strategyId);
         synchronized (offset) {
             return offset.getAndSet(offset.get() - delta);
         }
@@ -277,7 +280,21 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         }
 
         try {
-            context.setStageIndex(this.getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, msgs.size()));
+            Map<MessageExt, String> mapping = this.messageListener.computeStrategyMapping(msgs);
+            if (MapUtils.isNotEmpty(mapping)) {
+                Map<String, Integer> stageIndexInfo = new HashMap<>();
+                for (Map.Entry<MessageExt, String> entry : mapping.entrySet()) {
+                    String strategyId = entry.getValue();
+                    int currentLeftoverStageIndex = this.getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, strategyId);
+                    stageIndexInfo.put(strategyId, currentLeftoverStageIndex);
+                }
+                String strategyId = mapping.get(msg);
+                if (StringUtils.isNotBlank(strategyId)) {
+                    Integer stageIndex = stageIndexInfo.get(strategyId);
+                    context.setStrategyId(strategyId);
+                    context.setStageIndex(stageIndex == null ? -1 : stageIndex);
+                }
+            }
             ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context);
             if (status != null) {
                 switch (status) {
@@ -291,7 +308,9 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                         result.setConsumeResult(CMResult.CR_SUCCESS);
                         break;
                     case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                        decrementCurrentStageOffset(messageQueue, topic, msgs.size());
+                        for (String strategyId : mapping.values()) {
+                            decrementCurrentStageOffset(messageQueue, topic, strategyId);
+                        }
                         result.setConsumeResult(CMResult.CR_LATER);
                         break;
                     default:
@@ -385,6 +404,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
     }
 
     public boolean processConsumeResult(
+        final String strategyId,
         final List<MessageExt> msgs,
         final ConsumeOrderlyStatus status,
         final ConsumeStagedConcurrentlyContext context,
@@ -403,11 +423,11 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                         messageQueue);
                 case SUCCESS:
                     commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
-                    commitStageOffset = getCurrentStageOffset(messageQueue, topic).get();
+                    commitStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId).get();
                     this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, topic, msgs.size());
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                    decrementCurrentStageOffset(messageQueue, topic, msgs.size());
+                    decrementCurrentStageOffset(messageQueue, topic, strategyId, msgs.size());
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
@@ -418,7 +438,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                         continueConsume = false;
                     } else {
                         commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
-                        commitStageOffset = getCurrentStageOffset(messageQueue, topic).get();
+                        commitStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId).get();
                     }
                     break;
                 default:
@@ -431,7 +451,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                     break;
                 case COMMIT:
                     commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
-                    commitStageOffset = getCurrentStageOffset(messageQueue, topic).get();
+                    commitStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId).get();
                     break;
                 case ROLLBACK:
                     consumeRequest.getProcessQueue().rollback();
@@ -442,7 +462,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                     continueConsume = false;
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                    decrementCurrentStageOffset(messageQueue, topic, msgs.size());
+                    decrementCurrentStageOffset(messageQueue, topic, strategyId, msgs.size());
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
@@ -462,7 +482,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(messageQueue, commitOffset, false);
         }
         if (stageOffsetStore != null && commitStageOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
-            stageOffsetStore.updateStageOffset(messageQueue, commitStageOffset, false);
+            stageOffsetStore.updateStageOffset(messageQueue, strategyId, commitStageOffset, false);
         }
 
         return continueConsume;
@@ -582,25 +602,24 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
 
                         final int consumeBatchSize =
                             ConsumeMessageStagedConcurrentlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
-                        int currentLeftoverStage = ConsumeMessageStagedConcurrentlyService.this.getCurrentLeftoverStage(this.messageQueue, topic);
                         int takeSize = ConsumeMessageStagedConcurrentlyService.this.pullBatchSize * consumeBatchSize;
-                        if (0 < currentLeftoverStage && currentLeftoverStage < takeSize) {
-                            takeSize = currentLeftoverStage;
-                        }
-
                         List<MessageExt> msgs = this.processQueue.takeMessages(takeSize);
                         defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, defaultMQPushConsumer.getConsumerGroup());
                         if (!msgs.isEmpty()) {
-                            List<List<MessageExt>> lists = UtilAll.partition(msgs, consumeBatchSize);
-                            for (final List<MessageExt> list : lists) {
-                                int currentLeftoverStageIndex =
-                                    ConsumeMessageStagedConcurrentlyService.this.getCurrentLeftoverStageIndexAndUpdate(this.messageQueue, topic, list.size());
-                                ConsumeRequest consumeRequest = new ConsumeRequest(list, this.processQueue, this.messageQueue,
-                                    continueConsume, currentLeftoverStageIndex);
-                                if (currentLeftoverStageIndex >= 0) {
-                                    engine.runPriorityAsync(currentLeftoverStageIndex, consumeRequest);
-                                } else {
-                                    engine.runPriorityAsync(consumeRequest);
+                            Map<String, List<MessageExt>> messageGroupByStrategyId = removeAllMessagesInTheNextStage(topic, msgs);
+                            Map<String, List<List<MessageExt>>> messagesCanConsume = UtilAll.partition(messageGroupByStrategyId, consumeBatchSize);
+                            for (Map.Entry<String, List<List<MessageExt>>> entry : messagesCanConsume.entrySet()) {
+                                String strategyId = entry.getKey();
+                                List<List<MessageExt>> lists = entry.getValue();
+                                for (final List<MessageExt> list : lists) {
+                                    int currentLeftoverStageIndex =
+                                        ConsumeMessageStagedConcurrentlyService.this.getCurrentLeftoverStageIndexAndUpdate(this.messageQueue, topic, strategyId, list.size());
+                                    ConsumeRequest consumeRequest = new ConsumeRequest(list, this.processQueue, this.messageQueue, continueConsume, currentLeftoverStageIndex, strategyId);
+                                    if (currentLeftoverStageIndex >= 0) {
+                                        engine.runPriorityAsync(currentLeftoverStageIndex, consumeRequest);
+                                    } else {
+                                        engine.runPriorityAsync(consumeRequest);
+                                    }
                                 }
                             }
                         } else {
@@ -618,6 +637,33 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             }
         }
 
+        private Map<String, List<MessageExt>> removeAllMessagesInTheNextStage(String topic, List<MessageExt> msgs) {
+            Map<MessageExt, String> mapping = messageListener.computeStrategyMapping(msgs);
+            Map<String, List<MessageExt>> messageGroupByStrategyId = new HashMap<>();
+            for (Map.Entry<MessageExt, String> entry : mapping.entrySet()) {
+                MessageExt message = entry.getKey();
+                String strategyId = entry.getValue();
+                List<MessageExt> messages = messageGroupByStrategyId.get(strategyId);
+                if (null == messages) {
+                    messages = new LinkedList<>();
+                }
+                messages.add(message);
+                messageGroupByStrategyId.put(strategyId, messages);
+            }
+            List<MessageExt> needToRemove = new LinkedList<>();
+            for (Map.Entry<String, List<MessageExt>> entry : messageGroupByStrategyId.entrySet()) {
+                String strategyId = entry.getKey();
+                List<MessageExt> messages = entry.getValue();
+                int leftoverStage = ConsumeMessageStagedConcurrentlyService.this.getCurrentLeftoverStage(this.messageQueue, topic, strategyId);
+                int size = messages.size();
+                if (size <= leftoverStage) {
+                    continue;
+                }
+                needToRemove.addAll(messages.subList(leftoverStage, size));
+            }
+            msgs.removeAll(needToRemove);
+            return messageGroupByStrategyId;
+        }
     }
 
     class ConsumeRequest implements Runnable {
@@ -626,17 +672,20 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         private final MessageQueue messageQueue;
         private final AtomicBoolean continueConsume;
         private final int currentLeftoverStageIndex;
+        private final String strategyId;
 
         public ConsumeRequest(List<MessageExt> msgs,
             ProcessQueue processQueue,
             MessageQueue messageQueue,
             AtomicBoolean continueConsume,
-            int currentLeftoverStage) {
+            int currentLeftoverStage,
+            String strategyId) {
             this.msgs = msgs;
             this.processQueue = processQueue;
             this.messageQueue = messageQueue;
             this.continueConsume = continueConsume;
             this.currentLeftoverStageIndex = currentLeftoverStage;
+            this.strategyId = strategyId;
         }
 
         public ProcessQueue getProcessQueue() {
@@ -693,8 +742,8 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             } finally {
                 this.processQueue.getConsumeLock().unlock();
             }
-            messageListener.resetCurrentStageOffsetIfNeed(topic,
-                ConsumeMessageStagedConcurrentlyService.this.getCurrentStageOffset(messageQueue, topic));
+            messageListener.resetCurrentStageOffsetIfNeed(topic, strategyId,
+                ConsumeMessageStagedConcurrentlyService.this.getCurrentStageOffset(messageQueue, topic, strategyId));
 
             if (null == status
                 || ConsumeOrderlyStatus.ROLLBACK == status
@@ -737,7 +786,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
 
             ConsumeMessageStagedConcurrentlyService.this.getConsumerStatsManager()
                 .incConsumeRT(ConsumeMessageStagedConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
-            continueConsume.set(ConsumeMessageStagedConcurrentlyService.this.processConsumeResult(msgs, status, context, this)
+            continueConsume.set(ConsumeMessageStagedConcurrentlyService.this.processConsumeResult(strategyId, msgs, status, context, this)
                 && continueConsume.get());
         }
     }

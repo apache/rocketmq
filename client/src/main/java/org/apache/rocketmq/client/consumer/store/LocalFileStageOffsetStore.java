@@ -75,7 +75,7 @@ public class LocalFileStageOffsetStore implements StageOffsetStore {
     }
 
     @Override
-    public void updateStageOffset(MessageQueue mq, int stageOffset, boolean increaseOnly) {
+    public void updateStageOffset(MessageQueue mq, String strategyId, int stageOffset, boolean increaseOnly) {
         if (mq != null) {
             AtomicInteger offsetOld = this.offsetTable.get(mq);
             if (null == offsetOld) {
@@ -115,7 +115,7 @@ public class LocalFileStageOffsetStore implements StageOffsetStore {
                     if (stageOffsetSerializeWrapper != null && stageOffsetSerializeWrapper.getOffsetTable() != null) {
                         AtomicInteger offset = stageOffsetSerializeWrapper.getOffsetTable().get(mq);
                         if (offset != null) {
-                            this.updateStageOffset(mq, offset.get(), false);
+                            this.updateStageOffset(mq, strategyId, offset.get(), false);
                             return offset.get();
                         }
                     }
