@@ -631,7 +631,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                                     if (currentLeftoverStageIndex >= 0) {
                                         engine.runPriorityAsync(currentLeftoverStageIndex, consumeRequest);
                                     } else {
-                                        //strategyId为null也会走这个case
+                                        //If the strategy Id is null, it will go in this case
                                         engine.runPriorityAsync(consumeRequest);
                                     }
                                 }
@@ -660,7 +660,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                 } catch (Exception e) {
                     throw new RuntimeException("computeStrategy failed with exception:" + e.getMessage() + " !");
                 }
-                //null的key，表示直接走并发
+                //null key means direct concurrency
                 List<MessageExt> messages = messageGroupByStrategyId.putIfAbsent(strategyId, new CopyOnWriteArrayList<>());
                 if (null == messages) {
                     messages = messageGroupByStrategyId.get(strategyId);
