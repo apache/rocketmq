@@ -36,6 +36,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32;
@@ -622,7 +623,7 @@ public class UtilAll {
     }
 
     public static <K, T> Map<K, List<List<T>>> partition(Map<K, List<T>> map, int size) {
-        Map<K, List<List<T>>> newMap = new HashMap<>();
+        Map<K, List<List<T>>> newMap = new LinkedHashMap<>();
         if (MapUtils.isEmpty(map)) {
             return newMap;
         }

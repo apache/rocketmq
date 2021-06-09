@@ -24,34 +24,24 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Local storage implementation
  */
-public class LocalFileStageOffsetStore implements StageOffsetStore {
+public class LocalFileStageOffsetStore extends AbstractStageOffsetStore {
     public final static String LOCAL_OFFSET_STORE_DIR = System.getProperty(
         "rocketmq.client.localOffsetStoreDir",
         System.getProperty("user.home") + File.separator + ".rocketmq_stage_offsets");
-    private final static InternalLogger log = ClientLogger.getLog();
-    private final MQClientInstance mQClientFactory;
-    private final String groupName;
     private final String storePath;
-    private ConcurrentMap<MessageQueue, AtomicInteger> offsetTable =
-        new ConcurrentHashMap<MessageQueue, AtomicInteger>();
-
-    public LocalFileStageOffsetStore(MQClientInstance mQClientFactory, String groupName) {
-        this.mQClientFactory = mQClientFactory;
-        this.groupName = groupName;
+    public LocalFileStageOffsetStore(MQClientInstance mqClientFactory, String groupName) {
+        super(mqClientFactory,groupName);
         this.storePath = LOCAL_OFFSET_STORE_DIR + File.separator +
             this.mQClientFactory.getClientId() + File.separator +
             this.groupName + File.separator +
@@ -63,46 +53,32 @@ public class LocalFileStageOffsetStore implements StageOffsetStore {
         StageOffsetSerializeWrapper stageOffsetSerializeWrapper = this.readLocalOffset();
         if (stageOffsetSerializeWrapper != null && stageOffsetSerializeWrapper.getOffsetTable() != null) {
             offsetTable.putAll(stageOffsetSerializeWrapper.getOffsetTable());
-
-            for (MessageQueue mq : stageOffsetSerializeWrapper.getOffsetTable().keySet()) {
-                AtomicInteger offset = stageOffsetSerializeWrapper.getOffsetTable().get(mq);
-                log.info("load consumer's offset, {} {} {}",
-                    this.groupName,
-                    mq,
-                    offset.get());
-            }
-        }
-    }
-
-    @Override
-    public void updateStageOffset(MessageQueue mq, String strategyId, int stageOffset, boolean increaseOnly) {
-        if (mq != null) {
-            AtomicInteger offsetOld = this.offsetTable.get(mq);
-            if (null == offsetOld) {
-                offsetOld = this.offsetTable.putIfAbsent(mq, new AtomicInteger(stageOffset));
-            }
-
-            if (null != offsetOld) {
-                if (increaseOnly) {
-                    MixAll.compareAndIncreaseOnly(offsetOld, stageOffset);
-                } else {
-                    offsetOld.set(stageOffset);
+            for (Map.Entry<MessageQueue, ConcurrentMap<String, AtomicInteger>> entry : stageOffsetSerializeWrapper.getOffsetTable().entrySet()) {
+                MessageQueue mq = entry.getKey();
+                for (Map.Entry<String, AtomicInteger> innerEntry : entry.getValue().entrySet()) {
+                    String strategyId = innerEntry.getKey();
+                    AtomicInteger offset = innerEntry.getValue();
+                    log.info("load consumer's offset, {} {} {} {}",
+                        this.groupName,
+                        mq,
+                        strategyId,
+                        offset.get());
                 }
             }
         }
     }
 
     @Override
-    public int readStageOffset(final MessageQueue mq, final ReadOffsetType type) {
+    public Map<String, Integer> readStageOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
             switch (type) {
                 case MEMORY_FIRST_THEN_STORE:
                 case READ_FROM_MEMORY: {
-                    AtomicInteger offset = this.offsetTable.get(mq);
-                    if (offset != null) {
-                        return offset.get();
+                    ConcurrentMap<String, AtomicInteger> map = this.offsetTable.get(mq);
+                    if (map != null) {
+                        return convert(map);
                     } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
-                        return -1;
+                        return new HashMap<>();
                     }
                 }
                 case READ_FROM_STORE: {
@@ -110,13 +86,17 @@ public class LocalFileStageOffsetStore implements StageOffsetStore {
                     try {
                         stageOffsetSerializeWrapper = this.readLocalOffset();
                     } catch (MQClientException e) {
-                        return -1;
+                        return new HashMap<>();
                     }
                     if (stageOffsetSerializeWrapper != null && stageOffsetSerializeWrapper.getOffsetTable() != null) {
-                        AtomicInteger offset = stageOffsetSerializeWrapper.getOffsetTable().get(mq);
-                        if (offset != null) {
-                            this.updateStageOffset(mq, strategyId, offset.get(), false);
-                            return offset.get();
+                        ConcurrentMap<String, AtomicInteger> map = stageOffsetSerializeWrapper.getOffsetTable().get(mq);
+                        if (map != null) {
+                            for (Map.Entry<String, AtomicInteger> entry : map.entrySet()) {
+                                String strategyId = entry.getKey();
+                                AtomicInteger offset = entry.getValue();
+                                this.updateStageOffset(mq, strategyId, offset.get(), false);
+                            }
+                            return convert(map);
                         }
                     }
                 }
@@ -125,7 +105,7 @@ public class LocalFileStageOffsetStore implements StageOffsetStore {
             }
         }
 
-        return -1;
+        return new HashMap<>();
     }
 
     @Override
@@ -135,9 +115,9 @@ public class LocalFileStageOffsetStore implements StageOffsetStore {
         }
 
         StageOffsetSerializeWrapper stageOffsetSerializeWrapper = new StageOffsetSerializeWrapper();
-        for (Map.Entry<MessageQueue, AtomicInteger> entry : this.offsetTable.entrySet()) {
+        for (Map.Entry<MessageQueue, ConcurrentMap<String, AtomicInteger>> entry : this.offsetTable.entrySet()) {
             if (mqs.contains(entry.getKey())) {
-                AtomicInteger offset = entry.getValue();
+                ConcurrentMap<String, AtomicInteger> offset = entry.getValue();
                 stageOffsetSerializeWrapper.getOffsetTable().put(entry.getKey(), offset);
             }
         }
@@ -150,35 +130,6 @@ public class LocalFileStageOffsetStore implements StageOffsetStore {
                 log.error("persistAll consumer offset Exception, " + this.storePath, e);
             }
         }
-    }
-
-    @Override
-    public void persist(MessageQueue mq) {
-    }
-
-    @Override
-    public void removeStageOffset(MessageQueue mq) {
-
-    }
-
-    @Override
-    public void updateConsumeStageOffsetToBroker(final MessageQueue mq, final int stageOffset, final boolean isOneway)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-
-    }
-
-    @Override
-    public Map<MessageQueue, Integer> cloneStageOffsetTable(String topic) {
-        Map<MessageQueue, Integer> cloneOffsetTable = new HashMap<MessageQueue, Integer>();
-        for (Map.Entry<MessageQueue, AtomicInteger> entry : this.offsetTable.entrySet()) {
-            MessageQueue mq = entry.getKey();
-            if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
-                continue;
-            }
-            cloneOffsetTable.put(mq, entry.getValue().get());
-
-        }
-        return cloneOffsetTable;
     }
 
     private StageOffsetSerializeWrapper readLocalOffset() throws MQClientException {

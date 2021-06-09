@@ -20,23 +20,24 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import java.util.Map;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class QueryConsumerStageOffsetResponseHeader implements CommandCustomHeader {
     @CFNullable
-    private Integer stageOffset;
+    private Map<String, Integer> stageOffset;
 
     @Override
     public void checkFields() throws RemotingCommandException {
     }
 
-    public Integer getStageOffset() {
-        return stageOffset == null ? -1 : stageOffset;
+    public Map<String, Integer> getStageOffset() {
+        return stageOffset;
     }
 
-    public void setStageOffset(Integer stageOffset) {
+    public void setStageOffset(Map<String, Integer> stageOffset) {
         this.stageOffset = stageOffset;
     }
 }

@@ -18,6 +18,8 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
+import java.util.Map;
+import org.apache.commons.collections.MapUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -168,7 +170,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             (UpdateConsumerStageOffsetRequestHeader) request
                 .decodeCommandCustomHeader(UpdateConsumerStageOffsetRequestHeader.class);
         this.brokerController.getConsumerStageOffsetManager().commitStageOffset(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
-            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitStageOffset());
+            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getStrategyId(), requestHeader.getCommitStageOffset());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
@@ -184,11 +186,11 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             (QueryConsumerStageOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerStageOffsetRequestHeader.class);
 
-        int offset =
+        Map<String, Integer> offset =
             this.brokerController.getConsumerStageOffsetManager().queryStageOffset(
                 requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
 
-        if (offset >= 0) {
+        if (MapUtils.isNotEmpty(offset)) {
             responseHeader.setStageOffset(offset);
             response.setCode(ResponseCode.SUCCESS);
         } else {

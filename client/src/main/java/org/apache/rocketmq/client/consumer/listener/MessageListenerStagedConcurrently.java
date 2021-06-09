@@ -42,22 +42,27 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
         final ConsumeStagedConcurrentlyContext context);
 
     /**
-     * If returns empty list or null, {@link MessageListenerStagedConcurrently} will degenerate into {@link
+     * The Map structure here is mainly for a consumer to support multiple phased concurrency strategies at the same
+     * time.The following are specific instructions:
+     * <p>
+     * key:user can customize the strategy id.
+     * <p>
+     * value: If returns empty list or null, {@link MessageListenerStagedConcurrently} will degenerate into {@link
      * MessageListenerConcurrently}; If returns a collection whose elements are all 1, {@link
      * MessageListenerStagedConcurrently} will temporarily evolve into {@link MessageListenerOrderly};
      *
-     * @see MessageListenerStagedConcurrently#computeStrategyMapping(java.util.List)
+     * @see MessageListenerStagedConcurrently#computeStrategy(org.apache.rocketmq.common.message.MessageExt)
      */
     Map<String/*strategyId*/, List<Integer>/*StageDefinition*/> getStageDefinitionStrategies();
 
     /**
-     * According to which strategy is used for message calculation, only the calculated strategy id is in the return
-     * result of this method, the message will go through the logic of phased concurrency, otherwise it will be directly
-     * concurrent.
+     * Calculate to which strategy is used for message ,if return null, the message of this method input will be
+     * directly concurrently consume, otherwise the message will be phased concurrently consume.
      *
+     * @return strategyId
      * @see MessageListenerStagedConcurrently#getStageDefinitionStrategies()
      */
-    Map<MessageExt, String/*strategyId*/> computeStrategyMapping(List<MessageExt> messages);
+    String computeStrategy(MessageExt message);
 
     /**
      * can be used to reset the current stage by CAS

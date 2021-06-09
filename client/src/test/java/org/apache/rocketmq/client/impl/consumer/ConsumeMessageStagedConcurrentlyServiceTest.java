@@ -33,6 +33,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.CMResult;
+import org.assertj.core.util.Maps;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
@@ -71,7 +72,12 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
                 }
 
                 @Override
-                public List<Integer> getStageDefinitionStrategies() {
+                public Map<String, List<Integer>> getStageDefinitionStrategies() {
+                    return null;
+                }
+
+                @Override
+                public String computeStrategy(MessageExt message) {
                     return null;
                 }
             };
@@ -94,7 +100,12 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             }
 
             @Override
-            public List<Integer> getStageDefinitionStrategies() {
+            public Map<String, List<Integer>> getStageDefinitionStrategies() {
+                return null;
+            }
+
+            @Override
+            public String computeStrategy(MessageExt message) {
                 return null;
             }
         };
@@ -150,12 +161,17 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             }
 
             @Override
-            public List<Integer> getStageDefinitionStrategies() {
+            public Map<String, List<Integer>> getStageDefinitionStrategies() {
                 List<Integer> list = new ArrayList<>();
                 for (int i = 0; i < 10000; i++) {
                     list.add(1);
                 }
-                return list;
+                return Maps.newHashMap("1", list);
+            }
+
+            @Override
+            public String computeStrategy(MessageExt message) {
+                return "1";
             }
         });
         consumer.start();
@@ -209,9 +225,15 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             }
 
             @Override
-            public List<Integer> getStageDefinitionStrategies() {
+            public Map<String, List<Integer>> getStageDefinitionStrategies() {
                 return null;
             }
+
+            @Override
+            public String computeStrategy(MessageExt message) {
+                return null;
+            }
+
         });
         consumer.start();
         //please change to a larger millis when running local
@@ -272,13 +294,83 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
              * to concurrently consumer.
              */
             @Override
-            public List<Integer> getStageDefinitionStrategies() {
+            public Map<String, List<Integer>> getStageDefinitionStrategies() {
                 List<Integer> list = new ArrayList<>();
                 for (int i = 1; i <= 10; i++) {
                     list.add(i);
                 }
-                return list;
+                return Maps.newHashMap("1",list);
             }
+
+            @Override
+            public String computeStrategy(MessageExt message) {
+                return "1";
+            }
+        });
+        consumer.start();
+        //please change to a larger millis when running local
+        Thread.sleep(10000);
+        consumer.shutdown();
+    }
+
+    //@Test
+    public void test06DirectConcurrently() throws Throwable {
+        DefaultMQProducer producer = new DefaultMQProducer(consumerGroup);
+        producer.setNamesrvAddr("localhost:9876");
+        producer.start();
+        System.out.println("producer started !");
+
+        for (int i = 0; i < 100; i++) {
+            Message message = new Message(topic + "1",
+                "ssss1",
+                ("AsyncProducer1 say " + i).getBytes());
+
+            SendResult result = producer.send(message, new MessageQueueSelector() {
+                @Override
+                public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                    return mqs.get(0);
+                }
+            }, i);
+            System.out.println(result);
+        }
+        producer.shutdown();
+
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
+        int pullBatchSize = consumer.getPullBatchSize();
+        int poolSize = 4 * pullBatchSize;
+        consumer.setConsumeThreadMin(poolSize);
+        consumer.setConsumeThreadMax(poolSize);
+        consumer.setNamesrvAddr("localhost:9876");
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        consumer.subscribe(topic + "1", "ssss1");
+        consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
+            @Override
+            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeStagedConcurrentlyContext context) {
+                try {
+                    Thread.sleep(new Random().nextInt(20));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                MessageExt messageExt = msgs.get(0);
+                System.out.println(context.getStageIndex() + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
+                return ConsumeOrderlyStatus.SUCCESS;
+            }
+
+            @Override
+            public Map<String, List<Integer>> getStageDefinitionStrategies() {
+                List<Integer> list = new ArrayList<>();
+                for (int i = 0; i < 10000; i++) {
+                    list.add(1);
+                }
+                return Maps.newHashMap("1", list);
+            }
+
+            @Override
+            public String computeStrategy(MessageExt message) {
+                return null;
+            }
+
         });
         consumer.start();
         //please change to a larger millis when running local

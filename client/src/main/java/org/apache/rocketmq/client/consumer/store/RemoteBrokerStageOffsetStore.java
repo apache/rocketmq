@@ -20,86 +20,57 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerStageOffsetRequestHeader;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Remote storage implementation
  */
-public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
-    private final static InternalLogger log = ClientLogger.getLog();
-    private final MQClientInstance mQClientFactory;
-    private final String groupName;
-    private ConcurrentMap<MessageQueue, AtomicInteger> offsetTable =
-        new ConcurrentHashMap<MessageQueue, AtomicInteger>();
+public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
 
-    public RemoteBrokerStageOffsetStore(MQClientInstance mQClientFactory, String groupName) {
-        this.mQClientFactory = mQClientFactory;
-        this.groupName = groupName;
+    public RemoteBrokerStageOffsetStore(MQClientInstance mqClientFactory, String groupName) {
+        super(mqClientFactory, groupName);
     }
 
     @Override
-    public void load() {
-    }
-
-    @Override
-    public void updateStageOffset(MessageQueue mq, String strategyId, int stageOffset, boolean increaseOnly) {
-        if (mq != null) {
-            AtomicInteger offsetOld = this.offsetTable.get(mq);
-            if (null == offsetOld) {
-                offsetOld = this.offsetTable.putIfAbsent(mq, new AtomicInteger(stageOffset));
-            }
-
-            if (null != offsetOld) {
-                if (increaseOnly) {
-                    MixAll.compareAndIncreaseOnly(offsetOld, stageOffset);
-                } else {
-                    offsetOld.set(stageOffset);
-                }
-            }
-        }
-    }
-
-    @Override
-    public int readStageOffset(final MessageQueue mq, final ReadOffsetType type) {
+    public Map<String, Integer> readStageOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
             switch (type) {
                 case MEMORY_FIRST_THEN_STORE:
                 case READ_FROM_MEMORY: {
-                    AtomicInteger offset = this.offsetTable.get(mq);
-                    if (offset != null) {
-                        return offset.get();
+                    ConcurrentMap<String, AtomicInteger> map = this.offsetTable.get(mq);
+                    if (map != null) {
+                        return convert(map);
                     } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
-                        return -1;
+                        return new HashMap<>();
                     }
                 }
                 case READ_FROM_STORE: {
                     try {
-                        int brokerOffset = this.fetchConsumeStageOffsetFromBroker(mq);
-                        this.updateStageOffset(mq, strategyId, brokerOffset, false);
-                        return brokerOffset;
+                        Map<String, Integer> map = this.fetchConsumeStageOffsetFromBroker(mq);
+                        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                            String strategyId = entry.getKey();
+                            Integer brokerOffset = entry.getValue();
+                            this.updateStageOffset(mq, strategyId, brokerOffset, false);
+                        }
+                        return map;
                     }
                     // No stage offset in broker
                     catch (MQBrokerException e) {
-                        return -1;
+                        return new HashMap<>();
                     }
                     //Other exceptions
                     catch (Exception e) {
                         log.warn("fetchConsumeOffsetFromBroker exception, " + mq, e);
-                        return -2;
+                        return null;
                     }
                 }
                 default:
@@ -107,7 +78,7 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
             }
         }
 
-        return -1;
+        return new HashMap<>();
     }
 
     @Override
@@ -116,31 +87,36 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
             return;
         }
 
-        final HashSet<MessageQueue> unusedMQ = new HashSet<MessageQueue>();
+        final HashSet<MessageQueue> unusedMq = new HashSet<MessageQueue>();
 
-        for (Map.Entry<MessageQueue, AtomicInteger> entry : this.offsetTable.entrySet()) {
+        for (Map.Entry<MessageQueue, ConcurrentMap<String, AtomicInteger>> entry : this.offsetTable.entrySet()) {
             MessageQueue mq = entry.getKey();
-            AtomicInteger offset = entry.getValue();
-            if (offset != null) {
+            ConcurrentMap<String, AtomicInteger> map = entry.getValue();
+            if (map != null) {
                 if (mqs.contains(mq)) {
                     try {
-                        this.updateConsumeStageOffsetToBroker(mq, offset.get());
-                        log.info("[persistAll] Group: {} ClientId: {} updateConsumeStageOffsetToBroker {} {}",
-                            this.groupName,
-                            this.mQClientFactory.getClientId(),
-                            mq,
-                            offset.get());
+                        for (Map.Entry<String, AtomicInteger> integerEntry : map.entrySet()) {
+                            String strategyId = integerEntry.getKey();
+                            AtomicInteger offset = integerEntry.getValue();
+                            this.updateConsumeStageOffsetToBroker(mq, strategyId, offset.get());
+                            log.info("[persistAll] Group: {} ClientId: {} updateConsumeStageOffsetToBroker {} {} {}",
+                                this.groupName,
+                                this.mQClientFactory.getClientId(),
+                                mq,
+                                strategyId,
+                                offset.get());
+                        }
                     } catch (Exception e) {
                         log.error("updateConsumeStageOffsetToBroker exception, " + mq.toString(), e);
                     }
                 } else {
-                    unusedMQ.add(mq);
+                    unusedMq.add(mq);
                 }
             }
         }
 
-        if (!unusedMQ.isEmpty()) {
-            for (MessageQueue mq : unusedMQ) {
+        if (!unusedMq.isEmpty()) {
+            for (MessageQueue mq : unusedMq) {
                 this.offsetTable.remove(mq);
                 log.info("remove unused mq, {}, {}", mq, this.groupName);
             }
@@ -149,15 +125,20 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
 
     @Override
     public void persist(MessageQueue mq) {
-        AtomicInteger offset = this.offsetTable.get(mq);
-        if (offset != null) {
+        ConcurrentMap<String, AtomicInteger> map = this.offsetTable.get(mq);
+        if (map != null) {
             try {
-                this.updateConsumeStageOffsetToBroker(mq, offset.get());
-                log.info("[persist] Group: {} ClientId: {} updateConsumeStageOffsetToBroker {} {}",
-                    this.groupName,
-                    this.mQClientFactory.getClientId(),
-                    mq,
-                    offset.get());
+                for (Map.Entry<String, AtomicInteger> entry : map.entrySet()) {
+                    String strategyId = entry.getKey();
+                    AtomicInteger offset = entry.getValue();
+                    this.updateConsumeStageOffsetToBroker(mq, strategyId, offset.get());
+                    log.info("[persist] Group: {} ClientId: {} updateConsumeStageOffsetToBroker {} {} {}",
+                        this.groupName,
+                        this.mQClientFactory.getClientId(),
+                        mq,
+                        strategyId,
+                        offset.get());
+                }
             } catch (Exception e) {
                 log.error("updateConsumeStageOffsetToBroker exception, " + mq.toString(), e);
             }
@@ -173,26 +154,14 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
         }
     }
 
-    @Override
-    public Map<MessageQueue, Integer> cloneStageOffsetTable(String topic) {
-        Map<MessageQueue, Integer> cloneOffsetTable = new HashMap<MessageQueue, Integer>();
-        for (Map.Entry<MessageQueue, AtomicInteger> entry : this.offsetTable.entrySet()) {
-            MessageQueue mq = entry.getKey();
-            if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
-                continue;
-            }
-            cloneOffsetTable.put(mq, entry.getValue().get());
-        }
-        return cloneOffsetTable;
-    }
-
     /**
      * Update the Consumer Stage Offset in one way, once the Master is off, updated to Slave, here need to be
      * optimized.
      */
-    private void updateConsumeStageOffsetToBroker(MessageQueue mq, int stageOffset) throws RemotingException,
+    private void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId,
+        int stageOffset) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
-        updateConsumeStageOffsetToBroker(mq, stageOffset, true);
+        updateConsumeStageOffsetToBroker(mq, strategyId, stageOffset, true);
     }
 
     /**
@@ -200,7 +169,7 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
      * optimized.
      */
     @Override
-    public void updateConsumeStageOffsetToBroker(MessageQueue mq, int offset,
+    public void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId, int offset,
         boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
@@ -214,6 +183,7 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
             requestHeader.setTopic(mq.getTopic());
             requestHeader.setConsumerGroup(this.groupName);
             requestHeader.setQueueId(mq.getQueueId());
+            requestHeader.setStrategyId(strategyId);
             requestHeader.setCommitStageOffset(offset);
 
             if (isOneway) {
@@ -228,7 +198,8 @@ public class RemoteBrokerStageOffsetStore implements StageOffsetStore {
         }
     }
 
-    private int fetchConsumeStageOffsetFromBroker(MessageQueue mq) throws RemotingException, MQBrokerException,
+    private Map<String, Integer> fetchConsumeStageOffsetFromBroker(
+        MessageQueue mq) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {

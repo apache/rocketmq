@@ -19,13 +19,14 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -88,17 +89,20 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
         this.summedStageDefinitionMap = new HashMap<>();
-        for (Map.Entry<String, List<Integer>> entry : messageListener.getStageDefinitionStrategies().entrySet()) {
-            String strategyId = entry.getKey();
-            List<Integer> definitions = entry.getValue();
-            List<Integer> summedStageDefinitions = new ArrayList<>();
-            if (definitions != null) {
-                int sum = 0;
-                for (Integer stageDefinition : definitions) {
-                    summedStageDefinitions.add(sum = sum + stageDefinition);
+        Map<String, List<Integer>> strategies = messageListener.getStageDefinitionStrategies();
+        if (MapUtils.isNotEmpty(strategies)) {
+            for (Map.Entry<String, List<Integer>> entry : strategies.entrySet()) {
+                String strategyId = entry.getKey();
+                List<Integer> definitions = entry.getValue();
+                List<Integer> summedStageDefinitions = new ArrayList<>();
+                if (definitions != null) {
+                    int sum = 0;
+                    for (Integer stageDefinition : definitions) {
+                        summedStageDefinitions.add(sum = sum + stageDefinition);
+                    }
                 }
+                summedStageDefinitionMap.put(strategyId, summedStageDefinitions);
             }
-            summedStageDefinitionMap.put(strategyId, summedStageDefinitions);
         }
 
         this.stageOffsetStore = this.defaultMQPushConsumerImpl.getStageOffsetStore();
@@ -161,15 +165,31 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
     }
 
     public AtomicInteger getCurrentStageOffset(MessageQueue messageQueue, String topic, String strategyId) {
+        if (null == strategyId) {
+            return new AtomicInteger(-1);
+        }
         ConcurrentMap<String, AtomicInteger> indexs = currentStageOffsetMap.get(topic);
         if (null == indexs) {
             ConcurrentMap<String, AtomicInteger> stageOffset = stageOffsetStore == null ?
-                new ConcurrentHashMap<>() : stageOffsetStore.readStageOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
+                new ConcurrentHashMap<>() : convert(stageOffsetStore.readStageOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE));
             currentStageOffsetMap.putIfAbsent(topic, stageOffset);
             indexs = currentStageOffsetMap.get(topic);
         }
-        AtomicInteger index = indexs.get(strategyId);
-        return index == null ? new AtomicInteger(-1) : index;
+        indexs.putIfAbsent(strategyId, new AtomicInteger(0));
+        return indexs.get(strategyId);
+    }
+
+    private ConcurrentMap<String, AtomicInteger> convert(Map<String, Integer> original) {
+        if (null == original) {
+            return new ConcurrentHashMap<>();
+        }
+        ConcurrentMap<String, AtomicInteger> map = new ConcurrentHashMap<>(original.size());
+        for (Map.Entry<String, Integer> entry : original.entrySet()) {
+            String key = entry.getKey();
+            Integer value = entry.getValue();
+            map.put(key, new AtomicInteger(value));
+        }
+        return map;
     }
 
     public int getCurrentLeftoverStage(MessageQueue messageQueue, String topic, String strategyId) {
@@ -280,20 +300,15 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         }
 
         try {
-            Map<MessageExt, String> mapping = this.messageListener.computeStrategyMapping(msgs);
-            if (MapUtils.isNotEmpty(mapping)) {
-                Map<String, Integer> stageIndexInfo = new HashMap<>();
-                for (Map.Entry<MessageExt, String> entry : mapping.entrySet()) {
-                    String strategyId = entry.getValue();
-                    int currentLeftoverStageIndex = this.getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, strategyId);
-                    stageIndexInfo.put(strategyId, currentLeftoverStageIndex);
-                }
-                String strategyId = mapping.get(msg);
-                if (StringUtils.isNotBlank(strategyId)) {
-                    Integer stageIndex = stageIndexInfo.get(strategyId);
-                    context.setStrategyId(strategyId);
-                    context.setStageIndex(stageIndex == null ? -1 : stageIndex);
-                }
+            String strategyId = null;
+            try {
+                strategyId = this.messageListener.computeStrategy(msg);
+            } catch (Exception ignored) {
+            }
+            if (StringUtils.isNotBlank(strategyId)) {
+                int stageIndex = this.getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, strategyId);
+                context.setStrategyId(strategyId);
+                context.setStageIndex(stageIndex);
             }
             ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context);
             if (status != null) {
@@ -308,9 +323,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                         result.setConsumeResult(CMResult.CR_SUCCESS);
                         break;
                     case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                        for (String strategyId : mapping.values()) {
-                            decrementCurrentStageOffset(messageQueue, topic, strategyId);
-                        }
+                        decrementCurrentStageOffset(messageQueue, topic, strategyId);
                         result.setConsumeResult(CMResult.CR_LATER);
                         break;
                     default:
@@ -604,20 +617,21 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                             ConsumeMessageStagedConcurrentlyService.this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
                         int takeSize = ConsumeMessageStagedConcurrentlyService.this.pullBatchSize * consumeBatchSize;
                         List<MessageExt> msgs = this.processQueue.takeMessages(takeSize);
-                        defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, defaultMQPushConsumer.getConsumerGroup());
                         if (!msgs.isEmpty()) {
-                            Map<String, List<MessageExt>> messageGroupByStrategyId = removeAllMessagesInTheNextStage(topic, msgs);
+                            Map<String, List<MessageExt>> messageGroupByStrategyId = removeAndRePutAllMessagesInTheNextStage(topic, msgs);
                             Map<String, List<List<MessageExt>>> messagesCanConsume = UtilAll.partition(messageGroupByStrategyId, consumeBatchSize);
                             for (Map.Entry<String, List<List<MessageExt>>> entry : messagesCanConsume.entrySet()) {
                                 String strategyId = entry.getKey();
                                 List<List<MessageExt>> lists = entry.getValue();
                                 for (final List<MessageExt> list : lists) {
+                                    defaultMQPushConsumerImpl.resetRetryAndNamespace(list, defaultMQPushConsumer.getConsumerGroup());
                                     int currentLeftoverStageIndex =
                                         ConsumeMessageStagedConcurrentlyService.this.getCurrentLeftoverStageIndexAndUpdate(this.messageQueue, topic, strategyId, list.size());
                                     ConsumeRequest consumeRequest = new ConsumeRequest(list, this.processQueue, this.messageQueue, continueConsume, currentLeftoverStageIndex, strategyId);
                                     if (currentLeftoverStageIndex >= 0) {
                                         engine.runPriorityAsync(currentLeftoverStageIndex, consumeRequest);
                                     } else {
+                                        //strategyId为null也会走这个case
                                         engine.runPriorityAsync(consumeRequest);
                                     }
                                 }
@@ -637,31 +651,35 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             }
         }
 
-        private Map<String, List<MessageExt>> removeAllMessagesInTheNextStage(String topic, List<MessageExt> msgs) {
-            Map<MessageExt, String> mapping = messageListener.computeStrategyMapping(msgs);
-            Map<String, List<MessageExt>> messageGroupByStrategyId = new HashMap<>();
-            for (Map.Entry<MessageExt, String> entry : mapping.entrySet()) {
-                MessageExt message = entry.getKey();
-                String strategyId = entry.getValue();
-                List<MessageExt> messages = messageGroupByStrategyId.get(strategyId);
+        private Map<String, List<MessageExt>> removeAndRePutAllMessagesInTheNextStage(String topic, List<MessageExt> msgs) {
+            Map<String, List<MessageExt>> messageGroupByStrategyId = new LinkedHashMap<>();
+            for (MessageExt message : msgs) {
+                String strategyId = null;
+                try {
+                    strategyId = messageListener.computeStrategy(message);
+                } catch (Exception e) {
+                    throw new RuntimeException("computeStrategy failed with exception:" + e.getMessage() + " !");
+                }
+                //null的key，表示直接走并发
+                List<MessageExt> messages = messageGroupByStrategyId.putIfAbsent(strategyId, new CopyOnWriteArrayList<>());
                 if (null == messages) {
-                    messages = new LinkedList<>();
+                    messages = messageGroupByStrategyId.get(strategyId);
                 }
                 messages.add(message);
-                messageGroupByStrategyId.put(strategyId, messages);
             }
-            List<MessageExt> needToRemove = new LinkedList<>();
             for (Map.Entry<String, List<MessageExt>> entry : messageGroupByStrategyId.entrySet()) {
                 String strategyId = entry.getKey();
                 List<MessageExt> messages = entry.getValue();
                 int leftoverStage = ConsumeMessageStagedConcurrentlyService.this.getCurrentLeftoverStage(this.messageQueue, topic, strategyId);
                 int size = messages.size();
-                if (size <= leftoverStage) {
+                if (leftoverStage < 0 || size <= leftoverStage) {
                     continue;
                 }
-                needToRemove.addAll(messages.subList(leftoverStage, size));
+                List<MessageExt> list = messages.subList(leftoverStage, size);
+                //the messages must be put back here
+                this.processQueue.putMessage(list);
+                messages.removeAll(list);
             }
-            msgs.removeAll(needToRemove);
             return messageGroupByStrategyId;
         }
     }

@@ -17,7 +17,9 @@
 package org.apache.rocketmq.example.stage;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,12 +63,19 @@ public class StagedConcurrentlyConsumer {
             }
 
             @Override
-            public List<Integer> getStageDefinitionStrategies() {
+            public Map<String, List<Integer>> getStageDefinitionStrategies() {
                 List<Integer> list = new ArrayList<>();
                 for (int i = 1; i <= 50; i++) {
                     list.add(i);
                 }
-                return list;
+                Map<String,List<Integer>> map=new HashMap<>(1);
+                map.put("1",list);
+                return map;
+            }
+
+            @Override
+            public String computeStrategy(MessageExt message) {
+                return "1";
             }
 
             @Override

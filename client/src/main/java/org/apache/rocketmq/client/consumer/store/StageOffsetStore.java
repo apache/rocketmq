@@ -37,7 +37,7 @@ public interface StageOffsetStore {
     /**
      * Update the stage offset,store it in memory
      */
-    void updateStageOffset(final MessageQueue mq, String strategyId, final int stageOffset,
+    void updateStageOffset(final MessageQueue mq, final String strategyId, final int stageOffset,
         final boolean increaseOnly);
 
     /**
@@ -45,7 +45,7 @@ public interface StageOffsetStore {
      *
      * @return The fetched offset
      */
-    ConcurrentMap<String, AtomicInteger> readStageOffset(final MessageQueue mq, final ReadOffsetType type);
+    Map<String, Integer> readStageOffset(final MessageQueue mq, final ReadOffsetType type);
 
     /**
      * Persist all offsets,may be in local storage or remote name server
@@ -65,13 +65,14 @@ public interface StageOffsetStore {
     /**
      * @return The cloned stage offset table of given topic
      */
-    Map<MessageQueue, Integer> cloneStageOffsetTable(String topic);
+    Map<MessageQueue, Map<String, Integer>> cloneStageOffsetTable(String topic);
 
     /**
      * @param mq
      * @param stageOffset
      * @param isOneway
      */
-    void updateConsumeStageOffsetToBroker(MessageQueue mq, int stageOffset, boolean isOneway) throws RemotingException,
+    void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId, int stageOffset,
+        boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;
 }
