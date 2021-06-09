@@ -718,6 +718,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         public void run() {
             String topic = this.messageQueue.getTopic();
             ConsumeStagedConcurrentlyContext context = new ConsumeStagedConcurrentlyContext(this.messageQueue);
+            context.setStrategyId(strategyId);
             context.setStageIndex(currentLeftoverStageIndex);
             ConsumeOrderlyStatus status = null;
 
