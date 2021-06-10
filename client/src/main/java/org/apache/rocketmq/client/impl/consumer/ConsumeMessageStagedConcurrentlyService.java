@@ -218,10 +218,6 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         return -1;
     }
 
-    public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic, String strategyId) {
-        return getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, strategyId, 1);
-    }
-
     public int getCurrentLeftoverStageIndexAndUpdate(MessageQueue messageQueue, String topic, String strategyId,
         int delta) {
         final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic, strategyId);
@@ -231,17 +227,6 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             } finally {
                 offset.getAndAdd(delta);
             }
-        }
-    }
-
-    public int decrementCurrentStageOffset(MessageQueue messageQueue, String topic, String strategyId) {
-        return decrementCurrentStageOffset(messageQueue, topic, strategyId, 1);
-    }
-
-    public int decrementCurrentStageOffset(MessageQueue messageQueue, String topic, String strategyId, int delta) {
-        final AtomicInteger offset = getCurrentStageOffset(messageQueue, topic, strategyId);
-        synchronized (offset) {
-            return offset.getAndSet(offset.get() - delta);
         }
     }
 
@@ -303,13 +288,12 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             String strategyId = null;
             try {
                 strategyId = this.messageListener.computeStrategy(msg);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                log.error("computeStrategy failed with exception:" + e.getMessage() + " !");
             }
-            if (StringUtils.isNotBlank(strategyId)) {
-                int stageIndex = this.getCurrentLeftoverStageIndexAndUpdate(messageQueue, topic, strategyId);
-                context.setStrategyId(strategyId);
-                context.setStageIndex(stageIndex);
-            }
+            context.setStrategyId(strategyId);
+            //the test message should not update the stage offset
+            context.setStageIndex(getCurrentLeftoverStageIndex(messageQueue, topic, strategyId));
             ConsumeOrderlyStatus status = this.messageListener.consumeMessage(msgs, context);
             if (status != null) {
                 switch (status) {
@@ -323,7 +307,6 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                         result.setConsumeResult(CMResult.CR_SUCCESS);
                         break;
                     case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                        decrementCurrentStageOffset(messageQueue, topic, strategyId);
                         result.setConsumeResult(CMResult.CR_LATER);
                         break;
                     default:
@@ -331,6 +314,12 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                 }
             } else {
                 result.setConsumeResult(CMResult.CR_RETURN_NULL);
+            }
+            AtomicInteger currentStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId);
+            synchronized (currentStageOffset) {
+                int original = currentStageOffset.get();
+                this.messageListener.resetCurrentStageOffsetIfNeed(topic, strategyId, currentStageOffset);
+                currentStageOffset.set(original);
             }
         } catch (Throwable e) {
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
@@ -425,6 +414,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
     ) {
         MessageQueue messageQueue = consumeRequest.getMessageQueue();
         String topic = messageQueue.getTopic();
+        AtomicInteger currentStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId);
         boolean continueConsume = true;
         long commitOffset = -1L;
         int commitStageOffset = -1;
@@ -436,11 +426,13 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                         messageQueue);
                 case SUCCESS:
                     commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
-                    commitStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId).get();
+                    commitStageOffset = currentStageOffset.get();
                     this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, topic, msgs.size());
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                    decrementCurrentStageOffset(messageQueue, topic, strategyId, msgs.size());
+                    synchronized (currentStageOffset) {
+                        currentStageOffset.set(currentStageOffset.get() - msgs.size());
+                    }
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
@@ -451,7 +443,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                         continueConsume = false;
                     } else {
                         commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
-                        commitStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId).get();
+                        commitStageOffset = currentStageOffset.get();
                     }
                     break;
                 default:
@@ -464,7 +456,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                     break;
                 case COMMIT:
                     commitOffset = consumeRequest.getProcessQueue().commitMessages(msgs);
-                    commitStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId).get();
+                    commitStageOffset = currentStageOffset.get();
                     break;
                 case ROLLBACK:
                     consumeRequest.getProcessQueue().rollback();
@@ -475,7 +467,9 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                     continueConsume = false;
                     break;
                 case SUSPEND_CURRENT_QUEUE_A_MOMENT:
-                    decrementCurrentStageOffset(messageQueue, topic, strategyId, msgs.size());
+                    synchronized (currentStageOffset) {
+                        currentStageOffset.set(currentStageOffset.get() - msgs.size());
+                    }
                     this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, topic, msgs.size());
                     if (checkReconsumeTimes(msgs)) {
                         consumeRequest.getProcessQueue().makeMessageToConsumeAgain(msgs);
@@ -494,8 +488,17 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         if (commitOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(messageQueue, commitOffset, false);
         }
-        if (stageOffsetStore != null && commitStageOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
-            stageOffsetStore.updateStageOffset(messageQueue, strategyId, commitStageOffset, false);
+
+        if (stageOffsetStore != null && commitStageOffset >= 0) {
+            synchronized (currentStageOffset) {
+                messageListener.resetCurrentStageOffsetIfNeed(topic, strategyId, currentStageOffset);
+                //prevent users from resetting the value of currentStageOffset to a value less than 0
+                currentStageOffset.set(Math.max(0, currentStageOffset.get()));
+            }
+            commitStageOffset = currentStageOffset.get();
+            if (!consumeRequest.getProcessQueue().isDropped()) {
+                stageOffsetStore.updateStageOffset(messageQueue, strategyId, commitStageOffset, false);
+            }
         }
 
         return continueConsume;
@@ -658,7 +661,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                 try {
                     strategyId = messageListener.computeStrategy(message);
                 } catch (Exception e) {
-                    throw new RuntimeException("computeStrategy failed with exception:" + e.getMessage() + " !");
+                    log.error("computeStrategy failed with exception:" + e.getMessage() + " !");
                 }
                 //null key means direct concurrency
                 List<MessageExt> messages = messageGroupByStrategyId.putIfAbsent(strategyId, new CopyOnWriteArrayList<>());
@@ -716,7 +719,6 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
 
         @Override
         public void run() {
-            String topic = this.messageQueue.getTopic();
             ConsumeStagedConcurrentlyContext context = new ConsumeStagedConcurrentlyContext(this.messageQueue);
             context.setStrategyId(strategyId);
             context.setStageIndex(currentLeftoverStageIndex);
@@ -761,8 +763,6 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             } finally {
                 this.processQueue.getConsumeLock().unlock();
             }
-            messageListener.resetCurrentStageOffsetIfNeed(topic, strategyId,
-                ConsumeMessageStagedConcurrentlyService.this.getCurrentStageOffset(messageQueue, topic, strategyId));
 
             if (null == status
                 || ConsumeOrderlyStatus.ROLLBACK == status
