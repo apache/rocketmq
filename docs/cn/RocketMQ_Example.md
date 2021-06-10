@@ -1088,43 +1088,56 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Below are more examples of how to use it:
+ * @see org.apache.rocketmq.client.impl.consumer.ConsumeMessageStagedConcurrentlyServiceTest
+ */
 public class StagedConcurrentlyConsumer {
     public static void main(String[] args) throws MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
+        int pullBatchSize = consumer.getPullBatchSize();
+        int poolSize = 4 * pullBatchSize;
+        consumer.setConsumeThreadMin(poolSize);
+        consumer.setConsumeThreadMax(poolSize);
         consumer.setNamesrvAddr("localhost:9876");
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        consumer.subscribe("TopicTest", "TagA");
-        consumer.registerMessageListener(new MessageListenerStagedcurrently() {
-
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        consumer.subscribe(topic + "3", "ssss3");
+        consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
             @Override
-            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeStagedConcurrentlyContext context) {
-                context.setAutoCommit(true);
-                for (MessageExt msg : msgs) {
-                    // stageIndex从0开始递增，每个stageIndex代表的"阶段"之间是有序的，
-                    // 而"阶段"内部是乱序的，当到达最后一个阶段时，stageIndex为-1
-                    // 可以看到MessageListenerOrderly和一样, 订单对每个queue(分区)有序
-                    System.out.println("consumeThread=" + Thread.currentThread().getName() +", stageIndex="+context.getStageIndex()+ ", queueId=" + msg.getQueueId() + ", content:" + new String(msg.getBody()));
-                }
-
+            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeStagedConcurrentlyContext context) {
                 try {
-                    //模拟业务逻辑处理中...
-                    TimeUnit.MILLISECONDS.sleep(new Random().nextInt(10));
-                } catch (Exception e) {
+                    Thread.sleep(new Random().nextInt(20));
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                // stageIndex从0开始递增，每个stageIndex代表的"阶段"之间是有序的，
+                // 而"阶段"内部是乱序的，当到达最后一个阶段时，stageIndex为-1
+                // 可以看到MessageListenerOrderly和一样, 订单对每个queue(分区)有序
+                MessageExt messageExt = msgs.get(0);
+                System.out.println(context.getStageIndex() + " " + messageExt.getQueueId() + " " + messageExt.getMsgId() + " " + new String(messageExt.getBody()));
                 return ConsumeOrderlyStatus.SUCCESS;
             }
 
+            /**
+             * After consuming 1+2+3+4+5+6+7+8+9+10=55 messages,
+             * it has completely evolved from orderly consumer
+             * to concurrently consumer.
+             */
             @Override
-            public List<Integer> getStageDefinitions() {
+            public Map<String, List<Integer>> getStageDefinitionStrategies() {
                 List<Integer> list = new ArrayList<>();
-                for (int i = 1; i <= 50; i++) {
+                for (int i = 1; i <= 10; i++) {
                     list.add(i);
                 }
-                return list;
+                return Maps.newHashMap("1",list);
+            }
+
+            @Override
+            public String computeStrategy(MessageExt message) {
+                return "1";
             }
         });
-
         consumer.start();
         System.out.printf("Consumer Started.%n");
     }
