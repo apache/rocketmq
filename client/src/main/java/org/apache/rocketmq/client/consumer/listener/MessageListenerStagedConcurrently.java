@@ -43,9 +43,9 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
 
     /**
      * The Map structure here is mainly for a consumer to support multiple phased concurrency strategies at the same
-     * time.The following are specific instructions:
+     * time, support the return of dynamic configuration.The following are specific instructions:
      * <p>
-     * key:user can customize the strategy id. For example, "activityId + shopId".
+     * key:user can customize the strategy id.
      * <p>
      * value: If returns empty list or null, {@link MessageListenerStagedConcurrently} will degenerate into {@link
      * MessageListenerConcurrently}; If returns a collection whose elements are all 1, {@link
@@ -56,8 +56,12 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
     Map<String/*strategyId*/, List<Integer>/*StageDefinition*/> getStageDefinitionStrategies();
 
     /**
-     * Calculate to which strategy is used for message ,if return null or the strategy not found, the message of this
-     * method input will be directly concurrently consume, otherwise the message will be phased concurrently consume.
+     * This method not only plays the role of message filtering (the message filtering here refers to the direct
+     * concurrency of messages that do not require phased concurrency), but also plays the role of distribution strategy
+     * (you can specify different strategies {@link MessageListenerStagedConcurrently#getStageDefinitionStrategies()})
+     * <p>
+     * If return {@code null} or the strategy not found, the message of this method input will be directly concurrently
+     * consume, otherwise the message will be phased concurrently consume.
      *
      * @return strategyId
      * @see MessageListenerStagedConcurrently#getStageDefinitionStrategies()

@@ -88,22 +88,8 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         MessageListenerStagedConcurrently messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
-        this.summedStageDefinitionMap = new HashMap<>();
-        Map<String, List<Integer>> strategies = messageListener.getStageDefinitionStrategies();
-        if (MapUtils.isNotEmpty(strategies)) {
-            for (Map.Entry<String, List<Integer>> entry : strategies.entrySet()) {
-                String strategyId = entry.getKey();
-                List<Integer> definitions = entry.getValue();
-                List<Integer> summedStageDefinitions = new ArrayList<>();
-                if (definitions != null) {
-                    int sum = 0;
-                    for (Integer stageDefinition : definitions) {
-                        summedStageDefinitions.add(sum = sum + stageDefinition);
-                    }
-                }
-                summedStageDefinitionMap.put(strategyId, summedStageDefinitions);
-            }
-        }
+        this.summedStageDefinitionMap = new ConcurrentHashMap<>();
+        this.refreshStageDefinition();
 
         this.stageOffsetStore = this.defaultMQPushConsumerImpl.getStageOffsetStore();
 
@@ -134,6 +120,24 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         engine = new PriorityConcurrentEngine(this.consumeExecutor);
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
+    }
+
+    private void refreshStageDefinition() {
+        Map<String, List<Integer>> strategies = messageListener.getStageDefinitionStrategies();
+        if (MapUtils.isNotEmpty(strategies)) {
+            for (Map.Entry<String, List<Integer>> entry : strategies.entrySet()) {
+                String strategyId = entry.getKey();
+                List<Integer> definitions = entry.getValue();
+                List<Integer> summedStageDefinitions = new ArrayList<>();
+                if (definitions != null) {
+                    int sum = 0;
+                    for (Integer stageDefinition : definitions) {
+                        summedStageDefinitions.add(sum = sum + stageDefinition);
+                    }
+                }
+                summedStageDefinitionMap.put(strategyId, summedStageDefinitions);
+            }
+        }
     }
 
     @Override
@@ -621,6 +625,8 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                         int takeSize = ConsumeMessageStagedConcurrentlyService.this.pullBatchSize * consumeBatchSize;
                         List<MessageExt> msgs = this.processQueue.takeMessages(takeSize);
                         if (!msgs.isEmpty()) {
+                            //ensure that the stage definitions is up to date
+                            ConsumeMessageStagedConcurrentlyService.this.refreshStageDefinition();
                             Map<String, List<MessageExt>> messageGroupByStrategyId = removeAndRePutAllMessagesInTheNextStage(topic, msgs);
                             Map<String, List<List<MessageExt>>> messagesCanConsume = UtilAll.partition(messageGroupByStrategyId, consumeBatchSize);
                             for (Map.Entry<String, List<List<MessageExt>>> entry : messagesCanConsume.entrySet()) {
@@ -654,7 +660,8 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             }
         }
 
-        private Map<String, List<MessageExt>> removeAndRePutAllMessagesInTheNextStage(String topic, List<MessageExt> msgs) {
+        private Map<String, List<MessageExt>> removeAndRePutAllMessagesInTheNextStage(String topic,
+            List<MessageExt> msgs) {
             Map<String, List<MessageExt>> messageGroupByStrategyId = new LinkedHashMap<>();
             for (MessageExt message : msgs) {
                 String strategyId = null;
