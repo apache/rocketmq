@@ -197,6 +197,9 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
     }
 
     public int getCurrentLeftoverStage(MessageQueue messageQueue, String topic, String strategyId) {
+        if (null == strategyId) {
+            return -1;
+        }
         List<Integer> summedStageDefinition = summedStageDefinitionMap.get(strategyId);
         if (CollectionUtils.isNotEmpty(summedStageDefinition)) {
             for (Integer stageDefinition : summedStageDefinition) {
@@ -210,6 +213,9 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
     }
 
     public int getCurrentLeftoverStageIndex(MessageQueue messageQueue, String topic, String strategyId) {
+        if (null == strategyId) {
+            return -1;
+        }
         List<Integer> summedStageDefinition = summedStageDefinitionMap.get(strategyId);
         if (CollectionUtils.isNotEmpty(summedStageDefinition)) {
             for (int i = 0; i < summedStageDefinition.size(); i++) {
