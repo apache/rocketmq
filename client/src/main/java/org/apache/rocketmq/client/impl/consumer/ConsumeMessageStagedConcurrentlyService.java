@@ -715,7 +715,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                 }
                 List<MessageExt> messages = messageGroupByStrategy.putIfAbsent(groupId, new CopyOnWriteArrayList<>());
                 if (null == messages) {
-                    messages = messageGroupByStrategy.get(strategyId);
+                    messages = messageGroupByStrategy.get(groupId);
                 }
                 messages.add(message);
             }
