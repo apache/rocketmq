@@ -2266,7 +2266,7 @@ public class MQClientAPIImpl {
         }
     }
 
-    public Map<String, Integer> queryConsumerStageOffset(
+    public Map<String, Map<String, Integer>> queryConsumerStageOffset(
         final String addr,
         final QueryConsumerOffsetRequestHeader requestHeader,
         final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {

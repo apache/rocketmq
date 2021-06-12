@@ -18,8 +18,6 @@ package org.apache.rocketmq.client.consumer.store;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -37,7 +35,7 @@ public interface StageOffsetStore {
     /**
      * Update the stage offset,store it in memory
      */
-    void updateStageOffset(final MessageQueue mq, final String strategyId, final int stageOffset,
+    void updateStageOffset(final MessageQueue mq, final String strategyId, final String groupId, final int stageOffset,
         final boolean increaseOnly);
 
     /**
@@ -45,7 +43,7 @@ public interface StageOffsetStore {
      *
      * @return The fetched offset
      */
-    Map<String, Integer> readStageOffset(final MessageQueue mq, final ReadOffsetType type);
+    Map<String, Map<String, Integer>> readStageOffset(final MessageQueue mq, final ReadOffsetType type);
 
     /**
      * Persist all offsets,may be in local storage or remote name server
@@ -65,14 +63,14 @@ public interface StageOffsetStore {
     /**
      * @return The cloned stage offset table of given topic
      */
-    Map<MessageQueue, Map<String, Integer>> cloneStageOffsetTable(String topic);
+    Map<MessageQueue, Map<String, Map<String, Integer>>> cloneStageOffsetTable(String topic);
 
     /**
      * @param mq
+     * @param groupId
      * @param stageOffset
      * @param isOneway
      */
-    void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId, int stageOffset,
-        boolean isOneway) throws RemotingException,
-        MQBrokerException, InterruptedException, MQClientException;
+    void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId, String groupId, int stageOffset,
+        boolean isOneway) throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 }

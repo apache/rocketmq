@@ -170,7 +170,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             (UpdateConsumerStageOffsetRequestHeader) request
                 .decodeCommandCustomHeader(UpdateConsumerStageOffsetRequestHeader.class);
         this.brokerController.getConsumerStageOffsetManager().commitStageOffset(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
-            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getStrategyId(), requestHeader.getCommitStageOffset());
+            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getStrategyId(), requestHeader.getGroupId(), requestHeader.getCommitStageOffset());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
@@ -186,7 +186,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             (QueryConsumerStageOffsetRequestHeader) request
                 .decodeCommandCustomHeader(QueryConsumerStageOffsetRequestHeader.class);
 
-        Map<String, Integer> offset =
+        Map<String, Map<String, Integer>> offset =
             this.brokerController.getConsumerStageOffsetManager().queryStageOffset(
                 requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
 

@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerStageOffsetRequestHeader;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.assertj.core.util.Maps;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,14 +70,14 @@ public class RemoteBrokerStageOffsetStoreTest {
         StageOffsetStore offsetStore = new RemoteBrokerStageOffsetStore(mQClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 1);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1024, false);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId")).isEqualTo(1024);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1024, false);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId").get("groupId")).isEqualTo(1024);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1023, false);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId")).isEqualTo(1023);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1023, false);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId").get("groupId")).isEqualTo(1023);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1022, true);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId")).isEqualTo(1023);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1022, true);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId").get("groupId")).isEqualTo(1023);
     }
 
     @Test
@@ -84,7 +85,7 @@ public class RemoteBrokerStageOffsetStoreTest {
         StageOffsetStore offsetStore = new RemoteBrokerStageOffsetStore(mQClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 2);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1024, false);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1024, false);
 
         doThrow(new MQBrokerException(-1, "", null))
             .when(mqClientAPI).queryConsumerStageOffset(anyString(), any(QueryConsumerOffsetRequestHeader.class), anyLong());
@@ -104,28 +105,28 @@ public class RemoteBrokerStageOffsetStoreTest {
             @Override
             public Object answer(InvocationOnMock mock) throws Throwable {
                 UpdateConsumerStageOffsetRequestHeader updateRequestHeader = mock.getArgument(1);
-                Map<String, Integer> response = new HashMap<>();
-                response.put("strategyId", updateRequestHeader.getCommitStageOffset());
+                Map<String, Map<String, Integer>> response = new HashMap<>();
+                response.put("strategyId", Maps.newHashMap("groupId", updateRequestHeader.getCommitStageOffset()));
                 when(mqClientAPI.queryConsumerStageOffset(anyString(), any(QueryConsumerOffsetRequestHeader.class), anyLong())).thenReturn(response);
                 return null;
             }
         }).when(mqClientAPI).updateConsumerStageOffsetOneway(any(String.class), any(UpdateConsumerStageOffsetRequestHeader.class), any(Long.class));
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1024, false);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1024, false);
         offsetStore.persist(messageQueue);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId")).isEqualTo(1024);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId").get("groupId")).isEqualTo(1024);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1023, false);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1023, false);
         offsetStore.persist(messageQueue);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId")).isEqualTo(1023);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId").get("groupId")).isEqualTo(1023);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1022, true);
+        offsetStore.updateStageOffset(messageQueue, "strategyId","groupId" , 1022, true);
         offsetStore.persist(messageQueue);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId")).isEqualTo(1023);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId").get("groupId")).isEqualTo(1023);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1025, false);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1025, false);
         offsetStore.persistAll(new HashSet<MessageQueue>(Collections.singletonList(messageQueue)));
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId")).isEqualTo(1025);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId").get("groupId")).isEqualTo(1025);
     }
 
     @Test
@@ -133,8 +134,8 @@ public class RemoteBrokerStageOffsetStoreTest {
         StageOffsetStore offsetStore = new RemoteBrokerStageOffsetStore(mQClientFactory, group);
         final MessageQueue messageQueue = new MessageQueue(topic, brokerName, 4);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1024, false);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId")).isEqualTo(1024);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1024, false);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId").get("groupId")).isEqualTo(1024);
 
         offsetStore.removeStageOffset(messageQueue);
         assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY)).isEqualTo(new HashMap<>());

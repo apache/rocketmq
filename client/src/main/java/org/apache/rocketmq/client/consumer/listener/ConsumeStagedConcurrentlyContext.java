@@ -27,6 +27,7 @@ public class ConsumeStagedConcurrentlyContext {
     private long suspendCurrentQueueTimeMillis = -1;
     private int stageIndex = -1;
     private String strategyId;
+    private String groupId;
 
     public ConsumeStagedConcurrentlyContext(MessageQueue messageQueue) {
         this.messageQueue = messageQueue;
@@ -66,5 +67,13 @@ public class ConsumeStagedConcurrentlyContext {
 
     public void setStrategyId(String strategyId) {
         this.strategyId = strategyId;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 }

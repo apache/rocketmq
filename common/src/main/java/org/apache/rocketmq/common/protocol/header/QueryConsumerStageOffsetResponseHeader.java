@@ -28,17 +28,17 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class QueryConsumerStageOffsetResponseHeader implements CommandCustomHeader {
     @CFNullable
-    private Map<String, Integer> stageOffset=new HashMap<>();
+    private Map<String, Map<String, Integer>> stageOffset = new HashMap<>();
 
     @Override
     public void checkFields() throws RemotingCommandException {
     }
 
-    public Map<String, Integer> getStageOffset() {
+    public Map<String, Map<String, Integer>> getStageOffset() {
         return stageOffset;
     }
 
-    public void setStageOffset(Map<String, Integer> stageOffset) {
+    public void setStageOffset(Map<String, Map<String, Integer>> stageOffset) {
         this.stageOffset = stageOffset;
     }
 }

@@ -27,14 +27,15 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
  * Wrapper class for stage offset serialization
  */
 public class StageOffsetSerializeWrapper extends RemotingSerializable {
-    private ConcurrentMap<MessageQueue, ConcurrentMap<String, AtomicInteger>> offsetTable =
-        new ConcurrentHashMap<MessageQueue, ConcurrentMap<String, AtomicInteger>>();
+    private ConcurrentMap<MessageQueue, ConcurrentMap<String/*strategyId*/, ConcurrentMap<String/*groupId*/, AtomicInteger/*offset*/>>> offsetTable =
+        new ConcurrentHashMap<>();
 
-    public ConcurrentMap<MessageQueue, ConcurrentMap<String, AtomicInteger>> getOffsetTable() {
+    public ConcurrentMap<MessageQueue, ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>>> getOffsetTable() {
         return offsetTable;
     }
 
-    public void setOffsetTable(ConcurrentMap<MessageQueue, ConcurrentMap<String, AtomicInteger>> offsetTable) {
+    public void setOffsetTable(
+        ConcurrentMap<MessageQueue, ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>>> offsetTable) {
         this.offsetTable = offsetTable;
     }
 }

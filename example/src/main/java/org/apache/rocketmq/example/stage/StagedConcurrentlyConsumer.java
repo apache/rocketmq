@@ -79,8 +79,13 @@ public class StagedConcurrentlyConsumer {
             }
 
             @Override
+            public String computeGroup(MessageExt message) {
+                return null;
+            }
+
+            @Override
             public void resetCurrentStageOffsetIfNeed(String topic, String strategyId,
-                AtomicInteger currentStageOffset) {
+                String groupId, AtomicInteger currentStageOffset) {
                 if ("TopicTest".equals(topic) && currentStageOffset.get() >= 1999) {
                     currentStageOffset.set(0);
                 }

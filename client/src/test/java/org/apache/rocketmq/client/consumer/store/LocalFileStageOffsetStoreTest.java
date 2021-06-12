@@ -52,15 +52,15 @@ public class LocalFileStageOffsetStoreTest {
     public void testUpdateStageOffset() throws Exception {
         StageOffsetStore offsetStore = new LocalFileStageOffsetStore(mQClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 1);
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1024, false);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1024, false);
 
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId")).isEqualTo(1024);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId").get("groupId")).isEqualTo(1024);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1023, false);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId")).isEqualTo(1023);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1023, false);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId").get("groupId")).isEqualTo(1023);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1022, true);
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId")).isEqualTo(1023);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1022, true);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY).get("strategyId").get("groupId")).isEqualTo(1023);
     }
 
     @Test
@@ -68,21 +68,21 @@ public class LocalFileStageOffsetStoreTest {
         StageOffsetStore offsetStore = new LocalFileStageOffsetStore(mQClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 2);
 
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1024, false);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1024, false);
         assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE)).isEqualTo(new HashMap<>());
 
         offsetStore.persistAll(new HashSet<MessageQueue>(Collections.singletonList(messageQueue)));
-        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId")).isEqualTo(1024);
+        assertThat(offsetStore.readStageOffset(messageQueue, ReadOffsetType.READ_FROM_STORE).get("strategyId").get("groupId")).isEqualTo(1024);
     }
 
     @Test
     public void testCloneStageOffset() throws Exception {
         StageOffsetStore offsetStore = new LocalFileStageOffsetStore(mQClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 3);
-        offsetStore.updateStageOffset(messageQueue, "strategyId", 1024, false);
-        Map<MessageQueue, Map<String, Integer>> cloneOffsetTable = offsetStore.cloneStageOffsetTable(topic);
+        offsetStore.updateStageOffset(messageQueue, "strategyId", "groupId", 1024, false);
+        Map<MessageQueue, Map<String, Map<String, Integer>>> cloneOffsetTable = offsetStore.cloneStageOffsetTable(topic);
 
         assertThat(cloneOffsetTable.size()).isEqualTo(1);
-        assertThat(cloneOffsetTable.get(messageQueue).get("strategyId")).isEqualTo(1024);
+        assertThat(cloneOffsetTable.get(messageQueue).get("strategyId").get("groupId")).isEqualTo(1024);
     }
 }

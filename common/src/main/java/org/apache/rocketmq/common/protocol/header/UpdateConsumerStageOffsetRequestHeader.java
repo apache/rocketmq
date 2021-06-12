@@ -35,6 +35,8 @@ public class UpdateConsumerStageOffsetRequestHeader implements CommandCustomHead
     @CFNotNull
     private String strategyId;
     @CFNotNull
+    private String groupId;
+    @CFNotNull
     private Integer commitStageOffset;
 
     @Override
@@ -71,6 +73,14 @@ public class UpdateConsumerStageOffsetRequestHeader implements CommandCustomHead
 
     public void setStrategyId(String strategyId) {
         this.strategyId = strategyId;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     public Integer getCommitStageOffset() {

@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +46,6 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -620,19 +618,5 @@ public class UtilAll {
             index = index + size;
         }
         return lists;
-    }
-
-    public static <K, T> Map<K, List<List<T>>> partition(Map<K, List<T>> map, int size) {
-        Map<K, List<List<T>>> newMap = new LinkedHashMap<>();
-        if (MapUtils.isEmpty(map)) {
-            return newMap;
-        }
-        for (Map.Entry<K, List<T>> entry : map.entrySet()) {
-            K key = entry.getKey();
-            List<T> list = entry.getValue();
-            List<List<T>> lists = partition(list, size);
-            newMap.put(key, lists);
-        }
-        return newMap;
     }
 }

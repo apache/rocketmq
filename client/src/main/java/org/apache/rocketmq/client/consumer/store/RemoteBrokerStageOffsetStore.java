@@ -41,12 +41,12 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
     }
 
     @Override
-    public Map<String, Integer> readStageOffset(final MessageQueue mq, final ReadOffsetType type) {
+    public Map<String, Map<String, Integer>> readStageOffset(final MessageQueue mq, final ReadOffsetType type) {
         if (mq != null) {
             switch (type) {
                 case MEMORY_FIRST_THEN_STORE:
                 case READ_FROM_MEMORY: {
-                    ConcurrentMap<String, AtomicInteger> map = this.offsetTable.get(mq);
+                    ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> map = this.offsetTable.get(mq);
                     if (map != null) {
                         return convert(map);
                     } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
@@ -55,12 +55,12 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
                 }
                 case READ_FROM_STORE: {
                     try {
-                        Map<String, Integer> map = this.fetchConsumeStageOffsetFromBroker(mq);
-                        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-                            String strategyId = entry.getKey();
-                            Integer brokerOffset = entry.getValue();
-                            this.updateStageOffset(mq, strategyId, brokerOffset, false);
-                        }
+                        Map<String, Map<String, Integer>> map = this.fetchConsumeStageOffsetFromBroker(mq);
+                        map.forEach((strategy, groups) -> {
+                            groups.forEach((group, offset) -> {
+                                this.updateStageOffset(mq, strategy, group, offset, false);
+                            });
+                        });
                         return map;
                     }
                     // No stage offset in broker
@@ -89,31 +89,28 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
 
         final HashSet<MessageQueue> unusedMq = new HashSet<MessageQueue>();
 
-        for (Map.Entry<MessageQueue, ConcurrentMap<String, AtomicInteger>> entry : this.offsetTable.entrySet()) {
-            MessageQueue mq = entry.getKey();
-            ConcurrentMap<String, AtomicInteger> map = entry.getValue();
-            if (map != null) {
-                if (mqs.contains(mq)) {
-                    try {
-                        for (Map.Entry<String, AtomicInteger> integerEntry : map.entrySet()) {
-                            String strategyId = integerEntry.getKey();
-                            AtomicInteger offset = integerEntry.getValue();
-                            this.updateConsumeStageOffsetToBroker(mq, strategyId, offset.get());
-                            log.info("[persistAll] Group: {} ClientId: {} updateConsumeStageOffsetToBroker {} {} {}",
+        this.offsetTable.forEach((mq, data) -> {
+            if (mqs.contains(mq)) {
+                data.forEach((strategy, groups) -> {
+                    groups.forEach((group, offset) -> {
+                        try {
+                            this.updateConsumeStageOffsetToBroker(mq, strategy, group, offset.get());
+                            log.info("[persistAll] Group: {} ClientId: {} updateConsumeStageOffsetToBroker {} {} {} {}",
                                 this.groupName,
-                                this.mQClientFactory.getClientId(),
+                                this.mqClientFactory.getClientId(),
                                 mq,
-                                strategyId,
+                                strategy,
+                                group,
                                 offset.get());
+                        } catch (Exception e) {
+                            log.error("updateConsumeStageOffsetToBroker exception, " + mq.toString(), e);
                         }
-                    } catch (Exception e) {
-                        log.error("updateConsumeStageOffsetToBroker exception, " + mq.toString(), e);
-                    }
-                } else {
-                    unusedMq.add(mq);
-                }
+                    });
+                });
+            } else {
+                unusedMq.add(mq);
             }
-        }
+        });
 
         if (!unusedMq.isEmpty()) {
             for (MessageQueue mq : unusedMq) {
@@ -125,23 +122,24 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
 
     @Override
     public void persist(MessageQueue mq) {
-        ConcurrentMap<String, AtomicInteger> map = this.offsetTable.get(mq);
+        ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> map = this.offsetTable.get(mq);
         if (map != null) {
-            try {
-                for (Map.Entry<String, AtomicInteger> entry : map.entrySet()) {
-                    String strategyId = entry.getKey();
-                    AtomicInteger offset = entry.getValue();
-                    this.updateConsumeStageOffsetToBroker(mq, strategyId, offset.get());
-                    log.info("[persist] Group: {} ClientId: {} updateConsumeStageOffsetToBroker {} {} {}",
-                        this.groupName,
-                        this.mQClientFactory.getClientId(),
-                        mq,
-                        strategyId,
-                        offset.get());
-                }
-            } catch (Exception e) {
-                log.error("updateConsumeStageOffsetToBroker exception, " + mq.toString(), e);
-            }
+            map.forEach((strategy, groups) -> {
+                groups.forEach((group, offset) -> {
+                    try {
+                        this.updateConsumeStageOffsetToBroker(mq, strategy, group, offset.get());
+                        log.info("[persist] Group: {} ClientId: {} updateConsumeStageOffsetToBroker {} {} {} {}",
+                            this.groupName,
+                            this.mqClientFactory.getClientId(),
+                            mq,
+                            strategy,
+                            group,
+                            offset.get());
+                    } catch (Exception e) {
+                        log.error("updateConsumeStageOffsetToBroker exception, " + mq.toString(), e);
+                    }
+                });
+            });
         }
     }
 
@@ -159,9 +157,9 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
      * optimized.
      */
     private void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId,
-        int stageOffset) throws RemotingException,
+        String groupId, int stageOffset) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
-        updateConsumeStageOffsetToBroker(mq, strategyId, stageOffset, true);
+        updateConsumeStageOffsetToBroker(mq, strategyId, groupId, stageOffset, true);
     }
 
     /**
@@ -169,13 +167,13 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
      * optimized.
      */
     @Override
-    public void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId, int offset,
-        boolean isOneway) throws RemotingException,
+    public void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId, String groupId,
+        int offset, boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+        FindBrokerResult findBrokerResult = this.mqClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+            this.mqClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            findBrokerResult = this.mqClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
 
         if (findBrokerResult != null) {
@@ -184,13 +182,14 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
             requestHeader.setConsumerGroup(this.groupName);
             requestHeader.setQueueId(mq.getQueueId());
             requestHeader.setStrategyId(strategyId);
+            requestHeader.setGroupId(groupId);
             requestHeader.setCommitStageOffset(offset);
 
             if (isOneway) {
-                this.mQClientFactory.getMQClientAPIImpl().updateConsumerStageOffsetOneway(
+                this.mqClientFactory.getMQClientAPIImpl().updateConsumerStageOffsetOneway(
                     findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
             } else {
-                this.mQClientFactory.getMQClientAPIImpl().updateConsumerStageOffset(
+                this.mqClientFactory.getMQClientAPIImpl().updateConsumerStageOffset(
                     findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
             }
         } else {
@@ -198,14 +197,13 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
         }
     }
 
-    private Map<String, Integer> fetchConsumeStageOffsetFromBroker(
+    private Map<String, Map<String, Integer>> fetchConsumeStageOffsetFromBroker(
         MessageQueue mq) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+        FindBrokerResult findBrokerResult = this.mqClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
-
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
+            this.mqClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            findBrokerResult = this.mqClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         }
 
         if (findBrokerResult != null) {
@@ -214,7 +212,7 @@ public class RemoteBrokerStageOffsetStore extends AbstractStageOffsetStore {
             requestHeader.setConsumerGroup(this.groupName);
             requestHeader.setQueueId(mq.getQueueId());
 
-            return this.mQClientFactory.getMQClientAPIImpl().queryConsumerStageOffset(
+            return this.mqClientFactory.getMQClientAPIImpl().queryConsumerStageOffset(
                 findBrokerResult.getBrokerAddr(), requestHeader, 1000 * 5);
         } else {
             throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);

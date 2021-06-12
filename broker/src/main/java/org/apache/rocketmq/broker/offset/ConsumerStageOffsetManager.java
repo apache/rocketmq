@@ -34,8 +34,8 @@ public class ConsumerStageOffsetManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
-    private ConcurrentMap<String/*topic@group*/, ConcurrentMap<Integer/*queueId*/, ConcurrentMap<String/*strategyId*/, Integer/*offset*/>>> offsetTable =
-        new ConcurrentHashMap<String, ConcurrentMap<Integer, ConcurrentMap<String, Integer>>>(256);
+    private ConcurrentMap<String/*topic@group*/, ConcurrentMap<Integer/*queueId*/, ConcurrentMap<String/*strategyId*/, ConcurrentMap<String/*groupId*/, Integer/*offset*/>>>> offsetTable =
+        new ConcurrentHashMap<>(256);
 
     private transient BrokerController brokerController;
 
@@ -47,43 +47,52 @@ public class ConsumerStageOffsetManager extends ConfigManager {
     }
 
     public void commitStageOffset(final String clientHost, final String group, final String topic, final int queueId,
-        final String strategyId,
-        final int offset) {
+        final String strategyId, String groupId, final int offset) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        this.commitStageOffset(clientHost, key, queueId, strategyId, offset);
+        this.commitStageOffset(clientHost, key, queueId, strategyId, groupId, offset);
     }
 
     private void commitStageOffset(final String clientHost, final String key, final int queueId,
-        final String strategyId, final int offset) {
-        ConcurrentMap<Integer, ConcurrentMap<String, Integer>> map = this.offsetTable.get(key);
+        final String strategyId, String groupId, final int offset) {
+        ConcurrentMap<Integer, ConcurrentMap<String, ConcurrentMap<String, Integer>>> map = this.offsetTable.putIfAbsent(key, new ConcurrentHashMap<>(32));
         if (null == map) {
-            map = new ConcurrentHashMap<Integer, ConcurrentMap<String, Integer>>(32);
-            ConcurrentMap<String, Integer> innerMap = new ConcurrentHashMap<String, Integer>();
-            innerMap.put(strategyId, offset);
-            map.put(queueId, innerMap);
-            this.offsetTable.put(key, map);
+            map = this.offsetTable.get(key);
+            ConcurrentMap<String, ConcurrentMap<String, Integer>> strategies = new ConcurrentHashMap<>();
+            ConcurrentMap<String, Integer> groups = new ConcurrentHashMap<>();
+            groups.put(groupId, offset);
+            strategies.put(strategyId, groups);
+            map.put(queueId, strategies);
         } else {
-            ConcurrentMap<String, Integer> innerMap = map.get(queueId);
-            if (null == innerMap) {
-                innerMap = new ConcurrentHashMap<String, Integer>();
+            ConcurrentMap<String, ConcurrentMap<String, Integer>> strategies = map.putIfAbsent(queueId, new ConcurrentHashMap<>(32));
+            if (null == strategies) {
+                strategies = map.get(queueId);
             }
-            Integer storeOffset = innerMap.put(strategyId, offset);
-            map.put(queueId, innerMap);
+            ConcurrentMap<String, Integer> groups = strategies.putIfAbsent(strategyId, new ConcurrentHashMap<>(32));
+            if (null == groups) {
+                groups = strategies.get(strategyId);
+            }
+            Integer storeOffset = groups.put(groupId, offset);
+            map.put(queueId, strategies);
             if (storeOffset != null && offset < storeOffset) {
-                log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+                log.warn("[NOTIFYME]update consumer stage offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
             }
         }
     }
 
-    public Map<String, Integer> queryStageOffset(final String group, final String topic, final int queueId) {
+    public Map<String, Map<String, Integer>> queryStageOffset(final String group, final String topic,
+        final int queueId) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        ConcurrentMap<Integer, ConcurrentMap<String, Integer>> map = this.offsetTable.get(key);
+        ConcurrentMap<Integer, ConcurrentMap<String, ConcurrentMap<String, Integer>>> map = this.offsetTable.get(key);
         if (null != map) {
-            ConcurrentMap<String, Integer> offset = map.get(queueId);
-            if (offset != null) {
-                return offset;
+            Map<String, ConcurrentMap<String, Integer>> strategies = map.get(queueId);
+            if (strategies != null) {
+                Map<String, Map<String, Integer>> result = new HashMap<>(strategies.size());
+                strategies.forEach((strategy, groups) -> {
+                    result.put(strategy, new HashMap<>(groups));
+                });
+                return result;
             }
         }
 
@@ -115,32 +124,33 @@ public class ConsumerStageOffsetManager extends ConfigManager {
         return RemotingSerializable.toJson(this, prettyFormat);
     }
 
-    public ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, Integer>>> getOffsetTable() {
+    public ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ConcurrentMap<String, Integer>>>> getOffsetTable() {
         return offsetTable;
     }
 
     public void setOffsetTable(
-        ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, Integer>>> offsetTable) {
+        ConcurrentMap<String, ConcurrentMap<Integer, ConcurrentMap<String, ConcurrentMap<String, Integer>>>> offsetTable) {
         this.offsetTable = offsetTable;
     }
 
-    public Map<Integer, ConcurrentMap<String, Integer>> queryStageOffset(final String group, final String topic) {
+    public ConcurrentMap<Integer, ConcurrentMap<String, ConcurrentMap<String, Integer>>> queryStageOffset(
+        final String group, final String topic) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
         return this.offsetTable.get(key);
     }
 
     public void cloneStageOffset(final String srcGroup, final String destGroup, final String topic) {
-        ConcurrentMap<Integer, ConcurrentMap<String, Integer>> offsets = this.offsetTable.get(topic + TOPIC_GROUP_SEPARATOR + srcGroup);
+        ConcurrentMap<Integer, ConcurrentMap<String, ConcurrentMap<String, Integer>>> offsets = this.offsetTable.get(topic + TOPIC_GROUP_SEPARATOR + srcGroup);
         if (offsets != null) {
-            this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<Integer, ConcurrentMap<String, Integer>>(offsets));
+            this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<>(offsets));
         }
     }
 
     public void removeStageOffset(final String group) {
-        Iterator<Entry<String, ConcurrentMap<Integer, ConcurrentMap<String, Integer>>>> it = this.offsetTable.entrySet().iterator();
+        Iterator<Entry<String, ConcurrentMap<Integer, ConcurrentMap<String, ConcurrentMap<String, Integer>>>>> it = this.offsetTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, ConcurrentMap<String, Integer>>> next = it.next();
+            Entry<String, ConcurrentMap<Integer, ConcurrentMap<String, ConcurrentMap<String, Integer>>>> next = it.next();
             String topicAtGroup = next.getKey();
             if (topicAtGroup.contains(group)) {
                 String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);

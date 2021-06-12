@@ -81,6 +81,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
                 public String computeStrategy(MessageExt message) {
                     return null;
                 }
+
+                @Override
+                public String computeGroup(MessageExt message) {
+                    return null;
+                }
             };
 
             ConsumeMessageStagedConcurrentlyService stagedConcurrentlyService = new ConsumeMessageStagedConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), stagedConcurrently);
@@ -107,6 +112,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
 
             @Override
             public String computeStrategy(MessageExt message) {
+                return null;
+            }
+
+            @Override
+            public String computeGroup(MessageExt message) {
                 return null;
             }
         };
@@ -165,6 +175,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             public String computeStrategy(MessageExt message) {
                 return "1";
             }
+
+            @Override
+            public String computeGroup(MessageExt message) {
+                return null;
+            }
         });
         consumer.start();
         //please change to a larger millis when running local
@@ -214,6 +229,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
 
             @Override
             public String computeStrategy(MessageExt message) {
+                return null;
+            }
+
+            @Override
+            public String computeGroup(MessageExt message) {
                 return null;
             }
 
@@ -280,6 +300,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
             public String computeStrategy(MessageExt message) {
                 return "1";
             }
+
+            @Override
+            public String computeGroup(MessageExt message) {
+                return null;
+            }
         });
         consumer.start();
         //please change to a larger millis when running local
@@ -336,6 +361,11 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
                 return null;
             }
 
+            @Override
+            public String computeGroup(MessageExt message) {
+                return null;
+            }
+
         });
         consumer.start();
         //please change to a larger millis when running local
@@ -383,19 +413,20 @@ public class ConsumeMessageStagedConcurrentlyServiceTest {
 
             @Override
             public Map<String, List<Integer>> getStageDefinitionStrategies() {
-                Map<String, List<Integer>> map = new HashMap<>();
                 List<Integer> list = new ArrayList<>();
-                for (int j = 1; j <= 10; j++) {
-                    list.add(j);
+                for (int i = 1; i <= 10; i++) {
+                    list.add(i);
                 }
-                for (int i = 0; i < 4; i++) {
-                    map.put(String.valueOf(i), list);
-                }
-                return map;
+                return Maps.newHashMap("1", list);
             }
 
             @Override
             public String computeStrategy(MessageExt message) {
+                return "1";
+            }
+
+            @Override
+            public String computeGroup(MessageExt message) {
                 return String.valueOf(message.getQueueId());
             }
 

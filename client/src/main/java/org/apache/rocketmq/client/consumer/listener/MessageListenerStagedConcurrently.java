@@ -69,9 +69,14 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
     String computeStrategy(MessageExt message);
 
     /**
+     * @return user defined business grouping
+     */
+    String computeGroup(MessageExt message);
+
+    /**
      * can be used to reset the current stage by CAS
      */
     default void resetCurrentStageOffsetIfNeed(final String topic, String strategyId,
-        final AtomicInteger currentStageOffset) {
+        String groupId, final AtomicInteger currentStageOffset) {
     }
 }

@@ -36,15 +36,15 @@ public abstract class AbstractStageOffsetStore implements StageOffsetStore {
 
     protected final static InternalLogger log = ClientLogger.getLog();
 
-    protected final MQClientInstance mQClientFactory;
+    protected final MQClientInstance mqClientFactory;
 
     protected final String groupName;
 
-    protected ConcurrentMap<MessageQueue, ConcurrentMap<String/*strategyId*/, AtomicInteger/*offset*/>> offsetTable =
-        new ConcurrentHashMap<MessageQueue, ConcurrentMap<String, AtomicInteger>>();
+    protected ConcurrentMap<MessageQueue, ConcurrentMap<String/*strategyId*/, ConcurrentMap<String/*groupId*/, AtomicInteger/*offset*/>>> offsetTable =
+        new ConcurrentHashMap<>(64);
 
-    public AbstractStageOffsetStore(MQClientInstance mQClientFactory, String groupName) {
-        this.mQClientFactory = mQClientFactory;
+    public AbstractStageOffsetStore(MQClientInstance mqClientFactory, String groupName) {
+        this.mqClientFactory = mqClientFactory;
         this.groupName = groupName;
     }
 
@@ -54,17 +54,24 @@ public abstract class AbstractStageOffsetStore implements StageOffsetStore {
     }
 
     @Override
-    public void updateStageOffset(MessageQueue mq, String strategyId, int stageOffset, boolean increaseOnly) {
+    public void updateStageOffset(MessageQueue mq, String strategyId, String groupId, int stageOffset,
+        boolean increaseOnly) {
         if (mq != null) {
-            ConcurrentMap<String, AtomicInteger> map = this.offsetTable.get(mq);
-            if (null == map) {
-                this.offsetTable.putIfAbsent(mq, new ConcurrentHashMap<>());
-                map = this.offsetTable.get(mq);
+            //avoid null string
+            strategyId = String.valueOf(strategyId);
+            groupId = String.valueOf(groupId);
+
+            ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> groupByStrategy = this.offsetTable.putIfAbsent(mq, new ConcurrentHashMap<>());
+            if (null == groupByStrategy) {
+                groupByStrategy = this.offsetTable.get(mq);
             }
-            AtomicInteger offsetOld = map.get(strategyId);
+            ConcurrentMap<String, AtomicInteger> groups = groupByStrategy.putIfAbsent(strategyId, new ConcurrentHashMap<>());
+            if (null == groups) {
+                groups = groupByStrategy.get(strategyId);
+            }
+            AtomicInteger offsetOld = groups.putIfAbsent(groupId, new AtomicInteger(stageOffset));
             if (null == offsetOld) {
-                map.putIfAbsent(strategyId, new AtomicInteger(stageOffset));
-                offsetOld = map.get(strategyId);
+                offsetOld = groups.get(groupId);
             }
 
             if (null != offsetOld) {
@@ -93,35 +100,35 @@ public abstract class AbstractStageOffsetStore implements StageOffsetStore {
     }
 
     @Override
-    public Map<MessageQueue, Map<String, Integer>> cloneStageOffsetTable(String topic) {
-        Map<MessageQueue, Map<String, Integer>> cloneOffsetTable = new HashMap<MessageQueue, Map<String, Integer>>();
-        for (Map.Entry<MessageQueue, ConcurrentMap<String, AtomicInteger>> entry : this.offsetTable.entrySet()) {
+    public Map<MessageQueue, Map<String, Map<String, Integer>>> cloneStageOffsetTable(String topic) {
+        Map<MessageQueue, Map<String, Map<String, Integer>>> cloneOffsetTable = new HashMap<>(this.offsetTable.size());
+        for (Map.Entry<MessageQueue, ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>>> entry : this.offsetTable.entrySet()) {
             MessageQueue mq = entry.getKey();
             if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
                 continue;
             }
             cloneOffsetTable.put(mq, convert(entry.getValue()));
-
         }
         return cloneOffsetTable;
     }
 
     @Override
-    public void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId, int stageOffset,
+    public void updateConsumeStageOffsetToBroker(MessageQueue mq, String strategyId, String groupId,
+        int stageOffset,
         boolean isOneway) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 
     }
 
-    protected final Map<String, Integer> convert(Map<String, AtomicInteger> original) {
-        if (null == original) {
-            return new ConcurrentHashMap<>();
-        }
-        Map<String, Integer> map = new HashMap<>(original.size());
-        for (Map.Entry<String, AtomicInteger> entry : original.entrySet()) {
-            String key = entry.getKey();
-            AtomicInteger value = entry.getValue();
-            map.put(key, value.get());
-        }
-        return map;
+    protected final Map<String, Map<String, Integer>> convert(
+        ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> original) {
+        Map<String, Map<String, Integer>> result = new HashMap<>(original.size());
+        original.forEach((strategy, groups) -> {
+            Map<String, Integer> temp = new HashMap<>();
+            groups.forEach((group, offset) -> {
+                temp.put(group, offset.get());
+            });
+            result.put(strategy, temp);
+        });
+        return result;
     }
 }
