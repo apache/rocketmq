@@ -65,6 +65,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageService {
+    private static final String NULL = "null";
     private static final InternalLogger log = ClientLogger.getLog();
     private final static long MAX_TIME_CONSUME_CONTINUOUSLY =
         Long.parseLong(System.getProperty("rocketmq.client.maxTimeConsumeContinuously", "60000"));
@@ -170,9 +171,10 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
 
     public AtomicInteger getCurrentStageOffset(MessageQueue messageQueue, String topic, String strategyId,
         String groupId) {
-        if (null == strategyId) {
+        if (null == strategyId || NULL.equals(strategyId)) {
             return new AtomicInteger(-1);
         }
+        groupId = String.valueOf(groupId);
         ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> groupByStrategy = currentStageOffsetMap.get(topic);
         if (null == groupByStrategy) {
             ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> stageOffset = stageOffsetStore == null ?
@@ -309,13 +311,13 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         }
 
         try {
-            String strategyId = "null";
+            String strategyId = NULL;
             try {
                 strategyId = String.valueOf(this.messageListener.computeStrategy(msg));
             } catch (Exception e) {
                 log.error("computeStrategy failed with exception:" + e.getMessage() + " !");
             }
-            String groupId = "null";
+            String groupId = NULL;
             try {
                 groupId = String.valueOf(this.messageListener.computeGroup(msg));
             } catch (Exception e) {
@@ -696,13 +698,13 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             List<MessageExt> msgs) {
             Map<String, Map<String, List<MessageExt>>> messageGroupByStrategyThenGroup = new LinkedHashMap<>();
             for (MessageExt message : msgs) {
-                String strategyId = "null";
+                String strategyId = NULL;
                 try {
                     strategyId = String.valueOf(messageListener.computeStrategy(message));
                 } catch (Exception e) {
                     log.error("computeStrategy failed with exception:" + e.getMessage() + " !");
                 }
-                String groupId = "null";
+                String groupId = NULL;
                 try {
                     groupId = String.valueOf(messageListener.computeGroup(message));
                 } catch (Exception e) {
