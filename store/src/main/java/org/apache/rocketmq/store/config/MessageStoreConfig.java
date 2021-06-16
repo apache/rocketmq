@@ -152,6 +152,8 @@ public class MessageStoreConfig {
 
     private boolean isEnableBatchPush = false;
 
+    private boolean enableScheduleMessageStats = true;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -721,5 +723,13 @@ public class MessageStoreConfig {
 
     public void setEnableBatchPush(boolean enableBatchPush) {
         isEnableBatchPush = enableBatchPush;
+    }
+
+    public boolean isEnableScheduleMessageStats() {
+        return enableScheduleMessageStats;
+    }
+
+    public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
+        this.enableScheduleMessageStats = enableScheduleMessageStats;
     }
 }

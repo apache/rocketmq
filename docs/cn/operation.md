@@ -26,7 +26,7 @@ The Name Server boot success...
 $ nohup sh bin/mqbroker -n localhost:9876 &
 
 ### 验证Name Server 是否启动成功，例如Broker的IP为：192.168.1.2，且名称为broker-a
-$ tail -f ~/logs/rocketmqlogs/Broker.log 
+$ tail -f ~/logs/rocketmqlogs/broker.log 
 The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
 

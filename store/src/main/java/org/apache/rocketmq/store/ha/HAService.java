@@ -590,6 +590,13 @@ public class HAService {
 
             log.info(this.getServiceName() + " service end");
         }
+
+        @Override
+        public void shutdown() {
+            super.shutdown();
+            closeMaster();
+        }
+
         // private void disableWriteFlag() {
         // if (this.socketChannel != null) {
         // SelectionKey sk = this.socketChannel.keyFor(this.selector);
