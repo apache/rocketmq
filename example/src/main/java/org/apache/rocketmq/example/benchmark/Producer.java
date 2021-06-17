@@ -61,9 +61,11 @@ public class Producer {
         final boolean msgTraceEnable = commandLine.hasOption('m') && Boolean.parseBoolean(commandLine.getOptionValue('m'));
         final boolean aclEnable = commandLine.hasOption('a') && Boolean.parseBoolean(commandLine.getOptionValue('a'));
         final long messageNum = commandLine.hasOption('q') ? Long.parseLong(commandLine.getOptionValue('q')) : 0;
+        final boolean delayEnable = commandLine.hasOption('d') && Boolean.parseBoolean(commandLine.getOptionValue('d'));
+        final int delayLevel = commandLine.hasOption('e') ? Integer.parseInt(commandLine.getOptionValue('e')) : 1;
 
-        System.out.printf("topic: %s threadCount: %d messageSize: %d keyEnable: %s propertySize: %d tagCount: %d traceEnable: %s aclEnable: %s messageQuantity: %d%n",
-            topic, threadCount, messageSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable, messageNum);
+        System.out.printf("topic: %s threadCount: %d messageSize: %d keyEnable: %s propertySize: %d tagCount: %d traceEnable: %s aclEnable: %s messageQuantity: %d%n delayEnable: %s%n delayLevel: %s%n",
+            topic, threadCount, messageSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable, messageNum, delayEnable, delayLevel);
 
         final InternalLogger log = ClientLogger.getLog();
 
@@ -146,6 +148,9 @@ public class Producer {
                             final long beginTimestamp = System.currentTimeMillis();
                             if (keyEnable) {
                                 msg.setKeys(String.valueOf(beginTimestamp / 1000));
+                            }
+                            if (delayEnable) {
+                                msg.setDelayTimeLevel(delayLevel);
                             }
                             if (tagCount > 0) {
                                 long sendSucCount = statsBenchmark.getReceiveResponseSuccessCount().get();
@@ -263,6 +268,14 @@ public class Producer {
         options.addOption(opt);
 
         opt = new Option("q", "messageQuantity", true, "Send message quantity, Default: 0, running forever");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("d", "delayEnable", true, "Delay message Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("e", "delayLevel", true, "Delay message level, Default: 1");
         opt.setRequired(false);
         options.addOption(opt);
 
