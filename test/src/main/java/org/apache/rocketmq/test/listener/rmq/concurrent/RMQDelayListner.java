@@ -44,6 +44,7 @@ public class RMQDelayListner extends AbstractListener implements MessageListener
         msgDelayTimes.resetData();
     }
 
+    @Override
     public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
         ConsumeConcurrentlyContext consumeConcurrentlyContext) {
         long recvTime = System.currentTimeMillis();

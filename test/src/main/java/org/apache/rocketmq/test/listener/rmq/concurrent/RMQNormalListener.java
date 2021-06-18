@@ -46,6 +46,7 @@ public class RMQNormalListener extends AbstractListener implements MessageListen
         super(originMsgCollector, msgBodyCollector);
     }
 
+    @Override
     public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
         ConsumeConcurrentlyContext consumeConcurrentlyContext) {
         for (MessageExt msg : msgs) {
