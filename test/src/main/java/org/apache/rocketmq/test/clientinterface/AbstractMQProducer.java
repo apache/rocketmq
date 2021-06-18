@@ -73,7 +73,6 @@ public abstract class AbstractMQProducer extends MQCollector implements MQProduc
         this.producerGroupName = producerGroupName;
     }
 
-    @Override
     public void setDebug() {
         isDebug = true;
     }
@@ -82,7 +81,6 @@ public abstract class AbstractMQProducer extends MQCollector implements MQProduc
         this.isDebug = isDebug;
     }
 
-    @Override
     public void setRun() {
         isDebug = false;
     }

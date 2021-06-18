@@ -37,8 +37,6 @@ public class MQAsyncProducer {
         this.intervalMills = intervalMills;
 
         sendT = new Thread(new Runnable() {
-
-            @Override
             public void run() {
                 for (int i = 0; i < msgNum; i++) {
                     if (!bPause.get()) {

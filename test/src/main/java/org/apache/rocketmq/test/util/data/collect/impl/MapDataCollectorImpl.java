@@ -41,7 +41,6 @@ public class MapDataCollectorImpl implements DataCollector {
         }
     }
 
-    @Override
     public synchronized void addData(Object data) {
         if (lock) {
             return;
@@ -53,7 +52,6 @@ public class MapDataCollectorImpl implements DataCollector {
         }
     }
 
-    @Override
     public Collection<Object> getAllData() {
         List<Object> lst = new ArrayList<Object>();
         for (Entry<Object, AtomicInteger> entry : datas.entrySet()) {
@@ -64,18 +62,15 @@ public class MapDataCollectorImpl implements DataCollector {
         return lst;
     }
 
-    @Override
     public long getDataSizeWithoutDuplicate() {
         return datas.keySet().size();
     }
 
-    @Override
     public void resetData() {
         datas.clear();
         unlockIncrement();
     }
 
-    @Override
     public long getDataSize() {
         long sum = 0;
         for (AtomicInteger count : datas.values()) {
@@ -84,7 +79,6 @@ public class MapDataCollectorImpl implements DataCollector {
         return sum;
     }
 
-    @Override
     public boolean isRepeatedData(Object data) {
         if (datas.containsKey(data)) {
             return datas.get(data).get() == 1;
@@ -92,12 +86,10 @@ public class MapDataCollectorImpl implements DataCollector {
         return false;
     }
 
-    @Override
     public Collection<Object> getAllDataWithoutDuplicate() {
         return datas.keySet();
     }
 
-    @Override
     public int getRepeatedTimeForData(Object data) {
         if (datas.containsKey(data)) {
             return datas.get(data).intValue();
@@ -105,17 +97,14 @@ public class MapDataCollectorImpl implements DataCollector {
         return 0;
     }
 
-    @Override
     public void removeData(Object data) {
         datas.remove(data);
     }
 
-    @Override
     public void lockIncrement() {
         lock = true;
     }
 
-    @Override
     public void unlockIncrement() {
         lock = false;
     }

@@ -82,7 +82,6 @@ public class MQWait {
         MQWait.setCondition(new Condition() {
             int i = 0;
 
-            @Override
             public boolean meetCondition() {
                 i++;
                 return i == 100;
