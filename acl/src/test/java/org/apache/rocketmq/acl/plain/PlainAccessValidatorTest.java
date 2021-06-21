@@ -546,6 +546,26 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(plainAccessValidator.updateAccessConfig(plainAccessConfig), false);
     }
 
+    @Test(expected = AclException.class)
+    public void createAndUpdateAccessAclYamlConfigExceptionTest() {
+        System.setProperty("rocketmq.home.dir", "src/test/resources");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
+
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("RocketMQ33");
+        plainAccessConfig.setSecretKey("123456789111");
+        List<String> topicPerms = new ArrayList<String>();
+        topicPerms.add("topicB=PUB");
+        plainAccessConfig.setTopicPerms(topicPerms);
+        List<String> groupPerms = new ArrayList<String>();
+        groupPerms.add("groupC=DENY1");
+        plainAccessConfig.setGroupPerms(groupPerms);
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        // Create element in the acl access yaml config file
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+    }
+
     @Test
     public void updateGlobalWhiteAddrsNormalTest() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");

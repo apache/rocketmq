@@ -714,6 +714,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
 
+        if (requestHeader.isRemoveOffset()) {
+            this.brokerController.getConsumerOffsetManager().removeOffset(requestHeader.getGroupName());
+        }
+
         if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
             this.brokerController.getBrokerStatsManager().onGroupDeleted(requestHeader.getGroupName());
         }
