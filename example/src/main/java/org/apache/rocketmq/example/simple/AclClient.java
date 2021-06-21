@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.example.constants.StartConstants;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
@@ -57,7 +58,7 @@ public class AclClient {
 
     public static void producer() throws MQClientException {
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName", getAclRPCHook());
-        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
         producer.start();
 
         for (int i = 0; i < 128; i++)
@@ -81,7 +82,7 @@ public class AclClient {
     public static void pushConsumer() throws MQClientException {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_5", getAclRPCHook(), new AllocateMessageQueueAveragely());
-        consumer.setNamesrvAddr("127.0.0.1:9876");
+        consumer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         // Wrong time format 2017_0422_221800
@@ -101,7 +102,7 @@ public class AclClient {
 
     public static void pullConsumer() throws MQClientException {
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_6", getAclRPCHook());
-        consumer.setNamesrvAddr("127.0.0.1:9876");
+        consumer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
         consumer.start();
 
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TopicTest");

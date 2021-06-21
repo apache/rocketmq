@@ -33,6 +33,7 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.example.constants.StartConstants;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -108,6 +109,7 @@ public class Producer {
 
         RPCHook rpcHook = aclEnable ? AclClient.getAclRPCHook() : null;
         final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer", rpcHook, msgTraceEnable, null);
+        producer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         if (commandLine.hasOption('n')) {

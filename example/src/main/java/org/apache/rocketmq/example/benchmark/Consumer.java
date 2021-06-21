@@ -39,6 +39,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.example.constants.StartConstants;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
@@ -127,6 +128,7 @@ public class Consumer {
         consumer.setConsumeThreadMin(threadCount);
         consumer.setConsumeThreadMax(threadCount);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
+        consumer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
 
         if (filterType == null || expression == null) {
             consumer.subscribe(topic, "*");

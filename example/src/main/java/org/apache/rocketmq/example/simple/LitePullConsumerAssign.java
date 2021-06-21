@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.example.constants.StartConstants;
 
 public class LitePullConsumerAssign {
 
@@ -30,6 +31,7 @@ public class LitePullConsumerAssign {
     public static void main(String[] args) throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer("please_rename_unique_group_name");
         litePullConsumer.setAutoCommit(false);
+        litePullConsumer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
         litePullConsumer.start();
         Collection<MessageQueue> mqSet = litePullConsumer.fetchMessageQueues("TopicTest");
         List<MessageQueue> list = new ArrayList<>(mqSet);

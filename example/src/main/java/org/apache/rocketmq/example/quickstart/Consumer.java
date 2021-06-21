@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.example.constants.StartConstants;
 
 /**
  * This example shows how to subscribe and consume messages using providing {@link DefaultMQPushConsumer}.
@@ -58,6 +59,7 @@ public class Consumer {
          * Subscribe one more more topics to consume.
          */
         consumer.subscribe("TopicTest", "*");
+        consumer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
 
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.

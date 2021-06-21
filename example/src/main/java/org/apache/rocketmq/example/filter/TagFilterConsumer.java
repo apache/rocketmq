@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.example.constants.StartConstants;
 
 public class TagFilterConsumer {
 
@@ -32,6 +33,7 @@ public class TagFilterConsumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 
         consumer.subscribe("TagFilterTest", "TagA || TagC");
+        consumer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
 
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 

@@ -20,6 +20,7 @@ import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.example.constants.StartConstants;
 
 public class LitePullConsumerSubscribe {
 
@@ -27,6 +28,7 @@ public class LitePullConsumerSubscribe {
 
     public static void main(String[] args) throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer("lite_pull_consumer_test");
+        litePullConsumer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
         litePullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         litePullConsumer.subscribe("TopicTest", "*");
         litePullConsumer.start();
