@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.example.constants.StartUpContants;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
@@ -57,7 +58,7 @@ public class AclClient {
 
     public static void producer() throws MQClientException {
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName", getAclRPCHook());
-        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.setNamesrvAddr(StartUpContants.DEFAULT_NAMESRV_ADDRESS);
         producer.start();
 
         for (int i = 0; i < 128; i++)
