@@ -33,9 +33,7 @@ public class Consumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_3");
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-
         consumer.subscribe("TopicTest", "TagA || TagC || TagD");
-        consumer.setNamesrvAddr(StartConstants.DEFAULT_NAMESRV_ADDRESS);
 
         consumer.registerMessageListener(new MessageListenerOrderly() {
             AtomicLong consumeTimes = new AtomicLong(0);
