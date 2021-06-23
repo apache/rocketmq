@@ -14,27 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.common.protocol.body;
 
-/**
- * $Id: GetRouteInfoRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.common.protocol.header.namesrv;
+import org.apache.rocketmq.common.protocol.route.MessageQueueRouteState;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-import java.util.Set;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-public class GetRouteInfoRequestHeader implements CommandCustomHeader {
-    @CFNotNull
+public class CreateMessageQueueForLogicalQueueRequestBody extends RemotingSerializable {
     private String topic;
-
-    private int sysFlag;
-    private Set<Integer> logicalQueueIdsFilter;
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
-    }
+    private int logicalQueueIndex;
+    private MessageQueueRouteState messageQueueStatus;
 
     public String getTopic() {
         return topic;
@@ -44,19 +32,19 @@ public class GetRouteInfoRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public int getSysFlag() {
-        return sysFlag;
+    public int getLogicalQueueIndex() {
+        return logicalQueueIndex;
     }
 
-    public void setSysFlag(int sysFlag) {
-        this.sysFlag = sysFlag;
+    public void setLogicalQueueIndex(int logicalQueueIndex) {
+        this.logicalQueueIndex = logicalQueueIndex;
     }
 
-    public void setLogicalQueueIdsFilter(Set<Integer> filter) {
-        this.logicalQueueIdsFilter = filter;
+    public MessageQueueRouteState getMessageQueueStatus() {
+        return messageQueueStatus;
     }
 
-    public Set<Integer> getLogicalQueueIdsFilter() {
-        return logicalQueueIdsFilter;
+    public void setMessageQueueStatus(MessageQueueRouteState messageQueueStatuses) {
+        this.messageQueueStatus = messageQueueStatuses;
     }
 }

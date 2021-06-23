@@ -38,4 +38,5 @@ public class LoggerName {
     public static final String WATER_MARK_LOGGER_NAME = "RocketmqWaterMark";
     public static final String FILTER_LOGGER_NAME = "RocketmqFilter";
     public static final String ROCKETMQ_POP_LOGGER_NAME = "RocketmqPop";
+    public static final String STDOUT_LOGGER_NAME = "STDOUT";
 }
