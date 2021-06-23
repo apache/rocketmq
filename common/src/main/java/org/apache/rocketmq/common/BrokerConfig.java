@@ -187,6 +187,8 @@ public class BrokerConfig {
 
     private boolean autoDeleteUnusedStats = false;
 
+    private long forwardTimeout = 3 * 1000;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -803,5 +805,13 @@ public class BrokerConfig {
 
     public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
         this.autoDeleteUnusedStats = autoDeleteUnusedStats;
+    }
+
+    public long getForwardTimeout() {
+        return forwardTimeout;
+    }
+
+    public void setForwardTimeout(long timeout) {
+        this.forwardTimeout = timeout;
     }
 }

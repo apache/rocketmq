@@ -18,9 +18,10 @@ package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.JSON;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public abstract class RemotingSerializable {
-    private final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
 
     public static byte[] encode(final Object obj) {
         final String json = toJson(obj, false);
@@ -35,12 +36,15 @@ public abstract class RemotingSerializable {
     }
 
     public static <T> T decode(final byte[] data, Class<T> classOfT) {
-        final String json = new String(data, CHARSET_UTF8);
-        return fromJson(json, classOfT);
+        return fromJson(data, classOfT);
     }
 
     public static <T> T fromJson(String json, Class<T> classOfT) {
         return JSON.parseObject(json, classOfT);
+    }
+
+    private static <T> T fromJson(byte[] data, Class<T> classOfT) {
+        return JSON.parseObject(data, classOfT);
     }
 
     public byte[] encode() {

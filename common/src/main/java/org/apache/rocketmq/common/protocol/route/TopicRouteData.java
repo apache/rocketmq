@@ -30,27 +30,32 @@ public class TopicRouteData extends RemotingSerializable {
     private List<QueueData> queueDatas;
     private List<BrokerData> brokerDatas;
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
+    private LogicalQueuesInfo logicalQueuesInfo;
 
-    public TopicRouteData cloneTopicRouteData() {
-        TopicRouteData topicRouteData = new TopicRouteData();
-        topicRouteData.setQueueDatas(new ArrayList<QueueData>());
-        topicRouteData.setBrokerDatas(new ArrayList<BrokerData>());
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        topicRouteData.setOrderTopicConf(this.orderTopicConf);
+    public TopicRouteData() {
+    }
 
-        if (this.queueDatas != null) {
-            topicRouteData.getQueueDatas().addAll(this.queueDatas);
+    public TopicRouteData(TopicRouteData topicRouteData) {
+        this.queueDatas = new ArrayList<QueueData>();
+        this.brokerDatas = new ArrayList<BrokerData>();
+        this.filterServerTable = new HashMap<String, List<String>>();
+        this.orderTopicConf = topicRouteData.orderTopicConf;
+
+        if (topicRouteData.queueDatas != null) {
+            this.queueDatas.addAll(topicRouteData.queueDatas);
         }
 
-        if (this.brokerDatas != null) {
-            topicRouteData.getBrokerDatas().addAll(this.brokerDatas);
+        if (topicRouteData.brokerDatas != null) {
+            this.brokerDatas.addAll(topicRouteData.brokerDatas);
         }
 
-        if (this.filterServerTable != null) {
-            topicRouteData.getFilterServerTable().putAll(this.filterServerTable);
+        if (topicRouteData.filterServerTable != null) {
+            this.filterServerTable.putAll(topicRouteData.filterServerTable);
         }
 
-        return topicRouteData;
+        if (topicRouteData.logicalQueuesInfo != null) {
+            this.logicalQueuesInfo = new LogicalQueuesInfo(topicRouteData.logicalQueuesInfo);
+        }
     }
 
     public List<QueueData> getQueueDatas() {
@@ -85,6 +90,14 @@ public class TopicRouteData extends RemotingSerializable {
         this.orderTopicConf = orderTopicConf;
     }
 
+    public LogicalQueuesInfo getLogicalQueuesInfo() {
+        return logicalQueuesInfo;
+    }
+
+    public void setLogicalQueuesInfo(LogicalQueuesInfo logicalQueuesInfo) {
+        this.logicalQueuesInfo = logicalQueuesInfo;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -93,6 +106,7 @@ public class TopicRouteData extends RemotingSerializable {
         result = prime * result + ((orderTopicConf == null) ? 0 : orderTopicConf.hashCode());
         result = prime * result + ((queueDatas == null) ? 0 : queueDatas.hashCode());
         result = prime * result + ((filterServerTable == null) ? 0 : filterServerTable.hashCode());
+        result = prime * result + ((logicalQueuesInfo == null) ? 0 : logicalQueuesInfo.hashCode());
         return result;
     }
 
@@ -125,12 +139,17 @@ public class TopicRouteData extends RemotingSerializable {
                 return false;
         } else if (!filterServerTable.equals(other.filterServerTable))
             return false;
+        if (logicalQueuesInfo == null) {
+            if (other.logicalQueuesInfo != null)
+                return false;
+        } else if (!logicalQueuesInfo.equals(other.logicalQueuesInfo))
+            return false;
         return true;
     }
 
     @Override
     public String toString() {
         return "TopicRouteData [orderTopicConf=" + orderTopicConf + ", queueDatas=" + queueDatas
-            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + "]";
+            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + ", logicalQueuesInfo=" + logicalQueuesInfo + "]";
     }
 }

@@ -188,4 +188,16 @@ public class RequestCode {
     public static final int SEND_REPLY_MESSAGE_V2 = 325;
 
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
+
+    public static final int GET_TOPIC_CONFIG = 351;
+
+    public static final int UPDATE_TOPIC_LOGICAL_QUEUE_MAPPING = 411;
+    public static final int DELETE_TOPIC_LOGICAL_QUEUE_MAPPING = 422;
+    public static final int QUERY_TOPIC_LOGICAL_QUEUE_MAPPING = 413;
+    public static final int SEAL_TOPIC_LOGICAL_QUEUE = 414;
+    public static final int REUSE_TOPIC_LOGICAL_QUEUE = 415;
+    public static final int CREATE_MESSAGE_QUEUE_FOR_LOGICAL_QUEUE = 416;
+    public static final int MIGRATE_TOPIC_LOGICAL_QUEUE_PREPARE = 417;
+    public static final int MIGRATE_TOPIC_LOGICAL_QUEUE_COMMIT = 418;
+    public static final int MIGRATE_TOPIC_LOGICAL_QUEUE_NOTIFY = 419;
 }
