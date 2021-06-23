@@ -16,19 +16,15 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import com.alibaba.fastjson.JSON;
+import com.google.common.base.Objects;
 import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.MQRedirectException;
 import org.apache.rocketmq.client.hook.FilterMessageContext;
 import org.apache.rocketmq.client.hook.FilterMessageHook;
 import org.apache.rocketmq.client.impl.CommunicationMode;
@@ -44,12 +40,28 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
+import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
+import org.apache.rocketmq.common.protocol.route.MessageQueueRouteState;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static com.google.common.base.Optional.fromNullable;
 
 public class PullAPIWrapper {
     private final InternalLogger log = ClientLogger.getLog();
@@ -60,7 +72,7 @@ public class PullAPIWrapper {
         new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
     private volatile boolean connectBrokerByUser = false;
     private volatile long defaultBrokerId = MixAll.MASTER_ID;
-    private Random random = new Random(System.currentTimeMillis());
+    private Random random = new Random(System.nanoTime());
     private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
 
     public PullAPIWrapper(MQClientInstance mQClientFactory, String consumerGroup, boolean unitMode) {
@@ -71,12 +83,35 @@ public class PullAPIWrapper {
 
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
         final SubscriptionData subscriptionData) {
-        PullResultExt pullResultExt = (PullResultExt) pullResult;
+        final PullResultExt pullResultExt = (PullResultExt) pullResult;
+
+        LogicalQueueRouteData queueRouteData = null;
+        PullResultWithLogicalQueues pullResultWithLogicalQueues = null;
+        if (pullResultExt instanceof PullResultWithLogicalQueues) {
+            pullResultWithLogicalQueues = (PullResultWithLogicalQueues) pullResultExt;
+            queueRouteData = pullResultWithLogicalQueues.getQueueRouteData();
+        }
+
+        if (queueRouteData != null) {
+            pullResultWithLogicalQueues.setOrigPullResultExt(new PullResultExt(pullResultExt.getPullStatus(),
+                queueRouteData.toLogicalQueueOffset(pullResultExt.getNextBeginOffset()),
+                queueRouteData.toLogicalQueueOffset(pullResultExt.getMinOffset()),
+                // although this maxOffset may not belong to this queue route, but the actual value must be a larger one, and since maxOffset here is not an accurate value, we just do it to make things simple.
+                queueRouteData.toLogicalQueueOffset(pullResultExt.getMaxOffset()),
+                pullResultExt.getMsgFoundList(),
+                pullResultExt.getSuggestWhichBrokerId(),
+                pullResultExt.getMessageBinary()));
+        }
 
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
+
+            if (queueRouteData != null) {
+                // prevent pulled data is out of current queue route, this happens when some commit log data is cleaned in the broker but still pull from it.
+                msgList = queueRouteData.filterMessages(msgList);
+            }
 
             List<MessageExt> msgListFilterAgain = msgList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
@@ -107,6 +142,10 @@ public class PullAPIWrapper {
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
                     Long.toString(pullResult.getMaxOffset()));
                 msg.setBrokerName(mq.getBrokerName());
+                msg.setQueueId(mq.getQueueId());
+                if (queueRouteData != null) {
+                    msg.setQueueOffset(queueRouteData.toLogicalQueueOffset(msg.getQueueOffset()));
+                }
             }
 
             pullResultExt.setMsgFoundList(msgListFilterAgain);
@@ -114,7 +153,7 @@ public class PullAPIWrapper {
 
         pullResultExt.setMessageBinary(null);
 
-        return pullResult;
+        return pullResultExt;
     }
 
     public void updatePullFromWhichNode(final MessageQueue mq, final long brokerId) {
@@ -143,24 +182,67 @@ public class PullAPIWrapper {
     }
 
     public PullResult pullKernelImpl(
-        final MessageQueue mq,
+        MessageQueue mq,
         final String subExpression,
         final String expressionType,
         final long subVersion,
-        final long offset,
+        long offset,
         final int maxNums,
         final int sysFlag,
-        final long commitOffset,
+        long commitOffset,
         final long brokerSuspendMaxTimeMillis,
         final long timeoutMillis,
         final CommunicationMode communicationMode,
-        final PullCallback pullCallback
+        PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(mq.getBrokerName())) {
+            LogicalQueueContext logicalQueueContext = new LogicalQueueContext(mq, subExpression, expressionType, subVersion, offset, maxNums, sysFlag, commitOffset, brokerSuspendMaxTimeMillis, timeoutMillis, communicationMode, pullCallback);
+            while (true) {
+                try {
+                    MessageQueue messageQueue = logicalQueueContext.getModifiedMessageQueue();
+                    if (messageQueue == null) {
+                        if (pullCallback != null) {
+                            pullCallback.onSuccess(logicalQueueContext.getPullResult());
+                            return null;
+                        } else {
+                            return logicalQueueContext.getPullResult();
+                        }
+                    }
+                    PullResult pullResult = this.pullKernelImplWithoutRetry(messageQueue, subExpression, expressionType, subVersion, logicalQueueContext.getModifiedOffset(), maxNums, sysFlag, logicalQueueContext.getModifiedCommitOffset(), brokerSuspendMaxTimeMillis, timeoutMillis, communicationMode, logicalQueueContext.wrapPullCallback());
+                    return logicalQueueContext.wrapPullResult(pullResult);
+                } catch (MQRedirectException e) {
+                    if (!logicalQueueContext.shouldRetry(e)) {
+                        throw new MQBrokerException(ResponseCode.SYSTEM_ERROR, "redirect");
+                    }
+                }
+            }
+        } else {
+            return this.pullKernelImplWithoutRetry(mq, subExpression, expressionType, subVersion, offset, maxNums, sysFlag, commitOffset, brokerSuspendMaxTimeMillis, timeoutMillis, communicationMode, pullCallback);
+        }
+    }
+
+    public PullResult pullKernelImplWithoutRetry(
+        MessageQueue mq,
+        final String subExpression,
+        final String expressionType,
+        final long subVersion,
+        long offset,
+        final int maxNums,
+        final int sysFlag,
+        long commitOffset,
+        final long brokerSuspendMaxTimeMillis,
+        final long timeoutMillis,
+        final CommunicationMode communicationMode,
+        PullCallback pullCallback
+    ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        String topic = mq.getTopic();
+        int queueId = mq.getQueueId();
+
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                 this.recalculatePullFromWhichNode(mq), false);
         if (null == findBrokerResult) {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
             findBrokerResult =
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                     this.recalculatePullFromWhichNode(mq), false);
@@ -183,8 +265,8 @@ public class PullAPIWrapper {
 
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
             requestHeader.setConsumerGroup(this.consumerGroup);
-            requestHeader.setTopic(mq.getTopic());
-            requestHeader.setQueueId(mq.getQueueId());
+            requestHeader.setTopic(topic);
+            requestHeader.setQueueId(queueId);
             requestHeader.setQueueOffset(offset);
             requestHeader.setMaxMsgNums(maxNums);
             requestHeader.setSysFlag(sysFlagInner);
@@ -196,17 +278,15 @@ public class PullAPIWrapper {
 
             String brokerAddr = findBrokerResult.getBrokerAddr();
             if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
-                brokerAddr = computePullFromWhichFilterServer(mq.getTopic(), brokerAddr);
+                brokerAddr = computePullFromWhichFilterServer(topic, brokerAddr);
             }
 
-            PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(
+            return this.mQClientFactory.getMQClientAPIImpl().pullMessage(
                 brokerAddr,
                 requestHeader,
                 timeoutMillis,
                 communicationMode,
                 pullCallback);
-
-            return pullResult;
         }
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
@@ -321,5 +401,230 @@ public class PullAPIWrapper {
             return;
         }
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+    }
+
+    private class LogicalQueueContext implements PullCallback {
+        private final MessageQueue mq;
+        private final String subExpression;
+        private final String expressionType;
+        private final long subVersion;
+        private final long offset;
+        private final int maxNums;
+        private final int sysFlag;
+        private final long commitOffset;
+        private final long brokerSuspendMaxTimeMillis;
+        private final long timeoutMillis;
+        private final CommunicationMode communicationMode;
+        private final PullCallback pullCallback;
+
+        private volatile LogicalQueuesInfo logicalQueuesInfo;
+        private volatile LogicalQueueRouteData logicalQueueRouteData;
+        private volatile boolean isMaxReadableQueueRoute;
+
+        private volatile PullResultExt pullResult = null;
+
+        private final AtomicInteger retry = new AtomicInteger();
+
+        public LogicalQueueContext(MessageQueue mq, String subExpression, String expressionType, long subVersion,
+            long offset, int maxNums, int sysFlag, long commitOffset, long brokerSuspendMaxTimeMillis,
+            long timeoutMillis, CommunicationMode communicationMode,
+            PullCallback pullCallback) {
+            this.mq = mq;
+            this.subExpression = subExpression;
+            this.expressionType = expressionType;
+            this.subVersion = subVersion;
+            this.offset = offset;
+            this.maxNums = maxNums;
+            this.sysFlag = sysFlag;
+            this.commitOffset = commitOffset;
+            this.brokerSuspendMaxTimeMillis = brokerSuspendMaxTimeMillis;
+            this.timeoutMillis = timeoutMillis;
+            this.communicationMode = communicationMode;
+            this.pullCallback = pullCallback;
+
+            this.buildLogicalQueuesInfo();
+        }
+
+        private boolean notUsingLogicalQueue() {
+            return !Objects.equal(mq.getBrokerName(), MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME) || this.logicalQueuesInfo == null;
+        }
+
+        private void buildLogicalQueuesInfo() {
+            TopicRouteData topicRouteData = PullAPIWrapper.this.mQClientFactory.queryTopicRouteData(mq.getTopic());
+            if (topicRouteData != null) {
+                this.logicalQueuesInfo = topicRouteData.getLogicalQueuesInfo();
+            }
+        }
+
+        @Override public void onSuccess(PullResult pullResult) {
+            this.pullCallback.onSuccess(this.wrapPullResult(pullResult));
+        }
+
+        @Override public void onException(Throwable t) {
+            if (!this.shouldRetry(t)) {
+                this.pullCallback.onException(t);
+                return;
+            }
+            MessageQueue messageQueue = this.getModifiedMessageQueue();
+            if (messageQueue == null) {
+                this.pullCallback.onSuccess(this.getPullResult());
+                return;
+            }
+            try {
+                PullAPIWrapper.this.pullKernelImplWithoutRetry(messageQueue, subExpression, expressionType, subVersion, this.getModifiedOffset(), maxNums, sysFlag, this.getModifiedCommitOffset(), brokerSuspendMaxTimeMillis, timeoutMillis, communicationMode, this);
+            } catch (Exception e) {
+                this.pullCallback.onException(e);
+            }
+        }
+
+        public MessageQueue getModifiedMessageQueue() {
+            if (this.notUsingLogicalQueue()) {
+                return this.mq;
+            }
+            this.logicalQueuesInfo.readLock().lock();
+            try {
+                List<LogicalQueueRouteData> queueRouteDataList = fromNullable(this.logicalQueuesInfo.get(this.mq.getQueueId())).or(Collections.<LogicalQueueRouteData>emptyList());
+                LogicalQueueRouteData searchKey = new LogicalQueueRouteData();
+                searchKey.setState(MessageQueueRouteState.Normal);
+                searchKey.setLogicalQueueDelta(offset);
+                // it's sorted after getTopicRouteInfoFromNameServer
+                int startIdx = Collections.binarySearch(queueRouteDataList, searchKey);
+                if (startIdx < 0) {
+                    startIdx = -startIdx - 1;
+                    // lower entry
+                    startIdx -= 1;
+                }
+                this.logicalQueueRouteData = null;
+                this.pullResult = null;
+                LogicalQueueRouteData lastReadableLogicalQueueRouteData = null; // first item which delta > offset
+                LogicalQueueRouteData minReadableLogicalQueueRouteData = null;
+                LogicalQueueRouteData maxReadableLogicalQueueRouteData = null;
+                for (int i = 0, size = queueRouteDataList.size(); i < size; i++) {
+                    LogicalQueueRouteData queueRouteData = queueRouteDataList.get(i);
+                    if (!queueRouteData.isReadable()) {
+                        continue;
+                    }
+                    maxReadableLogicalQueueRouteData = queueRouteData;
+                    if (minReadableLogicalQueueRouteData == null) {
+                        minReadableLogicalQueueRouteData = queueRouteData;
+                        if (i < startIdx) {
+                            // must consider following `i++` operation when invoke `continue`, so decrease first
+                            i = startIdx - 1;
+                            continue;
+                        }
+                    }
+                    if (queueRouteData.getLogicalQueueDelta() > offset) {
+                        if (this.logicalQueueRouteData != null) {
+                            if (this.logicalQueueRouteData.toLogicalQueueOffset(this.logicalQueueRouteData.getOffsetMax()) <= offset) {
+                                this.logicalQueueRouteData = queueRouteData;
+                            }
+                            break;
+                        } else {
+                            if (lastReadableLogicalQueueRouteData == null) {
+                                lastReadableLogicalQueueRouteData = queueRouteData;
+                            }
+                        }
+                    } else {
+                        this.logicalQueueRouteData = queueRouteData;
+                    }
+                }
+                if (this.logicalQueueRouteData == null) {
+                    if (lastReadableLogicalQueueRouteData != null) {
+                        this.pullResult = new PullResultExt(PullStatus.OFFSET_ILLEGAL, lastReadableLogicalQueueRouteData.getLogicalQueueDelta(), minReadableLogicalQueueRouteData.getLogicalQueueDelta(), maxReadableLogicalQueueRouteData.getLogicalQueueDelta(), null, 0, null);
+                        return null;
+                    } else {
+                        if (maxReadableLogicalQueueRouteData != null) {
+                            this.logicalQueueRouteData = maxReadableLogicalQueueRouteData;
+                        } else {
+                            if (!queueRouteDataList.isEmpty()) {
+                                this.logicalQueueRouteData = queueRouteDataList.get(queueRouteDataList.size() - 1);
+                            } else {
+                                pullResult = new PullResultExt(PullStatus.NO_NEW_MSG, 0, 0, 0, null, 0, null);
+                                return null;
+                            }
+                        }
+                    }
+                }
+                this.isMaxReadableQueueRoute = this.logicalQueueRouteData.isSameTo(maxReadableLogicalQueueRouteData);
+                return this.logicalQueueRouteData.getMessageQueue();
+            } finally {
+                this.logicalQueuesInfo.readLock().unlock();
+            }
+        }
+
+        public PullResultExt getPullResult() {
+            return pullResult;
+        }
+
+        public PullCallback wrapPullCallback() {
+            if (this.notUsingLogicalQueue()) {
+                return this.pullCallback;
+            }
+            if (!CommunicationMode.ASYNC.equals(this.communicationMode)) {
+                return this.pullCallback;
+            }
+            return this;
+        }
+
+        public long getModifiedOffset() {
+            return this.logicalQueueRouteData.toMessageQueueOffset(this.offset);
+        }
+
+        public long getModifiedCommitOffset() {
+            // TODO should this be modified too? If offset is not in current broker's range, how do we handle it?
+            return this.commitOffset;
+        }
+
+        public void incrRetry() {
+            this.retry.incrementAndGet();
+        }
+
+        public boolean shouldRetry(Throwable t) {
+            this.incrRetry();
+            if (this.retry.get() >= 3) {
+                return false;
+            }
+            if (t instanceof MQRedirectException) {
+                MQRedirectException e = (MQRedirectException) t;
+                this.processResponseBody(e.getBody());
+                return true;
+            }
+            return false;
+        }
+
+        public PullResult wrapPullResult(PullResult pullResult) {
+            if (pullResult == null) {
+                return null;
+            }
+            if (this.logicalQueueRouteData == null) {
+                return pullResult;
+            }
+            if (!this.isMaxReadableQueueRoute && PullStatus.NO_MATCHED_MSG.equals(pullResult.getPullStatus())) {
+                PullStatus status = PullStatus.OFFSET_ILLEGAL;
+                if (pullResult instanceof PullResultExt) {
+                    PullResultExt pullResultExt = (PullResultExt) pullResult;
+                    pullResult = new PullResultExt(status, pullResultExt.getNextBeginOffset(), pullResultExt.getMinOffset(), pullResultExt.getMaxOffset(), pullResultExt.getMsgFoundList(), pullResultExt.getSuggestWhichBrokerId(), pullResultExt.getMessageBinary());
+                } else {
+                    pullResult = new PullResult(status, pullResult.getNextBeginOffset(), pullResult.getMinOffset(), pullResult.getMaxOffset(), pullResult.getMsgFoundList());
+                }
+            }
+            // method PullAPIWrapper#processPullResult will modify queueOffset/nextBeginOffset/minOffset/maxOffset
+            return new PullResultWithLogicalQueues(pullResult, this.logicalQueueRouteData);
+        }
+
+        public void processResponseBody(byte[] responseBody) {
+            log.info("LogicalQueueContext.processResponseBody got redirect {}: {}", this.logicalQueueRouteData, responseBody != null ? new String(responseBody, MessageDecoder.CHARSET_UTF8) : null);
+            if (responseBody != null) {
+                try {
+                    List<LogicalQueueRouteData> queueRouteDataList = JSON.parseObject(responseBody, MixAll.TYPE_LIST_LOGICAL_QUEUE_ROUTE_DATA);
+                    this.logicalQueuesInfo.updateLogicalQueueRouteDataList(this.mq.getQueueId(), queueRouteDataList);
+                    return;
+                } catch (Exception e) {
+                    log.warn("LogicalQueueContext.processResponseBody {} update exception, fallback to updateTopicRouteInfoFromNameServer", this.logicalQueueRouteData, e);
+                }
+            }
+            PullAPIWrapper.this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic(), false, null, Collections.singleton(this.mq.getQueueId()));
+            this.buildLogicalQueuesInfo();
+        }
     }
 }

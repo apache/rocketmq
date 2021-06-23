@@ -14,27 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.common.protocol.body;
 
-/**
- * $Id: GetMaxOffsetRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.common.protocol.header;
+import org.apache.rocketmq.common.protocol.route.MessageQueueRouteState;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-public class GetMaxOffsetRequestHeader implements CommandCustomHeader {
-    @CFNotNull
+public class ReuseTopicLogicalQueueRequestBody extends RemotingSerializable {
     private String topic;
-    @CFNotNull
-    private Integer queueId;
-    private boolean committed;
-    private boolean logicalQueue;
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
-    }
+    private int queueId;
+    private int logicalQueueIndex;
+    private MessageQueueRouteState messageQueueRouteState;
 
     public String getTopic() {
         return topic;
@@ -44,27 +33,27 @@ public class GetMaxOffsetRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public Integer getQueueId() {
+    public int getQueueId() {
         return queueId;
     }
 
-    public void setQueueId(Integer queueId) {
+    public void setQueueId(int queueId) {
         this.queueId = queueId;
     }
 
-    public void setCommitted(boolean committed) {
-        this.committed = committed;
+    public int getLogicalQueueIndex() {
+        return logicalQueueIndex;
     }
 
-    public boolean isCommitted() {
-        return committed;
+    public void setLogicalQueueIndex(int logicalQueueIndex) {
+        this.logicalQueueIndex = logicalQueueIndex;
     }
 
-    public void setLogicalQueue(boolean logicalQueue) {
-        this.logicalQueue = logicalQueue;
+    public void setMessageQueueRouteState(MessageQueueRouteState messageQueueRouteState) {
+        this.messageQueueRouteState = messageQueueRouteState;
     }
 
-    public boolean getLogicalQueue() {
-        return logicalQueue;
+    public MessageQueueRouteState getMessageQueueRouteState() {
+        return messageQueueRouteState;
     }
 }
