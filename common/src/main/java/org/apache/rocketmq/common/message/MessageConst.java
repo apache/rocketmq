@@ -54,6 +54,8 @@ public class MessageConst {
     public static final String PROPERTY_MESSAGE_TYPE = "MSG_TYPE";
     public static final String PROPERTY_POP_CK = "POP_CK";
     public static final String PROPERTY_FIRST_POP_TIME = "1ST_POP_TIME";
+    public static final String PROPERTY_FORWARD_QUEUE_ID = "PROPERTY_FORWARD_QUEUE_ID";
+    public static final String PROPERTY_REDIRECT = "REDIRECT";
 
     public static final String KEY_SEPARATOR = " ";
 
