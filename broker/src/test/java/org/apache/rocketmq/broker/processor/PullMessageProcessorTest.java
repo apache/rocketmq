@@ -25,12 +25,15 @@ import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.domain.LogicalQueuesInfoInBroker;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
@@ -38,6 +41,8 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
+import org.apache.rocketmq.common.protocol.route.MessageQueueRouteState;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -46,6 +51,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -92,6 +98,7 @@ public class PullMessageProcessorTest {
             consumerData.getConsumeFromWhere(),
             consumerData.getSubscriptionDataSet(),
             false);
+        brokerController.getTopicConfigManager().updateTopicConfig(new TopicConfig(topic));
     }
 
     @Test
@@ -190,6 +197,44 @@ public class PullMessageProcessorTest {
         RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_OFFSET_MOVED);
+    }
+
+    @Test
+    public void testProcessRequest_LogicalQueue() throws Exception {
+        GetMessageResult getMessageResult = createGetMessageResult();
+        when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(getMessageResult);
+
+        LogicalQueuesInfoInBroker logicalQueuesInfo = brokerController.getTopicConfigManager().getOrCreateLogicalQueuesInfo(topic);
+        LogicalQueueRouteData queueRouteData1 = new LogicalQueueRouteData(0, 0, new MessageQueue(topic, brokerController.getBrokerConfig().getBrokerName(), 1), MessageQueueRouteState.Normal, 0, -1, -1, -1, brokerController.getBrokerAddr());
+        logicalQueuesInfo.put(0, Lists.newArrayList(queueRouteData1));
+        logicalQueuesInfo.updateQueueRouteDataByQueueId(queueRouteData1.getQueueId(), queueRouteData1);
+
+        // normal
+        {
+            final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
+            RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+            assertThat(response).isNotNull();
+            assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        }
+        // write only
+        queueRouteData1.setState(MessageQueueRouteState.WriteOnly);
+        {
+            final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
+            RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+            assertThat(response).isNotNull();
+            assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_NOT_FOUND);
+        }
+        // no message and redirect
+        queueRouteData1.setState(MessageQueueRouteState.ReadOnly);
+        logicalQueuesInfo.get(0).add(new LogicalQueueRouteData(0, 100, new MessageQueue(topic, "broker2", 1), MessageQueueRouteState.Normal, 0, -1, -1, -1, brokerController.getBrokerAddr()));
+        getMessageResult.setStatus(GetMessageStatus.OFFSET_FOUND_NULL);
+        {
+            final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
+            RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+            assertThat(response).isNotNull();
+            assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_NOT_FOUND);
+            assertThat(response.getExtFields()).containsKey(MessageConst.PROPERTY_REDIRECT);
+        }
     }
 
     private RemotingCommand createPullMsgCommand(int requestCode) {

@@ -16,17 +16,22 @@
  */
 package org.apache.rocketmq.broker.topic;
 
+import com.google.common.collect.Sets;
+import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.domain.LogicalQueuesInfoInBroker;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -35,11 +40,16 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.route.MessageQueueRouteState;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.srvutil.ConcurrentHashMapUtil;
+import org.apache.rocketmq.store.CleanFilesHook;
+import org.apache.rocketmq.store.DefaultMessageStore;
 
+// TODO persistent
 public class TopicConfigManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
@@ -54,6 +64,20 @@ public class TopicConfigManager extends ConfigManager {
 
     public TopicConfigManager() {
     }
+
+    private final ConcurrentMap<String, LogicalQueuesInfoInBroker> logicalQueuesInfoTable = new ConcurrentHashMap<>();
+    private final CleanFilesHook logicalQueueCleanHook = new CleanFilesHook() {
+        @Override public void execute(DefaultMessageStore defaultMessageStore, long deleteCount) {
+            if (deleteCount == 0) {
+                return;
+            }
+            TopicConfigManager.this.logicalQueueClean(defaultMessageStore);
+        }
+
+        @Override public String getName() {
+            return TopicConfigManager.class.getSimpleName() + ".logicalQueueCleanHook";
+        }
+    };
 
     public TopicConfigManager(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -362,7 +386,7 @@ public class TopicConfigManager extends ConfigManager {
 
         this.dataVersion.nextVersion();
 
-        this.persist();
+        this.persist(topicConfig.getTopicName(), topicConfig);
     }
 
     public void updateOrderTopicConfig(final KVTable orderKVTableFromNs) {
@@ -421,6 +445,8 @@ public class TopicConfigManager extends ConfigManager {
     public TopicConfigSerializeWrapper buildTopicConfigSerializeWrapper() {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
+        String brokerName = this.brokerController.getBrokerConfig().getBrokerName();
+        topicConfigSerializeWrapper.setLogicalQueuesInfoMap(this.logicalQueuesInfoTable.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new LogicalQueuesInfoInBroker(e.getValue(), data -> Objects.equals(data.getBrokerName(), brokerName)))));
         topicConfigSerializeWrapper.setDataVersion(this.dataVersion);
         return topicConfigSerializeWrapper;
     }
@@ -452,6 +478,7 @@ public class TopicConfigManager extends ConfigManager {
     public String encode(final boolean prettyFormat) {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
+        topicConfigSerializeWrapper.setLogicalQueuesInfoMap(this.logicalQueuesInfoTable.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new LogicalQueuesInfoInBroker(e.getValue()))));
         topicConfigSerializeWrapper.setDataVersion(this.dataVersion);
         return topicConfigSerializeWrapper.toJson(prettyFormat);
     }
@@ -470,5 +497,79 @@ public class TopicConfigManager extends ConfigManager {
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigTable() {
         return topicConfigTable;
+    }
+
+    public LogicalQueuesInfoInBroker selectLogicalQueuesInfo(String topicName) {
+        return this.logicalQueuesInfoTable.get(topicName);
+    }
+
+    public LogicalQueuesInfoInBroker getOrCreateLogicalQueuesInfo(String topicName) {
+        return ConcurrentHashMapUtil.computeIfAbsent(this.logicalQueuesInfoTable, topicName, ignored -> new LogicalQueuesInfoInBroker());
+    }
+
+    public boolean replaceTopicConfig(String topic, TopicConfig oldTopicConfig, TopicConfig newTopicConfig) {
+        boolean ok = this.topicConfigTable.replace(topic, oldTopicConfig, newTopicConfig);
+        if (ok) {
+            this.dataVersion.nextVersion();
+            persist(topic, newTopicConfig);
+        }
+        return ok;
+    }
+
+    public CleanFilesHook getLogicalQueueCleanHook() {
+        return logicalQueueCleanHook;
+    }
+
+    private void logicalQueueClean(DefaultMessageStore defaultMessageStore) {
+        Set<String> changedTopics = Sets.newHashSet();
+        this.logicalQueuesInfoTable.forEach((topic, logicalQueuesInfo) -> {
+            Lock readLock = logicalQueuesInfo.readLock();
+            Lock writeLock = logicalQueuesInfo.writeLock();
+            readLock.lock();
+            try {
+                logicalQueuesInfo.getAllOwnedLogicalQueueRouteDataStream()
+                    .filter(input -> input != null && MessageQueueRouteState.ReadOnly.equals(input.getState()))
+                    .forEach(logicalQueueRouteData -> {
+                        boolean matched = logicalQueueRouteData.getMessagesCount() == 0;
+                        if (!matched) {
+                            // do not use getMinOffsetInQueue method, since it is using ConsumeQueue data, but not CommitLog, CQ data is not accurate after CommitLog cleaning.
+                            long commitLogOffset = defaultMessageStore.getCommitLogOffsetInQueue(topic, logicalQueueRouteData.getQueueId(), logicalQueueRouteData.getOffsetMax() - 1);
+                            matched = commitLogOffset == 0 || defaultMessageStore.getCommitLog().getMinOffset() > commitLogOffset;
+                        }
+                        if (matched) {
+                            readLock.unlock();
+                            writeLock.lock();
+                            boolean changed = false;
+                            if (MessageQueueRouteState.ReadOnly.equals(logicalQueueRouteData.getState())) {
+                                logicalQueueRouteData.setState(MessageQueueRouteState.Expired);
+                                changedTopics.add(logicalQueueRouteData.getTopic());
+                                changed = true;
+                            }
+                            writeLock.unlock();
+                            if (changed) {
+                                log.info("logicalQueueClean {}", logicalQueueRouteData);
+                            }
+                            readLock.lock();
+                        }
+                    });
+            } finally {
+                readLock.unlock();
+            }
+        });
+        if (!changedTopics.isEmpty()) {
+            // TODO need to clean Expired ones, keep expired one at least one item
+            this.dataVersion.nextVersion();
+            this.persist(changedTopics.stream().map(s -> new AbstractMap.SimpleImmutableEntry<>(s, this.selectLogicalQueuesInfo(s))).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            this.brokerController.registerIncrementBrokerData(changedTopics.stream().map(topicConfigTable::get).filter(Objects::nonNull).collect(Collectors.toList()), this.dataVersion);
+            log.info("registerIncrementBrokerData because logicalQueueClean: {}", changedTopics);
+        }
+    }
+
+    public void deleteQueueRouteData(String topic) {
+        if (this.logicalQueuesInfoTable.remove(topic) != null) {
+            log.info("delete queueRouteData config OK, topic: {}", topic);
+            this.dataVersion.nextVersion();
+            persist(topic, (LogicalQueuesInfoInBroker) null);
+        }
     }
 }
