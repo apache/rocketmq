@@ -14,26 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.common.protocol.body;
 
-/**
- * $Id: GetMaxOffsetRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.common.protocol.header;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-public class GetMaxOffsetRequestHeader implements CommandCustomHeader {
-    @CFNotNull
+public class UpdateTopicLogicalQueueMappingRequestBody extends RemotingSerializable {
     private String topic;
-    @CFNotNull
-    private Integer queueId;
-    private boolean committed;
-    private boolean logicalQueue;
+    private int queueId;
+    private int logicalQueueIdx;
 
-    @Override
-    public void checkFields() throws RemotingCommandException {
+    public int getLogicalQueueIdx() {
+        return logicalQueueIdx;
+    }
+
+    public void setLogicalQueueIdx(int logicalQueueIdx) {
+        this.logicalQueueIdx = logicalQueueIdx;
     }
 
     public String getTopic() {
@@ -44,27 +39,11 @@ public class GetMaxOffsetRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public Integer getQueueId() {
+    public int getQueueId() {
         return queueId;
     }
 
-    public void setQueueId(Integer queueId) {
+    public void setQueueId(int queueId) {
         this.queueId = queueId;
-    }
-
-    public void setCommitted(boolean committed) {
-        this.committed = committed;
-    }
-
-    public boolean isCommitted() {
-        return committed;
-    }
-
-    public void setLogicalQueue(boolean logicalQueue) {
-        this.logicalQueue = logicalQueue;
-    }
-
-    public boolean getLogicalQueue() {
-        return logicalQueue;
     }
 }
