@@ -261,7 +261,7 @@ public class TransactionProducer {
 }
 
 class TransactionListenerImpl implements TransactionListener {
-    private StatsBenchmarkTProducer statBenchmark;
+    private StatsBenchmarkTProducer statsBenchmark;
     private TxSendConfig sendConfig;
     private final LRUMap<Long, Integer> cache = new LRUMap<>(200000);
 
@@ -273,7 +273,7 @@ class TransactionListenerImpl implements TransactionListener {
     }
 
     public TransactionListenerImpl(StatsBenchmarkTProducer statsBenchmark, TxSendConfig sendConfig) {
-        this.statBenchmark = statsBenchmark;
+        this.statsBenchmark = statsBenchmark;
         this.sendConfig = sendConfig;
     }
 
@@ -303,7 +303,7 @@ class TransactionListenerImpl implements TransactionListener {
             // message not generated in this test
             return LocalTransactionState.ROLLBACK_MESSAGE;
         }
-        statBenchmark.getCheckCount().incrementAndGet();
+        statsBenchmark.getCheckCount().incrementAndGet();
 
         int times = 0;
         try {
@@ -326,7 +326,7 @@ class TransactionListenerImpl implements TransactionListener {
             dup = newCheckLog.equals(oldCheckLog);
         }
         if (dup) {
-            statBenchmark.getDuplicatedCheckCount().incrementAndGet();
+            statsBenchmark.getDuplicatedCheckCount().incrementAndGet();
         }
         if (msgMeta.sendResult != LocalTransactionState.UNKNOW) {
             System.out.printf("%s unexpected check: msgId=%s,txId=%s,checkTimes=%s,sendResult=%s\n",
@@ -334,7 +334,7 @@ class TransactionListenerImpl implements TransactionListener {
                     msg.getMsgId(), msg.getTransactionId(),
                     msg.getUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES),
                     msgMeta.sendResult.toString());
-            statBenchmark.getUnexpectedCheckCount().incrementAndGet();
+            statsBenchmark.getUnexpectedCheckCount().incrementAndGet();
             return msgMeta.sendResult;
         }
 
@@ -345,7 +345,7 @@ class TransactionListenerImpl implements TransactionListener {
                         new SimpleDateFormat("HH:mm:ss,SSS").format(new Date()),
                         msg.getMsgId(), msg.getTransactionId(),
                         msg.getUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES), s);
-                statBenchmark.getUnexpectedCheckCount().incrementAndGet();
+                statsBenchmark.getUnexpectedCheckCount().incrementAndGet();
                 return s;
             }
         }
