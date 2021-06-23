@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
+import org.apache.rocketmq.common.protocol.body.MigrateLogicalQueueBody;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
@@ -48,6 +49,9 @@ import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
+import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
+import org.apache.rocketmq.common.protocol.route.MessageQueueRouteState;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -92,7 +96,8 @@ public interface MQAdminExt extends MQAdmin {
 
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr, final String group);
 
-    TopicConfig examineTopicConfig(final String addr, final String topic);
+    TopicConfig examineTopicConfig(final String addr,
+        final String topic) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
 
     TopicStatsTable examineTopicStats(
         final String topic) throws RemotingException, MQClientException, InterruptedException,
@@ -285,4 +290,28 @@ public interface MQAdminExt extends MQAdmin {
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
 
     boolean resumeCheckHalfMessage(final String topic, final String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+
+    void updateTopicLogicalQueueMapping(String brokerAddr, String topic, int queueId, int logicalQueueIndex) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException;
+
+    LogicalQueuesInfo queryTopicLogicalQueueMapping(String brokerAddr, String topic) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    void deleteTopicLogicalQueueMapping(String brokerAddr, String topic) throws InterruptedException, RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException, MQBrokerException;
+
+    LogicalQueueRouteData sealTopicLogicalQueue(String brokerAddr, LogicalQueueRouteData queueRouteData) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    LogicalQueueRouteData reuseTopicLogicalQueue(String brokerAddr, String topic, int queueId, int logicalQueueIdx,
+        MessageQueueRouteState messageQueueRouteState) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    LogicalQueueRouteData createMessageQueueForLogicalQueue(String brokerAddr, String topic, int logicalQueueIdx,
+        MessageQueueRouteState messageQueueStatus) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    MigrateLogicalQueueBody migrateTopicLogicalQueuePrepare(LogicalQueueRouteData fromQueueRouteData, LogicalQueueRouteData toQueueRouteData) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    MigrateLogicalQueueBody migrateTopicLogicalQueueCommit(
+        LogicalQueueRouteData fromQueueRouteData,
+        LogicalQueueRouteData toQueueRouteData) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException;
+
+    void migrateTopicLogicalQueueNotify(String brokerAddr,
+        LogicalQueueRouteData fromQueueRouteData,
+        LogicalQueueRouteData toQueueRouteData) throws InterruptedException, RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException, MQBrokerException;
 }

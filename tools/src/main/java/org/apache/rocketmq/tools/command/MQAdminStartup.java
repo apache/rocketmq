@@ -51,6 +51,11 @@ import org.apache.rocketmq.tools.command.consumer.ConsumerStatusSubCommand;
 import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
 import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import org.apache.rocketmq.tools.command.logicalqueue.DeleteTopicLogicalQueueMappingCommand;
+import org.apache.rocketmq.tools.command.logicalqueue.MigrateTopicLogicalQueueCommand;
+import org.apache.rocketmq.tools.command.logicalqueue.QueryTopicLogicalQueueMappingCommand;
+import org.apache.rocketmq.tools.command.logicalqueue.UpdateTopicLogicalQueueMappingCommand;
+import org.apache.rocketmq.tools.command.logicalqueue.UpdateTopicLogicalQueueNumCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
@@ -213,6 +218,12 @@ public class MQAdminStartup {
         initCommand(new ClusterAclConfigVersionListSubCommand());
         initCommand(new UpdateGlobalWhiteAddrSubCommand());
         initCommand(new GetAccessConfigSubCommand());
+
+        initCommand(new UpdateTopicLogicalQueueMappingCommand());
+        initCommand(new DeleteTopicLogicalQueueMappingCommand());
+        initCommand(new QueryTopicLogicalQueueMappingCommand());
+        initCommand(new MigrateTopicLogicalQueueCommand());
+        initCommand(new UpdateTopicLogicalQueueNumCommand());
     }
 
     private static void initLogback() throws JoranException {
