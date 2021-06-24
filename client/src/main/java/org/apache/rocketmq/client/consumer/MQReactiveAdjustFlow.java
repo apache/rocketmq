@@ -89,8 +89,8 @@ public class MQReactiveAdjustFlow {
 
         flow.allQueueAccumulation.put(queueId, queueMaxOffSet - offset);
         if (System.currentTimeMillis() - flow.lastTimeCheck > defaultCheckTime) {
-            System.out.printf("the queueId is: %s, the num of the message that not be comsumed: %s, the currentPullInterval: %s \n",
-                queueId,queueMaxOffSet-offset,flow.currentPullInterval);
+//            System.out.printf("the queueId is: %s, the num of the message that not be comsumed: %s, the currentPullInterval: %s \n",
+//                queueId,queueMaxOffSet-offset,flow.currentPullInterval);
 
             if (flow.isProcess.compareAndSet(false, true)) {
                 try {
