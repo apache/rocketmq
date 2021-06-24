@@ -69,8 +69,9 @@ public class MQReactiveAdjustFlow {
         long defaultCheckTime,
         long defaultStep,
         long initInterval) {
+        //check the params
         if (minPullInterval > MAX_PULL_INTERVAL_TIME) {
-            maxPullInterval = 100;
+            maxPullInterval = 1000;
         }
         if (maxPullInterval > MAX_PULL_INTERVAL_TIME) {
             maxPullInterval = MAX_PULL_INTERVAL_TIME;
@@ -100,7 +101,7 @@ public class MQReactiveAdjustFlow {
                             maxQueueOffset = value;
                         }
                     }
-
+                    //change the PullInterval
                     if (maxQueueOffset > fullSize) {
                         if (flow.currentPullInterval - defaultStep <= minPullInterval) {
                             flow.currentPullInterval = minPullInterval;
@@ -114,7 +115,6 @@ public class MQReactiveAdjustFlow {
                             flow.currentPullInterval = flow.currentPullInterval + defaultStep;
                         }
                     }
-
                     if (lastPullInterval != flow.currentPullInterval) {
                         synchronized (consumer) {
                             consumer.setPullInterval(flow.currentPullInterval);
