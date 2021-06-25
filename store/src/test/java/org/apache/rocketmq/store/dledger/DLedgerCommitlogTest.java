@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store.dledger;
 
-import com.sun.jna.Platform;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
 import io.openmessaging.storage.dledger.store.file.MmapFileList;
