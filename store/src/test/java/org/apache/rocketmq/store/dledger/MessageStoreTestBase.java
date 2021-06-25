@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.dledger;
 
+import com.sun.jna.Platform;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import java.io.File;
@@ -76,7 +77,7 @@ public class MessageStoreTestBase extends StoreTestBase {
             String fileName = StorePathConfigHelper.getAbortFile(storeConfig.getStorePathRootDir());
             makeSureFileExists(fileName);
         }
-        if (deleteFileNum > 0) {
+        if (deleteFileNum > 0 && !Platform.isWindows()) {
             DLedgerConfig config = dLegerServer.getdLedgerConfig();
             if (deleteFileNum > 0) {
                 File dir = new File(config.getDataStorePath());
