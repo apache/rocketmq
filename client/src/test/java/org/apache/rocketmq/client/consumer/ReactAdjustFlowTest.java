@@ -149,7 +149,6 @@ public class ReactAdjustFlowTest {
         doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
         rebalanceImpl = spy(pushConsumerImpl.getRebalanceImpl());
-        doReturn(123L).when(rebalanceImpl).computePullFromWhereWithException(any(MessageQueue.class));
         FieldUtils.writeDeclaredField(pushConsumerImpl, "rebalanceImpl", rebalanceImpl, true);
 
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
@@ -209,7 +208,7 @@ public class ReactAdjustFlowTest {
 
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
-        countDownLatch.await(15, TimeUnit.SECONDS);
+        countDownLatch.await(5, TimeUnit.SECONDS);
         assertThat(pushConsumer.getPullInterval()).isNotEqualTo(1000);
     }
 
@@ -222,6 +221,4 @@ public class ReactAdjustFlowTest {
         }
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
     }
-
-
 }
