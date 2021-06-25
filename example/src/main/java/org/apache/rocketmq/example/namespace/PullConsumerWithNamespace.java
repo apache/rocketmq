@@ -23,14 +23,13 @@ import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.example.StartUpConstants;
 
 public class PullConsumerWithNamespace {
     private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
 
     public static void main(String[] args) throws Exception {
         DefaultMQPullConsumer pullConsumer = new DefaultMQPullConsumer("InstanceTest", "cidTest");
-        pullConsumer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
+        pullConsumer.setNamesrvAddr("127.0.0.1:9876");
         pullConsumer.start();
 
         Set<MessageQueue> mqs = pullConsumer.fetchSubscribeMessageQueues("topicTest");

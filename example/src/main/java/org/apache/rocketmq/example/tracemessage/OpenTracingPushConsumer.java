@@ -31,7 +31,6 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.List;
-import org.apache.rocketmq.example.StartUpConstants;
 
 public class OpenTracingPushConsumer {
     public static void main(String[] args) throws InterruptedException, MQClientException {
@@ -39,7 +38,7 @@ public class OpenTracingPushConsumer {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1");
         consumer.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(new ConsumeMessageOpenTracingHookImpl(tracer));
-        consumer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
+
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 

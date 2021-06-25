@@ -20,7 +20,6 @@ package org.apache.rocketmq.example.rpc;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.example.StartUpConstants;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class RequestProducer {
@@ -30,7 +29,6 @@ public class RequestProducer {
         long ttl = 3000;
 
         DefaultMQProducer producer = new DefaultMQProducer(producerGroup);
-        producer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         producer.start();
 
         try {

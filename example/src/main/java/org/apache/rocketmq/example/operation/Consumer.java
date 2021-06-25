@@ -30,7 +30,6 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.example.StartUpConstants;
 
 public class Consumer {
 
@@ -46,7 +45,7 @@ public class Consumer {
             consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
             consumer.subscribe(topic, subscription);
-            consumer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
+
             consumer.registerMessageListener(new MessageListenerConcurrently() {
                 AtomicLong consumeTimes = new AtomicLong(0);
 

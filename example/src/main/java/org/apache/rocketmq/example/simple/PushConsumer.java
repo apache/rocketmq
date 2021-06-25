@@ -24,7 +24,6 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.example.StartUpConstants;
 
 public class PushConsumer {
 
@@ -32,7 +31,6 @@ public class PushConsumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1");
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        consumer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         //wrong time format 2017_0422_221800
         consumer.setConsumeTimestamp("20181109221800");
         consumer.registerMessageListener(new MessageListenerConcurrently() {

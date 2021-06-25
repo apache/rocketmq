@@ -24,7 +24,6 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.example.StartUpConstants;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class AsyncProducer {
@@ -32,7 +31,6 @@ public class AsyncProducer {
         String[] args) throws MQClientException, InterruptedException, UnsupportedEncodingException {
 
         DefaultMQProducer producer = new DefaultMQProducer("Jodie_Daily_test");
-        producer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         producer.start();
         producer.setRetryTimesWhenSendAsyncFailed(0);
 

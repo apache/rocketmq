@@ -20,7 +20,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.example.StartUpConstants;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 /**
@@ -33,7 +32,7 @@ public class Producer {
          * Instantiate with a producer group name.
          */
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
-        producer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
+
         /*
          * Specify name server addresses.
          * <p/>
