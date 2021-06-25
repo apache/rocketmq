@@ -16,12 +16,15 @@
  */
 package org.apache.rocketmq.store.dledger;
 
+import com.sun.jna.Platform;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
 import io.openmessaging.storage.dledger.store.file.MmapFileList;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -44,6 +47,18 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testTruncateCQ() throws Exception {
+
+
+        File dir = new File("C:\\Users\\wang luqi\\unitteststore\\bb42e8cc-e49b-4b28-a98c-9e48af85d0aa\\dledger-n0\\data");
+        File[] files = dir.listFiles();
+        if (files != null) {
+            Arrays.sort(files);
+            for (int i = files.length - 1; i >= 0; i--) {
+                File file = files[i];
+                file.delete();
+            }
+        }
+
         String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
@@ -65,34 +80,36 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             messageStore.shutdown();
         }
 
-        {
-            //Abnormal recover, left some commitlogs
-            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 4);
-            DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
-            DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
-            DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
-            MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
-            Thread.sleep(1000);
-            Assert.assertEquals(20, mmapFileList.getMappedFiles().size());
-            Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
-            Assert.assertEquals(1700, messageStore.getMaxOffsetInQueue(topic, 0));
-            Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-            doGetMessages(messageStore, topic, 0, 1700, 0);
-            messageStore.shutdown();
-        }
-        {
-            //Abnormal recover, left none commitlogs
-            DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 20);
-            DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
-            DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
-            DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
-            MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
-            Thread.sleep(1000);
-            Assert.assertEquals(0, mmapFileList.getMappedFiles().size());
-            Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
-            Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, 0));
-            Assert.assertEquals(0, messageStore.dispatchBehindBytes());
-            messageStore.shutdown();
+        if (!Platform.isWindows()){
+            {
+                //Abnormal recover, left some commitlogs
+                DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 4);
+                DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
+                DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
+                DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
+                MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
+                Thread.sleep(1000);
+                Assert.assertEquals(20, mmapFileList.getMappedFiles().size());
+                Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+                Assert.assertEquals(1700, messageStore.getMaxOffsetInQueue(topic, 0));
+                Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+                doGetMessages(messageStore, topic, 0, 1700, 0);
+                messageStore.shutdown();
+            }
+            {
+                //Abnormal recover, left none commitlogs
+                DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 20);
+                DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
+                DLedgerServer dLedgerServer = dLedgerCommitLog.getdLedgerServer();
+                DLedgerMmapFileStore dLedgerMmapFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
+                MmapFileList mmapFileList = dLedgerMmapFileStore.getDataFileList();
+                Thread.sleep(1000);
+                Assert.assertEquals(0, mmapFileList.getMappedFiles().size());
+                Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+                Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, 0));
+                Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+                messageStore.shutdown();
+            }
         }
     }
 
