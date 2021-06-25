@@ -23,12 +23,14 @@ import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.example.StartUpConstants;
 
 public class SplitBatchProducer {
 
     public static void main(String[] args) throws Exception {
 
         DefaultMQProducer producer = new DefaultMQProducer("BatchProducerGroupName");
+        producer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         producer.start();
 
         //large batch

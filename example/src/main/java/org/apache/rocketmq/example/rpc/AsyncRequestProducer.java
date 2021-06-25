@@ -22,6 +22,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.RequestCallback;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.example.StartUpConstants;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
@@ -34,6 +35,7 @@ public class AsyncRequestProducer {
         long ttl = 3000;
 
         DefaultMQProducer producer = new DefaultMQProducer(producerGroup);
+        producer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         producer.start();
 
         try {

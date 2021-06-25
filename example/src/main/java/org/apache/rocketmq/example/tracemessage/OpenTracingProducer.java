@@ -26,6 +26,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.trace.hook.SendMessageOpenTracingHookImpl;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.example.StartUpConstants;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class OpenTracingProducer {
@@ -34,6 +35,7 @@ public class OpenTracingProducer {
         Tracer tracer = initTracer();
 
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
+        producer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         producer.getDefaultMQProducerImpl().registerSendMessageHook(new SendMessageOpenTracingHookImpl(tracer));
         producer.start();
 
