@@ -317,7 +317,7 @@ public class TlsTest {
     }
 
     private void requestThenAssertResponse(RemotingClient remotingClient) throws Exception {
-        RemotingCommand response = remotingClient.invokeSync("127.0.0.1:8888", createRequest(), 1000 * 3);
+        RemotingCommand response = remotingClient.invokeSync("localhost:8888", createRequest(), 1000 * 3);
         assertTrue(response != null);
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(response.getExtFields()).hasSize(2);

@@ -27,6 +27,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -80,12 +81,12 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultMQPushConsumerTest {
+public class ReactAdjustFlowTest {
     private String consumerGroup;
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
     private MQClientInstance mQClientFactory;
-
+    private volatile int time = 0;
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
     private RebalanceImpl rebalanceImpl;
@@ -112,6 +113,8 @@ public class DefaultMQPushConsumerTest {
                     messageClientExt.setOffsetMsgId("234");
                     messageClientExt.setBornHost(new InetSocketAddress(8080));
                     messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                    messageClientExt.setQueueOffset(32*time);
+                    messageClientExt.putUserProperty("MAX_OFFSET",String.valueOf(10000-time*32));
                     PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
                     ((PullCallback) mock.getArgument(4)).onSuccess(pullResult);
                     return pullResult;
@@ -162,142 +165,6 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.shutdown();
     }
 
-    @Test
-    public void testStart_OffsetShouldNotNUllAfterStart() {
-        Assert.assertNotNull(pushConsumer.getOffsetStore());
-    }
-
-    @Test
-    public void testPullMessage_Success() throws InterruptedException, RemotingException, MQBrokerException {
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                messageAtomic.set(msgs.get(0));
-                countDownLatch.countDown();
-                return null;
-            }
-        }));
-
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
-        pullMessageService.executePullRequestImmediately(createPullRequest());
-        countDownLatch.await(10, TimeUnit.SECONDS);
-        MessageExt msg = messageAtomic.get();
-        assertThat(msg).isNotNull();
-        assertThat(msg.getTopic()).isEqualTo(topic);
-        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
-    }
-
-    @Test
-    public void testPullMessage_SuccessWithOrderlyService() throws Exception {
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
-
-        MessageListenerOrderly listenerOrderly = new MessageListenerOrderly() {
-            @Override
-            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
-                messageAtomic.set(msgs.get(0));
-                countDownLatch.countDown();
-                return null;
-            }
-        };
-        pushConsumer.registerMessageListener(listenerOrderly);
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageOrderlyService(pushConsumer.getDefaultMQPushConsumerImpl(), listenerOrderly));
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeOrderly(true);
-        pushConsumer.getDefaultMQPushConsumerImpl().doRebalance();
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
-        pullMessageService.executePullRequestLater(createPullRequest(), 100);
-
-        countDownLatch.await(10, TimeUnit.SECONDS);
-        MessageExt msg = messageAtomic.get();
-        assertThat(msg).isNotNull();
-        assertThat(msg.getTopic()).isEqualTo(topic);
-        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
-    }
-
-    @Test
-    public void testCheckConfig() {
-        DefaultMQPushConsumer pushConsumer = createPushConsumer();
-
-        pushConsumer.setPullThresholdForQueue(65535 + 1);
-        try {
-            pushConsumer.start();
-            failBecauseExceptionWasNotThrown(MQClientException.class);
-        } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining("pullThresholdForQueue Out of range [1, 65535]");
-        }
-
-        pushConsumer = createPushConsumer();
-        pushConsumer.setPullThresholdForTopic(65535 * 100 + 1);
-
-        try {
-            pushConsumer.start();
-            failBecauseExceptionWasNotThrown(MQClientException.class);
-        } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining("pullThresholdForTopic Out of range [1, 6553500]");
-        }
-
-        pushConsumer = createPushConsumer();
-        pushConsumer.setPullThresholdSizeForQueue(1024 + 1);
-        try {
-            pushConsumer.start();
-            failBecauseExceptionWasNotThrown(MQClientException.class);
-        } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining("pullThresholdSizeForQueue Out of range [1, 1024]");
-        }
-
-        pushConsumer = createPushConsumer();
-        pushConsumer.setPullThresholdSizeForTopic(1024 * 100 + 1);
-        try {
-            pushConsumer.start();
-            failBecauseExceptionWasNotThrown(MQClientException.class);
-        } catch (MQClientException e) {
-            assertThat(e).hasMessageContaining("pullThresholdSizeForTopic Out of range [1, 102400]");
-        }
-    }
-
-    @Test
-    public void testGracefulShutdown() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        pushConsumer.setAwaitTerminationMillisWhenShutdown(2000);
-        final AtomicBoolean messageConsumedFlag = new AtomicBoolean(false);
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                countDownLatch.countDown();
-                try {
-                    Thread.sleep(1000);
-                    messageConsumedFlag.set(true);
-                } catch (InterruptedException e) {
-                }
-
-                return null;
-            }
-        }));
-
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
-        pullMessageService.executePullRequestImmediately(createPullRequest());
-        assertThat(countDownLatch.await(10, TimeUnit.SECONDS)).isTrue();
-
-        pushConsumer.shutdown();
-        assertThat(messageConsumedFlag.get()).isTrue();
-    }
-
-    private DefaultMQPushConsumer createPushConsumer() {
-        DefaultMQPushConsumer pushConsumer = new DefaultMQPushConsumer(consumerGroup);
-        pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                return null;
-            }
-        });
-        return pushConsumer;
-    }
-
     private PullRequest createPullRequest() {
         PullRequest pullRequest = new PullRequest();
         pullRequest.setConsumerGroup(consumerGroup);
@@ -316,6 +183,37 @@ public class DefaultMQPushConsumerTest {
         return pullRequest;
     }
 
+    @Test
+    public void testAdjustFlow_Success() throws InterruptedException, RemotingException, MQBrokerException {
+        final CountDownLatch countDownLatch = new CountDownLatch(5);
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
+        pushConsumer.setConsumeMessageBatchMaxSize(5);
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeConcurrentlyContext context) {
+                if (CollectionUtils.isEmpty(msgs)) {
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                }
+                MessageExt msg = msgs.get(0);
+                //you can dynamic allocation
+                MQReactiveAdjustFlow.adjustFlow(pushConsumer, context.getMessageQueue().getQueueId(),msg.getQueueOffset(),
+                    Long.parseLong(msg.getProperties().get("MAX_OFFSET")),10,10,
+                    6000,1000,10,1000);
+
+                messageAtomic.set(msgs.get(0));
+                countDownLatch.countDown();
+                return null;
+            }
+        }));
+
+        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        pullMessageService.executePullRequestImmediately(createPullRequest());
+        countDownLatch.await(15, TimeUnit.SECONDS);
+        assertThat(pushConsumer.getPullInterval()).isNotEqualTo(1000);
+    }
+
+
     private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
         List<MessageExt> messageExtList) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -325,20 +223,5 @@ public class DefaultMQPushConsumerTest {
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
     }
 
-    @Test
-    public void testPullMessage_ExceptionOccursWhenComputePullFromWhere() throws MQClientException {
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final MessageExt[] messageExts = new MessageExt[1];
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(
-            new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(),
-                (msgs, context) -> {
-                    messageExts[0] = msgs.get(0);
-                    return null;
-                }));
 
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeOrderly(true);
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
-        pullMessageService.executePullRequestImmediately(createPullRequest());
-        assertThat(messageExts[0]).isNull();
-    }
 }
