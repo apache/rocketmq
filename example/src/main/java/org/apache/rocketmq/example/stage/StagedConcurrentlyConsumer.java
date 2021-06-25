@@ -17,6 +17,8 @@
 package org.apache.rocketmq.example.stage;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,11 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
 /**
- * call {@link StagedConcurrentlyConsumer#main(String[])} first, then call {@link Producer#main(String[])}
+ * Scenario: 5 merchants and N buyers jointly participate in 3 activities, and rewards for different activities are different.
+ * call {@link StagedConcurrentlyConsumer#main(String[])} first, then call {@link Producer#main(String[])}.
+ * Below are more examples of how to use it:
+ *
+ * @see org.apache.rocketmq.client.impl.consumer.ConsumeMessageStagedConcurrentlyServiceTest
  */
 public class StagedConcurrentlyConsumer {
     public static void main(String[] args) throws MQClientException {
@@ -43,7 +49,8 @@ public class StagedConcurrentlyConsumer {
         consumer.registerMessageListener(new MessageListenerStagedConcurrently() {
 
             @Override
-            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeStagedConcurrentlyContext context) {
+            public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeStagedConcurrentlyContext context) {
                 context.setAutoCommit(true);
                 for (MessageExt msg : msgs) {
                     // The stageIndex increases from 0. The "stages" represented by each stageIndex are in order,
@@ -68,25 +75,27 @@ public class StagedConcurrentlyConsumer {
                 for (int i = 1; i <= 50; i++) {
                     list.add(i);
                 }
-                Map<String,List<Integer>> map=new HashMap<>(1);
-                map.put("1",list);
+                Map<String, List<Integer>> map = new HashMap<>(1);
+                map.put("1", list);
+                map.put("2", Arrays.asList(10, 20));
+                map.put("3", Collections.singletonList(100));
                 return map;
             }
 
             @Override
             public String computeStrategy(MessageExt message) {
-                return "1";
+                return message.getProperty("activityId");
             }
 
             @Override
             public String computeGroup(MessageExt message) {
-                return null;
+                return message.getProperty("sellerId");
             }
 
             @Override
-            public void resetCurrentStageOffsetIfNeed(String topic, String strategyId,
-                String groupId, AtomicInteger currentStageOffset) {
-                if ("TopicTest".equals(topic) && currentStageOffset.get() >= 1999) {
+            public void rollbackCurrentStageOffsetIfNeed(String topic, String strategyId,
+                String groupId, AtomicInteger currentStageOffset, List<MessageExt> msgs) {
+                if ("TopicTest".equals(topic) && currentStageOffset.get() >= 399) {
                     currentStageOffset.set(0);
                 }
             }

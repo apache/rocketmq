@@ -69,14 +69,31 @@ public interface MessageListenerStagedConcurrently extends MessageListener {
     String computeStrategy(MessageExt message);
 
     /**
-     * @return user defined business grouping
+     * @return user defined business group id
      */
     String computeGroup(MessageExt message);
 
     /**
-     * can be used to reset the current stage by CAS
+     * can be used to rollback the current stage offset by {@link AtomicInteger#set(int)}
+     *
+     * @param topic              topic
+     * @param strategyId         {@link MessageListenerStagedConcurrently#getStageDefinitionStrategies()}
+     * @param groupId            {@link MessageListenerStagedConcurrently#computeGroup(MessageExt)}
+     * @param currentStageOffset offset of the current stage, note: not a subscript
+     * @param msgs               The news of this successful consumption can be used to roll back the consumption progress of this consumption stage.
+     *                           For example, when consuming logistics news, we only know the status of the logistics news, but we cannot determine
+     *                           how many logistics messages are transferred. At this time, this can be achieved:
+     *                           <pre>{@code
+     *                           public void rollbackCurrentStageOffsetIfNeed(final String topic, String strategyId,
+     *                               String groupId, final AtomicInteger currentStageOffset, List<MessageExt> msgs) {
+     *                               int state = getState(msgs.get(0));
+     *                               if (state == 20) {
+     *                                   currentStageOffset.set(currentStageOffset.get()-msgs.size());
+     *                               }
+     *                           }
+     *                           }</pre>
      */
-    default void resetCurrentStageOffsetIfNeed(final String topic, String strategyId,
-        String groupId, final AtomicInteger currentStageOffset) {
+    default void rollbackCurrentStageOffsetIfNeed(final String topic, String strategyId,
+        String groupId, final AtomicInteger currentStageOffset, List<MessageExt> msgs) {
     }
 }

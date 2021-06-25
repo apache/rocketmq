@@ -351,7 +351,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             AtomicInteger currentStageOffset = getCurrentStageOffset(messageQueue, topic, strategyId, groupId);
             synchronized (currentStageOffset) {
                 int original = currentStageOffset.get();
-                this.messageListener.resetCurrentStageOffsetIfNeed(topic, strategyId, groupId, currentStageOffset);
+                this.messageListener.rollbackCurrentStageOffsetIfNeed(topic, strategyId, groupId, currentStageOffset, msgs);
                 currentStageOffset.set(original);
             }
         } catch (Throwable e) {
@@ -525,7 +525,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
 
         if (stageOffsetStore != null && commitStageOffset >= 0) {
             synchronized (currentStageOffset) {
-                messageListener.resetCurrentStageOffsetIfNeed(topic, strategyId, groupId, currentStageOffset);
+                messageListener.rollbackCurrentStageOffsetIfNeed(topic, strategyId, groupId, currentStageOffset, msgs);
                 //prevent users from resetting the value of currentStageOffset to a value less than 0
                 currentStageOffset.set(Math.max(0, currentStageOffset.get()));
             }
