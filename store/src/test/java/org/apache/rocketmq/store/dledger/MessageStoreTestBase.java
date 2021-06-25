@@ -28,6 +28,7 @@ import java.util.Arrays;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
@@ -77,7 +78,7 @@ public class MessageStoreTestBase extends StoreTestBase {
             String fileName = StorePathConfigHelper.getAbortFile(storeConfig.getStorePathRootDir());
             makeSureFileExists(fileName);
         }
-        if (deleteFileNum > 0 && !Platform.isWindows()) {
+        if (deleteFileNum > 0 && !RemotingUtil.isLinuxPlatform()) {
             DLedgerConfig config = dLegerServer.getdLedgerConfig();
             if (deleteFileNum > 0) {
                 File dir = new File(config.getDataStorePath());

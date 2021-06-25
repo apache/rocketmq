@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -80,7 +81,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             messageStore.shutdown();
         }
 
-        if (!Platform.isWindows()){
+        if (RemotingUtil.isLinuxPlatform()){
             {
                 //Abnormal recover, left some commitlogs
                 DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 4);
