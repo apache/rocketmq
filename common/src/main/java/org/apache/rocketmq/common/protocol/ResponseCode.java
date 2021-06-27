@@ -20,6 +20,7 @@ package org.apache.rocketmq.common.protocol;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
 public class ResponseCode extends RemotingSysResponseCode {
+    public static final int ASYNC_AND_RETURN_NULL = -2;
 
     public static final int FLUSH_DISK_TIMEOUT = 10;
 
@@ -79,5 +80,4 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int DELETE_ACL_CONFIG_FAILED = 210;
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 211;
-
 }
