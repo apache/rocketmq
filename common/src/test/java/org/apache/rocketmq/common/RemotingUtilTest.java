@@ -30,7 +30,13 @@ public class RemotingUtilTest {
     }
 
     @Test
-    public void testConvert2IpString() {
+    public void testConvert2IpStringWithIp() {
+        String result = RemotingUtil.convert2IpString("127.0.0.1:9876");
+        assertThat(result).isEqualTo("127.0.0.1:9876");
+    }
+
+    @Test
+    public void testConvert2IpStringWithHost() {
         String result = RemotingUtil.convert2IpString("localhost:9876");
         assertThat(result).isEqualTo("127.0.0.1:9876");
     }
