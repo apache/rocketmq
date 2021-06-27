@@ -30,6 +30,7 @@ import org.apache.rocketmq.client.trace.hook.EndTransactionOpenTracingHookImpl;
 import org.apache.rocketmq.client.trace.hook.SendMessageOpenTracingHookImpl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.example.StartUpConstants;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 import java.io.UnsupportedEncodingException;
@@ -41,7 +42,7 @@ public class OpenTracingTransactionProducer {
         TransactionMQProducer producer = new TransactionMQProducer("please_rename_unique_group_name");
         producer.getDefaultMQProducerImpl().registerSendMessageHook(new SendMessageOpenTracingHookImpl(tracer));
         producer.getDefaultMQProducerImpl().registerEndTransactionHook(new EndTransactionOpenTracingHookImpl(tracer));
-
+        producer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         producer.setTransactionListener(new TransactionListener() {
             @Override
             public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {

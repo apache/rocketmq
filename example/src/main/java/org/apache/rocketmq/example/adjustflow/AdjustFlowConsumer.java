@@ -26,6 +26,7 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.example.StartUpConstants;
 
 /**
  * This example shows how to subscribe and consume messages using providing {@link DefaultMQPushConsumer}.
@@ -38,7 +39,7 @@ public class AdjustFlowConsumer {
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 
         consumer.subscribe("TopicTest01", "*");
-        consumer.setNamesrvAddr("127.0.0.1:9876");
+        consumer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         consumer.setPullBatchSize(32);
         consumer.setConsumeMessageBatchMaxSize(32);
         consumer.registerMessageListener(new MessageListenerConcurrently() {

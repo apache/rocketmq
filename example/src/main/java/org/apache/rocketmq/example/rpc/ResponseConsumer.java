@@ -30,6 +30,7 @@ import org.apache.rocketmq.client.utils.MessageUtil;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.example.StartUpConstants;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class ResponseConsumer {
@@ -40,6 +41,7 @@ public class ResponseConsumer {
 
         // create a producer to send reply message
         DefaultMQProducer replyProducer = new DefaultMQProducer(producerGroup);
+        replyProducer.setNamesrvAddr(StartUpConstants.DEFAULT_NAMESRV_ADDRESS);
         replyProducer.start();
 
         // create consumer
