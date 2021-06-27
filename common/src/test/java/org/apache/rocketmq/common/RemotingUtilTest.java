@@ -28,4 +28,10 @@ public class RemotingUtilTest {
         assertThat(localAddress).isNotNull();
         assertThat(localAddress.length()).isGreaterThan(0);
     }
+
+    @Test
+    public void testConvert2IpString() {
+        String result = RemotingUtil.convert2IpString("localhost:9876");
+        assertThat(result).isEqualTo("127.0.0.1:9876");
+    }
 }
