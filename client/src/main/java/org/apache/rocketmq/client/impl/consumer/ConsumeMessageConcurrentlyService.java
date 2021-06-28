@@ -415,7 +415,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     RemotingHelper.exceptionSimpleDesc(e),
                     ConsumeMessageConcurrentlyService.this.consumerGroup,
                     msgs,
-                    messageQueue);
+                    messageQueue,
+                    e);
                 hasException = true;
             }
             long consumeRT = System.currentTimeMillis() - beginTimestamp;
