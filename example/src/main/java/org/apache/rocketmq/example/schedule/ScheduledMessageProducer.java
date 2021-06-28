@@ -1,4 +1,5 @@
 package org.apache.rocketmq.example.schedule;
+
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
 
