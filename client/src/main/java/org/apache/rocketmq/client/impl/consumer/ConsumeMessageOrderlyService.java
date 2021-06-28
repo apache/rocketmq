@@ -491,7 +491,8 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                                     RemotingHelper.exceptionSimpleDesc(e),
                                     ConsumeMessageOrderlyService.this.consumerGroup,
                                     msgs,
-                                    messageQueue);
+                                    messageQueue,
+                                    e);
                                 hasException = true;
                             } finally {
                                 this.processQueue.getConsumeLock().unlock();
