@@ -33,6 +33,7 @@ import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
@@ -559,14 +560,22 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
     @Override
     public boolean resumeCheckHalfMessage(String msgId)
-            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(msgId);
     }
 
     @Override
     public boolean resumeCheckHalfMessage(String topic,
-            String msgId)
-            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        String msgId)
+        throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(topic, msgId);
+    }
+
+    @Override
+    public void setMessageRequestMode(final String brokerAddr, final String topic, final String consumerGroup, final
+        MessageRequestMode mode, final int popShareQueueNum, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException {
+        this.defaultMQAdminExtImpl.setMessageRequestMode(brokerAddr, topic, consumerGroup, mode, popShareQueueNum, timeoutMillis);
     }
 }

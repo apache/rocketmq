@@ -47,19 +47,25 @@ import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
+import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
 import org.apache.rocketmq.broker.longpolling.NotifyMessageArrivingListener;
 import org.apache.rocketmq.broker.longpolling.PullRequestHoldService;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.MessageStoreFactory;
 import org.apache.rocketmq.broker.plugin.MessageStorePluginContext;
+import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
+import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
 import org.apache.rocketmq.broker.processor.ClientManageProcessor;
 import org.apache.rocketmq.broker.processor.ConsumerManageProcessor;
 import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
+import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.broker.processor.PullMessageProcessor;
+import org.apache.rocketmq.broker.processor.QueryAssignmentProcessor;
 import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
 import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
@@ -118,9 +124,18 @@ public class BrokerController {
     private final ConsumerOffsetManager consumerOffsetManager;
     private final ConsumerManager consumerManager;
     private final ConsumerFilterManager consumerFilterManager;
+    private final ConsumerOrderInfoManager consumerOrderInfoManager;
     private final ProducerManager producerManager;
+    private final AssignmentManager assignmentManager;
     private final ClientHousekeepingService clientHousekeepingService;
+
     private final PullMessageProcessor pullMessageProcessor;
+    private final PopMessageProcessor popMessageProcessor;
+    private final AckMessageProcessor ackMessageProcessor;
+    private final ChangeInvisibleTimeProcessor changeInvisibleTimeProcessor;
+    private final QueryAssignmentProcessor queryAssignmentProcessor;
+    private final ClientManageProcessor clientManageProcessor;
+    private final SendMessageProcessor sendMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     private final MessageArrivingListener messageArrivingListener;
     private final Broker2Client broker2Client;
@@ -132,6 +147,7 @@ public class BrokerController {
         "BrokerControllerScheduledThread"));
     private final SlaveSynchronize slaveSynchronize;
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
+    private final BlockingQueue<Runnable> ackThreadPoolQueue;
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
     private final BlockingQueue<Runnable> replyThreadPoolQueue;
     private final BlockingQueue<Runnable> queryThreadPoolQueue;
@@ -149,12 +165,14 @@ public class BrokerController {
     private TopicConfigManager topicConfigManager;
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
+    private ExecutorService ackMessageExecutor;
     private ExecutorService replyMessageExecutor;
     private ExecutorService queryMessageExecutor;
     private ExecutorService adminBrokerExecutor;
     private ExecutorService clientManageExecutor;
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
+    private ExecutorService loadBalanceExecutor;
     private ExecutorService endTransactionExecutor;
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
@@ -167,6 +185,7 @@ public class BrokerController {
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
     private Future<?> slaveSyncFuture;
     private Map<Class,AccessValidator> accessValidatorMap = new HashMap<Class, AccessValidator>();
+    private long shouldStartTime;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -182,10 +201,16 @@ public class BrokerController {
         this.topicConfigManager = new TopicConfigManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pullRequestHoldService = new PullRequestHoldService(this);
-        this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
+        this.popMessageProcessor = new PopMessageProcessor(this);
+        this.ackMessageProcessor = new AckMessageProcessor(this);
+        this.changeInvisibleTimeProcessor = new ChangeInvisibleTimeProcessor(this);
+        this.sendMessageProcessor = new SendMessageProcessor(this);
+        this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService,
+            this.popMessageProcessor);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
         this.consumerFilterManager = new ConsumerFilterManager(this);
+        this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
         this.broker2Client = new Broker2Client(this);
@@ -193,10 +218,14 @@ public class BrokerController {
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
         this.filterServerManager = new FilterServerManager(this);
 
+        this.assignmentManager = new AssignmentManager(this);
+        this.queryAssignmentProcessor = new QueryAssignmentProcessor(this);
+        this.clientManageProcessor = new ClientManageProcessor(this);
         this.slaveSynchronize = new SlaveSynchronize(this);
 
         this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
         this.pullThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
+        this.ackThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getAckThreadPoolQueueCapacity());
         this.replyThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getReplyThreadPoolQueueCapacity());
         this.queryThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getQueryThreadPoolQueueCapacity());
         this.clientManagerThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getClientManagerThreadPoolQueueCapacity());
@@ -213,6 +242,14 @@ public class BrokerController {
             BrokerPathConfigHelper.getBrokerConfigPath(),
             this.brokerConfig, this.nettyServerConfig, this.nettyClientConfig, this.messageStoreConfig
         );
+    }
+
+    public ConsumerIdsChangeListener getConsumerIdsChangeListener() {
+        return consumerIdsChangeListener;
+    }
+
+    public ClientManageProcessor getClientManageProcessor() {
+        return clientManageProcessor;
     }
 
     public BrokerConfig getBrokerConfig() {
@@ -280,6 +317,15 @@ public class BrokerController {
                 TimeUnit.MILLISECONDS,
                 this.pullThreadPoolQueue,
                 new ThreadFactoryImpl("PullMessageThread_"));
+
+            this.ackMessageExecutor = new BrokerFixedThreadPoolExecutor(
+                this.brokerConfig.getAckMessageThreadPoolNums(),
+                this.brokerConfig.getAckMessageThreadPoolNums(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.ackThreadPoolQueue,
+                new ThreadFactoryImpl("AckMessageThread_"));
+
 
             this.replyMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getProcessReplyMessageThreadPoolNums(),
@@ -399,6 +445,10 @@ public class BrokerController {
                     }
                 }
             }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+
+            this.loadBalanceExecutor =
+                Executors.newFixedThreadPool(this.brokerConfig.getLoadBalanceProcessorThreadPoolNums(), new ThreadFactoryImpl(
+                    "LoadBalanceProcessorThread_"));
 
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
@@ -547,23 +597,38 @@ public class BrokerController {
         /**
          * SendMessageProcessor
          */
-        SendMessageProcessor sendProcessor = new SendMessageProcessor(this);
-        sendProcessor.registerSendMessageHook(sendMessageHookList);
-        sendProcessor.registerConsumeMessageHook(consumeMessageHookList);
 
-        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor, this.sendMessageExecutor);
+        sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
+        sendMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+
+        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor, this.sendMessageExecutor);
         /**
          * PullMessageProcessor
          */
         this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
         this.pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+        /**
+         * PopMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.POP_MESSAGE, this.popMessageProcessor, this.pullMessageExecutor);
+
+        /**
+         * AckMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
+        /**
+         * ChangeInvisibleTimeProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, this.changeInvisibleTimeProcessor, this.ackMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, this.changeInvisibleTimeProcessor, this.ackMessageExecutor);
 
         /**
          * ReplyMessageProcessor
@@ -589,14 +654,13 @@ public class BrokerController {
         /**
          * ClientManageProcessor
          */
-        ClientManageProcessor clientProcessor = new ClientManageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor);
-        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManageProcessor, this.heartbeatExecutor);
+        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManageProcessor, this.clientManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientManageProcessor, this.clientManageExecutor);
 
-        this.fastRemotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManageProcessor, this.heartbeatExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManageProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientManageProcessor, this.clientManageExecutor);
 
         /**
          * ConsumerManageProcessor
@@ -609,6 +673,14 @@ public class BrokerController {
         this.fastRemotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+
+        /**
+         * QueryAssignmentProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.QUERY_ASSIGNMENT, queryAssignmentProcessor, loadBalanceExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_ASSIGNMENT, queryAssignmentProcessor, loadBalanceExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
 
         /**
          * EndTransactionProcessor
@@ -713,6 +785,10 @@ public class BrokerController {
         return consumerFilterManager;
     }
 
+    public ConsumerOrderInfoManager getConsumerOrderInfoManager() {
+        return consumerOrderInfoManager;
+    }
+
     public ConsumerOffsetManager getConsumerOffsetManager() {
         return consumerOffsetManager;
     }
@@ -739,6 +815,10 @@ public class BrokerController {
 
     public SubscriptionGroupManager getSubscriptionGroupManager() {
         return subscriptionGroupManager;
+    }
+
+    public PopMessageProcessor getPopMessageProcessor() {
+        return popMessageProcessor;
     }
 
     public void shutdown() {
@@ -824,6 +904,11 @@ public class BrokerController {
             this.consumerManageExecutor.shutdown();
         }
 
+        {
+            this.popMessageProcessor.getPopBufferMergeService().shutdown();
+            this.ackMessageProcessor.shutdownPopReviveService();
+        }
+
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
@@ -849,12 +934,25 @@ public class BrokerController {
     }
 
     public void start() throws Exception {
+        this.shouldStartTime = System.currentTimeMillis();
+
         if (this.messageStore != null) {
             this.messageStore.start();
         }
 
         if (this.remotingServer != null) {
             this.remotingServer.start();
+        }
+
+        {
+            this.popMessageProcessor.getPopLongPollingService().start();
+            this.popMessageProcessor.getPopBufferMergeService().start();
+            this.popMessageProcessor.getQueueLockManager().start();
+            this.ackMessageProcessor.startPopReviveService();
+        }
+
+        {
+            assignmentManager.start();
         }
 
         if (this.fastRemotingServer != null) {
@@ -1242,5 +1340,21 @@ public class BrokerController {
 
     public ExecutorService getSendMessageExecutor() {
         return sendMessageExecutor;
+    }
+
+    public long getShouldStartTime() {
+        return shouldStartTime;
+    }
+
+    public AssignmentManager getAssignmentManager() {
+        return assignmentManager;
+    }
+
+    public SendMessageProcessor getSendMessageProcessor() {
+        return sendMessageProcessor;
+    }
+
+    public QueryAssignmentProcessor getQueryAssignmentProcessor() {
+        return queryAssignmentProcessor;
     }
 }

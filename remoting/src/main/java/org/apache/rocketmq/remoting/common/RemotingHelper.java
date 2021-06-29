@@ -172,11 +172,18 @@ public class RemotingHelper {
 
     public static String parseSocketAddressAddr(SocketAddress socketAddress) {
         if (socketAddress != null) {
+            // Default toString of InetSocketAddress is "hostName/IP:port"
             final String addr = socketAddress.toString();
-
             if (addr.length() > 0) {
+                if (addr.contains("/")) {
+                    String[] segments = addr.split("/");
+                    if (segments.length > 1) {
+                        return segments[1];
+                    }
+                }
                 return addr.substring(1);
             }
+            return addr;
         }
         return "";
     }
