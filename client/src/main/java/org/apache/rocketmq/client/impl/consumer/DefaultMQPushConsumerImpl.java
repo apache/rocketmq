@@ -293,8 +293,15 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
         } else {
             if (processQueue.isLocked()) {
-                if (!pullRequest.isLockedFirst()) {
-                    final long offset = this.rebalanceImpl.computePullFromWhere(pullRequest.getMessageQueue());
+                if (!pullRequest.isPreviouslyLocked()) {
+                    long offset = -1L;
+                    try {
+                        offset = this.rebalanceImpl.computePullFromWhereWithException(pullRequest.getMessageQueue());
+                    } catch (MQClientException e) {
+                        this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
+                        log.error("Failed to compute pull offset, pullResult: {}", pullRequest, e);
+                        return;
+                    }
                     boolean brokerBusy = offset < pullRequest.getNextOffset();
                     log.info("the first time to pull message, so fix offset from broker. pullRequest: {} NewOffset: {} brokerBusy: {}",
                         pullRequest, offset, brokerBusy);
@@ -303,7 +310,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             pullRequest, offset);
                     }
 
-                    pullRequest.setLockedFirst(true);
+                    pullRequest.setPreviouslyLocked(true);
                     pullRequest.setNextOffset(offset);
                 }
             } else {
@@ -577,8 +584,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 invisibleTime = 60000;
             }
             this.pullAPIWrapper.popAsync(popRequest.getMessageQueue(), invisibleTime, this.defaultMQPushConsumer.getPopBatchNums(),
-                    popRequest.getConsumerGroup(), BROKER_SUSPEND_MAX_TIME_MILLIS, popCallback, true, popRequest.getInitMode(),
-                    false, subscriptionData.getExpressionType(), subscriptionData.getSubString());
+                popRequest.getConsumerGroup(), BROKER_SUSPEND_MAX_TIME_MILLIS, popCallback, true, popRequest.getInitMode(),
+                false, subscriptionData.getExpressionType(), subscriptionData.getSubString());
         } catch (Exception e) {
             log.error("popAsync exception", e);
             this.executePopPullRequestLater(popRequest, pullTimeDelayMillsWhenException);
@@ -590,7 +597,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             List<MessageExt> msgFoundList = popResult.getMsgFoundList();
             List<MessageExt> msgListFilterAgain = msgFoundList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()
-                    && popResult.getMsgFoundList().size() > 0) {
+                && popResult.getMsgFoundList().size() > 0) {
                 msgListFilterAgain = new ArrayList<MessageExt>(popResult.getMsgFoundList().size());
                 for (MessageExt msg : popResult.getMsgFoundList()) {
                     if (msg.getTags() != null) {
@@ -773,12 +780,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     void changePopInvisibleTimeAsync(String topic, String consumerGroup, String extraInfo, long invisibleTime, AckCallback callback)
-            throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
+        throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
         String[] extraInfoStrs = ExtraInfoUtil.split(extraInfo);
         String brokerName = ExtraInfoUtil.getBrokerName(extraInfoStrs);
         int queueId = ExtraInfoUtil.getQueueId(extraInfoStrs);
         FindBrokerResult
-                findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
+            findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
         if (null == findBrokerResult) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
             findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
@@ -1094,19 +1101,19 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         // popInvisibleTime
         if (this.defaultMQPushConsumer.getPopInvisibleTime() < MIN_POP_INVISIBLE_TIME
-                || this.defaultMQPushConsumer.getPopInvisibleTime() > MAX_POP_INVISIBLE_TIME) {
+            || this.defaultMQPushConsumer.getPopInvisibleTime() > MAX_POP_INVISIBLE_TIME) {
             throw new MQClientException(
-                    "popInvisibleTime Out of range [" + MIN_POP_INVISIBLE_TIME + ", " + MAX_POP_INVISIBLE_TIME + "]"
-                            + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
-                    null);
+                "popInvisibleTime Out of range [" + MIN_POP_INVISIBLE_TIME + ", " + MAX_POP_INVISIBLE_TIME + "]"
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
+                null);
         }
 
         // popBatchNums
         if (this.defaultMQPushConsumer.getPopBatchNums() <= 0 || this.defaultMQPushConsumer.getPopBatchNums() > 32) {
             throw new MQClientException(
-                    "popBatchNums Out of range [1, 32]"
-                            + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
-                    null);
+                "popBatchNums Out of range [1, 32]"
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
+                null);
         }
     }
 

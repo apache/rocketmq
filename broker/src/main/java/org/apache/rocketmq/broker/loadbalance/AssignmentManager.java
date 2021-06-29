@@ -90,7 +90,7 @@ public class AssignmentManager {
                     log.error("ScheduledTask: failed to pull TopicRouteData from NameServer", e);
                 }
             }
-        }, 13000, this.brokerController.getBrokerConfig().getLoadBalancePollNameServerInterval(), TimeUnit.MILLISECONDS);
+        }, 200, this.brokerController.getBrokerConfig().getLoadBalancePollNameServerInterval(), TimeUnit.MILLISECONDS);
     }
 
 

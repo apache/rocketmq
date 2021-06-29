@@ -36,7 +36,7 @@ set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
 set "JAVA_OPT=%JAVA_OPT% -XX:+AlwaysPreTouch"
 set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=15g"
 set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages -XX:-UseBiasedLocking"
-set "JAVA_OPT=%JAVA_OPT% -Djava.ext.dirs=%BASE_DIR%lib"
+set "JAVA_OPT=%JAVA_OPT% -Djava.ext.dirs=%BASE_DIR%lib;%JAVA_HOME%\jre\lib\ext"
 set "JAVA_OPT=%JAVA_OPT% -cp %CLASSPATH%"
 
 "%JAVA%" %JAVA_OPT% %*

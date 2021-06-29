@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -391,17 +392,7 @@ public abstract class RebalanceImpl {
     }
 
     private boolean getRebalanceResultFromBroker(final String topic, final boolean isOrder) {
-        String strategyName;
-        switch (messageModel) {
-            case BROADCASTING:
-                strategyName = null;
-                break;
-            case CLUSTERING:
-                strategyName = this.allocateMessageQueueStrategy.getName();
-                break;
-            default:
-                return true;
-        }
+        String strategyName = this.allocateMessageQueueStrategy.getName();
         Set<MessageQueueAssignment> messageQueueAssignments;
         try {
             messageQueueAssignments = this.mQClientFactory.queryAssignment(topic, consumerGroup,
@@ -422,9 +413,6 @@ public abstract class RebalanceImpl {
             }
         }
         Set<MessageQueue> mqAll = null;
-        if (messageModel == MessageModel.BROADCASTING) {
-            mqAll = mqSet;
-        }
         boolean changed = this.updateMessageQueueAssignment(topic, messageQueueAssignments, isOrder);
         if (changed) {
             log.info("broker rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, assignmentSet={}",
@@ -705,7 +693,14 @@ public abstract class RebalanceImpl {
                     this.removeDirtyOffset(mq);
                     ProcessQueue pq = createProcessQueue();
                     pq.setLocked(true);
-                    long nextOffset = this.computePullFromWhere(mq);
+                    long nextOffset = -1L;
+                    try {
+                        nextOffset = this.computePullFromWhereWithException(mq);
+                    } catch (MQClientException e) {
+                        log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                        continue;
+                    }
+
                     if (nextOffset >= 0) {
                         ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
                         if (pre != null) {
@@ -774,7 +769,16 @@ public abstract class RebalanceImpl {
 
     public abstract void removeDirtyOffset(final MessageQueue mq);
 
+    /**
+     * When the network is unstable, using this interface may return wrong offset.
+     * It is recommended to use computePullFromWhereWithException instead.
+     * @param mq
+     * @return offset
+     */
+    @Deprecated
     public abstract long computePullFromWhere(final MessageQueue mq);
+
+    public abstract long computePullFromWhereWithException(final MessageQueue mq) throws MQClientException;
 
     public abstract int getConsumeInitMode();
 

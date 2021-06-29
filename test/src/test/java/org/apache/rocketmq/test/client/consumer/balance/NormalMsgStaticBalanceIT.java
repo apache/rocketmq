@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.test.client.consumer.balance;
 
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -29,11 +28,13 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.truth.Truth.assertThat;
 
 public class NormalMsgStaticBalanceIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(NormalMsgStaticBalanceIT.class);
+    private static Logger logger = LoggerFactory.getLogger(NormalMsgStaticBalanceIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -75,13 +76,12 @@ public class NormalMsgStaticBalanceIT extends BaseConf {
     @Test
     public void testFourConsumersBalance() {
         int msgSize = 600;
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListener());
-        RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListener());
-        RMQNormalConsumer consumer4 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
-            "*", new RMQNormalListener());
+        String consumerGroup = initConsumerGroup();
+        logger.info("use group: {}", consumerGroup);
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, consumerGroup, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumerGroup, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumerGroup, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer4 = getConsumer(nsAddr, consumerGroup, topic, "*", new RMQNormalListener());
         TestUtils.waitForSeconds(waitTime);
 
         producer.send(msgSize);

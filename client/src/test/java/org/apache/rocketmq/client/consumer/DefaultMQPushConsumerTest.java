@@ -57,6 +57,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
@@ -73,6 +74,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -80,7 +82,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class DefaultMQPushConsumerTest {
     private String consumerGroup;
     private String topic = "FooBar";
@@ -105,6 +107,7 @@ public class DefaultMQPushConsumerTest {
         pushConsumer = new DefaultMQPushConsumer(consumerGroup);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
+        pushConsumer.setClientRebalance(false);
 
         pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
@@ -121,8 +124,10 @@ public class DefaultMQPushConsumerTest {
         mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true)));
         factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
         doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        doReturn(null).when(mQClientFactory).queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt());
 
         rebalanceImpl = spy(pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl());
+        doReturn(123L).when(rebalanceImpl).computePullFromWhereWithException(any(MessageQueue.class));
         Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         field.set(pushConsumerImpl, rebalanceImpl);
@@ -174,7 +179,6 @@ public class DefaultMQPushConsumerTest {
         Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
-        doReturn(123L).when(rebalanceImpl).computePullFromWhere(any(MessageQueue.class));
     }
 
     @After
@@ -286,7 +290,7 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                            ConsumeConcurrentlyContext context) {
+                ConsumeConcurrentlyContext context) {
                 assertThat(msgs.get(0).getBody()).isEqualTo(msgBody);
                 countDownLatch.countDown();
                 try {
@@ -344,5 +348,22 @@ public class DefaultMQPushConsumerTest {
             outputStream.write(MessageDecoder.encode(messageExt, false));
         }
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
+    }
+
+    @Test
+    public void testPullMessage_ExceptionOccursWhenComputePullFromWhere() throws MQClientException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final MessageExt[] messageExts = new MessageExt[1];
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(
+            new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(),
+                (msgs, context) -> {
+                    messageExts[0] = msgs.get(0);
+                    return null;
+                }));
+
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeOrderly(true);
+        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        pullMessageService.executePullRequestImmediately(createPullRequest());
+        assertThat(messageExts[0]).isNull();
     }
 }

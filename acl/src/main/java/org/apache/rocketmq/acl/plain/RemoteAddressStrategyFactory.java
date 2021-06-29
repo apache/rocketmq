@@ -193,7 +193,7 @@ public class RemoteAddressStrategyFactory {
                     throw new AclException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
                 }
             }
-            return this.end > 0 ? true : false;
+            return this.end > 0;
         }
 
         private boolean ipv6Analysis(String[] strArray, int index) {
