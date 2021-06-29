@@ -22,8 +22,9 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.logging.inner.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
-import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
+import org.apache.rocketmq.test.client.rmq.RMQPopConsumer;
+import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.RandomUtil;
 import org.apache.rocketmq.test.util.VerifyUtils;
@@ -64,11 +65,13 @@ public class PopSubCheckIT extends BaseConf {
         RMQNormalProducer producer = getProducer(nsAddr, topic);
         producer.getProducer().setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
 
-        RMQNormalConsumer consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
-
         for (String brokerAddr : new String[]{brokerController1.getBrokerAddr(), brokerController2.getBrokerAddr()}) {
             defaultMQAdminExt.setMessageRequestMode(brokerAddr, topic, group, MessageRequestMode.POP, 8, 60_000);
         }
+
+        RMQPopConsumer consumer = ConsumerFactory.getRMQPopConsumer(nsAddr, group,
+            topic, "*", new RMQNormalListener());
+        mqClients.add(consumer);
 
         int msgNum = 1;
         producer.send(msgNum);
@@ -80,7 +83,7 @@ public class PopSubCheckIT extends BaseConf {
             .containsExactlyElementsIn(producer.getAllMsgBody());
         for (Object o : consumer.getListener().getAllOriginMsg()) {
             MessageClientExt msg = (MessageClientExt) o;
-            assertThat(msg.getProperty(MessageConst.PROPERTY_POP_CK)).isNotEmpty();
+            assertThat(msg.getProperty(MessageConst.PROPERTY_POP_CK)).named("check pop meta").isNotEmpty();
         }
 
         consumer.getListener().waitForMessageConsume(msgNum, 3_000 * 9);

@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -57,6 +58,11 @@ public class RebalancePushImplTest {
     private String consumerGroup = "CID_RebalancePushImplTest";
     private String topic = "TopicA";
     private final String brokerName = "BrokerA";
+
+    @Before
+    public void before() {
+        defaultMQPushConsumer.getDefaultMQPushConsumer().setClientRebalance(false);
+    }
 
     @Test
     public void testMessageQueueChanged_CountThreshold() {

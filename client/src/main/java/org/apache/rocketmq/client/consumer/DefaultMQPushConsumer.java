@@ -281,7 +281,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private TraceDispatcher traceDispatcher = null;
 
     // force to use client rebalance
-    private boolean clientRebalance = false;
+    private boolean clientRebalance = true;
 
     /**
      * Default constructor.

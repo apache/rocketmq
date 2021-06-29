@@ -55,6 +55,7 @@ public class PopPushConsumer {
             System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
+        consumer.setClientRebalance(false);
         consumer.start();
         System.out.printf("Consumer Started.%n");
     }

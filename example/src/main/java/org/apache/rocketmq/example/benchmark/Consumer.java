@@ -54,7 +54,7 @@ public class Consumer {
         final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
         final int threadCount = commandLine.hasOption('w') ? Integer.parseInt(commandLine.getOptionValue('w')) : 20;
         final String groupPrefix = commandLine.hasOption('g') ? commandLine.getOptionValue('g').trim() : "benchmark_consumer";
-        final String isSuffixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "true";
+        final String isSuffixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "false";
         final String filterType = commandLine.hasOption('f') ? commandLine.getOptionValue('f').trim() : null;
         final String expression = commandLine.hasOption('e') ? commandLine.getOptionValue('e').trim() : null;
         final double failRate = commandLine.hasOption('r') ? Double.parseDouble(commandLine.getOptionValue('r').trim()) : 0.0;
@@ -190,7 +190,7 @@ public class Consumer {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("p", "group prefix enable", true, "Consumer group name, Default: false");
+        opt = new Option("p", "group suffix enable", true, "Consumer group suffix enable, Default: false");
         opt.setRequired(false);
         options.addOption(opt);
 
