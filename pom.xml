@@ -565,6 +565,11 @@
                 <version>19.0</version>
             </dependency>
             <dependency>
+                <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+                <artifactId>concurrentlinkedhashmap-lru</artifactId>
+                <version>1.4.2</version>
+            </dependency>
+            <dependency>
                 <groupId>io.openmessaging</groupId>
                 <artifactId>openmessaging-api</artifactId>
                 <version>0.3.1-alpha</version>

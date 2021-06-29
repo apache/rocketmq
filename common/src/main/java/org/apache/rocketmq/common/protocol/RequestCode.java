@@ -80,6 +80,10 @@ public class RequestCode {
 
     public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
 
+    public static final int POP_MESSAGE = 200050;
+    public static final int ACK_MESSAGE = 200051;
+    public static final int CHANGE_MESSAGE_INVISIBLETIME = 200053;
+
     public static final int PUT_KV_CONFIG = 100;
 
     public static final int GET_KV_CONFIG = 101;
@@ -188,4 +192,7 @@ public class RequestCode {
     public static final int SEND_REPLY_MESSAGE_V2 = 325;
 
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
+
+    public static final int QUERY_ASSIGNMENT = 400;
+    public static final int SET_MESSAGE_REQUEST_MODE = 401;
 }

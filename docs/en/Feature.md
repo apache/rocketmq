@@ -84,3 +84,8 @@ The result of consumer flow control is to reduce the pull frequency.
 Dead letter queue is used to deal messages that cannot be consumed normally. When a message is consumed failed at first time, the message queue will automatically resend the message. If the consumption still fails after the maximum number retry, it indicates that the consumer cannot properly consume the message under normal circumstances. At this time, the message queue will not immediately abandon the message, but send it to the special queue corresponding to the consumer.
 
 RocketMQ defines the messages that could not be consumed under normal circumstances as Dead-Letter Messages, and the special queue in which the Dead-Letter Messages are saved as Dead-Letter Queues. In RocketMQ, the consumer instance can consume again by resending messages in the Dead-Letter Queue using console.
+
+## 13 Pop Consuming
+
+Pop consuming refers to that broker fetches messages from queues owned by same broker and returns to clients, which ensures one queue will be consumed by multiple clients. The whole behavior is like a queue
+pop process. By invoking `setConsumeMode` sub command of mqadmin, one consumer group can be switch to POP consuming instead of classical PULL consuming without changing a single code line. The new pop consuming will help to mitigate the impact for one queue consuming of an abnormal behaving client.

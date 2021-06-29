@@ -149,6 +149,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
 
+    // only for test purpose, will be modified by reflection in unit test.
+    @SuppressWarnings("FieldMayBeFinal") private static boolean doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged = false;
+
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
         this.rpcHook = rpcHook;
@@ -453,6 +456,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
+        if (doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged) {
+            return;
+        }
         Map<String, SubscriptionData> subTable = rebalanceImpl.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
@@ -797,7 +803,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         String topic = this.messageQueue.getTopic();
                         subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
                     }
-                    
+
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
                     if (this.isCancelled() || processQueue.isDropped()) {
                         return;

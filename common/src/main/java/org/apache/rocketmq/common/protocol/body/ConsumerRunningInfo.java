@@ -41,6 +41,8 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
     private TreeMap<MessageQueue, ProcessQueueInfo> mqTable = new TreeMap<MessageQueue, ProcessQueueInfo>();
 
+    private TreeMap<MessageQueue, PopProcessQueueInfo> mqPopTable = new TreeMap<MessageQueue, PopProcessQueueInfo>();
+
     private TreeMap<String/* Topic */, ConsumeStatus> statusTable = new TreeMap<String, ConsumeStatus>();
 
     private String jstack;
@@ -266,6 +268,28 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         }
 
         {
+            sb.append("\n\n#Consumer Pop Detail#\n");
+            sb.append(String.format("%-32s  %-32s  %-4s  %-20s%n",
+                "#Topic",
+                "#Broker Name",
+                "#QID",
+                "#ProcessQueueInfo"
+            ));
+
+            Iterator<Entry<MessageQueue, PopProcessQueueInfo>> it = this.mqPopTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<MessageQueue, PopProcessQueueInfo> next = it.next();
+                String item = String.format("%-32s  %-32s  %-4d  %s%n",
+                    next.getKey().getTopic(),
+                    next.getKey().getBrokerName(),
+                    next.getKey().getQueueId(),
+                    next.getValue().toString());
+
+                sb.append(item);
+            }
+        }
+
+        {
             sb.append("\n\n#Consumer RT&TPS#\n");
             sb.append(String.format("%-32s  %14s %14s %14s %14s %18s %25s%n",
                 "#Topic",
@@ -310,4 +334,12 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         this.jstack = jstack;
     }
 
+    public TreeMap<MessageQueue, PopProcessQueueInfo> getMqPopTable() {
+        return mqPopTable;
+    }
+
+    public void setMqPopTable(
+        TreeMap<MessageQueue, PopProcessQueueInfo> mqPopTable) {
+        this.mqPopTable = mqPopTable;
+    }
 }
