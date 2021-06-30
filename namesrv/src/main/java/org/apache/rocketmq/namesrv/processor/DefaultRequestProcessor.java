@@ -97,7 +97,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 }
             case RequestCode.UNREGISTER_BROKER:
                 return this.unregisterBroker(ctx, request);
-            case RequestCode.GET_ROUTEINTO_BY_TOPIC:
+            case RequestCode.GET_ROUTEINFO_BY_TOPIC:
                 return this.getRouteInfoByTopic(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_INFO:
                 return this.getBrokerClusterInfo(ctx, request);
@@ -140,6 +140,11 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         final PutKVConfigRequestHeader requestHeader =
             (PutKVConfigRequestHeader) request.decodeCommandCustomHeader(PutKVConfigRequestHeader.class);
 
+        if (requestHeader.getNamespace() == null || requestHeader.getKey() == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("namespace or key is null");
+            return response;
+        }
         this.namesrvController.getKvConfigManager().putKVConfig(
             requestHeader.getNamespace(),
             requestHeader.getKey(),
@@ -384,10 +389,12 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
 
         int wipeTopicCnt = this.namesrvController.getRouteInfoManager().wipeWritePermOfBrokerByLock(requestHeader.getBrokerName());
 
-        log.info("wipe write perm of broker[{}], client: {}, {}",
-            requestHeader.getBrokerName(),
-            RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-            wipeTopicCnt);
+        if (ctx != null) {
+            log.info("wipe write perm of broker[{}], client: {}, {}",
+                    requestHeader.getBrokerName(),
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                    wipeTopicCnt);
+        }
 
         responseHeader.setWipeTopicCount(wipeTopicCnt);
         response.setCode(ResponseCode.SUCCESS);
@@ -502,7 +509,9 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
     }
 
     private RemotingCommand updateConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        log.info("updateConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        if (ctx != null) {
+            log.info("updateConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        }
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
@@ -515,13 +524,6 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 log.error("updateConfig byte array to string error: ", e);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("UnsupportedEncodingException " + e);
-                return response;
-            }
-
-            if (bodyStr == null) {
-                log.error("updateConfig get null body!");
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("string2Properties error");
                 return response;
             }
 

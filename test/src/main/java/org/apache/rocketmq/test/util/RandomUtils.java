@@ -45,16 +45,16 @@ public class RandomUtils {
     }
 
     public static String getStringWithNumber(int n) {
-        int arg[] = new int[] {'0', '9' + 1};
+        int[] arg = new int[] {'0', '9' + 1};
         return getString(n, arg);
     }
 
     public static String getStringWithCharacter(int n) {
-        int arg[] = new int[] {'a', 'z' + 1, 'A', 'Z' + 1};
+        int[] arg = new int[] {'a', 'z' + 1, 'A', 'Z' + 1};
         return getString(n, arg);
     }
 
-    private static String getString(int n, int arg[]) {
+    private static String getString(int n, int[] arg) {
         StringBuilder res = new StringBuilder();
         for (int i = 0; i < n; i++) {
             res.append(getChar(arg));
@@ -62,7 +62,7 @@ public class RandomUtils {
         return res.toString();
     }
 
-    private static char getChar(int arg[]) {
+    private static char getChar(int[] arg) {
         int size = arg.length;
         int c = rd.nextInt(size / 2);
         c = c * 2;

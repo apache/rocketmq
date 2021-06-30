@@ -39,6 +39,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.PutMessageStatus;
 
 public class HAService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -260,9 +261,7 @@ public class HAService {
             synchronized (this.requestsWrite) {
                 this.requestsWrite.add(request);
             }
-            if (hasNotified.compareAndSet(false, true)) {
-                waitPoint.countDown(); // notify
-            }
+            this.wakeup();
         }
 
         public void notifyTransferSome() {
@@ -291,7 +290,7 @@ public class HAService {
                             log.warn("transfer messsage to slave timeout, " + req.getNextOffset());
                         }
 
-                        req.wakeupCustomer(transferOK);
+                        req.wakeupCustomer(transferOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
                     }
 
                     this.requestsRead.clear();
@@ -591,6 +590,13 @@ public class HAService {
 
             log.info(this.getServiceName() + " service end");
         }
+
+        @Override
+        public void shutdown() {
+            super.shutdown();
+            closeMaster();
+        }
+
         // private void disableWriteFlag() {
         // if (this.socketChannel != null) {
         // SelectionKey sk = this.socketChannel.keyFor(this.selector);

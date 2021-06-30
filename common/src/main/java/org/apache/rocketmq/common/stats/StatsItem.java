@@ -55,13 +55,14 @@ public class StatsItem {
             double tps = 0;
             double avgpt = 0;
             long sum = 0;
+            long timesDiff = 0;
             if (!csList.isEmpty()) {
                 CallSnapshot first = csList.getFirst();
                 CallSnapshot last = csList.getLast();
                 sum = last.getValue() - first.getValue();
                 tps = (sum * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
 
-                long timesDiff = last.getTimes() - first.getTimes();
+                timesDiff = last.getTimes() - first.getTimes();
                 if (timesDiff > 0) {
                     avgpt = (sum * 1.0d) / timesDiff;
                 }
@@ -70,6 +71,7 @@ public class StatsItem {
             statsSnapshot.setSum(sum);
             statsSnapshot.setTps(tps);
             statsSnapshot.setAvgpt(avgpt);
+            statsSnapshot.setTimes(timesDiff);
         }
 
         return statsSnapshot;
@@ -191,32 +193,25 @@ public class StatsItem {
 
     public void printAtMinutes() {
         StatsSnapshot ss = computeStatsData(this.csListMinute);
-        log.info(String.format("[%s] [%s] Stats In One Minute, SUM: %d TPS: %.2f AVGPT: %.2f",
-            this.statsName,
-            this.statsKey,
-            ss.getSum(),
-            ss.getTps(),
-            ss.getAvgpt()));
+        log.info(String.format("[%s] [%s] Stats In One Minute, ", this.statsName, this.statsKey) + statPrintDetail(ss));
     }
 
     public void printAtHour() {
         StatsSnapshot ss = computeStatsData(this.csListHour);
-        log.info(String.format("[%s] [%s] Stats In One Hour, SUM: %d TPS: %.2f AVGPT: %.2f",
-            this.statsName,
-            this.statsKey,
-            ss.getSum(),
-            ss.getTps(),
-            ss.getAvgpt()));
+        log.info(String.format("[%s] [%s] Stats In One Hour, ", this.statsName, this.statsKey) + statPrintDetail(ss));
+
     }
 
     public void printAtDay() {
         StatsSnapshot ss = computeStatsData(this.csListDay);
-        log.info(String.format("[%s] [%s] Stats In One Day, SUM: %d TPS: %.2f AVGPT: %.2f",
-            this.statsName,
-            this.statsKey,
-            ss.getSum(),
-            ss.getTps(),
-            ss.getAvgpt()));
+        log.info(String.format("[%s] [%s] Stats In One Day, ", this.statsName, this.statsKey) + statPrintDetail(ss));
+    }
+
+    protected String statPrintDetail(StatsSnapshot ss) {
+        return String.format("SUM: %d TPS: %.2f AVGPT: %.2f",
+                ss.getSum(),
+                ss.getTps(),
+                ss.getAvgpt());
     }
 
     public AtomicLong getValue() {

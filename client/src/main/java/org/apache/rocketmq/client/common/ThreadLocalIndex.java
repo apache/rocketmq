@@ -23,21 +23,15 @@ public class ThreadLocalIndex {
     private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
     private final Random random = new Random();
 
-    public int getAndIncrement() {
+    public int incrementAndGet() {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
             index = Math.abs(random.nextInt());
-            if (index < 0)
-                index = 0;
             this.threadLocalIndex.set(index);
         }
 
-        index = Math.abs(index + 1);
-        if (index < 0)
-            index = 0;
-
-        this.threadLocalIndex.set(index);
-        return index;
+        this.threadLocalIndex.set(++index);
+        return Math.abs(index);
     }
 
     @Override

@@ -62,7 +62,7 @@ public class ConsumerStatsManager {
     }
 
     public void incPullRT(final String group, final String topic, final long rt) {
-        this.topicAndGroupPullRT.addValue(topic + "@" + group, (int) rt, 1);
+        this.topicAndGroupPullRT.addRTValue(topic + "@" + group, (int) rt, 1);
     }
 
     public void incPullTPS(final String group, final String topic, final long msgs) {
@@ -70,7 +70,7 @@ public class ConsumerStatsManager {
     }
 
     public void incConsumeRT(final String group, final String topic, final long rt) {
-        this.topicAndGroupConsumeRT.addValue(topic + "@" + group, (int) rt, 1);
+        this.topicAndGroupConsumeRT.addRTValue(topic + "@" + group, (int) rt, 1);
     }
 
     public void incConsumeOKTPS(final String group, final String topic, final long msgs) {

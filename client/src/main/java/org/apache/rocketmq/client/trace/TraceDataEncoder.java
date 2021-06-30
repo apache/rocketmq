@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.common.message.MessageType;
 
 import java.util.ArrayList;
@@ -62,6 +63,14 @@ public class TraceDataEncoder {
                     bean.setOffsetMsgId(line[12]);
                     pubContext.setSuccess(Boolean.parseBoolean(line[13]));
                 }
+
+                // compatible with the old version
+                if (line.length >= 15) {
+                    bean.setOffsetMsgId(line[12]);
+                    pubContext.setSuccess(Boolean.parseBoolean(line[13]));
+                    bean.setClientHost(line[14]);
+                }
+
                 pubContext.setTraceBeans(new ArrayList<TraceBean>(1));
                 pubContext.getTraceBeans().add(bean);
                 resList.add(pubContext);
@@ -94,7 +103,32 @@ public class TraceDataEncoder {
                     // add the context type
                     subAfterContext.setContextCode(Integer.parseInt(line[6]));
                 }
+                // compatible with the old version
+                if (line.length >= 9) {
+                    subAfterContext.setTimeStamp(Long.parseLong(line[7]));
+                    subAfterContext.setGroupName(line[8]);
+                }
                 resList.add(subAfterContext);
+            } else if (line[0].equals(TraceType.EndTransaction.name())) {
+                TraceContext endTransactionContext = new TraceContext();
+                endTransactionContext.setTraceType(TraceType.EndTransaction);
+                endTransactionContext.setTimeStamp(Long.parseLong(line[1]));
+                endTransactionContext.setRegionId(line[2]);
+                endTransactionContext.setGroupName(line[3]);
+                TraceBean bean = new TraceBean();
+                bean.setTopic(line[4]);
+                bean.setMsgId(line[5]);
+                bean.setTags(line[6]);
+                bean.setKeys(line[7]);
+                bean.setStoreHost(line[8]);
+                bean.setMsgType(MessageType.values()[Integer.parseInt(line[9])]);
+                bean.setTransactionId(line[10]);
+                bean.setTransactionState(LocalTransactionState.valueOf(line[11]));
+                bean.setFromTransactionCheck(Boolean.parseBoolean(line[12]));
+
+                endTransactionContext.setTraceBeans(new ArrayList<TraceBean>(1));
+                endTransactionContext.getTraceBeans().add(bean);
+                resList.add(endTransactionContext);
             }
         }
         return resList;
@@ -130,7 +164,7 @@ public class TraceDataEncoder {
                     .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
                     .append(bean.getOffsetMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
-                    .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);
+                    .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);//
             }
             break;
             case SubBefore: {
@@ -154,8 +188,28 @@ public class TraceDataEncoder {
                         .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getContextCode()).append(TraceConstants.FIELD_SPLITOR);
+                        .append(ctx.getContextCode()).append(TraceConstants.CONTENT_SPLITOR)
+                        .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)
+                        .append(ctx.getGroupName()).append(TraceConstants.FIELD_SPLITOR);
+
                 }
+            }
+            break;
+            case EndTransaction: {
+                TraceBean bean = ctx.getTraceBeans().get(0);
+                sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(ctx.getRegionId()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(ctx.getGroupName()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getTopic()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getMsgId()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getTags()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getStoreHost()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getMsgType().ordinal()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getTransactionId()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.getTransactionState().name()).append(TraceConstants.CONTENT_SPLITOR)//
+                    .append(bean.isFromTransactionCheck()).append(TraceConstants.FIELD_SPLITOR);
             }
             break;
             default:

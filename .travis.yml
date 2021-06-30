@@ -1,4 +1,4 @@
-dist: trusty
+dist: bionic
 
 notifications:
   email:
@@ -9,22 +9,38 @@ notifications:
 
 language: java
 
-jdk:
-  - oraclejdk8
-
 matrix:
   include:
   # On OSX, run with default JDK only.
   # - os: osx
-  # On Linux, run with specific JDKs only.
-  - os: linux
-    env: CUSTOM_JDK="oraclejdk8"
+  # On Linux we install latest OpenJDK 1.8 from Ubuntu repositories
+  - name: Linux x86_64
+    arch: amd64
+  - name: Linux aarch64
+    arch: arm64
+
+cache:
+  directories:
+    - $HOME/.m2/repository
 
 before_install:
+  - lscpu
   - echo 'MAVEN_OPTS="$MAVEN_OPTS -Xmx1024m -XX:MaxPermSize=512m -XX:+BytecodeVerificationLocal"' >> ~/.mavenrc
   - cat ~/.mavenrc
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then jdk_switcher use "$CUSTOM_JDK"; fi
+
+install: |
+  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    sudo apt update
+    sudo apt install -y openjdk-8-jdk maven
+    export JAVA_HOME="/usr/lib/jvm/java-8-openjdk-${TRAVIS_CPU_ARCH}/"
+    export PATH="$JAVA_HOME/bin:/usr/share/maven/bin:$PATH"
+  fi
+
+before_script:
+  - java -version
+  - mvn -version
+  - ulimit -c unlimited
 
 script:
   - travis_retry mvn -B clean apache-rat:check
@@ -33,3 +49,4 @@ script:
 after_success:
   - mvn clean install -Pit-test
   - mvn sonar:sonar -Psonar-apache
+  - bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'

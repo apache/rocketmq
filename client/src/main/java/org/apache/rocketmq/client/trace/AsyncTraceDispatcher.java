@@ -41,11 +41,11 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 
@@ -90,7 +90,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         if (!UtilAll.isBlank(traceTopicName)) {
             this.traceTopicName = traceTopicName;
         } else {
-            this.traceTopicName = MixAll.RMQ_SYS_TRACE_TOPIC;
+            this.traceTopicName = TopicValidator.RMQ_SYS_TRACE_TOPIC;
         }
         this.traceExecutor = new ThreadPoolExecutor(//
             10, //
@@ -370,7 +370,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
                     @Override
                     public void onException(Throwable e) {
-                        log.info("send trace data ,the traceData is " + data);
+                        log.error("send trace data failed, the traceData is {}", data, e);
                     }
                 };
                 if (traceBrokerSet.isEmpty()) {
@@ -387,7 +387,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                                     filterMqs.add(queue);
                                 }
                             }
-                            int index = sendWhichQueue.getAndIncrement();
+                            int index = sendWhichQueue.incrementAndGet();
                             int pos = Math.abs(index) % filterMqs.size();
                             if (pos < 0) {
                                 pos = 0;
@@ -398,7 +398,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 }
 
             } catch (Exception e) {
-                log.info("send trace data,the traceData is" + data);
+                log.error("send trace data failed, the traceData is {}", data, e);
             }
         }
 

@@ -232,6 +232,51 @@ public class DefaultMQProducerTest {
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(5);
     }
+    
+    @Test
+    public void testBatchSendMessageAsync()
+            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        final AtomicInteger cc = new AtomicInteger(0);
+        final CountDownLatch countDownLatch = new CountDownLatch(4);
+
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        SendCallback sendCallback = new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                e.printStackTrace();
+                cc.incrementAndGet();
+                countDownLatch.countDown();
+            }
+        };
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
+            @Override
+            public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                return null;
+            }
+        };
+
+        List<Message> msgs = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Message message = new Message();
+            message.setTopic("test");
+            message.setBody(("hello world" + i).getBytes());
+            msgs.add(message);
+        }
+        producer.send(msgs, sendCallback);
+        producer.send(msgs, sendCallback, 1000);
+        MessageQueue mq = new MessageQueue("test", "BrokerA", 1);
+        producer.send(msgs, mq, sendCallback);
+        // this message is send failed
+        producer.send(msgs, new MessageQueue(), sendCallback, 1000);
+
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(cc.get()).isEqualTo(1);
+    }
 
     @Test
     public void testSendMessageAsync_BodyCompressed() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
@@ -373,7 +418,7 @@ public class DefaultMQProducerTest {
         assertThat(responseMap).isNotNull();
         for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
             RequestResponseFuture future = entry.getValue();
-            future.setSendReqeustOk(true);
+            future.setSendRequestOk(true);
             message.setFlag(1);
             future.getRequestCallback().onSuccess(message);
         }
@@ -436,7 +481,7 @@ public class DefaultMQProducerTest {
         queueData.setPerm(6);
         queueData.setReadQueueNums(3);
         queueData.setWriteQueueNums(4);
-        queueData.setTopicSynFlag(0);
+        queueData.setTopicSysFlag(0);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;

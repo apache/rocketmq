@@ -52,6 +52,7 @@ import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -523,7 +524,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
     private void generateOffsetMovedEvent(final OffsetMovedEvent event) {
         try {
             MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-            msgInner.setTopic(MixAll.OFFSET_MOVED_EVENT);
+            msgInner.setTopic(TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT);
             msgInner.setTags(event.getConsumerGroup());
             msgInner.setDelayTimeLevel(0);
             msgInner.setKeys(event.getConsumerGroup());
@@ -583,7 +584,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));
     }
 
-    public void registerConsumeMessageHook(List<ConsumeMessageHook> sendMessageHookList) {
-        this.consumeMessageHookList = sendMessageHookList;
+    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
+        this.consumeMessageHookList = consumeMessageHookList;
     }
 }

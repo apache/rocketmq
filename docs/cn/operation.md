@@ -26,7 +26,7 @@ The Name Server boot success...
 $ nohup sh bin/mqbroker -n localhost:9876 &
 
 ### 验证Name Server 是否启动成功，例如Broker的IP为：192.168.1.2，且名称为broker-a
-$ tail -f ~/logs/rocketmqlogs/Broker.log 
+$ tail -f ~/logs/rocketmqlogs/broker.log 
 The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
 
@@ -564,7 +564,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>从NameServer上清除 Broker写权限</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>BrokerName</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
@@ -1161,7 +1161,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=3 height=119 class=xl69 width=87 style='border-bottom:1.0pt
-  height:89.0pt;border-top:none;width:65pt'>consumerConnec tion</td>
+  height:89.0pt;border-top:none;width:65pt'>consumerConnection</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>查询 Consumer 的网络连接</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1177,7 +1177,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=142 class=xl69 width=87 style='border-bottom:1.0pt
-  height:106.0pt;border-top:none;width:65pt'>producerConnec tion</td>
+  height:106.0pt;border-top:none;width:65pt'>producerConnection</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>查询 Producer 的网络连接</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>

@@ -35,12 +35,14 @@ public class MessageClientIDSetterTest {
         assertThat(ipStr).isEqualTo(ipStrFromID);
     }
 
+
     @Test
     public void testGetPidFromID() {
-        int pid = UtilAll.getPid();
+        // Temporary fix on MacOS
+        short pid = (short) UtilAll.getPid();
 
         String uniqID = MessageClientIDSetter.createUniqID();
-        int pidFromID = MessageClientIDSetter.getPidFromID(uniqID);
+        short pidFromID = (short) MessageClientIDSetter.getPidFromID(uniqID);
 
         assertThat(pid).isEqualTo(pidFromID);
     }

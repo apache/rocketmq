@@ -26,8 +26,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -40,6 +43,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
+import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
@@ -53,16 +57,16 @@ import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
 import org.junit.Before;
@@ -70,10 +74,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -85,12 +87,11 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(DefaultMQPushConsumerImpl.class)
+@RunWith(MockitoJUnitRunner.class)
 public class DefaultMQConsumerWithTraceTest {
     private String consumerGroup;
     private String consumerGroupNormal;
-    private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
+    private String producerGroupTraceTemp = TopicValidator.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
 
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
@@ -113,6 +114,10 @@ public class DefaultMQConsumerWithTraceTest {
 
     @Before
     public void init() throws Exception {
+        ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
+        factoryTable.forEach((s, instance) -> instance.shutdown());
+        factoryTable.clear();
+
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
         pushConsumer = new DefaultMQPushConsumer(consumerGroup, true, "");
         consumerGroupNormal = "FooBarGroup" + System.currentTimeMillis();
@@ -132,8 +137,14 @@ public class DefaultMQConsumerWithTraceTest {
             }
         });
 
-        PowerMockito.suppress(PowerMockito.method(DefaultMQPushConsumerImpl.class, "updateTopicSubscribeInfoWhenSubscriptionChanged"));
         DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
+
+        // suppress updateTopicRouteInfoFromNameServer
+        pushConsumer.changeInstanceNameToPID();
+        mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true)));
+        factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
+        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+
         rebalancePushImpl = spy(new RebalancePushImpl(pushConsumer.getDefaultMQPushConsumerImpl()));
         Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
@@ -171,9 +182,9 @@ public class DefaultMQConsumerWithTraceTest {
 
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
-            .thenAnswer(new Answer<Object>() {
+            .thenAnswer(new Answer<PullResult>() {
                 @Override
-                public Object answer(InvocationOnMock mock) throws Throwable {
+                public PullResult answer(InvocationOnMock mock) throws Throwable {
                     PullMessageRequestHeader requestHeader = mock.getArgument(1);
                     MessageClientExt messageClientExt = new MessageClientExt();
                     messageClientExt.setTopic(topic);
@@ -205,12 +216,12 @@ public class DefaultMQConsumerWithTraceTest {
         traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final MessageExt[] messageExts = new MessageExt[1];
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeConcurrentlyContext context) {
-                messageExts[0] = msgs.get(0);
+                messageAtomic.set(msgs.get(0));
                 countDownLatch.countDown();
                 return null;
             }
@@ -218,9 +229,11 @@ public class DefaultMQConsumerWithTraceTest {
 
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        assertThat(messageExts[0].getTopic()).isEqualTo(topic);
-        assertThat(messageExts[0].getBody()).isEqualTo(new byte[] {'a'});
+        countDownLatch.await(30, TimeUnit.SECONDS);
+        MessageExt msg = messageAtomic.get();
+        assertThat(msg).isNotNull();
+        assertThat(msg.getTopic()).isEqualTo(topic);
+        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
     }
 
     private PullRequest createPullRequest() {
@@ -270,7 +283,7 @@ public class DefaultMQConsumerWithTraceTest {
         queueData.setPerm(6);
         queueData.setReadQueueNums(3);
         queueData.setWriteQueueNums(4);
-        queueData.setTopicSynFlag(0);
+        queueData.setTopicSysFlag(0);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;
@@ -306,7 +319,7 @@ public class DefaultMQConsumerWithTraceTest {
         queueData.setPerm(6);
         queueData.setReadQueueNums(1);
         queueData.setWriteQueueNums(1);
-        queueData.setTopicSynFlag(1);
+        queueData.setTopicSysFlag(1);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;
