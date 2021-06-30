@@ -523,7 +523,7 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(messageQueue, commitOffset, false);
         }
 
-        if (stageOffsetStore != null && commitStageOffset >= 0) {
+        if (stageOffsetStore != null && commitStageOffset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
             synchronized (currentStageOffset) {
                 messageListener.rollbackCurrentStageOffsetIfNeed(topic, strategyId, groupId, currentStageOffset, msgs);
                 //prevent users from resetting the value of currentStageOffset to a value less than 0
