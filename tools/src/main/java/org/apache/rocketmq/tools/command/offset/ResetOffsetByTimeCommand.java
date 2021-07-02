@@ -33,6 +33,8 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ResetOffsetByTimeCommand implements SubCommand {
 
+    private static int TIMESTAMP_BY_NOW = -1;
+
     @Override
     public String commandName() {
         return "resetOffsetByTime";
@@ -76,7 +78,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             String topic = commandLine.getOptionValue("t").trim();
             String timeStampStr = commandLine.getOptionValue("s").trim();
             //when the param "timestamp" is set to now,it should return the max offset of this queue
-            long timestamp = timeStampStr.equals("now") ? -1 : 0;
+            long timestamp = timeStampStr.equals("now") ? TIMESTAMP_BY_NOW : 0;
 
             try {
                 if (timestamp == 0) {
