@@ -16,7 +16,19 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import org.apache.rocketmq.client.consumer.*;
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.PullCallback;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -40,23 +52,15 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -117,9 +121,9 @@ public class ConsumeMessageConcurrentlyServiceTest {
 
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
                 anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
-                .thenAnswer(new Answer<Object>() {
+                .thenAnswer(new Answer<PullResult>() {
                     @Override
-                    public Object answer(InvocationOnMock mock) throws Throwable {
+                    public PullResult answer(InvocationOnMock mock) throws Throwable {
                         PullMessageRequestHeader requestHeader = mock.getArgument(1);
                         MessageClientExt messageClientExt = new MessageClientExt();
                         messageClientExt.setTopic(topic);
@@ -145,13 +149,13 @@ public class ConsumeMessageConcurrentlyServiceTest {
     @Test
     public void testPullMessage_ConsumeSuccess() throws InterruptedException, RemotingException, MQBrokerException, NoSuchFieldException,Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final MessageExt[] messageExts = new MessageExt[1];
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
 
         ConsumeMessageConcurrentlyService  normalServie = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                                                             ConsumeConcurrentlyContext context) {
-                messageExts[0] = msgs.get(0);
+                messageAtomic.set(msgs.get(0));
                 countDownLatch.countDown();
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
@@ -175,8 +179,10 @@ public class ConsumeMessageConcurrentlyServiceTest {
         StatsItem item = itemSet.getAndCreateStatsItem(topic + "@" + pushConsumer.getDefaultMQPushConsumerImpl().groupName());
 
         assertThat(item.getValue().get()).isGreaterThan(0L);
-        assertThat(messageExts[0].getTopic()).isEqualTo(topic);
-        assertThat(messageExts[0].getBody()).isEqualTo(new byte[] {'a'});
+        MessageExt msg = messageAtomic.get();
+        assertThat(msg).isNotNull();
+        assertThat(msg.getTopic()).isEqualTo(topic);
+        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
     }
 
     @After

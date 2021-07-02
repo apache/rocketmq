@@ -50,6 +50,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.running.RunningStats;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -391,7 +392,7 @@ public class DefaultMessageStore implements MessageStore {
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
-                log.warn("message store has shutdown, so putMessage is forbidden");
+                log.warn("broke role is slave, so putMessage is forbidden");
             }
             return PutMessageStatus.SERVICE_NOT_AVAILABLE;
         }
@@ -399,7 +400,8 @@ public class DefaultMessageStore implements MessageStore {
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
-                log.warn("message store has shutdown, so putMessage is forbidden");
+                log.warn("the message store is not writable. It may be caused by one of the following reasons: " +
+                    "the broker's disk is full, write to logic queue error, write to index file error, etc");
             }
             return PutMessageStatus.SERVICE_NOT_AVAILABLE;
         } else {
@@ -803,13 +805,22 @@ public class DefaultMessageStore implements MessageStore {
         return this.storeStatsService.toString();
     }
 
+    private String getStorePathPhysic() {
+        String storePathPhysic = "";
+        if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog()) {
+            storePathPhysic = ((DLedgerCommitLog)DefaultMessageStore.this.getCommitLog()).getdLedgerServer().getdLedgerConfig().getDataStorePath();
+        } else {
+            storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
+        }
+        return storePathPhysic;
+    }
+
     @Override
     public HashMap<String, String> getRuntimeInfo() {
         HashMap<String, String> result = this.storeStatsService.getRuntimeInfo();
 
         {
-            String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathPhysic());
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
 
         }
@@ -1019,7 +1030,8 @@ public class DefaultMessageStore implements MessageStore {
             Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             String topic = next.getKey();
 
-            if (!topics.contains(topic) && !topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)) {
+            if (!topics.contains(topic) && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)
+                    && !topic.equals(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC)) {
                 ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 for (ConsumeQueue cq : queueTable.values()) {
                     cq.destroy();
@@ -1050,7 +1062,7 @@ public class DefaultMessageStore implements MessageStore {
         while (it.hasNext()) {
             Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             String topic = next.getKey();
-            if (!topic.equals(ScheduleMessageService.SCHEDULE_TOPIC)) {
+            if (!topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
                 ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 Iterator<Entry<Integer, ConsumeQueue>> itQT = queueTable.entrySet().iterator();
                 while (itQT.hasNext()) {
@@ -1675,8 +1687,7 @@ public class DefaultMessageStore implements MessageStore {
             cleanImmediately = false;
 
             {
-                String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathPhysic());
                 if (physicRatio > diskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
@@ -1736,8 +1747,7 @@ public class DefaultMessageStore implements MessageStore {
             this.manualDeleteFileSeveralTimes = manualDeleteFileSeveralTimes;
         }
         public boolean isSpaceFull() {
-            String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathPhysic());
             double ratio = DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
             if (physicRatio > ratio) {
                 DefaultMessageStore.log.info("physic disk of commitLog used: " + physicRatio);
@@ -1937,7 +1947,8 @@ public class DefaultMessageStore implements MessageStore {
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
-                                        && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()) {
+                                            && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
+                                            && DefaultMessageStore.this.messageArrivingListener != null) {
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                                             dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
                                             dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),

@@ -25,9 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.ConfigManager;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -48,7 +48,6 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 public class ScheduleMessageService extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    public static final String SCHEDULE_TOPIC = "SCHEDULE_TOPIC_XXXX";
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
@@ -91,7 +90,7 @@ public class ScheduleMessageService extends ConfigManager {
             Map.Entry<Integer, Long> next = it.next();
             int queueId = delayLevel2QueueId(next.getKey());
             long delayOffset = next.getValue();
-            long maxOffset = this.defaultMessageStore.getMaxOffsetInQueue(SCHEDULE_TOPIC, queueId);
+            long maxOffset = this.defaultMessageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, queueId);
             String value = String.format("%d,%d", delayOffset, maxOffset);
             String key = String.format("%s_%d", RunningStats.scheduleMessageOffset.name(), next.getKey());
             stats.put(key, value);
@@ -113,6 +112,7 @@ public class ScheduleMessageService extends ConfigManager {
 
     public void start() {
         if (started.compareAndSet(false, true)) {
+            super.load();
             this.timer = new Timer("ScheduleMessageTimerThread", true);
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
                 Integer level = entry.getKey();
@@ -262,7 +262,7 @@ public class ScheduleMessageService extends ConfigManager {
 
         public void executeOnTimeup() {
             ConsumeQueue cq =
-                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(SCHEDULE_TOPIC,
+                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));
 
             long failScheduleOffset = offset;
@@ -306,7 +306,7 @@ public class ScheduleMessageService extends ConfigManager {
                                 if (msgExt != null) {
                                     try {
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
-                                        if (MixAll.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
+                                        if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                                             log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
                                                     msgInner.getTopic(), msgInner);
                                             continue;
@@ -317,6 +317,12 @@ public class ScheduleMessageService extends ConfigManager {
 
                                         if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+                                            if (ScheduleMessageService.this.defaultMessageStore.getMessageStoreConfig().isEnableScheduleMessageStats()) {
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
+                                                    putMessageResult.getAppendMessageResult().getWroteBytes());
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+                                            }
                                             continue;
                                         } else {
                                             // XXX: warn and notify me

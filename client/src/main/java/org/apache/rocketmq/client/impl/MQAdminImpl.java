@@ -82,6 +82,7 @@ public class MQAdminImpl {
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         try {
             Validators.checkTopic(newTopic);
+            Validators.isSystemTopic(newTopic);
             TopicRouteData topicRouteData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, timeoutMillis);
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
@@ -267,17 +268,23 @@ public class MQAdminImpl {
             messageId.getOffset(), timeoutMillis);
     }
 
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
-        long end) throws MQClientException,
-        InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
         return queryMessage(topic, key, maxNum, begin, end, false);
+    }
+
+    public QueryResult queryMessageByUniqKey(String topic, String uniqKey, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
+        return queryMessage(topic, uniqKey, maxNum, begin, end, true);
     }
 
     public MessageExt queryMessageByUniqKey(String topic,
         String uniqKey) throws InterruptedException, MQClientException {
 
-        QueryResult qr = this.queryMessage(topic, uniqKey, 32,
-            MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE, true);
+        QueryResult qr = queryMessageByUniqKey(topic, uniqKey, 32,
+                MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE);
         if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
             return qr.getMessageList().get(0);
         } else {

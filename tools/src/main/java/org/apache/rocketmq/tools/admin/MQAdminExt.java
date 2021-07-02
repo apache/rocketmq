@@ -152,6 +152,9 @@ public interface MQAdminExt extends MQAdmin {
     void deleteSubscriptionGroup(final String addr, String groupName) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
+    void deleteSubscriptionGroup(final String addr, String groupName, boolean removeOffset) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
     void createAndUpdateKvConfig(String namespace, String key,
         String value) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
