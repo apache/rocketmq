@@ -557,17 +557,15 @@ public class CommitLog {
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         // Back to Results
-        AppendMessageResult result = null;
-
-        try {
-            result = appendPutMessageAndTrackStats(msg);
-        } catch (Exceptions.PutMessageException ex) {
-            return CompletableFuture.completedFuture(ex.toPutMessageResult());
+        ErrOrResult<PutMessageStatus, AppendMessageResult> result = appendPutMessageAndTrackStats(msg);
+        if (result.hasError()) {
+            return CompletableFuture.completedFuture(new PutMessageResult(result.error().get(), null));
         }
-        PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
+        final AppendMessageResult appendResult = result.result().get();
+        PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, appendResult);
 
-        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
-        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
+        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(appendResult, msg);
+        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(appendResult, msg);
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(flushStatus);
@@ -583,7 +581,7 @@ public class CommitLog {
         });
     }
 
-    private AppendMessageResult appendPutMessageAndTrackStats(MessageExtBrokerInner msg) throws Exceptions.PutMessageException {
+    private ErrOrResult<PutMessageStatus, AppendMessageResult> appendPutMessageAndTrackStats(MessageExtBrokerInner msg) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
         // Set the message body BODY CRC (consider the most appropriate setting
@@ -633,7 +631,7 @@ public class CommitLog {
             }
             if (null == mappedFile) {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                throw new Exceptions.CreateMappedfileFailedException();
+                return ErrOrResult.error(PutMessageStatus.CREATE_MAPEDFILE_FAILED);
             }
 
             result = mappedFile.appendMessage(msg, this.appendMessageCallback);
@@ -647,16 +645,16 @@ public class CommitLog {
                     if (null == mappedFile) {
                         // XXX: warn and notify me
                         log.error("create mapped file error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                        throw new Exceptions.CreateMappedfileFailedException(result);
+                        return ErrOrResult.error(PutMessageStatus.CREATE_MAPEDFILE_FAILED);
                     }
                     result = mappedFile.appendMessage(msg, this.appendMessageCallback);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
-                    throw new Exceptions.MessageIllegalException(result);
+                    return ErrOrResult.error(PutMessageStatus.MESSAGE_ILLEGAL);
                 case UNKNOWN_ERROR:
                 default:
-                    throw new Exceptions.PutMessageException(result);
+                    return ErrOrResult.error(PutMessageStatus.UNKNOWN_ERROR);
             }
 
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
@@ -677,7 +675,7 @@ public class CommitLog {
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
-        return result;
+        return ErrOrResult.result(result);
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessages(final MessageExtBatch messageExtBatch) {
@@ -789,16 +787,16 @@ public class CommitLog {
         setIPV6Flags(msg);
 
         // Back to Results
-        AppendMessageResult result = null;
-        try {
-            result = appendPutMessageAndTrackStats(msg);
-        } catch (Exceptions.PutMessageException ex) {
-            return ex.toPutMessageResult();
+        ErrOrResult<PutMessageStatus, AppendMessageResult> result = appendPutMessageAndTrackStats(msg);
+        if (result.hasError()) {
+            return new PutMessageResult(result.error().get(), null);
         }
-        PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
-        handleDiskFlush(result, putMessageResult, msg);
-        handleHA(result, putMessageResult, msg);
+        final AppendMessageResult appendResult = result.result().get();
+        PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, appendResult);
+
+        handleDiskFlush(appendResult, putMessageResult, msg);
+        handleHA(appendResult, putMessageResult, msg);
 
         return putMessageResult;
     }
