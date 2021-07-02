@@ -26,6 +26,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -43,11 +44,11 @@ public class ProcessQueue {
     public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final InternalLogger log = ClientLogger.getLog();
-    private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
+    private final ReadWriteLock treeMapLock = new ReentrantReadWriteLock();
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong msgCount = new AtomicLong();
     private final AtomicLong msgSize = new AtomicLong();
-    private final Lock lockConsume = new ReentrantLock();
+    private final Lock consumeLock = new ReentrantLock();
     /**
      * A subset of msgTreeMap, will only be used when orderly consume
      */
@@ -82,7 +83,7 @@ public class ProcessQueue {
         for (int i = 0; i < loop; i++) {
             MessageExt msg = null;
             try {
-                this.lockTreeMap.readLock().lockInterruptibly();
+                this.treeMapLock.readLock().lockInterruptibly();
                 try {
                     if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(msgTreeMap.firstEntry().getValue())) > pushConsumer.getConsumeTimeout() * 60 * 1000) {
                         msg = msgTreeMap.firstEntry().getValue();
@@ -91,7 +92,7 @@ public class ProcessQueue {
                         break;
                     }
                 } finally {
-                    this.lockTreeMap.readLock().unlock();
+                    this.treeMapLock.readLock().unlock();
                 }
             } catch (InterruptedException e) {
                 log.error("getExpiredMsg exception", e);
@@ -102,7 +103,7 @@ public class ProcessQueue {
                 pushConsumer.sendMessageBack(msg, 3);
                 log.info("send expire msg back. topic={}, msgId={}, storeHost={}, queueId={}, queueOffset={}", msg.getTopic(), msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(), msg.getQueueOffset());
                 try {
-                    this.lockTreeMap.writeLock().lockInterruptibly();
+                    this.treeMapLock.writeLock().lockInterruptibly();
                     try {
                         if (!msgTreeMap.isEmpty() && msg.getQueueOffset() == msgTreeMap.firstKey()) {
                             try {
@@ -112,7 +113,7 @@ public class ProcessQueue {
                             }
                         }
                     } finally {
-                        this.lockTreeMap.writeLock().unlock();
+                        this.treeMapLock.writeLock().unlock();
                     }
                 } catch (InterruptedException e) {
                     log.error("getExpiredMsg exception", e);
@@ -126,7 +127,7 @@ public class ProcessQueue {
     public boolean putMessage(final List<MessageExt> msgs) {
         boolean dispatchToConsume = false;
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.treeMapLock.writeLock().lockInterruptibly();
             try {
                 int validMsgCnt = 0;
                 for (MessageExt msg : msgs) {
@@ -155,7 +156,7 @@ public class ProcessQueue {
                     }
                 }
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
             log.error("putMessage exception", e);
@@ -166,13 +167,13 @@ public class ProcessQueue {
 
     public long getMaxSpan() {
         try {
-            this.lockTreeMap.readLock().lockInterruptibly();
+            this.treeMapLock.readLock().lockInterruptibly();
             try {
                 if (!this.msgTreeMap.isEmpty()) {
                     return this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey();
                 }
             } finally {
-                this.lockTreeMap.readLock().unlock();
+                this.treeMapLock.readLock().unlock();
             }
         } catch (InterruptedException e) {
             log.error("getMaxSpan exception", e);
@@ -185,7 +186,7 @@ public class ProcessQueue {
         long result = -1;
         final long now = System.currentTimeMillis();
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.treeMapLock.writeLock().lockInterruptibly();
             this.lastConsumeTimestamp = now;
             try {
                 if (!msgTreeMap.isEmpty()) {
@@ -205,7 +206,7 @@ public class ProcessQueue {
                     }
                 }
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.treeMapLock.writeLock().unlock();
             }
         } catch (Throwable t) {
             log.error("removeMessage exception", t);
@@ -244,12 +245,12 @@ public class ProcessQueue {
 
     public void rollback() {
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.treeMapLock.writeLock().lockInterruptibly();
             try {
                 this.msgTreeMap.putAll(this.consumingMsgOrderlyTreeMap);
                 this.consumingMsgOrderlyTreeMap.clear();
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
             log.error("rollback exception", e);
@@ -258,7 +259,7 @@ public class ProcessQueue {
 
     public long commit() {
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.treeMapLock.writeLock().lockInterruptibly();
             try {
                 Long offset = this.consumingMsgOrderlyTreeMap.lastKey();
                 msgCount.addAndGet(0 - this.consumingMsgOrderlyTreeMap.size());
@@ -270,7 +271,7 @@ public class ProcessQueue {
                     return offset + 1;
                 }
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
             log.error("commit exception", e);
@@ -279,27 +280,27 @@ public class ProcessQueue {
         return -1;
     }
 
-    public void makeMessageToCosumeAgain(List<MessageExt> msgs) {
+    public void makeMessageToConsumeAgain(List<MessageExt> msgs) {
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.treeMapLock.writeLock().lockInterruptibly();
             try {
                 for (MessageExt msg : msgs) {
                     this.consumingMsgOrderlyTreeMap.remove(msg.getQueueOffset());
                     this.msgTreeMap.put(msg.getQueueOffset(), msg);
                 }
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
             log.error("makeMessageToCosumeAgain exception", e);
         }
     }
 
-    public List<MessageExt> takeMessags(final int batchSize) {
+    public List<MessageExt> takeMessages(final int batchSize) {
         List<MessageExt> result = new ArrayList<MessageExt>(batchSize);
         final long now = System.currentTimeMillis();
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.treeMapLock.writeLock().lockInterruptibly();
             this.lastConsumeTimestamp = now;
             try {
                 if (!this.msgTreeMap.isEmpty()) {
@@ -318,7 +319,7 @@ public class ProcessQueue {
                     consuming = false;
                 }
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
             log.error("take Messages exception", e);
@@ -329,11 +330,11 @@ public class ProcessQueue {
 
     public boolean hasTempMessage() {
         try {
-            this.lockTreeMap.readLock().lockInterruptibly();
+            this.treeMapLock.readLock().lockInterruptibly();
             try {
                 return !this.msgTreeMap.isEmpty();
             } finally {
-                this.lockTreeMap.readLock().unlock();
+                this.treeMapLock.readLock().unlock();
             }
         } catch (InterruptedException e) {
         }
@@ -343,7 +344,7 @@ public class ProcessQueue {
 
     public void clear() {
         try {
-            this.lockTreeMap.writeLock().lockInterruptibly();
+            this.treeMapLock.writeLock().lockInterruptibly();
             try {
                 this.msgTreeMap.clear();
                 this.consumingMsgOrderlyTreeMap.clear();
@@ -351,7 +352,7 @@ public class ProcessQueue {
                 this.msgSize.set(0);
                 this.queueOffsetMax = 0L;
             } finally {
-                this.lockTreeMap.writeLock().unlock();
+                this.treeMapLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
             log.error("rollback exception", e);
@@ -366,8 +367,8 @@ public class ProcessQueue {
         this.lastLockTimestamp = lastLockTimestamp;
     }
 
-    public Lock getLockConsume() {
-        return lockConsume;
+    public Lock getConsumeLock() {
+        return consumeLock;
     }
 
     public long getLastPullTimestamp() {
@@ -396,7 +397,7 @@ public class ProcessQueue {
 
     public void fillProcessQueueInfo(final ProcessQueueInfo info) {
         try {
-            this.lockTreeMap.readLock().lockInterruptibly();
+            this.treeMapLock.readLock().lockInterruptibly();
 
             if (!this.msgTreeMap.isEmpty()) {
                 info.setCachedMsgMinOffset(this.msgTreeMap.firstKey());
@@ -420,7 +421,7 @@ public class ProcessQueue {
             info.setLastConsumeTimestamp(this.lastConsumeTimestamp);
         } catch (Exception e) {
         } finally {
-            this.lockTreeMap.readLock().unlock();
+            this.treeMapLock.readLock().unlock();
         }
     }
 
@@ -431,4 +432,5 @@ public class ProcessQueue {
     public void setLastConsumeTimestamp(long lastConsumeTimestamp) {
         this.lastConsumeTimestamp = lastConsumeTimestamp;
     }
+
 }

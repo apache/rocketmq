@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace.hook;
 
+import java.util.Map;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
@@ -29,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 
 public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
 
@@ -51,7 +53,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         TraceContext traceContext = new TraceContext();
         context.setMqTraceContext(traceContext);
         traceContext.setTraceType(TraceType.SubBefore);//
-        traceContext.setGroupName(context.getConsumerGroup());//
+        traceContext.setGroupName(NamespaceUtil.withoutNamespace(context.getConsumerGroup()));//
         List<TraceBean> beans = new ArrayList<TraceBean>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
@@ -65,7 +67,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
                 continue;
             }
             TraceBean traceBean = new TraceBean();
-            traceBean.setTopic(msg.getTopic());//
+            traceBean.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic()));//
             traceBean.setMsgId(msg.getMsgId());//
             traceBean.setTags(msg.getTags());//
             traceBean.setKeys(msg.getKeys());//
@@ -90,23 +92,26 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         TraceContext subBeforeContext = (TraceContext) context.getMqTraceContext();
 
         if (subBeforeContext.getTraceBeans() == null || subBeforeContext.getTraceBeans().size() < 1) {
-            // If subbefore bean is null ,skip it
+            // If subBefore bean is null ,skip it
             return;
         }
         TraceContext subAfterContext = new TraceContext();
         subAfterContext.setTraceType(TraceType.SubAfter);//
         subAfterContext.setRegionId(subBeforeContext.getRegionId());//
-        subAfterContext.setGroupName(subBeforeContext.getGroupName());//
+        subAfterContext.setGroupName(NamespaceUtil.withoutNamespace(subBeforeContext.getGroupName()));//
         subAfterContext.setRequestId(subBeforeContext.getRequestId());//
         subAfterContext.setSuccess(context.isSuccess());//
 
-        // Caculate the cost time for processing messages
+        // Calculate the cost time for processing messages
         int costTime = (int) ((System.currentTimeMillis() - subBeforeContext.getTimeStamp()) / context.getMsgList().size());
         subAfterContext.setCostTime(costTime);//
         subAfterContext.setTraceBeans(subBeforeContext.getTraceBeans());
-        String contextType = context.getProps().get(MixAll.CONSUME_CONTEXT_TYPE);
-        if (contextType != null) {
-            subAfterContext.setContextCode(ConsumeReturnType.valueOf(contextType).ordinal());
+        Map<String, String> props = context.getProps();
+        if (props != null) {
+            String contextType = props.get(MixAll.CONSUME_CONTEXT_TYPE);
+            if (contextType != null) {
+                subAfterContext.setContextCode(ConsumeReturnType.valueOf(contextType).ordinal());
+            }
         }
         localDispatcher.append(subAfterContext);
     }

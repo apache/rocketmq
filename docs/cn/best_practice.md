@@ -1,6 +1,6 @@
 #  最佳实践
 
-
+---
 ## 1   生产者
 
 ### 1.1 发送消息注意事项
@@ -45,8 +45,8 @@
 
 Producer的send方法本身支持内部重试，重试逻辑如下：
 
-- 至多重试2次（同步发送为2次，异步发送为0次）。
-- 如果发送失败，则轮转到下一个Broker。这个方法的总耗时时间不超过sendMsgTimeout设置的值，默认10s。
+- 至多重试2次。
+- 如果同步模式发送失败，则轮转到下一个Broker，如果异步模式发送失败，则只会在当前Broker进行重试。这个方法的总耗时时间不超过sendMsgTimeout设置的值，默认10s。
 - 如果本身向broker发送消息产生超时异常，就不会再重试。
 
 以上策略也是在一定程度上保证了消息可以发送成功。如果业务对消息可靠性要求比较高，建议应用增加相应的重试逻辑：比如调用send同步方法发送失败时，则尝试将消息存储到db，然后由后台线程定时重试，确保消息一定到达Broker。
@@ -188,9 +188,9 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 | brokerId             | 0                              | broker id, 0 表示 master, 其他的正整数表示 slave                                                 |
 | storePathCommitLog                      | $HOME/store/commitlog/                              | 存储 commit log 的路径                                                |
 | storePathConsumerQueue                   | $HOME/store/consumequeue/                              | 存储 consume queue 的路径                                              |
-| mapedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | commit log 的映射文件大小                                       |​ 
+| mappedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | commit log 的映射文件大小                                       |​ 
 | deleteWhen     | 04 | 在每天的什么时间删除已经超过文件保留时间的 commit log                                        |​ 
-| fileReserverdTime     | 72 | 以小时计算的文件保留时间                                        |​ 
+| fileReservedTime     | 72 | 以小时计算的文件保留时间                                        |​ 
 | brokerRole     | ASYNC_MASTER | SYNC_MASTER/ASYNC_MASTER/SLAVE                                        |​ 
 | flushDiskType     | ASYNC_FLUSH | SYNC_FLUSH/ASYNC_FLUSH SYNC_FLUSH 模式下的 broker 保证在收到确认生产者之前将消息刷盘。ASYNC_FLUSH 模式下的 broker 则利用刷盘一组消息的模式，可以取得更好的性能。                                       |​
 
@@ -289,7 +289,6 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | offsetStore                  |                               | 消费进度存储                                                 |
 | consumeThreadMin             | 10                            | 消费线程池最小线程数                                               |
 | consumeThreadMax             | 20                            | 消费线程池最大线程数                                               |
-|                              |                               |                                                              |
 | consumeConcurrentlyMaxSpan   | 2000                          | 单队列并行消费允许的最大跨度                                 |
 | pullThresholdForQueue        | 1000                          | 拉消息本地队列缓存消息最大数                                 |
 | pullInterval                 | 0                             | 拉消息间隔，由于是长轮询，所以为0，但是如果应用为了流控，也可以设置大于0的值，单位毫秒 |

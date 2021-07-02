@@ -27,4 +27,5 @@ public interface NettyRequestProcessor {
         throws Exception;
 
     boolean rejectRequest();
+
 }

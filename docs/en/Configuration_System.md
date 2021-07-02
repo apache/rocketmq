@@ -1,12 +1,16 @@
-# ** The system configuration** #
+# The system configuration
 
 This section focuses on the configuration of the system (JVM/OS)
 
 ## **1 JVM Options** ##
 
-The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configurations looks like this:
+The latest released version of JDK 1.8 is recommended. Set the same Xms and Xmx value to prevent the JVM from resizing the heap for better performance. A simple JVM configuration is as follows:
 
     -server -Xms8g -Xmx8g -Xmn4g
+
+Direct ByteBuffer memory size setting. Full GC will be triggered when the Direct ByteBuffer up to the specified size:
+
+    -XX:MaxDirectMemorySize=15g
 
 If you don’t care about the boot time of RocketMQ broker, pre-touch the Java heap to make sure that every page will be allocated during JVM initialization is a better choice. Those who don’t care about the boot time can enable it:
     
@@ -59,7 +63,7 @@ There is a os.sh script that lists a lot of kernel parameters in folder bin whic
 
 
 
-- **File descriptor limits**, RocketMQ needs open file descriptors for files(CommitLog and ConsumeQueue) and network connections. We recommend set 655350 for file descriptors.
+- **File descriptor limits**, RocketMQ needs open file descriptors for files(CommitLog and ConsumeQueue) and network connections. We recommend setting  655350 for file descriptors.
 
 
 

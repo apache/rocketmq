@@ -1,10 +1,6 @@
 # Message Trace
 
-## Introduction
-
-This document focuses on how to quickly deploy and use RocketMQ clusters that support message trace features
-
-## 1. Key Attributes of Message Trace Data
+## 1 Key Attributes of Message Trace Data
 
 | Producer        | Consumer        | Broker     |
 | ---------------- | ----------------- | ------------ |
@@ -13,7 +9,7 @@ This document focuses on how to quickly deploy and use RocketMQ clusters that su
 | whether the message was sent successfully | Whether the message was successfully consumed  | The Key of the message  |
 | Time spent sending         | Time spent consuming         | Tag of the message  |
 
-## 2. Support for Message Trace Cluster Deployment
+## 2 Support for Message Trace Cluster Deployment
 
 ### 2.1 Broker Configuration Fille
 
@@ -46,7 +42,7 @@ For scenarios with large amount of trace message data , one of the Broker nodes 
 ### 2.4 Start the Broker that Starts the MessageTrace
 `nohup sh mqbroker -c ../conf/2m-noslave/broker-a.properties &`
 
-## 3. Save the Topic Definition of Message Trace 
+## 3 Save the Topic Definition of Message Trace 
 RocketMQ's message trace feature supports two ways to store trace data:
 
 ### 3.1 System-level TraceTopic
@@ -55,7 +51,7 @@ By default, message track data is stored in the system-level TraceTopic(names：
 ### 3.2 Custom TraceTopic 
 If the user is not prepared to store the message track data in the system-level default TraceTopic, you can also define and create a user-level Topic to save the track (that is, to create a regular Topic to save the message track data)。The following section introduces how the Client interface supports the user-defined TraceTopic.
 
-## 4. Client Practices that Support Message Trace
+## 4 Client Practices that Support Message Trace
 In order to reduce as much as possible the transformation work of RocketMQ message trace feature used in the user service system, the author added a switch parameter (**enableMsgTrace**) to the original interface in the design to realize whether the message trace is opened or not.
 
 ### 4.1 Opening  the Message Trace when Sending  the Message

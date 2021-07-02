@@ -38,7 +38,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class CLusterSendMsgRTCommand implements SubCommand {
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
     }
 
     @Override
@@ -53,7 +53,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("a", "amout", true, "message amout | default 100");
+        Option opt = new Option("a", "amount", true, "message amount | default 100");
         opt.setRequired(false);
         options.addOption(opt);
 
