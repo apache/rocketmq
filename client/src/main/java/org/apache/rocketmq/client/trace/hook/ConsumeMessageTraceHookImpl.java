@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace.hook;
 
+import java.util.Map;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
@@ -91,7 +92,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         TraceContext subBeforeContext = (TraceContext) context.getMqTraceContext();
 
         if (subBeforeContext.getTraceBeans() == null || subBeforeContext.getTraceBeans().size() < 1) {
-            // If subbefore bean is null ,skip it
+            // If subBefore bean is null ,skip it
             return;
         }
         TraceContext subAfterContext = new TraceContext();
@@ -101,13 +102,16 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         subAfterContext.setRequestId(subBeforeContext.getRequestId());//
         subAfterContext.setSuccess(context.isSuccess());//
 
-        // Caculate the cost time for processing messages
+        // Calculate the cost time for processing messages
         int costTime = (int) ((System.currentTimeMillis() - subBeforeContext.getTimeStamp()) / context.getMsgList().size());
         subAfterContext.setCostTime(costTime);//
         subAfterContext.setTraceBeans(subBeforeContext.getTraceBeans());
-        String contextType = context.getProps().get(MixAll.CONSUME_CONTEXT_TYPE);
-        if (contextType != null) {
-            subAfterContext.setContextCode(ConsumeReturnType.valueOf(contextType).ordinal());
+        Map<String, String> props = context.getProps();
+        if (props != null) {
+            String contextType = props.get(MixAll.CONSUME_CONTEXT_TYPE);
+            if (contextType != null) {
+                subAfterContext.setContextCode(ConsumeReturnType.valueOf(contextType).ordinal());
+            }
         }
         localDispatcher.append(subAfterContext);
     }

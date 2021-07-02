@@ -31,12 +31,12 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
 import org.junit.Before;
@@ -75,7 +75,7 @@ public class DefaultMQProducerWithTraceTest {
     private String topic = "FooBar";
     private String producerGroupPrefix = "FooBar_PID";
     private String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
-    private String producerGroupTraceTemp = MixAll.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
+    private String producerGroupTraceTemp = TopicValidator.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
     private String customerTraceTopic = "rmq_trace_topic_12345";
 
     @Before
@@ -168,7 +168,7 @@ public class DefaultMQProducerWithTraceTest {
         queueData.setPerm(6);
         queueData.setReadQueueNums(3);
         queueData.setWriteQueueNums(4);
-        queueData.setTopicSynFlag(0);
+        queueData.setTopicSysFlag(0);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;
@@ -204,7 +204,7 @@ public class DefaultMQProducerWithTraceTest {
         queueData.setPerm(6);
         queueData.setReadQueueNums(1);
         queueData.setWriteQueueNums(1);
-        queueData.setTopicSynFlag(1);
+        queueData.setTopicSysFlag(1);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
         return topicRouteData;

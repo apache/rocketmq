@@ -29,6 +29,7 @@ import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
+import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -74,7 +76,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Just for testing or demo program
      */
-    private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
+    private String createTopicKey = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
 
     /**
      * Number of queues to create per default topic.
@@ -166,6 +168,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                 traceDispatcher = dispatcher;
                 this.defaultMQProducerImpl.registerSendMessageHook(
                     new SendMessageTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.registerEndTransactionHook(
+                    new EndTransactionTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
                 log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
@@ -251,6 +255,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                 traceDispatcher = dispatcher;
                 this.getDefaultMQProducerImpl().registerSendMessageHook(
                     new SendMessageTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.registerEndTransactionHook(
+                    new EndTransactionTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
                 log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
@@ -914,6 +920,29 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public SendResult send(Collection<Message> msgs, MessageQueue messageQueue,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(batch(msgs), messageQueue, timeout);
+    }
+
+    @Override
+    public void send(Collection<Message> msgs, SendCallback sendCallback) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        this.defaultMQProducerImpl.send(batch(msgs), sendCallback);
+    }
+
+    @Override
+    public void send(Collection<Message> msgs, SendCallback sendCallback,
+        long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        this.defaultMQProducerImpl.send(batch(msgs), sendCallback, timeout);
+    }
+
+    @Override
+    public void send(Collection<Message> msgs, MessageQueue mq,
+        SendCallback sendCallback) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        this.defaultMQProducerImpl.send(batch(msgs), queueWithNamespace(mq), sendCallback);
+    }
+
+    @Override
+    public void send(Collection<Message> msgs, MessageQueue mq,
+        SendCallback sendCallback, long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        this.defaultMQProducerImpl.send(batch(msgs), queueWithNamespace(mq), sendCallback, timeout);
     }
 
     /**

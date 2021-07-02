@@ -83,9 +83,12 @@ public class AssignedMessageQueue {
         return -1;
     }
 
-    public void updatePullOffset(MessageQueue messageQueue, long offset) {
+    public void updatePullOffset(MessageQueue messageQueue, long offset, ProcessQueue processQueue) {
         MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
         if (messageQueueState != null) {
+            if (messageQueueState.getProcessQueue() != processQueue) {
+                return;
+            }
             messageQueueState.setPullOffset(offset);
         }
     }
