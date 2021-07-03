@@ -301,7 +301,7 @@ public class MappedFile extends ReferenceResource {
         }
         if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
-                commit0(commitLeastPages);
+                commit0();
                 this.release();
             } else {
                 log.warn("in commit, hold failed, commit offset = " + this.committedPosition.get());
@@ -317,11 +317,11 @@ public class MappedFile extends ReferenceResource {
         return this.committedPosition.get();
     }
 
-    protected void commit0(final int commitLeastPages) {
+    protected void commit0() {
         int writePos = this.wrotePosition.get();
         int lastCommittedPosition = this.committedPosition.get();
 
-        if (writePos - lastCommittedPosition > commitLeastPages) {
+        if (writePos - lastCommittedPosition > 0) {
             try {
                 ByteBuffer byteBuffer = writeBuffer.slice();
                 byteBuffer.position(lastCommittedPosition);
