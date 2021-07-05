@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.client.trace;
 
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.common.message.MessageType;
 import org.junit.Assert;
 import org.junit.Before;
@@ -49,8 +49,7 @@ public class TraceDataEncoderTest {
             .append(245).append(TraceConstants.CONTENT_SPLITOR)
             .append(MessageType.Normal_Msg.ordinal()).append(TraceConstants.CONTENT_SPLITOR)
             .append("0A9A002600002A9F0000000000002329").append(TraceConstants.CONTENT_SPLITOR)
-            .append(true).append(TraceConstants.CONTENT_SPLITOR)
-            .append(UtilAll.ipToIPv4Str(UtilAll.getIP())).append(TraceConstants.FIELD_SPLITOR)
+            .append(true).append(TraceConstants.FIELD_SPLITOR)
             .toString();
     }
 
@@ -90,4 +89,45 @@ public class TraceDataEncoderTest {
         Assert.assertEquals(traceTransferBean.getTransKey().size(), 2);
     }
 
+    @Test
+    public void testEncoderFromContextBean_EndTransaction() {
+        TraceContext context = new TraceContext();
+        context.setTraceType(TraceType.EndTransaction);
+        context.setGroupName("PID-test");
+        context.setRegionId("DefaultRegion");
+        context.setTimeStamp(time);
+        TraceBean traceBean = new TraceBean();
+        traceBean.setTopic("topic-test");
+        traceBean.setKeys("Keys");
+        traceBean.setTags("Tags");
+        traceBean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
+        traceBean.setStoreHost("127.0.0.1:10911");
+        traceBean.setMsgType(MessageType.Trans_msg_Commit);
+        traceBean.setTransactionId("transactionId");
+        traceBean.setTransactionState(LocalTransactionState.COMMIT_MESSAGE);
+        traceBean.setFromTransactionCheck(false);
+        List<TraceBean> traceBeans = new ArrayList<TraceBean>();
+        traceBeans.add(traceBean);
+        context.setTraceBeans(traceBeans);
+        TraceTransferBean traceTransferBean = TraceDataEncoder.encoderFromContextBean(context);
+
+        Assert.assertEquals(traceTransferBean.getTransKey().size(), 2);
+        String traceData = traceTransferBean.getTransData();
+        TraceContext contextAfter = TraceDataEncoder.decoderFromTraceDataString(traceData).get(0);
+        Assert.assertEquals(context.getTraceType(), contextAfter.getTraceType());
+        Assert.assertEquals(context.getTimeStamp(), contextAfter.getTimeStamp());
+        Assert.assertEquals(context.getGroupName(), contextAfter.getGroupName());
+        TraceBean before = context.getTraceBeans().get(0);
+        TraceBean after = contextAfter.getTraceBeans().get(0);
+        Assert.assertEquals(before.getTopic(), after.getTopic());
+        Assert.assertEquals(before.getMsgId(), after.getMsgId());
+        Assert.assertEquals(before.getTags(), after.getTags());
+        Assert.assertEquals(before.getKeys(), after.getKeys());
+        Assert.assertEquals(before.getStoreHost(), after.getStoreHost());
+        Assert.assertEquals(before.getMsgType(), after.getMsgType());
+        Assert.assertEquals(before.getClientHost(), after.getClientHost());
+        Assert.assertEquals(before.getTransactionId(), after.getTransactionId());
+        Assert.assertEquals(before.getTransactionState(), after.getTransactionState());
+        Assert.assertEquals(before.isFromTransactionCheck(), after.isFromTransactionCheck());
+    }
 }

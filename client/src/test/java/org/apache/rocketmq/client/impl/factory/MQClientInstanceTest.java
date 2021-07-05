@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -39,7 +40,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +55,7 @@ public class MQClientInstanceTest {
 
     @Before
     public void init() throws Exception {
-        FieldSetter.setField(mqClientInstance, MQClientInstance.class.getDeclaredField("brokerAddrTable"), brokerAddrTable);
+        FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
     }
 
     @Test
@@ -79,7 +79,7 @@ public class MQClientInstanceTest {
         queueData.setPerm(6);
         queueData.setReadQueueNums(3);
         queueData.setWriteQueueNums(4);
-        queueData.setTopicSynFlag(0);
+        queueData.setTopicSysFlag(0);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
 

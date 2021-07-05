@@ -128,10 +128,16 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
-        long end) throws MQClientException,
-        InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
         return defaultMQAdminExtImpl.queryMessage(topic, key, maxNum, begin, end);
+    }
+
+    public QueryResult queryMessageByUniqKey(String topic, String key, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
+        return defaultMQAdminExtImpl.queryMessageByUniqKey(topic, key, maxNum, begin, end);
     }
 
     @Override
@@ -318,6 +324,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         String groupName) throws RemotingException, MQBrokerException, InterruptedException,
         MQClientException {
         defaultMQAdminExtImpl.deleteSubscriptionGroup(addr, groupName);
+    }
+
+    @Override
+    public void deleteSubscriptionGroup(String addr,
+        String groupName, boolean removeOffset) throws RemotingException, MQBrokerException, InterruptedException,
+        MQClientException {
+        defaultMQAdminExtImpl.deleteSubscriptionGroup(addr, groupName, removeOffset);
     }
 
     @Override
