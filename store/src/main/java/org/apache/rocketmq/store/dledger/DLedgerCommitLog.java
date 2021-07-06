@@ -905,7 +905,7 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     @Override
-    public boolean appendData(long startOffset, byte[] data) {
+    public boolean appendData(long startOffset, byte[] data, int dataStart, int dataLength) {
         //the old ha service will invoke method, here to prevent it
         return false;
     }
