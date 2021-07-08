@@ -66,7 +66,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         }
 
         try {
-            {
+             {
                 //Abnormal recover, left some commitlogs
                 DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 4);
                 DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
