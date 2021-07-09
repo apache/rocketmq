@@ -50,7 +50,9 @@
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative</artifactId>
             <version>1.1.33.Fork22</version>
+<!--不注释报错:1.1.33.Fork22
             <classifier>${os.detected.classifier}</classifier>
+-->
         </dependency>
     </dependencies>
 
