@@ -95,7 +95,9 @@ public class DefaultLitePullConsumerTest {
     @Before
     public void init() throws Exception {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        factoryTable.forEach((s, instance) -> instance.shutdown());
+        for (MQClientInstance instance : factoryTable.values()) {
+            instance.shutdown();
+        }
         factoryTable.clear();
 
         Field field = MQClientInstance.class.getDeclaredField("rebalanceService");

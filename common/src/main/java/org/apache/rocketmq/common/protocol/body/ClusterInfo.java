@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.body;
 
+import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,5 +62,18 @@ public class ClusterInfo extends RemotingSerializable {
 
     public String[] retrieveAllClusterNames() {
         return clusterAddrTable.keySet().toArray(new String[] {});
+    }
+
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        ClusterInfo info = (ClusterInfo) o;
+        return Objects.equal(brokerAddrTable, info.brokerAddrTable) && Objects.equal(clusterAddrTable, info.clusterAddrTable);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hashCode(brokerAddrTable, clusterAddrTable);
     }
 }

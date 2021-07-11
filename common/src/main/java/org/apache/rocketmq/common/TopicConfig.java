@@ -37,6 +37,16 @@ public class TopicConfig {
         this.topicName = topicName;
     }
 
+    public TopicConfig(TopicConfig other) {
+        this.topicName = other.topicName;
+        this.readQueueNums = other.readQueueNums;
+        this.writeQueueNums = other.writeQueueNums;
+        this.perm = other.perm;
+        this.topicFilterType = other.topicFilterType;
+        this.topicSysFlag = other.topicSysFlag;
+        this.order = other.order;
+    }
+
     public TopicConfig(String topicName, int readQueueNums, int writeQueueNums, int perm) {
         this.topicName = topicName;
         this.readQueueNums = readQueueNums;

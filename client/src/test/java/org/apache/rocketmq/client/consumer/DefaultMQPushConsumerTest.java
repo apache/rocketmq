@@ -100,7 +100,9 @@ public class DefaultMQPushConsumerTest {
     @Before
     public void init() throws Exception {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        factoryTable.forEach((s, instance) -> instance.shutdown());
+        for (MQClientInstance instance : factoryTable.values()) {
+            instance.shutdown();
+        }
         factoryTable.clear();
 
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
@@ -121,12 +123,15 @@ public class DefaultMQPushConsumerTest {
 
         // suppress updateTopicRouteInfoFromNameServer
         pushConsumer.changeInstanceNameToPID();
-        mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true)));
+        mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
+        FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
+        mQClientFactory = spy(mQClientFactory);
         factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
         doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
         doReturn(null).when(mQClientFactory).queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt());
+        doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
-        rebalanceImpl = spy(pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl());
+        rebalanceImpl = spy(pushConsumerImpl.getRebalanceImpl());
         doReturn(123L).when(rebalanceImpl).computePullFromWhereWithException(any(MessageQueue.class));
         Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
@@ -136,25 +141,16 @@ public class DefaultMQPushConsumerTest {
         field.setAccessible(true);
         field.set(null, true);
 
-        pushConsumer.subscribe(topic, "*");
-        pushConsumer.start();
+        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
+        messageQueueSet.add(createPullRequest().getMessageQueue());
+        pushConsumerImpl.updateTopicSubscribeInfo(topic, messageQueueSet);
 
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");
-        field.setAccessible(true);
-        field.set(pushConsumerImpl, mQClientFactory);
-
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        pushConsumerImpl.setmQClientFactory(mQClientFactory);
 
         pullAPIWrapper = spy(new PullAPIWrapper(mQClientFactory, consumerGroup, false));
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("pullAPIWrapper");
-        field.setAccessible(true);
-        field.set(pushConsumerImpl, pullAPIWrapper);
+        FieldUtils.writeDeclaredField(pushConsumerImpl, "pullAPIWrapper", pullAPIWrapper, true);
 
-        mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
-
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -175,10 +171,10 @@ public class DefaultMQPushConsumerTest {
                 }
             });
 
-        doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
-        Set<MessageQueue> messageQueueSet = new HashSet<MessageQueue>();
-        messageQueueSet.add(createPullRequest().getMessageQueue());
-        pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
+        pushConsumer.subscribe(topic, "*");
+        pushConsumer.start();
+
+        mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
     }
 
     @After
@@ -194,7 +190,7 @@ public class DefaultMQPushConsumerTest {
     @Test
     public void testPullMessage_Success() throws InterruptedException, RemotingException, MQBrokerException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
@@ -217,7 +213,7 @@ public class DefaultMQPushConsumerTest {
     @Test(timeout = 20000)
     public void testPullMessage_SuccessWithOrderlyService() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
 
         MessageListenerOrderly listenerOrderly = new MessageListenerOrderly() {
             @Override
@@ -355,11 +351,14 @@ public class DefaultMQPushConsumerTest {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final MessageExt[] messageExts = new MessageExt[1];
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(
-            new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(),
-                (msgs, context) -> {
-                    messageExts[0] = msgs.get(0);
-                    return null;
-                }));
+                new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(),
+                    new MessageListenerConcurrently() {
+                        @Override public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                            ConsumeConcurrentlyContext context) {
+                            messageExts[0] = msgs.get(0);
+                            return null;
+                        }
+                    }));
 
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeOrderly(true);
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
