@@ -222,6 +222,8 @@ public class BrokerConfig {
 
     private boolean autoDeleteUnusedStats = false;
 
+    private long forwardTimeout = 3 * 1000;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -908,7 +910,6 @@ public class BrokerConfig {
         this.autoDeleteUnusedStats = autoDeleteUnusedStats;
     }
 
-
     public long getLoadBalancePollNameServerInterval() {
         return loadBalancePollNameServerInterval;
     }
@@ -957,5 +958,13 @@ public class BrokerConfig {
 
     public void setDefaultPopShareQueueNum(int defaultPopShareQueueNum) {
         this.defaultPopShareQueueNum = defaultPopShareQueueNum;
+    }
+
+    public long getForwardTimeout() {
+        return forwardTimeout;
+    }
+
+    public void setForwardTimeout(long timeout) {
+        this.forwardTimeout = timeout;
     }
 }

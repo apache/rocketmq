@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -102,7 +103,9 @@ public class DefaultMQConsumerWithOpenTracingTest {
     @Before
     public void init() throws Exception {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        factoryTable.forEach((s, instance) -> instance.shutdown());
+        for (MQClientInstance instance : factoryTable.values()) {
+            instance.shutdown();
+        }
         factoryTable.clear();
 
         when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
@@ -173,7 +176,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
@@ -193,7 +196,11 @@ public class DefaultMQConsumerWithOpenTracingTest {
         assertThat(msg.getBody()).isEqualTo(new byte[]{'a'});
 
         // wait until consumeMessageAfter hook of tracer is done surely.
-        waitAtMost(1, TimeUnit.SECONDS).until(() -> tracer.finishedSpans().size() == 1);
+        waitAtMost(1, TimeUnit.SECONDS).until(new Callable<Boolean>() {
+            @Override public Boolean call() throws Exception {
+                return tracer.finishedSpans().size() == 1;
+            }
+        });
         MockSpan span = tracer.finishedSpans().get(0);
         assertThat(span.tags().get(Tags.MESSAGE_BUS_DESTINATION.getKey())).isEqualTo(topic);
         assertThat(span.tags().get(Tags.SPAN_KIND.getKey())).isEqualTo(Tags.SPAN_KIND_CONSUMER);
