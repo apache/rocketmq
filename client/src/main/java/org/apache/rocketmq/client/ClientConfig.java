@@ -178,7 +178,7 @@ public class ClientConfig {
     }
 
     public String getNamesrvAddr() {
-        if (StringUtils.isNotEmpty(namesrvAddr) && NameServerAddressUtils.validateInstanceEndpoint(namesrvAddr.trim())) {
+        if (StringUtils.isNotEmpty(namesrvAddr) && NameServerAddressUtils.NAMESRV_ENDPOINT_PATTERN.matcher(namesrvAddr.trim()).matches()) {
             return NameServerAddressUtils.getNameSrvAddrFromNamesrvEndpoint(namesrvAddr);
         }
         return namesrvAddr;
