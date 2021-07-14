@@ -43,7 +43,7 @@ public class ListDataCollectorImpl implements DataCollector {
         return datas;
     }
 
-    public void resetData() {
+    public synchronized void resetData() {
         datas.clear();
         unlockIncrement();
     }
@@ -67,7 +67,7 @@ public class ListDataCollectorImpl implements DataCollector {
         return Collections.frequency(datas, data) == 1;
     }
 
-    public Collection<Object> getAllDataWithoutDuplicate() {
+    public synchronized Collection<Object> getAllDataWithoutDuplicate() {
         return new HashSet<Object>(datas);
     }
 
@@ -81,7 +81,7 @@ public class ListDataCollectorImpl implements DataCollector {
         return res;
     }
 
-    public void removeData(Object data) {
+    public synchronized void removeData(Object data) {
         datas.remove(data);
     }
 
