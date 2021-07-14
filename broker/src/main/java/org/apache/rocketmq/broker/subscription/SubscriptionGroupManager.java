@@ -109,6 +109,14 @@ public class SubscriptionGroupManager extends ConfigManager {
         this.persist();
     }
 
+    public void batchUpdateSubscriptionGroupConfig(final ConcurrentMap<String, SubscriptionGroupConfig> configMap) {
+        this.subscriptionGroupTable.putAll(configMap);
+
+        this.dataVersion.nextVersion();
+
+        this.persist();
+    }
+
     public void disableConsume(final String groupName) {
         SubscriptionGroupConfig old = this.subscriptionGroupTable.get(groupName);
         if (old != null) {

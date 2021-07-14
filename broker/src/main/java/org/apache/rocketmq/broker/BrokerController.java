@@ -928,6 +928,22 @@ public class BrokerController {
         doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
     }
 
+    public synchronized void batchRegisterIncrementBrokerData(ConcurrentMap<String, TopicConfig> topicConfigMap, DataVersion dataVersion) {
+        for (Map.Entry<String, TopicConfig> entry : topicConfigMap.entrySet()) {
+            if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
+                || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+                entry.getValue().setPerm(this.brokerConfig.getBrokerPermission());
+                topicConfigMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        topicConfigSerializeWrapper.setDataVersion(dataVersion);
+        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigMap);
+
+        doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
+    }
+
     public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 

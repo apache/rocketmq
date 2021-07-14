@@ -95,6 +95,14 @@ public class TopicValidator {
         return true;
     }
 
+    public static boolean validateTopic(String topic) {
+
+        if (UtilAll.isBlank(topic) || !regularExpressionMatcher(topic, PATTERN) || topic.length() > TOPIC_MAX_LENGTH) {
+            return false;
+        }
+        return true;
+    }
+
     public static boolean isSystemTopic(String topic, RemotingCommand response) {
         if (isSystemTopic(topic)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);

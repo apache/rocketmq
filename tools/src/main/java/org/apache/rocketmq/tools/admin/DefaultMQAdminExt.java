@@ -170,6 +170,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void batchCreateAndUpdateTopicConfig(String addr, List<TopicConfig> topicConfigList)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.defaultMQAdminExtImpl.batchCreateAndUpdateTopicConfig(addr, topicConfigList);
+    }
+
+    @Override
     public void createAndUpdatePlainAccessConfig(String addr,
         PlainAccessConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdatePlainAccessConfig(addr, config);
@@ -200,6 +206,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         SubscriptionGroupConfig config) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdateSubscriptionGroupConfig(addr, config);
+    }
+
+    @Override
+    public void batchCreateAndUpdateSubscriptionGroupConfig(String addr, final List<SubscriptionGroupConfig> configList)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.batchCreateAndUpdateSubscriptionGroupConfig(addr, configList);
     }
 
     @Override
@@ -495,10 +507,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public TopicConfigSerializeWrapper getAllTopicGroup(final String brokerAddr,
+    public TopicConfigSerializeWrapper getAllTopicConfig(final String brokerAddr,
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException {
-        return this.defaultMQAdminExtImpl.getAllTopicGroup(brokerAddr, timeoutMillis);
+        return this.defaultMQAdminExtImpl.getAllTopicConfig(brokerAddr, timeoutMillis);
     }
 
     /* (non-Javadoc)

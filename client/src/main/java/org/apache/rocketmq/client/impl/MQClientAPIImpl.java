@@ -86,6 +86,8 @@ import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
+import org.apache.rocketmq.common.protocol.body.BatchCreateSubscriptionGroupRequestBody;
+import org.apache.rocketmq.common.protocol.body.BatchCreateTopicRequestBody;
 import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
@@ -266,6 +268,30 @@ public class MQClientAPIImpl {
 
     }
 
+    public void batchCreateSubscriptionGroup(final String addr, final List<SubscriptionGroupConfig> configList,
+        final long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
+        BatchCreateSubscriptionGroupRequestBody requestBody = new BatchCreateSubscriptionGroupRequestBody();
+        requestBody.setConfigList(configList);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BATCH_UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
     public void createTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,
         final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -292,6 +318,29 @@ public class MQClientAPIImpl {
                 break;
         }
 
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void batchCreateTopic(final String addr, final String defaultTopic, final List<TopicConfig> topicConfigList,
+        final long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        BatchCreateTopicRequestBody requestBody = new BatchCreateTopicRequestBody();
+        requestBody.setTopicConfigList(topicConfigList);
+        requestBody.setDefaultTopic(defaultTopic);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BATCH_UPDATE_AND_CREATE_TOPIC, null);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        assert  response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 

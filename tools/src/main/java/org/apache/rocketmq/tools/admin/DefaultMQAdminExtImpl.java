@@ -182,6 +182,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         this.mqClientInstance.getMQClientAPIImpl().createTopic(addr, this.defaultMQAdminExt.getCreateTopicKey(), config, timeoutMillis);
     }
 
+    @Override
+    public void batchCreateAndUpdateTopicConfig(String addr, List<TopicConfig> topicConfigList)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().batchCreateTopic(addr, this.defaultMQAdminExt.getCreateTopicKey(), topicConfigList, timeoutMillis);
+    }
+
     @Override public void createAndUpdatePlainAccessConfig(String addr,
         PlainAccessConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().createPlainAccessConfig(addr, config, timeoutMillis);
@@ -214,6 +220,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         SubscriptionGroupConfig config) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().createSubscriptionGroup(addr, config, timeoutMillis);
+    }
+
+    @Override
+    public void batchCreateAndUpdateSubscriptionGroupConfig(String addr, final List<SubscriptionGroupConfig> configList)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().batchCreateSubscriptionGroup(addr, configList ,timeoutMillis);
     }
 
     @Override
@@ -955,7 +967,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public TopicConfigSerializeWrapper getAllTopicGroup(final String brokerAddr,
+    public TopicConfigSerializeWrapper getAllTopicConfig(final String brokerAddr,
         long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         return this.mqClientInstance.getMQClientAPIImpl().getAllTopicConfig(brokerAddr, timeoutMillis);

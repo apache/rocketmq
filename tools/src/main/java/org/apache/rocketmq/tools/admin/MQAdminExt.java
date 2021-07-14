@@ -71,6 +71,10 @@ public interface MQAdminExt extends MQAdmin {
         final TopicConfig config) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
+    void batchCreateAndUpdateTopicConfig(final String addr,
+        final List<TopicConfig> topicConfigList) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
     void createAndUpdatePlainAccessConfig(final String addr, final PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
@@ -88,6 +92,10 @@ public interface MQAdminExt extends MQAdmin {
 
     void createAndUpdateSubscriptionGroupConfig(final String addr,
         final SubscriptionGroupConfig config) throws RemotingException,
+        MQBrokerException, InterruptedException, MQClientException;
+
+    void batchCreateAndUpdateSubscriptionGroupConfig(final String addr,
+        final List<SubscriptionGroupConfig> configList) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;
 
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr, final String group);
@@ -235,7 +243,7 @@ public interface MQAdminExt extends MQAdmin {
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException;
 
-    TopicConfigSerializeWrapper getAllTopicGroup(final String brokerAddr,
+    TopicConfigSerializeWrapper getAllTopicConfig(final String brokerAddr,
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException;
 

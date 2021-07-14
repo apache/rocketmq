@@ -188,4 +188,8 @@ public class RequestCode {
     public static final int SEND_REPLY_MESSAGE_V2 = 325;
 
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
+
+    public static final int BATCH_UPDATE_AND_CREATE_TOPIC = 327;
+
+    public static final int BATCH_UPDATE_AND_CREATE_SUBSCRIPTIONGROUP = 328;
 }

@@ -26,6 +26,8 @@ import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
+import org.apache.rocketmq.common.protocol.body.BatchCreateSubscriptionGroupRequestBody;
+import org.apache.rocketmq.common.protocol.body.BatchCreateTopicRequestBody;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.AclConfig;
@@ -137,6 +139,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
@@ -235,6 +238,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return resumeCheckHalfMessage(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG:
                 return getBrokerClusterAclConfig(ctx, request);
+            case RequestCode.BATCH_UPDATE_AND_CREATE_TOPIC:
+                return batchUpdateAndCreateTopic(ctx, request);
+            case RequestCode.BATCH_UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
+                return batchUpdateAndCreateSubscriptionGroup(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -271,6 +278,35 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
         this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
+
+        response.setCode(ResponseCode.SUCCESS);
+        return response;
+    }
+
+    private synchronized RemotingCommand batchUpdateAndCreateTopic(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final BatchCreateTopicRequestBody requestHeader =
+            BatchCreateTopicRequestBody.decode(request.getBody(), BatchCreateTopicRequestBody.class);
+        log.info("batchUpdateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        List<TopicConfig> topicConfigList = requestHeader.getTopicConfigList();
+
+        ConcurrentMap<String, TopicConfig> topicConfigMap = new ConcurrentHashMap<>();
+        for (TopicConfig topicConfig : topicConfigList) {
+
+            if (!TopicValidator.validateTopic(topicConfig.getTopicName())) {
+                continue;
+            }
+            if (TopicValidator.isSystemTopic(topicConfig.getTopicName())) {
+                continue;
+            }
+            topicConfigMap.put(topicConfig.getTopicName(), topicConfig);
+        }
+
+        this.brokerController.getTopicConfigManager().batchUpdateTopicConfig(topicConfigMap);
+        this.brokerController.batchRegisterIncrementBrokerData(topicConfigMap, this.brokerController.getTopicConfigManager().getDataVersion());
 
         response.setCode(ResponseCode.SUCCESS);
         return response;
@@ -677,6 +713,29 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (config != null) {
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(config);
         }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand batchUpdateAndCreateSubscriptionGroup(ChannelHandlerContext ctx, RemotingCommand request)
+        throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        log.info("batchUpdateAndCreateSubscriptionGroup called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        final BatchCreateSubscriptionGroupRequestBody requestbody =
+            BatchCreateSubscriptionGroupRequestBody.decode(request.getBody(), BatchCreateSubscriptionGroupRequestBody.class);
+
+        List<SubscriptionGroupConfig> configList = requestbody.getConfigList();
+
+        ConcurrentMap<String, SubscriptionGroupConfig> configMap = new ConcurrentHashMap<>();
+        for (SubscriptionGroupConfig subscriptionGroupConfig : configList) {
+            configMap.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
+        }
+
+        this.brokerController.getSubscriptionGroupManager().batchUpdateSubscriptionGroupConfig(configMap);
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

@@ -365,6 +365,12 @@ public class TopicConfigManager extends ConfigManager {
         this.persist();
     }
 
+    public void batchUpdateTopicConfig(final Map<String, TopicConfig> topicConfigMap) {
+        this.topicConfigTable.putAll(topicConfigMap);
+        this.dataVersion.nextVersion();
+        this.persist();
+    }
+
     public void updateOrderTopicConfig(final KVTable orderKVTableFromNs) {
 
         if (orderKVTableFromNs != null && orderKVTableFromNs.getTable() != null) {
