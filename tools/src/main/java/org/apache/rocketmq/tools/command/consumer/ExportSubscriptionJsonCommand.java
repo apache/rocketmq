@@ -25,10 +25,8 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-import org.apache.rocketmq.tools.command.topic.ExportTopicJsonCommand;
 
 public class ExportSubscriptionJsonCommand implements SubCommand {
     @Override
