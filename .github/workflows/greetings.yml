@@ -18,6 +18,7 @@
 #
 
 name: Little RocketMQ
+on: [pull_request_target, issues]
 uses: actions/first-interaction@v1.1.0
 with:
   # Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}
