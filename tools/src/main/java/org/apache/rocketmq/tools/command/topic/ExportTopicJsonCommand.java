@@ -47,7 +47,7 @@ public class ExportTopicJsonCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("b", "brokerAddr", true, "export topic.json or subscription.json to which broker");
+        Option opt = new Option("b", "brokerAddr", true, "choose a broker to export topic.json");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -77,7 +77,9 @@ public class ExportTopicJsonCommand implements SubCommand {
             ConcurrentMap<String, TopicConfig> topicConfigMap = topicConfigSerializeWrapper.getTopicConfigTable();
             Iterator<Entry<String, TopicConfig>> iterator = topicConfigMap.entrySet().iterator();
             while (iterator.hasNext()) {
-                if (TopicValidator.isSystemTopic(iterator.next().getKey())) {
+                if (TopicValidator.isSystemTopic(iterator.next().getKey()) || iterator.next().getKey().startsWith(
+                    MixAll.RETRY_GROUP_TOPIC_PREFIX) || iterator.next().getKey().startsWith(
+                    MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
                     iterator.remove();
                 }
             }

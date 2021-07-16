@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+
 import com.alibaba.fastjson.JSON;
 
 import org.apache.commons.cli.CommandLine;
@@ -23,6 +27,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
@@ -41,7 +46,7 @@ public class ExportSubscriptionJsonCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("b", "brokerAddr", true, "export subscription.json to which broker");
+        Option opt = new Option("b", "brokerAddr", true, "choose a broker to export subscription.json");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -66,6 +71,15 @@ public class ExportSubscriptionJsonCommand implements SubCommand {
 
             SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getAllSubscriptionGroup(
                 brokerAddr, 5000);
+            ConcurrentMap<String, SubscriptionGroupConfig> configMap = subscriptionGroupWrapper
+                .getSubscriptionGroupTable();
+            Iterator<Map.Entry<String, SubscriptionGroupConfig>> iterator = configMap.entrySet().iterator();
+            while (iterator.hasNext()) {
+                if (MixAll.isSysConsumerGroup(iterator.next().getKey())) {
+                    iterator.remove();
+                }
+            }
+
             String subscriptionJsonString = JSON.toJSONString(subscriptionGroupWrapper, true);
 
             String fileName = filePath + "/subscription.json";
