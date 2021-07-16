@@ -17,14 +17,13 @@
 # under the License.
 #
 
-- name: Little RocketMQ
-  uses: actions/first-interaction@v1.1.0
-  with:
-    # Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}
-    repo-token: {{ secrets.GITHUB_TOKEN }}
-    # Comment to post on an individual's first issue
-    issue-message: # optional
-    Make sure your issue is not the existence through the issue search. Follow the issue template, make more details for us. But please be aware that Issue should not be used for FAQs: if you have a question or are simply not sure if it is really an issue or not, please contact [us](https://rocketmq.apache.org/about/contact/) first before you create a new issue.
-    # Comment to post on an individual's first pull request
-    pr-message: # optional
-    We always welcome new contributions, whether for trivial cleanups, [big new features](https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal) or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/).
+name: Little RocketMQ
+on: [pull_request_target, issues]
+uses: actions/first-interaction@v1.1.0
+with:
+  # Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}
+  repo-token: ${{ secrets.GITHUB_TOKEN }}
+  # Comment to post on an individual's first issue
+  issue-message: 'Make sure your issue is not the existence through the issue search. Follow the issue template, make more details for us. But please be aware that Issue should not be used for FAQs: if you have a question or are simply not sure if it is really an issue or not, please contact [us](https://rocketmq.apache.org/about/contact/) first before you create a new issue.'
+  # Comment to post on an individual's first pull request
+  pr-message: 'We always welcome new contributions, whether for trivial cleanups, [big new features](https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal) or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/).'
