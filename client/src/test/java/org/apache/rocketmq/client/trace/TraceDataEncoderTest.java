@@ -190,6 +190,7 @@ public class TraceDataEncoderTest {
         subAfterContext.setCostTime(20);
         subAfterContext.setSuccess(true);
         subAfterContext.setTimeStamp(1625883640000L);
+        subAfterContext.setGroupName("GroupName-test");
         subAfterContext.setContextCode(98623046);
         TraceBean bean = new TraceBean();
         bean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
@@ -201,7 +202,7 @@ public class TraceDataEncoderTest {
         String transData = traceTransferBean.getTransData();
         Assert.assertNotNull(transData);
         String[] items = transData.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
-        Assert.assertEquals(8, items.length);
+        Assert.assertEquals(9, items.length);
 
     }
 
