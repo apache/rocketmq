@@ -77,7 +77,7 @@ public class ExportSubscriptionCommand implements SubCommand {
 
             for (String addr : masterSet) {
                 SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getAllSubscriptionGroup(
-                    addr, 5000);
+                    addr, 10000);
                 for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper
                     .getSubscriptionGroupTable().entrySet()) {
                     if (!MixAll.isSysConsumerGroup(entry.getKey())) {
