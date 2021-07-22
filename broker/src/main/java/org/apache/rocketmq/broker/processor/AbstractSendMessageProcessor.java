@@ -305,44 +305,44 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         return requestHeader;
     }
 
-    private SendMessageRequestHeaderV2 decodeSendMessageHeaderV2(RemotingCommand request) {
+    static SendMessageRequestHeaderV2 decodeSendMessageHeaderV2(RemotingCommand request)
+            throws RemotingCommandException {
         SendMessageRequestHeaderV2 r = new SendMessageRequestHeaderV2();
         HashMap<String, String> fields = request.getExtFields();
         if (fields == null) {
-            // keep same behavior with CommandCustomHeader.decodeCommandCustomHeader
-            return r;
+            throw new RemotingCommandException("the ext fields is null");
         }
 
         String s = fields.get("a");
-        Objects.requireNonNull(s, "the custom field <a> is null");
+        checkNotNull(s, "the custom field <a> is null");
         r.setA(s);
 
         s = fields.get("b");
-        Objects.requireNonNull(s, "the custom field <b> is null");
+        checkNotNull(s, "the custom field <b> is null");
         r.setB(s);
 
         s = fields.get("c");
-        Objects.requireNonNull(s, "the custom field <c> is null");
+        checkNotNull(s, "the custom field <c> is null");
         r.setC(s);
 
         s = fields.get("d");
-        Objects.requireNonNull(s, "the custom field <d> is null");
+        checkNotNull(s, "the custom field <d> is null");
         r.setD(Integer.parseInt(s));
 
         s = fields.get("e");
-        Objects.requireNonNull(s, "the custom field <e> is null");
+        checkNotNull(s, "the custom field <e> is null");
         r.setE(Integer.parseInt(s));
 
         s = fields.get("f");
-        Objects.requireNonNull(s, "the custom field <f> is null");
+        checkNotNull(s, "the custom field <f> is null");
         r.setF(Integer.parseInt(s));
 
         s = fields.get("g");
-        Objects.requireNonNull(s, "the custom field <g> is null");
+        checkNotNull(s, "the custom field <g> is null");
         r.setG(Long.parseLong(s));
 
         s = fields.get("h");
-        Objects.requireNonNull(s, "the custom field <h> is null");
+        checkNotNull(s, "the custom field <h> is null");
         r.setH(Integer.parseInt(s));
 
         s = fields.get("i");
@@ -370,6 +370,12 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             r.setM(Boolean.parseBoolean(s));
         }
         return r;
+    }
+
+    private static void checkNotNull(String s, String msg) throws RemotingCommandException {
+        if (s == null) {
+            throw new RemotingCommandException(msg);
+        }
     }
 
     public void executeSendMessageHookAfter(final RemotingCommand response, final SendMessageContext context) {
