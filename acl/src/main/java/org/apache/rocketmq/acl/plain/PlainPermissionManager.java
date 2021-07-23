@@ -251,12 +251,6 @@ public class PlainPermissionManager {
     }
 
     public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
-
-        if (globalWhiteAddrsList == null) {
-            log.error("Parameter value globalWhiteAddrsList is null,Please check your parameter");
-            return false;
-        }
-
         Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             Map.class);
         if (aclAccessConfigMap == null || aclAccessConfigMap.isEmpty()) {
@@ -266,9 +260,10 @@ public class PlainPermissionManager {
 
         if (globalWhiteRemoteAddrList != null) {
             globalWhiteRemoteAddrList.clear();
-            globalWhiteRemoteAddrList.addAll(globalWhiteAddrsList);
-
-            // Update globalWhiteRemoteAddr element in memeory map firstly
+            if (globalWhiteAddrsList != null) {
+                globalWhiteRemoteAddrList.addAll(globalWhiteAddrsList);
+            }
+            // Update globalWhiteRemoteAddr element in memory map firstly
             aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS, globalWhiteRemoteAddrList);
             if (AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
                 return true;

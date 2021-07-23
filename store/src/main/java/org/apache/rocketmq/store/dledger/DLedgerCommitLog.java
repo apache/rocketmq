@@ -562,11 +562,13 @@ public class DLedgerCommitLog extends CommitLog {
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
             request.setBatchMsgs(encodeResult.batchData);
-            dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
-            if (dledgerFuture.getPos() == -1) {
-                log.warn("HandleAppend return false due to error code {}", dledgerFuture.get().getCode());
+            AppendFuture<AppendEntryResponse> appendFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+            if (appendFuture.getPos() == -1) {
+                log.warn("HandleAppend return false due to error code {}", appendFuture.get().getCode());
                 return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
             }
+            dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) appendFuture;
+
             long wroteOffset = 0;
 
             int msgIdLength = (messageExtBatch.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
@@ -789,11 +791,13 @@ public class DLedgerCommitLog extends CommitLog {
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
             request.setBatchMsgs(encodeResult.batchData);
-            dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
-            if (dledgerFuture.getPos() == -1) {
-                log.warn("HandleAppend return false due to error code {}", dledgerFuture.get().getCode());
+            AppendFuture<AppendEntryResponse> appendFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+            if (appendFuture.getPos() == -1) {
+                log.warn("HandleAppend return false due to error code {}", appendFuture.get().getCode());
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             }
+            dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) appendFuture;
+
             long wroteOffset = 0;
 
             int msgIdLength = (messageExtBatch.getSysFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
@@ -901,7 +905,7 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     @Override
-    public boolean appendData(long startOffset, byte[] data) {
+    public boolean appendData(long startOffset, byte[] data, int dataStart, int dataLength) {
         //the old ha service will invoke method, here to prevent it
         return false;
     }
