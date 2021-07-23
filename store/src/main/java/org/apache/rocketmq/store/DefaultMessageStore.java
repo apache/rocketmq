@@ -921,13 +921,13 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public boolean appendToCommitLog(long startOffset, byte[] data) {
+    public boolean appendToCommitLog(long startOffset, byte[] data, int dataStart, int dataLength) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so appendToPhyQueue is forbidden");
             return false;
         }
 
-        boolean result = this.commitLog.appendData(startOffset, data);
+        boolean result = this.commitLog.appendData(startOffset, data, dataStart, dataLength);
         if (result) {
             this.reputMessageService.wakeup();
         } else {
