@@ -1159,6 +1159,12 @@ public class BrokerController {
 
     public void changeToSlave(int brokerId) {
         log.info("Begin to change to slave brokerName={} brokerId={}", brokerConfig.getBrokerName(), brokerId);
+        
+        try {
+            this.brokerOuterAPI.unregisterBrokerAll(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerIP1(), brokerConfig.getBrokerName(), brokerConfig.getBrokerId());
+        } catch (Throwable t) {
+            log.error("unregister metadata on nameserver failed", t);
+        }
 
         //change the role
         brokerConfig.setBrokerId(brokerId == 0 ? 1 : brokerId); //TO DO check
@@ -1212,6 +1218,12 @@ public class BrokerController {
             this.startProcessorByHa(BrokerRole.SYNC_MASTER);
         } catch (Throwable t) {
             log.error("[MONITOR] startProcessorByHa failed when changing to master", t);
+        }
+        
+        try {
+            this.brokerOuterAPI.unregisterBrokerAll(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerIP1(), brokerConfig.getBrokerName(), brokerConfig.getBrokerId());
+        } catch (Throwable t) {
+            log.error("unregister metadata on nameserver failed", t);
         }
 
         //if the operations above are totally successful, we change to master
