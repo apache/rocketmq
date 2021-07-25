@@ -188,6 +188,9 @@ public class BrokerStartup {
             configurator.setContext(lc);
             lc.reset();
             System.setProperty("brokerLogDir", brokerConfig.getBrokerName() + "_" + brokerConfig.getBrokerId());
+            if (messageStoreConfig.isEnableDLegerCommitLog()) {
+                System.setProperty("brokerLogDir", brokerConfig.getBrokerName() + "_" + messageStoreConfig.getdLegerSelfId());
+            }
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/logback_broker.xml");
 
             if (commandLine.hasOption('p')) {
