@@ -178,7 +178,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
         if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
-            maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
+            Integer times = requestHeader.getMaxReconsumeTimes();
+            if (times != null) {
+                maxReconsumeTimes = times;
+            }
         }
 
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes 
@@ -218,6 +221,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
         MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+
         CompletableFuture<PutMessageResult> putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
         return putMessageResult.thenApply((r) -> {
             if (r != null) {

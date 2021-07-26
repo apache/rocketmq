@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageType;
 
@@ -32,7 +33,9 @@ public class TraceBean {
     private int retryTimes;
     private int bodyLength;
     private MessageType msgType;
-
+    private LocalTransactionState transactionState;
+    private String transactionId;
+    private boolean fromTransactionCheck;
 
     public MessageType getMsgType() {
         return msgType;
@@ -140,5 +143,29 @@ public class TraceBean {
 
     public void setBodyLength(int bodyLength) {
         this.bodyLength = bodyLength;
+    }
+
+    public LocalTransactionState getTransactionState() {
+        return transactionState;
+    }
+
+    public void setTransactionState(LocalTransactionState transactionState) {
+        this.transactionState = transactionState;
+    }
+
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
+
+    public boolean isFromTransactionCheck() {
+        return fromTransactionCheck;
+    }
+
+    public void setFromTransactionCheck(boolean fromTransactionCheck) {
+        this.fromTransactionCheck = fromTransactionCheck;
     }
 }

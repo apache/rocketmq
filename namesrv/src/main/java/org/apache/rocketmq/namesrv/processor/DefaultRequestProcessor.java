@@ -140,6 +140,11 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         final PutKVConfigRequestHeader requestHeader =
             (PutKVConfigRequestHeader) request.decodeCommandCustomHeader(PutKVConfigRequestHeader.class);
 
+        if (requestHeader.getNamespace() == null || requestHeader.getKey() == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("namespace or key is null");
+            return response;
+        }
         this.namesrvController.getKvConfigManager().putKVConfig(
             requestHeader.getNamespace(),
             requestHeader.getKey(),

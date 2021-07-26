@@ -94,7 +94,7 @@ public class ClientConfig {
 
     public void changeInstanceNameToPID() {
         if (this.instanceName.equals("DEFAULT")) {
-            this.instanceName = String.valueOf(UtilAll.getPid());
+            this.instanceName = UtilAll.getPid() + "#" + System.nanoTime();
         }
     }
 
@@ -179,7 +179,7 @@ public class ClientConfig {
 
     public String getNamesrvAddr() {
         if (StringUtils.isNotEmpty(namesrvAddr) && NameServerAddressUtils.NAMESRV_ENDPOINT_PATTERN.matcher(namesrvAddr.trim()).matches()) {
-            return namesrvAddr.substring(NameServerAddressUtils.ENDPOINT_PREFIX.length());
+            return NameServerAddressUtils.getNameSrvAddrFromNamesrvEndpoint(namesrvAddr);
         }
         return namesrvAddr;
     }

@@ -863,7 +863,7 @@ public class MQClientInstance {
         }
     }
 
-    public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
+    public synchronized boolean registerConsumer(final String group, final MQConsumerInner consumer) {
         if (null == group || null == consumer) {
             return false;
         }
@@ -877,9 +877,9 @@ public class MQClientInstance {
         return true;
     }
 
-    public void unregisterConsumer(final String group) {
+    public synchronized void unregisterConsumer(final String group) {
         this.consumerTable.remove(group);
-        this.unregisterClientWithLock(null, group);
+        this.unregisterClient(null, group);
     }
 
     private void unregisterClientWithLock(final String producerGroup, final String consumerGroup) {
@@ -1105,7 +1105,7 @@ public class MQClientInstance {
         return null;
     }
 
-    public void resetOffset(String topic, String group, Map<MessageQueue, Long> offsetTable) {
+    public synchronized void resetOffset(String topic, String group, Map<MessageQueue, Long> offsetTable) {
         DefaultMQPushConsumerImpl consumer = null;
         try {
             MQConsumerInner impl = this.consumerTable.get(group);

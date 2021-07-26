@@ -116,6 +116,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -235,10 +236,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             case RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG:
                 return getBrokerClusterAclConfig(ctx, request);
             default:
-                break;
+                return getUnknownCmdResponse(ctx, request);
         }
-
-        return null;
     }
 
     @Override
@@ -457,6 +456,13 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         }
 
         return null;
+    }
+
+    private RemotingCommand getUnknownCmdResponse(ChannelHandlerContext ctx, RemotingCommand request) {
+        String error = " request type " + request.getCode() + " not supported";
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
+        return response;
     }
 
     private RemotingCommand getAllTopicConfig(ChannelHandlerContext ctx, RemotingCommand request) {
@@ -713,6 +719,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         log.info("deleteSubscriptionGroup called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
+
+        if (requestHeader.isRemoveOffset()) {
+            this.brokerController.getConsumerOffsetManager().removeOffset(requestHeader.getGroupName());
+        }
 
         if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
             this.brokerController.getBrokerStatsManager().onGroupDeleted(requestHeader.getGroupName());

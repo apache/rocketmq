@@ -478,7 +478,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
                             ConsumeReturnType returnType = ConsumeReturnType.SUCCESS;
                             boolean hasException = false;
                             try {
-                                this.processQueue.getLockConsume().lock();
+                                this.processQueue.getConsumeLock().lock();
                                 if (this.processQueue.isDropped()) {
                                     log.warn("consumeMessage, the message queue not be able to consume, because it's dropped. {}",
                                         this.messageQueue);
@@ -487,14 +487,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
                                 status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
                             } catch (Throwable e) {
-                                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
+                                log.warn(String.format("consumeMessage exception: %s Group: %s Msgs: %s MQ: %s",
                                     RemotingHelper.exceptionSimpleDesc(e),
                                     ConsumeMessageOrderlyService.this.consumerGroup,
                                     msgs,
-                                    messageQueue);
+                                    messageQueue), e);
                                 hasException = true;
                             } finally {
-                                this.processQueue.getLockConsume().unlock();
+                                this.processQueue.getConsumeLock().unlock();
                             }
 
                             if (null == status
