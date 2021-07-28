@@ -16,8 +16,8 @@ matrix:
   # On Linux we install latest OpenJDK 1.8 from Ubuntu repositories
   - name: Linux x86_64
     arch: amd64
-  - name: Linux aarch64
-    arch: arm64
+#  - name: Linux aarch64
+#    arch: arm64
 
 cache:
   directories:
