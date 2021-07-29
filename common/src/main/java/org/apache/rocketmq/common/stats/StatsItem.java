@@ -153,16 +153,19 @@ public class StatsItem {
     }
 
     public void samplingInSeconds() {
+        CallSnapshot callSnapshot = new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
+                .get());
         synchronized (this.csListMinute) {
             if (this.csListMinute.size() == 0) {
                 this.csListMinute.add(new CallSnapshot(System.currentTimeMillis() - 10 * 1000, 0, 0));
             }
-            this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
-                .get()));
+            this.csListMinute.add(callSnapshot);
             if (this.csListMinute.size() > 7) {
                 this.csListMinute.removeFirst();
             }
         }
+        samplingInMinutes(callSnapshot);
+        samplingInHour(callSnapshot);
     }
 
     public void samplingInMinutes() {
@@ -177,6 +180,18 @@ public class StatsItem {
             }
         }
     }
+    
+    public void samplingInMinutes(CallSnapshot secondsCallSnapshot) {
+        synchronized (this.csListHour) {
+            if (this.csListHour.size() == 0) {
+                this.csListHour.add(new CallSnapshot(System.currentTimeMillis() - 10 * 60 * 1000, 0, 0));
+            }
+            if (this.csListHour.size() > 1) {
+                this.csListHour.removeLast();
+            }
+            this.csListHour.add(secondsCallSnapshot);
+        }
+    }
 
     public void samplingInHour() {
         synchronized (this.csListDay) {
@@ -188,6 +203,18 @@ public class StatsItem {
             if (this.csListDay.size() > 25) {
                 this.csListDay.removeFirst();
             }
+        }
+    }
+    
+    public void samplingInHour(CallSnapshot secondsCallSnapshot) {
+        synchronized (this.csListDay) {
+            if (this.csListDay.size() == 0) {
+                this.csListDay.add(new CallSnapshot(System.currentTimeMillis() - 1 * 60 * 60 * 1000, 0, 0));
+            }
+            if (this.csListDay.size() > 1) {
+                this.csListDay.removeLast();
+            }
+            this.csListDay.add(secondsCallSnapshot);
         }
     }
 
