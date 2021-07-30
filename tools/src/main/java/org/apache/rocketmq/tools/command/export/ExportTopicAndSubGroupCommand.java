@@ -14,36 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tools.command.consumer;
+package org.apache.rocketmq.tools.command.export;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.alibaba.fastjson.JSON;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
+import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class ExportSubscriptionCommand implements SubCommand {
+public class ExportTopicAndSubGroupCommand implements SubCommand {
     @Override
     public String commandName() {
-        return "exportSubscription";
+        return "exportTopicAndSubGroup";
     }
 
     @Override
     public String commandDesc() {
-        return "export subscription.csv";
+        return "export topicAndSubGroup.json";
     }
 
     @Override
@@ -52,7 +57,7 @@ public class ExportSubscriptionCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("f", "filePath", true, "export subscription.csv path | default /tmp/rocketmq/config");
+        opt = new Option("f", "filePath", true, "export topicAndSubGroup.json path | default /tmp/rocketmq/config");
         opt.setRequired(false);
         options.addOption(opt);
         return options;
@@ -64,6 +69,7 @@ public class ExportSubscriptionCommand implements SubCommand {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+
         try {
             defaultMQAdminExt.start();
 
@@ -73,52 +79,53 @@ public class ExportSubscriptionCommand implements SubCommand {
 
             Set<String> masterSet =
                 CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
-            ConcurrentMap<String, SubscriptionGroupConfig> configMap = new ConcurrentHashMap<>();
+
+            ConcurrentMap<String, TopicConfig> topicConfigMap = new ConcurrentHashMap<>();
+            ConcurrentMap<String, SubscriptionGroupConfig> subGroupConfigMap = new ConcurrentHashMap<>();
 
             for (String addr : masterSet) {
+                TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getAllTopicConfig(
+                    addr, 10000);
+                for (Map.Entry<String, TopicConfig> entry : topicConfigSerializeWrapper.getTopicConfigTable()
+                    .entrySet()) {
+                    if (!TopicValidator.isSystemTopic(entry.getKey()) && !entry.getKey().startsWith(
+                        MixAll.RETRY_GROUP_TOPIC_PREFIX) && !entry.getKey().startsWith(
+                        MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                        TopicConfig topicConfig = topicConfigMap.get(entry.getKey());
+                        if (null != topicConfig) {
+                            entry.getValue().setWriteQueueNums(
+                                topicConfig.getWriteQueueNums() + entry.getValue().getWriteQueueNums());
+                            entry.getValue().setReadQueueNums(
+                                topicConfig.getReadQueueNums() + entry.getValue().getReadQueueNums());
+                        }
+                        topicConfigMap.put(entry.getKey(), entry.getValue());
+                    }
+                }
+
                 SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getAllSubscriptionGroup(
                     addr, 10000);
                 for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper
                     .getSubscriptionGroupTable().entrySet()) {
                     if (!MixAll.isSysConsumerGroup(entry.getKey())) {
-                        SubscriptionGroupConfig subscriptionGroupConfig = configMap.get(entry.getKey());
+                        SubscriptionGroupConfig subscriptionGroupConfig = subGroupConfigMap.get(entry.getKey());
                         if (null != subscriptionGroupConfig) {
                             entry.getValue().setRetryQueueNums(
                                 subscriptionGroupConfig.getRetryQueueNums() + entry.getValue().getRetryQueueNums());
                         }
-                        configMap.put(entry.getKey(), entry.getValue());
+                        subGroupConfigMap.put(entry.getKey(), entry.getValue());
                     }
                 }
             }
 
-            StringBuilder subConfigStr = new StringBuilder(
-                "groupName,consumeEnable,consumeFromMinEnable,consumeBroadcastEnable,retryQueueNums,retryMaxTimes,"
-                    + "brokerId,whichBrokerWhenConsumeSlowly,notifyConsumerIdsChangedEnable\r\n");
+            ConcurrentMap<String, Object> jsonMap = new ConcurrentHashMap<>();
+            jsonMap.put("topicConfigTable", topicConfigMap);
+            jsonMap.put("subscriptionGroupTable", subGroupConfigMap);
+            jsonMap.put("rocketmqVersion", Integer.toString(MQVersion.CURRENT_VERSION));
+            jsonMap.put("exportTime", System.currentTimeMillis());
 
-            for (Map.Entry<String, SubscriptionGroupConfig> entry : configMap.entrySet()) {
-                subConfigStr.append(entry.getValue().getGroupName());
-                subConfigStr.append(",");
-                subConfigStr.append(entry.getValue().isConsumeEnable());
-                subConfigStr.append(",");
-                subConfigStr.append(entry.getValue().isConsumeFromMinEnable());
-                subConfigStr.append(",");
-                subConfigStr.append(entry.getValue().isConsumeBroadcastEnable());
-                subConfigStr.append(",");
-                subConfigStr.append(entry.getValue().getRetryQueueNums());
-                subConfigStr.append(",");
-                subConfigStr.append(entry.getValue().getRetryMaxTimes());
-                subConfigStr.append(",");
-                subConfigStr.append(entry.getValue().getBrokerId());
-                subConfigStr.append(",");
-                subConfigStr.append(entry.getValue().getWhichBrokerWhenConsumeSlowly());
-                subConfigStr.append(",");
-                subConfigStr.append(entry.getValue().isNotifyConsumerIdsChangedEnable());
-                subConfigStr.append("\r\n");
-            }
+            String path = filePath + "/topicAndSubGroup.json";
 
-            String path = filePath + "/subscription.csv";
-
-            write2CSV(subConfigStr.toString(), path);
+            CommandUtil.write2File(JSON.toJSONString(jsonMap, true), path);
 
             System.out.printf("export %s success", path);
         } catch (Exception e) {
@@ -128,18 +135,9 @@ public class ExportSubscriptionCommand implements SubCommand {
         }
     }
 
-    private void write2CSV(final String subConfigStr, final String path) throws IOException {
-        FileWriter fileWriter = null;
-
-        try {
-            fileWriter = new FileWriter(path);
-            fileWriter.write(subConfigStr);
-        } catch (IOException e) {
-            throw e;
-        } finally {
-            if (fileWriter != null) {
-                fileWriter.close();
-            }
-        }
+    public static void main(String[] args) {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+        MQAdminStartup.main(
+            new String[] {new ExportTopicAndSubGroupCommand().commandName(), "-c", "DefaultCluster"});
     }
 }

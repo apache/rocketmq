@@ -49,9 +49,10 @@ import org.apache.rocketmq.tools.command.connection.ProducerConnectionSubCommand
 import org.apache.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
 import org.apache.rocketmq.tools.command.consumer.ConsumerStatusSubCommand;
 import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
-import org.apache.rocketmq.tools.command.consumer.ExportSubscriptionCommand;
 import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import org.apache.rocketmq.tools.command.export.ExportBrokerRuntimeInfoCommand;
+import org.apache.rocketmq.tools.command.export.ExportNamesrvAndBrokerConfigCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
@@ -73,7 +74,7 @@ import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
-import org.apache.rocketmq.tools.command.topic.ExportTopicCommand;
+import org.apache.rocketmq.tools.command.export.ExportTopicAndSubGroupCommand;
 import org.apache.rocketmq.tools.command.topic.TopicClusterSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicRouteSubCommand;
@@ -216,8 +217,9 @@ public class MQAdminStartup {
         initCommand(new UpdateGlobalWhiteAddrSubCommand());
         initCommand(new GetAccessConfigSubCommand());
 
-        initCommand(new ExportSubscriptionCommand());
-        initCommand(new ExportTopicCommand());
+        initCommand(new ExportTopicAndSubGroupCommand());
+        initCommand(new ExportNamesrvAndBrokerConfigCommand());
+        initCommand(new ExportBrokerRuntimeInfoCommand());
     }
 
     private static void initLogback() throws JoranException {
