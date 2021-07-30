@@ -164,9 +164,9 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
                 String clusterName = commandLine.getOptionValue('c').trim();
 
                 defaultMQAdminExt.start();
-                Set<String> masterSet =
-                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
-                for (String addr : masterSet) {
+                Set<String> brokerAddrSet =
+                    CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : brokerAddrSet) {
                     defaultMQAdminExt.createAndUpdatePlainAccessConfig(addr, accessConfig);
                     System.out.printf("create or update plain access config to %s success.%n", addr);
                 }

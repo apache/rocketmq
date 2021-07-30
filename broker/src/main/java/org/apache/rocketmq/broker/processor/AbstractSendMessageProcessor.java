@@ -257,8 +257,8 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                 try {
                     final SendMessageRequestHeader requestHeader = parseRequestHeader(request);
 
-                    String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
                     if (null != requestHeader) {
+                        String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
                         context.setNamespace(namespace);
                         context.setProducerGroup(requestHeader.getProducerGroup());
                         context.setTopic(requestHeader.getTopic());

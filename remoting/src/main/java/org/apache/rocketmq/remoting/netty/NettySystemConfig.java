@@ -37,7 +37,6 @@ public class NettySystemConfig {
     public static final String COM_ROCKETMQ_REMOTING_CLIENT_CLOSE_SOCKET_IF_TIMEOUT =
         "com.rocketmq.remoting.client.closeSocketIfTimeout";
 
-
     public static final boolean NETTY_POOLED_BYTE_BUF_ALLOCATOR_ENABLE = //
         Boolean.parseBoolean(System.getProperty(COM_ROCKETMQ_REMOTING_NETTY_POOLED_BYTE_BUF_ALLOCATOR_ENABLE, "false"));
     public static final int CLIENT_ASYNC_SEMAPHORE_VALUE = //
