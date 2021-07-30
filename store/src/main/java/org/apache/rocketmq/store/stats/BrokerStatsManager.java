@@ -159,7 +159,7 @@ public class BrokerStatsManager {
     }
 
     public String buildStatsKey(String topic, String group) {
-        StringBuffer strBuilder = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
         strBuilder.append(topic);
         strBuilder.append("@");
         strBuilder.append(group);
@@ -217,7 +217,7 @@ public class BrokerStatsManager {
     }
 
     public String buildCommercialStatsKey(String owner, String topic, String group, String type) {
-        StringBuffer strBuilder = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
         strBuilder.append(owner);
         strBuilder.append("@");
         strBuilder.append(topic);
