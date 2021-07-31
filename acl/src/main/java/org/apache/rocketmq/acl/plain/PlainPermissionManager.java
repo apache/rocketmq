@@ -130,6 +130,7 @@ public class PlainPermissionManager {
             log.error("Parameter value plainAccessConfig is null,Please check your parameter");
             throw new AclException("Parameter value plainAccessConfig is null, Please check your parameter");
         }
+        checkPlainAccessConfig(plainAccessConfig);
 
         Permission.checkResourcePerms(plainAccessConfig.getTopicPerms());
         Permission.checkResourcePerms(plainAccessConfig.getGroupPerms());
@@ -357,15 +358,19 @@ public class PlainPermissionManager {
         this.globalWhiteRemoteAddressStrategy.clear();
     }
 
-    public PlainAccessResource buildPlainAccessResource(PlainAccessConfig plainAccessConfig) throws AclException {
+    public void checkPlainAccessConfig(PlainAccessConfig plainAccessConfig) throws AclException {
         if (plainAccessConfig.getAccessKey() == null
-            || plainAccessConfig.getSecretKey() == null
-            || plainAccessConfig.getAccessKey().length() <= AclConstants.ACCESS_KEY_MIN_LENGTH
-            || plainAccessConfig.getSecretKey().length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
+                || plainAccessConfig.getSecretKey() == null
+                || plainAccessConfig.getAccessKey().length() <= AclConstants.ACCESS_KEY_MIN_LENGTH
+                || plainAccessConfig.getSecretKey().length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
             throw new AclException(String.format(
-                "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
-                plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
+                    "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
+                    plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
         }
+    }
+
+    public PlainAccessResource buildPlainAccessResource(PlainAccessConfig plainAccessConfig) throws AclException {
+        checkPlainAccessConfig(plainAccessConfig);
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setAccessKey(plainAccessConfig.getAccessKey());
         plainAccessResource.setSecretKey(plainAccessConfig.getSecretKey());
