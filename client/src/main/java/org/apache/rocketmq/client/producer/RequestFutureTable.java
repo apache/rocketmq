@@ -32,7 +32,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 public class RequestFutureTable {
     private static InternalLogger log = ClientLogger.getLog();
     private static ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
-    private static final AtomicInteger producerNum = new AtomicInteger(0);
+    private static final AtomicInteger PRODUCER_NUM = new AtomicInteger(0);
 
     public static ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
         return requestFutureTable;
@@ -64,6 +64,6 @@ public class RequestFutureTable {
     }
 
     public static AtomicInteger getProducerNum() {
-        return producerNum;
+        return PRODUCER_NUM;
     }
 }
