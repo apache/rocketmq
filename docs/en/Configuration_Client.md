@@ -32,7 +32,7 @@ After client started, it will access the http static server address, as: <http:/
 ```
 By default, the client accesses the HTTP server every 2 minutes, and update the local Name Server address.The URL is hardcoded in the code, you can change the target server by updating ```/etc/hosts``` file, such as add following configuration at the ```/etc/hosts```:
 ```text
-10.232.22.67    jmenv.taobao.net   
+10.232.22.67    jmenv.tbsite.net   
 ```
 HTTP static server addressing is recommended, because it is simple client deployment, and the Name Server cluster can be upgraded hot.
 
