@@ -237,7 +237,7 @@ export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876
 ```
 客户端默认每隔2分钟访问一次这个HTTP服务器，并更新本地的Name Server地址。URL已经在代码中硬编码，可通过修改/etc/hosts文件来改变要访问的服务器，例如在/etc/hosts增加如下配置：
 ```text
-10.232.22.67    jmenv.taobao.net   
+10.232.22.67    jmenv.tbsite.net   
 ```
 推荐使用HTTP静态服务器寻址方式，好处是客户端部署简单，且Name Server集群可以热升级。
 
