@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.command.export;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,11 +27,13 @@ import com.alibaba.fastjson.JSON;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -70,8 +73,12 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
+        DefaultMQProducer defaultMQProducer = new DefaultMQProducer("exportTopicAndSubGroup", rpcHook);
+        defaultMQProducer.setInstanceName(Long.toString(System.currentTimeMillis()));
+
         try {
             defaultMQAdminExt.start();
+            defaultMQProducer.start();
 
             String clusterName = commandLine.getOptionValue('c').trim();
             String filePath = !commandLine.hasOption('f') ? "/tmp/rocketmq/config" : commandLine.getOptionValue('f')
@@ -85,10 +92,15 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
 
             for (String addr : masterSet) {
                 TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getAllTopicConfig(
-                    addr, 10000);
+                    addr, 10000L);
+                TopicList topicList = defaultMQProducer.getDefaultMQProducerImpl().getmQClientFactory()
+                    .getMQClientAPIImpl()
+                    .getSystemTopicListFromBroker(addr, 10000L);
+
                 for (Map.Entry<String, TopicConfig> entry : topicConfigSerializeWrapper.getTopicConfigTable()
                     .entrySet()) {
-                    if (!TopicValidator.isSystemTopic(entry.getKey()) && !entry.getKey().startsWith(
+                    if (!TopicValidator.isSystemTopic(entry.getKey()) && !topicList.getTopicList().contains(
+                        entry.getKey()) && !entry.getKey().startsWith(
                         MixAll.RETRY_GROUP_TOPIC_PREFIX) && !entry.getKey().startsWith(
                         MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
                         TopicConfig topicConfig = topicConfigMap.get(entry.getKey());
@@ -117,7 +129,7 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
                 }
             }
 
-            ConcurrentMap<String, Object> jsonMap = new ConcurrentHashMap<>();
+            Map<String, Object> jsonMap = new HashMap<>();
             jsonMap.put("topicConfigTable", topicConfigMap);
             jsonMap.put("subscriptionGroupTable", subGroupConfigMap);
             jsonMap.put("rocketmqVersion", Integer.toString(MQVersion.CURRENT_VERSION));
@@ -131,12 +143,13 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
+            defaultMQProducer.shutdown();
             defaultMQAdminExt.shutdown();
         }
     }
 
     public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "appstore-500.gz00b.dev.alipay.net:9876");
         MQAdminStartup.main(
             new String[] {new ExportTopicAndSubGroupCommand().commandName(), "-c", "DefaultCluster"});
     }
