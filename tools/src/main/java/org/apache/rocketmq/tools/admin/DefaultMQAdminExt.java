@@ -501,6 +501,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return this.defaultMQAdminExtImpl.getAllTopicConfig(brokerAddr, timeoutMillis);
     }
 
+    @Override
+    public TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr,
+        long timeoutMillis) throws InterruptedException, RemotingException,
+        MQBrokerException, MQClientException {
+        return this.defaultMQAdminExtImpl.getUserTopicConfig(brokerAddr, timeoutMillis);
+    }
+
     /* (non-Javadoc)
      * @see org.apache.rocketmq.client.MQAdmin#queryMessageByUniqKey(java.lang.String, java.lang.String)
      */

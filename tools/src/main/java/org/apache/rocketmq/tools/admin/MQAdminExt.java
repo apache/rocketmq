@@ -239,6 +239,10 @@ public interface MQAdminExt extends MQAdmin {
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException;
 
+    TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr,
+        long timeoutMillis) throws InterruptedException, RemotingException,
+        MQBrokerException, MQClientException;
+
     void updateConsumeOffset(String brokerAddr, String consumeGroup, MessageQueue mq,
         long offset) throws RemotingException, InterruptedException, MQBrokerException;
 

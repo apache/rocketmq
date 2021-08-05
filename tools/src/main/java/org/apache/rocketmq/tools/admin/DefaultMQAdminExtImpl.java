@@ -962,6 +962,22 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr,
+        long timeoutMillis) throws InterruptedException, RemotingException,
+        MQBrokerException, MQClientException {
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = this.getAllTopicConfig(brokerAddr, timeoutMillis);
+        TopicList topicList = this.mqClientInstance.getMQClientAPIImpl().getSystemTopicListFromBroker(brokerAddr, timeoutMillis);
+        Iterator<Entry<String, TopicConfig>> iterator = topicConfigSerializeWrapper.getTopicConfigTable().entrySet().iterator();
+        while (iterator.hasNext()) {
+            Entry<String, TopicConfig> entry = iterator.next();
+            if (topicList.getTopicList().contains(entry.getKey())) {
+                iterator.remove();
+            }
+        }
+        return topicConfigSerializeWrapper;
+    }
+
+    @Override
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, newTopic, queueNum, 0);
     }
