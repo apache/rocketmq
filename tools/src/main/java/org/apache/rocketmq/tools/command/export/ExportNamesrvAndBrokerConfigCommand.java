@@ -103,7 +103,7 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
             }
 
             String path = filePath + "/namesrvAndBrokerConfig.properties";
-            CommandUtil.write2File(configStr.toString(), path);
+            MixAll.string2FileNotSafe(configStr.toString(), path);
             System.out.printf("export %s success", path);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

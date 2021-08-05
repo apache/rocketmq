@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.tools.command;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -148,20 +146,4 @@ public class CommandUtil {
         }
         throw new Exception(ERROR_MESSAGE);
     }
-
-    public static void write2File(final String str, final String path) throws IOException {
-        FileWriter fileWriter = null;
-
-        try {
-            fileWriter = new FileWriter(path);
-            fileWriter.write(str);
-        } catch (IOException e) {
-            throw e;
-        } finally {
-            if (fileWriter != null) {
-                fileWriter.close();
-            }
-        }
-    }
-
 }

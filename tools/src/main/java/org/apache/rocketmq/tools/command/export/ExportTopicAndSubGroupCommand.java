@@ -125,7 +125,7 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
 
             String path = filePath + "/topicAndSubGroup.json";
 
-            CommandUtil.write2File(JSON.toJSONString(jsonMap, true), path);
+            MixAll.string2FileNotSafe(JSON.toJSONString(jsonMap, true), path);
 
             System.out.printf("export %s success", path);
         } catch (Exception e) {
