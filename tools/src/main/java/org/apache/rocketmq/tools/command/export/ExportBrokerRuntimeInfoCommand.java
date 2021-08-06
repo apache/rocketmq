@@ -167,7 +167,6 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
                 BrokerStatsManager.TOPIC_PUT_NUMS,
                 TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
         } catch (MQClientException e) {
-            System.out.printf(e.getErrorMessage() + "\n");
         }
 
         BrokerStatsData scheduleStatsData = null;
@@ -175,7 +174,6 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
             scheduleStatsData = defaultMQAdminExt.viewBrokerStatsData(brokerAddr,
                 BrokerStatsManager.TOPIC_PUT_NUMS, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
         } catch (MQClientException e) {
-            System.out.printf(e.getErrorMessage() + "\n");
         }
 
         Map<String, Object> runtimeQuotaMap = new HashMap<>();
