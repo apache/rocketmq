@@ -27,7 +27,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
-import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -111,11 +110,5 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
             defaultMQAdminExt.shutdown();
         }
 
-    }
-
-    public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        MQAdminStartup.main(
-            new String[] {new ExportNamesrvAndBrokerConfigCommand().commandName(), "-c", "DefaultCluster"});
     }
 }

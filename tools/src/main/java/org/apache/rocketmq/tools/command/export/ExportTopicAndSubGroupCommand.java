@@ -36,7 +36,6 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
-import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -133,11 +132,5 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
         } finally {
             defaultMQAdminExt.shutdown();
         }
-    }
-
-    public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "appstore-500.gz00b.dev.alipay.net:9876");
-        MQAdminStartup.main(
-            new String[] {new ExportTopicAndSubGroupCommand().commandName(), "-c", "DefaultCluster"});
     }
 }

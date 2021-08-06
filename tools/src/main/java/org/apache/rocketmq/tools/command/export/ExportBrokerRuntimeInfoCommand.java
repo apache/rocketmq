@@ -29,6 +29,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
@@ -41,7 +42,6 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -84,8 +84,9 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
 
             defaultMQAdminExt.start();
 
-            //  brokerName  brokerIp    评估报告
-            Map<String, Map<String, Map<String, Map<String, Object>>>> map = new HashMap<>();
+            Map<String, Map<String, Map<String, Map<String, Object>>>> evaluateReportMap = new HashMap<>();
+            Map<String, Double> totalTpsMap = new HashMap<>();
+            initTotalTpsMap(totalTpsMap);
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
             Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
@@ -116,17 +117,26 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
                         brokerInfo.put("brokerConfig", getConfig(properties, brokerData));
 
                         brokerInfo.put("runtimeQuota",
-                            getRuntimeQuota(kvTable, defaultMQAdminExt, next1.getValue()));
+                            getRuntimeQuota(kvTable, defaultMQAdminExt, next1.getValue(), totalTpsMap));
+
+                        // runtime version
+                        Map<String, Object> runtimeVersionMap = new HashMap();
+                        runtimeVersionMap.put("rocketmqVersion", MQVersion.CURRENT_VERSION);
+                        brokerInfo.put("runtimeVersion", runtimeVersionMap);
 
                         brokerMap.put(next1.getValue(), brokerInfo);
                     }
                 }
-                map.put(brokerName, brokerMap);
+                evaluateReportMap.put(brokerName, brokerMap);
             }
 
             String path = filePath + "/brokerInfo.json";
 
-            MixAll.string2FileNotSafe(JSON.toJSONString(map, true), path);
+            Map<String, Object> result = new HashMap<>();
+            result.put("totalTps", totalTpsMap);
+            result.put("evaluateReport", evaluateReportMap);
+
+            MixAll.string2FileNotSafe(JSON.toJSONString(result, true), path);
             System.out.printf("export %s success", path);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
@@ -151,8 +161,8 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         return configMap;
     }
 
-    private Map<String, Object> getRuntimeQuota(KVTable kvTable, DefaultMQAdminExt defaultMQAdminExt, String brokerAddr)
-        throws Exception {
+    private Map<String, Object> getRuntimeQuota(KVTable kvTable, DefaultMQAdminExt defaultMQAdminExt, String brokerAddr,
+        Map<String, Double> totalTpsMap) throws Exception {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getAllTopicConfig(
             brokerAddr, 10000);
 
@@ -184,7 +194,7 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         runtimeQuotaMap.put("diskRatio", diskRatioMap);
 
         //inTps and outTps
-        Map<String, Object> tpsMap = new HashMap<>();
+        Map<String, Double> tpsMap = new HashMap<>();
         double normalInTps = 0;
         double normalOutTps = 0;
         String putTps = kvTable.getTable().get("putTps");
@@ -228,6 +238,16 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         tpsMap.put("orderOutTps", 0.0);
         runtimeQuotaMap.put("tps", tpsMap);
 
+        //total
+        totalTpsMap.put("totalNormalInTps", totalTpsMap.get("totalNormalInTps") + normalInTps);
+        totalTpsMap.put("totalNormalOutTps", totalTpsMap.get("totalNormalOutTps") + normalOutTps);
+        totalTpsMap.put("totalTransInTps", totalTpsMap.get("totalTransInTps") + transInTps);
+        totalTpsMap.put("totalTransOutTps", totalTpsMap.get("totalTransOutTps"));
+        totalTpsMap.put("totalScheduleInTps", totalTpsMap.get("totalScheduleInTps") + scheduleInTps);
+        totalTpsMap.put("totalScheduleOutTps", totalTpsMap.get("totalScheduleOutTps"));
+        totalTpsMap.put("totalOrderInTps", totalTpsMap.get("totalOrderInTps") + orderInTps);
+        totalTpsMap.put("totalOrderOutTps", totalTpsMap.get("totalOrderOutTps"));
+
         // putMessageAverageSize 平均
         runtimeQuotaMap.put("messageAverageSize", kvTable.getTable().get("putMessageAverageSize"));
 
@@ -237,9 +257,14 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         return runtimeQuotaMap;
     }
 
-    public static void main(String[] args) {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "appstore-500.gz00b.dev.alipay.net:9876");
-        MQAdminStartup.main(
-            new String[] {new ExportBrokerRuntimeInfoCommand().commandName(), "-c", "DefaultCluster"});
+    private void initTotalTpsMap(Map<String, Double> totalTpsMap) {
+        totalTpsMap.put("totalNormalInTps", 0.0);
+        totalTpsMap.put("totalNormalOutTps", 0.0);
+        totalTpsMap.put("totalTransInTps", 0.0);
+        totalTpsMap.put("totalTransOutTps", 0.0);
+        totalTpsMap.put("totalScheduleInTps", 0.0);
+        totalTpsMap.put("totalScheduleOutTps", 0.0);
+        totalTpsMap.put("totalOrderInTps", 0.0);
+        totalTpsMap.put("totalOrderOutTps", 0.0);
     }
 }
