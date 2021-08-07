@@ -175,6 +175,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public long getMessageTotalSizeInQueue(String topic, int queueId) {
+        return next.getMessageTotalSizeInQueue(topic, queueId);
+    }
+
+    @Override
     public SelectMappedBufferResult getCommitLogData(long offset) {
         return next.getCommitLogData(offset);
     }

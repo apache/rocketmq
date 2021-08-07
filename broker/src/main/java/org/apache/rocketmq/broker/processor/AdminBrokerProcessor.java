@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicOffset;
+import org.apache.rocketmq.common.admin.TopicQueueStatistics;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -182,6 +183,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return this.deleteSubscriptionGroup(ctx, request);
             case RequestCode.GET_TOPIC_STATS_INFO:
                 return this.getTopicStatsInfo(ctx, request);
+            case RequestCode.GET_TOPIC_STATISTICS_INFO:
+                return this.getTopicStatisticsInfo(ctx, request);
             case RequestCode.GET_CONSUMER_CONNECTION_LIST:
                 return this.getConsumerConnectionList(ctx, request);
             case RequestCode.GET_PRODUCER_CONNECTION_LIST:
@@ -766,6 +769,57 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             topicOffset.setLastUpdateTimestamp(timestamp);
 
             topicStatsTable.getOffsetTable().put(mq, topicOffset);
+        }
+
+        byte[] body = topicStatsTable.encode();
+        response.setBody(body);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand getTopicStatisticsInfo(ChannelHandlerContext ctx,
+                                              RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final GetTopicStatsInfoRequestHeader requestHeader =
+                (GetTopicStatsInfoRequestHeader) request.decodeCommandCustomHeader(GetTopicStatsInfoRequestHeader.class);
+
+        final String topic = requestHeader.getTopic();
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
+        if (null == topicConfig) {
+            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
+            response.setRemark("topic[" + topic + "] not exist");
+            return response;
+        }
+
+        TopicStatsTable<TopicQueueStatistics> topicStatsTable = new TopicStatsTable();
+        for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
+            MessageQueue mq = new MessageQueue();
+            mq.setTopic(topic);
+            mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+            mq.setQueueId(i);
+
+            TopicQueueStatistics topicQueueStatistics = new TopicQueueStatistics();
+            long min = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, i);
+            if (min < 0)
+                min = 0;
+
+            long max = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+            if (max < 0)
+                max = 0;
+
+            long timestamp = 0;
+            if (max > 0) {
+                timestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
+            }
+
+            topicQueueStatistics.setMinOffset(min);
+            topicQueueStatistics.setMaxOffset(max);
+            topicQueueStatistics.setMessageCountTotal(this.brokerController.getMessageStore().getMessageTotalInQueue(topic, i));
+            topicQueueStatistics.setMessageSizeTotal(this.brokerController.getMessageStore().getMessageTotalSizeInQueue(topic, i));
+            topicQueueStatistics.setLastUpdateTimestamp(timestamp);
+
+            topicStatsTable.getOffsetTable().put(mq, topicQueueStatistics);
         }
 
         byte[] body = topicStatsTable.encode();

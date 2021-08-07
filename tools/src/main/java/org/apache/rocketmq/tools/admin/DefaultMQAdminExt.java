@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.RollbackStats;
+import org.apache.rocketmq.common.admin.TopicQueueStatistics;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -217,6 +218,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         String topic) throws RemotingException, MQClientException, InterruptedException,
         MQBrokerException {
         return defaultMQAdminExtImpl.examineTopicStats(topic);
+    }
+
+    @Override
+    public TopicStatsTable<TopicQueueStatistics> examineTopicStatistics(String topic) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return defaultMQAdminExtImpl.examineTopicStatistics(topic);
     }
 
     @Override

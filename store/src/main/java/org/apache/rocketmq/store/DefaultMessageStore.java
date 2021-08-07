@@ -911,6 +911,16 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
+    public long getMessageTotalSizeInQueue(String topic, int queueId) {
+        ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
+        if (logicQueue != null) {
+            return logicQueue.getMessageSizeTotalInQueue();
+        }
+
+        return -1;
+    }
+
+    @Override
     public SelectMappedBufferResult getCommitLogData(final long offset) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so getPhyQueueData is forbidden");

@@ -131,6 +131,8 @@ public class RequestCode {
 
     public static final int GET_TOPICS_BY_CLUSTER = 224;
 
+    public static final int GET_TOPIC_STATISTICS_INFO = 225;
+
     public static final int REGISTER_FILTER_SERVER = 301;
     public static final int REGISTER_MESSAGE_FILTER_CLASS = 302;
 

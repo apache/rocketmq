@@ -158,6 +158,21 @@ public class ConsumeQueueTest {
         }
     }
 
+    protected long putMsg(DefaultMessageStore master, long totalMsgs) throws Exception {
+
+        long writeBytes = 0;
+        for (long i = 0; i < totalMsgs; i++) {
+            PutMessageResult putMessageResult;
+            if (i < totalMsgs / 2) {
+                putMessageResult = master.putMessage(buildMessage());
+            } else {
+                putMessageResult = master.putMessage(buildIPv6HostMessage());
+            }
+            writeBytes += putMessageResult.getAppendMessageResult().getWroteBytes();
+        }
+        return writeBytes;
+    }
+
     protected void deleteDirectory(String rootPath) {
         File file = new File(rootPath);
         deleteFile(file);
@@ -215,6 +230,67 @@ public class ConsumeQueueTest {
             deleteDirectory(storePath);
         }
 
+    }
+
+    @Test
+    public void testConsumeQueueGetMessageTotalInQueue() {
+        DefaultMessageStore master = null;
+        try {
+            master = gen();
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
+        }
+
+        try {
+            long totalMsgs = 200;
+            try {
+                putMsg(master, totalMsgs);
+                Thread.sleep(3000L);//wait ConsumeQueue create success.
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertThat(Boolean.FALSE).isTrue();
+            }
+
+            ConsumeQueue cq = master.getConsumeQueueTable().get(topic).get(queueId);
+            assertThat(cq.getMessageTotalInQueue()).isEqualTo(totalMsgs);
+
+        } finally {
+            master.shutdown();
+            master.destroy();
+            UtilAll.deleteFile(new File(storePath));
+        }
+    }
+
+    @Test
+    public void testConsumeQueueGetMessageSizeTotalInQueue() {
+        DefaultMessageStore master = null;
+        try {
+            master = gen();
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
+        }
+
+        try {
+            long totalMsgs = 200;
+            long totalMsgSize = 0;
+            try {
+                totalMsgSize = putMsg(master, totalMsgs);
+                Thread.sleep(3000L);//wait ConsumeQueue create success.
+            } catch (Exception e) {
+                e.printStackTrace();
+                assertThat(Boolean.FALSE).isTrue();
+            }
+
+            ConsumeQueue cq = master.getConsumeQueueTable().get(topic).get(queueId);
+            assertThat(cq.getMessageSizeTotalInQueue()).isEqualTo(totalMsgSize);
+
+        } finally {
+            master.shutdown();
+            master.destroy();
+            UtilAll.deleteFile(new File(storePath));
+        }
     }
 
     @Test

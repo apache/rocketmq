@@ -47,6 +47,7 @@ import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.common.admin.TopicOffset;
+import org.apache.rocketmq.common.admin.TopicQueueStatistics;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
@@ -237,6 +238,28 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
                 TopicStatsTable tst = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
+                topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+            }
+        }
+
+        if (topicStatsTable.getOffsetTable().isEmpty()) {
+            throw new MQClientException("Not found the topic stats info", null);
+        }
+
+        return topicStatsTable;
+    }
+
+    @Override
+    public TopicStatsTable<TopicQueueStatistics> examineTopicStatistics(
+            String topic) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException {
+        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+        TopicStatsTable<TopicQueueStatistics> topicStatsTable = new TopicStatsTable();
+
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            if (addr != null) {
+                TopicStatsTable<TopicQueueStatistics> tst = this.mqClientInstance.getMQClientAPIImpl().getTopicStatisticsInfo(addr, topic, timeoutMillis);
                 topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
             }
         }

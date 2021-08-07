@@ -18,6 +18,8 @@ package org.apache.rocketmq.remoting.protocol;
 
 import java.util.Arrays;
 import java.util.List;
+
+import com.alibaba.fastjson.TypeReference;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +31,16 @@ public class RemotingSerializableTest {
 
         byte[] bytes = RemotingSerializable.encode(sample);
         Sample decodedSample = RemotingSerializable.decode(bytes, Sample.class);
+
+        assertThat(decodedSample).isEqualTo(sample);
+    }
+
+    @Test
+    public void testEncodeAndDecode_TypeReference() {
+        Sample sample = new Sample();
+
+        byte[] bytes = RemotingSerializable.encode(sample);
+        Sample decodedSample = RemotingSerializable.decode(bytes, new TypeReference<Sample>(){});
 
         assertThat(decodedSample).isEqualTo(sample);
     }

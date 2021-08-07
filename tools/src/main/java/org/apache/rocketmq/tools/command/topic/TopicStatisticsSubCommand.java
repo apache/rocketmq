@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.tools.command.topic;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.TopicOffset;
+import org.apache.rocketmq.common.admin.TopicQueueStatistics;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -31,16 +31,20 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class TopicStatusSubCommand implements SubCommand {
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
+public class TopicStatisticsSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "topicStatus";
+        return "topicStatistics";
     }
 
     @Override
     public String commandDesc() {
-        return "Examine topic Status info";
+        return "Examine topic Statistic info";
     }
 
     @Override
@@ -53,7 +57,7 @@ public class TopicStatusSubCommand implements SubCommand {
 
     @Override
     public void execute(final CommandLine commandLine, final Options options,
-        RPCHook rpcHook) throws SubCommandException {
+                        RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
@@ -61,34 +65,38 @@ public class TopicStatusSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
             String topic = commandLine.getOptionValue('t').trim();
-            TopicStatsTable<TopicOffset> topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
+            TopicStatsTable<TopicQueueStatistics> topicStatsTable = defaultMQAdminExt.examineTopicStatistics(topic);
 
             List<MessageQueue> mqList = new LinkedList<MessageQueue>();
             mqList.addAll(topicStatsTable.getOffsetTable().keySet());
             Collections.sort(mqList);
 
-            System.out.printf("%-32s  %-4s  %-20s  %-20s    %s%n",
-                "#Broker Name",
-                "#QID",
-                "#Min Offset",
-                "#Max Offset",
-                "#Last Updated"
+            System.out.printf("%-32s  %-4s  %-20s  %-20s  %-20s  %-20s  %s%n",
+                    "#Broker Name",
+                    "#QID",
+                    "#Min Offset",
+                    "#Max Offset",
+                    "#Message Count Total",
+                    "#Message Size Total",
+                    "#Last Updated"
             );
 
             for (MessageQueue mq : mqList) {
-                TopicOffset topicOffset = topicStatsTable.getOffsetTable().get(mq);
+                TopicQueueStatistics topicQueueStatistics = topicStatsTable.getOffsetTable().get(mq);
 
                 String humanTimestamp = "";
-                if (topicOffset.getLastUpdateTimestamp() > 0) {
-                    humanTimestamp = UtilAll.timeMillisToHumanString2(topicOffset.getLastUpdateTimestamp());
+                if (topicQueueStatistics.getLastUpdateTimestamp() > 0) {
+                    humanTimestamp = UtilAll.timeMillisToHumanString2(topicQueueStatistics.getLastUpdateTimestamp());
                 }
 
-                System.out.printf("%-32s  %-4d  %-20d  %-20d    %s%n",
-                    UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
-                    mq.getQueueId(),
-                    topicOffset.getMinOffset(),
-                    topicOffset.getMaxOffset(),
-                    humanTimestamp
+                System.out.printf("%-32s  %-4d  %-20d  %-20d  %-20d  %-20d  %s%n",
+                        UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
+                        mq.getQueueId(),
+                        topicQueueStatistics.getMinOffset(),
+                        topicQueueStatistics.getMaxOffset(),
+                        topicQueueStatistics.getMessageCountTotal(),
+                        topicQueueStatistics.getMessageSizeTotal(),
+                        humanTimestamp
                 );
             }
         } catch (Exception e) {

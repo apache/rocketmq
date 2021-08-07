@@ -233,6 +233,15 @@ public interface MessageStore {
     long getMessageTotalInQueue(final String topic, final int queueId);
 
     /**
+     * Get the total size of the messages in the specified queue.
+     *
+     * @param topic Topic
+     * @param queueId Queue ID.
+     * @return total size.
+     */
+    long getMessageTotalSizeInQueue(final String topic, final int queueId);
+
+    /**
      * Get the raw commit log data starting from the given offset, which should used for replication purpose.
      *
      * @param offset starting offset.

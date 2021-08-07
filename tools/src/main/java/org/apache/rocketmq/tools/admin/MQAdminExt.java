@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.RollbackStats;
+import org.apache.rocketmq.common.admin.TopicQueueStatistics;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -97,6 +98,10 @@ public interface MQAdminExt extends MQAdmin {
     TopicStatsTable examineTopicStats(
         final String topic) throws RemotingException, MQClientException, InterruptedException,
         MQBrokerException;
+
+    TopicStatsTable<TopicQueueStatistics> examineTopicStatistics(
+            final String topic) throws RemotingException, MQClientException, InterruptedException,
+            MQBrokerException;
 
     TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException;
 

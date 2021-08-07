@@ -14,20 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.common.admin;
 
-import java.util.HashMap;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+public class TopicQueueStatistics extends TopicOffset {
 
-public class TopicStatsTable<T extends TopicOffset> extends RemotingSerializable {
-    private HashMap<MessageQueue, T> offsetTable = new HashMap<MessageQueue, T>();
+    private long messageCountTotal;
+    private long messageSizeTotal;
 
-    public HashMap<MessageQueue, T> getOffsetTable() {
-        return offsetTable;
+    public long getMessageCountTotal() {
+        return messageCountTotal;
     }
 
-    public void setOffsetTable(HashMap<MessageQueue, T> offsetTable) {
-        this.offsetTable = offsetTable;
+    public void setMessageCountTotal(long messageCountTotal) {
+        this.messageCountTotal = messageCountTotal;
+    }
+
+    public long getMessageSizeTotal() {
+        return messageSizeTotal;
+    }
+
+    public void setMessageSizeTotal(long messageSizeTotal) {
+        this.messageSizeTotal = messageSizeTotal;
     }
 }

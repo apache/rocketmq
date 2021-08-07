@@ -558,6 +558,19 @@ public class ConsumeQueue {
         return this.getMaxOffsetInQueue() - this.getMinOffsetInQueue();
     }
 
+    public long getMessageSizeTotalInQueue() {
+
+        long result = 0;
+        List<MappedFile> queueFiles = this.mappedFileQueue.getMappedFiles();
+        for (MappedFile queueFile : queueFiles) {
+            ByteBuffer queueFileByteBuffer = queueFile.sliceByteBuffer();
+            for (int i = 0; i < queueFile.getWrotePosition(); i += CQ_STORE_UNIT_SIZE) {
+                result += queueFileByteBuffer.getInt(i + 8);
+            }
+        }
+        return result;
+    }
+
     public long getMaxOffsetInQueue() {
         return this.mappedFileQueue.getMaxOffset() / CQ_STORE_UNIT_SIZE;
     }

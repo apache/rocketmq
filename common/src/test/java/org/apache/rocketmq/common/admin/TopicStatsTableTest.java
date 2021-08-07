@@ -72,7 +72,7 @@ public class TopicStatsTableTest {
         validateTopicStatsTable(fromJson);
     }
 
-    private static void validateTopicStatsTable(TopicStatsTable topicStatsTable) throws Exception {
+    private static void validateTopicStatsTable(TopicStatsTable<TopicOffset> topicStatsTable) throws Exception {
         Map.Entry<MessageQueue, TopicOffset> savedTopicStatsTableMap = topicStatsTable.getOffsetTable().entrySet().iterator().next();
         MessageQueue savedMessageQueue = savedTopicStatsTableMap.getKey();
         TopicOffset savedTopicOffset = savedTopicStatsTableMap.getValue();
