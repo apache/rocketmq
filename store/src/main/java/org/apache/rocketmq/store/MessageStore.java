@@ -18,12 +18,14 @@ package org.apache.rocketmq.store;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.TopicStorePolicy;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 /**
@@ -397,4 +399,15 @@ public interface MessageStore {
      * @param brokerRole
      */
     void handleScheduleMessageService(BrokerRole brokerRole);
+
+    /**
+     * update topic policy
+     */
+    void updateTopicPolicy(Map<String, TopicStorePolicy> topicStorePolicyTable);
+
+    /**
+     * delete topic policy
+     * @param topic
+     */
+    void deleteTopicPolicy(String topic);
 }

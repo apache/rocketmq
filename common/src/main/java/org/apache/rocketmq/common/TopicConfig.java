@@ -29,6 +29,7 @@ public class TopicConfig {
     private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
     private int topicSysFlag = 0;
     private boolean order = false;
+    private Integer expirationTime;
 
     public TopicConfig() {
     }
@@ -42,6 +43,14 @@ public class TopicConfig {
         this.readQueueNums = readQueueNums;
         this.writeQueueNums = writeQueueNums;
         this.perm = perm;
+    }
+
+    public TopicConfig(String topicName, int readQueueNums, int writeQueueNums, int perm, int expirationTime) {
+        this.topicName = topicName;
+        this.readQueueNums = readQueueNums;
+        this.writeQueueNums = writeQueueNums;
+        this.perm = perm;
+        this.expirationTime = expirationTime;
     }
 
     public String encode() {
@@ -132,6 +141,14 @@ public class TopicConfig {
 
     public void setOrder(boolean isOrder) {
         this.order = isOrder;
+    }
+
+    public Integer getExpirationTime() {
+        return expirationTime;
+    }
+
+    public void setExpirationTime(Integer expirationTime) {
+        this.expirationTime = expirationTime;
     }
 
     @Override

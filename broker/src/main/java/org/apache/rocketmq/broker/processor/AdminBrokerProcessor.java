@@ -126,6 +126,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.TopicStorePolicy;
 
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
@@ -267,8 +268,15 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         topicConfig.setTopicFilterType(requestHeader.getTopicFilterTypeEnum());
         topicConfig.setPerm(requestHeader.getPerm());
         topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
+        topicConfig.setExpirationTime(requestHeader.getExpireTime());
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
+
+        if (topicConfig.getExpirationTime() != null) {
+            Map<String, TopicStorePolicy> topicStorePolicyTable = new HashMap<>();
+            topicStorePolicyTable.put(topic, new TopicStorePolicy(topicConfig.getExpirationTime()));
+            this.brokerController.getMessageStore().updateTopicPolicy(topicStorePolicyTable);
+        }
 
         this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
 
@@ -295,6 +303,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         this.brokerController.getTopicConfigManager().deleteTopicConfig(topic);
         this.brokerController.getMessageStore()
             .cleanUnusedTopic(this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
+        this.brokerController.getMessageStore().deleteTopicPolicy(topic);
         if (this.brokerController.getBrokerConfig().isAutoDeleteUnusedStats()) {
             this.brokerController.getBrokerStatsManager().onTopicDeleted(requestHeader.getTopic());
         }

@@ -19,11 +19,14 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.config.TopicStorePolicy;
 
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -35,6 +38,7 @@ public class ConsumeQueue {
 
     private final MappedFileQueue mappedFileQueue;
     private final String topic;
+    private final ConcurrentMap<String/* topic */, TopicStorePolicy> topicPolicyTable;
     private final int queueId;
     private final ByteBuffer byteBufferIndex;
 
@@ -46,6 +50,7 @@ public class ConsumeQueue {
 
     public ConsumeQueue(
         final String topic,
+        final ConcurrentMap<String/* topic */, TopicStorePolicy> topicPolicyTable,
         final int queueId,
         final String storePath,
         final int mappedFileSize,
@@ -55,6 +60,7 @@ public class ConsumeQueue {
         this.defaultMessageStore = defaultMessageStore;
 
         this.topic = topic;
+        this.topicPolicyTable = topicPolicyTable;
         this.queueId = queueId;
 
         String queueDir = this.storePath
@@ -328,6 +334,17 @@ public class ConsumeQueue {
         }
 
         return result;
+    }
+
+    public int deleteExpiredFile(
+            final int deleteFilesInterval,
+            final long intervalForcibly,
+            final boolean cleanImmediately
+    ) {
+        return this.mappedFileQueue.deleteExpiredFileByTime(
+                (topicPolicyTable != null && topicPolicyTable.containsKey(topic)) ?
+                topicPolicyTable.get(topic).getExpireTime() : this.defaultMessageStore.getMessageStoreConfig().getFileReservedTime()
+                , deleteFilesInterval, intervalForcibly, cleanImmediately);
     }
 
     public int deleteExpiredFile(long offset) {

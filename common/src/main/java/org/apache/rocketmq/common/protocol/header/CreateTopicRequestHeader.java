@@ -42,6 +42,8 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private Boolean order = false;
 
+    private Integer expireTime;
+
     @Override
     public void checkFields() throws RemotingCommandException {
         try {
@@ -49,6 +51,14 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
         } catch (Exception e) {
             throw new RemotingCommandException("topicFilterType = [" + topicFilterType + "] value invalid", e);
         }
+    }
+
+    public Integer getExpireTime() {
+        return expireTime;
+    }
+
+    public void setExpireTime(Integer expireTime) {
+        this.expireTime = expireTime;
     }
 
     public TopicFilterType getTopicFilterTypeEnum() {

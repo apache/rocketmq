@@ -19,12 +19,15 @@ package org.apache.rocketmq.broker.topic;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -39,6 +42,7 @@ import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.config.TopicStorePolicy;
 
 public class TopicConfigManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -470,5 +474,13 @@ public class TopicConfigManager extends ConfigManager {
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigTable() {
         return topicConfigTable;
+    }
+
+    public Map<String, TopicStorePolicy> getTopicStorePolicy() {
+        Map<String, TopicStorePolicy> topicPolicyTable = topicConfigTable.entrySet().stream()
+                .filter(entry -> entry.getValue().getExpirationTime() != null)
+                .filter(entry -> !Objects.isNull(entry))
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new TopicStorePolicy(entry.getValue().getExpirationTime())));
+        return topicPolicyTable;
     }
 }

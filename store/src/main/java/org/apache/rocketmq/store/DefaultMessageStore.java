@@ -57,6 +57,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.config.TopicStorePolicy;
 import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.index.IndexService;
@@ -72,6 +73,8 @@ public class DefaultMessageStore implements MessageStore {
     private final CommitLog commitLog;
 
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
+
+    private final ConcurrentMap<String/* topic */, TopicStorePolicy> topicPolicyTable;
 
     private final FlushConsumeQueueService flushConsumeQueueService;
 
@@ -132,6 +135,7 @@ public class DefaultMessageStore implements MessageStore {
             this.commitLog = new CommitLog(this);
         }
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
+        this.topicPolicyTable = new ConcurrentHashMap<>(32);
 
         this.flushConsumeQueueService = new FlushConsumeQueueService();
         this.cleanCommitLogService = new CleanCommitLogService();
@@ -902,7 +906,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void executeDeleteFilesManually() {
-        this.cleanCommitLogService.excuteDeleteFilesManualy();
+        this.cleanCommitLogService.executeDeleteFilesManually();
     }
 
     @Override
@@ -1188,6 +1192,7 @@ public class DefaultMessageStore implements MessageStore {
         if (null == logic) {
             ConsumeQueue newLogic = new ConsumeQueue(
                 topic,
+                topicPolicyTable,
                 queueId,
                 StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
                 this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
@@ -1358,6 +1363,7 @@ public class DefaultMessageStore implements MessageStore {
                         }
                         ConsumeQueue logic = new ConsumeQueue(
                             topic,
+                            topicPolicyTable,
                             queueId,
                             StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
                             this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
@@ -1495,6 +1501,16 @@ public class DefaultMessageStore implements MessageStore {
 
     }
 
+    @Override
+    public void updateTopicPolicy(Map<String, TopicStorePolicy> topicStorePolicyTable) {
+        this.topicPolicyTable.putAll(topicStorePolicyTable);
+    }
+
+    @Override
+    public void deleteTopicPolicy(String topic) {
+        topicPolicyTable.remove(topic);
+    }
+
     public int remainTransientStoreBufferNumbs() {
         return this.transientStorePool.availableBufferNums();
     }
@@ -1568,7 +1584,7 @@ public class DefaultMessageStore implements MessageStore {
 
         private volatile boolean cleanImmediately = false;
 
-        public void excuteDeleteFilesManualy() {
+        public void executeDeleteFilesManually() {
             this.manualDeleteFileSeveralTimes = MAX_MANUAL_DELETE_FILE_TIMES;
             DefaultMessageStore.log.info("executeDeleteFilesManually was invoked");
         }
@@ -1587,13 +1603,13 @@ public class DefaultMessageStore implements MessageStore {
             int deleteCount = 0;
             long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
             int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
-            int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
+            int destroyMappedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
 
-            boolean timeup = this.isTimeToDelete();
-            boolean spacefull = this.isSpaceToDelete();
+            boolean timeUp = this.isTimeToDelete();
+            boolean spaceFull = this.isSpaceToDelete();
             boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
 
-            if (timeup || spacefull || manualDelete) {
+            if (timeUp || spaceFull || manualDelete) {
 
                 if (manualDelete)
                     this.manualDeleteFileSeveralTimes--;
@@ -1602,17 +1618,17 @@ public class DefaultMessageStore implements MessageStore {
 
                 log.info("begin to delete before {} hours file. timeup: {} spacefull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}",
                     fileReservedTime,
-                    timeup,
-                    spacefull,
+                    timeUp,
+                    spaceFull,
                     manualDeleteFileSeveralTimes,
                     cleanAtOnce);
 
                 fileReservedTime *= 60 * 60 * 1000;
 
                 deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
-                    destroyMapedFileIntervalForcibly, cleanAtOnce);
+                    destroyMappedFileIntervalForcibly, cleanAtOnce);
                 if (deleteCount > 0) {
-                } else if (spacefull) {
+                } else if (spaceFull) {
                     log.warn("disk space will be full soon, but delete file failed.");
                 }
             }
@@ -1623,9 +1639,9 @@ public class DefaultMessageStore implements MessageStore {
             long currentTimestamp = System.currentTimeMillis();
             if ((currentTimestamp - this.lastRedeleteTimestamp) > interval) {
                 this.lastRedeleteTimestamp = currentTimestamp;
-                int destroyMapedFileIntervalForcibly =
+                int destroyMappedFileIntervalForcibly =
                     DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
-                if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMapedFileIntervalForcibly)) {
+                if (DefaultMessageStore.this.commitLog.retryDeleteFirstFile(destroyMappedFileIntervalForcibly)) {
                 }
             }
         }
@@ -1746,21 +1762,22 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         private void deleteExpiredFiles() {
-            int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
+            int deleteLogicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
+            int destroyMappedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
+            boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable();
 
+            ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
             long minOffset = DefaultMessageStore.this.commitLog.getMinOffset();
             if (minOffset > this.lastPhysicalMinOffset) {
                 this.lastPhysicalMinOffset = minOffset;
-
-                ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
 
                 for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
                     for (ConsumeQueue logic : maps.values()) {
                         int deleteCount = logic.deleteExpiredFile(minOffset);
 
-                        if (deleteCount > 0 && deleteLogicsFilesInterval > 0) {
+                        if (deleteCount > 0 && deleteLogicFilesInterval > 0) {
                             try {
-                                Thread.sleep(deleteLogicsFilesInterval);
+                                Thread.sleep(deleteLogicFilesInterval);
                             } catch (InterruptedException ignored) {
                             }
                         }
@@ -1768,6 +1785,12 @@ public class DefaultMessageStore implements MessageStore {
                 }
 
                 DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
+            } else {
+                for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
+                    for (ConsumeQueue logic : maps.values()) {
+                        logic.deleteExpiredFile(deleteLogicFilesInterval, destroyMappedFileIntervalForcibly, cleanAtOnce);
+                    }
+                }
             }
         }
 
