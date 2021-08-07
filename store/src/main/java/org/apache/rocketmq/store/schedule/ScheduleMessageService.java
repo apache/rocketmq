@@ -260,6 +260,16 @@ public class ScheduleMessageService extends ConfigManager {
             return result;
         }
 
+        private void scheduleNextDeliverTask(long nextOffset, long countdown) {
+            if (ScheduleMessageService.this.isStarted()) {
+                ScheduleMessageService.this.timer.schedule(
+                        new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
+                        countdown);
+            } else {
+                log.info("ScheduleMessageService stopped. skip schedule Delivery task.");
+            }
+        }
+
         public void executeOnTimeup() {
             ConsumeQueue cq =
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
@@ -329,9 +339,7 @@ public class ScheduleMessageService extends ConfigManager {
                                             log.error(
                                                 "ScheduleMessageService, a message time up, but reput it failed, topic: {} msgId {}",
                                                 msgExt.getTopic(), msgExt.getMsgId());
-                                            ScheduleMessageService.this.timer.schedule(
-                                                new DeliverDelayedMessageTimerTask(this.delayLevel,
-                                                    nextOffset), DELAY_FOR_A_PERIOD);
+                                            scheduleNextDeliverTask(nextOffset, DELAY_FOR_A_PERIOD);
                                             ScheduleMessageService.this.updateOffset(this.delayLevel,
                                                 nextOffset);
                                             return;
@@ -350,17 +358,14 @@ public class ScheduleMessageService extends ConfigManager {
                                     }
                                 }
                             } else {
-                                ScheduleMessageService.this.timer.schedule(
-                                    new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
-                                    countdown);
+                                scheduleNextDeliverTask(nextOffset, countdown);
                                 ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                                 return;
                             }
                         } // end of for
 
                         nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-                        ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
-                            this.delayLevel, nextOffset), DELAY_FOR_A_WHILE);
+                        scheduleNextDeliverTask(nextOffset, DELAY_FOR_A_WHILE);
                         ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                         return;
                     } finally {
@@ -379,8 +384,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             } // end of if (cq != null)
 
-            ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel,
-                failScheduleOffset), DELAY_FOR_A_WHILE);
+            scheduleNextDeliverTask(failScheduleOffset,DELAY_FOR_A_WHILE);
         }
 
         private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
