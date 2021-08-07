@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.admin;
 
+import com.alibaba.fastjson.TypeReference;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.Assert;
@@ -67,7 +68,7 @@ public class TopicStatsTableTest {
     @Test
     public void testFromJson() throws Exception {
         String json = RemotingSerializable.toJson(topicStatsTable, true);
-        TopicStatsTable fromJson = RemotingSerializable.fromJson(json, TopicStatsTable.class);
+        TopicStatsTable fromJson = RemotingSerializable.fromJson(json, new TypeReference<TopicStatsTable<TopicOffset>>(){});
 
         validateTopicStatsTable(fromJson);
     }
