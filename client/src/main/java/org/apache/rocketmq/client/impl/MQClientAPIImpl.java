@@ -53,6 +53,7 @@ import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
+import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicQueueStatistics;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.Message;
@@ -1185,7 +1186,7 @@ public class MQClientAPIImpl {
             request, timeoutMillis);
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                TopicStatsTable topicStatsTable = TopicStatsTable.decode(response.getBody(), TopicStatsTable.class);
+                TopicStatsTable topicStatsTable = TopicStatsTable.decode(response.getBody(), new TypeReference<TopicStatsTable<TopicOffset>>(){});
                 return topicStatsTable;
             }
             default:
