@@ -265,22 +265,22 @@ public class InnerLoggerFactory extends InternalLoggerFactory {
                     if (isEscapeDelimeter(messagePattern, j)) {
                         if (!isDoubleEscaped(messagePattern, j)) {
                             --len;
-                            sbuf.append(messagePattern.substring(i, j - 1));
+                            sbuf.append(messagePattern, i, j - 1);
                             sbuf.append('{');
                             i = j + 1;
                         } else {
-                            sbuf.append(messagePattern.substring(i, j - 1));
+                            sbuf.append(messagePattern, i, j - 1);
                             deeplyAppendParameter(sbuf, argArray[len], null);
                             i = j + 2;
                         }
                     } else {
-                        sbuf.append(messagePattern.substring(i, j));
+                        sbuf.append(messagePattern, i, j);
                         deeplyAppendParameter(sbuf, argArray[len], null);
                         i = j + 2;
                     }
                 }
 
-                sbuf.append(messagePattern.substring(i, messagePattern.length()));
+                sbuf.append(messagePattern.substring(i));
                 if (len < argArray.length - 1) {
                     return new FormattingTuple(sbuf.toString(), argArray, throwableCandidate);
                 } else {
