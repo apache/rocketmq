@@ -487,11 +487,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
                                 status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
                             } catch (Throwable e) {
-                                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
+                                log.warn(String.format("consumeMessage exception: %s Group: %s Msgs: %s MQ: %s",
                                     RemotingHelper.exceptionSimpleDesc(e),
                                     ConsumeMessageOrderlyService.this.consumerGroup,
                                     msgs,
-                                    messageQueue);
+                                    messageQueue), e);
                                 hasException = true;
                             } finally {
                                 this.processQueue.getConsumeLock().unlock();
