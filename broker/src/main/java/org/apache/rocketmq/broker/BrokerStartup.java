@@ -107,13 +107,17 @@ public class BrokerStartup {
                 System.exit(-1);
             }
 
+            // Broker配置、Netty服务器配置、Netty客户端配置
             final BrokerConfig brokerConfig = new BrokerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
 
+            // Netty相关配置，加密机制、监听端口
             nettyClientConfig.setUseTLS(Boolean.parseBoolean(System.getProperty(TLS_ENABLE,
                 String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
             nettyServerConfig.setListenPort(10911);
+
+            // Broker存储消息的配置
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
             if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
@@ -225,6 +229,8 @@ public class BrokerStartup {
                 System.exit(-3);
             }
 
+            // 注册一个JVM的关闭钩子
+            // JVM退出的时候，会执行里面的回调函数，主要是释放资源
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
                 private AtomicInteger shutdownTimes = new AtomicInteger(0);

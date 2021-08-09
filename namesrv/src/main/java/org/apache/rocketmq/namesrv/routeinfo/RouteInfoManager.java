@@ -156,6 +156,8 @@ public class RouteInfoManager {
                     }
                 }
 
+                // 每隔30s发送注册请求作为心跳的时候的核心处理逻辑
+                // 每隔30s都会封装一个新的BrokerLiveInfo放入Map
                 BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr,
                     new BrokerLiveInfo(
                         System.currentTimeMillis(),
@@ -431,6 +433,7 @@ public class RouteInfoManager {
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
             long last = next.getValue().getLastUpdateTimestamp();
+            // 如果当前时间距离上一次心跳时间，超过了broker心跳超时时间，默认120秒，则认为其死了
             if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
                 RemotingUtil.closeChannel(next.getValue().getChannel());
                 it.remove();

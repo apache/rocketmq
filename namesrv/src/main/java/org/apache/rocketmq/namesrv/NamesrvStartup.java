@@ -82,6 +82,7 @@ public class NamesrvStartup {
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
+        // "-c"选项意思是带上一个配置文件的地址
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -98,6 +99,7 @@ public class NamesrvStartup {
             }
         }
 
+        // mqnamesrv如果带了"-p"的选项，即print，打印出NameServer的所有配置信息
         if (commandLine.hasOption('p')) {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
@@ -143,6 +145,7 @@ public class NamesrvStartup {
             System.exit(-3);
         }
 
+        // JVM关闭时执行此回调函数
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
             @Override
             public Void call() throws Exception {

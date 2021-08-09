@@ -77,13 +77,19 @@ public class NamesrvController {
 
         this.kvConfigManager.load();
 
+        // 初始化Netty服务器
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
+        // Netty服务器的工作线程池
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
+        // 把工作线程池给Netty服务器
+        // 核心代码
+        // 请求处理器，是NameServer用来处理网络请求的组件
         this.registerProcessor();
 
+        // 后台定时任务，检查Broker心跳
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -92,6 +98,7 @@ public class NamesrvController {
             }
         }, 5, 10, TimeUnit.SECONDS);
 
+        // 后台定时任务，定时打印kv配置信息
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -143,11 +150,12 @@ public class NamesrvController {
 
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
-
+            // 处理测试集群
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                 this.remotingExecutor);
         } else {
-
+            // 把NameServer的默认处理组件注册进NettyServer
+            // NettyServer接收到的网络请求，都会由这个组件来处理
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }

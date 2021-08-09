@@ -901,7 +901,9 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
+        // 用于决定如何进行刷盘：同步/异步
         handleDiskFlush(result, putMessageResult, msg);
+        // 用于决定如何把消息同步给Slave Broker
         handleHA(result, putMessageResult, msg);
 
         return putMessageResult;
@@ -979,6 +981,7 @@ public class CommitLog {
         // Asynchronous flush
         else {
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+                // 唤醒异步刷盘组件
                 flushCommitLogService.wakeup();
             } else {
                 commitLogService.wakeup();
@@ -1427,6 +1430,7 @@ public class CommitLog {
                         // two times the flush
                         boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
                         for (int i = 0; i < 2 && !flushOK; i++) {
+                            // 同步刷盘
                             CommitLog.this.mappedFileQueue.flush(0);
                             flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
                         }

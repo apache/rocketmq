@@ -21,20 +21,26 @@ if [ -z "$ROCKETMQ_HOME" ] ; then
 
   # need this for relative symlinks
   while [ -h "$PRG" ] ; do
+    # shellcheck disable=SC2006
     ls=`ls -ld "$PRG"`
+    # shellcheck disable=SC2006
     link=`expr "$ls" : '.*-> \(.*\)$'`
     if expr "$link" : '/.*' > /dev/null; then
       PRG="$link"
     else
+      # shellcheck disable=SC2006
       PRG="`dirname "$PRG"`/$link"
     fi
   done
 
+  # shellcheck disable=SC2006
   saveddir=`pwd`
 
+  # shellcheck disable=SC2006
   ROCKETMQ_HOME=`dirname "$PRG"`/..
 
   # make it fully qualified
+  # shellcheck disable=SC2006
   ROCKETMQ_HOME=`cd "$ROCKETMQ_HOME" && pwd`
 
   cd "$saveddir"
@@ -42,4 +48,5 @@ fi
 
 export ROCKETMQ_HOME
 
+# shellcheck disable=SC2068
 sh ${ROCKETMQ_HOME}/bin/runserver.sh org.apache.rocketmq.namesrv.NamesrvStartup $@
