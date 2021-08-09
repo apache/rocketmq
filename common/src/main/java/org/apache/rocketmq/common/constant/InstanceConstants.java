@@ -1,7 +1,7 @@
 package org.apache.rocketmq.common.constant;
 
 /**
- * @author wb-zh378814
+ * @author zh
  * @Date 2021/8/9 10:20
  */
 public class InstanceConstants {
