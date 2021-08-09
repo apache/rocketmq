@@ -93,6 +93,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
     /**
      * Info,error,warn,callback method implementation
      */
+    @Override
     public void append(LogEvent event) {
         if (null == producer) {
             return;
@@ -117,6 +118,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
     /**
      * When system exit,this method will be called to close resources
      */
+    @Override
     public boolean stop(long timeout, TimeUnit timeUnit) {
         this.setStopping();
         try {
@@ -218,6 +220,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
             return this;
         }
 
+        @Override
         public RocketmqLog4j2Appender build() {
             return new RocketmqLog4j2Appender(name, filter, layout, ignoreExceptions,
                 nameServerAddress, producerGroup, topic, tag);

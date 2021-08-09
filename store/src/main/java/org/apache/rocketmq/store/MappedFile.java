@@ -120,7 +120,7 @@ public class MappedFile extends ReferenceResource {
         String methodName = "viewedBuffer";
         Method[] methods = buffer.getClass().getMethods();
         for (int i = 0; i < methods.length; i++) {
-            if (methods[i].getName().equals("attachment")) {
+            if ("attachment".equals(methods[i].getName())) {
                 methodName = "attachment";
                 break;
             }

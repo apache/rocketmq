@@ -256,7 +256,7 @@ public class UtilAll {
     }
 
     public static byte[] string2bytes(String hexString) {
-        if (hexString == null || hexString.equals("")) {
+        if (hexString == null || "".equals(hexString)) {
             return null;
         }
         hexString = hexString.toUpperCase();

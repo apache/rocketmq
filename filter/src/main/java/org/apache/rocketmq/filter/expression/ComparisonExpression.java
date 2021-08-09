@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.filter.expression;
 
+import org.apache.rocketmq.common.constant.SymbolConstants;
+
 import java.util.List;
 
 /**
@@ -112,6 +114,7 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
     private static BooleanExpression doCreateEqual(Expression left, Expression right) {
         return new ComparisonExpression(left, right) {
 
+            @Override
             public Object evaluate(EvaluationContext context) throws Exception {
                 Object lv = left.evaluate(context);
                 Object rv = right.evaluate(context);
@@ -245,6 +248,7 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
     public Object evaluate(EvaluationContext context) throws Exception {
         Comparable<Comparable> lv = (Comparable) left.evaluate(context);
         if (lv == null) {
@@ -254,8 +258,8 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
         if (rv == null) {
             return null;
         }
-        if (getExpressionSymbol().equals(">=") || getExpressionSymbol().equals(">")
-            || getExpressionSymbol().equals("<") || getExpressionSymbol().equals("<=")) {
+        if (SymbolConstants.GREATER_AND_EQUAL_CONSTANT.equals(getExpressionSymbol()) || SymbolConstants.GREATER_CONSTANT.equals(getExpressionSymbol())
+            || SymbolConstants.LESS_THAN_CONSTANT.equals(getExpressionSymbol()) || SymbolConstants.LESS_THAN_AND_EQUAL_CONSTANT.equals(getExpressionSymbol())) {
             Class<? extends Comparable> lc = lv.getClass();
             Class<? extends Comparable> rc = rv.getClass();
             if (lc == rc && lc == String.class) {

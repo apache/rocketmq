@@ -173,6 +173,7 @@ public class LoggingBuilder {
             }
         }
 
+        @Override
         public void append(final LoggingEvent event) {
             if ((dispatcher == null) || !dispatcher.isAlive() || (bufferSize <= 0)) {
                 synchronized (appenderPipeline) {
@@ -472,10 +473,12 @@ public class LoggingBuilder {
             return immediateFlush;
         }
 
+        @Override
         public void activateOptions() {
         }
 
 
+        @Override
         public void append(LoggingEvent event) {
             if (!checkEntryConditions()) {
                 return;
@@ -633,6 +636,7 @@ public class LoggingBuilder {
             return fileName;
         }
 
+        @Override
         public void activateOptions() {
             if (fileName != null) {
                 try {
@@ -913,6 +917,7 @@ public class LoggingBuilder {
             return datePattern;
         }
 
+        @Override
         public void activateOptions() {
             super.activateOptions();
             if (datePattern != null && fileName != null) {
@@ -1133,6 +1138,7 @@ public class LoggingBuilder {
             SysLogger.warn("Using previously set target, System.out by default.");
         }
 
+        @Override
         public void activateOptions() {
             if (target.equals(SYSTEM_ERR)) {
                 setWriter(createWriter(System.err));

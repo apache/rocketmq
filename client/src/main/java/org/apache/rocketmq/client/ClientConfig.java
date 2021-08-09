@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.InstanceConstants;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.utils.NameServerAddressUtils;
@@ -93,7 +94,7 @@ public class ClientConfig {
     }
 
     public void changeInstanceNameToPID() {
-        if (this.instanceName.equals("DEFAULT")) {
+        if (InstanceConstants.DEFAULT_INSTANCE_NAME.equals(this.instanceName)) {
             this.instanceName = UtilAll.getPid() + "#" + System.nanoTime();
         }
     }
