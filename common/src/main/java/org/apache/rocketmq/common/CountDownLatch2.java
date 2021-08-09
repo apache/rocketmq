@@ -150,6 +150,7 @@ public class CountDownLatch2 {
      *
      * @return a string identifying this latch, as well as its state
      */
+    @Override
     public String toString() {
         return super.toString() + "[Count = " + sync.getCount() + "]";
     }
@@ -172,10 +173,12 @@ public class CountDownLatch2 {
             return getState();
         }
 
+        @Override
         protected int tryAcquireShared(int acquires) {
             return (getState() == 0) ? 1 : -1;
         }
 
+        @Override
         protected boolean tryReleaseShared(int releases) {
             // Decrement count; signal when transition to zero
             for (; ; ) {

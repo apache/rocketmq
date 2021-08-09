@@ -164,6 +164,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         }
     }
 
+    @Override
     public void removeOffset(MessageQueue mq) {
         if (mq != null) {
             this.offsetTable.remove(mq);

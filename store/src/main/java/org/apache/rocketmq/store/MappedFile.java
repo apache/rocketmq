@@ -96,6 +96,7 @@ public class MappedFile extends ReferenceResource {
 
     private static Object invoke(final Object target, final String methodName, final Class<?>... args) {
         return AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
             public Object run() {
                 try {
                     Method method = method(target, methodName, args);
