@@ -119,7 +119,7 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
             Map<String, Object> jsonMap = new HashMap<>();
             jsonMap.put("topicConfigTable", topicConfigMap);
             jsonMap.put("subscriptionGroupTable", subGroupConfigMap);
-            jsonMap.put("rocketmqVersion", Integer.toString(MQVersion.CURRENT_VERSION));
+            jsonMap.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
             jsonMap.put("exportTime", System.currentTimeMillis());
 
             String path = filePath + "/topicAndSubGroup.json";
