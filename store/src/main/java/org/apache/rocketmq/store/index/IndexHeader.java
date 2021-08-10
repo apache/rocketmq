@@ -21,13 +21,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class IndexHeader {
+    /** 索引文件头大小 */
     public static final int INDEX_HEADER_SIZE = 40;
+    /** 开始时间戳 8btye */
     private static int beginTimestampIndex = 0;
+    /** 结束时间戳 8byte */
     private static int endTimestampIndex = 8;
+    /** 开始物理偏移量 8byte */
     private static int beginPhyoffsetIndex = 16;
+    /** 结束物理偏移量 8byte */
     private static int endPhyoffsetIndex = 24;
+    /** hash槽数量 4byte int大小 */
     private static int hashSlotcountIndex = 32;
+    /** 索引数量 4byte */
     private static int indexCountIndex = 36;
+    /** 字节缓冲 */
     private final ByteBuffer byteBuffer;
     private AtomicLong beginTimestamp = new AtomicLong(0);
     private AtomicLong endTimestamp = new AtomicLong(0);
