@@ -21,10 +21,12 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -39,6 +41,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -325,7 +328,8 @@ class StatsBenchmarkBatchProducer {
 
     private final AtomicLong sendMessageFailedCount = new AtomicLong(0L);
 
-    private final Timer timer = new Timer("BenchmarkTimerThread", true);
+    private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors(),
+            new ThreadFactoryImpl("BenchmarkTimerThread-"));
 
     private final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
@@ -368,17 +372,14 @@ class StatsBenchmarkBatchProducer {
 
     public void start() {
 
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                snapshotList.addLast(createSnapshot());
-                if (snapshotList.size() > 10) {
-                    snapshotList.removeFirst();
-                }
+        scheduler.scheduleAtFixedRate(() -> {
+            snapshotList.addLast(createSnapshot());
+            if (snapshotList.size() > 10) {
+                snapshotList.removeFirst();
             }
-        }, 1000, 1000);
+        }, 1000, 1000, TimeUnit.MILLISECONDS);
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        scheduler.scheduleAtFixedRate(new TimerTask() {
             private void printStats() {
                 if (snapshotList.size() >= 10) {
                     Long[] begin = snapshotList.getFirst();
@@ -402,10 +403,10 @@ class StatsBenchmarkBatchProducer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000);
+        }, 10000, 10000, TimeUnit.MILLISECONDS);
     }
 
     public void shutdown() {
-        timer.cancel();
+        scheduler.shutdown();
     }
 }
