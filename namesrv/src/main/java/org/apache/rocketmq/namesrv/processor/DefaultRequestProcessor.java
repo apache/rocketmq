@@ -81,13 +81,13 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
 
         switch (request.getCode()) {
             case RequestCode.PUT_KV_CONFIG:
-                return this.putKVConfig(ctx, request);
+                return this.putKVConfig(request);
             case RequestCode.GET_KV_CONFIG:
-                return this.getKVConfig(ctx, request);
+                return this.getKVConfig(request);
             case RequestCode.DELETE_KV_CONFIG:
-                return this.deleteKVConfig(ctx, request);
+                return this.deleteKVConfig(request);
             case RequestCode.QUERY_DATA_VERSION:
-                return queryBrokerTopicConfig(ctx, request);
+                return queryBrokerTopicConfig(request);
             case RequestCode.REGISTER_BROKER:
                 Version brokerVersion = MQVersion.value2Version(request.getVersion());
                 if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
@@ -96,33 +96,33 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                     return this.registerBroker(ctx, request);
                 }
             case RequestCode.UNREGISTER_BROKER:
-                return this.unregisterBroker(ctx, request);
+                return this.unregisterBroker(request);
             case RequestCode.GET_ROUTEINFO_BY_TOPIC:
                 return this.getRouteInfoByTopic(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_INFO:
-                return this.getBrokerClusterInfo(ctx, request);
+                return this.getBrokerClusterInfo();
             case RequestCode.WIPE_WRITE_PERM_OF_BROKER:
                 return this.wipeWritePermOfBroker(ctx, request);
             case RequestCode.GET_ALL_TOPIC_LIST_FROM_NAMESERVER:
-                return getAllTopicListFromNameserver(ctx, request);
+                return getAllTopicListFromNameserver();
             case RequestCode.DELETE_TOPIC_IN_NAMESRV:
-                return deleteTopicInNamesrv(ctx, request);
+                return deleteTopicInNamesrv(request);
             case RequestCode.GET_KVLIST_BY_NAMESPACE:
-                return this.getKVListByNamespace(ctx, request);
+                return this.getKVListByNamespace(request);
             case RequestCode.GET_TOPICS_BY_CLUSTER:
-                return this.getTopicsByCluster(ctx, request);
+                return this.getTopicsByCluster(request);
             case RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_NS:
-                return this.getSystemTopicListFromNs(ctx, request);
+                return this.getSystemTopicListFromNs();
             case RequestCode.GET_UNIT_TOPIC_LIST:
-                return this.getUnitTopicList(ctx, request);
+                return this.getUnitTopicList();
             case RequestCode.GET_HAS_UNIT_SUB_TOPIC_LIST:
-                return this.getHasUnitSubTopicList(ctx, request);
+                return this.getHasUnitSubTopicList();
             case RequestCode.GET_HAS_UNIT_SUB_UNUNIT_TOPIC_LIST:
-                return this.getHasUnitSubUnUnitTopicList(ctx, request);
+                return this.getHasUnitSubUnUnitTopicList();
             case RequestCode.UPDATE_NAMESRV_CONFIG:
                 return this.updateConfig(ctx, request);
             case RequestCode.GET_NAMESRV_CONFIG:
-                return this.getConfig(ctx, request);
+                return this.getConfig();
             default:
                 break;
         }
@@ -134,8 +134,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return false;
     }
 
-    public RemotingCommand putKVConfig(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand putKVConfig(RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final PutKVConfigRequestHeader requestHeader =
             (PutKVConfigRequestHeader) request.decodeCommandCustomHeader(PutKVConfigRequestHeader.class);
@@ -156,8 +155,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    public RemotingCommand getKVConfig(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand getKVConfig(RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetKVConfigResponseHeader.class);
         final GetKVConfigResponseHeader responseHeader = (GetKVConfigResponseHeader) response.readCustomHeader();
         final GetKVConfigRequestHeader requestHeader =
@@ -180,8 +178,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    public RemotingCommand deleteKVConfig(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand deleteKVConfig(RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final DeleteKVConfigRequestHeader requestHeader =
             (DeleteKVConfigRequestHeader) request.decodeCommandCustomHeader(DeleteKVConfigRequestHeader.class);
@@ -256,8 +253,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return true;
     }
 
-    public RemotingCommand queryBrokerTopicConfig(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand queryBrokerTopicConfig(RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(QueryDataVersionResponseHeader.class);
         final QueryDataVersionResponseHeader responseHeader = (QueryDataVersionResponseHeader) response.readCustomHeader();
         final QueryDataVersionRequestHeader requestHeader =
@@ -323,8 +319,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    public RemotingCommand unregisterBroker(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand unregisterBroker(RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final UnRegisterBrokerRequestHeader requestHeader =
             (UnRegisterBrokerRequestHeader) request.decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
@@ -369,7 +364,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getBrokerClusterInfo() {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
@@ -402,7 +397,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getAllTopicListFromNameserver(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getAllTopicListFromNameserver() {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         byte[] body = this.namesrvController.getRouteInfoManager().getAllTopicList();
@@ -413,8 +408,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand deleteTopicInNamesrv(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand deleteTopicInNamesrv(RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final DeleteTopicInNamesrvRequestHeader requestHeader =
             (DeleteTopicInNamesrvRequestHeader) request.decodeCommandCustomHeader(DeleteTopicInNamesrvRequestHeader.class);
@@ -426,8 +420,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getKVListByNamespace(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand getKVListByNamespace(RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetKVListByNamespaceRequestHeader requestHeader =
             (GetKVListByNamespaceRequestHeader) request.decodeCommandCustomHeader(GetKVListByNamespaceRequestHeader.class);
@@ -446,8 +439,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getTopicsByCluster(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand getTopicsByCluster(RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetTopicsByClusterRequestHeader requestHeader =
             (GetTopicsByClusterRequestHeader) request.decodeCommandCustomHeader(GetTopicsByClusterRequestHeader.class);
@@ -460,8 +452,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getSystemTopicListFromNs(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand getSystemTopicListFromNs() {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         byte[] body = this.namesrvController.getRouteInfoManager().getSystemTopicList();
@@ -472,8 +463,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getUnitTopicList(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand getUnitTopicList() {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         byte[] body = this.namesrvController.getRouteInfoManager().getUnitTopics();
@@ -484,8 +474,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getHasUnitSubTopicList(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private RemotingCommand getHasUnitSubTopicList() {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         byte[] body = this.namesrvController.getRouteInfoManager().getHasUnitSubTopicList();
@@ -496,8 +485,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getHasUnitSubUnUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request)
-        throws RemotingCommandException {
+    private RemotingCommand getHasUnitSubUnUnitTopicList() {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         byte[] body = this.namesrvController.getRouteInfoManager().getHasUnitSubUnUnitTopicList();
@@ -543,7 +531,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
-    private RemotingCommand getConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getConfig() {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         String content = this.namesrvController.getConfiguration().getAllConfigsFormatString();
