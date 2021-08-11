@@ -270,7 +270,6 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
                         orderOutTps += orderOutBsd.getStatsMinute().getTps();
                     }
                 } catch (Exception e) {
-                    continue;
                 }
             }
         }
