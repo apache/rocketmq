@@ -136,15 +136,15 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
                 }
             }
 
-            Map<String, Object> jsonMap = new HashMap<>();
-            jsonMap.put("topicConfigTable", topicConfigMap);
-            jsonMap.put("subscriptionGroupTable", subGroupConfigMap);
-            jsonMap.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
-            jsonMap.put("exportTime", System.currentTimeMillis());
+            Map<String, Object> result = new HashMap<>();
+            result.put("topicConfigTable", topicConfigMap);
+            result.put("subscriptionGroupTable", subGroupConfigMap);
+            result.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+            result.put("exportTime", System.currentTimeMillis());
 
             String path = filePath + "/topicAndSubGroup.json";
 
-            MixAll.string2FileNotSafe(JSON.toJSONString(jsonMap, true), path);
+            MixAll.string2FileNotSafe(JSON.toJSONString(result, true), path);
 
             System.out.printf("export %s success", path);
         } catch (Exception e) {

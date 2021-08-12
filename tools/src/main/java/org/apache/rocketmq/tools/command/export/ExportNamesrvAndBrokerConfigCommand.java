@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.tools.command.export;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import com.alibaba.fastjson.JSON;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -38,7 +41,7 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "export namesrvAndBrokerConfig.properties";
+        return "export namesrvAndBrokerConfig.json";
     }
 
     @Override
@@ -48,7 +51,7 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("f", "filePath", true,
-            "export namesrvAndBrokerConfig.properties path | default /tmp/rocketmq/config");
+            "export namesrvAndBrokerConfig.json path | default /tmp/rocketmq/config");
         opt.setRequired(false);
         options.addOption(opt);
         return options;
@@ -66,49 +69,35 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
                 .trim();
 
             defaultMQAdminExt.start();
-            StringBuilder configStr = new StringBuilder();
+            Map<String, Object> result = new HashMap<>();
             // name servers
             Map<String, Properties> nameServerConfigs = defaultMQAdminExt.getNameServerConfig(null);
-            configStr.append("============namesrv config============\n");
-            for (String server : nameServerConfigs.keySet()) {
-                configStr.append(String.format("============%s============\n", server));
-                for (Object key : nameServerConfigs.get(server).keySet()) {
-                    configStr.append(String.format("%-50s=  %s\n", key, nameServerConfigs.get(server).get(key)));
-                }
-            }
-
-            configStr.append("\n\n");
+            result.put("nameServerConfigs", nameServerConfigs);
 
             //broker
-            configStr.append("============broker config============\n");
+            Map<String, Map<String, Properties>> brokerConfigs = new HashMap<>();
             Map<String, List<String>> masterAndSlaveMap
                 = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
             for (String masterAddr : masterAndSlaveMap.keySet()) {
-                configStr.append(String.format("============Master: %s============\n", masterAddr));
+                Map<String, Properties> map = new HashMap<>();
                 Properties masterProperties = defaultMQAdminExt.getBrokerConfig(masterAddr);
-                for (Object key : masterProperties.keySet()) {
-                    configStr.append(String.format("%-50s=  %s\n", key, masterProperties.get(key)));
-                }
+                map.put(masterAddr, masterProperties);
                 for (String slaveAddr : masterAndSlaveMap.get(masterAddr)) {
-
-                    configStr.append(
-                        String.format("============My Master: %s=====Slave: %s============\n", masterAddr, slaveAddr));
                     Properties slaveProperties = defaultMQAdminExt.getBrokerConfig(slaveAddr);
-                    for (Object key : slaveProperties.keySet()) {
-                        configStr.append(String.format("%-50s=  %s\n", key, slaveProperties.get(key)));
-                    }
+                    map.put(slaveAddr, slaveProperties);
                 }
-                configStr.append("\n");
+                brokerConfigs.put(masterProperties.getProperty("brokerName"), map);
             }
 
-            String path = filePath + "/namesrvAndBrokerConfig.properties";
-            MixAll.string2FileNotSafe(configStr.toString(), path);
+            result.put("brokerConfigs", brokerConfigs);
+
+            String path = filePath + "/namesrvAndBrokerConfig.json";
+            MixAll.string2FileNotSafe(JSON.toJSONString(result, true), path);
             System.out.printf("export %s success", path);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
         }
-
     }
 }
