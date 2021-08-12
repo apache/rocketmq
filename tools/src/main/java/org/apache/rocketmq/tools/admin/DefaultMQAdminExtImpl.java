@@ -99,6 +99,24 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private long timeoutMillis = 20000;
     private Random random = new Random();
 
+    private static final Set<String> SYSTEM_GROUP_SET = new HashSet<String>();
+
+    static {
+        SYSTEM_GROUP_SET.add(MixAll.DEFAULT_CONSUMER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.DEFAULT_PRODUCER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.TOOLS_CONSUMER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.FILTERSRV_CONSUMER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.MONITOR_CONSUMER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.CLIENT_INNER_PRODUCER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.SELF_TEST_PRODUCER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.SELF_TEST_CONSUMER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.ONS_HTTP_PROXY_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_PERMISSION_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_OWNER_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_PULL_GROUP);
+        SYSTEM_GROUP_SET.add(MixAll.CID_SYS_RMQ_TRANS);
+    }
+
     public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt, long timeoutMillis) {
         this(defaultMQAdminExt, null, timeoutMillis);
     }
@@ -952,6 +970,25 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         return this.mqClientInstance.getMQClientAPIImpl().getAllSubscriptionGroup(brokerAddr, timeoutMillis);
+    }
+
+    @Override
+    public SubscriptionGroupWrapper getUserSubscriptionGroup(final String brokerAddr,
+        long timeoutMillis) throws InterruptedException,
+        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        SubscriptionGroupWrapper subscriptionGroupWrapper = this.mqClientInstance.getMQClientAPIImpl()
+            .getAllSubscriptionGroup(brokerAddr, timeoutMillis);
+
+        Iterator<Entry<String, SubscriptionGroupConfig>> iterator = subscriptionGroupWrapper.getSubscriptionGroupTable()
+            .entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, SubscriptionGroupConfig> configEntry = iterator.next();
+            if (MixAll.isSysConsumerGroup(configEntry.getKey()) || SYSTEM_GROUP_SET.contains(configEntry.getKey())) {
+                iterator.remove();
+            }
+        }
+
+        return subscriptionGroupWrapper;
     }
 
     @Override

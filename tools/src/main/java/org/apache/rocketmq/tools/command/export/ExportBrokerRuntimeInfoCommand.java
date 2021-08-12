@@ -46,9 +46,7 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
@@ -113,7 +111,7 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
 
                         Properties properties = defaultMQAdminExt.getBrokerConfig(next1.getValue());
 
-                        SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getAllSubscriptionGroup(
+                        SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
                             next1.getValue(), 10000);
 
                         Map<String, Map<String, Object>> brokerInfo = new HashMap<>();
@@ -197,10 +195,10 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
     }
 
     private Map<String, Object> getRuntimeQuota(KVTable kvTable, DefaultMQAdminExt defaultMQAdminExt, String brokerAddr,
-        Map<String, Double> totalTpsMap, Map<String, Long> totalOneDayNumMap, long brokerId, SubscriptionGroupWrapper subscriptionGroupWrapper)
-        throws RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, MQBrokerException,
-        InterruptedException {
-        TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getAllTopicConfig(
+        Map<String, Double> totalTpsMap, Map<String, Long> totalOneDayNumMap, long brokerId,
+        SubscriptionGroupWrapper subscriptionGroupWrapper)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
             brokerAddr, 10000);
 
         BrokerStatsData transStatsData = null;

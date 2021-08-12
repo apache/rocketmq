@@ -17,7 +17,6 @@
 package org.apache.rocketmq.tools.command.export;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,24 +40,6 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ExportTopicAndSubGroupCommand implements SubCommand {
-
-    private static final Set<String> SYSTEM_GROUP_SET = new HashSet<String>();
-
-    static {
-        SYSTEM_GROUP_SET.add(MixAll.DEFAULT_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.DEFAULT_PRODUCER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.TOOLS_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.FILTERSRV_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.MONITOR_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CLIENT_INNER_PRODUCER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.SELF_TEST_PRODUCER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.SELF_TEST_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.ONS_HTTP_PROXY_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_PERMISSION_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_OWNER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_PULL_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CID_SYS_RMQ_TRANS);
-    }
 
     @Override
     public String commandName() {
@@ -121,18 +102,17 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
                     }
                 }
 
-                SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getAllSubscriptionGroup(
+                SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
                     addr, 10000);
                 for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper
                     .getSubscriptionGroupTable().entrySet()) {
-                    if (!MixAll.isSysConsumerGroup(entry.getKey()) && !SYSTEM_GROUP_SET.contains(entry.getKey())) {
-                        SubscriptionGroupConfig subscriptionGroupConfig = subGroupConfigMap.get(entry.getKey());
-                        if (null != subscriptionGroupConfig) {
-                            entry.getValue().setRetryQueueNums(
-                                subscriptionGroupConfig.getRetryQueueNums() + entry.getValue().getRetryQueueNums());
-                        }
-                        subGroupConfigMap.put(entry.getKey(), entry.getValue());
+
+                    SubscriptionGroupConfig subscriptionGroupConfig = subGroupConfigMap.get(entry.getKey());
+                    if (null != subscriptionGroupConfig) {
+                        entry.getValue().setRetryQueueNums(
+                            subscriptionGroupConfig.getRetryQueueNums() + entry.getValue().getRetryQueueNums());
                     }
+                    subGroupConfigMap.put(entry.getKey(), entry.getValue());
                 }
             }
 
