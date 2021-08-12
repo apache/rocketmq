@@ -18,9 +18,12 @@ package org.apache.rocketmq.client.consumer.rebalance;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 
 /**
@@ -38,8 +41,9 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
     }
 
     @Override
-    public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-        List<String> cidAll) {
+    public List<MessageQueue> allocate(Map<String, TopicRouteData> topicRouteData, String consumerGroup,
+                                       String currentCID, List<MessageQueue> mqAll,
+                                       List<String> cidAll) {
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }

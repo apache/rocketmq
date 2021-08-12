@@ -357,6 +357,7 @@ public abstract class RebalanceImpl {
                     List<MessageQueue> allocateResult = null;
                     try {
                         allocateResult = strategy.allocate(
+                            mQClientFactory.getTopicRouteTable(),
                             this.consumerGroup,
                             this.mQClientFactory.getClientId(),
                             mqAll,

@@ -17,7 +17,10 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.util.List;
+import java.util.Map;
+
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 /**
  * Strategy Algorithm for message allocating between consumers
@@ -27,6 +30,8 @@ public interface AllocateMessageQueueStrategy {
     /**
      * Allocating by consumer id
      *
+     * @param topicRouteData runtime info of topic route data, use it when you need broker info to allocate,
+     *                       if don't use it, can be null.
      * @param consumerGroup current consumer group
      * @param currentCID current consumer id
      * @param mqAll message queue set in current topic
@@ -34,6 +39,7 @@ public interface AllocateMessageQueueStrategy {
      * @return The allocate result of given strategy
      */
     List<MessageQueue> allocate(
+        final Map<String, TopicRouteData> topicRouteData,
         final String consumerGroup,
         final String currentCID,
         final List<MessageQueue> mqAll,

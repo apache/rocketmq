@@ -53,7 +53,7 @@ public class AllocateMessageQueueConsitentHashTest {
         String currentCID = String.valueOf(Integer.MAX_VALUE);
         List<String> consumerIdList = createConsumerIdList(2);
         List<MessageQueue> messageQueueList = createMessageQueueList(6);
-        List<MessageQueue> result = new AllocateMessageQueueConsistentHash().allocate("", currentCID, messageQueueList, consumerIdList);
+        List<MessageQueue> result = new AllocateMessageQueueConsistentHash().allocate(null,"", currentCID, messageQueueList, consumerIdList);
         printMessageQueue(result, "testCurrentCIDNotExists");
         Assert.assertEquals(result.size(), 0);
     }
@@ -62,21 +62,21 @@ public class AllocateMessageQueueConsitentHashTest {
     public void testCurrentCIDIllegalArgument() {
         List<String> consumerIdList = createConsumerIdList(2);
         List<MessageQueue> messageQueueList = createMessageQueueList(6);
-        new AllocateMessageQueueConsistentHash().allocate("", "", messageQueueList, consumerIdList);
+        new AllocateMessageQueueConsistentHash().allocate(null,"", "", messageQueueList, consumerIdList);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testMessageQueueIllegalArgument() {
         String currentCID = "0";
         List<String> consumerIdList = createConsumerIdList(2);
-        new AllocateMessageQueueConsistentHash().allocate("", currentCID, null, consumerIdList);
+        new AllocateMessageQueueConsistentHash().allocate(null,"", currentCID, null, consumerIdList);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testConsumerIdIllegalArgument() {
         String currentCID = "0";
         List<MessageQueue> messageQueueList = createMessageQueueList(6);
-        new AllocateMessageQueueConsistentHash().allocate("", currentCID, messageQueueList, null);
+        new AllocateMessageQueueConsistentHash().allocate(null,"", currentCID, messageQueueList, null);
     }
 
     @Test
@@ -119,7 +119,7 @@ public class AllocateMessageQueueConsitentHashTest {
 
             //System.out.println("cidAll:" + cidBegin.toString());
             for (String cid : cidBegin) {
-                List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate("testConsumerGroup", cid, mqAll, cidBegin);
+                List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate(null,"testConsumerGroup", cid, mqAll, cidBegin);
                 for (MessageQueue mq : rs) {
                     allocateToAllOrigin.put(mq, cid);
                 }
@@ -149,7 +149,7 @@ public class AllocateMessageQueueConsitentHashTest {
             //System.out.println("cidAll:" + cidAfterRemoveOne.toString());
             List<MessageQueue> allocatedResAllAfterRemove = new ArrayList<MessageQueue>();
             for (String cid : cidAfterRemoveOne) {
-                List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate("testConsumerGroup", cid, mqAll, cidAfterRemoveOne);
+                List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate(null,"testConsumerGroup", cid, mqAll, cidAfterRemoveOne);
                 allocatedResAllAfterRemove.addAll(rs);
                 for (MessageQueue mq : rs) {
                     allocateToAllAfterRemoveOne.put(mq, cid);
@@ -173,7 +173,7 @@ public class AllocateMessageQueueConsitentHashTest {
             List<MessageQueue> allocatedResAllAfterAdd = new ArrayList<MessageQueue>();
             Map<MessageQueue, String> allocateToAll3 = new TreeMap<MessageQueue, String>();
             for (String cid : cidAfterAdd) {
-                List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate("testConsumerGroup", cid, mqAll, cidAfterAdd);
+                List<MessageQueue> rs = allocateMessageQueueConsistentHash.allocate(null,"testConsumerGroup", cid, mqAll, cidAfterAdd);
                 allocatedResAllAfterAdd.addAll(rs);
                 for (MessageQueue mq : rs) {
                     allocateToAll3.put(mq, cid);
