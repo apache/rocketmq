@@ -1,0 +1,34 @@
+@startuml
+cloud producer集群
+cloud namesrv集群
+cloud consumer集群
+cloud broker集群
+
+producer集群 -right-> namesrv集群 : send
+consumer集群 -left-> namesrv集群 : pull
+namesrv集群 -right-> consumer集群 : push
+namesrv集群 -down-> broker集群 : route
+
+newpage
+cloud namesrv集群
+database brokerMaster
+database brokerSalve1
+database brokerSalve2
+card namesrv实例1
+card namesrv实例2
+card namesrv实例3
+namesrv集群 .down. namesrv实例1
+namesrv集群 .down. namesrv实例2
+namesrv集群 .down. namesrv实例3
+brokerMaster <-- brokerSalve1
+brokerMaster <-- brokerSalve2
+namesrv实例1 -- brokerMaster
+namesrv实例1 -- brokerSalve1
+namesrv实例1 -- brokerSalve2
+namesrv实例2 -- brokerMaster
+namesrv实例2 -- brokerSalve1
+namesrv实例2 -- brokerSalve2
+namesrv实例3 -- brokerMaster
+namesrv实例3 -- brokerSalve1
+namesrv实例3 -- brokerSalve2
+@enduml
