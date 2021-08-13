@@ -158,7 +158,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
         private Filter filter;
 
         @PluginBuilderAttribute
-        private boolean ignoreExceptions;
+        private boolean ignoreExceptions = true;
 
         @PluginBuilderAttribute
         private String tag;
@@ -174,8 +174,6 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
         private String topic;
 
         private Builder() {
-            this.layout = SerializedLayout.createLayout();
-            this.ignoreExceptions = true;
         }
 
         public RocketmqLog4j2Appender.Builder setName(String name) {
@@ -219,6 +217,10 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
         }
 
         public RocketmqLog4j2Appender build() {
+            if (this.layout == null) {
+                this.layout = SerializedLayout.createLayout();
+            }
+
             return new RocketmqLog4j2Appender(name, filter, layout, ignoreExceptions,
                 nameServerAddress, producerGroup, topic, tag);
         }
