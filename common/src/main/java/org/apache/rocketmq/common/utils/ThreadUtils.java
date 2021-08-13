@@ -19,8 +19,8 @@ package org.apache.rocketmq.common.utils;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -38,16 +38,16 @@ public final class ThreadUtils {
     }
 
     public static ExecutorService newSingleThreadExecutor(String processName, boolean isDaemon) {
-        return Executors.newSingleThreadExecutor(newThreadFactory(processName, isDaemon));
+        return new ScheduledThreadPoolExecutor(1, newThreadFactory(processName, isDaemon));
     }
 
     public static ScheduledExecutorService newSingleThreadScheduledExecutor(String processName, boolean isDaemon) {
-        return Executors.newSingleThreadScheduledExecutor(newThreadFactory(processName, isDaemon));
+        return new ScheduledThreadPoolExecutor(1, newThreadFactory(processName, isDaemon));
     }
 
     public static ScheduledExecutorService newFixedThreadScheduledPool(int nThreads, String processName,
         boolean isDaemon) {
-        return Executors.newScheduledThreadPool(nThreads, newThreadFactory(processName, isDaemon));
+        return new ScheduledThreadPoolExecutor(nThreads, newThreadFactory(processName, isDaemon));
     }
 
     public static ThreadFactory newThreadFactory(String processName, boolean isDaemon) {

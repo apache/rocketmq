@@ -26,9 +26,9 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -59,7 +59,7 @@ class LocalMessageCache implements ServiceLifecycle {
         this.pullOffsetTable = new ConcurrentHashMap<>();
         this.rocketmqPullConsumer = rocketmqPullConsumer;
         this.clientConfig = clientConfig;
-        this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+        this.cleanExpireMsgExecutors = new ScheduledThreadPoolExecutor(1, new ThreadFactoryImpl(
             "OMS_CleanExpireMsgScheduledThread_"));
     }
 

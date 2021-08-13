@@ -25,6 +25,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -79,7 +84,20 @@ public class BatchProducer {
         producer.start();
 
         final InternalLogger log = ClientLogger.getLog();
-        final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
+        final ExecutorService sendThreadPool = new ThreadPoolExecutor(
+                threadCount,
+                threadCount,
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(100000),
+                new ThreadFactory() {
+                    private final AtomicInteger threadIndex = new AtomicInteger(0);
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "sendThreadPool_" + this.threadIndex.incrementAndGet());
+                    }
+                });
         for (int i = 0; i < threadCount; i++) {
             sendThreadPool.execute(new Runnable() {
                 @Override
