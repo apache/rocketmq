@@ -72,11 +72,12 @@ public class SelectMessageQueueSpecialLabel implements MessageQueueSelector {
                 specialLabelMessageQueueList.add(brokerQueueList.get(i));
             }
         });
-        specialLabelMessageQueueList.forEach(specialLabelMq -> mqs.remove(specialLabelMq));
+        List<MessageQueue> normalMqs = new ArrayList<>(mqs);
+        specialLabelMessageQueueList.forEach(specialLabelMq -> normalMqs.remove(specialLabelMq));
         if(arg != null) {
             return defaultMessageQueueSelector.select(specialLabelMessageQueueList, msg, arg);
         } else {
-            return defaultMessageQueueSelector.select(mqs, msg, arg);
+            return defaultMessageQueueSelector.select(normalMqs, msg, arg);
         }
 
     }
