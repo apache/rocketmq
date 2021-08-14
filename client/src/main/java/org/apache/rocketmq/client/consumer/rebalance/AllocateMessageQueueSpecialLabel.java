@@ -126,21 +126,26 @@ public class AllocateMessageQueueSpecialLabel implements AllocateMessageQueueStr
 
         List<String> specialLabelCidAll = cidAll.stream().filter(cid -> cid.contains(specialLabel)).filter(Objects::nonNull).collect(Collectors.toList());
 
+        List<MessageQueue> normalMqs = new ArrayList<>(mqAll);
+        List<String> normalCidList = new ArrayList<>(cidAll);
         if (specialLabelCidAll.size() != 0 || !allocateToAllIfNoSpecialLabel) {
-            specialLabelMessageQueueList.forEach(specialLabelMq -> mqAll.remove(specialLabelMq));
-            specialLabelCidAll.forEach(specialLabelCid -> cidAll.remove(specialLabelCid));
+            specialLabelMessageQueueList.forEach(specialLabelMq -> normalMqs.remove(specialLabelMq));
+            specialLabelCidAll.forEach(specialLabelCid -> normalCidList.remove(specialLabelCid));
         }
 
         Collections.sort(specialLabelCidAll);
         Collections.sort(specialLabelMessageQueueList);
 
         if (currentCID.contains(specialLabel)) {
-            return defaultAllocateMessageQueueStrategy.allocate(consumerGroup, currentCID, specialLabelMessageQueueList, specialLabelCidAll);
-        } else {
-            if (mqAll.size() == 0) {
+            if (specialLabelMessageQueueList.size() == 0) {
                 return new ArrayList<>();
             }
-            return defaultAllocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mqAll, cidAll);
+            return defaultAllocateMessageQueueStrategy.allocate(consumerGroup, currentCID, specialLabelMessageQueueList, specialLabelCidAll);
+        } else {
+            if (normalMqs.size() == 0) {
+                return new ArrayList<>();
+            }
+            return defaultAllocateMessageQueueStrategy.allocate(consumerGroup, currentCID, normalMqs, normalCidList);
         }
     }
 

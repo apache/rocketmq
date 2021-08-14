@@ -21,8 +21,9 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class AllocateMessageQueueSpecialLabelTest {
 
@@ -89,16 +90,13 @@ public class AllocateMessageQueueSpecialLabelTest {
     }
 
     private void testAllocate(int specialLabelSize, int allConsumerSize, int messageQueueSizePerBroker, int brokerCount, double percentage) {
-        AllocateMessageQueueSpecialLabel allocateMessageQueueSpecialLabel = new AllocateMessageQueueSpecialLabel();
+        AllocateMessageQueueSpecialLabel allocateMessageQueueSpecialLabel = new AllocateMessageQueueSpecialLabel(percentage);
         List<String> consumerIdList = createConsumerIdList(allConsumerSize - specialLabelSize, specialLabelSize);
         List<MessageQueue> messageQueueList = createMessageQueueList(messageQueueSizePerBroker, brokerCount);
 
-
-        List<String> specialList = consumerIdList.stream().filter(cid -> cid.contains(System.getProperty("rocketmq.consumer.label", "%GRAY%"))).filter(Objects::nonNull).collect(Collectors.toList());
-
         List<MessageQueue> messageQueueListAllocated = new ArrayList<>();
-        specialList.forEach(currentCID -> {
-            List<MessageQueue> messageQueues = allocateMessageQueueSpecialLabel.allocate(consumerGroup, currentCID, messageQueueList, consumerIdList);
+        consumerIdList.forEach(currentCID -> {
+            List<MessageQueue> messageQueues = allocateMessageQueueSpecialLabel.allocate(consumerGroup, currentCID, messageQueueList, new ArrayList<>(consumerIdList));
             messageQueues.forEach(messageQueue -> {
                 assert messageQueueListAllocated.contains(messageQueue);
             });
