@@ -96,10 +96,10 @@ public class AllocateMessageQueueSpecialLabelTest {
 
         List<MessageQueue> messageQueueListAllocated = new ArrayList<>();
         consumerIdList.forEach(currentCID -> {
-            List<MessageQueue> messageQueues = allocateMessageQueueSpecialLabel.allocate(consumerGroup, currentCID, messageQueueList, new ArrayList<>(consumerIdList));
+            List<MessageQueue> messageQueues = allocateMessageQueueSpecialLabel.allocate(consumerGroup, currentCID, new ArrayList<>(messageQueueList), new ArrayList<>(consumerIdList));
             if (messageQueues != null && messageQueues.size() != 0) {
                 messageQueues.forEach(messageQueue -> {
-                    assert messageQueueListAllocated.contains(messageQueue);
+                    assert !messageQueueListAllocated.contains(messageQueue);
                 });
                 messageQueueListAllocated.addAll(messageQueues);
             }
