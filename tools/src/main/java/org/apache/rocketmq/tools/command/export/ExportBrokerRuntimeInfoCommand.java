@@ -72,7 +72,7 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("f", "filePath", true,
-            "export brokerRuntimeInfo.properties path | default /tmp/rocketmq/config");
+            "export metrics.json path | default /tmp/rocketmq/config");
         opt.setRequired(false);
         options.addOption(opt);
         return options;
@@ -136,7 +136,7 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
                 evaluateReportMap.put(brokerName, brokerMap);
             }
 
-            String path = filePath + "/brokerInfo.json";
+            String path = filePath + "/metrics.json";
 
             Map<String, Object> totalData = new HashMap<>();
             totalData.put("totalTps", totalTpsMap);

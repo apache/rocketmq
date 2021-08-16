@@ -41,7 +41,7 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "export namesrvAndBrokerConfig.json";
+        return "export namesrv config and broker config";
     }
 
     @Override
@@ -51,7 +51,7 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("f", "filePath", true,
-            "export namesrvAndBrokerConfig.json path | default /tmp/rocketmq/config");
+            "export configs.json path | default /tmp/rocketmq/config");
         opt.setRequired(false);
         options.addOption(opt);
         return options;
@@ -91,7 +91,7 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
 
             result.put("brokerConfigs", brokerConfigs);
 
-            String path = filePath + "/namesrvAndBrokerConfig.json";
+            String path = filePath + "/configs.json";
             MixAll.string2FileNotSafe(JSON.toJSONString(result, true), path);
             System.out.printf("export %s success", path);
         } catch (Exception e) {
