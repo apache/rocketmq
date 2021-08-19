@@ -24,14 +24,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+import static org.apache.rocketmq.common.UtilAll.MAPPED_FILENAME_DIGITS;
+
 public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
+    private static final Pattern MAPPED_FILENAME_PATTERN = Pattern.compile("^\\d{" + MAPPED_FILENAME_DIGITS + "}$");
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
@@ -151,7 +157,10 @@ public class MappedFileQueue {
             // ascending order
             Arrays.sort(files);
             for (File file : files) {
-
+                // Skip invalid commit log/consume queue files introduced by
+                // by mistake
+                Matcher m = MAPPED_FILENAME_PATTERN.matcher(file.getName());
+                if (!m.matches()) continue;
                 if (file.length() != this.mappedFileSize) {
                     log.warn(file + "\t" + file.length()
                         + " length not matched message store config value, please check it manually");
