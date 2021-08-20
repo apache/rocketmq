@@ -164,6 +164,8 @@ public class DefaultMessageStore implements MessageStore {
 
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         MappedFile.ensureDirOK(file.getParent());
+        MappedFile.ensureDirOK(getStorePathPhysic());
+        MappedFile.ensureDirOK(getStorePathLogic());
         lockFile = new RandomAccessFile(file, "rw");
     }
 
@@ -770,14 +772,18 @@ public class DefaultMessageStore implements MessageStore {
         return this.storeStatsService.toString();
     }
 
-    private String getStorePathPhysic() {
-        String storePathPhysic = "";
+    public String getStorePathPhysic() {
+        String storePathPhysic;
         if (DefaultMessageStore.this.getMessageStoreConfig().isEnableDLegerCommitLog()) {
             storePathPhysic = ((DLedgerCommitLog)DefaultMessageStore.this.getCommitLog()).getdLedgerServer().getdLedgerConfig().getDataStorePath();
         } else {
             storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
         }
         return storePathPhysic;
+    }
+
+    public String getStorePathLogic() {
+        return StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir());
     }
 
     @Override
@@ -798,9 +804,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         {
-            String storePathLogics = StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir());
-            double logicsRatio = UtilAll.isPathExists(storePathLogics) ?
-                    UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics) : -1;
+            double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathLogic());
             result.put(RunningStats.consumeQueueDiskRatio.name(), String.valueOf(logicsRatio));
         }
 
