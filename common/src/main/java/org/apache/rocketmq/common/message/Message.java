@@ -43,11 +43,13 @@ public class Message implements Serializable {
         this.flag = flag;
         this.body = body;
 
-        if (tags != null && tags.length() > 0)
+        if (tags != null && tags.length() > 0) {
             this.setTags(tags);
+        }
 
-        if (keys != null && keys.length() > 0)
+        if (keys != null && keys.length() > 0) {
             this.setKeys(keys);
+        }
 
         this.setWaitStoreMsgOK(waitStoreMsgOK);
     }
@@ -127,7 +129,7 @@ public class Message implements Serializable {
     }
 
     public void setKeys(Collection<String> keys) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (String k : keys) {
             sb.append(k);
             sb.append(MessageConst.KEY_SEPARATOR);
@@ -151,8 +153,9 @@ public class Message implements Serializable {
 
     public boolean isWaitStoreMsgOK() {
         String result = this.getProperty(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
-        if (null == result)
+        if (null == result) {
             return true;
+        }
 
         return Boolean.parseBoolean(result);
     }
