@@ -863,7 +863,7 @@ public class MQClientInstance {
         }
     }
 
-    public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
+    public synchronized boolean registerConsumer(final String group, final MQConsumerInner consumer) {
         if (null == group || null == consumer) {
             return false;
         }
@@ -877,27 +877,9 @@ public class MQClientInstance {
         return true;
     }
 
-    public void unregisterConsumer(final String group) {
+    public synchronized void unregisterConsumer(final String group) {
         this.consumerTable.remove(group);
-        this.unregisterClientWithLock(null, group);
-    }
-
-    private void unregisterClientWithLock(final String producerGroup, final String consumerGroup) {
-        try {
-            if (this.lockHeartbeat.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
-                try {
-                    this.unregisterClient(producerGroup, consumerGroup);
-                } catch (Exception e) {
-                    log.error("unregisterClient exception", e);
-                } finally {
-                    this.lockHeartbeat.unlock();
-                }
-            } else {
-                log.warn("lock heartBeat, but failed. [{}]", this.clientId);
-            }
-        } catch (InterruptedException e) {
-            log.warn("unregisterClientWithLock exception", e);
-        }
+        this.unregisterClient(null, group);
     }
 
     private void unregisterClient(final String producerGroup, final String consumerGroup) {
@@ -927,7 +909,7 @@ public class MQClientInstance {
         }
     }
 
-    public boolean registerProducer(final String group, final DefaultMQProducerImpl producer) {
+    public synchronized boolean registerProducer(final String group, final DefaultMQProducerImpl producer) {
         if (null == group || null == producer) {
             return false;
         }
@@ -941,9 +923,9 @@ public class MQClientInstance {
         return true;
     }
 
-    public void unregisterProducer(final String group) {
+    public synchronized void unregisterProducer(final String group) {
         this.producerTable.remove(group);
-        this.unregisterClientWithLock(group, null);
+        this.unregisterClient(group, null);
     }
 
     public boolean registerAdminExt(final String group, final MQAdminExtInner admin) {

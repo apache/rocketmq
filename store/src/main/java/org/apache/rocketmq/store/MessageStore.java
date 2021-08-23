@@ -245,9 +245,11 @@ public interface MessageStore {
      *
      * @param startOffset starting offset.
      * @param data data to append.
+     * @param dataStart the start index of data array
+     * @param dataLength the length of data array
      * @return true if success; false otherwise.
      */
-    boolean appendToCommitLog(final long startOffset, final byte[] data);
+    boolean appendToCommitLog(final long startOffset, final byte[] data, int dataStart, int dataLength);
 
     /**
      * Execute file deletion manually.
