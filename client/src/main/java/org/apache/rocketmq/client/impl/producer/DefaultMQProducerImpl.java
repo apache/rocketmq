@@ -713,15 +713,25 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
+            if (!topicPublishInfo.checkNotFoundFlag()) {
+                this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+                topicPublishInfo = this.topicPublishInfoTable.get(topic);
+            }
         }
 
         if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
             return topicPublishInfo;
         } else {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
-            topicPublishInfo = this.topicPublishInfoTable.get(topic);
+            boolean found;
+            if (!topicPublishInfo.checkNotFoundFlag()) {
+                found = this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
+                topicPublishInfo = this.topicPublishInfoTable.get(topic);
+                if (!found) {
+                    topicPublishInfo.setNotFoundFlag();
+                    this.topicPublishInfoTable.get(defaultMQProducer.getCreateTopicKey()).setNotFoundFlag();
+                }
+            }
             return topicPublishInfo;
         }
     }
@@ -1659,3 +1669,4 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return defaultMQProducer;
     }
 }
+

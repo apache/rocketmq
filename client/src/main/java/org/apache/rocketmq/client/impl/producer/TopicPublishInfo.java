@@ -29,6 +29,16 @@ public class TopicPublishInfo {
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
+    private long lastNotFoundTimestamp = -1;
+    private static final int NOT_FOUND_FLAG_VALID_TIME = 2000;
+
+    public void setNotFoundFlag() {
+        if (!checkNotFoundFlag()) {
+            lastNotFoundTimestamp = System.currentTimeMillis();
+        }
+    }
+
+    public boolean checkNotFoundFlag() { return System.currentTimeMillis() < lastNotFoundTimestamp + NOT_FOUND_FLAG_VALID_TIME; }
 
     public boolean isOrderTopic() {
         return orderTopic;
@@ -117,3 +127,4 @@ public class TopicPublishInfo {
         this.topicRouteData = topicRouteData;
     }
 }
+
