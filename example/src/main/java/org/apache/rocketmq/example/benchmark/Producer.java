@@ -157,8 +157,7 @@ public class Producer {
                                 msg.setDelayTimeLevel(delayLevel);
                             }
                             if (tagCount > 0) {
-                                long sendSucCount = statsBenchmark.getReceiveResponseSuccessCount().longValue();
-                                msg.setTags(String.format("tag%d", sendSucCount % tagCount));
+                                msg.setTags(String.format("tag%d", System.currentTimeMillis() % tagCount));
                             }
                             if (propertySize > 0) {
                                 if (msg.getProperties() != null) {
