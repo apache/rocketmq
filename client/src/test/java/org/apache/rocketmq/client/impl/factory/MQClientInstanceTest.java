@@ -48,13 +48,14 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
-    private MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mqClientInstance;
     private String topic = "FooBar";
     private String group = "FooBarGroup";
     private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
 
     @Before
     public void init() throws Exception {
+        mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
         FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
     }
 
