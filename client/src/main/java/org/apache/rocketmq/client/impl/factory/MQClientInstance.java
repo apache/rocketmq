@@ -162,6 +162,14 @@ public class MQClientInstance {
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
         info.setTopicRouteData(route);
+        if (route.getPartitionRouteInfos() != null && !route.getPartitionRouteInfos().isEmpty()) {
+            for (Integer partition : route.getPartitionRouteInfos().keySet()) {
+                MessageQueue mq = new MessageQueue(topic, route.getPartitionRouteInfos().get(partition), partition);
+                info.getMessageQueueList().add(mq);
+            }
+            info.setOrderTopic(false);
+            return info;
+        }
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
@@ -210,12 +218,19 @@ public class MQClientInstance {
 
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
-        List<QueueData> qds = route.getQueueDatas();
-        for (QueueData qd : qds) {
-            if (PermName.isReadable(qd.getPerm())) {
-                for (int i = 0; i < qd.getReadQueueNums(); i++) {
-                    MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
-                    mqList.add(mq);
+        if (route.getPartitionRouteInfos() != null && !route.getPartitionRouteInfos().isEmpty()) {
+            for (Integer partition : route.getPartitionRouteInfos().keySet()) {
+                MessageQueue mq = new MessageQueue(topic, route.getPartitionRouteInfos().get(partition), partition);
+                mqList.add(mq);
+            }
+        } else {
+            List<QueueData> qds = route.getQueueDatas();
+            for (QueueData qd : qds) {
+                if (PermName.isReadable(qd.getPerm())) {
+                    for (int i = 0; i < qd.getReadQueueNums(); i++) {
+                        MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
+                        mqList.add(mq);
+                    }
                 }
             }
         }

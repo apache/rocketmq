@@ -23,6 +23,7 @@ package org.apache.rocketmq.common.protocol.route;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicRouteData extends RemotingSerializable {
@@ -30,6 +31,7 @@ public class TopicRouteData extends RemotingSerializable {
     private List<QueueData> queueDatas;
     private List<BrokerData> brokerDatas;
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
+    private HashMap<Integer, String> partitionRouteInfos;
 
     public TopicRouteData cloneTopicRouteData() {
         TopicRouteData topicRouteData = new TopicRouteData();
@@ -49,8 +51,19 @@ public class TopicRouteData extends RemotingSerializable {
         if (this.filterServerTable != null) {
             topicRouteData.getFilterServerTable().putAll(this.filterServerTable);
         }
+        if (this.partitionRouteInfos != null) {
+            topicRouteData.getPartitionRouteInfos().putAll(this.partitionRouteInfos);
+        }
 
         return topicRouteData;
+    }
+
+    public Map<Integer, String> getPartitionRouteInfos() {
+        return partitionRouteInfos;
+    }
+
+    public void setPartitionRouteInfos(HashMap<Integer, String> partitionRouteInfos) {
+        this.partitionRouteInfos = partitionRouteInfos;
     }
 
     public List<QueueData> getQueueDatas() {
@@ -93,6 +106,7 @@ public class TopicRouteData extends RemotingSerializable {
         result = prime * result + ((orderTopicConf == null) ? 0 : orderTopicConf.hashCode());
         result = prime * result + ((queueDatas == null) ? 0 : queueDatas.hashCode());
         result = prime * result + ((filterServerTable == null) ? 0 : filterServerTable.hashCode());
+        result = prime * result + ((partitionRouteInfos == null) ? 0 : partitionRouteInfos.hashCode());
         return result;
     }
 
@@ -125,12 +139,21 @@ public class TopicRouteData extends RemotingSerializable {
                 return false;
         } else if (!filterServerTable.equals(other.filterServerTable))
             return false;
+        if (partitionRouteInfos == null) {
+            if (other.partitionRouteInfos != null) {
+                return false;
+            }
+        } else if (!partitionRouteInfos.equals(other.partitionRouteInfos)) {
+            return false;
+        }
+
         return true;
     }
 
     @Override
     public String toString() {
         return "TopicRouteData [orderTopicConf=" + orderTopicConf + ", queueDatas=" + queueDatas
-            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + "]";
+            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable
+                + ", partitionRouteInfos=" + partitionRouteInfos + "]";
     }
 }
