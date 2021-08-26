@@ -48,16 +48,9 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
-    private MQClientInstance mqClientInstance;
     private String topic = "FooBar";
     private String group = "FooBarGroup";
     private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
-
-    @Before
-    public void init() throws Exception {
-        mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-        FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
-    }
 
     @Test
     public void testTopicRouteData2TopicPublishInfo() {
@@ -91,7 +84,9 @@ public class MQClientInstanceTest {
     }
 
     @Test
-    public void testFindBrokerAddressInSubscribe() {
+    public void testFindBrokerAddressInSubscribe() throws IllegalAccessException {
+        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+        FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
         // dledger normal case
         String brokerName = "BrokerA";
         HashMap<Long, String> addrMap = new HashMap<Long, String>();
@@ -119,7 +114,9 @@ public class MQClientInstanceTest {
     }
 
     @Test
-    public void testRegisterProducer() {
+    public void testRegisterProducer() throws IllegalAccessException {
+        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+        FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
         boolean flag = mqClientInstance.registerProducer(group, mock(DefaultMQProducerImpl.class));
         assertThat(flag).isTrue();
 
@@ -132,7 +129,9 @@ public class MQClientInstanceTest {
     }
 
     @Test
-    public void testRegisterConsumer() throws RemotingException, InterruptedException, MQBrokerException {
+    public void testRegisterConsumer() throws RemotingException, InterruptedException, MQBrokerException, IllegalAccessException {
+        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+        FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
         boolean flag = mqClientInstance.registerConsumer(group, mock(MQConsumerInner.class));
         assertThat(flag).isTrue();
 
@@ -146,7 +145,9 @@ public class MQClientInstanceTest {
 
 
     @Test
-    public void testConsumerRunningInfoWhenConsumersIsEmptyOrNot() throws RemotingException, InterruptedException, MQBrokerException {
+    public void testConsumerRunningInfoWhenConsumersIsEmptyOrNot() throws RemotingException, InterruptedException, MQBrokerException, IllegalAccessException {
+        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+        FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
         MQConsumerInner mockConsumerInner = mock(MQConsumerInner.class);
         ConsumerRunningInfo mockConsumerRunningInfo = mock(ConsumerRunningInfo.class);
         when(mockConsumerInner.consumerRunningInfo()).thenReturn(mockConsumerRunningInfo);
@@ -170,7 +171,9 @@ public class MQClientInstanceTest {
     }
 
     @Test
-    public void testRegisterAdminExt() {
+    public void testRegisterAdminExt() throws IllegalAccessException {
+        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+        FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
         boolean flag = mqClientInstance.registerAdminExt(group, mock(MQAdminExtInner.class));
         assertThat(flag).isTrue();
 
