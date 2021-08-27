@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.DataVersion;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -36,6 +37,7 @@ import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
@@ -56,7 +58,6 @@ import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.assertj.core.util.Maps;
 import org.junit.Before;
 import org.junit.Test;
@@ -219,13 +220,17 @@ public class DefaultRequestProcessorTest {
             request.addExtField("clusterName", cluster);
             request.addExtField("haServerAddr", "10.10.2.1");
             request.addExtField("brokerId", String.valueOf(MixAll.MASTER_ID));
+            request.setVersion(MQVersion.CURRENT_VERSION);
             TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
             topicConfigSerializeWrapper.setTopicConfigTable(new ConcurrentHashMap<>(Collections.singletonMap(topic, new TopicConfig(topic))));
             topicConfigSerializeWrapper.setLogicalQueuesInfoMap(Maps.newHashMap(topic, new LogicalQueuesInfo(Collections.singletonMap(0, Lists.newArrayList(
                 queueRouteData1
             )))));
             topicConfigSerializeWrapper.setDataVersion(new DataVersion());
-            request.setBody(RemotingSerializable.encode(topicConfigSerializeWrapper));
+            RegisterBrokerBody requestBody = new RegisterBrokerBody();
+            requestBody.setTopicConfigSerializeWrapper(topicConfigSerializeWrapper);
+            requestBody.setFilterServerList(Lists.<String>newArrayList());
+            request.setBody(requestBody.encode());
 
             ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
             when(ctx.channel()).thenReturn(null);
@@ -247,6 +252,7 @@ public class DefaultRequestProcessorTest {
             request.addExtField("clusterName", cluster);
             request.addExtField("haServerAddr", "10.10.2.1");
             request.addExtField("brokerId", String.valueOf(MixAll.MASTER_ID));
+            request.setVersion(MQVersion.CURRENT_VERSION);
             TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
             topicConfigSerializeWrapper.setTopicConfigTable(new ConcurrentHashMap<>(Collections.singletonMap(topic, new TopicConfig(topic))));
             topicConfigSerializeWrapper.setLogicalQueuesInfoMap(Maps.newHashMap(topic, new LogicalQueuesInfo(ImmutableMap.of(
@@ -254,7 +260,10 @@ public class DefaultRequestProcessorTest {
                 1, Collections.singletonList(queueRouteData3)
             ))));
             topicConfigSerializeWrapper.setDataVersion(new DataVersion());
-            request.setBody(RemotingSerializable.encode(topicConfigSerializeWrapper));
+            RegisterBrokerBody requestBody = new RegisterBrokerBody();
+            requestBody.setTopicConfigSerializeWrapper(topicConfigSerializeWrapper);
+            requestBody.setFilterServerList(Lists.<String>newArrayList());
+            request.setBody(requestBody.encode());
 
             ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
             when(ctx.channel()).thenReturn(null);
