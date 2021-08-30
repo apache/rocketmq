@@ -33,15 +33,15 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
+public class ExportConfigsCommand implements SubCommand {
     @Override
     public String commandName() {
-        return "exportNamesrvAndBrokerConfig";
+        return "exportConfigs";
     }
 
     @Override
     public String commandDesc() {
-        return "export namesrv config and broker config";
+        return "export configs";
     }
 
     @Override
@@ -71,25 +71,31 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
             defaultMQAdminExt.start();
             Map<String, Object> result = new HashMap<>();
             // name servers
-            Map<String, Properties> nameServerConfigs = defaultMQAdminExt.getNameServerConfig(null);
-            result.put("nameServerConfigs", nameServerConfigs);
+            List<String> nameServerAddressList = defaultMQAdminExt.getNameServerAddressList();
 
             //broker
-            Map<String, Map<String, Properties>> brokerConfigs = new HashMap<>();
+            int masterBrokerSize = 0;
+            int slaveBrokerSize = 0;
+            Map<String, Properties> brokerConfigs = new HashMap<>();
             Map<String, List<String>> masterAndSlaveMap
                 = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
             for (String masterAddr : masterAndSlaveMap.keySet()) {
                 Map<String, Properties> map = new HashMap<>();
                 Properties masterProperties = defaultMQAdminExt.getBrokerConfig(masterAddr);
-                map.put(masterAddr, masterProperties);
-                for (String slaveAddr : masterAndSlaveMap.get(masterAddr)) {
-                    Properties slaveProperties = defaultMQAdminExt.getBrokerConfig(slaveAddr);
-                    map.put(slaveAddr, slaveProperties);
-                }
-                brokerConfigs.put(masterProperties.getProperty("brokerName"), map);
+                map.put("master", needBrokerProprties(masterProperties));
+                masterBrokerSize++;
+                slaveBrokerSize += masterAndSlaveMap.get(masterAddr).size();
+
+                brokerConfigs.put(masterProperties.getProperty("brokerName"), needBrokerProprties(masterProperties));
             }
 
+            Map<String, Integer> clusterScaleMap = new HashMap<>();
+            clusterScaleMap.put("namesrvSize", nameServerAddressList.size());
+            clusterScaleMap.put("masterBrokerSize", masterBrokerSize);
+            clusterScaleMap.put("slaveBrokerSize", slaveBrokerSize);
+
             result.put("brokerConfigs", brokerConfigs);
+            result.put("clusterScale", clusterScaleMap);
 
             String path = filePath + "/configs.json";
             MixAll.string2FileNotSafe(JSON.toJSONString(result, true), path);
@@ -99,5 +105,24 @@ public class ExportNamesrvAndBrokerConfigCommand implements SubCommand {
         } finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+
+    private Properties needBrokerProprties(Properties properties) {
+        Properties newProperties = new Properties();
+        newProperties.setProperty("brokerClusterName", properties.getProperty("brokerClusterName"));
+        newProperties.setProperty("brokerId", properties.getProperty("brokerId"));
+        newProperties.setProperty("brokerName", properties.getProperty("brokerName"));
+        newProperties.setProperty("brokerRole", properties.getProperty("brokerRole"));
+        newProperties.setProperty("fileReservedTime", properties.getProperty("fileReservedTime"));
+        newProperties.setProperty("filterServerNums", properties.getProperty("filterServerNums"));
+        newProperties.setProperty("flushDiskType", properties.getProperty("flushDiskType"));
+        newProperties.setProperty("maxMessageSize", properties.getProperty("maxMessageSize"));
+        newProperties.setProperty("messageDelayLevel", properties.getProperty("messageDelayLevel"));
+        newProperties.setProperty("msgTraceTopicName", properties.getProperty("msgTraceTopicName"));
+        newProperties.setProperty("slaveReadEnable", properties.getProperty("slaveReadEnable"));
+        newProperties.setProperty("traceOn", properties.getProperty("traceOn"));
+        newProperties.setProperty("traceTopicEnable", properties.getProperty("traceTopicEnable"));
+        newProperties.setProperty("useTLS", properties.getProperty("useTLS"));
+        return newProperties;
     }
 }

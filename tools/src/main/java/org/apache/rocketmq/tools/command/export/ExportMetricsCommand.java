@@ -18,9 +18,7 @@ package org.apache.rocketmq.tools.command.export;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
@@ -33,12 +31,10 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
-import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
@@ -51,18 +47,17 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 
-public class ExportBrokerRuntimeInfoCommand implements SubCommand {
+public class ExportMetricsCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "exportBrokerRuntimeInfo";
+        return "exportMetrics";
     }
 
     @Override
     public String commandDesc() {
-        return "export broker runtime info";
+        return "export metrics";
     }
 
     @Override
@@ -92,7 +87,7 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
 
             defaultMQAdminExt.start();
 
-            Map<String, Map<String, Map<String, Map<String, Object>>>> evaluateReportMap = new HashMap<>();
+            Map<String, Map<String, Map<String, Object>>> evaluateReportMap = new HashMap<>();
             Map<String, Double> totalTpsMap = new HashMap<>();
             Map<String, Long> totalOneDayNumMap = new HashMap<>();
             initTotaMap(totalTpsMap, totalOneDayNumMap);
@@ -101,39 +96,32 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
             Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
             for (String brokerName : brokerNameSet) {
                 BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
-                Map<String, Map<String, Map<String, Object>>> brokerMap = new HashMap();
                 if (brokerData != null) {
-                    Iterator<Entry<Long, String>> itAddr = brokerData.getBrokerAddrs().entrySet().iterator();
-                    while (itAddr.hasNext()) {
-                        Map.Entry<Long, String> next1 = itAddr.next();
+                    String addr = brokerData.getBrokerAddrs().get(0L);
 
-                        KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(next1.getValue());
+                    KVTable kvTable = defaultMQAdminExt.fetchBrokerRuntimeStats(addr);
 
-                        Properties properties = defaultMQAdminExt.getBrokerConfig(next1.getValue());
+                    Properties properties = defaultMQAdminExt.getBrokerConfig(addr);
 
-                        SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
-                            next1.getValue(), 10000);
+                    SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(addr,
+                        10000);
 
-                        Map<String, Map<String, Object>> brokerInfo = new HashMap<>();
+                    Map<String, Map<String, Object>> brokerInfo = new HashMap<>();
 
-                        //broker environment,machine configuration
-                        brokerInfo.put("runtimeEnv", getRuntimeEnv(kvTable, properties));
+                    //broker environment,machine configuration
+                    brokerInfo.put("runtimeEnv", getRuntimeEnv(kvTable, properties));
 
-                        //broker config
-                        brokerInfo.put("brokerConfig", getConfig(properties, brokerData));
+                    brokerInfo.put("runtimeQuota",
+                        getRuntimeQuota(kvTable, defaultMQAdminExt, addr, totalTpsMap,
+                            totalOneDayNumMap, subscriptionGroupWrapper));
 
-                        brokerInfo.put("runtimeQuota",
-                            getRuntimeQuota(kvTable, defaultMQAdminExt, next1.getValue(), totalTpsMap,
-                                totalOneDayNumMap, next1.getKey(), subscriptionGroupWrapper));
+                    // runtime version
+                    brokerInfo.put("runtimeVersion",
+                        getRuntimeVersion(defaultMQAdminExt, subscriptionGroupWrapper));
 
-                        // runtime version
-                        brokerInfo.put("runtimeVersion",
-                            getRuntimeVersion(defaultMQAdminExt, subscriptionGroupWrapper));
-
-                        brokerMap.put(next1.getValue(), brokerInfo);
-                    }
+                    evaluateReportMap.put(brokerName, brokerInfo);
                 }
-                evaluateReportMap.put(brokerName, brokerMap);
+
             }
 
             String path = filePath + "/metrics.json";
@@ -186,16 +174,8 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         return runtimeEnvMap;
     }
 
-    private Map<String, Object> getConfig(Properties properties, BrokerData brokerData) {
-        Map<String, Object> configMap = new HashMap<>();
-        configMap.put("fileReservedTime", properties.getProperty("fileReservedTime"));
-        configMap.put("flushDiskType", properties.getProperty("flushDiskType"));
-        configMap.put("brokerSize", brokerData.getBrokerAddrs().size());
-        return configMap;
-    }
-
     private Map<String, Object> getRuntimeQuota(KVTable kvTable, DefaultMQAdminExt defaultMQAdminExt, String brokerAddr,
-        Map<String, Double> totalTpsMap, Map<String, Long> totalOneDayNumMap, long brokerId,
+        Map<String, Double> totalTpsMap, Map<String, Long> totalOneDayNumMap,
         SubscriptionGroupWrapper subscriptionGroupWrapper)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
@@ -246,41 +226,11 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         long transOneDayNum = null != transStatsData ? transStatsData.getStatsDay().getSum() : 0;
         long scheduleOneDayNum = null != scheduleStatsData ? scheduleStatsData.getStatsDay().getSum() : 0;
 
-        // order message
-        double orderInTps = 0;
-        double orderOutTps = 0;
-        long orderOneDayNum = 0;
-        for (Map.Entry<String, TopicConfig> entry : topicConfigSerializeWrapper.getTopicConfigTable()
-            .entrySet()) {
-            if (entry.getValue().isOrder()) {
-                try {
-                    BrokerStatsData orderInBsd = defaultMQAdminExt.viewBrokerStatsData(brokerAddr,
-                        BrokerStatsManager.TOPIC_PUT_NUMS, entry.getValue().getTopicName());
-                    orderInTps += orderInBsd.getStatsMinute().getTps();
-
-                    orderOneDayNum += StatsAllSubCommand.compute24HourSum(orderInBsd);
-
-                    GroupList groupList = defaultMQAdminExt.queryTopicConsumeByWho(entry.getValue().getTopicName());
-                    for (String group : groupList.getGroupList()) {
-                        String statsKey = String.format("%s@%s", entry.getValue().getTopicName(), group);
-                        BrokerStatsData orderOutBsd = defaultMQAdminExt.viewBrokerStatsData(brokerAddr,
-                            BrokerStatsManager.GROUP_GET_NUMS, statsKey);
-                        orderOutTps += orderOutBsd.getStatsMinute().getTps();
-                    }
-                } catch (Exception e) {
-                }
-            }
-        }
-
         //current minute tps
         tpsMap.put("normalInTps", normalInTps);
         tpsMap.put("normalOutTps", normalOutTps);
         tpsMap.put("transInTps", transInTps);
-        tpsMap.put("transOutTps", 0.0);
         tpsMap.put("scheduleInTps", scheduleInTps);
-        tpsMap.put("scheduleOutTps", 0.0);
-        tpsMap.put("orderInTps", orderInTps);
-        tpsMap.put("orderOutTps", orderOutTps);
         runtimeQuotaMap.put("tps", tpsMap);
 
         //one day num
@@ -290,26 +240,18 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         oneDayNumMap.put("normalOneDayNum", normalOneDayNum);
         oneDayNumMap.put("transOneDayNum", transOneDayNum);
         oneDayNumMap.put("scheduleOneDayNum", scheduleOneDayNum);
-        oneDayNumMap.put("orderOneDayNum", orderOneDayNum);
         runtimeQuotaMap.put("oneDayNum", oneDayNumMap);
 
-        if (brokerId == 0) {
-            //all broker current minute tps
-            totalTpsMap.put("totalNormalInTps", totalTpsMap.get("totalNormalInTps") + normalInTps);
-            totalTpsMap.put("totalNormalOutTps", totalTpsMap.get("totalNormalOutTps") + normalOutTps);
-            totalTpsMap.put("totalTransInTps", totalTpsMap.get("totalTransInTps") + transInTps);
-            totalTpsMap.put("totalTransOutTps", totalTpsMap.get("totalTransOutTps"));
-            totalTpsMap.put("totalScheduleInTps", totalTpsMap.get("totalScheduleInTps") + scheduleInTps);
-            totalTpsMap.put("totalScheduleOutTps", totalTpsMap.get("totalScheduleOutTps"));
-            totalTpsMap.put("totalOrderInTps", totalTpsMap.get("totalOrderInTps") + orderInTps);
-            totalTpsMap.put("totalOrderOutTps", totalTpsMap.get("totalOrderOutTps") + orderOutTps);
+        //all broker current minute tps
+        totalTpsMap.put("totalNormalInTps", totalTpsMap.get("totalNormalInTps") + normalInTps);
+        totalTpsMap.put("totalNormalOutTps", totalTpsMap.get("totalNormalOutTps") + normalOutTps);
+        totalTpsMap.put("totalTransInTps", totalTpsMap.get("totalTransInTps") + transInTps);
+        totalTpsMap.put("totalScheduleInTps", totalTpsMap.get("totalScheduleInTps") + scheduleInTps);
 
-            //all broker one day num
-            totalOneDayNumMap.put("normalOneDayNum", totalOneDayNumMap.get("normalOneDayNum") + normalOneDayNum);
-            totalOneDayNumMap.put("transOneDayNum", totalOneDayNumMap.get("transOneDayNum") + transOneDayNum);
-            totalOneDayNumMap.put("scheduleOneDayNum", totalOneDayNumMap.get("scheduleOneDayNum") + scheduleOneDayNum);
-            totalOneDayNumMap.put("orderOneDayNum", totalOneDayNumMap.get("orderOneDayNum") + orderOneDayNum);
-        }
+        //all broker one day num
+        totalOneDayNumMap.put("normalOneDayNum", totalOneDayNumMap.get("normalOneDayNum") + normalOneDayNum);
+        totalOneDayNumMap.put("transOneDayNum", totalOneDayNumMap.get("transOneDayNum") + transOneDayNum);
+        totalOneDayNumMap.put("scheduleOneDayNum", totalOneDayNumMap.get("scheduleOneDayNum") + scheduleOneDayNum);
 
         // putMessageAverageSize 平均
         runtimeQuotaMap.put("messageAverageSize", kvTable.getTable().get("putMessageAverageSize"));
@@ -324,15 +266,10 @@ public class ExportBrokerRuntimeInfoCommand implements SubCommand {
         totalTpsMap.put("totalNormalInTps", 0.0);
         totalTpsMap.put("totalNormalOutTps", 0.0);
         totalTpsMap.put("totalTransInTps", 0.0);
-        totalTpsMap.put("totalTransOutTps", 0.0);
         totalTpsMap.put("totalScheduleInTps", 0.0);
-        totalTpsMap.put("totalScheduleOutTps", 0.0);
-        totalTpsMap.put("totalOrderInTps", 0.0);
-        totalTpsMap.put("totalOrderOutTps", 0.0);
 
         totalOneDayNumMap.put("normalOneDayNum", 0L);
         totalOneDayNumMap.put("transOneDayNum", 0L);
         totalOneDayNumMap.put("scheduleOneDayNum", 0L);
-        totalOneDayNumMap.put("orderOneDayNum", 0L);
     }
 }

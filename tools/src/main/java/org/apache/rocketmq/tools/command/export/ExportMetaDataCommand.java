@@ -39,16 +39,16 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class ExportTopicAndSubGroupCommand implements SubCommand {
+public class ExportMetaDataCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "exportTopicAndSubGroup";
+        return "exportMetaData";
     }
 
     @Override
     public String commandDesc() {
-        return "export topic config and subscription config";
+        return "export meta data";
     }
 
     @Override
@@ -57,7 +57,7 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("f", "filePath", true, "export meta-data.json path | default /tmp/rocketmq/config");
+        opt = new Option("f", "filePath", true, "export metadata.json path | default /tmp/rocketmq/config");
         opt.setRequired(false);
         options.addOption(opt);
         return options;
@@ -122,7 +122,7 @@ public class ExportTopicAndSubGroupCommand implements SubCommand {
             result.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
             result.put("exportTime", System.currentTimeMillis());
 
-            String path = filePath + "/meta-data.json";
+            String path = filePath + "/metadata.json";
 
             MixAll.string2FileNotSafe(JSON.toJSONString(result, true), path);
 
