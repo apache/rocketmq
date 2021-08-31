@@ -16,18 +16,42 @@
  */
 package org.apache.rocketmq.client.producer.selector;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
+    private Random random = new Random(System.currentTimeMillis());
     private Set<String> consumeridcs;
 
     @Override
     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-        return null;
+        List<MessageQueue> preMqAll = new ArrayList<MessageQueue>();
+        for (MessageQueue mq : mqs) {
+            String[] temp = mq.getBrokerName().split("@");
+            if (temp.length == 2 && consumeridcs.contains(temp[0])) {
+                preMqAll.add(mq);
+            }
+        }
+
+        if (preMqAll.size() == 0) {
+            preMqAll = mqs;
+        }
+
+        if (arg == null) {
+            int value = random.nextInt(preMqAll.size());
+            return preMqAll.get(value);
+        }
+
+        int value = arg.hashCode() % preMqAll.size();
+        if (value < 0) {
+            value = Math.abs(value);
+        }
+        return preMqAll.get(value);
     }
 
     public Set<String> getConsumeridcs() {
