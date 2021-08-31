@@ -31,6 +31,8 @@ import org.junit.Test;
 
 public class AclUtilsTest {
 
+    //  strArray[i] = StringUtils.leftPad(strArray[i],4, '0');
+
     @Test
     public void getAddresses() {
         String address = "1.1.1.{1,2,3,4}";
@@ -202,6 +204,7 @@ public class AclUtilsTest {
 
     @Test
     public void expandIPTest() {
+        Assert.assertEquals(AclUtils.expandIP("::", 8), "0000:0000:0000:0000:0000:0000:0000:0000");
         Assert.assertEquals(AclUtils.expandIP("::1", 8), "0000:0000:0000:0000:0000:0000:0000:0001");
         Assert.assertEquals(AclUtils.expandIP("3::", 8), "0003:0000:0000:0000:0000:0000:0000:0000");
         Assert.assertEquals(AclUtils.expandIP("2::2", 8), "0002:0000:0000:0000:0000:0000:0000:0002");
