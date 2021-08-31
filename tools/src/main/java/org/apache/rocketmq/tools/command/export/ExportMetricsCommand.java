@@ -90,7 +90,7 @@ public class ExportMetricsCommand implements SubCommand {
             Map<String, Map<String, Map<String, Object>>> evaluateReportMap = new HashMap<>();
             Map<String, Double> totalTpsMap = new HashMap<>();
             Map<String, Long> totalOneDayNumMap = new HashMap<>();
-            initTotaMap(totalTpsMap, totalOneDayNumMap);
+            initTotalMap(totalTpsMap, totalOneDayNumMap);
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
             Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
@@ -262,7 +262,7 @@ public class ExportMetricsCommand implements SubCommand {
         return runtimeQuotaMap;
     }
 
-    private void initTotaMap(Map<String, Double> totalTpsMap, Map<String, Long> totalOneDayNumMap) {
+    private void initTotalMap(Map<String, Double> totalTpsMap, Map<String, Long> totalOneDayNumMap) {
         totalTpsMap.put("totalNormalInTps", 0.0);
         totalTpsMap.put("totalNormalOutTps", 0.0);
         totalTpsMap.put("totalTransInTps", 0.0);
