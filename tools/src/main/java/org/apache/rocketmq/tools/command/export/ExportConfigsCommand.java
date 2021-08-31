@@ -123,6 +123,8 @@ public class ExportConfigsCommand implements SubCommand {
         newProperties.setProperty("traceOn", properties.getProperty("traceOn"));
         newProperties.setProperty("traceTopicEnable", properties.getProperty("traceTopicEnable"));
         newProperties.setProperty("useTLS", properties.getProperty("useTLS"));
+        newProperties.setProperty("autoCreateTopicEnable", properties.getProperty("autoCreateTopicEnable"));
+        newProperties.setProperty("autoCreateSubscriptionGroup", properties.getProperty("autoCreateSubscriptionGroup"));
         return newProperties;
     }
 }
