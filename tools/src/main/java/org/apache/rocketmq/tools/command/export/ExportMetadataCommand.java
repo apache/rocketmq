@@ -57,7 +57,7 @@ public class ExportMetadataCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("f", "filePath", true, "export metadata.json path | default /tmp/rocketmq/config");
+        opt = new Option("f", "filePath", true, "export metadata.json path | default /tmp/rocketmq/export");
         opt.setRequired(false);
         options.addOption(opt);
         return options;

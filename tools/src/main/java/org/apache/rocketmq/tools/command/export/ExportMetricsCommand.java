@@ -67,7 +67,7 @@ public class ExportMetricsCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("f", "filePath", true,
-            "export metrics.json path | default /tmp/rocketmq/config");
+            "export metrics.json path | default /tmp/rocketmq/export");
         opt.setRequired(false);
         options.addOption(opt);
         return options;
