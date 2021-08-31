@@ -39,11 +39,11 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class ExportMetaDataCommand implements SubCommand {
+public class ExportMetadataCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "exportMetaData";
+        return "exportMetadata";
     }
 
     @Override
