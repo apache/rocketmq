@@ -33,6 +33,13 @@ export JAVA="$JAVA_HOME/bin/java"
 export BASE_DIR=$(dirname $0)/..
 export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
 
+ROCKETMQ_LIB_DIR=${BASE_DIR}/lib
+
+if [ -d "${ROCKETMQ_LIB_DIR}" ]; then
+    for JAR_FILE in ${ROCKETMQ_LIB_DIR}/*.jar; do
+        export CLASSPATH=${CLASSPATH}:${JAR_FILE}
+    done
+fi
 #===========================================================================================
 # JVM Configuration
 #===========================================================================================
@@ -66,13 +73,32 @@ choose_gc_log_directory
 
 JAVA_OPT="${JAVA_OPT} -server -Xms8g -Xmx8g"
 JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0"
-JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:${GC_LOG_DIR}/rmq_broker_gc_%p_%t.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
-JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
+
+ZULU_JDK_CHECK=$($JAVA -version 2>&1 | grep -i zulu | wc -l)
+if [ $ZULU_JDK_CHECK -eq 0 ]; then
+    JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:${GC_LOG_DIR}/rmq_broker_gc_%p_%t.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
+    JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
+fi
 JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
 JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
 JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=15g"
 JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages -XX:-UseBiasedLocking"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib:${JAVA_HOME}/lib/ext"
+
+JAVA_EXT_DIR_OPTS=""
+for EXT_FOLDER in ${JAVA_HOME}/jre/lib/ext ${BASE_DIR}/lib ${JAVA_HOME}/lib/ext; do
+    if [ -d ${EXT_FOLDER} ]; then 
+        if [ ${#JAVA_EXT_DIR_OPTS} -gt 0 ]; then
+            JAVA_EXT_DIR_OPTS="${JAVA_EXT_DIR_OPTS}:"
+        fi
+        JAVA_EXT_DIR_OPTS="${JAVA_EXT_DIR_OPTS}${EXT_FOLDER}"
+    fi
+done
+JAVA_MAJOR_VERSION=$("$JAVA" -version 2>&1 | sed -r -n 's/.* version "([0-9]*).*$/\1/p')
+if [ ${#JAVA_EXT_DIR_OPTS} -gt 0 ] && [ $ZULU_JDK_CHECK -eq 0 ] && [ ${JAVA_MAJOR_VERSION} -le 8 ]; then
+    JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_EXT_DIR_OPTS}"
+fi
+
+
 #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
 JAVA_OPT="${JAVA_OPT} ${JAVA_OPT_EXT}"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
@@ -80,11 +106,11 @@ JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 numactl --interleave=all pwd > /dev/null 2>&1
 if [ $? -eq 0 ]
 then
-	if [ -z "$RMQ_NUMA_NODE" ] ; then
-		numactl --interleave=all $JAVA ${JAVA_OPT} $@
-	else
-		numactl --cpunodebind=$RMQ_NUMA_NODE --membind=$RMQ_NUMA_NODE $JAVA ${JAVA_OPT} $@
-	fi
+    if [ -z "$RMQ_NUMA_NODE" ] ; then
+        numactl --interleave=all $JAVA ${JAVA_OPT} $@
+    else
+        numactl --cpunodebind=$RMQ_NUMA_NODE --membind=$RMQ_NUMA_NODE $JAVA ${JAVA_OPT} $@
+    fi
 else
-	$JAVA ${JAVA_OPT} $@
+    $JAVA ${JAVA_OPT} $@
 fi

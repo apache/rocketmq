@@ -33,6 +33,13 @@ export JAVA="$JAVA_HOME/bin/java"
 export BASE_DIR=$(dirname $0)/..
 export CLASSPATH=.:${BASE_DIR}/conf:${CLASSPATH}
 
+ROCKETMQ_LIB_DIR=${BASE_DIR}/lib
+
+if [ -d "${ROCKETMQ_LIB_DIR}" ]; then
+    for JAR_FILE in ${ROCKETMQ_LIB_DIR}/*.jar; do
+        export CLASSPATH=${CLASSPATH}:${JAR_FILE}
+    done
+fi
 #===========================================================================================
 # JVM Configuration
 #===========================================================================================
@@ -66,7 +73,6 @@ choose_gc_options()
 {
     # Example of JAVA_MAJOR_VERSION value : '1', '9', '10', '11', ...
     # '1' means releases befor Java 9
-    JAVA_MAJOR_VERSION=$("$JAVA" -version 2>&1 | sed -r -n 's/.* version "([0-9]*).*$/\1/p')
     if [ -z "$JAVA_MAJOR_VERSION" ] || [ "$JAVA_MAJOR_VERSION" -lt "9" ] ; then
       JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
       JAVA_OPT="${JAVA_OPT} -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC"
@@ -78,12 +84,25 @@ choose_gc_options()
       JAVA_OPT="${JAVA_OPT} -Xlog:gc*:file=${GC_LOG_DIR}/rmq_srv_gc_%p_%t.log:time,tags:filecount=5,filesize=30M"
     fi
 }
-
+JAVA_MAJOR_VERSION=$("$JAVA" -version 2>&1 | sed -r -n 's/.* version "([0-9]*).*$/\1/p')
 choose_gc_log_directory
 choose_gc_options
 JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
 JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_HOME}/jre/lib/ext:${BASE_DIR}/lib:${JAVA_HOME}/lib/ext"
+JAVA_EXT_DIR_OPTS=""
+for EXT_FOLDER in ${JAVA_HOME}/jre/lib/ext ${BASE_DIR}/lib ${JAVA_HOME}/lib/ext; do
+    if [ -d ${EXT_FOLDER} ]; then 
+        if [ ${#JAVA_EXT_DIR_OPTS} -gt 0 ]; then
+            JAVA_EXT_DIR_OPTS="${JAVA_EXT_DIR_OPTS}:"
+        fi
+        JAVA_EXT_DIR_OPTS="${JAVA_EXT_DIR_OPTS}${EXT_FOLDER}"
+    fi
+done
+
+ZULU_JDK_CHECK=$($JAVA -version 2>&1 | grep -i zulu | wc -l)
+if [ ${#JAVA_EXT_DIR_OPTS} -gt 0 ] && [ $ZULU_JDK_CHECK -eq 0 ] && [ ${JAVA_MAJOR_VERSION} -le 8 ]; then
+    JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${JAVA_EXT_DIR_OPTS}"
+fi
 #JAVA_OPT="${JAVA_OPT} -Xdebug -Xrunjdwp:transport=dt_socket,address=9555,server=y,suspend=n"
 JAVA_OPT="${JAVA_OPT} ${JAVA_OPT_EXT}"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
