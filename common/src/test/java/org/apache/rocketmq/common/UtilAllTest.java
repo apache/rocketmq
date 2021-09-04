@@ -114,12 +114,12 @@ public class UtilAllTest {
     }
 
     @Test
-    public void testList2String() {
+    public void testJoin() {
         List<String> list = Arrays.asList("groupA=DENY", "groupB=PUB|SUB", "groupC=SUB");
         String comma = ",";
-        assertEquals("groupA=DENY,groupB=PUB|SUB,groupC=SUB", UtilAll.list2String(list, comma));
-        assertEquals(null, UtilAll.list2String(null, comma));
-        assertEquals(null, UtilAll.list2String(Collections.emptyList(), comma));
+        assertEquals("groupA=DENY,groupB=PUB|SUB,groupC=SUB", UtilAll.join(list, comma));
+        assertEquals(null, UtilAll.join(null, comma));
+        assertEquals("", UtilAll.join(Collections.emptyList(), comma));
     }
 
     static class DemoConfig {

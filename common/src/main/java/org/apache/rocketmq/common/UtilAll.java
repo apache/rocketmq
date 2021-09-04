@@ -560,30 +560,28 @@ public class UtilAll {
         }
     }
 
-    public static String list2String(List<String> list, String splitor) {
+    public static String join(List<String> list, String splitter) {
         if (list == null) {
             return null;
         }
-        if (list.size() == 0) {
-            return "";
-        }
+
         StringBuilder str = new StringBuilder();
         for (int i = 0; i < list.size(); i++) {
             str.append(list.get(i));
             if (i == list.size() - 1) {
                 break;
             }
-            str.append(splitor);
+            str.append(splitter);
         }
         return str.toString();
     }
 
-    public static List<String> string2List(String str, String splitor) {
+    public static List<String> split(String str, String splitter) {
         if (str == null) {
             return null;
         }
 
-        String[] addrArray = str.split(splitor);
+        String[] addrArray = str.split(splitter);
         return Arrays.asList(addrArray);
     }
 }

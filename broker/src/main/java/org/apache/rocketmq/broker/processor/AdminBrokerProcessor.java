@@ -316,8 +316,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
         accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
         accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
-        accessConfig.setTopicPerms(UtilAll.string2List(requestHeader.getTopicPerms(), ","));
-        accessConfig.setGroupPerms(UtilAll.string2List(requestHeader.getGroupPerms(), ","));
+        accessConfig.setTopicPerms(UtilAll.split(requestHeader.getTopicPerms(), ","));
+        accessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
         accessConfig.setAdmin(requestHeader.isAdmin());
         try {
 
@@ -390,7 +390,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.string2List(requestHeader.getGlobalWhiteAddrs(), ","))) {
+            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.split(requestHeader.getGlobalWhiteAddrs(), ","))) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setOpaque(request.getOpaque());
                 response.markResponseType();
