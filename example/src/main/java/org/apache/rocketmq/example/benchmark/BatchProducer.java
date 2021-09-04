@@ -26,6 +26,8 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -100,22 +102,22 @@ public class BatchProducer {
 
                         try {
                             long beginTimestamp = System.currentTimeMillis();
-                            long sendSucCount = statsBenchmark.getSendMessageSuccessCount().get();
+                            long sendSucCount = statsBenchmark.getSendMessageSuccessCount().longValue();
 
                             setKeys(keyEnable, msgs, String.valueOf(beginTimestamp / 1000));
                             setTags(tagCount, msgs, sendSucCount);
                             setProperties(propertySize, msgs);
                             SendResult sendResult = producer.send(msgs);
                             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
-                                statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
-                                statsBenchmark.getSendMessageSuccessCount().addAndGet(msgs.size());
+                                statsBenchmark.getSendRequestSuccessCount().increment();
+                                statsBenchmark.getSendMessageSuccessCount().add(msgs.size());
                             } else {
-                                statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                                statsBenchmark.getSendMessageFailedCount().addAndGet(msgs.size());
+                                statsBenchmark.getSendRequestFailedCount().increment();
+                                statsBenchmark.getSendMessageFailedCount().add(msgs.size());
                             }
                             long currentRT = System.currentTimeMillis() - beginTimestamp;
-                            statsBenchmark.getSendMessageSuccessTimeTotal().addAndGet(currentRT);
-                            long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
+                            statsBenchmark.getSendMessageSuccessTimeTotal().add(currentRT);
+                            long prevMaxRT = statsBenchmark.getSendMessageMaxRT().longValue();
                             while (currentRT > prevMaxRT) {
                                 boolean updated = statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT, currentRT);
                                 if (updated) {
@@ -125,8 +127,8 @@ public class BatchProducer {
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
                         } catch (RemotingException e) {
-                            statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            statsBenchmark.getSendMessageFailedCount().addAndGet(msgs.size());
+                            statsBenchmark.getSendRequestFailedCount().increment();
+                            statsBenchmark.getSendMessageFailedCount().add(msgs.size());
                             log.error("[BENCHMARK_PRODUCER] Send Exception", e);
 
                             try {
@@ -134,22 +136,22 @@ public class BatchProducer {
                             } catch (InterruptedException ignored) {
                             }
                         } catch (InterruptedException e) {
-                            statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            statsBenchmark.getSendMessageFailedCount().addAndGet(msgs.size());
+                            statsBenchmark.getSendRequestFailedCount().increment();
+                            statsBenchmark.getSendMessageFailedCount().add(msgs.size());
                             try {
                                 Thread.sleep(3000);
                             } catch (InterruptedException e1) {
                             }
-                            statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            statsBenchmark.getSendMessageFailedCount().addAndGet(msgs.size());
+                            statsBenchmark.getSendRequestFailedCount().increment();
+                            statsBenchmark.getSendMessageFailedCount().add(msgs.size());
                             log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQClientException e) {
-                            statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            statsBenchmark.getSendMessageFailedCount().addAndGet(msgs.size());
+                            statsBenchmark.getSendRequestFailedCount().increment();
+                            statsBenchmark.getSendMessageFailedCount().add(msgs.size());
                             log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQBrokerException e) {
-                            statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            statsBenchmark.getSendMessageFailedCount().addAndGet(msgs.size());
+                            statsBenchmark.getSendRequestFailedCount().increment();
+                            statsBenchmark.getSendMessageFailedCount().add(msgs.size());
                             log.error("[BENCHMARK_PRODUCER] Send Exception", e);
                             try {
                                 Thread.sleep(3000);
@@ -313,17 +315,17 @@ public class BatchProducer {
 
 class StatsBenchmarkBatchProducer {
 
-    private final AtomicLong sendRequestSuccessCount = new AtomicLong(0L);
+    private final LongAdder sendRequestSuccessCount = new LongAdder();
 
-    private final AtomicLong sendRequestFailedCount = new AtomicLong(0L);
+    private final LongAdder sendRequestFailedCount = new LongAdder();
 
-    private final AtomicLong sendMessageSuccessTimeTotal = new AtomicLong(0L);
+    private final LongAdder sendMessageSuccessTimeTotal = new LongAdder();
 
     private final AtomicLong sendMessageMaxRT = new AtomicLong(0L);
 
-    private final AtomicLong sendMessageSuccessCount = new AtomicLong(0L);
+    private final LongAdder sendMessageSuccessCount = new LongAdder();
 
-    private final AtomicLong sendMessageFailedCount = new AtomicLong(0L);
+    private final LongAdder sendMessageFailedCount = new LongAdder();
 
     private final Timer timer = new Timer("BenchmarkTimerThread", true);
 
@@ -332,25 +334,25 @@ class StatsBenchmarkBatchProducer {
     public Long[] createSnapshot() {
         Long[] snap = new Long[] {
                 System.currentTimeMillis(),
-                this.sendRequestSuccessCount.get(),
-                this.sendRequestFailedCount.get(),
-                this.sendMessageSuccessCount.get(),
-                this.sendMessageFailedCount.get(),
-                this.sendMessageSuccessTimeTotal.get(),
+                this.sendRequestSuccessCount.longValue(),
+                this.sendRequestFailedCount.longValue(),
+                this.sendMessageSuccessCount.longValue(),
+                this.sendMessageFailedCount.longValue(),
+                this.sendMessageSuccessTimeTotal.longValue(),
         };
 
         return snap;
     }
 
-    public AtomicLong getSendRequestSuccessCount() {
+    public LongAdder getSendRequestSuccessCount() {
         return sendRequestSuccessCount;
     }
 
-    public AtomicLong getSendRequestFailedCount() {
+    public LongAdder getSendRequestFailedCount() {
         return sendRequestFailedCount;
     }
 
-    public AtomicLong getSendMessageSuccessTimeTotal() {
+    public LongAdder getSendMessageSuccessTimeTotal() {
         return sendMessageSuccessTimeTotal;
     }
 
@@ -358,11 +360,11 @@ class StatsBenchmarkBatchProducer {
         return sendMessageMaxRT;
     }
 
-    public AtomicLong getSendMessageSuccessCount() {
+    public LongAdder getSendMessageSuccessCount() {
         return sendMessageSuccessCount;
     }
 
-    public AtomicLong getSendMessageFailedCount() {
+    public LongAdder getSendMessageFailedCount() {
         return sendMessageFailedCount;
     }
 
@@ -390,7 +392,7 @@ class StatsBenchmarkBatchProducer {
                     final double averageMsgRT = (end[5] - begin[5]) / (double) (end[3] - begin[3]);
 
                     System.out.printf("Current Time: %s Send TPS: %d Send MPS: %d Max RT(ms): %d Average RT(ms): %7.3f Average Message RT(ms): %7.3f Send Failed: %d Send Message Failed: %d%n",
-                            System.currentTimeMillis(), sendTps, sendMps, getSendMessageMaxRT().get(), averageRT, averageMsgRT, end[2], end[4]);
+                            System.currentTimeMillis(), sendTps, sendMps, getSendMessageMaxRT().longValue(), averageRT, averageMsgRT, end[2], end[4]);
                 }
             }
 
