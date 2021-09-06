@@ -206,61 +206,31 @@ public class AclUtils {
     }
 
     public static String expandIP(String netaddress, int part) {
-        boolean compress = false;
-        int compressIndex = -1;
-        String[] strArray = StringUtils.split(netaddress, ":");
-        ArrayList<Integer> indexes = new ArrayList<>();
-        for (int i = 0; i < netaddress.length(); i++) {
-            if (netaddress.charAt(i) == ':') {
-                if (indexes.size() > 0 && i - indexes.get(indexes.size() - 1) == 1) {
-                    compressIndex = i;
-                    compress = true;
-                }
-                indexes.add(i);
+        // expand netaddress
+        int separatorCount = StringUtils.countMatches(netaddress, ":");
+        int padCount = part - separatorCount;
+        if(padCount > 0){
+            StringBuilder padStr = new StringBuilder(":");
+            for(int i = 0; i < padCount; i++){
+                padStr.append(":");
             }
+            netaddress = StringUtils.replace(netaddress, "::", padStr.toString());
         }
 
+        // pad netaddress
+        String[] strArray = StringUtils.splitPreserveAllTokens(netaddress, ":");
         for (int i = 0; i < strArray.length; i++) {
-            if (strArray[i].length() < 4) {
-                strArray[i] = "0000".substring(0, 4 - strArray[i].length()) + strArray[i];
+            if(strArray[i].length() < 4){
+                strArray[i] = StringUtils.leftPad(strArray[i], 4, '0');
             }
         }
 
+        // output
         StringBuilder sb = new StringBuilder();
-        if (compress) {
-            int pos = indexes.indexOf(compressIndex);
-            int index = 0;
-            if (!netaddress.startsWith(":")) {
-                for (int i = 0; i < pos; i++) {
-                    sb.append(strArray[index]).append(":");
-                    index += 1;
-                }
-            }
-            int zeroNum = part - strArray.length;
-            if (netaddress.endsWith(":")) {
-                for (int i = 0; i < zeroNum; i++) {
-                    sb.append("0000");
-                    if (i != zeroNum - 1) {
-                        sb.append(":");
-                    }
-                }
-            } else {
-                for (int i = 0; i < zeroNum; i++) {
-                    sb.append("0000").append(":");
-                }
-                for (int i = index; i < strArray.length; i++) {
-                    sb.append(strArray[i]);
-                    if (i != strArray.length - 1) {
-                        sb.append(":");
-                    }
-                }
-            }
-        } else {
-            for (int i = 0; i < strArray.length; i++) {
-                sb.append(strArray[i]);
-                if (i != strArray.length - 1) {
-                    sb.append(":");
-                }
+        for (int i = 0; i < strArray.length; i++) {
+            sb.append(strArray[i]);
+            if (i != strArray.length - 1) {
+                sb.append(":");
             }
         }
         return sb.toString().toUpperCase();
