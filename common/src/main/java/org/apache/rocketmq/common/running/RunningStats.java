@@ -22,4 +22,5 @@ public enum RunningStats {
     commitLogDiskRatio,
     consumeQueueDiskRatio,
     scheduleMessageOffset,
+    dragonMessageOffset,
 }
