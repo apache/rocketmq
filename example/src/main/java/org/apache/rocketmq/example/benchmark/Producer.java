@@ -47,6 +47,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Producer {
 
+    private static byte[] msgBody;
+
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
@@ -69,6 +71,12 @@ public class Producer {
 
         System.out.printf("topic: %s threadCount: %d messageSize: %d keyEnable: %s propertySize: %d tagCount: %d traceEnable: %s aclEnable: %s messageQuantity: %d%n delayEnable: %s%n delayLevel: %s%n",
             topic, threadCount, messageSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable, messageNum, delayEnable, delayLevel);
+
+        StringBuilder sb = new StringBuilder(messageSize);
+        for (int i = 0; i < messageSize; i += 10) {
+            sb.append("hello baby");
+        }
+        msgBody = sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET);
 
         final InternalLogger log = ClientLogger.getLog();
 
@@ -142,13 +150,7 @@ public class Producer {
                     int num = 0;
                     while (true) {
                         try {
-                            final Message msg;
-                            try {
-                                msg = buildMessage(messageSize, topic);
-                            } catch (UnsupportedEncodingException e) {
-                                e.printStackTrace();
-                                return;
-                            }
+                            final Message msg = buildMessage(topic);
                             final long beginTimestamp = System.currentTimeMillis();
                             if (keyEnable) {
                                 msg.setKeys(String.valueOf(beginTimestamp / 1000));
@@ -290,18 +292,8 @@ public class Producer {
         return options;
     }
 
-    private static Message buildMessage(final int messageSize, final String topic) throws UnsupportedEncodingException {
-        Message msg = new Message();
-        msg.setTopic(topic);
-
-        StringBuilder sb = new StringBuilder(messageSize);
-        for (int i = 0; i < messageSize; i += 10) {
-            sb.append("hello baby");
-        }
-
-        msg.setBody(sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET));
-
-        return msg;
+    private static Message buildMessage(final String topic) {
+        return new Message(topic, msgBody);
     }
 
     private static void doPrintStats(final LinkedList<Long[]> snapshotList, final StatsBenchmarkProducer statsBenchmark, boolean done) {

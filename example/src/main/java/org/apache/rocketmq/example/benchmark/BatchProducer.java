@@ -50,6 +50,8 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class BatchProducer {
 
+    private static byte[] msgBody;
+
     public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
@@ -74,6 +76,12 @@ public class BatchProducer {
         System.out.printf("topic: %s threadCount: %d messageSize: %d batchSize: %d keyEnable: %s propertySize: %d tagCount: %d traceEnable: %s aclEnable: %s%n",
                 topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable);
 
+        StringBuilder sb = new StringBuilder(messageSize);
+        for (int i = 0; i < messageSize; i += 10) {
+            sb.append("hello baby");
+        }
+        msgBody = sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET);
+
         final StatsBenchmarkBatchProducer statsBenchmark = new StatsBenchmarkBatchProducer();
         statsBenchmark.start();
 
@@ -87,14 +95,7 @@ public class BatchProducer {
                 @Override
                 public void run() {
                     while (true) {
-                        List<Message> msgs;
-
-                        try {
-                            msgs = buildBathMessage(batchSize, messageSize, topic);
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                            return;
-                        }
+                        List<Message> msgs = buildBathMessage(batchSize, topic);
 
                         if (CollectionUtils.isEmpty(msgs)) {
                             return;
@@ -236,23 +237,12 @@ public class BatchProducer {
         return defaultValue;
     }
 
-    private static List<Message> buildBathMessage(int batchSize, int messageSize,
-                                                  String topic) throws UnsupportedEncodingException {
+    private static List<Message> buildBathMessage(final int batchSize, final String topic) {
         List<Message> batchMessage = new ArrayList<>(batchSize);
-
         for (int i = 0; i < batchSize; i++) {
-            Message msg = new Message();
-            msg.setTopic(topic);
-
-            StringBuilder sb = new StringBuilder();
-            for (int j = 0; j < messageSize; j += 10) {
-                sb.append("hello baby");
-            }
-
-            msg.setBody(sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET));
+            Message msg = new Message(topic, msgBody);
             batchMessage.add(msg);
         }
-
         return batchMessage;
     }
 
