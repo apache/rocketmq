@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.example.benchmark;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,6 +33,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -44,13 +45,14 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class BatchProducer {
 
-    public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
+    private static byte[] msgBody;
+
+    public static void main(String[] args) throws MQClientException {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkBatchProducer", args, buildCommandlineOptions(options), new PosixParser());
@@ -74,6 +76,12 @@ public class BatchProducer {
         System.out.printf("topic: %s threadCount: %d messageSize: %d batchSize: %d keyEnable: %s propertySize: %d tagCount: %d traceEnable: %s aclEnable: %s%n",
                 topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable);
 
+        StringBuilder sb = new StringBuilder(messageSize);
+        for (int i = 0; i < messageSize; i++) {
+            sb.append(RandomStringUtils.randomAlphanumeric(1));
+        }
+        msgBody = sb.toString().getBytes(StandardCharsets.UTF_8);
+
         final StatsBenchmarkBatchProducer statsBenchmark = new StatsBenchmarkBatchProducer();
         statsBenchmark.start();
 
@@ -87,14 +95,7 @@ public class BatchProducer {
                 @Override
                 public void run() {
                     while (true) {
-                        List<Message> msgs;
-
-                        try {
-                            msgs = buildBathMessage(batchSize, messageSize, topic);
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                            return;
-                        }
+                        List<Message> msgs = buildBathMessage(batchSize, topic);
 
                         if (CollectionUtils.isEmpty(msgs)) {
                             return;
@@ -236,23 +237,12 @@ public class BatchProducer {
         return defaultValue;
     }
 
-    private static List<Message> buildBathMessage(int batchSize, int messageSize,
-                                                  String topic) throws UnsupportedEncodingException {
+    private static List<Message> buildBathMessage(final int batchSize, final String topic) {
         List<Message> batchMessage = new ArrayList<>(batchSize);
-
         for (int i = 0; i < batchSize; i++) {
-            Message msg = new Message();
-            msg.setTopic(topic);
-
-            StringBuilder sb = new StringBuilder();
-            for (int j = 0; j < messageSize; j += 10) {
-                sb.append("hello baby");
-            }
-
-            msg.setBody(sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET));
+            Message msg = new Message(topic, msgBody);
             batchMessage.add(msg);
         }
-
         return batchMessage;
     }
 
