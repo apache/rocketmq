@@ -65,7 +65,7 @@ public class ExportConfigsCommand implements SubCommand {
 
         try {
             String clusterName = commandLine.getOptionValue('c').trim();
-            String filePath = !commandLine.hasOption('f') ? "/tmp/rocketmq/config" : commandLine.getOptionValue('f')
+            String filePath = !commandLine.hasOption('f') ? "/tmp/rocketmq/export" : commandLine.getOptionValue('f')
                 .trim();
 
             defaultMQAdminExt.start();
