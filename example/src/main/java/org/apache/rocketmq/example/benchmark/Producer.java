@@ -16,11 +16,13 @@
  */
 package org.apache.rocketmq.example.benchmark;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -29,11 +31,9 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
@@ -49,7 +49,7 @@ public class Producer {
 
     private static byte[] msgBody;
 
-    public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
+    public static void main(String[] args) throws MQClientException {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkProducer", args, buildCommandlineOptions(options), new PosixParser());
@@ -73,10 +73,10 @@ public class Producer {
             topic, threadCount, messageSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable, messageNum, delayEnable, delayLevel);
 
         StringBuilder sb = new StringBuilder(messageSize);
-        for (int i = 0; i < messageSize; i += 10) {
-            sb.append("hello baby");
+        for (int i = 0; i < messageSize; i++) {
+            sb.append(RandomStringUtils.randomAlphanumeric(1));
         }
-        msgBody = sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET);
+        msgBody = sb.toString().getBytes(StandardCharsets.UTF_8);
 
         final InternalLogger log = ClientLogger.getLog();
 

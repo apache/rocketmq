@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.example.benchmark;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,6 +33,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -44,7 +45,6 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
@@ -52,7 +52,7 @@ public class BatchProducer {
 
     private static byte[] msgBody;
 
-    public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
+    public static void main(String[] args) throws MQClientException {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkBatchProducer", args, buildCommandlineOptions(options), new PosixParser());
@@ -77,10 +77,10 @@ public class BatchProducer {
                 topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable);
 
         StringBuilder sb = new StringBuilder(messageSize);
-        for (int i = 0; i < messageSize; i += 10) {
-            sb.append("hello baby");
+        for (int i = 0; i < messageSize; i++) {
+            sb.append(RandomStringUtils.randomAlphanumeric(1));
         }
-        msgBody = sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET);
+        msgBody = sb.toString().getBytes(StandardCharsets.UTF_8);
 
         final StatsBenchmarkBatchProducer statsBenchmark = new StatsBenchmarkBatchProducer();
         statsBenchmark.start();
