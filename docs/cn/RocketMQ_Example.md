@@ -438,6 +438,7 @@ public class ScheduledMessageConsumer {
    public static void main(String[] args) throws Exception {
       // 实例化消费者
       DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ExampleConsumer");
+      consumer.setNamesrvAddr("127.0.0.1:9876");
       // 订阅Topics
       consumer.subscribe("TestTopic", "*");
       // 注册消息监听者
@@ -469,6 +470,7 @@ public class ScheduledMessageProducer {
    public static void main(String[] args) throws Exception {
       // 实例化一个生产者来产生延时消息
       DefaultMQProducer producer = new DefaultMQProducer("ExampleProducerGroup");
+      producer.setNamesrvAddr("127.0.0.1:9876");
       // 启动生产者
       producer.start();
       int totalMessagesToSend = 100;
