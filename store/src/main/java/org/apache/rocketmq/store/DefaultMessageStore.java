@@ -16,34 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.net.Inet6Address;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileLock;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.common.SystemClock;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.*;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -59,9 +32,22 @@ import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
-import org.apache.rocketmq.store.schedule.DragonMessageService;
+import org.apache.rocketmq.store.schedule.CutomDelayMessageService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.net.Inet6Address;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileLock;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class DefaultMessageStore implements MessageStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -88,7 +74,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private final ScheduleMessageService scheduleMessageService;
 
-    private final DragonMessageService dragonMessageService;
+    private final CutomDelayMessageService cutomDelayMessageService;
 
     private final StoreStatsService storeStatsService;
 
@@ -145,7 +131,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.scheduleMessageService = new ScheduleMessageService(this);
 
-        this.dragonMessageService = new DragonMessageService(this);
+        this.cutomDelayMessageService = new CutomDelayMessageService(this);
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
@@ -189,8 +175,8 @@ public class DefaultMessageStore implements MessageStore {
             if (null != scheduleMessageService) {
                 result = result && this.scheduleMessageService.load();
             }
-            if (null != dragonMessageService) {
-                result = result && this.dragonMessageService.load();
+            if (null != cutomDelayMessageService) {
+                result = result && this.cutomDelayMessageService.load();
             }
 
             // load Commit Log
@@ -771,8 +757,8 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
         {
-            if (this.dragonMessageService != null) {
-                this.dragonMessageService.buildRunningStats(result);
+            if (this.cutomDelayMessageService != null) {
+                this.cutomDelayMessageService.buildRunningStats(result);
             }
         }
 
@@ -1428,8 +1414,8 @@ public class DefaultMessageStore implements MessageStore {
         return scheduleMessageService;
     }
 
-    public DragonMessageService getDragonMessageService() {
-        return dragonMessageService;
+    public CutomDelayMessageService getCutomDelayMessageService() {
+        return cutomDelayMessageService;
     }
 
     public RunningFlags getRunningFlags() {
@@ -1457,10 +1443,10 @@ public class DefaultMessageStore implements MessageStore {
         if (this.scheduleMessageService != null) {
             if (brokerRole == BrokerRole.SLAVE) {
                 this.scheduleMessageService.shutdown();
-                this.dragonMessageService.shutdown();
+                this.cutomDelayMessageService.shutdown();
             } else {
                 this.scheduleMessageService.start();
-                this.dragonMessageService.start();
+                this.cutomDelayMessageService.start();
             }
         }
 
@@ -1528,9 +1514,9 @@ public class DefaultMessageStore implements MessageStore {
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
-        //TODO 本地环境使用，磁盘常年爆炸
+
         private final double diskSpaceWarningLevelRatio =
-                Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.999"));
+                Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.90"));
 
         private final double diskSpaceCleanForciblyRatio =
                 Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
