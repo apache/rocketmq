@@ -54,7 +54,7 @@
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-client</artifactId>
-    <version>4.3.0</version>
+    <version>4.9.1</version>
 </dependency>
 ```
 `gradle`
