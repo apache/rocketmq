@@ -509,10 +509,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr,
+    public TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr, final boolean specialTopic,
         long timeoutMillis) throws InterruptedException, RemotingException,
         MQBrokerException, MQClientException {
-        return this.defaultMQAdminExtImpl.getUserTopicConfig(brokerAddr, timeoutMillis);
+        return this.defaultMQAdminExtImpl.getUserTopicConfig(brokerAddr, specialTopic, timeoutMillis);
     }
 
     /* (non-Javadoc)

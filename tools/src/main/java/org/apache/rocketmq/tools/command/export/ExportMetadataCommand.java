@@ -49,7 +49,7 @@ public class ExportMetadataCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "export meta data";
+        return "export metadata";
     }
 
     @Override
@@ -70,7 +70,11 @@ public class ExportMetadataCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("s", "subscriptionGroup", false, "only export subscriptionGroup metadata");
+        opt = new Option("g", "subscriptionGroup", false, "only export subscriptionGroup metadata");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("s", "specialTopic", false, "need retryTopic and dlqTopic");
         opt.setRequired(false);
         options.addOption(opt);
         return options;
@@ -89,19 +93,23 @@ public class ExportMetadataCommand implements SubCommand {
             String filePath = !commandLine.hasOption('f') ? "/tmp/rocketmq/export" : commandLine.getOptionValue('f')
                 .trim();
 
+            boolean specialTopic = commandLine.hasOption('s');
+
             if (commandLine.hasOption('b')) {
                 final String brokerAddr = commandLine.getOptionValue('b').trim();
 
                 if (commandLine.hasOption('t')) {
                     filePath = filePath + "/topic.json";
                     TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
-                        brokerAddr, 10000L);
-                    MixAll.string2FileNotSafe(topicConfigSerializeWrapper.toJson(true), filePath);
-                } else if (commandLine.hasOption('s')) {
+                        brokerAddr, specialTopic, 10000L);
+                    MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, true), filePath);
+                    System.out.printf("export %s success", filePath);
+                } else if (commandLine.hasOption('g')) {
                     filePath = filePath + "/subscriptionGroup.json";
                     SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
                         brokerAddr, 10000L);
-                    MixAll.string2FileNotSafe(subscriptionGroupWrapper.toJson(true), filePath);
+                    MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, true), filePath);
+                    System.out.printf("export %s success", filePath);
                 }
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
@@ -114,37 +122,34 @@ public class ExportMetadataCommand implements SubCommand {
 
                 for (String addr : masterSet) {
                     TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
-                        addr, 10000L);
+                        addr, specialTopic, 10000L);
 
                     SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
                         addr, 10000);
 
                     if (commandLine.hasOption('t')) {
                         filePath = filePath + "/topic.json";
-                        MixAll.string2FileNotSafe(topicConfigSerializeWrapper.toJson(true), filePath);
+                        MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, true), filePath);
+                        System.out.printf("export %s success", filePath);
                         return;
-                    } else if (commandLine.hasOption('s')) {
+                    } else if (commandLine.hasOption('g')) {
                         filePath = filePath + "/subscriptionGroup.json";
-                        MixAll.string2FileNotSafe(subscriptionGroupWrapper.toJson(true), filePath);
+                        MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, true), filePath);
+                        System.out.printf("export %s success", filePath);
                         return;
                     } else {
-                        for (Map.Entry<String, TopicConfig> entry : topicConfigSerializeWrapper.getTopicConfigTable()
-                            .entrySet()) {
-                            if (!entry.getKey().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) &&
-                                !entry.getKey().startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
-                                TopicConfig topicConfig = topicConfigMap.get(entry.getKey());
-                                if (null != topicConfig) {
-                                    entry.getValue().setWriteQueueNums(
-                                        topicConfig.getWriteQueueNums() + entry.getValue().getWriteQueueNums());
-                                    entry.getValue().setReadQueueNums(
-                                        topicConfig.getReadQueueNums() + entry.getValue().getReadQueueNums());
-                                }
-                                topicConfigMap.put(entry.getKey(), entry.getValue());
+                        for (Map.Entry<String, TopicConfig> entry : topicConfigSerializeWrapper.getTopicConfigTable().entrySet()) {
+                            TopicConfig topicConfig = topicConfigMap.get(entry.getKey());
+                            if (null != topicConfig) {
+                                entry.getValue().setWriteQueueNums(
+                                    topicConfig.getWriteQueueNums() + entry.getValue().getWriteQueueNums());
+                                entry.getValue().setReadQueueNums(
+                                    topicConfig.getReadQueueNums() + entry.getValue().getReadQueueNums());
                             }
+                            topicConfigMap.put(entry.getKey(), entry.getValue());
                         }
 
-                        for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper
-                            .getSubscriptionGroupTable().entrySet()) {
+                        for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper.getSubscriptionGroupTable().entrySet()) {
 
                             SubscriptionGroupConfig subscriptionGroupConfig = subGroupConfigMap.get(entry.getKey());
                             if (null != subscriptionGroupConfig) {
@@ -153,21 +158,22 @@ public class ExportMetadataCommand implements SubCommand {
                             }
                             subGroupConfigMap.put(entry.getKey(), entry.getValue());
                         }
+
+                        Map<String, Object> result = new HashMap<>();
+                        result.put("topicConfigTable", topicConfigMap);
+                        result.put("subscriptionGroupTable", subGroupConfigMap);
+                        result.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+                        result.put("exportTime", System.currentTimeMillis());
+
+                        filePath = filePath + "/metadata.json";
+                        MixAll.string2FileNotSafe(JSON.toJSONString(result, true), filePath);
+                        System.out.printf("export %s success", filePath);
                     }
 
-                    Map<String, Object> result = new HashMap<>();
-                    result.put("topicConfigTable", topicConfigMap);
-                    result.put("subscriptionGroupTable", subGroupConfigMap);
-                    result.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
-                    result.put("exportTime", System.currentTimeMillis());
-
-                    filePath = filePath + "/metadata.json";
-                    MixAll.string2FileNotSafe(JSON.toJSONString(result, true), filePath);
                 }
             } else {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
             }
-            System.out.printf("export %s success", filePath);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

@@ -179,7 +179,7 @@ public class ExportMetricsCommand implements SubCommand {
         SubscriptionGroupWrapper subscriptionGroupWrapper)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
-            brokerAddr, 10000);
+            brokerAddr, false, 10000);
 
         BrokerStatsData transStatsData = null;
 
