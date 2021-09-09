@@ -32,7 +32,7 @@ import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
-import org.apache.rocketmq.store.schedule.CutomDelayMessageService;
+import org.apache.rocketmq.store.schedule.CustomDelayMessageService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
@@ -74,7 +74,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private final ScheduleMessageService scheduleMessageService;
 
-    private final CutomDelayMessageService cutomDelayMessageService;
+    private final CustomDelayMessageService customDelayMessageService;
 
     private final StoreStatsService storeStatsService;
 
@@ -131,7 +131,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.scheduleMessageService = new ScheduleMessageService(this);
 
-        this.cutomDelayMessageService = new CutomDelayMessageService(this);
+        this.customDelayMessageService = new CustomDelayMessageService(this);
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
@@ -175,8 +175,8 @@ public class DefaultMessageStore implements MessageStore {
             if (null != scheduleMessageService) {
                 result = result && this.scheduleMessageService.load();
             }
-            if (null != cutomDelayMessageService) {
-                result = result && this.cutomDelayMessageService.load();
+            if (null != customDelayMessageService) {
+                result = result && this.customDelayMessageService.load();
             }
 
             // load Commit Log
@@ -757,8 +757,8 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
         {
-            if (this.cutomDelayMessageService != null) {
-                this.cutomDelayMessageService.buildRunningStats(result);
+            if (this.customDelayMessageService != null) {
+                this.customDelayMessageService.buildRunningStats(result);
             }
         }
 
@@ -1414,8 +1414,8 @@ public class DefaultMessageStore implements MessageStore {
         return scheduleMessageService;
     }
 
-    public CutomDelayMessageService getCutomDelayMessageService() {
-        return cutomDelayMessageService;
+    public CustomDelayMessageService getCustomDelayMessageService() {
+        return customDelayMessageService;
     }
 
     public RunningFlags getRunningFlags() {
@@ -1443,10 +1443,10 @@ public class DefaultMessageStore implements MessageStore {
         if (this.scheduleMessageService != null) {
             if (brokerRole == BrokerRole.SLAVE) {
                 this.scheduleMessageService.shutdown();
-                this.cutomDelayMessageService.shutdown();
+                this.customDelayMessageService.shutdown();
             } else {
                 this.scheduleMessageService.start();
-                this.cutomDelayMessageService.start();
+                this.customDelayMessageService.start();
             }
         }
 

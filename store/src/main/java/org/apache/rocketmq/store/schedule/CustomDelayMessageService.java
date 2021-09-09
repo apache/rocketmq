@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
  * @Date 2021/9/6 14:12
  * @Description
  **/
-public class CutomDelayMessageService extends ConfigManager {
+public class CustomDelayMessageService extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     public static final String SCHEDULE_TOPIC = "DRAGON_TOPIC_XXX";
@@ -72,7 +72,7 @@ public class CutomDelayMessageService extends ConfigManager {
 
     private final AtomicBoolean started = new AtomicBoolean(false);
 
-    public CutomDelayMessageService(final DefaultMessageStore defaultMessageStore) {
+    public CustomDelayMessageService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
         this.writeMessageStore = defaultMessageStore;
     }
@@ -179,7 +179,7 @@ public class CutomDelayMessageService extends ConfigManager {
                 public void run() {
                     try {
                         if (started.get()) {
-                            CutomDelayMessageService.this.persist();
+                            CustomDelayMessageService.this.persist();
                         }
                     } catch (Throwable e) {
                         log.error("scheduleAtFixedRate flush exception", e);
@@ -286,13 +286,13 @@ public class CutomDelayMessageService extends ConfigManager {
             log.info("specify delay time less than 1 " + msg.getTopic() + " tags: " + msg.getTags());
             return;
         }
-        if (queueId > CutomDelayMessageService.MAX_LIMIT_LEVEL) {
-            queueId = CutomDelayMessageService.MAX_LIMIT_LEVEL;
+        if (queueId > CustomDelayMessageService.MAX_LIMIT_LEVEL) {
+            queueId = CustomDelayMessageService.MAX_LIMIT_LEVEL;
         }
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_SPECIFY_DELAY_LEVEL, String.valueOf(queueId));
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_SPECIFY_DELAY_TAG, "1");
 
-        topic = CutomDelayMessageService.SCHEDULE_TOPIC;
+        topic = CustomDelayMessageService.SCHEDULE_TOPIC;
         // Backup real topic, queueId
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
@@ -336,13 +336,13 @@ public class CutomDelayMessageService extends ConfigManager {
             } catch (Exception e) {
                 // XXX: warn and notify me
                 log.error("dragonScheduleTimeTask, executeOnTimeup exception", e);
-                CutomDelayMessageService.this.poolExecutor.schedule(new DragonScheduleTimeTask(
+                CustomDelayMessageService.this.poolExecutor.schedule(new DragonScheduleTimeTask(
                         this.delayLevel, this.offset), DELAY_FOR_A_PERIOD, TimeUnit.SECONDS);
             }
         }
 
         private void executeOnDragonTime() {
-            ConsumeQueue cq = CutomDelayMessageService.this.defaultMessageStore
+            ConsumeQueue cq = CustomDelayMessageService.this.defaultMessageStore
                     .findConsumeQueue(SCHEDULE_TOPIC, delayLevel);
 
             long failScheduleOffset = offset;
@@ -379,7 +379,7 @@ public class CutomDelayMessageService extends ConfigManager {
                             if (countdown <= 0) {
                                 //找到满足条件的数据
                                 MessageExt msgExt =
-                                        CutomDelayMessageService.this.defaultMessageStore.lookMessageByOffset(
+                                        CustomDelayMessageService.this.defaultMessageStore.lookMessageByOffset(
                                                 offsetPy, sizePy);
                                 if (msgExt != null) {
                                     MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
@@ -394,7 +394,7 @@ public class CutomDelayMessageService extends ConfigManager {
                                         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_SPECIFY_DELAY_TAG);
                                     }
                                     PutMessageResult putMessageResult =
-                                            CutomDelayMessageService.this.writeMessageStore
+                                            CustomDelayMessageService.this.writeMessageStore
                                                     .putMessage(msgInner);
                                     if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
@@ -404,34 +404,34 @@ public class CutomDelayMessageService extends ConfigManager {
                                         log.error(
                                                 "DragonScheduleTimeTask, a message time up, but reput it failed, topic: {} msgId {}",
                                                 msgExt.getTopic(), msgExt.getMsgId());
-                                        CutomDelayMessageService.this.poolExecutor.schedule(
+                                        CustomDelayMessageService.this.poolExecutor.schedule(
                                                 new DragonScheduleTimeTask(this.delayLevel,
                                                         nextOffset), DELAY_FOR_A_PERIOD, TimeUnit.SECONDS);
-                                        CutomDelayMessageService.this.updateOffset(this.delayLevel,
+                                        CustomDelayMessageService.this.updateOffset(this.delayLevel,
                                                 nextOffset);
                                         return;
                                     }
                                 }
                             } else {
                                 //这样可以在准点的时候启动
-                                CutomDelayMessageService.this.poolExecutor.schedule(
+                                CustomDelayMessageService.this.poolExecutor.schedule(
                                         new DragonScheduleTimeTask(this.delayLevel, nextOffset),
                                         countdown, TimeUnit.MILLISECONDS);
-                                CutomDelayMessageService.this.updateOffset(this.delayLevel, nextOffset);
+                                CustomDelayMessageService.this.updateOffset(this.delayLevel, nextOffset);
                                 return;
                             }
                         }
                         nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-                        CutomDelayMessageService.this.poolExecutor.schedule(new DragonScheduleTimeTask(
+                        CustomDelayMessageService.this.poolExecutor.schedule(new DragonScheduleTimeTask(
                                 this.delayLevel, nextOffset), DELAY_FOR_A_WHILE, TimeUnit.MILLISECONDS);
-                        CutomDelayMessageService.this.updateOffset(this.delayLevel, nextOffset);
+                        CustomDelayMessageService.this.updateOffset(this.delayLevel, nextOffset);
                         return;
                     } finally {
                         bufferCQ.release();
                     }
                 }
             }
-            CutomDelayMessageService.this.poolExecutor.schedule(new DragonScheduleTimeTask(this.delayLevel,
+            CustomDelayMessageService.this.poolExecutor.schedule(new DragonScheduleTimeTask(this.delayLevel,
                     failScheduleOffset), DELAY_FOR_A_WHILE, TimeUnit.MILLISECONDS);
         }
 
@@ -439,7 +439,7 @@ public class CutomDelayMessageService extends ConfigManager {
 
             long result = deliverTimestamp;
 
-            long maxTimestamp = now + CutomDelayMessageService.this.delayLevelTable.get(this.delayLevel);
+            long maxTimestamp = now + CustomDelayMessageService.this.delayLevelTable.get(this.delayLevel);
             if (deliverTimestamp > maxTimestamp) {
                 result = now;
             }
@@ -455,10 +455,10 @@ public class CutomDelayMessageService extends ConfigManager {
             int queueId = levelMapper.getOrDefault(time, -1);
             if (queueId != -1) {
                 msgInner.setQueueId(queueId);
-                msgInner.setTopic(CutomDelayMessageService.SCHEDULE_TOPIC);
+                msgInner.setTopic(CustomDelayMessageService.SCHEDULE_TOPIC);
                 MessageAccessor.clearProperty(msgInner, property);
                 //重新插入
-                CutomDelayMessageService.this.writeMessageStore.putMessage(msgInner);
+                CustomDelayMessageService.this.writeMessageStore.putMessage(msgInner);
                 return true;
             }
             return false;

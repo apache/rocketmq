@@ -41,7 +41,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.ha.HAService;
-import org.apache.rocketmq.store.schedule.CutomDelayMessageService;
+import org.apache.rocketmq.store.schedule.CustomDelayMessageService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
@@ -357,10 +357,11 @@ public class CommitLog {
                     String t = propertiesMap.get(MessageConst.PROPERTY_SPECIFY_DELAY_LEVEL);
                     if (t != null) {
                         int delayLevel = Integer.parseInt(t);
-                        if (delayLevel > this.defaultMessageStore.getCutomDelayMessageService().getMaxDelayLevel()) {
-                            delayLevel = this.defaultMessageStore.getCutomDelayMessageService().getMaxDelayLevel();
+                        if (delayLevel > this.defaultMessageStore.getCustomDelayMessageService().getMaxDelayLevel()) {
+                            delayLevel = this.defaultMessageStore.getCustomDelayMessageService().getMaxDelayLevel();
                         }
-                        tagsCode = this.defaultMessageStore.getCutomDelayMessageService().computeDeliverTimestamp(delayLevel,
+                        tagsCode =
+                                this.defaultMessageStore.getCustomDelayMessageService().computeDeliverTimestamp(delayLevel,
                                 storeTimestamp);
                     }
                 }
@@ -604,7 +605,7 @@ public class CommitLog {
                 msg.setQueueId(queueId);
                 //明确指定时间的消息队列 延迟队列
             } else if (msg.getProperties().containsKey(MessageConst.PROPERTY_SPECIFY_DELAY_TIME)) {
-                this.defaultMessageStore.getCutomDelayMessageService().dealSpecifyDelayTime(msg);
+                this.defaultMessageStore.getCustomDelayMessageService().dealSpecifyDelayTime(msg);
             }
         }
 
