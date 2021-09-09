@@ -588,18 +588,19 @@ public class CommitLog {
             // Delay Delivery
             //TODO 写入延迟队列
             if (msg.getDelayTimeLevel() > 0) {
+                //判断级别是不是超过了
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
-
+                //延迟消息 新的topic和broker
                 topic = ScheduleMessageService.SCHEDULE_TOPIC;
                 queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 
                 // Backup real topic, queueId
+                //将真实的topic和queueID写到属性中
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
-
                 msg.setTopic(topic);
                 msg.setQueueId(queueId);
                 //明确指定时间的消息队列 延迟队列
