@@ -16,8 +16,22 @@
  */
 package org.apache.rocketmq.store.config;
 
+/**
+ * define BrokerRole enum class
+ */
 public enum BrokerRole {
+    /**
+     * When the slave and master messages are completed asynchronously,
+     * there is no need to send a successful status
+     */
     ASYNC_MASTER,
+    /**
+     * When the slave and master messages are synchronized,
+     * they will return to the status of successful sending
+     */
     SYNC_MASTER,
+    /**
+     * Indicates the slave, used to read the message
+     */
     SLAVE;
 }

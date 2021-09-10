@@ -16,7 +16,16 @@
  */
 package org.apache.rocketmq.store.config;
 
+/**
+ * Define the disk brush enumeration class
+ */
 public enum FlushDiskType {
+    /**
+     * Indicates synchronous brushing
+     */
     SYNC_FLUSH,
+    /**
+     * Indicates asynchronous brushing
+     */
     ASYNC_FLUSH
 }
