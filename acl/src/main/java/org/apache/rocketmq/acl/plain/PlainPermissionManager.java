@@ -130,6 +130,7 @@ public class PlainPermissionManager {
             log.error("Parameter value plainAccessConfig is null,Please check your parameter");
             throw new AclException("Parameter value plainAccessConfig is null, Please check your parameter");
         }
+        checkPlainAccessConfig(plainAccessConfig);
 
         Permission.checkResourcePerms(plainAccessConfig.getTopicPerms());
         Permission.checkResourcePerms(plainAccessConfig.getGroupPerms());
@@ -251,12 +252,6 @@ public class PlainPermissionManager {
     }
 
     public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
-
-        if (globalWhiteAddrsList == null) {
-            log.error("Parameter value globalWhiteAddrsList is null,Please check your parameter");
-            return false;
-        }
-
         Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
             Map.class);
         if (aclAccessConfigMap == null || aclAccessConfigMap.isEmpty()) {
@@ -266,9 +261,10 @@ public class PlainPermissionManager {
 
         if (globalWhiteRemoteAddrList != null) {
             globalWhiteRemoteAddrList.clear();
-            globalWhiteRemoteAddrList.addAll(globalWhiteAddrsList);
-
-            // Update globalWhiteRemoteAddr element in memeory map firstly
+            if (globalWhiteAddrsList != null) {
+                globalWhiteRemoteAddrList.addAll(globalWhiteAddrsList);
+            }
+            // Update globalWhiteRemoteAddr element in memory map firstly
             aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS, globalWhiteRemoteAddrList);
             if (AclUtils.writeDataObject(fileHome + File.separator + fileName, updateAclConfigFileVersion(aclAccessConfigMap))) {
                 return true;
@@ -362,15 +358,19 @@ public class PlainPermissionManager {
         this.globalWhiteRemoteAddressStrategy.clear();
     }
 
-    public PlainAccessResource buildPlainAccessResource(PlainAccessConfig plainAccessConfig) throws AclException {
+    public void checkPlainAccessConfig(PlainAccessConfig plainAccessConfig) throws AclException {
         if (plainAccessConfig.getAccessKey() == null
-            || plainAccessConfig.getSecretKey() == null
-            || plainAccessConfig.getAccessKey().length() <= AclConstants.ACCESS_KEY_MIN_LENGTH
-            || plainAccessConfig.getSecretKey().length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
+                || plainAccessConfig.getSecretKey() == null
+                || plainAccessConfig.getAccessKey().length() <= AclConstants.ACCESS_KEY_MIN_LENGTH
+                || plainAccessConfig.getSecretKey().length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
             throw new AclException(String.format(
-                "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
-                plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
+                    "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
+                    plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
         }
+    }
+
+    public PlainAccessResource buildPlainAccessResource(PlainAccessConfig plainAccessConfig) throws AclException {
+        checkPlainAccessConfig(plainAccessConfig);
         PlainAccessResource plainAccessResource = new PlainAccessResource();
         plainAccessResource.setAccessKey(plainAccessConfig.getAccessKey());
         plainAccessResource.setSecretKey(plainAccessConfig.getSecretKey());

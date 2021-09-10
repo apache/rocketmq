@@ -566,6 +566,16 @@ public class PlainAccessValidatorTest {
         plainAccessValidator.updateAccessConfig(plainAccessConfig);
     }
 
+    @Test(expected = AclException.class)
+    public void createAndUpdateAccessAclNullSkExceptionTest() {
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("RocketMQ33");
+        // secret key is null
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+    }
+
     @Test
     public void updateGlobalWhiteAddrsNormalTest() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
