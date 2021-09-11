@@ -197,6 +197,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark("topic[" + newTopic + "] not exist");
                 return CompletableFuture.completedFuture(response);
             }
+            msgExt.setDelayTimeLevel(0);
         } else {
             if (0 == delayLevel) {
                 delayLevel = 3 + msgExt.getReconsumeTimes();
@@ -358,6 +359,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 );
                 msg.setTopic(newTopic);
                 msg.setQueueId(queueIdInt);
+                msg.setDelayTimeLevel(0);
                 if (null == topicConfig) {
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("topic[" + newTopic + "] not exist");
