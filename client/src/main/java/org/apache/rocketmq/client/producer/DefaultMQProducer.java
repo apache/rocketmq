@@ -263,6 +263,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         }
     }
 
+    @Override
+    public void setUseTLS(boolean useTLS) {
+        super.setUseTLS(useTLS);
+        if (traceDispatcher != null && traceDispatcher instanceof AsyncTraceDispatcher) {
+            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
+        }
+    }
+    
     /**
      * Start this producer instance. </p>
      *

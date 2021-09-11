@@ -52,6 +52,7 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -146,6 +147,15 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         }
     }
 
+    @Test
+    public void testLitePullConsumerWithTraceTLS() throws Exception {
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer("consumerGroup");
+        consumer.setUseTLS(true);
+        consumer.setEnableMsgTrace(true);
+        consumer.start();
+        AsyncTraceDispatcher asyncTraceDispatcher = (AsyncTraceDispatcher) consumer.getTraceDispatcher();
+        Assert.assertTrue(asyncTraceDispatcher.getTraceProducer().isUseTLS());
+    }
 
     private DefaultLitePullConsumer createLitePullConsumerWithDefaultTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(consumerGroup + System.currentTimeMillis());
