@@ -64,61 +64,69 @@ import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+/**
+ * The most important class in the storage module，implement MessageStore interface;
+ */
 public class DefaultMessageStore implements MessageStore {
+    // define logger.
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-
+    // Message store configuration properties.
     private final MessageStoreConfig messageStoreConfig;
-    // CommitLog
+    // File storage realization.
     private final CommitLog commitLog;
-
+    // Message queue storage table, classified by message subject.
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
-
+    // Message queue file consumption queue brushing the county.
     private final FlushConsumeQueueService flushConsumeQueueService;
-
+    // Clear CommitLog File Service.
     private final CleanCommitLogService cleanCommitLogService;
-
+    // clear ConsumeQueue File Service.
     private final CleanConsumeQueueService cleanConsumeQueueService;
-
+    // IndexFile Implementation class.
     private final IndexService indexService;
-
+    // MappedFile Distribution service.
     private final AllocateMappedFileService allocateMappedFileService;
-
+    // CommitLog Message distribution，Build ConsumeQueue IndexFile file.
     private final ReputMessageService reputMessageService;
-
+    // store High availability mechanism.
     private final HAService haService;
-
+    // Arrange message service。
     private final ScheduleMessageService scheduleMessageService;
-
+    // store Service status.
     private final StoreStatsService storeStatsService;
-
+    // Message Heaf momery cache.
     private final TransientStorePool transientStorePool;
-
+    // Create a run flag。
     private final RunningFlags runningFlags = new RunningFlags();
+    // create SystemClock Record time transaction
     private final SystemClock systemClock = new SystemClock();
-
+    // Create a single thread pool
     private final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
+    // broker management status。
     private final BrokerStatsManager brokerStatsManager;
+    // broker management status
     private final MessageArrivingListener messageArrivingListener;
+    // broker config Attributes
     private final BrokerConfig brokerConfig;
-
+    // Message pull long polling mode message arrives at the listener。
     private volatile boolean shutdown = true;
-
+    // File flash detection point。
     private StoreCheckpoint storeCheckpoint;
-
+    // create AtmoicLong.
     private AtomicLong printTimes = new AtomicLong(0);
-
+    // commitLog File forwarding.
     private final LinkedList<CommitLogDispatcher> dispatcherList;
-
+    // RandonAccessFile lock.
     private RandomAccessFile lockFile;
-
+    // FileLock
     private FileLock lock;
-
+    // Determine whether to close
     boolean shutDownNormal = false;
-
+   // Create Disk Thread Service
     private final ScheduledExecutorService diskCheckScheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DiskCheckScheduledThread"));
-
+     // Construction method。
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
@@ -160,7 +168,7 @@ public class DefaultMessageStore implements MessageStore {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
-
+        // Create a file, then look for the file in the disk directory。
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         MappedFile.ensureDirOK(file.getParent());
         lockFile = new RandomAccessFile(file, "rw");
