@@ -206,6 +206,7 @@ public class AclUtils {
     }
 
     public static String expandIP(String netaddress, int part) {
+        netaddress = netaddress.toUpperCase();
         // expand netaddress
         int separatorCount = StringUtils.countMatches(netaddress, ":");
         int padCount = part - separatorCount;
@@ -233,7 +234,7 @@ public class AclUtils {
                 sb.append(":");
             }
         }
-        return sb.toString().toUpperCase();
+        return sb.toString();
     }
 
     public static <T> T getYamlDataObject(String path, Class<T> clazz) {
