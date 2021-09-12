@@ -447,7 +447,7 @@ public class MQClientInstance {
                 if (addr != null) {
                     try {
                         this.getMQClientAPIImpl().checkClientInBroker(
-                            addr, entry.getKey(), this.clientId, subscriptionData, 3 * 1000
+                            addr, entry.getKey(), this.clientId, subscriptionData, clientConfig.getMqClientApiTimeout()
                         );
                     } catch (Exception e) {
                         if (e instanceof MQClientException) {
@@ -554,7 +554,7 @@ public class MQClientInstance {
                             }
 
                             try {
-                                int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
+                                int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, clientConfig.getMqClientApiTimeout());
                                 if (!this.brokerVersionTable.containsKey(brokerName)) {
                                     this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
                                 }
@@ -610,7 +610,7 @@ public class MQClientInstance {
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
-                            1000 * 3);
+                            clientConfig.getMqClientApiTimeout());
                         if (topicRouteData != null) {
                             for (QueueData data : topicRouteData.getQueueDatas()) {
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
@@ -619,7 +619,7 @@ public class MQClientInstance {
                             }
                         }
                     } else {
-                        topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+                        topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, clientConfig.getMqClientApiTimeout());
                     }
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);
@@ -894,7 +894,7 @@ public class MQClientInstance {
                     String addr = entry1.getValue();
                     if (addr != null) {
                         try {
-                            this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, 3000);
+                            this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, clientConfig.getMqClientApiTimeout());
                             log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, brokerName, entry1.getKey(), addr);
                         } catch (RemotingException e) {
                             log.error("unregister client exception from broker: " + addr, e);
@@ -1064,7 +1064,7 @@ public class MQClientInstance {
 
         if (null != brokerAddr) {
             try {
-                return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, 3000);
+                return this.mQClientAPIImpl.getConsumerIdListByGroup(brokerAddr, group, clientConfig.getMqClientApiTimeout());
             } catch (Exception e) {
                 log.warn("getConsumerIdListByGroup exception, " + brokerAddr + " " + group, e);
             }
