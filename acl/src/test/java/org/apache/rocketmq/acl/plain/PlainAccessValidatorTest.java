@@ -637,4 +637,24 @@ public class PlainAccessValidatorTest {
 
         plainAccessValidator.deleteAccessConfig(accessKey);
     }
+
+    @Test
+    public void updateAccessConfigEmptyWhiteRemoteAddressTest(){
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        String accessKey = "updateAccessConfigEmptyWhiteRemoteAddress";
+        plainAccessConfig.setAccessKey(accessKey);
+        plainAccessConfig.setSecretKey("123456789111");
+        plainAccessConfig.setWhiteRemoteAddress("127.0.0.1");
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        plainAccessConfig.setWhiteRemoteAddress("");
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        PlainAccessConfig result = plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()
+                .stream().filter(c->c.getAccessKey().equals(accessKey)).findFirst().orElse(null);
+        Assert.assertEquals("", result.getWhiteRemoteAddress());
+
+        plainAccessValidator.deleteAccessConfig(accessKey);
+    }
 }

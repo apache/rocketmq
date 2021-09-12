@@ -18,13 +18,6 @@ package org.apache.rocketmq.acl.plain;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -38,6 +31,14 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.srvutil.FileWatchService;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PlainPermissionManager {
 
@@ -196,7 +197,7 @@ public class PlainPermissionManager {
             }
             newAccountsMap.put(AclConstants.CONFIG_SECRET_KEY, plainAccessConfig.getSecretKey());
         }
-        if (!StringUtils.isEmpty(plainAccessConfig.getWhiteRemoteAddress())) {
+        if (plainAccessConfig.getWhiteRemoteAddress() != null) {
             newAccountsMap.put(AclConstants.CONFIG_WHITE_ADDR, plainAccessConfig.getWhiteRemoteAddress());
         }
         if (!StringUtils.isEmpty(String.valueOf(plainAccessConfig.isAdmin()))) {
