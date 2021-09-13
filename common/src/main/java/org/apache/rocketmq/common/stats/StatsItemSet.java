@@ -154,14 +154,14 @@ public class StatsItemSet {
 
     public void addValue(final String statsKey, final int incValue, final int incTimes) {
         StatsItem statsItem = this.getAndCreateStatsItem(statsKey);
-        statsItem.getValue().addAndGet(incValue);
-        statsItem.getTimes().addAndGet(incTimes);
+        statsItem.getValue().add(incValue);
+        statsItem.getTimes().add(incTimes);
     }
 
     public void addRTValue(final String statsKey, final int incValue, final int incTimes) {
         StatsItem statsItem = this.getAndCreateRTStatsItem(statsKey);
-        statsItem.getValue().addAndGet(incValue);
-        statsItem.getTimes().addAndGet(incTimes);
+        statsItem.getValue().add(incValue);
+        statsItem.getTimes().add(incTimes);
     }
 
     public void delValue(final String statsKey) {
