@@ -199,11 +199,12 @@ public abstract class NettyRemotingAbstract {
                 @Override
                 public void run() {
                     try {
-                        doBeforeRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
+                        String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                        doBeforeRpcHooks(remoteAddr, cmd);
                         final RemotingResponseCallback callback = new RemotingResponseCallback() {
                             @Override
                             public void callback(RemotingCommand response) {
-                                doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
+                                doAfterRpcHooks(remoteAddr, cmd, response);
                                 if (!cmd.isOnewayRPC()) {
                                     if (response != null) {
                                         response.setOpaque(opaque);
