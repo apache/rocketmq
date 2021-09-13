@@ -42,6 +42,7 @@ public class MessageDecoder {
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
     public static final int PHY_POS_POSITION = 4 + 4 + 4 + 4 + 4 + 8;
+    public static final int QUEUE_OFFSET_POSITION = 4 + 4 + 4 + 4 + 4;
     public static final int SYSFLAG_POSITION = 4 + 4 + 4 + 4 + 4 + 8 + 8;
 //    public static final int BODY_SIZE_POSITION = 4 // 1 TOTALSIZE
 //        + 4 // 2 MAGICCODE
@@ -104,7 +105,7 @@ public class MessageDecoder {
      *
      * @param byteBuffer msg commit log buffer.
      */
-    public static Map<String, String> decodeProperties(java.nio.ByteBuffer byteBuffer) {
+    public static Map<String, String> decodeProperties(ByteBuffer byteBuffer) {
         int sysFlag = byteBuffer.getInt(SYSFLAG_POSITION);
         int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
         int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
@@ -140,15 +141,15 @@ public class MessageDecoder {
         return null;
     }
 
-    public static MessageExt decode(java.nio.ByteBuffer byteBuffer) {
+    public static MessageExt decode(ByteBuffer byteBuffer) {
         return decode(byteBuffer, true, true, false);
     }
 
-    public static MessageExt clientDecode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
+    public static MessageExt clientDecode(ByteBuffer byteBuffer, final boolean readBody) {
         return decode(byteBuffer, readBody, true, true);
     }
 
-    public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
+    public static MessageExt decode(ByteBuffer byteBuffer, final boolean readBody) {
         return decode(byteBuffer, readBody, true, false);
     }
 
@@ -263,12 +264,12 @@ public class MessageDecoder {
     }
 
     public static MessageExt decode(
-        java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
+        ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
         return decode(byteBuffer, readBody, deCompressBody, false);
     }
 
     public static MessageExt decode(
-        java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody, final boolean isClient) {
+        ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody, final boolean isClient) {
         try {
 
             MessageExt msgExt;
@@ -390,11 +391,11 @@ public class MessageDecoder {
         return null;
     }
 
-    public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer) {
+    public static List<MessageExt> decodes(ByteBuffer byteBuffer) {
         return decodes(byteBuffer, true);
     }
 
-    public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
+    public static List<MessageExt> decodes(ByteBuffer byteBuffer, final boolean readBody) {
         List<MessageExt> msgExts = new ArrayList<MessageExt>();
         while (byteBuffer.hasRemaining()) {
             MessageExt msgExt = clientDecode(byteBuffer, readBody);
@@ -408,16 +409,38 @@ public class MessageDecoder {
     }
 
     public static String messageProperties2String(Map<String, String> properties) {
-        StringBuilder sb = new StringBuilder();
+        if (properties == null) {
+            return "";
+        }
+        int len = 0;
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String name = entry.getKey();
+            final String value = entry.getValue();
+            if (value == null) {
+                continue;
+            }
+            if (name != null) {
+                len += name.length();
+            }
+            len += value.length();
+            len += 2; // separator
+        }
+        StringBuilder sb = new StringBuilder(len);
         if (properties != null) {
             for (final Map.Entry<String, String> entry : properties.entrySet()) {
                 final String name = entry.getKey();
                 final String value = entry.getValue();
 
+                if (value == null) {
+                    continue;
+                }
                 sb.append(name);
                 sb.append(NAME_VALUE_SEPARATOR);
                 sb.append(value);
                 sb.append(PROPERTY_SEPARATOR);
+            }
+            if (sb.length() > 0) {
+                sb.deleteCharAt(sb.length() - 1);
             }
         }
         return sb.toString();
@@ -426,12 +449,22 @@ public class MessageDecoder {
     public static Map<String, String> string2messageProperties(final String properties) {
         Map<String, String> map = new HashMap<String, String>();
         if (properties != null) {
-            String[] items = properties.split(String.valueOf(PROPERTY_SEPARATOR));
-            for (String i : items) {
-                String[] nv = i.split(String.valueOf(NAME_VALUE_SEPARATOR));
-                if (2 == nv.length) {
-                    map.put(nv[0], nv[1]);
+            int len = properties.length();
+            int index = 0;
+            while (index < len) {
+                int newIndex = properties.indexOf(PROPERTY_SEPARATOR, index);
+                if (newIndex < 0) {
+                    newIndex = len;
                 }
+                if (newIndex - index >= 3) {
+                    int kvSepIndex = properties.indexOf(NAME_VALUE_SEPARATOR, index);
+                    if (kvSepIndex > index && kvSepIndex < newIndex - 1) {
+                        String k = properties.substring(index, kvSepIndex);
+                        String v = properties.substring(kvSepIndex + 1, newIndex);
+                        map.put(k, v);
+                    }
+                }
+                index = newIndex + 1;
             }
         }
 

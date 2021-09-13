@@ -20,7 +20,9 @@ package org.apache.rocketmq.broker.plugin;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.CommitLogDispatcher;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -84,6 +86,16 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
         return next.putMessage(msg);
+    }
+
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
+        return next.asyncPutMessage(msg);
+    }
+
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessages(MessageExtBatch messageExtBatch) {
+        return next.asyncPutMessages(messageExtBatch);
     }
 
     @Override
@@ -168,8 +180,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public boolean appendToCommitLog(long startOffset, byte[] data) {
-        return next.appendToCommitLog(startOffset, data);
+    public boolean appendToCommitLog(long startOffset, byte[] data, int dataStart, int dataLength) {
+        return next.appendToCommitLog(startOffset, data, dataStart, dataLength);
     }
 
     @Override

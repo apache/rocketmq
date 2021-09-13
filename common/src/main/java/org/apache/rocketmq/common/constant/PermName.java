@@ -20,10 +20,10 @@ public class PermName {
     public static final int PERM_PRIORITY = 0x1 << 3;
     public static final int PERM_READ = 0x1 << 2;
     public static final int PERM_WRITE = 0x1 << 1;
-    public static final int PERM_INHERIT = 0x1 << 0;
+    public static final int PERM_INHERIT = 0x1;
 
     public static String perm2String(final int perm) {
-        final StringBuffer sb = new StringBuffer("---");
+        final StringBuilder sb = new StringBuilder("---");
         if (isReadable(perm)) {
             sb.replace(0, 1, "R");
         }

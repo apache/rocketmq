@@ -121,6 +121,26 @@ public class BrokerStatsManager {
         return null;
     }
 
+    public void onTopicDeleted(final String topic) {
+        this.statsTable.get(TOPIC_PUT_NUMS).delValue(topic);
+        this.statsTable.get(TOPIC_PUT_SIZE).delValue(topic);
+        this.statsTable.get(GROUP_GET_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(GROUP_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(SNDBCK_PUT_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(GROUP_GET_LATENCY).delValueByInfixKey(topic, "@");
+        this.momentStatsItemSetFallSize.delValueByInfixKey(topic, "@");
+        this.momentStatsItemSetFallTime.delValueByInfixKey(topic, "@");
+    }
+
+    public void onGroupDeleted(final String group) {
+        this.statsTable.get(GROUP_GET_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(GROUP_GET_SIZE).delValueBySuffixKey(group, "@");
+        this.statsTable.get(SNDBCK_PUT_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(GROUP_GET_LATENCY).delValueBySuffixKey(group, "@");
+        this.momentStatsItemSetFallSize.delValueBySuffixKey(group, "@");
+        this.momentStatsItemSetFallTime.delValueBySuffixKey(group, "@");
+    }
+
     public void incTopicPutNums(final String topic) {
         this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, 1, 1);
     }
@@ -139,7 +159,7 @@ public class BrokerStatsManager {
     }
 
     public String buildStatsKey(String topic, String group) {
-        StringBuffer strBuilder = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
         strBuilder.append(topic);
         strBuilder.append("@");
         strBuilder.append(group);
@@ -197,7 +217,7 @@ public class BrokerStatsManager {
     }
 
     public String buildCommercialStatsKey(String owner, String topic, String group, String type) {
-        StringBuffer strBuilder = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
         strBuilder.append(owner);
         strBuilder.append("@");
         strBuilder.append(topic);

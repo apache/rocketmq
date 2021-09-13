@@ -17,26 +17,11 @@
 
 package org.apache.rocketmq.example.benchmark;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -48,9 +33,28 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
+
 public class TransactionProducer {
     private static final long START_TIME = System.currentTimeMillis();
-    private static final AtomicLong MSG_COUNT = new AtomicLong(0);
+    private static final LongAdder MSG_COUNT = new LongAdder();
 
     //broker max check times should less than this value
     static final int MAX_CHECK_RESULT_IN_MSG = 20;
@@ -68,16 +72,19 @@ public class TransactionProducer {
         config.checkUnknownRate = commandLine.hasOption("cu") ? Double.parseDouble(commandLine.getOptionValue("cu")) : 0.0;
         config.batchId = commandLine.hasOption("b") ? Long.parseLong(commandLine.getOptionValue("b")) : System.currentTimeMillis();
         config.sendInterval = commandLine.hasOption("i") ? Integer.parseInt(commandLine.getOptionValue("i")) : 0;
+        config.aclEnable = commandLine.hasOption('a') && Boolean.parseBoolean(commandLine.getOptionValue('a'));
+        config.msgTraceEnable = commandLine.hasOption('m') && Boolean.parseBoolean(commandLine.getOptionValue('m'));
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(config.threadCount);
 
         final StatsBenchmarkTProducer statsBenchmark = new StatsBenchmarkTProducer();
 
-        final Timer timer = new Timer("BenchmarkTimerThread", true);
+        ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1,
+                new BasicThreadFactory.Builder().namingPattern("BenchmarkTimerThread-%d").daemon(true).build());
 
         final LinkedList<Snapshot> snapshotList = new LinkedList<>();
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 snapshotList.addLast(statsBenchmark.createSnapshot());
@@ -85,9 +92,9 @@ public class TransactionProducer {
                     snapshotList.removeFirst();
                 }
             }
-        }, 1000, 1000);
+        }, 1000, 1000, TimeUnit.MILLISECONDS);
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new TimerTask() {
             private void printStats() {
                 if (snapshotList.size() >= 10) {
                     Snapshot begin = snapshotList.getFirst();
@@ -104,8 +111,8 @@ public class TransactionProducer {
                     final long dupCheck = end.duplicatedCheck - begin.duplicatedCheck;
 
                     System.out.printf(
-                        "Send TPS:%5d Max RT:%5d AVG RT:%3.1f Send Failed: %d check: %d unexpectedCheck: %d duplicatedCheck: %d %n",
-                            sendTps, statsBenchmark.getSendMessageMaxRT().get(), averageRT, failCount, checkCount,
+                        "Current Time: %s Send TPS:%5d Max RT(ms):%5d AVG RT(ms):%3.1f Send Failed: %d check: %d unexpectedCheck: %d duplicatedCheck: %d %n",
+                            System.currentTimeMillis(), sendTps, statsBenchmark.getSendMessageMaxRT().get(), averageRT, failCount, checkCount,
                             unexpectedCheck, dupCheck);
                     statsBenchmark.getSendMessageMaxRT().set(0);
                 }
@@ -119,10 +126,15 @@ public class TransactionProducer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000);
+        }, 10000, 10000, TimeUnit.MILLISECONDS);
 
         final TransactionListener transactionCheckListener = new TransactionListenerImpl(statsBenchmark, config);
-        final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
+        final TransactionMQProducer producer = new TransactionMQProducer(
+                null,
+                "benchmark_transaction_producer",
+                config.aclEnable ? AclClient.getAclRPCHook() : null,
+                config.msgTraceEnable,
+                null);
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
         producer.setTransactionListener(transactionCheckListener);
         producer.setDefaultTopicQueueNums(1000);
@@ -147,7 +159,7 @@ public class TransactionProducer {
                             success = false;
                         } finally {
                             final long currentRT = System.currentTimeMillis() - beginTimestamp;
-                            statsBenchmark.getSendMessageTimeTotal().addAndGet(currentRT);
+                            statsBenchmark.getSendMessageTimeTotal().add(currentRT);
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             while (currentRT > prevMaxRT) {
                                 boolean updated = statsBenchmark.getSendMessageMaxRT()
@@ -158,9 +170,9 @@ public class TransactionProducer {
                                 prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
                             }
                             if (success) {
-                                statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
+                                statsBenchmark.getSendRequestSuccessCount().increment();
                             } else {
-                                statsBenchmark.getSendRequestFailedCount().incrementAndGet();
+                                statsBenchmark.getSendRequestFailedCount().increment();
                             }
                             if (config.sendInterval > 0) {
                                 try {
@@ -183,7 +195,9 @@ public class TransactionProducer {
         ByteBuffer buf = ByteBuffer.wrap(bs);
         buf.putLong(config.batchId);
         long sendMachineId = START_TIME << 32;
-        long msgId = sendMachineId | MSG_COUNT.getAndIncrement();
+        long count = MSG_COUNT.longValue();
+        long msgId = sendMachineId | count;
+        MSG_COUNT.increment();
         buf.putLong(msgId);
 
         // save send tx result in message
@@ -250,6 +264,14 @@ public class TransactionProducer {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("a", "aclEnable", true, "Acl Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("m", "msgTraceEnable", true, "Message Trace Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 }
@@ -297,7 +319,7 @@ class TransactionListenerImpl implements TransactionListener {
             // message not generated in this test
             return LocalTransactionState.ROLLBACK_MESSAGE;
         }
-        statBenchmark.getCheckCount().incrementAndGet();
+        statBenchmark.getCheckCount().increment();
 
         int times = 0;
         try {
@@ -320,7 +342,7 @@ class TransactionListenerImpl implements TransactionListener {
             dup = newCheckLog.equals(oldCheckLog);
         }
         if (dup) {
-            statBenchmark.getDuplicatedCheckCount().incrementAndGet();
+            statBenchmark.getDuplicatedCheckCount().increment();
         }
         if (msgMeta.sendResult != LocalTransactionState.UNKNOW) {
             System.out.printf("%s unexpected check: msgId=%s,txId=%s,checkTimes=%s,sendResult=%s\n",
@@ -328,7 +350,7 @@ class TransactionListenerImpl implements TransactionListener {
                     msg.getMsgId(), msg.getTransactionId(),
                     msg.getUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES),
                     msgMeta.sendResult.toString());
-            statBenchmark.getUnexpectedCheckCount().incrementAndGet();
+            statBenchmark.getUnexpectedCheckCount().increment();
             return msgMeta.sendResult;
         }
 
@@ -339,7 +361,7 @@ class TransactionListenerImpl implements TransactionListener {
                         new SimpleDateFormat("HH:mm:ss,SSS").format(new Date()),
                         msg.getMsgId(), msg.getTransactionId(),
                         msg.getUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES), s);
-                statBenchmark.getUnexpectedCheckCount().incrementAndGet();
+                statBenchmark.getUnexpectedCheckCount().increment();
                 return s;
             }
         }
@@ -366,42 +388,42 @@ class Snapshot {
 }
 
 class StatsBenchmarkTProducer {
-    private final AtomicLong sendRequestSuccessCount = new AtomicLong(0L);
+    private final LongAdder sendRequestSuccessCount = new LongAdder();
 
-    private final AtomicLong sendRequestFailedCount = new AtomicLong(0L);
+    private final LongAdder sendRequestFailedCount = new LongAdder();
 
-    private final AtomicLong sendMessageTimeTotal = new AtomicLong(0L);
+    private final LongAdder sendMessageTimeTotal = new LongAdder();
 
     private final AtomicLong sendMessageMaxRT = new AtomicLong(0L);
 
-    private final AtomicLong checkCount = new AtomicLong(0L);
+    private final LongAdder checkCount = new LongAdder();
 
-    private final AtomicLong unexpectedCheckCount = new AtomicLong(0L);
+    private final LongAdder unexpectedCheckCount = new LongAdder();
 
-    private final AtomicLong duplicatedCheckCount = new AtomicLong(0);
+    private final LongAdder duplicatedCheckCount = new LongAdder();
 
     public Snapshot createSnapshot() {
         Snapshot s = new Snapshot();
         s.endTime = System.currentTimeMillis();
-        s.sendRequestSuccessCount = sendRequestSuccessCount.get();
-        s.sendRequestFailedCount = sendRequestFailedCount.get();
-        s.sendMessageTimeTotal = sendMessageTimeTotal.get();
+        s.sendRequestSuccessCount = sendRequestSuccessCount.longValue();
+        s.sendRequestFailedCount = sendRequestFailedCount.longValue();
+        s.sendMessageTimeTotal = sendMessageTimeTotal.longValue();
         s.sendMessageMaxRT = sendMessageMaxRT.get();
-        s.checkCount = checkCount.get();
-        s.unexpectedCheckCount = unexpectedCheckCount.get();
-        s.duplicatedCheck = duplicatedCheckCount.get();
+        s.checkCount = checkCount.longValue();
+        s.unexpectedCheckCount = unexpectedCheckCount.longValue();
+        s.duplicatedCheck = duplicatedCheckCount.longValue();
         return s;
     }
 
-    public AtomicLong getSendRequestSuccessCount() {
+    public LongAdder getSendRequestSuccessCount() {
         return sendRequestSuccessCount;
     }
 
-    public AtomicLong getSendRequestFailedCount() {
+    public LongAdder getSendRequestFailedCount() {
         return sendRequestFailedCount;
     }
 
-    public AtomicLong getSendMessageTimeTotal() {
+    public LongAdder getSendMessageTimeTotal() {
         return sendMessageTimeTotal;
     }
 
@@ -409,15 +431,15 @@ class StatsBenchmarkTProducer {
         return sendMessageMaxRT;
     }
 
-    public AtomicLong getCheckCount() {
+    public LongAdder getCheckCount() {
         return checkCount;
     }
 
-    public AtomicLong getUnexpectedCheckCount() {
+    public LongAdder getUnexpectedCheckCount() {
         return unexpectedCheckCount;
     }
 
-    public AtomicLong getDuplicatedCheckCount() {
+    public LongAdder getDuplicatedCheckCount() {
         return duplicatedCheckCount;
     }
 }
@@ -432,6 +454,8 @@ class TxSendConfig {
     double checkUnknownRate;
     long batchId;
     int sendInterval;
+    boolean aclEnable;
+    boolean msgTraceEnable;
 }
 
 class LRUMap<K, V> extends LinkedHashMap<K, V> {

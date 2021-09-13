@@ -54,13 +54,12 @@ public class MessageStoreConfig {
 
     /**
      * introduced since 4.0.x. Determine whether to use mutex reentrantLock when putting message.<br/>
-     * By default it is set to false indicating using spin lock when putting message.
      */
-    private boolean useReentrantLockWhenPutMessage = false;
+    private boolean useReentrantLockWhenPutMessage = true;
 
-    // Whether schedule flush,default is real-time
+    // Whether schedule flush
     @ImportantField
-    private boolean flushCommitLogTimed = false;
+    private boolean flushCommitLogTimed = true;
     // ConsumeQueue flush interval
     private int flushIntervalConsumeQueue = 1000;
     // Resource reclaim interval
@@ -147,6 +146,12 @@ public class MessageStoreConfig {
     private String dLegerGroup;
     private String dLegerPeers;
     private String dLegerSelfId;
+
+    private String preferredLeaderId;
+
+    private boolean isEnableBatchPush = false;
+
+    private boolean enableScheduleMessageStats = true;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -701,5 +706,29 @@ public class MessageStoreConfig {
 
     public void setEnableDLegerCommitLog(boolean enableDLegerCommitLog) {
         this.enableDLegerCommitLog = enableDLegerCommitLog;
+    }
+
+    public String getPreferredLeaderId() {
+        return preferredLeaderId;
+    }
+
+    public void setPreferredLeaderId(String preferredLeaderId) {
+        this.preferredLeaderId = preferredLeaderId;
+    }
+
+    public boolean isEnableBatchPush() {
+        return isEnableBatchPush;
+    }
+
+    public void setEnableBatchPush(boolean enableBatchPush) {
+        isEnableBatchPush = enableBatchPush;
+    }
+
+    public boolean isEnableScheduleMessageStats() {
+        return enableScheduleMessageStats;
+    }
+
+    public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
+        this.enableScheduleMessageStats = enableScheduleMessageStats;
     }
 }

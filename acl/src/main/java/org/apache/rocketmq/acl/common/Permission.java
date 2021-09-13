@@ -60,15 +60,14 @@ public class Permission {
             return Permission.DENY;
         }
         switch (permString.trim()) {
-            case "PUB":
+            case AclConstants.PUB:
                 return Permission.PUB;
-            case "SUB":
+            case AclConstants.SUB:
                 return Permission.SUB;
-            case "PUB|SUB":
+            case AclConstants.PUB_SUB:
+            case AclConstants.SUB_PUB:
                 return Permission.PUB | Permission.SUB;
-            case "SUB|PUB":
-                return Permission.PUB | Permission.SUB;
-            case "DENY":
+            case AclConstants.DENY:
                 return Permission.DENY;
             default:
                 return Permission.DENY;
@@ -86,6 +85,25 @@ public class Permission {
                 plainAccessResource.addResourceAndPerm(isTopic ? items[0].trim() : PlainAccessResource.getRetryTopic(items[0].trim()), parsePermFromString(items[1].trim()));
             } else {
                 throw new AclException(String.format("Parse resource permission failed for %s:%s", isTopic ? "topic" : "group", resource));
+            }
+        }
+    }
+
+    public static void checkResourcePerms(List<String> resources) {
+        if (resources == null || resources.isEmpty()) {
+            return;
+        }
+
+        for (String resource : resources) {
+            String[] items = StringUtils.split(resource, "=");
+            if (items.length != 2) {
+                throw new AclException(String.format("Parse Resource format error for %s.\n" +
+                    "The expected resource format is 'Res=Perm'. For example: topicA=SUB", resource));
+            }
+
+            if (!AclConstants.DENY.equals(items[1].trim()) && Permission.DENY == Permission.parsePermFromString(items[1].trim())) {
+                throw new AclException(String.format("Parse resource permission error for %s.\n" +
+                    "The expected permissions are 'SUB' or 'PUB' or 'SUB|PUB' or 'PUB|SUB'.", resource));
             }
         }
     }
