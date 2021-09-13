@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.transaction;
 
 import io.netty.channel.Channel;
-import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -40,7 +39,6 @@ public abstract class AbstractTransactionalMessageCheckListener {
 
     //queue nums of topic TRANS_CHECK_MAX_TIME_TOPIC
     protected final static int TCMT_QUEUE_NUMS = 1;
-    protected final Random random = new Random(System.currentTimeMillis());
 
     private static ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
         @Override
