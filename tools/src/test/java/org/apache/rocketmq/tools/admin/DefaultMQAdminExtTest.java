@@ -406,4 +406,11 @@ public class DefaultMQAdminExtTest {
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").getGroupName()).isEqualTo("Consumer-group-one");
         assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().get("Consumer-group-one").isConsumeBroadcastEnable()).isTrue();
     }
+
+    @Test
+    public void testExamineSubscriptionGroupConfig() throws MQBrokerException, RemotingException, InterruptedException {
+        SubscriptionGroupConfig subscriptionGroupConfig = defaultMQAdminExt
+                .examineSubscriptionGroupConfig("127.0.0.1:10911", "Consumer-group-one");
+        assertThat(subscriptionGroupConfig.getGroupName().equals("Consumer-group-one"));
+    }
 }
