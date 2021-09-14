@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -466,7 +465,7 @@ public class UtilAll {
         if (ip.length != 4) {
             throw new RuntimeException("illegal ipv4 bytes");
         }
-    
+
         InetAddressValidator validator = InetAddressValidator.getInstance();
         return validator.isValidInet4Address(ipToIPv4Str(ip));
     }
@@ -566,27 +565,28 @@ public class UtilAll {
         }
     }
 
-    public static String list2String(List<String> list, String splitor) {
-        if (list == null || list.size() == 0) {
+    public static String join(List<String> list, String splitter) {
+        if (list == null) {
             return null;
         }
+
         StringBuilder str = new StringBuilder();
         for (int i = 0; i < list.size(); i++) {
             str.append(list.get(i));
             if (i == list.size() - 1) {
                 break;
             }
-            str.append(splitor);
+            str.append(splitter);
         }
         return str.toString();
     }
 
-    public static List<String> string2List(String str, String splitor) {
-        if (StringUtils.isEmpty(str)) {
+    public static List<String> split(String str, String splitter) {
+        if (str == null) {
             return null;
         }
 
-        String[] addrArray = str.split(splitor);
+        String[] addrArray = str.split(splitter);
         return Arrays.asList(addrArray);
     }
 }
