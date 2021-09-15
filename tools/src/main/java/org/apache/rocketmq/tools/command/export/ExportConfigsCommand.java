@@ -80,9 +80,7 @@ public class ExportConfigsCommand implements SubCommand {
             Map<String, List<String>> masterAndSlaveMap
                 = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
             for (String masterAddr : masterAndSlaveMap.keySet()) {
-                Map<String, Properties> map = new HashMap<>();
                 Properties masterProperties = defaultMQAdminExt.getBrokerConfig(masterAddr);
-                map.put("master", needBrokerProprties(masterProperties));
                 masterBrokerSize++;
                 slaveBrokerSize += masterAndSlaveMap.get(masterAddr).size();
 

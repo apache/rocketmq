@@ -19,8 +19,6 @@ package org.apache.rocketmq.tools.command.export;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import com.alibaba.fastjson.JSON;
 
@@ -41,6 +39,8 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ExportMetadataCommand implements SubCommand {
+
+    private static final String DEFAULT_FILE_PATH = "/tmp/rocketmq/export";
 
     @Override
     public String commandName() {
@@ -90,7 +90,7 @@ public class ExportMetadataCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            String filePath = !commandLine.hasOption('f') ? "/tmp/rocketmq/export" : commandLine.getOptionValue('f')
+            String filePath = !commandLine.hasOption('f') ? DEFAULT_FILE_PATH : commandLine.getOptionValue('f')
                 .trim();
 
             boolean specialTopic = commandLine.hasOption('s');
@@ -117,8 +117,8 @@ public class ExportMetadataCommand implements SubCommand {
                 Set<String> masterSet =
                     CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
 
-                ConcurrentMap<String, TopicConfig> topicConfigMap = new ConcurrentHashMap<>();
-                ConcurrentMap<String, SubscriptionGroupConfig> subGroupConfigMap = new ConcurrentHashMap<>();
+                Map<String, TopicConfig> topicConfigMap = new HashMap<>();
+                Map<String, SubscriptionGroupConfig> subGroupConfigMap = new HashMap<>();
 
                 for (String addr : masterSet) {
                     TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
