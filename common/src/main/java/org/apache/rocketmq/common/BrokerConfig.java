@@ -187,6 +187,8 @@ public class BrokerConfig {
 
     private boolean autoDeleteUnusedStats = false;
 
+    private boolean isolateLogEnable = false;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -803,5 +805,13 @@ public class BrokerConfig {
 
     public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
         this.autoDeleteUnusedStats = autoDeleteUnusedStats;
+    }
+
+    public boolean isIsolateLogEnable() {
+        return isolateLogEnable;
+    }
+
+    public void setIsolateLogEnable(boolean isolateLogEnable) {
+        this.isolateLogEnable = isolateLogEnable;
     }
 }
