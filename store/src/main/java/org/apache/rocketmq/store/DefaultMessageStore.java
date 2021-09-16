@@ -186,10 +186,6 @@ public class DefaultMessageStore implements MessageStore {
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
 
-            if (null != scheduleMessageService) {
-                result = result && this.scheduleMessageService.load();
-            }
-
             // load Commit Log
             result = result && this.commitLog.load();
 
@@ -205,7 +201,12 @@ public class DefaultMessageStore implements MessageStore {
                 this.recover(lastExitOK);
 
                 log.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
+
+                if (null != scheduleMessageService) {
+                    result = result && this.scheduleMessageService.load();
+                }
             }
+
         } catch (Exception e) {
             log.error("load exception", e);
             result = false;
