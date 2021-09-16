@@ -73,7 +73,7 @@ public class MultiPathMappedFileQueueTest {
 
         mappedFileQueue.load();
 
-        assertThat(mappedFileQueue.mappedFiles.size()).isEqualTo(1025);
+        assertThat(mappedFileQueue.mappedFiles.size()).isEqualTo(1024);
         mappedFileQueue.destroy();
 
     }
