@@ -636,7 +636,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     }
 
     private String diskUtil() {
-        double physicRatio = -1;
+        double physicRatio = 100;
         String storePath = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
         if (storePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
             String[] paths = storePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);

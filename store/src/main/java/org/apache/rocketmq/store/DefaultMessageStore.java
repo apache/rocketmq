@@ -785,14 +785,14 @@ public class DefaultMessageStore implements MessageStore {
 
         String commitLogStorePath = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
         if (commitLogStorePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
-            double maxValue = Double.MIN_VALUE;
+            double minPhysicsUsedRatio = Double.MAX_VALUE;
             String[] paths = commitLogStorePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
             for (String clPath : paths) {
                 double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(clPath);
                 result.put(RunningStats.commitLogDiskRatio.name() + "_" + clPath, String.valueOf(physicRatio));
-                maxValue = Math.max(maxValue, physicRatio);
+                minPhysicsUsedRatio = Math.min(minPhysicsUsedRatio, physicRatio);
             }
-            result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(maxValue));
+            result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(minPhysicsUsedRatio));
         } else {
             String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
             double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
