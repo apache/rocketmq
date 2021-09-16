@@ -178,7 +178,7 @@ public class ScheduleMessageService extends ConfigManager {
                 long currentDelayOffset = offsetTable.get(delayLevel);
                 long correctDelayOffset = currentDelayOffset;
                 long cqMinOffset = cq.getMinOffsetInQueue();
-                long cqMaxOffset = cq.getMinOffsetInQueue();
+                long cqMaxOffset = cq.getMaxOffsetInQueue();
                 if (currentDelayOffset < cqMinOffset) {
                     correctDelayOffset = cqMinOffset;
                     log.error("schedule CQ offset invalid. offset=" + currentDelayOffset + ", cqMinOffset="
@@ -407,7 +407,7 @@ public class ScheduleMessageService extends ConfigManager {
                 else {
 
                     long cqMinOffset = cq.getMinOffsetInQueue();
-                    long cqMaxOffset = cq.getMinOffsetInQueue();
+                    long cqMaxOffset = cq.getMaxOffsetInQueue();
                     if (offset < cqMinOffset) {
                         failScheduleOffset = cqMinOffset;
                         log.error("schedule CQ offset invalid. offset=" + offset + ", cqMinOffset="
