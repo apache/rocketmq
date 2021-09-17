@@ -175,10 +175,10 @@ public class ScheduleMessageService extends ConfigManager {
                 ConsumeQueue cq =
                     ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                         delayLevel2QueueId(delayLevel));
-                if (cq == null) {
+                Long currentDelayOffset = offsetTable.get(delayLevel);
+                if (currentDelayOffset == null || cq == null) {
                     continue;
                 }
-                long currentDelayOffset = offsetTable.get(delayLevel);
                 long correctDelayOffset = currentDelayOffset;
                 long cqMinOffset = cq.getMinOffsetInQueue();
                 long cqMaxOffset = cq.getMaxOffsetInQueue();

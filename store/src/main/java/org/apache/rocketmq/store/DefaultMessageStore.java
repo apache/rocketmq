@@ -203,7 +203,7 @@ public class DefaultMessageStore implements MessageStore {
                 log.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
 
                 if (null != scheduleMessageService) {
-                    result = result && this.scheduleMessageService.load();
+                    result =  this.scheduleMessageService.load();
                 }
             }
 
