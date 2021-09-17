@@ -1744,8 +1744,29 @@ public class DefaultMessageStore implements MessageStore {
         public void setManualDeleteFileSeveralTimes(int manualDeleteFileSeveralTimes) {
             this.manualDeleteFileSeveralTimes = manualDeleteFileSeveralTimes;
         }
+
+        public double calcStorePathPhysicRatio() {
+            String storePath = getStorePathPhysic();
+            if (storePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
+                Set<String> fullStorePath = new HashSet<>();
+                String[] paths = storePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
+                double minPhysicRatio = 100;
+                for (String path : paths) {
+                    double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(path);
+                    minPhysicRatio = Math.min(minPhysicRatio, physicRatio);
+                    if (physicRatio > diskSpaceCleanForciblyRatio) {
+                        fullStorePath.add(path);
+                    }
+                }
+                DefaultMessageStore.this.commitLog.setFullStorePaths(fullStorePath);
+                return minPhysicRatio;
+            } else {
+                return UtilAll.getDiskPartitionSpaceUsedPercent(storePath);
+            }
+        }
+
         public boolean isSpaceFull() {
-            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(getStorePathPhysic());
+            double physicRatio = calcStorePathPhysicRatio();
             double ratio = DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
             if (physicRatio > ratio) {
                 DefaultMessageStore.log.info("physic disk of commitLog used: " + physicRatio);
