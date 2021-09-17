@@ -55,8 +55,6 @@ public class BrokerStartup {
     public static InternalLogger log;
 
     public static void main(String[] args) {
-        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, "/Users/dragonboy/IdeaProjects/rocketmq/distribution");
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
         start(createBrokerController(args));
     }
 
