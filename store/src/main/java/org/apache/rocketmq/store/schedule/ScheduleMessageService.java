@@ -184,14 +184,14 @@ public class ScheduleMessageService extends ConfigManager {
                 long cqMaxOffset = cq.getMaxOffsetInQueue();
                 if (currentDelayOffset < cqMinOffset) {
                     correctDelayOffset = cqMinOffset;
-                    log.error("schedule CQ offset invalid. offset=" + currentDelayOffset + ", cqMinOffset="
-                        + cqMinOffset + ", cqMaxOffset=" + cqMaxOffset + ", queueId=" + cq.getQueueId());
+                    log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
+                        currentDelayOffset, cqMinOffset, cqMaxOffset, cq.getQueueId());
                 }
 
                 if (currentDelayOffset > cqMaxOffset) {
                     correctDelayOffset = cqMaxOffset;
-                    log.error("schedule CQ offset invalid. offset=" + currentDelayOffset + ", cqMinOffset="
-                        + cqMinOffset + ", cqMaxOffset=" + cqMaxOffset + ", queueId=" + cq.getQueueId());
+                    log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
+                        currentDelayOffset, cqMinOffset, cqMaxOffset, cq.getQueueId());
                 }
                 if (correctDelayOffset != currentDelayOffset) {
                     log.error("correct delay offset [ delayLevel {} ] from {} to {}", delayLevel, currentDelayOffset, correctDelayOffset);
@@ -383,9 +383,7 @@ public class ScheduleMessageService extends ConfigManager {
                                          * XXX: warn and notify me
                                          */
                                         log.error(
-                                            "ScheduleMessageService, messageTimeup execute error, drop it. msgExt="
-                                                + msgExt + ", nextOffset=" + nextOffset + ",offsetPy="
-                                                + offsetPy + ",sizePy=" + sizePy, e);
+                                            "ScheduleMessageService, messageTimeup execute error, drop it. msgExt={}, nextOffset={}, offsetPy={}, sizePy={}", msgExt, nextOffset, offsetPy, sizePy, e);
                                     }
                                 }
                             } else {
@@ -413,14 +411,14 @@ public class ScheduleMessageService extends ConfigManager {
                     long cqMaxOffset = cq.getMaxOffsetInQueue();
                     if (offset < cqMinOffset) {
                         failScheduleOffset = cqMinOffset;
-                        log.error("schedule CQ offset invalid. offset=" + offset + ", cqMinOffset="
-                            + cqMinOffset + ", cqMaxOffset=" + cqMaxOffset + ", queueId=" + cq.getQueueId());
+                        log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
+                            offset, cqMinOffset, cqMaxOffset, cq.getQueueId());
                     }
 
                     if (offset > cqMaxOffset) {
                         failScheduleOffset = cqMaxOffset;
-                        log.error("schedule CQ offset invalid. offset=" + offset + ", cqMinOffset="
-                            + cqMinOffset + ", cqMaxOffset=" + cqMaxOffset + ", queueId=" + cq.getQueueId());
+                        log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
+                            offset, cqMinOffset, cqMaxOffset, cq.getQueueId());
                     }
                 }
             } // end of if (cq != null)
