@@ -788,21 +788,23 @@ public class DefaultMessageStore implements MessageStore {
             double minPhysicsUsedRatio = Double.MAX_VALUE;
             String[] paths = commitLogStorePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
             for (String clPath : paths) {
-                double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(clPath);
+                double physicRatio = UtilAll.isPathExists(clPath) ?
+                        UtilAll.getDiskPartitionSpaceUsedPercent(clPath) : -1;
                 result.put(RunningStats.commitLogDiskRatio.name() + "_" + clPath, String.valueOf(physicRatio));
                 minPhysicsUsedRatio = Math.min(minPhysicsUsedRatio, physicRatio);
             }
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(minPhysicsUsedRatio));
         } else {
             String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-            double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+            double physicRatio = UtilAll.isPathExists(storePathPhysic) ?
+                    UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic) : -1;
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
         }
 
         {
-
             String storePathLogics = StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir());
-            double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
+            double logicsRatio = UtilAll.isPathExists(storePathLogics) ?
+                    UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics) : -1;
             result.put(RunningStats.consumeQueueDiskRatio.name(), String.valueOf(logicsRatio));
         }
 
