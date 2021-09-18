@@ -47,6 +47,7 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 
 public class ExportMetricsCommand implements SubCommand {
 
@@ -223,8 +224,8 @@ public class ExportMetricsCommand implements SubCommand {
         double transInTps = null != transStatsData ? transStatsData.getStatsMinute().getTps() : 0.0;
         double scheduleInTps = null != scheduleStatsData ? scheduleStatsData.getStatsMinute().getTps() : 0.0;
 
-        long transOneDayNum = null != transStatsData ? transStatsData.getStatsDay().getSum() : 0;
-        long scheduleOneDayNum = null != scheduleStatsData ? scheduleStatsData.getStatsDay().getSum() : 0;
+        long transOneDayInNum = null != transStatsData ? StatsAllSubCommand.compute24HourSum(transStatsData) : 0;
+        long scheduleOneDayInNum = null != scheduleStatsData ? StatsAllSubCommand.compute24HourSum(scheduleStatsData) : 0;
 
         //current minute tps
         tpsMap.put("normalInTps", normalInTps);
@@ -235,11 +236,14 @@ public class ExportMetricsCommand implements SubCommand {
 
         //one day num
         Map<String, Long> oneDayNumMap = new HashMap<>();
-        long normalOneDayNum = Long.parseLong(kvTable.getTable().get("msgPutTotalTodayNow")) -
-            Long.parseLong(kvTable.getTable().get("msgPutTotalTodayMorning"));
-        oneDayNumMap.put("normalOneDayNum", normalOneDayNum);
-        oneDayNumMap.put("transOneDayNum", transOneDayNum);
-        oneDayNumMap.put("scheduleOneDayNum", scheduleOneDayNum);
+        long normalOneDayInNum = Long.parseLong(kvTable.getTable().get("msgPutTotalTodayMorning")) -
+            Long.parseLong(kvTable.getTable().get("msgPutTotalYesterdayMorning"));
+        long normalOneDayOutNum = Long.parseLong(kvTable.getTable().get("msgGetTotalTodayMorning")) -
+            Long.parseLong(kvTable.getTable().get("msgGetTotalYesterdayMorning"));
+        oneDayNumMap.put("normalOneDayInNum", normalOneDayInNum);
+        oneDayNumMap.put("normalOneDayOutNum", normalOneDayOutNum);
+        oneDayNumMap.put("transOneDayInNum", transOneDayInNum);
+        oneDayNumMap.put("scheduleOneDayInNum", scheduleOneDayInNum);
         runtimeQuotaMap.put("oneDayNum", oneDayNumMap);
 
         //all broker current minute tps
@@ -248,10 +252,12 @@ public class ExportMetricsCommand implements SubCommand {
         totalTpsMap.put("totalTransInTps", totalTpsMap.get("totalTransInTps") + transInTps);
         totalTpsMap.put("totalScheduleInTps", totalTpsMap.get("totalScheduleInTps") + scheduleInTps);
 
+
         //all broker one day num
-        totalOneDayNumMap.put("normalOneDayNum", totalOneDayNumMap.get("normalOneDayNum") + normalOneDayNum);
-        totalOneDayNumMap.put("transOneDayNum", totalOneDayNumMap.get("transOneDayNum") + transOneDayNum);
-        totalOneDayNumMap.put("scheduleOneDayNum", totalOneDayNumMap.get("scheduleOneDayNum") + scheduleOneDayNum);
+        totalOneDayNumMap.put("normalOneDayInNum", totalOneDayNumMap.get("normalOneDayInNum") + normalOneDayInNum);
+        totalOneDayNumMap.put("normalOneDayOutNum", totalOneDayNumMap.get("normalOneDayOutNum") + normalOneDayOutNum);
+        totalOneDayNumMap.put("transOneDayInNum", totalOneDayNumMap.get("transOneDayInNum") + transOneDayInNum);
+        totalOneDayNumMap.put("scheduleOneDayInNum", totalOneDayNumMap.get("scheduleOneDayInNum") + scheduleOneDayInNum);
 
         // putMessageAverageSize 平均
         runtimeQuotaMap.put("messageAverageSize", kvTable.getTable().get("putMessageAverageSize"));
@@ -268,8 +274,9 @@ public class ExportMetricsCommand implements SubCommand {
         totalTpsMap.put("totalTransInTps", 0.0);
         totalTpsMap.put("totalScheduleInTps", 0.0);
 
-        totalOneDayNumMap.put("normalOneDayNum", 0L);
-        totalOneDayNumMap.put("transOneDayNum", 0L);
-        totalOneDayNumMap.put("scheduleOneDayNum", 0L);
+        totalOneDayNumMap.put("normalOneDayInNum", 0L);
+        totalOneDayNumMap.put("normalOneDayOutNum", 0L);
+        totalOneDayNumMap.put("transOneDayInNum", 0L);
+        totalOneDayNumMap.put("scheduleOneDayInNum", 0L);
     }
 }
