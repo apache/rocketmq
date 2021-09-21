@@ -23,7 +23,7 @@ import org.apache.rocketmq.store.ConsumeQueue;
 
 public class MessageStoreConfig {
 
-    public static final String MULTI_PATH_SPLITTER = ":";
+    public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
 
     //The root directory in which the log data is kept
     @ImportantField

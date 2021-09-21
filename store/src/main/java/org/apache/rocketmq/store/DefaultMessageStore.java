@@ -1754,7 +1754,8 @@ public class DefaultMessageStore implements MessageStore {
                 String[] paths = storePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
                 double minPhysicRatio = 100;
                 for (String path : paths) {
-                    double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(path);
+                    double physicRatio = UtilAll.isPathExists(path) ?
+                            UtilAll.getDiskPartitionSpaceUsedPercent(path) : -1;
                     minPhysicRatio = Math.min(minPhysicRatio, physicRatio);
                     if (physicRatio > diskSpaceCleanForciblyRatio) {
                         fullStorePath.add(path);
@@ -1763,7 +1764,8 @@ public class DefaultMessageStore implements MessageStore {
                 DefaultMessageStore.this.commitLog.setFullStorePaths(fullStorePath);
                 return minPhysicRatio;
             } else {
-                return UtilAll.getDiskPartitionSpaceUsedPercent(storePath);
+                return UtilAll.isPathExists(storePath) ?
+                        UtilAll.getDiskPartitionSpaceUsedPercent(storePath) : -1;
             }
         }
 

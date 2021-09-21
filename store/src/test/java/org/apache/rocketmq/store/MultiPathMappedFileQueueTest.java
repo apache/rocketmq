@@ -31,7 +31,9 @@ public class MultiPathMappedFileQueueTest {
         final byte[] fixedMsg = new byte[1024];
 
         MessageStoreConfig config = new MessageStoreConfig();
-        config.setStorePathCommitLog("target/unit_test_store/a/:target/unit_test_store/b/:target/unit_test_store/c/");
+        config.setStorePathCommitLog("target/unit_test_store/a/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/b/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/c/");
         MappedFileQueue mappedFileQueue = new MultiPathMappedFileQueue(config, 1024, null, null);
         String[] storePaths = config.getStorePathCommitLog().trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
         for (int i = 0; i < 1024; i++) {
@@ -51,8 +53,9 @@ public class MultiPathMappedFileQueueTest {
             //create old mapped files
             final byte[] fixedMsg = new byte[1024];
             MessageStoreConfig config = new MessageStoreConfig();
-            config.setStorePathCommitLog(
-                    "target/unit_test_store/a/:target/unit_test_store/b/:target/unit_test_store/c/");
+            config.setStorePathCommitLog("target/unit_test_store/a/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                    + "target/unit_test_store/b/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                    + "target/unit_test_store/c/");
             MappedFileQueue mappedFileQueue = new MultiPathMappedFileQueue(config, 1024, null, null);
             String[] storePaths = config.getStorePathCommitLog().trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
             for (int i = 0; i < 1024; i++) {
@@ -68,7 +71,8 @@ public class MultiPathMappedFileQueueTest {
         // test load and readonly
         MessageStoreConfig config = new MessageStoreConfig();
         config.setStorePathCommitLog("target/unit_test_store/b/");
-        config.setReadOnlyCommitLogStorePaths("target/unit_test_store/a:target/unit_test_store/c");
+        config.setReadOnlyCommitLogStorePaths("target/unit_test_store/a" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/c");
         MultiPathMappedFileQueue mappedFileQueue = new MultiPathMappedFileQueue(config, 1024, null, null);
 
         mappedFileQueue.load();
@@ -83,7 +87,9 @@ public class MultiPathMappedFileQueueTest {
         final byte[] fixedMsg = new byte[1024];
 
         MessageStoreConfig config = new MessageStoreConfig();
-        config.setStorePathCommitLog("target/unit_test_store/a/:target/unit_test_store/b/:target/unit_test_store/c/");
+        config.setStorePathCommitLog("target/unit_test_store/a/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/b/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/c/");
         MappedFileQueue mappedFileQueue = new MultiPathMappedFileQueue(config, 1024, null, null);
         String[] storePaths = config.getStorePathCommitLog().trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
         for (int i = 0; i < 1024; i++) {
@@ -94,7 +100,8 @@ public class MultiPathMappedFileQueueTest {
             assertThat(mappedFile.getFileName().startsWith(storePaths[idx])).isTrue();
 
             if (i == 500) {
-                config.setStorePathCommitLog("target/unit_test_store/a/:target/unit_test_store/b/");
+                config.setStorePathCommitLog("target/unit_test_store/a/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                        + "target/unit_test_store/b/");
                 storePaths = config.getStorePathCommitLog().trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
             }
         }
@@ -108,7 +115,9 @@ public class MultiPathMappedFileQueueTest {
 
         Set<String> fullStorePath = new HashSet<>();
         MessageStoreConfig config = new MessageStoreConfig();
-        config.setStorePathCommitLog("target/unit_test_store/a/:target/unit_test_store/b/:target/unit_test_store/c/");
+        config.setStorePathCommitLog("target/unit_test_store/a/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/b/" + MessageStoreConfig.MULTI_PATH_SPLITTER
+                + "target/unit_test_store/c/");
         MappedFileQueue mappedFileQueue = new MultiPathMappedFileQueue(config, 1024, null, () -> fullStorePath);
         String[] storePaths = config.getStorePathCommitLog().trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
         assertThat(storePaths.length).isEqualTo(3);
