@@ -105,7 +105,7 @@ public class DefaultMessageStoreCleanFilesTest {
         String storePath = config.getStorePathCommitLog();
         StringBuilder storePathBuilder = new StringBuilder();
         for (int i = 0; i < 3; i++) {
-            storePathBuilder.append(storePath).append(i).append(":");
+            storePathBuilder.append(storePath).append(i).append(MessageStoreConfig.MULTI_PATH_SPLITTER);
         }
         config.setStorePathCommitLog(storePathBuilder.toString());
         String[] paths = config.getStorePathCommitLog().trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
