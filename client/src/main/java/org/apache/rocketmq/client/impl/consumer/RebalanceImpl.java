@@ -43,6 +43,7 @@ import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 
@@ -355,8 +356,10 @@ public abstract class RebalanceImpl {
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
                     List<MessageQueue> allocateResult = null;
+                    TopicRouteData topicRouteData = mQClientFactory.getTopicRouteTable().get(topic);
                     try {
                         allocateResult = strategy.allocate(
+                                topicRouteData,
                             this.consumerGroup,
                             this.mQClientFactory.getClientId(),
                             mqAll,

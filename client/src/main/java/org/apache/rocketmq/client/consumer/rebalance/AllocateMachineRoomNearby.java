@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 
 /**
@@ -55,8 +56,9 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
     }
 
     @Override
-    public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-        List<String> cidAll) {
+    public List<MessageQueue> allocate(TopicRouteData topicRouteData, String consumerGroup,
+                                       String currentCID, List<MessageQueue> mqAll,
+                                       List<String> cidAll) {
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }
@@ -111,13 +113,13 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
         List<MessageQueue> mqInThisMachineRoom = mr2Mq.remove(currentMachineRoom);
         List<String> consumerInThisMachineRoom = mr2c.get(currentMachineRoom);
         if (mqInThisMachineRoom != null && !mqInThisMachineRoom.isEmpty()) {
-            allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mqInThisMachineRoom, consumerInThisMachineRoom));
+            allocateResults.addAll(allocateMessageQueueStrategy.allocate(topicRouteData, consumerGroup, currentCID, mqInThisMachineRoom, consumerInThisMachineRoom));
         }
 
         //2.allocate the rest mq to each machine room if there are no consumer alive in that machine room
         for (String machineRoom : mr2Mq.keySet()) {
             if (!mr2c.containsKey(machineRoom)) { // no alive consumer in the corresponding machine room, so all consumers share these queues
-                allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mr2Mq.get(machineRoom), cidAll));
+                allocateResults.addAll(allocateMessageQueueStrategy.allocate(topicRouteData, consumerGroup, currentCID, mr2Mq.get(machineRoom), cidAll));
             }
         }
 

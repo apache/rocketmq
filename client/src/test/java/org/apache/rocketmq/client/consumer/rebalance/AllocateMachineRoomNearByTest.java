@@ -107,7 +107,7 @@ public class AllocateMachineRoomNearByTest {
         List<MessageQueue> mqAll = prepareMQ(IDCSize, queueSize);
         List<MessageQueue> resAll = new ArrayList<MessageQueue>();
         for (String currentID : cidAll) {
-            List<MessageQueue> res = allocateMessageQueueStrategy.allocate("Test-C-G",currentID,mqAll,cidAll);
+            List<MessageQueue> res = allocateMessageQueueStrategy.allocate(null,"Test-C-G",currentID,mqAll,cidAll);
             if (print) {
                 System.out.println("cid: "+currentID+"--> res :" +res);
             }
@@ -136,7 +136,7 @@ public class AllocateMachineRoomNearByTest {
 
         List<MessageQueue> resAll = new ArrayList<MessageQueue>();
         for (String currentID : cidAll) {
-            List<MessageQueue> res = allocateMessageQueueStrategy.allocate("Test-C-G",currentID,mqAll,cidAll);
+            List<MessageQueue> res = allocateMessageQueueStrategy.allocate(null,"Test-C-G",currentID,mqAll,cidAll);
             if (print) {
                 System.out.println("cid: "+currentID+"--> res :" +res);
             }
@@ -169,7 +169,7 @@ public class AllocateMachineRoomNearByTest {
         Map<String, List<MessageQueue>> idc2Res = new TreeMap<String, List<MessageQueue>>();
         for (String currentID : cidAll) {
             String currentIDC = machineRoomResolver.consumerDeployIn(currentID);
-            List<MessageQueue> res = allocateMessageQueueStrategy.allocate("Test-C-G",currentID,mqAll,cidAll);
+            List<MessageQueue> res = allocateMessageQueueStrategy.allocate(null,"Test-C-G",currentID,mqAll,cidAll);
             if (print) {
                 System.out.println("cid: "+currentID+"--> res :" +res);
             }

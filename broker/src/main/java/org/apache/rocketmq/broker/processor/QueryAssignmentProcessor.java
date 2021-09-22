@@ -220,13 +220,13 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                         } else {
                             if (cidAll.size() <= mqAll.size()) {
                                 //consumer working in pop mode could share the MessageQueues assigned to the N (N = popWorkGroupSize) consumer following it in the cid list
-                                allocateResult = allocateMessageQueueStrategy.allocate(consumerGroup, clientId, mqAll, cidAll);
+                                allocateResult = allocateMessageQueueStrategy.allocate(null, consumerGroup, clientId, mqAll, cidAll);
                                 int index = cidAll.indexOf(clientId);
                                 if (index >= 0) {
                                     for (int i = 1; i <= setMessageRequestModeRequestBody.getPopShareQueueNum(); i++) {
                                         index++;
                                         index = index % cidAll.size();
-                                        List<MessageQueue> tmp = allocateMessageQueueStrategy.allocate(consumerGroup, cidAll.get(index), mqAll, cidAll);
+                                        List<MessageQueue> tmp = allocateMessageQueueStrategy.allocate(null, consumerGroup, cidAll.get(index), mqAll, cidAll);
                                         allocateResult.addAll(tmp);
                                     }
                                 }
@@ -237,7 +237,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                         }
 
                     } else {
-                        allocateResult = allocateMessageQueueStrategy.allocate(consumerGroup, clientId, mqAll, cidAll);
+                        allocateResult = allocateMessageQueueStrategy.allocate(null, consumerGroup, clientId, mqAll, cidAll);
                     }
                 } catch (Throwable e) {
                     log.error("QueryLoad: no assignment for group[{}] topic[{}], allocate message queue exception. strategy name: {}, ex: {}", consumerGroup, topic, strategyName, e);
