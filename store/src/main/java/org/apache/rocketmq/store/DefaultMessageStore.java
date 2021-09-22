@@ -783,9 +783,9 @@ public class DefaultMessageStore implements MessageStore {
     public HashMap<String, String> getRuntimeInfo() {
         HashMap<String, String> result = this.storeStatsService.getRuntimeInfo();
 
-        String commitLogStorePath = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-        if (commitLogStorePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
+        {
             double minPhysicsUsedRatio = Double.MAX_VALUE;
+            String commitLogStorePath = getStorePathPhysic();
             String[] paths = commitLogStorePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
             for (String clPath : paths) {
                 double physicRatio = UtilAll.isPathExists(clPath) ?
@@ -794,11 +794,6 @@ public class DefaultMessageStore implements MessageStore {
                 minPhysicsUsedRatio = Math.min(minPhysicsUsedRatio, physicRatio);
             }
             result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(minPhysicsUsedRatio));
-        } else {
-            String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-            double physicRatio = UtilAll.isPathExists(storePathPhysic) ?
-                    UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic) : -1;
-            result.put(RunningStats.commitLogDiskRatio.name(), String.valueOf(physicRatio));
         }
 
         {
@@ -1663,14 +1658,8 @@ public class DefaultMessageStore implements MessageStore {
             cleanImmediately = false;
 
             {
-                String[] storePaths;
                 String commitLogStorePath = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
-                if (commitLogStorePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
-                    storePaths = commitLogStorePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
-                } else {
-                    storePaths = new String[]{commitLogStorePath};
-                }
-
+                String[] storePaths = commitLogStorePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
                 Set<String> fullStorePath = new HashSet<>();
                 double minPhysicRatio = 100;
                 String minStorePath = null;
@@ -1748,25 +1737,21 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         public double calcStorePathPhysicRatio() {
+            Set<String> fullStorePath = new HashSet<>();
             String storePath = getStorePathPhysic();
-            if (storePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
-                Set<String> fullStorePath = new HashSet<>();
-                String[] paths = storePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
-                double minPhysicRatio = 100;
-                for (String path : paths) {
-                    double physicRatio = UtilAll.isPathExists(path) ?
-                            UtilAll.getDiskPartitionSpaceUsedPercent(path) : -1;
-                    minPhysicRatio = Math.min(minPhysicRatio, physicRatio);
-                    if (physicRatio > diskSpaceCleanForciblyRatio) {
-                        fullStorePath.add(path);
-                    }
+            String[] paths = storePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
+            double minPhysicRatio = 100;
+            for (String path : paths) {
+                double physicRatio = UtilAll.isPathExists(path) ?
+                        UtilAll.getDiskPartitionSpaceUsedPercent(path) : -1;
+                minPhysicRatio = Math.min(minPhysicRatio, physicRatio);
+                if (physicRatio > diskSpaceCleanForciblyRatio) {
+                    fullStorePath.add(path);
                 }
-                DefaultMessageStore.this.commitLog.setFullStorePaths(fullStorePath);
-                return minPhysicRatio;
-            } else {
-                return UtilAll.isPathExists(storePath) ?
-                        UtilAll.getDiskPartitionSpaceUsedPercent(storePath) : -1;
             }
+            DefaultMessageStore.this.commitLog.setFullStorePaths(fullStorePath);
+            return minPhysicRatio;
+
         }
 
         public boolean isSpaceFull() {
