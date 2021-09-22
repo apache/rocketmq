@@ -20,6 +20,7 @@ package org.apache.rocketmq.store;
 import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Test;
 
@@ -78,6 +79,10 @@ public class MultiPathMappedFileQueueTest {
         mappedFileQueue.load();
 
         assertThat(mappedFileQueue.mappedFiles.size()).isEqualTo(1024);
+        for (int i = 0; i < 1024; i++) {
+            assertThat(mappedFileQueue.mappedFiles.get(i).getFile().getName())
+                    .isEqualTo(UtilAll.offset2FileName(1024 * i));
+        }
         mappedFileQueue.destroy();
 
     }

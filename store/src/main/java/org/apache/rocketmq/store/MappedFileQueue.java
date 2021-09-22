@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -157,7 +158,8 @@ public class MappedFileQueue {
 
     public boolean doLoad(List<File> files) {
         // ascending order
-        Collections.sort(files);
+        files.sort(Comparator.comparing(File::getName));
+
         for (File file : files) {
             if (file.length() != this.mappedFileSize) {
                 log.warn(file + "\t" + file.length()
