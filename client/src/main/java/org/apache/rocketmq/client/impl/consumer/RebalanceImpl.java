@@ -357,6 +357,10 @@ public abstract class RebalanceImpl {
 
                     List<MessageQueue> allocateResult = null;
                     TopicRouteData topicRouteData = mQClientFactory.getTopicRouteTable().get(topic);
+                    if (topicRouteData == null) {
+                        mQClientFactory.updateTopicRouteInfoFromNameServer();
+                        topicRouteData = mQClientFactory.getTopicRouteTable().get(topic);
+                    }
                     try {
                         allocateResult = strategy.allocate(
                                 topicRouteData,

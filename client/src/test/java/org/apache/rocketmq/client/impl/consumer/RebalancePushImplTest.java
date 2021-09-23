@@ -19,6 +19,8 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -30,6 +32,7 @@ import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.junit.Before;
@@ -62,6 +65,7 @@ public class RebalancePushImplTest {
     @Before
     public void before() {
         defaultMQPushConsumer.getDefaultMQPushConsumer().setClientRebalance(false);
+        when(mqClientInstance.getTopicRouteTable()).thenReturn(new ConcurrentHashMap<String, TopicRouteData>());
     }
 
     @Test
