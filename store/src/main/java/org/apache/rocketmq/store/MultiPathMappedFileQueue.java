@@ -90,7 +90,7 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         //do not create file is space is nearly full.
         availableStorePath.removeAll(fullStorePaths);
 
-        //if no store path left, fall back to wriable store path.
+        //if no store path left, fall back to writable store path.
         if (availableStorePath.isEmpty()) {
             availableStorePath = new HashSet<>(storePath);
             availableStorePath.removeAll(readonlyPathSet);
