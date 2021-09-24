@@ -119,7 +119,8 @@ public class UtilAllTest {
         String comma = ",";
         assertEquals("groupA=DENY,groupB=PUB|SUB,groupC=SUB", UtilAll.join(list, comma));
         assertEquals(null, UtilAll.join(null, comma));
-        assertEquals("", UtilAll.join(Collections.emptyList(), comma));
+        List<String> objects = Collections.emptyList();
+        assertEquals("", UtilAll.join(objects, comma));
     }
 
     static class DemoConfig {
