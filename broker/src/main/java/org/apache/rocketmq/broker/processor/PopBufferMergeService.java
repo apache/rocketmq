@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -536,6 +537,12 @@ public class PopBufferMergeService extends ServiceThread {
             POP_LOGGER.error("[PopBuffer]put ck to store fail: {}, {}", pointWrapper, putMessageResult);
             return;
         }
+        
+        this.brokerController.getBrokerStatsManager().incTopicPutNums(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+        this.brokerController.getBrokerStatsManager().incTopicPutSize(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+                putMessageResult.getAppendMessageResult().getWroteBytes());
+        this.brokerController.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+
         pointWrapper.setCkStored(true);
         pointWrapper.setReviveQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
@@ -574,6 +581,12 @@ public class PopBufferMergeService extends ServiceThread {
             POP_LOGGER.error("[PopBuffer]put ack to store fail: {}, {}, {}", pointWrapper, ackMsg, putMessageResult);
             return false;
         }
+
+        this.brokerController.getBrokerStatsManager().incTopicPutNums(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+        this.brokerController.getBrokerStatsManager().incTopicPutSize(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+                putMessageResult.getAppendMessageResult().getWroteBytes());
+        this.brokerController.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("[PopBuffer]put ack to store ok: {}, {}, {}", pointWrapper, ackMsg, putMessageResult);
         }
