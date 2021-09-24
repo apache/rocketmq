@@ -36,7 +36,7 @@ public class RemotingHelper {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
 
     public static String exceptionSimpleDesc(final Throwable e) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (e != null) {
             sb.append(e.toString());
 

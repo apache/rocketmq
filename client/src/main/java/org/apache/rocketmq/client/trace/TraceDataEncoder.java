@@ -191,7 +191,6 @@ public class TraceDataEncoder {
                         .append(ctx.getContextCode()).append(TraceConstants.CONTENT_SPLITOR)
                         .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)
                         .append(ctx.getGroupName()).append(TraceConstants.FIELD_SPLITOR);
-
                 }
             }
             break;

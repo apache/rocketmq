@@ -17,9 +17,9 @@
 
 package org.apache.rocketmq.client.trace;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.codec.Charsets;
 import org.apache.rocketmq.common.message.MessageExt;
 
 public class TraceView {
@@ -40,7 +40,7 @@ public class TraceView {
 
     public static List<TraceView> decodeFromTraceTransData(String key, MessageExt messageExt) {
         List<TraceView> messageTraceViewList = new ArrayList<TraceView>();
-        String messageBody = new String(messageExt.getBody(), Charsets.UTF_8);
+        String messageBody = new String(messageExt.getBody(), StandardCharsets.UTF_8);
         if (messageBody == null || messageBody.length() <= 0) {
             return messageTraceViewList;
         }

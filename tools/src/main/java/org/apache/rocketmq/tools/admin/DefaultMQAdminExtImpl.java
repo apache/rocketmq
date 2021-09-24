@@ -222,8 +222,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group) {
-        return null;
+    public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group)
+        throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        SubscriptionGroupWrapper wrapper = this.mqClientInstance.getMQClientAPIImpl().getAllSubscriptionGroup(addr, timeoutMillis);
+        return wrapper.getSubscriptionGroupTable().get(group);
     }
 
     @Override
@@ -433,6 +435,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName) throws RemotingCommandException,
         RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQClientException {
         return this.mqClientInstance.getMQClientAPIImpl().wipeWritePermOfBroker(namesrvAddr, brokerName, timeoutMillis);
+    }
+
+    @Override
+    public int addWritePermOfBroker(String namesrvAddr, String brokerName) throws RemotingCommandException,
+            RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQClientAPIImpl().addWritePermOfBroker(namesrvAddr, brokerName, timeoutMillis);
     }
 
     @Override

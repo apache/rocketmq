@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -149,6 +150,15 @@ public class DefaultMQProducerWithTraceTest {
 
     }
 
+    
+    @Test
+    public void testProducerWithTraceTLS() {
+        DefaultMQProducer producer = new DefaultMQProducer(producerGroupTemp, true);
+        producer.setUseTLS(true);
+        AsyncTraceDispatcher asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
+        Assert.assertTrue(asyncTraceDispatcher.getTraceProducer().isUseTLS());
+    }
+    
     @After
     public void terminate() {
         producer.shutdown();
