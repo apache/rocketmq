@@ -22,6 +22,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -30,6 +32,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 public class RequestFutureTable {
     private static InternalLogger log = ClientLogger.getLog();
     private static ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
+    private static final AtomicInteger PRODUCER_NUM = new AtomicInteger(0);
 
     public static ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
         return requestFutureTable;
@@ -58,5 +61,9 @@ public class RequestFutureTable {
                 log.warn("scanResponseTable, operationComplete Exception", e);
             }
         }
+    }
+
+    public static AtomicInteger getProducerNum() {
+        return PRODUCER_NUM;
     }
 }

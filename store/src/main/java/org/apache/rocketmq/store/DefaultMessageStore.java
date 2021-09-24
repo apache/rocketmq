@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -441,7 +442,7 @@ public class DefaultMessageStore implements MessageStore {
             this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
             if (null == result || !result.isOk()) {
-                this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
+                this.storeStatsService.getPutMessageFailedTimes().add(1);
             }
         });
 
@@ -471,7 +472,7 @@ public class DefaultMessageStore implements MessageStore {
             this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
             if (null == result || !result.isOk()) {
-                this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
+                this.storeStatsService.getPutMessageFailedTimes().add(1);
             }
         });
 
@@ -480,58 +481,20 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
-        PutMessageStatus checkStoreStatus = this.checkStoreStatus();
-        if (checkStoreStatus != PutMessageStatus.PUT_OK) {
-            return new PutMessageResult(checkStoreStatus, null);
+        try {
+            return asyncPutMessage(msg).get();
+        } catch (InterruptedException | ExecutionException e) {
+            return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
         }
-
-        PutMessageStatus msgCheckStatus = this.checkMessage(msg);
-        if (msgCheckStatus == PutMessageStatus.MESSAGE_ILLEGAL) {
-            return new PutMessageResult(msgCheckStatus, null);
-        }
-
-        long beginTime = this.getSystemClock().now();
-        PutMessageResult result = this.commitLog.putMessage(msg);
-        long elapsedTime = this.getSystemClock().now() - beginTime;
-        if (elapsedTime > 500) {
-            log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
-        }
-
-        this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
-
-        if (null == result || !result.isOk()) {
-            this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
-        }
-
-        return result;
     }
 
     @Override
     public PutMessageResult putMessages(MessageExtBatch messageExtBatch) {
-        PutMessageStatus checkStoreStatus = this.checkStoreStatus();
-        if (checkStoreStatus != PutMessageStatus.PUT_OK) {
-            return new PutMessageResult(checkStoreStatus, null);
+        try {
+            return asyncPutMessages(messageExtBatch).get();
+        } catch (InterruptedException | ExecutionException e) {
+            return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
         }
-
-        PutMessageStatus msgCheckStatus = this.checkMessages(messageExtBatch);
-        if (msgCheckStatus == PutMessageStatus.MESSAGE_ILLEGAL) {
-            return new PutMessageResult(msgCheckStatus, null);
-        }
-
-        long beginTime = this.getSystemClock().now();
-        PutMessageResult result = this.commitLog.putMessages(messageExtBatch);
-        long elapsedTime = this.getSystemClock().now() - beginTime;
-        if (elapsedTime > 500) {
-            log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
-        }
-
-        this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
-
-        if (null == result || !result.isOk()) {
-            this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
-        }
-
-        return result;
     }
 
     @Override
@@ -675,7 +638,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
-                            this.storeStatsService.getGetMessageTransferedMsgCount().incrementAndGet();
+                            this.storeStatsService.getGetMessageTransferedMsgCount().add(1);
                             getResult.addMessage(selectResult, offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE));
                             status = GetMessageStatus.FOUND;
                             nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -709,9 +672,9 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         if (GetMessageStatus.FOUND == status) {
-            this.storeStatsService.getGetMessageTimesTotalFound().incrementAndGet();
+            this.storeStatsService.getGetMessageTimesTotalFound().add(1);
         } else {
-            this.storeStatsService.getGetMessageTimesTotalMiss().incrementAndGet();
+            this.storeStatsService.getGetMessageTimesTotalMiss().add(1);
         }
         long elapsedTime = this.getSystemClock().now() - beginTime;
         this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
@@ -935,13 +898,13 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public boolean appendToCommitLog(long startOffset, byte[] data) {
+    public boolean appendToCommitLog(long startOffset, byte[] data, int dataStart, int dataLength) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so appendToPhyQueue is forbidden");
             return false;
         }
 
-        boolean result = this.commitLog.appendData(startOffset, data);
+        boolean result = this.commitLog.appendData(startOffset, data, dataStart, dataLength);
         if (result) {
             this.reputMessageService.wakeup();
         } else {
@@ -1994,10 +1957,10 @@ public class DefaultMessageStore implements MessageStore {
                                     readSize += size;
                                     if (DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
                                         DefaultMessageStore.this.storeStatsService
-                                            .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).incrementAndGet();
+                                            .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
                                         DefaultMessageStore.this.storeStatsService
                                             .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
-                                            .addAndGet(dispatchRequest.getMsgSize());
+                                            .add(dispatchRequest.getMsgSize());
                                     }
                                 } else if (size == 0) {
                                     this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);

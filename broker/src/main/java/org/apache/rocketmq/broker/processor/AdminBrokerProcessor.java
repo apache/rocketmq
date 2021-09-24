@@ -154,6 +154,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.apache.rocketmq.srvutil.ConcurrentHashMapUtil;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
@@ -282,10 +283,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             case RequestCode.MIGRATE_TOPIC_LOGICAL_QUEUE_NOTIFY:
                 return migrateTopicLogicalQueueNotify(ctx, request);
             default:
-                break;
+                return getUnknownCmdResponse(ctx, request);
         }
-
-        return null;
     }
 
     @Override
@@ -365,8 +364,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
         accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
         accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
-        accessConfig.setTopicPerms(UtilAll.string2List(requestHeader.getTopicPerms(), ","));
-        accessConfig.setGroupPerms(UtilAll.string2List(requestHeader.getGroupPerms(), ","));
+        accessConfig.setTopicPerms(UtilAll.split(requestHeader.getTopicPerms(), ","));
+        accessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
         accessConfig.setAdmin(requestHeader.isAdmin());
         try {
 
@@ -439,7 +438,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.string2List(requestHeader.getGlobalWhiteAddrs(), ","))) {
+            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.split(requestHeader.getGlobalWhiteAddrs(), ","))) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setOpaque(request.getOpaque());
                 response.markResponseType();
@@ -505,6 +504,13 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         }
 
         return null;
+    }
+
+    private RemotingCommand getUnknownCmdResponse(ChannelHandlerContext ctx, RemotingCommand request) {
+        String error = " request type " + request.getCode() + " not supported";
+        final RemotingCommand response =
+                RemotingCommand.createResponseCommand(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
+        return response;
     }
 
     private RemotingCommand getAllTopicConfig(ChannelHandlerContext ctx, RemotingCommand request) {
@@ -1513,7 +1519,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         java.io.File commitLogDir = new java.io.File(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
         if (commitLogDir.exists()) {
-            runtimeInfo.put("commitLogDirCapacity", String.format("Total : %s, Free : %s.", MixAll.humanReadableByteCount(commitLogDir.getTotalSpace(), false), MixAll.humanReadableByteCount(commitLogDir.getFreeSpace(), false)));
+            runtimeInfo.put("commitLogDirCapacity", String.format("Total : %s, Free : %s.", MixAll.humanReadableByteCount(commitLogDir.getTotalSpace(), false), MixAll.humanReadableByteCount(commitLogDir.getUsableSpace(), false)));
         }
 
         return runtimeInfo;
