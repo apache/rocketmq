@@ -20,7 +20,6 @@ package org.apache.rocketmq.common.stats;
 import java.util.LinkedList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.rocketmq.common.UtilAll;
