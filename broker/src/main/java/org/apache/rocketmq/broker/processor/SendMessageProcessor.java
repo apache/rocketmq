@@ -56,6 +56,7 @@ import org.apache.rocketmq.remoting.netty.RemotingResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
@@ -186,7 +187,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             }
         }
 
-        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes 
+        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
             queueIdInt = ThreadLocalRandom.current().nextInt(99999999) % DLQ_NUMS_PER_GROUP;
@@ -636,8 +637,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     }
 
     private String diskUtil() {
-        String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
-        double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+        double physicRatio = 100;
+        String storePath = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
+        String[] paths = storePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
+        for (String storePathPhysic : paths) {
+            physicRatio = Math.min(physicRatio, UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic));
+        }
 
         String storePathLogis =
             StorePathConfigHelper.getStorePathConsumeQueue(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
