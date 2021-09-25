@@ -198,6 +198,11 @@ public class UtilAll {
             cal.get(Calendar.SECOND));
     }
 
+    public static boolean isPathExists(final String path) {
+        File file = new File(path);
+        return file.exists();
+    }
+
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
         if (null == path || path.isEmpty()) {
             log.error("Error when measuring disk space usage, path is null or empty, path : {}", path);
