@@ -1009,7 +1009,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             .iterator();
         while (iterator.hasNext()) {
             String topic = iterator.next().getKey();
-            if (topicList.getTopicList().contains(topic) || !specialTopic && (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX))) {
+            if (topicList.getTopicList().contains(topic) || (!specialTopic && (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)))) {
                 iterator.remove();
             }
         }
