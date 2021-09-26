@@ -23,7 +23,6 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
@@ -210,9 +209,9 @@ public class AclUtils {
         // expand netaddress
         int separatorCount = StringUtils.countMatches(netaddress, ":");
         int padCount = part - separatorCount;
-        if(padCount > 0){
+        if (padCount > 0) {
             StringBuilder padStr = new StringBuilder(":");
-            for(int i = 0; i < padCount; i++){
+            for (int i = 0; i < padCount; i++) {
                 padStr.append(":");
             }
             netaddress = StringUtils.replace(netaddress, "::", padStr.toString());
@@ -221,7 +220,7 @@ public class AclUtils {
         // pad netaddress
         String[] strArray = StringUtils.splitPreserveAllTokens(netaddress, ":");
         for (int i = 0; i < strArray.length; i++) {
-            if(strArray[i].length() < 4){
+            if (strArray[i].length() < 4) {
                 strArray[i] = StringUtils.leftPad(strArray[i], 4, '0');
             }
         }
