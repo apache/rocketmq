@@ -20,7 +20,9 @@ package org.apache.rocketmq.common.protocol;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
 public class ResponseCode extends RemotingSysResponseCode {
-
+	
+    public static final int FLUSH_DISK_FAILED = 9;
+    
     public static final int FLUSH_DISK_TIMEOUT = 10;
 
     public static final int SLAVE_NOT_AVAILABLE = 11;

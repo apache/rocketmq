@@ -486,6 +486,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 break;
 
             // Failed
+            case FLUSH_DISK_FAILED:
+                response.setCode(ResponseCode.FLUSH_DISK_FAILED);
+                response.setRemark("flush disk failed, disk is broken.");
+                break;
             case CREATE_MAPEDFILE_FAILED:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("create mapped file failed, server is busy or broken.");
