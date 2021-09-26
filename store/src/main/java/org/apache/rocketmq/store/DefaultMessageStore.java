@@ -537,7 +537,8 @@ public class DefaultMessageStore implements MessageStore {
         long minOffset = 0;
         long maxOffset = 0;
 
-        GetMessageResult getResult = new GetMessageResult();
+        // lazy init when find msg.
+        GetMessageResult getResult = null;
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
@@ -574,6 +575,9 @@ public class DefaultMessageStore implements MessageStore {
                         int i = 0;
                         final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE);
                         final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
+
+                        getResult = new GetMessageResult(maxMsgNums);
+
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                         for (; i < bufferConsumeQueue.getSize() && i < maxFilterMessageCount; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
@@ -676,6 +680,11 @@ public class DefaultMessageStore implements MessageStore {
         }
         long elapsedTime = this.getSystemClock().now() - beginTime;
         this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
+
+        // lazy init no data found.
+        if (getResult == null) {
+            getResult = new GetMessageResult(0);
+        }
 
         getResult.setStatus(status);
         getResult.setNextBeginOffset(nextBeginOffset);
