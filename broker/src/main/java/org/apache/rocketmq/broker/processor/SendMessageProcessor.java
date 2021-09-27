@@ -238,6 +238,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         if (correctTopic != null) {
                             backTopic = correctTopic;
                         }
+                        if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(msgInner.getTopic())) {
+                            this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
+                            this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), r.getAppendMessageResult().getWroteBytes());
+                            this.brokerController.getBrokerStatsManager().incQueuePutNums(msgInner.getTopic(), msgInner.getQueueId());
+                            this.brokerController.getBrokerStatsManager().incQueuePutSize(msgInner.getTopic(), msgInner.getQueueId(), r.getAppendMessageResult().getWroteBytes());
+                        }
                         this.brokerController.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
                         response.setCode(ResponseCode.SUCCESS);
                         response.setRemark(null);
