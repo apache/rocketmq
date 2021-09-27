@@ -24,8 +24,8 @@ import java.nio.charset.Charset;
 public abstract class RemotingSerializable {
     private final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
-    static{
-        JSON.DEFAULT_GENERATE_FEATURE|= SerializerFeature.WriteNonStringKeyAsString.getMask();
+    static {
+        JSON.DEFAULT_GENERATE_FEATURE |= SerializerFeature.WriteNonStringKeyAsString.getMask();
     }
 
     public static byte[] encode(final Object obj) {
