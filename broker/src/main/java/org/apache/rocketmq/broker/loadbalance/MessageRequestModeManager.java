@@ -26,7 +26,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class MessageRequestModeManager extends ConfigManager {
 
-    private BrokerController brokerController;
+    private transient BrokerController brokerController;
 
     private ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>
             messageRequestModeMap = new ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>();
