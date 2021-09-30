@@ -617,7 +617,7 @@ public class CommitLog {
 
                 msg.setTopic(topic);
                 msg.setQueueId(queueId);
-            } else if (msg.getProperties().containsKey(MessageConst.PROPERTY_SPECIFY_DELAY_TIME)) {
+            } else if (msg.getProperties().containsKey(MessageConst.PROPERTY_CUSTOM_DELAY_TIME)) {
                 this.defaultMessageStore.getCustomDelayMessageService().dealSpecifyDelayTime(msg);
             }
         }

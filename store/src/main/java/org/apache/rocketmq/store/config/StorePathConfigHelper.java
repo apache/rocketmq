@@ -49,7 +49,7 @@ public class StorePathConfigHelper {
     }
 
     public static String getSpcifyDelayOffsetStorePath(final String rootDir) {
-        return rootDir + File.separator + "dragon" + File.separator + "delayOffset.json";
+        return rootDir + File.separator + "config" + File.separator + "customDelayOffset.json";
     }
 
     public static String getTranStateTableStorePath(final String rootDir) {

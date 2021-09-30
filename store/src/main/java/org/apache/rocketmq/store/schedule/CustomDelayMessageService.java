@@ -11,6 +11,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.running.RunningStats;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.*;
@@ -42,6 +43,8 @@ public class CustomDelayMessageService extends ConfigManager {
     public static final String SCHEDULE_TOPIC = "DRAGON_TOPIC_XXX";
 
     private static final Pattern pattern = Pattern.compile("([0-9]+d)*([0-9]+h)*([0-9]+m)*([0-9]+s)*");
+
+    private String supportDelayTime = System.getProperty("rocketmq.custom.delay", "7");
 
     private static final HashMap<String, Long> timeUnitTable = new HashMap<String, Long>() {{
         this.put("s", 1000L);
@@ -143,8 +146,16 @@ public class CustomDelayMessageService extends ConfigManager {
                 delayLevelTable.put(index, i * timeUnitTable.get("h"));
                 levelMapper.put(String.valueOf(i + "h"), index++);
             }
+            int delayDay = 7;
+            try {
+                if (StringUtils.isNotBlank(supportDelayTime)) {
+                    delayDay = Integer.valueOf(supportDelayTime);
+                }
+            } catch (Exception e) {
+                log.warn("set custom delay time is error ,rocketmq.custom.delay = {}", supportDelayTime);
+            }
             //day max time 7
-            for (int i = 1; i <= 7; i++) {
+            for (int i = 1; i <= delayDay; i++) {
                 delayLevelTable.put(index, i * timeUnitTable.get("d"));
                 levelMapper.put(String.valueOf(i + "d"), index++);
             }
@@ -238,7 +249,7 @@ public class CustomDelayMessageService extends ConfigManager {
     }
 
     public void dealSpecifyDelayTime(final MessageExtBrokerInner msg) {
-        final String specifyDelayTime = msg.getProperties().get(MessageConst.PROPERTY_SPECIFY_DELAY_TIME);
+        final String specifyDelayTime = msg.getProperties().get(MessageConst.PROPERTY_CUSTOM_DELAY_TIME);
         if (StringUtils.isBlank(specifyDelayTime)) {
             log.warn("msg properties incloud PROPERTY_SPECIFY_DELAY_TIME,but no found value" + msg.getTopic() + " tags: " + msg.getTags()
                     + " client address: " + msg.getBornHostString());
@@ -254,10 +265,10 @@ public class CustomDelayMessageService extends ConfigManager {
         final String h = StringUtils.isNoneBlank(matcher.group(2)) ? matcher.group(2) : "";
         final String m = StringUtils.isNoneBlank(matcher.group(3)) ? matcher.group(3) : "";
         final String s = StringUtils.isNoneBlank(matcher.group(4)) ? matcher.group(4) : "";
-        MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_SPECIFY_DELAY_TIME);
+        MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_CUSTOM_DELAY_TIME);
         if (StringUtils.isNotBlank(d)) {
             queueId = levelMapper.getOrDefault(d, -1);
-            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_SPECIFY_DELAY_TIME, h + m + s);
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CUSTOM_DELAY_TIME, h + m + s);
         } else if (StringUtils.isNotBlank(h)) {
             final long l = Long.parseLong(h.substring(0, h.length() - 1));
             if (l >= 24) {
@@ -265,7 +276,7 @@ public class CustomDelayMessageService extends ConfigManager {
                 return;
             }
             queueId = levelMapper.getOrDefault(h, -1);
-            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_SPECIFY_DELAY_TIME, m + s);
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CUSTOM_DELAY_TIME, m + s);
         } else if (StringUtils.isNotBlank(m)) {
             final long l = Long.parseLong(m.substring(0, m.length() - 1));
             if (l >= 60) {
@@ -273,7 +284,7 @@ public class CustomDelayMessageService extends ConfigManager {
                 return;
             }
             queueId = levelMapper.getOrDefault(m, -1);
-            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_SPECIFY_DELAY_TIME, s);
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CUSTOM_DELAY_TIME, s);
         } else if (StringUtils.isNotBlank(s)) {
             final long l = Long.parseLong(s.substring(0, s.length() - 1));
             if (l >= 60) {
@@ -383,13 +394,13 @@ public class CustomDelayMessageService extends ConfigManager {
                                                 offsetPy, sizePy);
                                 if (msgExt != null) {
                                     MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
-                                    if (MixAll.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
+                                    if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                                         log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
                                                 msgInner.getTopic(), msgInner);
                                         continue;
                                     }
                                     final String isDragon =
-                                            msgInner.getProperties().get(MessageConst.PROPERTY_SPECIFY_DELAY_TIME);
+                                            msgInner.getProperties().get(MessageConst.PROPERTY_CUSTOM_DELAY_TIME);
                                     if (StringUtils.isBlank(isDragon)) {
                                         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_SPECIFY_DELAY_TAG);
                                     }
