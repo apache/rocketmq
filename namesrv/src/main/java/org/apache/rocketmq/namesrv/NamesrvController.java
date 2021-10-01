@@ -23,9 +23,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.grpc.server.GrpcServer;
+import org.apache.rocketmq.grpc.server.GrpcServerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.namesrv.grpc.NameServerGrpcService;
 import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
 import org.apache.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
 import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
@@ -38,13 +41,15 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
 
-
 public class NamesrvController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    private static final InternalLogger GRPC_LOGGER = InternalLoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     private final NamesrvConfig namesrvConfig;
 
     private final NettyServerConfig nettyServerConfig;
+
+    private final GrpcServerConfig grpcServerConfig;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
@@ -52,6 +57,8 @@ public class NamesrvController {
     private final RouteInfoManager routeInfoManager;
 
     private RemotingServer remotingServer;
+
+    private GrpcServer grpcServer;
 
     private BrokerHousekeepingService brokerHousekeepingService;
 
@@ -61,8 +68,13 @@ public class NamesrvController {
     private FileWatchService fileWatchService;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
+        this(namesrvConfig, nettyServerConfig, null);
+    }
+
+    public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig, GrpcServerConfig grpcServerConfig) {
         this.namesrvConfig = namesrvConfig;
         this.nettyServerConfig = nettyServerConfig;
+        this.grpcServerConfig = grpcServerConfig;
         this.kvConfigManager = new KVConfigManager(this);
         this.routeInfoManager = new RouteInfoManager();
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
@@ -78,6 +90,15 @@ public class NamesrvController {
         this.kvConfigManager.load();
 
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
+
+        if (this.namesrvConfig.isEnableGrpcServer()) {
+            try {
+                this.grpcServer = new GrpcServer(this.grpcServerConfig, new NameServerGrpcService(this), false);
+            } catch (Exception e) {
+                log.error("Initialize grpc server failed", e);
+                return false;
+            }
+        }
 
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
@@ -155,6 +176,11 @@ public class NamesrvController {
     public void start() throws Exception {
         this.remotingServer.start();
 
+        if (this.namesrvConfig.isEnableGrpcServer()) {
+            this.grpcServer.start();
+            GRPC_LOGGER.info("Grpc server started, listening port is");
+        }
+
         if (this.fileWatchService != null) {
             this.fileWatchService.start();
         }
@@ -162,6 +188,16 @@ public class NamesrvController {
 
     public void shutdown() {
         this.remotingServer.shutdown();
+
+        if (this.namesrvConfig.isEnableGrpcServer()) {
+            try {
+                this.grpcServer.stop();
+                this.grpcServer.blockUntilShutdown();
+                GRPC_LOGGER.info("Grpc server stopped OK");
+            } catch (InterruptedException e) {
+                GRPC_LOGGER.warn("Shutdown interrupted", e);
+            }
+        }
         this.remotingExecutor.shutdown();
         this.scheduledExecutorService.shutdown();
 

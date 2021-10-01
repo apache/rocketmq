@@ -35,6 +35,7 @@ public class NamesrvConfig {
     private String productEnvName = "center";
     private boolean clusterTest = false;
     private boolean orderMessageEnable = false;
+    private boolean enableGrpcServer = true;
 
     public boolean isOrderMessageEnable() {
         return orderMessageEnable;
@@ -82,5 +83,13 @@ public class NamesrvConfig {
 
     public void setConfigStorePath(final String configStorePath) {
         this.configStorePath = configStorePath;
+    }
+
+    public boolean isEnableGrpcServer() {
+        return enableGrpcServer;
+    }
+
+    public void setEnableGrpcServer(boolean enableGrpcServer) {
+        this.enableGrpcServer = enableGrpcServer;
     }
 }

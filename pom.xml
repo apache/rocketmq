@@ -122,6 +122,7 @@
         <module>logging</module>
         <module>acl</module>
         <module>example</module>
+        <module>grpc</module>
     </modules>
 
     <build>
@@ -451,6 +452,11 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-grpc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -518,6 +524,11 @@
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-example</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-all</artifactId>
+                <version>1.38.0</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>

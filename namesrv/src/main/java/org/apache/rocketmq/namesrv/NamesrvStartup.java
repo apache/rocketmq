@@ -32,6 +32,7 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.grpc.server.GrpcServerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
@@ -81,7 +82,10 @@ public class NamesrvStartup {
 
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        final GrpcServerConfig grpcServerConfig = new GrpcServerConfig();
+        // Set nameserver default port
         nettyServerConfig.setListenPort(9876);
+        grpcServerConfig.setPort(9886);
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -90,6 +94,7 @@ public class NamesrvStartup {
                 properties.load(in);
                 MixAll.properties2Object(properties, namesrvConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
+                MixAll.properties2Object(properties, grpcServerConfig);
 
                 namesrvConfig.setConfigStorePath(file);
 
@@ -102,6 +107,7 @@ public class NamesrvStartup {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
             MixAll.printObjectProperties(console, nettyServerConfig);
+            MixAll.printObjectProperties(console, grpcServerConfig);
             System.exit(0);
         }
 
@@ -122,8 +128,9 @@ public class NamesrvStartup {
 
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
+        MixAll.printObjectProperties(log, grpcServerConfig);
 
-        final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
+        final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig, grpcServerConfig);
 
         // remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);
