@@ -20,6 +20,8 @@ package org.apache.rocketmq.common.message;
 import org.apache.rocketmq.common.UtilAll;
 import org.junit.Test;
 
+import java.util.TimeZone;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MessageClientIDSetterTest {
@@ -45,5 +47,16 @@ public class MessageClientIDSetterTest {
         short pidFromID = (short) MessageClientIDSetter.getPidFromID(uniqID);
 
         assertThat(pid).isEqualTo(pidFromID);
+    }
+
+    @Test
+    public void testGetNearlyTimeFromID() {
+        String id = MessageClientIDSetter.createUniqID();
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT+8"));
+        long time1 = MessageClientIDSetter.getNearlyTimeFromID(id).getTime();
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
+        long time2 = MessageClientIDSetter.getNearlyTimeFromID(id).getTime();
+        assertThat(time1).isEqualTo(time2);
+        assertThat(Math.abs(time1 - System.currentTimeMillis())).isLessThan(1000);
     }
 }
