@@ -56,6 +56,10 @@ public class MessageConst {
     public static final String PROPERTY_FIRST_POP_TIME = "1ST_POP_TIME";
     public static final String PROPERTY_FORWARD_QUEUE_ID = "PROPERTY_FORWARD_QUEUE_ID";
     public static final String PROPERTY_REDIRECT = "REDIRECT";
+    public static final String PROPERTY_SHARDING_KEY = "__SHARDINGKEY";
+    public static final String PROPERTY_TRACE_CONTEXT = "TRACE_CONTEXT";
+    public static final String PROPERTY_TIMER_DELAY_SEC = "TIMER_DELAY_SEC";
+    public static final String PROPERTY_TIMER_DELIVER_MS = "TIMER_DELIVER_MS";
 
     public static final String KEY_SEPARATOR = " ";
 

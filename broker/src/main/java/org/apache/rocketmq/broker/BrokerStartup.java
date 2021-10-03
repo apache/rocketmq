@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.grpc.server.GrpcServerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -115,6 +116,7 @@ public class BrokerStartup {
                 String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING))));
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+            final GrpcServerConfig grpcServerConfig = new GrpcServerConfig();
 
             if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
                 int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
@@ -134,6 +136,7 @@ public class BrokerStartup {
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
                     MixAll.properties2Object(properties, messageStoreConfig);
+                    MixAll.properties2Object(properties, grpcServerConfig);
 
                     BrokerPathConfigHelper.setBrokerConfigPath(file);
                     in.close();
@@ -195,6 +198,7 @@ public class BrokerStartup {
                 MixAll.printObjectProperties(console, nettyServerConfig);
                 MixAll.printObjectProperties(console, nettyClientConfig);
                 MixAll.printObjectProperties(console, messageStoreConfig);
+                MixAll.printObjectProperties(console, grpcServerConfig);
                 System.exit(0);
             } else if (commandLine.hasOption('m')) {
                 InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
@@ -202,6 +206,7 @@ public class BrokerStartup {
                 MixAll.printObjectProperties(console, nettyServerConfig, true);
                 MixAll.printObjectProperties(console, nettyClientConfig, true);
                 MixAll.printObjectProperties(console, messageStoreConfig, true);
+                MixAll.printObjectProperties(console, grpcServerConfig, true);
                 System.exit(0);
             }
 
@@ -210,6 +215,7 @@ public class BrokerStartup {
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
+            MixAll.printObjectProperties(log, grpcServerConfig);
 
             final BrokerController controller = new BrokerController(
                 brokerConfig,

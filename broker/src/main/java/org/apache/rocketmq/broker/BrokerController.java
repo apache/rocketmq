@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker;
 
 import com.google.common.collect.Maps;
+import io.grpc.ServerInterceptors;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
@@ -53,6 +54,7 @@ import org.apache.rocketmq.broker.domain.LogicalQueuesInfoInBroker;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
+import org.apache.rocketmq.broker.grpc.BrokerGrpcService;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
@@ -103,6 +105,9 @@ import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
+import org.apache.rocketmq.grpc.interceptor.HeaderServerInterceptor;
+import org.apache.rocketmq.grpc.server.GrpcServer;
+import org.apache.rocketmq.grpc.server.GrpcServerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -130,11 +135,13 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger GRPC_LOGGER = InternalLoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final InternalLogger LOG_WATER_MARK = InternalLoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
     private final BrokerConfig brokerConfig;
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
+    private final GrpcServerConfig grpcServerConfig;
     private final MessageStoreConfig messageStoreConfig;
     private final ConsumerOffsetManager consumerOffsetManager;
     private final ConsumerManager consumerManager;
@@ -151,6 +158,7 @@ public class BrokerController {
     private final QueryAssignmentProcessor queryAssignmentProcessor;
     private final ClientManageProcessor clientManageProcessor;
     private final SendMessageProcessor sendMessageProcessor;
+    private final EndTransactionProcessor endTransactionProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     private final MessageArrivingListener messageArrivingListener;
     private final Broker2Client broker2Client;
@@ -178,6 +186,8 @@ public class BrokerController {
     private MessageStore messageStore;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
+    private GrpcServer grpcServer;
+    private BrokerGrpcService brokerGrpcService;
     private TopicConfigManager topicConfigManager;
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
@@ -209,10 +219,22 @@ public class BrokerController {
         final NettyClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig
     ) {
+       this(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig, new GrpcServerConfig());
+    }
+
+    public BrokerController(
+        final BrokerConfig brokerConfig,
+        final NettyServerConfig nettyServerConfig,
+        final NettyClientConfig nettyClientConfig,
+        final MessageStoreConfig messageStoreConfig,
+        final GrpcServerConfig grpcServerConfig
+    ) {
         this.brokerConfig = brokerConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.messageStoreConfig = messageStoreConfig;
+        this.grpcServerConfig = grpcServerConfig;
+        this.brokerGrpcService = new BrokerGrpcService(this);
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.topicConfigManager = new TopicConfigManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
@@ -237,6 +259,7 @@ public class BrokerController {
         this.assignmentManager = new AssignmentManager(this);
         this.queryAssignmentProcessor = new QueryAssignmentProcessor(this);
         this.clientManageProcessor = new ClientManageProcessor(this);
+        this.endTransactionProcessor = new EndTransactionProcessor(this);
         this.slaveSynchronize = new SlaveSynchronize(this);
 
         this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
@@ -318,6 +341,18 @@ public class BrokerController {
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
+            if (this.brokerConfig.isEnableGrpcServer()) {
+                try {
+                    this.grpcServer = new GrpcServer(grpcServerConfig,
+                        ServerInterceptors.intercept(brokerGrpcService, new HeaderServerInterceptor()),
+                        TlsSystemConfig.tlsMode != TlsMode.DISABLED);
+                } catch (Exception e) {
+                    GRPC_LOGGER.error("Start grpc server failed", e);
+                }
+                this.scheduledExecutorService.scheduleWithFixedDelay(brokerGrpcService::scanAndCleanChannels, 5, 5, TimeUnit.MINUTES);
+                this.scheduledExecutorService.scheduleWithFixedDelay(brokerGrpcService::logLatencyStats, 10, 10,
+                    TimeUnit.SECONDS);
+            }
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getSendMessageThreadPoolNums(),
                 this.brokerConfig.getSendMessageThreadPoolNums(),
@@ -721,8 +756,8 @@ public class BrokerController {
         /**
          * EndTransactionProcessor
          */
-        this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this), this.endTransactionExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this), this.endTransactionExecutor);
+        this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
 
         /**
          * Default
@@ -856,6 +891,19 @@ public class BrokerController {
     public PopMessageProcessor getPopMessageProcessor() {
         return popMessageProcessor;
     }
+
+    public AckMessageProcessor getAckMessageProcessor() {
+        return ackMessageProcessor;
+    }
+
+    public ChangeInvisibleTimeProcessor getChangeInvisibleTimeProcessor() {
+        return changeInvisibleTimeProcessor;
+    }
+
+    public EndTransactionProcessor getEndTransactionProcessor() {
+        return endTransactionProcessor;
+    }
+
 
     public void shutdown() {
         if (this.brokerStatsManager != null) {
@@ -993,6 +1041,13 @@ public class BrokerController {
 
         if (this.fastRemotingServer != null) {
             this.fastRemotingServer.start();
+        }
+
+        if (this.brokerConfig.isEnableGrpcServer()) {
+            if (this.grpcServer != null) {
+                this.grpcServer.start();
+                GRPC_LOGGER.info("Grpc server started ok, Listening: {}", grpcServerConfig.getPort());
+            }
         }
 
         if (this.fileWatchService != null) {
@@ -1434,5 +1489,13 @@ public class BrokerController {
 
     public QueryAssignmentProcessor getQueryAssignmentProcessor() {
         return queryAssignmentProcessor;
+    }
+
+    public BrokerGrpcService getBrokerGrpcService() {
+        return brokerGrpcService;
+    }
+
+    public GrpcServerConfig getGrpcServerConfig() {
+        return grpcServerConfig;
     }
 }

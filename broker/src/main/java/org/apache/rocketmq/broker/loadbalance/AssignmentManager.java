@@ -17,8 +17,10 @@
 package org.apache.rocketmq.broker.loadbalance;
 
 import com.google.common.collect.Lists;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -33,8 +35,10 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.AddressableMessageQueue;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -52,7 +56,7 @@ public class AssignmentManager {
 
     private final BrokerOuterAPI mQClientAPIImpl;
 
-    private final ConcurrentHashMap<String, Set<MessageQueue>> topicSubscribeInfoTable = new ConcurrentHashMap<String, Set<MessageQueue>>();
+    private final ConcurrentHashMap<String, Set<AddressableMessageQueue>> topicSubscribeInfoTable = new ConcurrentHashMap<>();
 
     private ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("LoadBalanceManagerScheduledThread"));
@@ -112,14 +116,28 @@ public class AssignmentManager {
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
         try {
             TopicRouteData topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+            Map<String, BrokerData> brokerDataMap = new HashMap<>();
+            for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+                brokerDataMap.put(brokerData.getBrokerName(), brokerData);
+            }
             if (topicRouteData != null) {
                 Set<MessageQueue> newSubscribeInfo = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
-                Set<MessageQueue> oldSubscribeInfo = topicSubscribeInfoTable.get(topic);
-                boolean changed = !newSubscribeInfo.equals(oldSubscribeInfo);
+                Set<AddressableMessageQueue> newAddressableMessageQueueSet = new HashSet<>();
+                for (MessageQueue mq : newSubscribeInfo) {
+                    BrokerData brokerData = brokerDataMap.get(mq.getBrokerName());
+                    for (Map.Entry<Long, String> brokerAddressEntry : brokerData.getBrokerAddrs().entrySet()) {
+                        int brokerId = Math.toIntExact(brokerAddressEntry.getKey());
+                        String brokerAddress = brokerAddressEntry.getValue();
+                        AddressableMessageQueue addressableMessageQueue = new AddressableMessageQueue(brokerId, brokerAddress, mq);
+                        newAddressableMessageQueueSet.add(addressableMessageQueue);
+                    }
+                }
+                Set<AddressableMessageQueue> oldAddressableMessageQueueSet = topicSubscribeInfoTable.get(topic);
+                boolean changed = !newSubscribeInfo.equals(oldAddressableMessageQueueSet);
 
                 if (changed) {
-                    log.info("the topic[{}] subscribe message queue changed, old[{}] ,new[{}]", topic, oldSubscribeInfo, newSubscribeInfo);
-                    topicSubscribeInfoTable.put(topic, newSubscribeInfo);
+                    log.info("the topic[{}] subscribe message queue changed, old[{}] ,new[{}]", topic, oldAddressableMessageQueueSet, newAddressableMessageQueueSet);
+                    topicSubscribeInfoTable.put(topic, newAddressableMessageQueueSet);
                     return true;
                 }
             } else {
@@ -142,8 +160,15 @@ public class AssignmentManager {
         topicSubscribeInfoTable.remove(topic);
     }
 
-
     public Set<MessageQueue> getTopicSubscribeInfo(String topic) {
+        Set<AddressableMessageQueue> addressableMessageQueueSet = topicSubscribeInfoTable.get(topic);
+        if (addressableMessageQueueSet == null) {
+            return null;
+        }
+        return new HashSet<>(addressableMessageQueueSet);
+    }
+
+    public Set<AddressableMessageQueue> getAddressableMessageQueueSet(String topic) {
         return topicSubscribeInfoTable.get(topic);
     }
 }

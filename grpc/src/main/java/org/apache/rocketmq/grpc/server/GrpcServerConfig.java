@@ -23,6 +23,7 @@ public class GrpcServerConfig {
     private int executorCoreThreadNumber = Runtime.getRuntime().availableProcessors() * 8 + 16;
     private int executorMaxThreadNumber = (Runtime.getRuntime().availableProcessors() + 1) * 16;
     private int executorQueueLength = 10000;
+    private long rpcRoadReserveTimeMs = 10;
 
     public GrpcServerConfig() {
     }
@@ -65,5 +66,13 @@ public class GrpcServerConfig {
 
     public void setExecutorQueueLength(int executorQueueLength) {
         this.executorQueueLength = executorQueueLength;
+    }
+
+    public long getRpcRoadReserveTimeMs() {
+        return rpcRoadReserveTimeMs;
+    }
+
+    public void setRpcRoadReserveTimeMs(long rpcRoadReserveTimeMs) {
+        this.rpcRoadReserveTimeMs = rpcRoadReserveTimeMs;
     }
 }

@@ -177,8 +177,10 @@ public class NamesrvController {
         this.remotingServer.start();
 
         if (this.namesrvConfig.isEnableGrpcServer()) {
-            this.grpcServer.start();
-            GRPC_LOGGER.info("Grpc server started, listening port is");
+            if (this.grpcServer != null) {
+                this.grpcServer.start();
+                GRPC_LOGGER.info("Grpc server started, listening port is");
+            }
         }
 
         if (this.fileWatchService != null) {

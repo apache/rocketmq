@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.grpc.adapter;
 
 import com.google.common.base.Strings;
-import io.grpc.stub.ServerCallStreamObserver;
 import io.netty.channel.AbstractChannel;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
@@ -38,8 +37,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rocketmq.rpc.api.PopMessageRequest;
-import rocketmq.rpc.api.PopMessageResponse;
 
 public class SimpleChannel extends AbstractChannel {
 
@@ -48,21 +45,11 @@ public class SimpleChannel extends AbstractChannel {
     private final String remoteAddress;
     private final String localAddress;
 
-    private BrokerController controller;
+    protected BrokerController controller;
 
     private long lastAccessTime;
 
-    static final class InvocationContext {
-        PopMessageRequest popMessageRequest;
-        ServerCallStreamObserver<PopMessageResponse> streamObserver;
-        long timestamp = System.currentTimeMillis();
-
-        public boolean expired() {
-            return System.currentTimeMillis() - timestamp >= 120 * 1000;
-        }
-    }
-
-    private final ConcurrentMap<Integer, InvocationContext> inFlightRequestMap;
+    protected final ConcurrentMap<Integer, InvocationContext> inFlightRequestMap;
 
     /**
      * Creates a new instance.
@@ -161,7 +148,7 @@ public class SimpleChannel extends AbstractChannel {
 
         InvocationContext invocationContext = inFlightRequestMap.get(opaque);
         if (null != invocationContext) {
-            return null != invocationContext.streamObserver && invocationContext.streamObserver.isReady();
+            return null != invocationContext.getStreamObserver() && invocationContext.getStreamObserver().isReady();
         }
         return false;
     }
@@ -195,12 +182,7 @@ public class SimpleChannel extends AbstractChannel {
     public ChannelFuture writeAndFlush(Object msg) {
         if (msg instanceof RemotingCommand) {
             RemotingCommand responseCommand = (RemotingCommand) msg;
-            InvocationContext invocationContext = inFlightRequestMap.remove(responseCommand.getOpaque());
-            if (null != invocationContext) {
-                controller.getBrokerGrpcService().handlePopResponseCommand(controller, responseCommand,
-                    invocationContext.popMessageRequest,
-                    invocationContext.streamObserver, invocationContext.timestamp);
-            }
+            inFlightRequestMap.remove(responseCommand.getOpaque());
         }
 
         DefaultChannelPromise promise = new DefaultChannelPromise(this, GlobalEventExecutor.INSTANCE);
@@ -212,12 +194,8 @@ public class SimpleChannel extends AbstractChannel {
         this.controller = controller;
     }
 
-    public void registerInvocationContext(int opaque, PopMessageRequest popMessageRequest,
-        ServerCallStreamObserver<PopMessageResponse> streamObserver) {
-        InvocationContext invocationContext = new InvocationContext();
-        invocationContext.popMessageRequest = popMessageRequest;
-        invocationContext.streamObserver = streamObserver;
-        inFlightRequestMap.put(opaque, invocationContext);
+    public void registerInvocationContext(int opaque, InvocationContext context) {
+        inFlightRequestMap.put(opaque, context);
     }
 
     public void eraseInvocationContext(int opaque) {
@@ -232,8 +210,8 @@ public class SimpleChannel extends AbstractChannel {
             if (entry.getValue().expired()) {
                 iterator.remove();
                 count++;
-                LOGGER.debug("An expired request is found, created time-point: {}, PopRequest: {}",
-                    entry.getValue().timestamp, entry.getValue().popMessageRequest);
+                LOGGER.debug("An expired request is found, created time-point: {}, Request: {}",
+                    entry.getValue().getTimestamp(), entry.getValue().getRequest());
             }
         }
         if (count > 0) {

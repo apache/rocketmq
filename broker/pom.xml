@@ -24,6 +24,10 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-grpc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-common</artifactId>
         </dependency>
         <dependency>

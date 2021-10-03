@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.grpc.common;
 
-import apache.rocketmq.v1.ResponseCommon;
-import com.google.rpc.Code;
-import com.google.rpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;
@@ -55,6 +52,36 @@ public class ResponseWriter {
 
                 serverCallStreamObserver.setOnCancelHandler(() -> {
                     LOGGER.warn("client has cancelled the request. response to write: {}", response);
+                });
+            }
+        }
+    }
+
+    public static <T> void writeException(StreamObserver<T> observer, final Exception e) {
+        if (observer instanceof ServerCallStreamObserver) {
+            final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
+            if (null == e) {
+                return;
+            }
+
+            if (serverCallStreamObserver.isCancelled()) {
+                LOGGER.warn("Client has cancelled the request. Exception to write", e);
+                return;
+            }
+
+            if (serverCallStreamObserver.isReady()) {
+                LOGGER.debug("Start to write error response", e);
+                serverCallStreamObserver.onError(e);
+                serverCallStreamObserver.onCompleted();
+            } else {
+                serverCallStreamObserver.setOnReadyHandler(() -> {
+                    LOGGER.debug("Start to write error response", e);
+                    serverCallStreamObserver.onError(e);
+                    serverCallStreamObserver.onCompleted();
+                });
+
+                serverCallStreamObserver.setOnCancelHandler(() -> {
+                    LOGGER.warn("Client has cancelled the request. Exception to write", e);
                 });
             }
         }

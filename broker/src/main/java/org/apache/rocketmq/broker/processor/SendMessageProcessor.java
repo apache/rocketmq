@@ -203,7 +203,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             msgExt.setDelayTimeLevel(0);
         } else {
             if (0 == delayLevel) {
-                delayLevel = 3 + msgExt.getReconsumeTimes();
+                int retryDelayLevelDelta = this.brokerController.getBrokerConfig().getRetryDelayLevelDelta();
+                delayLevel = retryDelayLevelDelta + msgExt.getReconsumeTimes();
             }
             msgExt.setDelayTimeLevel(delayLevel);
         }

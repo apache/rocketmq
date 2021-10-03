@@ -61,7 +61,7 @@ public class NameServerGrpcService extends MessagingServiceGrpc.MessagingService
         TopicRouteData routeData = controller.getRouteInfoManager().pickupTopicRouteData(topicName);
         if (routeData == null) {
             ResponseWriter.write(responseObserver, QueryRouteResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildResponseCommon(Code.NOT_FOUND, "topic not found"))
+                .setCommon(ResponseBuilder.buildCommon(Code.NOT_FOUND, "topic not found"))
                 .build());
         }
 
@@ -105,7 +105,7 @@ public class NameServerGrpcService extends MessagingServiceGrpc.MessagingService
         }
 
         ResponseWriter.write(responseObserver, QueryRouteResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildResponseCommon(Code.OK, "ok"))
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
             .addAllPartitions(partitionList)
             .build());
     }

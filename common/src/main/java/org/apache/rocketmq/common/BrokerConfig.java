@@ -224,6 +224,10 @@ public class BrokerConfig {
 
     private long forwardTimeout = 3 * 1000;
 
+    private int retryDelayLevelDelta = 3;
+
+    private boolean enableGrpcServer = true;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -966,5 +970,21 @@ public class BrokerConfig {
 
     public void setForwardTimeout(long timeout) {
         this.forwardTimeout = timeout;
+    }
+
+    public boolean isEnableGrpcServer() {
+        return enableGrpcServer;
+    }
+
+    public void setEnableGrpcServer(boolean enableGrpcServer) {
+        this.enableGrpcServer = enableGrpcServer;
+    }
+
+    public int getRetryDelayLevelDelta() {
+        return retryDelayLevelDelta;
+    }
+
+    public void setRetryDelayLevelDelta(int retryDelayLevelDelta) {
+        this.retryDelayLevelDelta = retryDelayLevelDelta;
     }
 }
