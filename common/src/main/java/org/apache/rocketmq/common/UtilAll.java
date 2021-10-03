@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -52,12 +51,11 @@ public class UtilAll {
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYYMMDDHHMMSS = "yyyyMMddHHmmss";
     final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    final static String HOST_NAME = ManagementFactory.getRuntimeMXBean().getName(); // format: "pid@hostname"
 
     public static int getPid() {
-        RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
-        String name = runtime.getName(); // format: "pid@hostname"
         try {
-            return Integer.parseInt(name.substring(0, name.indexOf('@')));
+            return Integer.parseInt(HOST_NAME.substring(0, HOST_NAME.indexOf('@')));
         } catch (Exception e) {
             return -1;
         }
@@ -196,6 +194,11 @@ public class UtilAll {
             cal.get(Calendar.HOUR_OF_DAY),
             cal.get(Calendar.MINUTE),
             cal.get(Calendar.SECOND));
+    }
+
+    public static boolean isPathExists(final String path) {
+        File file = new File(path);
+        return file.exists();
     }
 
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
