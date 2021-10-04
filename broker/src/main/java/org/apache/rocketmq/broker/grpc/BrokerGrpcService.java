@@ -70,6 +70,7 @@ import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -131,34 +132,38 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         this.controller = controller;
         int latencyStatsGrade = 11;
         this.messageLatency = new Histogram("Message-Latency", latencyStatsGrade);
-        this.delayPolicy = DelayPolicy.build(controller.getMessageStoreConfig().getMessageDelayLevel());
+        this.delayPolicy = DelayPolicy.build(controller.getMessageStoreConfig()
+            .getMessageDelayLevel());
         int i = 0;
-        messageLatency.getLabels().add(i++, "[00ms~10ms): ");
-        messageLatency.getLabels().add(i++, "[10ms~20ms): ");
-        messageLatency.getLabels().add(i++, "[20ms~30ms): ");
-        messageLatency.getLabels().add(i++, "[30ms~40ms): ");
-        messageLatency.getLabels().add(i++, "[40ms~50ms): ");
-        messageLatency.getLabels().add(i++, "[50ms~60ms): ");
-        messageLatency.getLabels().add(i++, "[60ms~70ms): ");
-        messageLatency.getLabels().add(i++, "[70ms~80ms): ");
-        messageLatency.getLabels().add(i++, "[80ms~90ms): ");
-        messageLatency.getLabels().add(i++, "[90ms~100ms): ");
-        messageLatency.getLabels().add(i, "[1000ms~inf): ");
+        List<String> labels = messageLatency.getLabels();
+        labels.add(i++, "[00ms~10ms): ");
+        labels.add(i++, "[10ms~20ms): ");
+        labels.add(i++, "[20ms~30ms): ");
+        labels.add(i++, "[30ms~40ms): ");
+        labels.add(i++, "[40ms~50ms): ");
+        labels.add(i++, "[50ms~60ms): ");
+        labels.add(i++, "[60ms~70ms): ");
+        labels.add(i++, "[70ms~80ms): ");
+        labels.add(i++, "[80ms~90ms): ");
+        labels.add(i++, "[90ms~100ms): ");
+        labels.add(i, "[1000ms~inf): ");
     }
 
     /**
-     * Scan and remove inactive mocking channels;
-     * Scan and clean expired requests;
+     * Scan and remove inactive mocking channels; Scan and clean expired requests;
      */
     public void scanAndCleanChannels() {
         try {
-            Iterator<Map.Entry<String, SimpleChannel>> iterator = clientIdChannelMap.entrySet().iterator();
+            Iterator<Map.Entry<String, SimpleChannel>> iterator = clientIdChannelMap.entrySet()
+                .iterator();
             while (iterator.hasNext()) {
                 Map.Entry<String, SimpleChannel> entry = iterator.next();
-                if (!entry.getValue().isActive()) {
+                if (!entry.getValue()
+                    .isActive()) {
                     iterator.remove();
                 } else {
-                    entry.getValue().cleanExpiredRequests();
+                    entry.getValue()
+                        .cleanExpiredRequests();
                 }
             }
         } catch (Throwable e) {
@@ -183,10 +188,12 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         ResponseWriter.write(responseObserver, response);
     }
 
-    public void heartbeat(HeartbeatRequest request,StreamObserver<HeartbeatResponse> responseObserver) {
+    public void heartbeat(HeartbeatRequest request, StreamObserver<HeartbeatResponse> responseObserver) {
         SimpleChannel channel = createChannel(request.getClientId());
-        String language = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE);
-        String version = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.CLIENT_VERSION);
+        String language = InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.LANGUAGE);
+        String version = InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.CLIENT_VERSION);
         LanguageCode languageCode = LanguageCode.valueOf(language);
         String clientId = request.getClientId();
         if (version == null) {
@@ -207,7 +214,8 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         if (request.hasProducerData()) {
             ProducerData producerData = request.getProducerData();
             String groupName = Converter.getResourceNameWithNamespace(producerData.getGroup());
-            controller.getProducerManager().registerProducer(groupName, clientChannelInfo);
+            controller.getProducerManager()
+                .registerProducer(groupName, clientChannelInfo);
         }
 
         if (request.hasConsumerData()) {
@@ -227,15 +235,16 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
                     ResponseWriter.writeException(responseObserver, e);
                 }
             }
-            controller.getConsumerManager().registerConsumer(
-                groupName,
-                clientChannelInfo,
-                Converter.buildConsumeType(consumerData.getConsumeType()),
-                Converter.buildMessageModel(consumerData.getConsumeModel()),
-                Converter.buildConsumeFromWhere(consumerData.getConsumePolicy()),
-                subscriptionDataSet,
-                false
-            );
+            controller.getConsumerManager()
+                .registerConsumer(
+                    groupName,
+                    clientChannelInfo,
+                    Converter.buildConsumeType(consumerData.getConsumeType()),
+                    Converter.buildMessageModel(consumerData.getConsumeModel()),
+                    Converter.buildConsumeFromWhere(consumerData.getConsumePolicy()),
+                    subscriptionDataSet,
+                    false
+                );
         }
 
         HeartbeatResponse.Builder builder = HeartbeatResponse.newBuilder()
@@ -252,7 +261,9 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
 
         SendMessageRequestHeader requestHeader = Converter.buildSendMessageRequestHeader(request);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
-        command.setBody(request.getMessage().getBody().toByteArray());
+        command.setBody(request.getMessage()
+            .getBody()
+            .toByteArray());
         command.makeCustomHeaderToNet();
         SendMessageResponse response = null;
         try {
@@ -286,7 +297,8 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
     }
 
     @Override
-    public void queryAssignment(QueryAssignmentRequest request, StreamObserver<QueryAssignmentResponse> responseObserver) {
+    public void queryAssignment(QueryAssignmentRequest request,
+        StreamObserver<QueryAssignmentResponse> responseObserver) {
         String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
 
         AssignmentManager assignmentManager = controller.getAssignmentManager();
@@ -294,29 +306,28 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
 
         try {
             QueryAssignmentResponse.Builder builder = QueryAssignmentResponse.newBuilder();
-                if (null != addressableMessageQueueSet && !addressableMessageQueueSet.isEmpty()) {
-                    for (AddressableMessageQueue assignment : addressableMessageQueueSet) {
-                        String brokerAddress = assignment.getAddress();
-                        HostAndPort hostAndPort = HostAndPort.fromString(brokerAddress);
-                        builder.addAssignments(Assignment.newBuilder()
-                            .setPartition(Partition.newBuilder()
-                                .setTopic(request.getTopic())
-                                .setPermission(Permission.READ)
-                                .setBroker(Broker.newBuilder()
-                                    .setName(assignment.getBrokerName())
-                                    .setId(assignment.getBrokerId())
-                                    .setEndpoints(Endpoints.newBuilder()
-                                        .setScheme(AddressScheme.IPv4)
-                                        .addAddresses(Address.newBuilder()
-                                            .setHost(hostAndPort.getHostText())
-                                            .setPort(hostAndPort.getPort())
-                                            .build())
+            if (null != addressableMessageQueueSet && !addressableMessageQueueSet.isEmpty()) {
+                for (AddressableMessageQueue assignment : addressableMessageQueueSet) {
+                    String brokerAddress = assignment.getAddress();
+                    HostAndPort hostAndPort = HostAndPort.fromString(brokerAddress);
+                    builder.addAssignments(Assignment.newBuilder()
+                        .setPartition(Partition.newBuilder()
+                            .setTopic(request.getTopic())
+                            .setPermission(Permission.READ)
+                            .setBroker(Broker.newBuilder()
+                                .setName(assignment.getBrokerName())
+                                .setId(assignment.getBrokerId())
+                                .setEndpoints(Endpoints.newBuilder()
+                                    .setScheme(AddressScheme.IPv4)
+                                    .addAddresses(Address.newBuilder()
+                                        .setHost(hostAndPort.getHostText())
+                                        .setPort(hostAndPort.getPort())
                                         .build())
                                     .build())
-                                .build()));
-                    }
+                                .build())
+                            .build()));
                 }
-
+            }
 
             QueryAssignmentResponse response = builder.build();
             ResponseWriter.write(responseObserver, response);
@@ -349,7 +360,8 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
 
         long rpcTimeout = Context.current()
             .getDeadline()
-            .timeRemaining(TimeUnit.MILLISECONDS) - controller.getGrpcServerConfig().getRpcRoadReserveTimeMs();
+            .timeRemaining(TimeUnit.MILLISECONDS) - controller.getGrpcServerConfig()
+            .getRpcRoadReserveTimeMs();
         if (rpcTimeout <= 0) {
             ResponseWriter.write(responseObserver, ReceiveMessageResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.DEADLINE_EXCEEDED, "request has been canceled due to timeout"))
@@ -375,10 +387,12 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             = new InvocationContext<>(request, (ServerCallStreamObserver<ReceiveMessageResponse>) responseObserver);
         channel.registerInvocationContext(command.getOpaque(), context);
         try {
-            ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(controller.getBrokerConfig().getBrokerName(), messageLatency);
+            ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(controller.getBrokerConfig()
+                .getBrokerName(), messageLatency);
             Channel receiveMessageChannel = ReceiveMessageChannel.create(channel, handler);
             SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(receiveMessageChannel);
-            RemotingCommand responseCommand = controller.getPopMessageProcessor().processRequest(channelHandlerContext, command);
+            RemotingCommand responseCommand = controller.getPopMessageProcessor()
+                .processRequest(channelHandlerContext, command);
             if (null != responseCommand) {
                 handler.handle(responseCommand, context);
                 channel.eraseInvocationContext(command.getOpaque());
@@ -411,8 +425,9 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         command.makeCustomHeaderToNet();
 
         try {
-            RemotingCommand responseCommand = controller.getAckMessageProcessor().processRequest(channelHandlerContext,
-                command);
+            RemotingCommand responseCommand = controller.getAckMessageProcessor()
+                .processRequest(channelHandlerContext,
+                    command);
             AckMessageResponse.Builder builder = AckMessageResponse.newBuilder();
             if (null != responseCommand) {
                 builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
@@ -439,7 +454,8 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         long offset = ExtraInfoUtil.getQueueOffset(extraInfos);
         int deliveryAttempt = request.getDeliveryAttempt();
 
-        int retryDelayLevelDelta = controller.getBrokerConfig().getRetryDelayLevelDelta();
+        int retryDelayLevelDelta = controller.getBrokerConfig()
+            .getRetryDelayLevelDelta();
         long invisibleTime = delayPolicy.getDelayInterval(retryDelayLevelDelta + deliveryAttempt);
 
         ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
@@ -489,7 +505,8 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         command.makeCustomHeaderToNet();
 
         try {
-            CompletableFuture<RemotingCommand> future = controller.getSendMessageProcessor().asyncProcessRequest(channelHandlerContext, command);
+            CompletableFuture<RemotingCommand> future = controller.getSendMessageProcessor()
+                .asyncProcessRequest(channelHandlerContext, command);
             future.thenAccept(r -> {
                 ForwardMessageToDeadLetterQueueResponse.Builder builder = ForwardMessageToDeadLetterQueueResponse.newBuilder();
                 if (null != r) {
@@ -531,8 +548,9 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         command.makeCustomHeaderToNet();
 
         try {
-            RemotingCommand responseCommand = controller.getEndTransactionProcessor().processRequest(channelHandlerContext,
-                command);
+            RemotingCommand responseCommand = controller.getEndTransactionProcessor()
+                .processRequest(channelHandlerContext,
+                    command);
             EndTransactionResponse.Builder builder = EndTransactionResponse.newBuilder();
             if (null != responseCommand) {
                 ResponseWriter.write(responseObserver, builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()))
@@ -555,10 +573,12 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         if (request.getPolicy() == QueryOffsetPolicy.BEGINNING) {
             offset = 0L;
         } else if (request.getPolicy() == QueryOffsetPolicy.END) {
-            offset = controller.getMessageStore().getMaxOffsetInQueue(topicName, queueId);
+            offset = controller.getMessageStore()
+                .getMaxOffsetInQueue(topicName, queueId);
         } else {
             long timestamp = Timestamps.toMillis(request.getTimePoint());
-            offset = controller.getMessageStore().getOffsetInQueueByTime(topicName, queueId, timestamp);
+            offset = controller.getMessageStore()
+                .getOffsetInQueueByTime(topicName, queueId, timestamp);
         }
         ResponseWriter.write(responseObserver, QueryOffsetResponse.newBuilder()
             .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
@@ -571,7 +591,8 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
 
         long rpcTimeout = Context.current()
             .getDeadline()
-            .timeRemaining(TimeUnit.MILLISECONDS) - controller.getGrpcServerConfig().getRpcRoadReserveTimeMs();
+            .timeRemaining(TimeUnit.MILLISECONDS) - controller.getGrpcServerConfig()
+            .getRpcRoadReserveTimeMs();
         if (rpcTimeout <= 0) {
             ResponseWriter.write(responseObserver, PullMessageResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.DEADLINE_EXCEEDED, "request has been canceled due to timeout"))
@@ -585,8 +606,10 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
 
         int queueId = partition.getId();
         int sysFlag = PullSysFlag.buildSysFlag(false, true, true, false, false);
-        String expression = request.getFilterExpression().getExpression();
-        String expressionType = Converter.buildExpressionType(request.getFilterExpression().getType());
+        String expression = request.getFilterExpression()
+            .getExpression();
+        String expressionType = Converter.buildExpressionType(request.getFilterExpression()
+            .getType());
 
         PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
         requestHeader.setConsumerGroup(groupName);
@@ -609,8 +632,9 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             PullMessageResponseHandler handler = new PullMessageResponseHandler();
             Channel pullMessageChannel = PullMessageChannel.create(channel, handler);
             SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(pullMessageChannel);
-            RemotingCommand responseCommand = controller.getPopMessageProcessor().processRequest(channelHandlerContext,
-                command);
+            RemotingCommand responseCommand = controller.getPopMessageProcessor()
+                .processRequest(channelHandlerContext,
+                    command);
             if (null != responseCommand) {
                 handler.handle(responseCommand, context);
                 channel.eraseInvocationContext(command.getOpaque());
@@ -645,10 +669,12 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
                 }
                 return;
             case PRINT_THREAD_STACK_RESPONSE:
-                mid = request.getPrintThreadStackResponse().getMid();
+                mid = request.getPrintThreadStackResponse()
+                    .getMid();
                 break;
             case VERIFY_MESSAGE_CONSUMPTION_RESPONSE:
-                mid = request.getVerifyMessageConsumptionResponse().getMid();
+                mid = request.getVerifyMessageConsumptionResponse()
+                    .getMid();
                 break;
             default:
                 return;
@@ -667,8 +693,10 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         StreamObserver<NotifyClientTerminationResponse> responseObserver) {
         String clientId = request.getClientId();
         SimpleChannel channel = createChannel(request.getClientId());
-        String language = StringUtils.defaultString(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE));
-        String version = StringUtils.defaultString(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.CLIENT_VERSION));
+        String language = StringUtils.defaultString(InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.LANGUAGE));
+        String version = StringUtils.defaultString(InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.CLIENT_VERSION));
         LanguageCode languageCode = LanguageCode.valueOf(language);
         int versionCode = Integer.parseInt(version);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
@@ -687,7 +715,8 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         if (request.hasConsumerGroup()) {
             String groupName = Converter.getResourceNameWithNamespace(request.getConsumerGroup());
             if (groupName != null) {
-                controller.getConsumerManager().unregisterConsumer(groupName, clientChannelInfo, false);
+                controller.getConsumerManager()
+                    .unregisterConsumer(groupName, clientChannelInfo, false);
             }
         }
     }
@@ -702,18 +731,23 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             clientIdChannelMap.putIfAbsent(clientId, createChannel());
         }
 
-        return clientIdChannelMap.get(clientId).updateLastAccessTime();
+        return clientIdChannelMap.get(clientId)
+            .updateLastAccessTime();
     }
 
     private String anonymousChannelId() {
-        final String clientHost = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS);
-        final String localAddress = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LOCAL_ADDRESS);
+        final String clientHost = InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.REMOTE_ADDRESS);
+        final String localAddress = InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.LOCAL_ADDRESS);
         return clientHost + "@" + localAddress;
     }
 
     private SimpleChannel createChannel() {
-        final String clientHost = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS);
-        final String localAddress = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LOCAL_ADDRESS);
+        final String clientHost = InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.REMOTE_ADDRESS);
+        final String localAddress = InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.LOCAL_ADDRESS);
         return new SimpleChannel(null, clientHost, localAddress);
     }
 }

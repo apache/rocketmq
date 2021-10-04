@@ -51,7 +51,7 @@ public class ResponseBuilder {
     public static SendMessageResponse buildSendMessageResponse(RemotingCommand command) {
         SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) command.readCustomHeader();
         return SendMessageResponse.newBuilder()
-            .setCommon(buildCommon(buildCode(command.getCode()), buildMessage(command.getCode(), command.getRemark())))
+            .setCommon(buildCommon(command.getCode(), command.getRemark()))
             .setMessageId(responseHeader.getMsgId())
             .setTransactionId(responseHeader.getTransactionId())
             .build();
