@@ -82,7 +82,7 @@ public class NameServerGrpcService extends MessagingServiceGrpc.MessagingService
                             0,
                             Address.newBuilder()
                                 .setPort(hostAndPort.getPort())
-                                .setHost(hostAndPort.getHostText())
+                                .setHost(hostAndPort.getHost())
                         )
                         .build())
                     .build();

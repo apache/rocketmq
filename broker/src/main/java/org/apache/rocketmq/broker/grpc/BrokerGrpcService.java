@@ -310,7 +310,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
                                 .setEndpoints(Endpoints.newBuilder()
                                     .setScheme(AddressScheme.IPv4)
                                     .addAddresses(Address.newBuilder()
-                                        .setHost(hostAndPort.getHostText())
+                                        .setHost(hostAndPort.getHost())
                                         .setPort(hostAndPort.getPort())
                                         .build())
                                     .build())
