@@ -82,10 +82,12 @@ import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.grpc.adapter.InvocationContext;
 import org.apache.rocketmq.broker.grpc.adapter.PullMessageChannel;
 import org.apache.rocketmq.broker.grpc.adapter.ReceiveMessageChannel;
+import org.apache.rocketmq.broker.grpc.adapter.SendMessageChannel;
 import org.apache.rocketmq.broker.grpc.adapter.SimpleChannel;
 import org.apache.rocketmq.broker.grpc.adapter.SimpleChannelHandlerContext;
 import org.apache.rocketmq.broker.grpc.handler.PullMessageResponseHandler;
 import org.apache.rocketmq.broker.grpc.handler.ReceiveMessageResponseHandler;
+import org.apache.rocketmq.broker.grpc.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
 import org.apache.rocketmq.broker.stat.Histogram;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -257,7 +259,6 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
     @Override
     public void sendMessage(SendMessageRequest request, StreamObserver<SendMessageResponse> responseObserver) {
         SimpleChannel channel = createChannel(anonymousChannelId());
-        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
         SendMessageRequestHeader requestHeader = Converter.buildSendMessageRequestHeader(request);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
@@ -265,31 +266,20 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             .getBody()
             .toByteArray());
         command.makeCustomHeaderToNet();
-        SendMessageResponse response = null;
+
+        SendMessageResponseHandler handler = new SendMessageResponseHandler();
+        SendMessageChannel sendMessageChannel = SendMessageChannel.create(channel, handler);
+        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(sendMessageChannel);
+        InvocationContext<SendMessageRequest, SendMessageResponse> context
+            = new InvocationContext<>(request, (ServerCallStreamObserver<SendMessageResponse>) responseObserver);
+        channel.registerInvocationContext(command.getOpaque(), context);
         try {
-            RemotingCommand responseCommand = controller.getSendMessageProcessor()
-                .processRequest(channelHandlerContext, command);
-            boolean processed = false;
-            if (null != responseCommand) {
-                processed = true;
-                response = ResponseBuilder.buildSendMessageResponse(responseCommand);
-            }
-
-            if (!processed) {
-                responseCommand = channelHandlerContext.getCommand();
-                if (null != responseCommand) {
-                    processed = true;
-                    response = ResponseBuilder.buildSendMessageResponse(responseCommand);
-                }
-            }
-
-            if (!processed) {
-                LOGGER.error("Unexpected error. Cannot find send message response command");
-                response = SendMessageResponse.newBuilder()
-                    .setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "Failed to acquire send-message remoting command"))
-                    .build();
-            }
-            ResponseWriter.write(responseObserver, response);
+            CompletableFuture<RemotingCommand> future = controller.getSendMessageProcessor()
+                .asyncProcessRequest(channelHandlerContext, command);
+            future.thenAccept(r -> {
+                handler.handle(r, context);
+                channel.eraseInvocationContext(command.getOpaque());
+            });
         } catch (final RemotingCommandException e) {
             LOGGER.error("Failed to process send message command", e);
             ResponseWriter.writeException(responseObserver, e);
@@ -628,6 +618,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         command.makeCustomHeaderToNet();
         InvocationContext<PullMessageRequest, PullMessageResponse> context
             = new InvocationContext<>(request, (ServerCallStreamObserver<PullMessageResponse>) responseObserver);
+        channel.registerInvocationContext(command.getOpaque(), context);
         try {
             PullMessageResponseHandler handler = new PullMessageResponseHandler();
             Channel pullMessageChannel = PullMessageChannel.create(channel, handler);
