@@ -55,6 +55,7 @@ import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
 import org.apache.rocketmq.broker.grpc.BrokerGrpcService;
+import org.apache.rocketmq.broker.grpc.transaction.GrpcTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
@@ -601,10 +602,14 @@ public class BrokerController {
             this.transactionalMessageService = new TransactionalMessageServiceImpl(new TransactionalMessageBridge(this, this.getMessageStore()));
             log.warn("Load default transaction message hook service: {}", TransactionalMessageServiceImpl.class.getSimpleName());
         }
-        this.transactionalMessageCheckListener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID, AbstractTransactionalMessageCheckListener.class);
-        if (null == this.transactionalMessageCheckListener) {
-            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
-            log.warn("Load default discard message hook service: {}", DefaultTransactionalMessageCheckListener.class.getSimpleName());
+        if (brokerConfig.isEnableGrpcTransaction()) {
+            this.transactionalMessageCheckListener = new GrpcTransactionalMessageCheckListener(brokerGrpcService.getClientChannelManager());
+        } else {
+            this.transactionalMessageCheckListener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID, AbstractTransactionalMessageCheckListener.class);
+            if (null == this.transactionalMessageCheckListener) {
+                this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
+                log.warn("Load default discard message hook service: {}", DefaultTransactionalMessageCheckListener.class.getSimpleName());
+            }
         }
         this.transactionalMessageCheckListener.setBrokerController(this);
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);

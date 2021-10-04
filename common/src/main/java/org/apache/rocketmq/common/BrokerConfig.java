@@ -228,6 +228,8 @@ public class BrokerConfig {
 
     private boolean enableGrpcServer = true;
 
+    private boolean enableGrpcTransaction = false;
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -986,5 +988,13 @@ public class BrokerConfig {
 
     public void setRetryDelayLevelDelta(int retryDelayLevelDelta) {
         this.retryDelayLevelDelta = retryDelayLevelDelta;
+    }
+
+    public boolean isEnableGrpcTransaction() {
+        return enableGrpcTransaction;
+    }
+
+    public void setEnableGrpcTransaction(boolean enableGrpcTransaction) {
+        this.enableGrpcTransaction = enableGrpcTransaction;
     }
 }

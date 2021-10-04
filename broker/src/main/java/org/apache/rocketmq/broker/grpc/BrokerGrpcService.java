@@ -88,6 +88,7 @@ import org.apache.rocketmq.broker.grpc.adapter.SimpleChannelHandlerContext;
 import org.apache.rocketmq.broker.grpc.handler.PullMessageResponseHandler;
 import org.apache.rocketmq.broker.grpc.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.broker.grpc.handler.SendMessageResponseHandler;
+import org.apache.rocketmq.broker.grpc.transaction.TransactionHandle;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
 import org.apache.rocketmq.broker.stat.Histogram;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -523,8 +524,9 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
         String messageId = request.getMessageId();
         String transactionId = request.getTransactionId();
-        long transactionStateTableOffset = request.getTransactionStateTableOffset();
-        long commitLogOffset = request.getCommitLogOffset();
+        TransactionHandle handle = TransactionHandle.decode(transactionId);
+        long transactionStateTableOffset = handle.getTransactionStateTableOffset();
+        long commitLogOffset = handle.getCommitLogOffset();
         boolean fromTransactionCheck = request.getSource() == EndTransactionRequest.Source.SERVER_CHECK;
         int commitOrRollback = Converter.buildTransactionCommitOrRollback(request.getResolution());
 
@@ -713,6 +715,10 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
                     .unregisterConsumer(groupName, clientChannelInfo, false);
             }
         }
+    }
+
+    public GrpcClientChannelManager getClientChannelManager() {
+        return clientChannelManager;
     }
 
     private SimpleChannel createChannel(final String clientId) {
