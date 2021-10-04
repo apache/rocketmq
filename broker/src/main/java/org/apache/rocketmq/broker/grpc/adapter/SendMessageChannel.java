@@ -17,20 +17,20 @@
 
 package org.apache.rocketmq.broker.grpc.adapter;
 
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.ReceiveMessageResponse;
+import apache.rocketmq.v1.SendMessageRequest;
+import apache.rocketmq.v1.SendMessageResponse;
 import io.netty.channel.ChannelFuture;
-import org.apache.rocketmq.broker.grpc.handler.ReceiveMessageResponseHandler;
+import org.apache.rocketmq.broker.grpc.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class ReceiveMessageChannel extends SimpleChannel {
-    private final ReceiveMessageResponseHandler handler;
+public class SendMessageChannel extends SimpleChannel {
+    private final SendMessageResponseHandler handler;
 
-    public static ReceiveMessageChannel create(SimpleChannel other, ReceiveMessageResponseHandler handler) {
-        return new ReceiveMessageChannel(other, handler);
+    public static SendMessageChannel create(SimpleChannel other, SendMessageResponseHandler handler) {
+        return new SendMessageChannel(other, handler);
     }
 
-    private ReceiveMessageChannel(SimpleChannel other, ReceiveMessageResponseHandler handler) {
+    private SendMessageChannel(SimpleChannel other, SendMessageResponseHandler handler) {
         super(other);
         this.handler = handler;
     }
@@ -39,11 +39,12 @@ public class ReceiveMessageChannel extends SimpleChannel {
     public ChannelFuture writeAndFlush(Object msg) {
         if (msg instanceof RemotingCommand) {
             RemotingCommand responseCommand = (RemotingCommand) msg;
-            InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context = inFlightRequestMap.remove(responseCommand.getOpaque());
+            InvocationContext<SendMessageRequest, SendMessageResponse> context = inFlightRequestMap.remove(responseCommand.getOpaque());
             if (null != context) {
                 handler.handle(responseCommand, context);
             }
         }
+
         return super.writeAndFlush(msg);
     }
 }

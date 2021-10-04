@@ -19,30 +19,29 @@ package org.apache.rocketmq.broker.grpc.adapter;
 
 import apache.rocketmq.v1.PullMessageRequest;
 import apache.rocketmq.v1.PullMessageResponse;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import org.apache.rocketmq.broker.grpc.handler.PullMessageResponseHandler;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class PullMessageChannel extends SimpleChannel {
-    /**
-     * Creates a new instance.
-     *
-     * @param parent the parent of this channel. {@code null} if there's no parent.
-     * @param remoteAddress Remote address
-     * @param localAddress Local address
-     */
-    public PullMessageChannel(Channel parent, String remoteAddress, String localAddress) {
-        super(parent, remoteAddress, localAddress);
+    private final PullMessageResponseHandler handler;
+
+    public static PullMessageChannel create(SimpleChannel other, PullMessageResponseHandler handler) {
+        return new PullMessageChannel(other, handler);
+    }
+
+    private PullMessageChannel(SimpleChannel other, PullMessageResponseHandler handler) {
+        super(other);
+        this.handler = handler;
     }
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
         if (msg instanceof RemotingCommand) {
             RemotingCommand responseCommand = (RemotingCommand) msg;
-            InvocationContext<PullMessageRequest, PullMessageResponse> context = inFlightRequestMap.get(responseCommand.getOpaque());
+            InvocationContext<PullMessageRequest, PullMessageResponse> context = inFlightRequestMap.remove(responseCommand.getOpaque());
             if (null != context) {
-                controller.getBrokerGrpcService()
-                    .handlePullResponseCommand(responseCommand, context);
+                handler.handle(responseCommand, context);
             }
         }
         return super.writeAndFlush(msg);

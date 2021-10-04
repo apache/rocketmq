@@ -59,7 +59,6 @@ import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import apache.rocketmq.v1.SubscriptionEntry;
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.util.Durations;
@@ -69,12 +68,8 @@ import io.grpc.Context;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -88,14 +83,13 @@ import org.apache.rocketmq.broker.grpc.adapter.PullMessageChannel;
 import org.apache.rocketmq.broker.grpc.adapter.ReceiveMessageChannel;
 import org.apache.rocketmq.broker.grpc.adapter.SimpleChannel;
 import org.apache.rocketmq.broker.grpc.adapter.SimpleChannelHandlerContext;
+import org.apache.rocketmq.broker.grpc.handler.PullMessageResponseHandler;
+import org.apache.rocketmq.broker.grpc.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
 import org.apache.rocketmq.broker.stat.Histogram;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.AddressableMessageQueue;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
@@ -103,9 +97,7 @@ import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHead
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
@@ -119,7 +111,6 @@ import org.apache.rocketmq.grpc.common.ResponseWriter;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -338,9 +329,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
     @Override
     public void receiveMessage(ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
         LOGGER.trace("Receive message request: {}", request);
-        SimpleChannel channel = createReceiveMessageChannel(anonymousChannelId());
-        channel.setController(controller);
-        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+        SimpleChannel channel = createChannel(anonymousChannelId());
 
         Resource group = request.getGroup();
         String groupName = Converter.getResourceNameWithNamespace(group);
@@ -386,9 +375,12 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             = new InvocationContext<>(request, (ServerCallStreamObserver<ReceiveMessageResponse>) responseObserver);
         channel.registerInvocationContext(command.getOpaque(), context);
         try {
+            ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(controller.getBrokerConfig().getBrokerName(), messageLatency);
+            Channel receiveMessageChannel = ReceiveMessageChannel.create(channel, handler);
+            SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(receiveMessageChannel);
             RemotingCommand responseCommand = controller.getPopMessageProcessor().processRequest(channelHandlerContext, command);
             if (null != responseCommand) {
-                handlePopResponseCommand(responseCommand, context);
+                handler.handle(responseCommand, context);
                 channel.eraseInvocationContext(command.getOpaque());
             }
         } catch (RemotingCommandException e) {
@@ -575,9 +567,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
     }
 
     public void pullMessage(PullMessageRequest request, StreamObserver<PullMessageResponse> responseObserver) {
-        SimpleChannel channel = createPullMessageChannel(anonymousChannelId());
-        channel.setController(controller);
-        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+        SimpleChannel channel = createChannel(anonymousChannelId());
 
         long rpcTimeout = Context.current()
             .getDeadline()
@@ -616,10 +606,13 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         InvocationContext<PullMessageRequest, PullMessageResponse> context
             = new InvocationContext<>(request, (ServerCallStreamObserver<PullMessageResponse>) responseObserver);
         try {
+            PullMessageResponseHandler handler = new PullMessageResponseHandler();
+            Channel pullMessageChannel = PullMessageChannel.create(channel, handler);
+            SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(pullMessageChannel);
             RemotingCommand responseCommand = controller.getPopMessageProcessor().processRequest(channelHandlerContext,
                 command);
             if (null != responseCommand) {
-                handlePullResponseCommand(responseCommand, context);
+                handler.handle(responseCommand, context);
                 channel.eraseInvocationContext(command.getOpaque());
             }
         } catch (RemotingCommandException e) {
@@ -712,146 +705,6 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         return clientIdChannelMap.get(clientId).updateLastAccessTime();
     }
 
-    private SimpleChannel createReceiveMessageChannel(final String clientId) {
-        if (Strings.isNullOrEmpty(clientId)) {
-            LOGGER.warn("ClientId is unexpected null or empty");
-            return createReceiveMessageChannel();
-        }
-
-        if (!clientIdChannelMap.containsKey(clientId)) {
-            clientIdChannelMap.putIfAbsent(clientId, createReceiveMessageChannel());
-        }
-
-        return clientIdChannelMap.get(clientId).updateLastAccessTime();
-    }
-
-    private SimpleChannel createPullMessageChannel(final String clientId) {
-        if (Strings.isNullOrEmpty(clientId)) {
-            LOGGER.warn("ClientId is unexpected null or empty");
-            return createPullMessageChannel();
-        }
-
-        if (!clientIdChannelMap.containsKey(clientId)) {
-            clientIdChannelMap.putIfAbsent(clientId, createPullMessageChannel());
-        }
-
-        return clientIdChannelMap.get(clientId).updateLastAccessTime();
-    }
-
-    public void handlePullResponseCommand(RemotingCommand responseCommand,
-        InvocationContext<PullMessageRequest, PullMessageResponse> context) {
-        try {
-            PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) responseCommand.readCustomHeader();
-            PullMessageResponse.Builder builder = PullMessageResponse.newBuilder();
-            if (responseCommand.getCode() == RemotingSysResponseCode.SUCCESS) {
-                ByteBuffer byteBuffer = ByteBuffer.wrap(responseCommand.getBody());
-                List<MessageExt> msgFoundList = MessageDecoder.decodes(byteBuffer);
-                for (MessageExt messageExt : msgFoundList) {
-                    builder.addMessages(Converter.buildMessage(messageExt));
-                }
-            }
-            PullMessageResponse response = builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()))
-                .setMinOffset(responseHeader.getMinOffset())
-                .setNextOffset(responseHeader.getNextBeginOffset())
-                .setMaxOffset(responseHeader.getMaxOffset())
-                .build();
-            ResponseWriter.write(context.getStreamObserver(), response);
-        } catch (Exception e) {
-            ResponseWriter.writeException(context.getStreamObserver(), e);
-        }
-    }
-
-    public void handlePopResponseCommand(RemotingCommand responseCommand,
-        InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context) {
-        long currentTimeInMillis = System.currentTimeMillis();
-        long popCosts = currentTimeInMillis - context.getTimestamp();
-        try {
-            Stopwatch stopWatch = Stopwatch.createStarted();
-            ReceiveMessageResponse.Builder builder = ReceiveMessageResponse.newBuilder();
-            PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) responseCommand.readCustomHeader();
-            builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
-            builder.setInvisibleDuration(Durations.fromMillis(responseHeader.getInvisibleTime()))
-                .setDeliveryTimestamp(Timestamps.fromMillis(responseHeader.getPopTime()));
-
-            ReceiveMessageResponse response;
-            if (responseCommand.getCode() == RemotingSysResponseCode.SUCCESS) {
-                ByteBuffer byteBuffer = ByteBuffer.wrap(responseCommand.getBody());
-                List<MessageExt> msgFoundList = MessageDecoder.decodes(byteBuffer);
-
-                Map<String, Long> startOffsetInfo;
-                Map<String, List<Long>> msgOffsetInfo;
-                Map<String, Integer> orderCountInfo;
-                startOffsetInfo = ExtraInfoUtil.parseStartOffsetInfo(responseHeader.getStartOffsetInfo());
-                msgOffsetInfo = ExtraInfoUtil.parseMsgOffsetInfo(responseHeader.getMsgOffsetInfo());
-                orderCountInfo = ExtraInfoUtil.parseOrderCountInfo(responseHeader.getOrderCountInfo());
-                Map<String/*topicMark@queueId*/, List<Long>/*msg queueOffset*/> sortMap = new HashMap<>(16);
-                String brokerName = controller.getBrokerConfig().getBrokerName();
-                for (MessageExt messageExt : msgFoundList) {
-                    String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
-                    if (!sortMap.containsKey(key)) {
-                        sortMap.put(key, new ArrayList<>(4));
-                    }
-                    sortMap.get(key).add(messageExt.getQueueOffset());
-                }
-                Map<String, String> map = new HashMap<>(5);
-                for (MessageExt messageExt : msgFoundList) {
-                    if (startOffsetInfo == null) {
-                        // we should set the check point info to extraInfo field , if the command is popMsg
-                        // find pop ck offset
-                        String key = messageExt.getTopic() + messageExt.getQueueId();
-                        if (!map.containsKey(messageExt.getTopic() + messageExt.getQueueId())) {
-                            String extraInfo = ExtraInfoUtil.buildExtraInfo(messageExt.getQueueOffset(),
-                                responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
-                                responseHeader.getReviveQid(), messageExt.getTopic(), brokerName,
-                                messageExt.getQueueId());
-                            map.put(key, extraInfo);
-                        }
-                        messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
-                            map.get(key) + MessageConst.KEY_SEPARATOR + messageExt.getQueueOffset());
-                    } else {
-                        String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(),
-                            messageExt.getQueueId());
-                        int index = sortMap.get(key).indexOf(messageExt.getQueueOffset());
-                        Long msgQueueOffset = msgOffsetInfo.get(key).get(index);
-                        if (msgQueueOffset != messageExt.getQueueOffset()) {
-                            LOGGER.warn("Queue offset[{}] of msg is strange, not equal to the stored in msg, {}",
-                                msgQueueOffset, messageExt);
-                        }
-                        String extraInfo = ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(key),
-                            responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
-                            responseHeader.getReviveQid(), messageExt.getTopic(),
-                            brokerName, messageExt.getQueueId(), msgQueueOffset);
-                        messageExt.setQueueOffset(msgQueueOffset);
-                        messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK, extraInfo);
-                        if (context.getRequest().getFifoFlag() && orderCountInfo != null) {
-                            Integer count = orderCountInfo.get(key);
-                            if (count != null && count > 0) {
-                                messageExt.setReconsumeTimes(count);
-                            }
-                        }
-                    }
-                    messageExt.setBrokerName(controller.getBrokerConfig().getBrokerName());
-                    messageExt.getProperties().computeIfAbsent(MessageConst.PROPERTY_FIRST_POP_TIME,
-                        k -> String.valueOf(responseHeader.getPopTime()));
-                }
-
-                for (MessageExt messageExt : msgFoundList) {
-                    long latency = currentTimeInMillis - messageExt.getStoreTimestamp();
-                    messageLatency.countIn((int) (latency / 10));
-                    builder.addMessages(Converter.buildMessage(messageExt));
-                }
-            }
-            response = builder.build();
-            long elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
-            LOGGER.debug("Translating remoting response to gRPC response costs {}ms. Duration request received: {}",
-                elapsed, popCosts);
-            ResponseWriter.write(context.getStreamObserver(), response);
-        } catch (Exception e) {
-            LOGGER.error("Unexpected exception raised when handle pop remoting command", e);
-            ResponseWriter.writeException(context.getStreamObserver(), e);
-        }
-    }
-
     private String anonymousChannelId() {
         final String clientHost = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS);
         final String localAddress = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LOCAL_ADDRESS);
@@ -862,17 +715,5 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         final String clientHost = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS);
         final String localAddress = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LOCAL_ADDRESS);
         return new SimpleChannel(null, clientHost, localAddress);
-    }
-
-    private SimpleChannel createReceiveMessageChannel() {
-        final String clientHost = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS);
-        final String localAddress = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LOCAL_ADDRESS);
-        return new ReceiveMessageChannel(null, clientHost, localAddress);
-    }
-
-    private SimpleChannel createPullMessageChannel() {
-        final String clientHost = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS);
-        final String localAddress = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LOCAL_ADDRESS);
-        return new PullMessageChannel(null, clientHost, localAddress);
     }
 }

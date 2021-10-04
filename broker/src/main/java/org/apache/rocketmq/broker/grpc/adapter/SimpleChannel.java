@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
@@ -44,8 +43,6 @@ public class SimpleChannel extends AbstractChannel {
 
     private final String remoteAddress;
     private final String localAddress;
-
-    protected BrokerController controller;
 
     private long lastAccessTime;
 
@@ -63,6 +60,14 @@ public class SimpleChannel extends AbstractChannel {
         lastAccessTime = System.currentTimeMillis();
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;
+        this.inFlightRequestMap = new ConcurrentHashMap<>();
+    }
+
+    public SimpleChannel(SimpleChannel other) {
+        super(other);
+        lastAccessTime = System.currentTimeMillis();
+        this.remoteAddress = other.remoteAddress;
+        this.localAddress = other.localAddress;
         this.inFlightRequestMap = new ConcurrentHashMap<>();
     }
 
@@ -188,10 +193,6 @@ public class SimpleChannel extends AbstractChannel {
         DefaultChannelPromise promise = new DefaultChannelPromise(this, GlobalEventExecutor.INSTANCE);
         promise.setSuccess();
         return promise;
-    }
-
-    public void setController(BrokerController controller) {
-        this.controller = controller;
     }
 
     public void registerInvocationContext(int opaque, InvocationContext context) {
