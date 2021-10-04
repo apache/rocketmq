@@ -474,7 +474,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
 
     public void forwardMessageToDeadLetterQueue(ForwardMessageToDeadLetterQueueRequest request,
         StreamObserver<ForwardMessageToDeadLetterQueueResponse> responseObserver) {
-        Channel channel = createChannel(anonymousChannelId());
+        SimpleChannel channel = createChannel(anonymousChannelId());
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
         String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
@@ -493,7 +493,9 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
 
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
         command.makeCustomHeaderToNet();
-
+        InvocationContext<ForwardMessageToDeadLetterQueueRequest, ForwardMessageToDeadLetterQueueResponse> context
+            = new InvocationContext<>(request, (ServerCallStreamObserver<ForwardMessageToDeadLetterQueueResponse>) responseObserver);
+        channel.registerInvocationContext(command.getOpaque(), context);
         try {
             CompletableFuture<RemotingCommand> future = controller.getSendMessageProcessor()
                 .asyncProcessRequest(channelHandlerContext, command);
@@ -506,6 +508,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
                 }
                 ForwardMessageToDeadLetterQueueResponse response = builder.build();
                 ResponseWriter.write(responseObserver, response);
+                channel.eraseInvocationContext(command.getOpaque());
             });
         } catch (Exception e) {
             LOGGER.error("Exception raised when forwardMessageToDeadLetterQueue", e);
