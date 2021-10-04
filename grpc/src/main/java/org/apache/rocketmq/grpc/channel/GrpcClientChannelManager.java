@@ -72,7 +72,7 @@ public class GrpcClientChannelManager {
     }
 
     /**
-     * 添加一个连接
+     * Add a connection
      *
      * @param group          consumer/producer group
      * @param clientId       client id
@@ -97,7 +97,7 @@ public class GrpcClientChannelManager {
     }
 
     /**
-     * 删除一个链接
+     * Remove a connection
      *
      * @param group    consumer/producer group
      * @param clientId client id
@@ -117,7 +117,7 @@ public class GrpcClientChannelManager {
     }
 
     /**
-     * 根据 client id 获取连接
+     * Get connection by client id
      *
      * @param group    consumer/producer group
      * @param clientId client id
@@ -133,7 +133,7 @@ public class GrpcClientChannelManager {
     }
 
     /**
-     * 获取 group 下所有的 client id
+     * Get all the client id by group
      *
      * @param group consumer/producer group
      * @return client id list

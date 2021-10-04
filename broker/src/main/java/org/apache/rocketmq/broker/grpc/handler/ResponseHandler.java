@@ -17,11 +17,9 @@
 
 package org.apache.rocketmq.broker.grpc.handler;
 
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.ReceiveMessageResponse;
 import org.apache.rocketmq.broker.grpc.adapter.InvocationContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public interface ResponseHandler<Req, Res> {
-    void handle(RemotingCommand responseCommand, InvocationContext<Req, Res> context);
+public interface ResponseHandler<R, W> {
+    void handle(RemotingCommand responseCommand, InvocationContext<R, W> context);
 }

@@ -38,7 +38,7 @@ public class GrpcClientObserver {
 
     public static Logger log = LoggerFactory.getLogger(GrpcClientObserver.class);
 
-    public static int TIMEOUT_MILLIS = 30 * 1000;
+    public final static int TIMEOUT_MILLIS = 30 * 1000;
 
     private static final ScheduledExecutorService DEADLINE_CHECKER =
         new ScheduledThreadPoolExecutor(3, new ThreadFactoryImpl("GRPC_DEADLINE_CHECKER_"));

@@ -189,7 +189,6 @@ public class Converter {
         }
 
         // body_digest & body_encoding
-        // 消息取出来有可能是压缩状态
         String md5Result = BinaryUtil.generateMd5(messageExt.getBody());
         Digest digest = Digest.newBuilder()
             .setType(DigestType.MD5)
@@ -205,18 +204,14 @@ public class Converter {
 
         // message_type
         String isTrans = messageExt.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        // 事务消息
         String isTransValue = "true";
         if (isTransValue.equals(isTrans)) {
             systemAttributeBuilder.setMessageType(MessageType.TRANSACTION);
-            // 定时消息
         } else if (messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
             || messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
             systemAttributeBuilder.setMessageType(MessageType.DELAY);
-            // 顺序消息
         } else if (messageExt.getProperty(MessageConst.PROPERTY_SHARDING_KEY) != null) {
             systemAttributeBuilder.setMessageType(MessageType.FIFO);
-            // 普通消息
         } else {
             systemAttributeBuilder.setMessageType(MessageType.NORMAL);
         }
@@ -278,7 +273,6 @@ public class Converter {
         systemAttributeBuilder.setPartitionOffset(messageExt.getQueueOffset());
 
         // delivery_attempt
-        // 投递数次 = 重复消费次数 + 1
         systemAttributeBuilder.setDeliveryAttempt(messageExt.getReconsumeTimes() + 1);
 
         // publisher_group
@@ -338,7 +332,6 @@ public class Converter {
         }
 
         // set reconsume times
-        // reconsumeTimes 指消费时候的重试次数，等于当前的已投递次数
         int reconsumeTimes = grpcMessage.getSystemAttribute().getDeliveryAttempt();
         MessageAccessor.setReconsumeTime(message, String.valueOf(reconsumeTimes));
 

@@ -30,8 +30,8 @@ import org.apache.rocketmq.grpc.common.InterceptorConstants;
 
 public class HeaderServerInterceptor implements ServerInterceptor {
     @Override
-    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers,
-        ServerCallHandler<ReqT, RespT> next) {
+    public <R, W> ServerCall.Listener<R> interceptCall(ServerCall<R, W> call, Metadata headers,
+        ServerCallHandler<R, W> next) {
         SocketAddress remoteSocketAddress = call.getAttributes()
             .get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
         String remoteAddress = "";

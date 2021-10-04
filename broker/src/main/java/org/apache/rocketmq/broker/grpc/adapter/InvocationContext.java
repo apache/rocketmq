@@ -19,25 +19,25 @@ package org.apache.rocketmq.broker.grpc.adapter;
 
 import io.grpc.stub.ServerCallStreamObserver;
 
-public class InvocationContext<Req, Res> {
-    final private Req request;
-    final private ServerCallStreamObserver<Res> streamObserver;
+public class InvocationContext<R, W> {
+    final private R request;
+    final private ServerCallStreamObserver<W> streamObserver;
     final private long timestamp = System.currentTimeMillis();
 
-    public InvocationContext(Req req, ServerCallStreamObserver<Res> res) {
+    public InvocationContext(R req, ServerCallStreamObserver<W> resp) {
         request = req;
-        streamObserver = res;
+        streamObserver = resp;
     }
 
     public boolean expired() {
         return System.currentTimeMillis() - timestamp >= 120 * 1000;
     }
 
-    public Req getRequest() {
+    public R getRequest() {
         return request;
     }
 
-    public ServerCallStreamObserver<Res> getStreamObserver() {
+    public ServerCallStreamObserver<W> getStreamObserver() {
         return streamObserver;
     }
 
