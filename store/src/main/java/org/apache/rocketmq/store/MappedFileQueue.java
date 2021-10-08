@@ -444,7 +444,7 @@ public class MappedFileQueue {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
             int offset = mappedFile.flush(flushLeastPages);
             if (mappedFile.getflushError()) {
-              this.flushError =true;
+                this.flushError = true;
             }
             long where = mappedFile.getFileFromOffset() + offset;
             result = where == this.flushedWhere;

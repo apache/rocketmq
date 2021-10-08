@@ -1205,10 +1205,10 @@ public class CommitLog {
                     }
 
                     if (CommitLog.this.mappedFileQueue.isFlushError()) {
-                      req.wakeupCustomer(PutMessageStatus.FLUSH_DISK_FAILED);
+                        req.wakeupCustomer(PutMessageStatus.FLUSH_DISK_FAILED);
                     }
                     else {
-                       req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
+                        req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
                     }
                 }
 
