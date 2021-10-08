@@ -36,8 +36,8 @@ public class SimpleCharStream {
      * Position in buffer.
      */
     public int bufpos = -1;
-    protected int bufline[];
-    protected int bufcolumn[];
+    protected int[] bufline;
+    protected int[] bufcolumn;
 
     protected int column = 0;
     protected int line = 1;
@@ -62,8 +62,8 @@ public class SimpleCharStream {
 
     protected void ExpandBuff(boolean wrapAround) {
         char[] newbuffer = new char[bufsize + 2048];
-        int newbufline[] = new int[bufsize + 2048];
-        int newbufcolumn[] = new int[bufsize + 2048];
+        int[] newbufline = new int[bufsize + 2048];
+        int[] newbufcolumn = new int[bufsize + 2048];
 
         try {
             if (wrapAround) {

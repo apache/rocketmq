@@ -167,7 +167,7 @@ public class RemoteAddressStrategyFactory {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
                 if (analysis(strArray, 1) || analysis(strArray, 2) || analysis(strArray, 3)) {
                     AclUtils.verify(remoteAddr, index - 1);
-                    StringBuffer sb = new StringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     for (int j = 0; j < index; j++) {
                         sb.append(strArray[j].trim()).append(".");
                     }
@@ -193,7 +193,7 @@ public class RemoteAddressStrategyFactory {
                     throw new AclException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
                 }
             }
-            return this.end > 0 ? true : false;
+            return this.end > 0;
         }
 
         private boolean ipv6Analysis(String[] strArray, int index) {

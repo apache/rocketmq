@@ -22,7 +22,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -41,22 +41,23 @@ public class StoreStatsService extends ServiceThread {
 
     private static int printTPSInterval = 60 * 1;
 
-    private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
+    private final LongAdder putMessageFailedTimes = new LongAdder();
 
-    private final ConcurrentMap<String, AtomicLong> putMessageTopicTimesTotal =
-        new ConcurrentHashMap<String, AtomicLong>(128);
-    private final ConcurrentMap<String, AtomicLong> putMessageTopicSizeTotal =
-        new ConcurrentHashMap<String, AtomicLong>(128);
+    private final ConcurrentMap<String, LongAdder> putMessageTopicTimesTotal =
+        new ConcurrentHashMap<>(128);
+    private final ConcurrentMap<String, LongAdder> putMessageTopicSizeTotal =
+        new ConcurrentHashMap<>(128);
 
-    private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
-    private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
-    private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
+    private final LongAdder getMessageTimesTotalFound = new LongAdder();
+    private final LongAdder getMessageTransferedMsgCount = new LongAdder();
+    private final LongAdder getMessageTimesTotalMiss = new LongAdder();
     private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
 
     private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
-    private volatile AtomicLong[] putMessageDistributeTime;
+    private volatile LongAdder[] putMessageDistributeTime;
+    private volatile LongAdder[] lastPutMessageDistributeTime;
     private long messageStoreBootTimestamp = System.currentTimeMillis();
     private volatile long putMessageEntireTimeMax = 0;
     private volatile long getMessageEntireTimeMax = 0;
@@ -74,17 +75,17 @@ public class StoreStatsService extends ServiceThread {
         this.initPutMessageDistributeTime();
     }
 
-    private AtomicLong[] initPutMessageDistributeTime() {
-        AtomicLong[] next = new AtomicLong[13];
+    private LongAdder[] initPutMessageDistributeTime() {
+        LongAdder[] next = new LongAdder[13];
         for (int i = 0; i < next.length; i++) {
-            next[i] = new AtomicLong(0);
+            next[i] = new LongAdder();
         }
 
-        AtomicLong[] old = this.putMessageDistributeTime;
+        this.lastPutMessageDistributeTime = this.putMessageDistributeTime;
 
         this.putMessageDistributeTime = next;
 
-        return old;
+        return lastPutMessageDistributeTime;
     }
 
     public long getPutMessageEntireTimeMax() {
@@ -92,48 +93,48 @@ public class StoreStatsService extends ServiceThread {
     }
 
     public void setPutMessageEntireTimeMax(long value) {
-        final AtomicLong[] times = this.putMessageDistributeTime;
+        final LongAdder[] times = this.putMessageDistributeTime;
 
         if (null == times)
             return;
 
         // us
         if (value <= 0) {
-            times[0].incrementAndGet();
+            times[0].add(1);
         } else if (value < 10) {
-            times[1].incrementAndGet();
+            times[1].add(1);
         } else if (value < 50) {
-            times[2].incrementAndGet();
+            times[2].add(1);
         } else if (value < 100) {
-            times[3].incrementAndGet();
+            times[3].add(1);
         } else if (value < 200) {
-            times[4].incrementAndGet();
+            times[4].add(1);
         } else if (value < 500) {
-            times[5].incrementAndGet();
+            times[5].add(1);
         } else if (value < 1000) {
-            times[6].incrementAndGet();
+            times[6].add(1);
         }
         // 2s
         else if (value < 2000) {
-            times[7].incrementAndGet();
+            times[7].add(1);
         }
         // 3s
         else if (value < 3000) {
-            times[8].incrementAndGet();
+            times[8].add(1);
         }
         // 4s
         else if (value < 4000) {
-            times[9].incrementAndGet();
+            times[9].add(1);
         }
         // 5s
         else if (value < 5000) {
-            times[10].incrementAndGet();
+            times[10].add(1);
         }
         // 10s
         else if (value < 10000) {
-            times[11].incrementAndGet();
+            times[11].add(1);
         } else {
-            times[12].incrementAndGet();
+            times[12].add(1);
         }
 
         if (value > this.putMessageEntireTimeMax) {
@@ -193,8 +194,8 @@ public class StoreStatsService extends ServiceThread {
 
     public long getPutMessageTimesTotal() {
         long rs = 0;
-        for (AtomicLong data : putMessageTopicTimesTotal.values()) {
-            rs += data.get();
+        for (LongAdder data : putMessageTopicTimesTotal.values()) {
+            rs += data.longValue();
         }
         return rs;
     }
@@ -217,8 +218,8 @@ public class StoreStatsService extends ServiceThread {
 
     public long getPutMessageSizeTotal() {
         long rs = 0;
-        for (AtomicLong data : putMessageTopicSizeTotal.values()) {
-            rs += data.get();
+        for (LongAdder data : putMessageTopicSizeTotal.values()) {
+            rs += data.longValue();
         }
         return rs;
     }
@@ -298,13 +299,13 @@ public class StoreStatsService extends ServiceThread {
     }
 
     private String putMessageDistributeTimeToString() {
-        final AtomicLong[] times = this.putMessageDistributeTime;
+        final LongAdder[] times = this.lastPutMessageDistributeTime;
         if (null == times)
             return null;
 
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < times.length; i++) {
-            long value = times[i].get();
+            long value = times[i].longValue();
             sb.append(String.format("%s:%d", PUT_MESSAGE_ENTIRE_TIME_MAX_DESC[i], value));
             sb.append(" ");
         }
@@ -476,19 +477,19 @@ public class StoreStatsService extends ServiceThread {
             }
 
             this.getTimesFoundList.add(new CallSnapshot(System.currentTimeMillis(),
-                this.getMessageTimesTotalFound.get()));
+                this.getMessageTimesTotalFound.longValue()));
             if (this.getTimesFoundList.size() > (MAX_RECORDS_OF_SAMPLING + 1)) {
                 this.getTimesFoundList.removeFirst();
             }
 
             this.getTimesMissList.add(new CallSnapshot(System.currentTimeMillis(),
-                this.getMessageTimesTotalMiss.get()));
+                this.getMessageTimesTotalMiss.longValue()));
             if (this.getTimesMissList.size() > (MAX_RECORDS_OF_SAMPLING + 1)) {
                 this.getTimesMissList.removeFirst();
             }
 
             this.transferedMsgCountList.add(new CallSnapshot(System.currentTimeMillis(),
-                this.getMessageTransferedMsgCount.get()));
+                this.getMessageTransferedMsgCount.longValue()));
             if (this.transferedMsgCountList.size() > (MAX_RECORDS_OF_SAMPLING + 1)) {
                 this.transferedMsgCountList.removeFirst();
             }
@@ -509,14 +510,14 @@ public class StoreStatsService extends ServiceThread {
                 this.getGetTransferedTps(printTPSInterval)
             );
 
-            final AtomicLong[] times = this.initPutMessageDistributeTime();
+            final LongAdder[] times = this.initPutMessageDistributeTime();
             if (null == times)
                 return;
 
             final StringBuilder sb = new StringBuilder();
             long totalPut = 0;
             for (int i = 0; i < times.length; i++) {
-                long value = times[i].get();
+                long value = times[i].longValue();
                 totalPut += value;
                 sb.append(String.format("%s:%d", PUT_MESSAGE_ENTIRE_TIME_MAX_DESC[i], value));
                 sb.append(" ");
@@ -526,27 +527,27 @@ public class StoreStatsService extends ServiceThread {
         }
     }
 
-    public AtomicLong getGetMessageTimesTotalFound() {
+    public LongAdder getGetMessageTimesTotalFound() {
         return getMessageTimesTotalFound;
     }
 
-    public AtomicLong getGetMessageTimesTotalMiss() {
+    public LongAdder getGetMessageTimesTotalMiss() {
         return getMessageTimesTotalMiss;
     }
 
-    public AtomicLong getGetMessageTransferedMsgCount() {
+    public LongAdder getGetMessageTransferedMsgCount() {
         return getMessageTransferedMsgCount;
     }
 
-    public AtomicLong getPutMessageFailedTimes() {
+    public LongAdder getPutMessageFailedTimes() {
         return putMessageFailedTimes;
     }
 
-    public AtomicLong getSinglePutMessageTopicSizeTotal(String topic) {
-        AtomicLong rs = putMessageTopicSizeTotal.get(topic);
+    public LongAdder getSinglePutMessageTopicSizeTotal(String topic) {
+        LongAdder rs = putMessageTopicSizeTotal.get(topic);
         if (null == rs) {
-            rs = new AtomicLong(0);
-            AtomicLong previous = putMessageTopicSizeTotal.putIfAbsent(topic, rs);
+            rs = new LongAdder();
+            LongAdder previous = putMessageTopicSizeTotal.putIfAbsent(topic, rs);
             if (previous != null) {
                 rs = previous;
             }
@@ -554,11 +555,11 @@ public class StoreStatsService extends ServiceThread {
         return rs;
     }
 
-    public AtomicLong getSinglePutMessageTopicTimesTotal(String topic) {
-        AtomicLong rs = putMessageTopicTimesTotal.get(topic);
+    public LongAdder getSinglePutMessageTopicTimesTotal(String topic) {
+        LongAdder rs = putMessageTopicTimesTotal.get(topic);
         if (null == rs) {
-            rs = new AtomicLong(0);
-            AtomicLong previous = putMessageTopicTimesTotal.putIfAbsent(topic, rs);
+            rs = new LongAdder();
+            LongAdder previous = putMessageTopicTimesTotal.putIfAbsent(topic, rs);
             if (previous != null) {
                 rs = previous;
             }
@@ -566,11 +567,11 @@ public class StoreStatsService extends ServiceThread {
         return rs;
     }
 
-    public Map<String, AtomicLong> getPutMessageTopicTimesTotal() {
+    public Map<String, LongAdder> getPutMessageTopicTimesTotal() {
         return putMessageTopicTimesTotal;
     }
 
-    public Map<String, AtomicLong> getPutMessageTopicSizeTotal() {
+    public Map<String, LongAdder> getPutMessageTopicSizeTotal() {
         return putMessageTopicSizeTotal;
     }
 
