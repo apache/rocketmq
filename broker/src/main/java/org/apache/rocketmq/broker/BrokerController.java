@@ -1011,15 +1011,23 @@ public class BrokerController {
     }
 
     private void unregisterBrokerAll() {
+        String brokerAddress = this.getBrokerAddr();
+        if (brokerConfig.isEnableGrpcServer()) {
+            brokerAddress = this.getGrpcBrokerAddr();
+        }
         this.brokerOuterAPI.unregisterBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
-            this.getBrokerAddr(),
+            brokerAddress,
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId());
     }
 
     public String getBrokerAddr() {
         return this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
+    }
+
+    public String getGrpcBrokerAddr() {
+        return this.brokerConfig.getBrokerIP1() + ":" + this.grpcServerConfig.getPort();
     }
 
     public void start() throws Exception {
@@ -1179,8 +1187,12 @@ public class BrokerController {
             topicConfigWrapper.setLogicalQueuesInfoMap(logicalQueuesInfoMap);
         }
 
+        String brokerAddress = this.getBrokerAddr();
+        if (brokerConfig.isEnableGrpcServer()) {
+            brokerAddress = this.getGrpcBrokerAddr();
+        }
         if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
-            this.getBrokerAddr(),
+            brokerAddress,
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
             this.brokerConfig.getRegisterBrokerTimeoutMills())) {
@@ -1190,9 +1202,13 @@ public class BrokerController {
 
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
         TopicConfigSerializeWrapper topicConfigWrapper) {
+        String brokerAddress = this.getBrokerAddr();
+        if (brokerConfig.isEnableGrpcServer()) {
+            brokerAddress = this.getGrpcBrokerAddr();
+        }
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
-            this.getBrokerAddr(),
+            brokerAddress,
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
             this.getHAServerAddr(),
