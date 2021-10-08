@@ -60,6 +60,8 @@ public class ClientConfig {
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
 
+    private int mqClientApiTimeout = 3 * 1000;
+
     private LanguageCode language = LanguageCode.JAVA;
 
     public String buildMQClientId() {
@@ -298,6 +300,13 @@ public class ClientConfig {
         this.accessChannel = accessChannel;
     }
 
+    public int getMqClientApiTimeout() {
+        return mqClientApiTimeout;
+    }
+
+    public void setMqClientApiTimeout(int mqClientApiTimeout) {
+        this.mqClientApiTimeout = mqClientApiTimeout;
+    }
 
     @Override
     public String toString() {
@@ -305,6 +314,6 @@ public class ClientConfig {
             + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
             + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
             + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
-            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + "]";
+            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout + "]";
     }
 }

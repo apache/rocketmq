@@ -178,7 +178,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         StatsItemSet itemSet = (StatsItemSet)statItmeSetField.get(mgr);
         StatsItem item = itemSet.getAndCreateStatsItem(topic + "@" + pushConsumer.getDefaultMQPushConsumerImpl().groupName());
 
-        assertThat(item.getValue().get()).isGreaterThan(0L);
+        assertThat(item.getValue().sum()).isGreaterThan(0L);
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);

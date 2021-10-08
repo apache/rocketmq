@@ -217,13 +217,16 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group) {
-        return null;
+    public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group)
+        throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        SubscriptionGroupWrapper wrapper = this.mqClientInstance.getMQClientAPIImpl().getAllSubscriptionGroup(addr, timeoutMillis);
+        return wrapper.getSubscriptionGroupTable().get(group);
     }
 
     @Override
-    public TopicConfig examineTopicConfig(String addr, String topic) {
-        return null;
+    public TopicConfig examineTopicConfig(String addr, String topic) throws RemotingException, InterruptedException, MQBrokerException {
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = this.mqClientInstance.getMQClientAPIImpl().getAllTopicConfig(addr,timeoutMillis);
+        return topicConfigSerializeWrapper.getTopicConfigTable().get(topic);
     }
 
     @Override
@@ -380,6 +383,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName) throws RemotingCommandException,
         RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQClientException {
         return this.mqClientInstance.getMQClientAPIImpl().wipeWritePermOfBroker(namesrvAddr, brokerName, timeoutMillis);
+    }
+
+    @Override
+    public int addWritePermOfBroker(String namesrvAddr, String brokerName) throws RemotingCommandException,
+            RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQClientAPIImpl().addWritePermOfBroker(namesrvAddr, brokerName, timeoutMillis);
     }
 
     @Override
@@ -880,7 +889,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (mq.getTopic().equals(msg.getTopic()) && mq.getQueueId() == msg.getQueueId()) {
                 BrokerData brokerData = ci.getBrokerAddrTable().get(mq.getBrokerName());
                 if (brokerData != null) {
-                    String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+                    String addr = RemotingUtil.convert2IpString(brokerData.getBrokerAddrs().get(MixAll.MASTER_ID));
                     if (RemotingUtil.socketAddress2String(msg.getStoreHost()).equals(addr)) {
                         if (next.getValue().getConsumerOffset() > msg.getQueueOffset()) {
                             return true;

@@ -17,10 +17,14 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
+
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 
 public class MessageStoreConfig {
+
+    public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
+
     //The root directory in which the log data is kept
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
@@ -29,6 +33,8 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
+
+    private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
@@ -676,6 +682,13 @@ public class MessageStoreConfig {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
 
+    public String getReadOnlyCommitLogStorePaths() {
+        return readOnlyCommitLogStorePaths;
+    }
+
+    public void setReadOnlyCommitLogStorePaths(String readOnlyCommitLogStorePaths) {
+        this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
+    }
     public String getdLegerGroup() {
         return dLegerGroup;
     }
