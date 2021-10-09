@@ -275,7 +275,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | checkRequestHoldMax              | 2000             | Broker回查Producer事务状态时，Producer本地缓冲请求队列大小   |
 | RPCHook                          | null             | 该参数是在Producer创建时传入的，包含消息发送前的预处理和消息响应后的处理两个接口，用户可以在第一个接口中做一些安全控制或者其他操作。 |
 
-#### 3  PushConsumer配置
+#### 3  PullConsumer配置
 
 | 参数名                       | 默认值                        | 说明                                                         |
 | ---------------------------- | ----------------------------- | ------------------------------------------------------------ |
@@ -295,7 +295,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | consumeMessageBatchMaxSize   | 1                             | 批量消费，一次消费多少条消息                                 |
 | pullBatchSize                | 32                            | 批量拉消息，一次最多拉多少条                                 |
 
-#### 4  PullConsumer配置
+#### 4  PushConsumer配置
 
 | 参数名                           | 默认值                        | 说明                                                         |
 | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
