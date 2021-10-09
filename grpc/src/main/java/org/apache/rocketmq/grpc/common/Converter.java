@@ -46,6 +46,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -450,6 +452,29 @@ public class Converter {
                 return MessageSysFlag.TRANSACTION_ROLLBACK_TYPE;
             default:
                 return MessageSysFlag.TRANSACTION_NOT_TYPE;
+        }
+    }
+
+    public static int buildVersion(String version) {
+        if (StringUtils.isBlank(version)) {
+            throw new IllegalArgumentException("Version is blank");
+        }
+        switch (version) {
+            case "5.0.0-SNAPSHOT": {
+                return MQVersion.Version.V5_0_0_SNAPSHOT.ordinal();
+            }
+            case "5.0.0": {
+                return MQVersion.Version.V5_0_0.ordinal();
+            }
+            case "5.0.1-SNAPSHOT": {
+                return MQVersion.Version.V5_0_1_SNAPSHOT.ordinal();
+            }
+            case "5.0.1": {
+                return MQVersion.Version.V5_0_1.ordinal();
+            }
+            default: {
+                return MQVersion.Version.HIGHER_VERSION.ordinal();
+            }
         }
     }
 }

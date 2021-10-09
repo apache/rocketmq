@@ -206,7 +206,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             ResponseWriter.write(responseObserver, response);
             return;
         }
-        int versionCode = Integer.parseInt(version);
+        int versionCode = Converter.buildVersion(version);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
             channel,
             clientId,
@@ -694,7 +694,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         String version = StringUtils.defaultString(InterceptorConstants.METADATA.get(Context.current())
             .get(InterceptorConstants.CLIENT_VERSION));
         LanguageCode languageCode = LanguageCode.valueOf(language);
-        int versionCode = Integer.parseInt(version);
+        int versionCode = Converter.buildVersion(version);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
             channel,
             clientId,
