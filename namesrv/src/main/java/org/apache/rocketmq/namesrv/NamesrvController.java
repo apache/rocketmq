@@ -93,7 +93,7 @@ public class NamesrvController {
 
         if (this.namesrvConfig.isEnableGrpcServer()) {
             try {
-                this.grpcServer = new GrpcServer(this.grpcServerConfig, new NameServerGrpcService(this), false);
+                this.grpcServer = new GrpcServer(this.grpcServerConfig, new NameServerGrpcService(this), true);
             } catch (Exception e) {
                 log.error("Initialize grpc server failed", e);
                 return false;
@@ -179,7 +179,7 @@ public class NamesrvController {
         if (this.namesrvConfig.isEnableGrpcServer()) {
             if (this.grpcServer != null) {
                 this.grpcServer.start();
-                GRPC_LOGGER.info("Grpc server started, listening port is");
+                GRPC_LOGGER.info("Grpc server started, listening port is {}", grpcServerConfig.getPort());
             }
         }
 
@@ -193,9 +193,11 @@ public class NamesrvController {
 
         if (this.namesrvConfig.isEnableGrpcServer()) {
             try {
-                this.grpcServer.stop();
-                this.grpcServer.blockUntilShutdown();
-                GRPC_LOGGER.info("Grpc server stopped OK");
+                if (this.grpcServer != null) {
+                    this.grpcServer.stop();
+                    this.grpcServer.blockUntilShutdown();
+                    GRPC_LOGGER.info("Grpc server stopped OK");
+                }
             } catch (InterruptedException e) {
                 GRPC_LOGGER.warn("Shutdown interrupted", e);
             }

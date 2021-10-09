@@ -28,6 +28,7 @@ import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.grpc.protobuf.services.ChannelzService;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.cert.CertificateException;
@@ -38,6 +39,7 @@ import javax.net.ssl.SSLException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
 public class GrpcServer {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
@@ -83,8 +85,17 @@ public class GrpcServer {
         if (null == serverBuilder) {
             return;
         }
-        try (InputStream serverKeyInputStream = loadCert("gRPC.key.pem");
-             InputStream serverCertificateStream = loadCert("gRPC.chain.cert.pem")) {
+        boolean tlsTestModeEnable = TlsSystemConfig.tlsTestModeEnable;
+        if (tlsTestModeEnable) {
+            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
+            serverBuilder.sslContext(GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .clientAuth(ClientAuth.NONE)
+                .build());
+            return;
+        }
+        try (InputStream serverKeyInputStream = loadCert("certs/gRPC.key.pem");
+             InputStream serverCertificateStream = loadCert("certs/gRPC.chain.cert.pem")) {
             serverBuilder.sslContext(GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .clientAuth(ClientAuth.NONE)
