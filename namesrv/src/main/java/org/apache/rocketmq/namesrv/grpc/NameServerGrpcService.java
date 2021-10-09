@@ -78,8 +78,7 @@ public class NameServerGrpcService extends MessagingServiceGrpc.MessagingService
                     .setId(Math.toIntExact(brokerId))
                     .setEndpoints(Endpoints.newBuilder()
                         .setScheme(AddressScheme.IPv4)
-                        .setAddresses(
-                            0,
+                        .addAddresses(
                             Address.newBuilder()
                                 .setPort(hostAndPort.getPort())
                                 .setHost(hostAndPort.getHost())
