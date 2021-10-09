@@ -931,6 +931,17 @@ public class BrokerController {
             this.fastRemotingServer.shutdown();
         }
 
+        if (this.brokerConfig.isEnableGrpcServer()) {
+            if (this.grpcServer != null) {
+                try {
+                    this.grpcServer.stop();
+                    GRPC_LOGGER.info("Grpc server stopped OK");
+                } catch (InterruptedException e) {
+                    GRPC_LOGGER.error("Exception raised while stopping gRPC server", e);
+                }
+            }
+        }
+
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
