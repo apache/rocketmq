@@ -94,8 +94,8 @@ public class GrpcServer {
                 .build());
             return;
         }
-        try (InputStream serverKeyInputStream = loadCert("certs/gRPC.key.pem");
-             InputStream serverCertificateStream = loadCert("certs/gRPC.chain.cert.pem")) {
+        try (InputStream serverKeyInputStream = loadCert(TlsSystemConfig.tlsServerKeyPath);
+             InputStream serverCertificateStream = loadCert(TlsSystemConfig.tlsServerCertPath)) {
             serverBuilder.sslContext(GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .clientAuth(ClientAuth.NONE)
