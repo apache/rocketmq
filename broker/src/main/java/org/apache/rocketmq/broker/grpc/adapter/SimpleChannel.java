@@ -68,7 +68,7 @@ public class SimpleChannel extends AbstractChannel {
         lastAccessTime = System.currentTimeMillis();
         this.remoteAddress = other.remoteAddress;
         this.localAddress = other.localAddress;
-        this.inFlightRequestMap = new ConcurrentHashMap<>();
+        this.inFlightRequestMap = other.inFlightRequestMap;
     }
 
     @Override

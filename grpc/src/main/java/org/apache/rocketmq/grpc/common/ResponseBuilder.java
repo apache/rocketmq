@@ -21,6 +21,7 @@ import apache.rocketmq.v1.ResponseCommon;
 import apache.rocketmq.v1.SendMessageResponse;
 import com.google.rpc.Code;
 import com.google.rpc.Status;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -52,8 +53,8 @@ public class ResponseBuilder {
         SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) command.readCustomHeader();
         return SendMessageResponse.newBuilder()
             .setCommon(buildCommon(command.getCode(), command.getRemark()))
-            .setMessageId(responseHeader.getMsgId())
-            .setTransactionId(responseHeader.getTransactionId())
+            .setMessageId(StringUtils.defaultString(responseHeader.getMsgId()))
+            .setTransactionId(StringUtils.defaultString(responseHeader.getTransactionId()))
             .build();
     }
 

@@ -24,11 +24,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelProgressivePromise;
 import io.netty.channel.ChannelPromise;
-import io.netty.channel.DefaultChannelPromise;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.EventExecutor;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import java.net.SocketAddress;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -194,24 +192,12 @@ public class SimpleChannelHandlerContext implements ChannelHandlerContext {
 
     @Override
     public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
-        if (msg instanceof RemotingCommand) {
-            command = (RemotingCommand) msg;
-            DefaultChannelPromise future = new DefaultChannelPromise(channel);
-            future.setSuccess();
-            return future;
-        }
-        return null;
+        return channel.writeAndFlush(msg, promise);
     }
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
-        if (msg instanceof RemotingCommand) {
-            command = (RemotingCommand)msg;
-            DefaultChannelPromise promise = new DefaultChannelPromise(channel, GlobalEventExecutor.INSTANCE);
-            promise.setSuccess();
-            return promise;
-        }
-        return null;
+        return channel.writeAndFlush(msg);
     }
 
     @Override

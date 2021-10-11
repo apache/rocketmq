@@ -283,6 +283,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             });
         } catch (final RemotingCommandException e) {
             LOGGER.error("Failed to process send message command", e);
+            channel.eraseInvocationContext(command.getOpaque());
             ResponseWriter.writeException(responseObserver, e);
         }
     }
@@ -508,11 +509,12 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
                     builder.setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "Response command is null"));
                 }
                 ForwardMessageToDeadLetterQueueResponse response = builder.build();
-                ResponseWriter.write(responseObserver, response);
                 channel.eraseInvocationContext(command.getOpaque());
+                ResponseWriter.write(responseObserver, response);
             });
         } catch (Exception e) {
             LOGGER.error("Exception raised when forwardMessageToDeadLetterQueue", e);
+            channel.eraseInvocationContext(command.getOpaque());
             ResponseWriter.writeException(responseObserver, e);
         }
     }

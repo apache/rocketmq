@@ -116,10 +116,10 @@ public class Converter {
         Partition partition = request.getPartition();
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
         requestHeader.setProducerGroup(getResourceNameWithNamespace(systemAttribute.getProducerGroup()));
-        requestHeader.setTopic(getResourceNameWithNamespace(partition.getTopic()));
+        requestHeader.setTopic(getResourceNameWithNamespace(message.getTopic()));
         requestHeader.setDefaultTopic("");
         requestHeader.setDefaultTopicQueueNums(0);
-        requestHeader.setQueueId(partition.getId());
+        requestHeader.setQueueId(systemAttribute.getPartitionId());
         // sysFlag (body encoding & message type)
         int sysFlag = 0;
         Encoding bodyEncoding = systemAttribute.getBodyEncoding();
