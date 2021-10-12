@@ -110,10 +110,10 @@ public class Converter {
         return partitionList;
     }
 
-    public static SendMessageRequestHeader buildSendMessageRequestHeader(SendMessageRequest request) {
+    public static SendMessageRequestHeader buildSendMessageRequestHeader(SendMessageRequest request) throws GrpcConvertException {
         Message message = request.getMessage();
+        org.apache.rocketmq.common.message.Message remotingMessage = buildMessage(message);
         SystemAttribute systemAttribute = message.getSystemAttribute();
-        Partition partition = request.getPartition();
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
         requestHeader.setProducerGroup(getResourceNameWithNamespace(systemAttribute.getProducerGroup()));
         requestHeader.setTopic(getResourceNameWithNamespace(message.getTopic()));
@@ -134,7 +134,7 @@ public class Converter {
         requestHeader.setSysFlag(sysFlag);
         requestHeader.setBornTimestamp(Timestamps.toMillis(systemAttribute.getBornTimestamp()));
         requestHeader.setFlag(0);
-        requestHeader.setProperties(MessageDecoder.messageProperties2String(message.getUserAttributeMap()));
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(remotingMessage.getProperties()));
         requestHeader.setReconsumeTimes(systemAttribute.getDeliveryAttempt());
 
         return requestHeader;

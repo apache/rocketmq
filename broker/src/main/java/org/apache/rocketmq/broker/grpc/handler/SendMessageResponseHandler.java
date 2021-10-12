@@ -25,6 +25,11 @@ import org.apache.rocketmq.grpc.common.ResponseWriter;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class SendMessageResponseHandler implements ResponseHandler<SendMessageRequest, SendMessageResponse> {
+    private final String messageId;
+    public SendMessageResponseHandler(String messageId) {
+        this.messageId = messageId;
+    }
+
     @Override public void handle(RemotingCommand responseCommand,
         InvocationContext<SendMessageRequest, SendMessageResponse> context) {
         /**
@@ -34,6 +39,9 @@ public class SendMessageResponseHandler implements ResponseHandler<SendMessageRe
          */
         if (null != responseCommand) {
             SendMessageResponse response = ResponseBuilder.buildSendMessageResponse(responseCommand);
+            response = response.toBuilder()
+                .setMessageId(messageId)
+                .build();
             ResponseWriter.write(context.getStreamObserver(), response);
         }
     }

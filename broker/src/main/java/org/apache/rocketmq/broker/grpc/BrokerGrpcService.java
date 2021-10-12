@@ -36,6 +36,7 @@ import apache.rocketmq.v1.HealthCheckRequest;
 import apache.rocketmq.v1.HealthCheckResponse;
 import apache.rocketmq.v1.HeartbeatRequest;
 import apache.rocketmq.v1.HeartbeatResponse;
+import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.MessagingServiceGrpc;
 import apache.rocketmq.v1.MultiplexingRequest;
 import apache.rocketmq.v1.MultiplexingResponse;
@@ -59,6 +60,7 @@ import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import apache.rocketmq.v1.SubscriptionEntry;
+import apache.rocketmq.v1.SystemAttribute;
 import com.google.common.base.Strings;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.util.Durations;
@@ -112,6 +114,7 @@ import org.apache.rocketmq.grpc.common.DelayPolicy;
 import org.apache.rocketmq.grpc.common.InterceptorConstants;
 import org.apache.rocketmq.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.grpc.common.ResponseWriter;
+import org.apache.rocketmq.grpc.exception.GrpcConvertException;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -261,14 +264,20 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
     public void sendMessage(SendMessageRequest request, StreamObserver<SendMessageResponse> responseObserver) {
         SimpleChannel channel = createChannel(anonymousChannelId());
 
-        SendMessageRequestHeader requestHeader = Converter.buildSendMessageRequestHeader(request);
+        SendMessageRequestHeader requestHeader = null;
+        try {
+            requestHeader = Converter.buildSendMessageRequestHeader(request);
+        } catch (GrpcConvertException e) {
+            LOGGER.error("Convert message error", e);
+        }
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
-        command.setBody(request.getMessage()
-            .getBody()
+        Message message = request.getMessage();
+        command.setBody(message.getBody()
             .toByteArray());
         command.makeCustomHeaderToNet();
 
-        SendMessageResponseHandler handler = new SendMessageResponseHandler();
+        SystemAttribute systemAttribute = message.getSystemAttribute();
+        SendMessageResponseHandler handler = new SendMessageResponseHandler(systemAttribute.getMessageId());
         SendMessageChannel sendMessageChannel = SendMessageChannel.create(channel, handler);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(sendMessageChannel);
         InvocationContext<SendMessageRequest, SendMessageResponse> context
