@@ -622,7 +622,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             default:
                                 break;
                         }
-                    } catch (RemotingException | MQClientException e) {
+                    } catch (RemotingException e) {
+                        endTimestamp = System.currentTimeMillis();
+                        this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
+                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
+                        log.warn(msg.toString());
+                        exception = e;
+                        continue;
+                    } catch (MQClientException e) {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
@@ -881,7 +888,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 return sendResult;
-            } catch (RemotingException | MQBrokerException | InterruptedException e) {
+            } catch (RemotingException e) {
+                if (this.hasSendMessageHook()) {
+                    context.setException(e);
+                    this.executeSendMessageHookAfter(context);
+                }
+                throw e;
+            } catch (MQBrokerException e) {
+                if (this.hasSendMessageHook()) {
+                    context.setException(e);
+                    this.executeSendMessageHookAfter(context);
+                }
+                throw e;
+            } catch (InterruptedException e) {
                 if (this.hasSendMessageHook()) {
                     context.setException(e);
                     this.executeSendMessageHookAfter(context);
