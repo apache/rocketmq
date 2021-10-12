@@ -305,6 +305,7 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
                     builder.addAssignments(Assignment.newBuilder()
                         .setPartition(Partition.newBuilder()
                             .setTopic(request.getTopic())
+                            .setId(assignment.getQueueId())
                             .setPermission(Permission.READ)
                             .setBroker(Broker.newBuilder()
                                 .setName(assignment.getBrokerName())
