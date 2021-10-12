@@ -630,9 +630,8 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             PullMessageResponseHandler handler = new PullMessageResponseHandler();
             Channel pullMessageChannel = PullMessageChannel.create(channel, handler);
             SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(pullMessageChannel);
-            RemotingCommand responseCommand = controller.getPopMessageProcessor()
-                .processRequest(channelHandlerContext,
-                    command);
+            RemotingCommand responseCommand = controller.getPullMessageProcessor()
+                .processRequest(channelHandlerContext, command);
             if (null != responseCommand) {
                 handler.handle(responseCommand, context);
                 channel.eraseInvocationContext(command.getOpaque());
