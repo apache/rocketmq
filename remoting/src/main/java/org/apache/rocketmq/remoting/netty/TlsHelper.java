@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.remoting.netty;
 
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
@@ -128,16 +130,15 @@ public class TlsHelper {
                     .build();
             }
         } else {
-
+            SslContextBuilder sslContextBuilder = null;
             if (tlsTestModeEnable) {
                 SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-                return SslContextBuilder
+                sslContextBuilder = SslContextBuilder
                     .forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
                     .sslProvider(provider)
-                    .clientAuth(ClientAuth.OPTIONAL)
-                    .build();
+                    .clientAuth(ClientAuth.OPTIONAL);
             } else {
-                SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(
+                sslContextBuilder = SslContextBuilder.forServer(
                     !isNullOrEmpty(tlsServerCertPath) ? new FileInputStream(tlsServerCertPath) : null,
                     !isNullOrEmpty(tlsServerKeyPath) ? decryptionStrategy.decryptPrivateKey(tlsServerKeyPath, false) : null,
                     !isNullOrEmpty(tlsServerKeyPassword) ? tlsServerKeyPassword : null)
@@ -152,8 +153,17 @@ public class TlsHelper {
                 }
 
                 sslContextBuilder.clientAuth(parseClientAuthMode(tlsServerNeedClientAuth));
-                return sslContextBuilder.build();
             }
+
+            sslContextBuilder.applicationProtocolConfig(new ApplicationProtocolConfig(
+                ApplicationProtocolConfig.Protocol.ALPN,
+                // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                ApplicationProtocolNames.HTTP_2));
+
+            return sslContextBuilder.build();
         }
     }
 

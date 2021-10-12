@@ -30,6 +30,33 @@ public class NettyServerConfig implements Cloneable {
     private boolean serverPooledByteBufAllocatorEnable = true;
 
     /**
+     * when is true, will use 4 bytes to judge protocol
+     * <p>
+     * nowadays, used in namesrv to to judge the protocol of requests is http2 or remoting
+     */
+    private boolean enableProtocolNegotiation = true;
+    /**
+     * when both enableHttp2Proxy and enableProtocolNegotiation are true,
+     * the requests of http2 will be proxied to the backend server (configured by http2ProxyHost and http2ProxyPort)
+     * <p>
+     * nowadays, used in namesrv to support grpc protocol
+     */
+    private boolean enableHttp2Proxy = true;
+    /**
+     * the backend http2 server is enable ssl or not
+     */
+    private boolean enableHttp2SslProxy = true;
+    private String http2ProxyHost = "127.0.0.1";
+
+    /**
+     * If inheritGrpcPortToHTTP2 is set, then {@link #http2ProxyPort} will be ignored.
+     * The value port in GrpcServerConfig will be used.
+     * @see org.apache.rocketmq.grpc.server.GrpcServerConfig#getPort()
+     */
+    private boolean inheritGrpcPortToHTTP2 = true;
+    private int http2ProxyPort = 10922;
+
+    /**
      * make make install
      *
      *
@@ -124,6 +151,54 @@ public class NettyServerConfig implements Cloneable {
 
     public void setUseEpollNativeSelector(boolean useEpollNativeSelector) {
         this.useEpollNativeSelector = useEpollNativeSelector;
+    }
+
+    public boolean isEnableProtocolNegotiation() {
+        return enableProtocolNegotiation;
+    }
+
+    public void setEnableProtocolNegotiation(boolean enableProtocolNegotiation) {
+        this.enableProtocolNegotiation = enableProtocolNegotiation;
+    }
+
+    public boolean isEnableHttp2Proxy() {
+        return enableHttp2Proxy;
+    }
+
+    public void setEnableHttp2Proxy(boolean enableHttp2Proxy) {
+        this.enableHttp2Proxy = enableHttp2Proxy;
+    }
+
+    public boolean isEnableHttp2SslProxy() {
+        return enableHttp2SslProxy;
+    }
+
+    public void setEnableHttp2SslProxy(boolean enableHttp2SslProxy) {
+        this.enableHttp2SslProxy = enableHttp2SslProxy;
+    }
+
+    public String getHttp2ProxyHost() {
+        return http2ProxyHost;
+    }
+
+    public void setHttp2ProxyHost(String http2ProxyHost) {
+        this.http2ProxyHost = http2ProxyHost;
+    }
+
+    public int getHttp2ProxyPort() {
+        return http2ProxyPort;
+    }
+
+    public void setHttp2ProxyPort(int http2ProxyPort) {
+        this.http2ProxyPort = http2ProxyPort;
+    }
+
+    public boolean isInheritGrpcPortToHTTP2() {
+        return inheritGrpcPortToHTTP2;
+    }
+
+    public void setInheritGrpcPortToHTTP2(boolean inheritGrpcPortToHTTP2) {
+        this.inheritGrpcPortToHTTP2 = inheritGrpcPortToHTTP2;
     }
 
     @Override

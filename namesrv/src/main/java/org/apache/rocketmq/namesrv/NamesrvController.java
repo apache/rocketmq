@@ -86,6 +86,9 @@ public class NamesrvController {
     }
 
     public boolean initialize() {
+        if (nettyServerConfig.isInheritGrpcPortToHTTP2()) {
+            nettyServerConfig.setHttp2ProxyPort(this.grpcServerConfig.getPort());
+        }
 
         this.kvConfigManager.load();
 

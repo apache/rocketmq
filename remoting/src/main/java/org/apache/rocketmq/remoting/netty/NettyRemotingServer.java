@@ -26,6 +26,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.epoll.Epoll;
@@ -61,6 +62,9 @@ import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.netty.protocol.ProtocolNegotiationHandler;
+import org.apache.rocketmq.remoting.netty.protocol.http2proxy.Http2ProtocolProxyHandler;
+import org.apache.rocketmq.remoting.netty.protocol.remoting.RemotingProtocolHandler;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NettyRemotingServer extends NettyRemotingAbstract implements RemotingServer {
@@ -207,16 +211,24 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    public void initChannel(SocketChannel ch) throws Exception {
-                        ch.pipeline()
-                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
-                            .addLast(defaultEventExecutorGroup,
+                    public void initChannel(SocketChannel ch) {
+                        ChannelPipeline channelPipelineWithTls = ch.pipeline()
+                            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler);
+                        if (nettyServerConfig.isEnableProtocolNegotiation()) {
+                            channelPipelineWithTls.addLast(defaultEventExecutorGroup,
+                                new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
+                                new ProtocolNegotiationHandler(new RemotingProtocolHandler(NettyRemotingServer.this))
+                                    .addProtocolHandler(new Http2ProtocolProxyHandler(nettyServerConfig))
+                            );
+                        } else {
+                            channelPipelineWithTls.addLast(defaultEventExecutorGroup,
                                 encoder,
                                 new NettyDecoder(),
                                 new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
                                 connectionManageHandler,
                                 serverHandler
                             );
+                        }
                     }
                 });
 
@@ -489,5 +501,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
             RemotingUtil.closeChannel(ctx.channel());
         }
+    }
+
+    public NettyConnectManageHandler getConnectionManageHandler() {
+        return connectionManageHandler;
+    }
+
+    public NettyServerHandler getServerHandler() {
+        return serverHandler;
     }
 }

@@ -338,6 +338,10 @@ public class BrokerController {
         result = result && this.messageStore.load();
 
         if (result) {
+            if (nettyServerConfig.isInheritGrpcPortToHTTP2()) {
+                nettyServerConfig.setHttp2ProxyPort(this.grpcServerConfig.getPort());
+            }
+
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
