@@ -60,7 +60,6 @@ public class TraceDataEncoderTest {
         Assert.assertEquals(contexts.get(0).getTraceType(), TraceType.Pub);
     }
 
-
     @Test
     public void testEncoderFromContextBean() {
         TraceContext context = new TraceContext();
@@ -129,5 +128,108 @@ public class TraceDataEncoderTest {
         Assert.assertEquals(before.getTransactionId(), after.getTransactionId());
         Assert.assertEquals(before.getTransactionState(), after.getTransactionState());
         Assert.assertEquals(before.isFromTransactionCheck(), after.isFromTransactionCheck());
+    }
+    
+    @Test
+    public void testPubTraceDataFormatTest() {
+        TraceContext pubContext = new TraceContext();
+        pubContext.setTraceType(TraceType.Pub);
+        pubContext.setTimeStamp(time);
+        pubContext.setRegionId("Default-region");
+        pubContext.setGroupName("GroupName-test");
+        pubContext.setCostTime(34);
+        pubContext.setSuccess(true);
+        TraceBean bean = new TraceBean();
+        bean.setTopic("topic-test");
+        bean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
+        bean.setTags("tags");
+        bean.setKeys("keys");
+        bean.setStoreHost("127.0.0.1:10911");
+        bean.setBodyLength(100);
+        bean.setMsgType(MessageType.Normal_Msg);
+        bean.setOffsetMsgId("AC1415116D1418B4AAC217FE1B4E0000");
+        pubContext.setTraceBeans(new ArrayList<TraceBean>(1));
+        pubContext.getTraceBeans().add(bean);
+
+        TraceTransferBean traceTransferBean = TraceDataEncoder.encoderFromContextBean(pubContext);
+        String transData = traceTransferBean.getTransData();
+        Assert.assertNotNull(transData);
+        String[] items = transData.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
+        Assert.assertEquals(14, items.length);
+
+    }
+
+    @Test
+    public void testSubBeforeTraceDataFormatTest() {
+        TraceContext subBeforeContext = new TraceContext();
+        subBeforeContext.setTraceType(TraceType.SubBefore);
+        subBeforeContext.setTimeStamp(time);
+        subBeforeContext.setRegionId("Default-region");
+        subBeforeContext.setGroupName("GroupName-test");
+        subBeforeContext.setRequestId("3455848576927");
+        TraceBean bean = new TraceBean();
+        bean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
+        bean.setRetryTimes(0);
+        bean.setKeys("keys");
+        subBeforeContext.setTraceBeans(new ArrayList<TraceBean>(1));
+        subBeforeContext.getTraceBeans().add(bean);
+
+        TraceTransferBean traceTransferBean = TraceDataEncoder.encoderFromContextBean(subBeforeContext);
+        String transData = traceTransferBean.getTransData();
+        Assert.assertNotNull(transData);
+        String[] items = transData.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
+        Assert.assertEquals(8, items.length);
+
+    }
+
+    @Test
+    public void testSubAfterTraceDataFormatTest() {
+        TraceContext subAfterContext = new TraceContext();
+        subAfterContext.setTraceType(TraceType.SubAfter);
+        subAfterContext.setRequestId("3455848576927");
+        subAfterContext.setCostTime(20);
+        subAfterContext.setSuccess(true);
+        subAfterContext.setContextCode(98623046);
+        TraceBean bean = new TraceBean();
+        bean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
+        bean.setKeys("keys");
+        subAfterContext.setTraceBeans(new ArrayList<TraceBean>(1));
+        subAfterContext.getTraceBeans().add(bean);
+
+        TraceTransferBean traceTransferBean = TraceDataEncoder.encoderFromContextBean(subAfterContext);
+        String transData = traceTransferBean.getTransData();
+        Assert.assertNotNull(transData);
+        String[] items = transData.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
+        Assert.assertEquals(7, items.length);
+
+    }
+
+    @Test
+    public void testEndTrxTraceDataFormatTest() {
+        TraceContext endTrxContext = new TraceContext();
+        endTrxContext.setTraceType(TraceType.EndTransaction);
+        endTrxContext.setGroupName("PID-test");
+        endTrxContext.setRegionId("DefaultRegion");
+        endTrxContext.setTimeStamp(time);
+        TraceBean endTrxTraceBean = new TraceBean();
+        endTrxTraceBean.setTopic("topic-test");
+        endTrxTraceBean.setKeys("Keys");
+        endTrxTraceBean.setTags("Tags");
+        endTrxTraceBean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
+        endTrxTraceBean.setStoreHost("127.0.0.1:10911");
+        endTrxTraceBean.setMsgType(MessageType.Trans_msg_Commit);
+        endTrxTraceBean.setTransactionId("transactionId");
+        endTrxTraceBean.setTransactionState(LocalTransactionState.COMMIT_MESSAGE);
+        endTrxTraceBean.setFromTransactionCheck(false);
+        List<TraceBean> traceBeans = new ArrayList<TraceBean>();
+        traceBeans.add(endTrxTraceBean);
+        endTrxContext.setTraceBeans(traceBeans);
+
+        TraceTransferBean traceTransferBean = TraceDataEncoder.encoderFromContextBean(endTrxContext);
+        String transData = traceTransferBean.getTransData();
+        Assert.assertNotNull(transData);
+        String[] items = transData.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
+        Assert.assertEquals(13, items.length);
+
     }
 }
