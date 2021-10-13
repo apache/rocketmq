@@ -133,7 +133,7 @@ public class AssignmentManager {
                     }
                 }
                 Set<AddressableMessageQueue> oldAddressableMessageQueueSet = topicSubscribeInfoTable.get(topic);
-                boolean changed = !newSubscribeInfo.equals(oldAddressableMessageQueueSet);
+                boolean changed = !newAddressableMessageQueueSet.equals(oldAddressableMessageQueueSet);
 
                 if (changed) {
                     log.info("the topic[{}] subscribe message queue changed, old[{}] ,new[{}]", topic, oldAddressableMessageQueueSet, newAddressableMessageQueueSet);
