@@ -93,7 +93,9 @@ import org.apache.rocketmq.broker.grpc.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.broker.grpc.transaction.TransactionHandle;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
 import org.apache.rocketmq.broker.stat.Histogram;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.AddressableMessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -107,6 +109,7 @@ import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
+import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.grpc.channel.GrpcClientChannelManager;
 import org.apache.rocketmq.grpc.channel.GrpcClientObserver;
 import org.apache.rocketmq.grpc.common.Converter;
@@ -241,6 +244,10 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
                     ResponseWriter.writeException(responseObserver, e);
                 }
             }
+            int topicSysFlag = TopicSysFlag.buildSysFlag(false, false);
+            String newTopic = MixAll.getRetryTopic(groupName);
+            controller.getTopicConfigManager()
+                .createTopicInSendMessageBackMethod(newTopic, 1, PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
             controller.getConsumerManager()
                 .registerConsumer(
                     groupName,
