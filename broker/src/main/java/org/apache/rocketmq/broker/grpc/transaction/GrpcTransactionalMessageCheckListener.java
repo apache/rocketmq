@@ -18,8 +18,8 @@
 package org.apache.rocketmq.broker.grpc.transaction;
 
 import apache.rocketmq.v1.Message;
-import apache.rocketmq.v1.MultiplexingResponse;
-import apache.rocketmq.v1.RecoverOrphanedTransactionRequest;
+import apache.rocketmq.v1.PollCommandResponse;
+import apache.rocketmq.v1.RecoverOrphanedTransactionCommand;
 import java.util.List;
 import java.util.Random;
 import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener;
@@ -52,8 +52,8 @@ public class GrpcTransactionalMessageCheckListener extends DefaultTransactionalM
         long tranStateTableOffset = msgExt.getQueueOffset();
         long commitLogOffset = msgExt.getCommitLogOffset();
         TransactionHandle handle = new TransactionHandle(messageId, tranStateTableOffset, commitLogOffset);
-        MultiplexingResponse response = MultiplexingResponse.newBuilder()
-            .setRecoverOrphanedTransactionRequest(RecoverOrphanedTransactionRequest.newBuilder()
+        PollCommandResponse response = PollCommandResponse.newBuilder()
+            .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
                 .setOrphanedTransactionalMessage(message)
                 .setTransactionId(handle.encode())
                 .build())

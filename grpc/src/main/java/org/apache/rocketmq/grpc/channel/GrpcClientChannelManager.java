@@ -17,8 +17,7 @@
 
 package org.apache.rocketmq.grpc.channel;
 
-import apache.rocketmq.v1.MultiplexingRequest;
-import apache.rocketmq.v1.MultiplexingResponse;
+import apache.rocketmq.v1.PollCommandResponse;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,8 +77,7 @@ public class GrpcClientChannelManager {
      * @param clientId       client id
      * @param streamObserver gRPC stream observer
      */
-    public synchronized void add(String group, String clientId, MultiplexingRequest request,
-        StreamObserver<MultiplexingResponse> streamObserver) {
+    public synchronized void add(String group, String clientId, StreamObserver<PollCommandResponse> streamObserver) {
         ConcurrentHashMap<String, GrpcClientObserver> channels = this.clientChannels.get(group);
 
         if (channels == null) {
@@ -93,7 +91,7 @@ public class GrpcClientChannelManager {
             channels.put(clientId, channel);
         }
 
-        channel.setClientObserver(request, streamObserver);
+        channel.setClientObserver(streamObserver);
     }
 
     /**
@@ -147,8 +145,8 @@ public class GrpcClientChannelManager {
         return new ArrayList<>(channels.keySet());
     }
 
-    public GrpcClientObserver getByMid(String mid) {
-        String[] groupAndClientId = mid.split(MID_SEPARATOR, 2);
+    public GrpcClientObserver getByCommandId(String commandId) {
+        String[] groupAndClientId = commandId.split(MID_SEPARATOR, 2);
         if (groupAndClientId.length < 2) {
             return null;
         }
@@ -163,7 +161,7 @@ public class GrpcClientChannelManager {
      * @param clientId clientId
      * @return eg: GID_client%%clientId
      */
-    public static String buildMid(String group, String clientId) {
+    public static String buildCommandId(String group, String clientId) {
         return group + MID_SEPARATOR + clientId;
     }
 }

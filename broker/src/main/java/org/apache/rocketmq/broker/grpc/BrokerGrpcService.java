@@ -31,21 +31,20 @@ import apache.rocketmq.v1.Endpoints;
 import apache.rocketmq.v1.FilterExpression;
 import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueResponse;
-import apache.rocketmq.v1.GenericPollingRequest;
 import apache.rocketmq.v1.HealthCheckRequest;
 import apache.rocketmq.v1.HealthCheckResponse;
 import apache.rocketmq.v1.HeartbeatRequest;
 import apache.rocketmq.v1.HeartbeatResponse;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.MessagingServiceGrpc;
-import apache.rocketmq.v1.MultiplexingRequest;
-import apache.rocketmq.v1.MultiplexingResponse;
 import apache.rocketmq.v1.NackMessageRequest;
 import apache.rocketmq.v1.NackMessageResponse;
 import apache.rocketmq.v1.NotifyClientTerminationRequest;
 import apache.rocketmq.v1.NotifyClientTerminationResponse;
 import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.Permission;
+import apache.rocketmq.v1.PollCommandRequest;
+import apache.rocketmq.v1.PollCommandResponse;
 import apache.rocketmq.v1.ProducerData;
 import apache.rocketmq.v1.PullMessageRequest;
 import apache.rocketmq.v1.PullMessageResponse;
@@ -56,6 +55,10 @@ import apache.rocketmq.v1.QueryOffsetRequest;
 import apache.rocketmq.v1.QueryOffsetResponse;
 import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageResponse;
+import apache.rocketmq.v1.ReportMessageConsumptionResultRequest;
+import apache.rocketmq.v1.ReportMessageConsumptionResultResponse;
+import apache.rocketmq.v1.ReportThreadStackTraceRequest;
+import apache.rocketmq.v1.ReportThreadStackTraceResponse;
 import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
@@ -660,47 +663,73 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
         }
     }
 
-    public void multiplexingCall(MultiplexingRequest request, StreamObserver<MultiplexingResponse> responseObserver) {
-        String mid;
-        switch (request.getTypeCase()) {
-            case POLLING_REQUEST:
-                GenericPollingRequest pollingRequest = request.getPollingRequest();
-                String clientId = pollingRequest.getClientId();
+    /**
+     * reportThreadStackTrace is used to report jstack text
+     */
+    @Override
+    public void reportThreadStackTrace(ReportThreadStackTraceRequest request,
+        StreamObserver<ReportThreadStackTraceResponse> responseObserver) {
+        String commandId = request.getCommandId();
 
-                switch (pollingRequest.getGroupCase()) {
-                    case PRODUCER_GROUP:
-                        Resource producerGroup = pollingRequest.getProducerGroup();
-                        String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
-                        this.clientChannelManager.add(producerGroupName, clientId, request, responseObserver);
-                        break;
-                    case CONSUMER_GROUP:
-                        Resource consumerGroup = pollingRequest.getConsumerGroup();
-                        String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
-                        this.clientChannelManager.add(consumerGroupName, clientId, request, responseObserver);
-                        break;
-                    default:
-                        break;
-                }
-                return;
-            case PRINT_THREAD_STACK_RESPONSE:
-                mid = request.getPrintThreadStackResponse()
-                    .getMid();
-                break;
-            case VERIFY_MESSAGE_CONSUMPTION_RESPONSE:
-                mid = request.getVerifyMessageConsumptionResponse()
-                    .getMid();
-                break;
-            default:
-                return;
-        }
-
-        GrpcClientObserver clientObserver = this.clientChannelManager.getByMid(mid);
+        GrpcClientObserver clientObserver = this.clientChannelManager.getByCommandId(commandId);
         if (clientObserver == null) {
-            LOGGER.error("gRPC client channel is not present. mid: {}", mid);
+            LOGGER.error("gRPC client channel is not present. commandId: {}", commandId);
             return;
         }
 
-        clientObserver.result(request, responseObserver);
+        clientObserver.setResult(request);
+
+        ReportThreadStackTraceResponse response = ReportThreadStackTraceResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
+            .build();
+        ResponseWriter.write(responseObserver, response);
+    }
+
+    /**
+     * reportMessageConsumptionResult is used to report the result of consumption verification
+     */
+    @Override
+    public void reportMessageConsumptionResult(ReportMessageConsumptionResultRequest request,
+        StreamObserver<ReportMessageConsumptionResultResponse> responseObserver) {
+        String commandId = request.getCommandId();
+
+        GrpcClientObserver clientObserver = this.clientChannelManager.getByCommandId(commandId);
+        if (clientObserver == null) {
+            LOGGER.error("gRPC client channel is not present. commandId: {}", commandId);
+            return;
+        }
+
+        clientObserver.setResult(request);
+
+        ReportMessageConsumptionResultResponse response = ReportMessageConsumptionResultResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
+            .build();
+        ResponseWriter.write(responseObserver, response);
+    }
+
+    /**
+     * pollCommand is used to create a client channel
+     */
+    @Override
+    public void pollCommand(PollCommandRequest request, StreamObserver<PollCommandResponse> responseObserver) {
+        String clientId = request.getClientId();
+
+        switch (request.getGroupCase()) {
+            case PRODUCER_GROUP:
+                Resource producerGroup = request.getProducerGroup();
+                String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
+                this.clientChannelManager.add(producerGroupName, clientId, responseObserver);
+                break;
+            case CONSUMER_GROUP:
+                Resource consumerGroup = request.getConsumerGroup();
+                String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
+                this.clientChannelManager.add(consumerGroupName, clientId, responseObserver);
+                break;
+            default:
+                break;
+        }
+
+        // No response here, the response will be processed by clientChannels
     }
 
     public void notifyClientTermination(NotifyClientTerminationRequest request,

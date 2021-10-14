@@ -17,10 +17,9 @@
 
 package org.apache.rocketmq.grpc.channel;
 
-import apache.rocketmq.v1.GenericPollingResponse;
-import apache.rocketmq.v1.MultiplexingRequest;
-import apache.rocketmq.v1.MultiplexingResponse;
-import com.google.rpc.Code;
+import apache.rocketmq.v1.NoopCommand;
+import apache.rocketmq.v1.PollCommandResponse;
+import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -29,7 +28,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.grpc.common.InterceptorConstants;
-import org.apache.rocketmq.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.grpc.common.ResponseWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +41,9 @@ public class GrpcClientObserver {
     private static final ScheduledExecutorService DEADLINE_CHECKER =
         new ScheduledThreadPoolExecutor(3, new ThreadFactoryImpl("GRPC_DEADLINE_CHECKER_"));
 
-    private StreamObserver<MultiplexingResponse> clientObserver;
+    private StreamObserver<PollCommandResponse> clientObserver;
 
-    private CompletableFuture<MultiplexingRequest> nextRequestFuture;
+    private CompletableFuture<GeneratedMessageV3> resultFuture;
 
     private final String group;
 
@@ -60,48 +58,46 @@ public class GrpcClientObserver {
         this.clientId = clientId;
     }
 
-    public void setClientObserver(MultiplexingRequest request,
-        StreamObserver<MultiplexingResponse> clientStreamObserver) {
+    public void setClientObserver(StreamObserver<PollCommandResponse> clientStreamObserver) {
         this.lastUseTimestamp = System.currentTimeMillis();
         this.sequence = UUID.randomUUID().toString();
         this.clientObserver = clientStreamObserver;
-        log.info("grpc client observer set. sequence: {}, group: {}, clientId: {}, type: {}, clientHost: {}",
-            sequence, group, clientId, request.getTypeCase(),
-            InterceptorConstants.METADATA.get(io.grpc.Context.current()).get(InterceptorConstants.REMOTE_ADDRESS));
+        log.info("grpc client observer set. sequence: {}, group: {}, clientId: {}, clientHost: {}",
+            sequence, group, clientId, InterceptorConstants.METADATA.get(io.grpc.Context.current()).get(InterceptorConstants.REMOTE_ADDRESS));
 
         DEADLINE_CHECKER.schedule(() -> {
             log.info("grpc client observer exceed deadline. sequence: {}, group: {}, clientId: {}",
                 sequence, group, clientId);
 
-            GenericPollingResponse genericPollingResponse = GenericPollingResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, "server deadline exceeded"))
-                .build();
+            NoopCommand noopCommand = NoopCommand.newBuilder().build();
 
-            MultiplexingResponse multiplexingResponse = MultiplexingResponse.newBuilder()
-                .setPollingResponse(genericPollingResponse)
+            PollCommandResponse multiplexingResponse = PollCommandResponse.newBuilder()
+                .setNoopCommand(noopCommand)
                 .build();
 
             ResponseWriter.write(clientStreamObserver, multiplexingResponse);
         }, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     }
 
-    public CompletableFuture<MultiplexingRequest> call(MultiplexingResponse response) {
+    public CompletableFuture<GeneratedMessageV3> call(PollCommandResponse response) {
         this.lastUseTimestamp = System.currentTimeMillis();
 
         log.info("grpc client call. sequence: {}, group: {}, clientId: {}, type: {}",
             sequence, group, clientId, response.getTypeCase());
 
-        this.nextRequestFuture = new CompletableFuture<>();
+        this.resultFuture = new CompletableFuture<>();
         ResponseWriter.write(this.clientObserver, response);
-        return this.nextRequestFuture;
+        return this.resultFuture;
     }
 
-    public void result(MultiplexingRequest request, StreamObserver<MultiplexingResponse> newClientObserver) {
-        log.info("grpc client result. sequence: {}, group: {}, clientId: {}, type: {}",
-            sequence, group, clientId, request.getTypeCase());
+    /**
+     * Save the result after call client
+     */
+    public void setResult(GeneratedMessageV3 request) {
+        log.info("grpc client result. sequence: {}, group: {}, clientId: {}, requestName: {}",
+            sequence, group, clientId, request.getDescriptorForType().getFullName());
 
-        this.nextRequestFuture.complete(request);
-        this.setClientObserver(request, newClientObserver);
+        this.resultFuture.complete(request);
     }
 
     public long getLastUseTimestamp() {
