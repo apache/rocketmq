@@ -28,7 +28,7 @@ public class TransactionHandle {
     private final long commitLogOffset;
 
     public static TransactionHandle decode(String transactionId) {
-        List<String> decodeList = Lists.newArrayList(Splitter.on(" ").split(transactionId));
+        List<String> decodeList = Lists.newArrayList(Splitter.on(SEPARATOR).split(transactionId));
         if (decodeList.size() < 3) {
             throw new IllegalArgumentException("Invalid argument transactionId");
         }
