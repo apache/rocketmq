@@ -666,6 +666,9 @@ public class DefaultMessageStore implements MessageStore {
                 } else {
                     status = GetMessageStatus.OFFSET_FOUND_NULL;
                     nextBeginOffset = nextOffsetCorrection(offset, consumeQueue.rollNextFile(offset));
+                    if (nextBeginOffset > maxOffset) {
+                        nextBeginOffset = maxOffset;
+                    }
                     log.warn("consumer request topic: " + topic + "offset: " + offset + " minOffset: " + minOffset + " maxOffset: "
                         + maxOffset + ", but access logic queue failed.");
                 }
