@@ -63,6 +63,7 @@ public class NameServerGrpcService extends MessagingServiceGrpc.MessagingService
             ResponseWriter.write(responseObserver, QueryRouteResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.NOT_FOUND, "topic not found"))
                 .build());
+            return;
         }
 
         Map<String, Map<Long, Broker>> brokerMap = new HashMap<>();
