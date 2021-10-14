@@ -234,10 +234,13 @@
                 <configuration>
                     <excludes>
                         <exclude>.gitignore</exclude>
+                        <exclude>.gitmodules</exclude>
                         <exclude>.travis.yml</exclude>
                         <exclude>CONTRIBUTING.md</exclude>
                         <exclude>bin/README.md</exclude>
                         <exclude>.github/**</exclude>
+                        <exclude>src/main/proto/.github/**</exclude>
+                        <exclude>src/main/proto/**</exclude>
                         <exclude>src/test/resources/certs/*</exclude>
                         <exclude>src/test/**/*.log</exclude>
                         <exclude>src/test/resources/META-INF/service/*</exclude>
