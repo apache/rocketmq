@@ -40,7 +40,7 @@ public class TestProducer {
                     System.out.printf("%s%n", sendResult);
 
                     QueryResult queryMessage =
-                        producer.queryMessage("TopicTest1", "key113", 10, 0, System.currentTimeMillis());
+                        producer.getDefaultMQProducerImpl().queryMessage("TopicTest1", "key113", 10, 0, System.currentTimeMillis());
                     for (MessageExt m : queryMessage.getMessageList()) {
                         System.out.printf("%s%n", m);
                     }

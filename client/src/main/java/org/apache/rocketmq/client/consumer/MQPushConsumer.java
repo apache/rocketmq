@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.consumer;
 
+import org.apache.rocketmq.client.Lifecycle;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
@@ -24,16 +25,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 /**
  * Push consumer
  */
-public interface MQPushConsumer extends MQConsumer {
-    /**
-     * Start the consumer
-     */
-    void start() throws MQClientException;
-
-    /**
-     * Shutdown the consumer
-     */
-    void shutdown();
+public interface MQPushConsumer extends MQConsumer, Lifecycle {
 
     /**
      * Register the message listener
@@ -65,7 +57,7 @@ public interface MQPushConsumer extends MQConsumer {
      */
     @Deprecated
     void subscribe(final String topic, final String fullClassName,
-        final String filterClassSource) throws MQClientException;
+                   final String filterClassSource) throws MQClientException;
 
     /**
      * Subscribe some topic with selector.

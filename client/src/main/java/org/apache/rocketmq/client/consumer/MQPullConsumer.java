@@ -17,6 +17,8 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.util.Set;
+
+import org.apache.rocketmq.client.Lifecycle;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -26,16 +28,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 /**
  * Pulling consumer interface
  */
-public interface MQPullConsumer extends MQConsumer {
-    /**
-     * Start the consumer
-     */
-    void start() throws MQClientException;
-
-    /**
-     * Shutdown the consumer
-     */
-    void shutdown();
+public interface MQPullConsumer extends MQConsumer, Lifecycle {
 
     /**
      * Register the message queue listener

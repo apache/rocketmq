@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.test.client.producer.batch;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -33,6 +30,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class BatchSendIT extends BaseConf {
     private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
@@ -70,10 +71,10 @@ public class BatchSendIT extends BaseConf {
         Thread.sleep(2000);
 
         for (int i = 0; i < 3; i++) {
-            producer.viewMessage(offsetIds[random.nextInt(batchNum)]);
+            producer.getDefaultMQProducerImpl().viewMessage(offsetIds[random.nextInt(batchNum)]);
         }
         for (int i = 0; i < 3; i++) {
-            producer.viewMessage(topic, msgIds[random.nextInt(batchNum)]);
+            producer.getDefaultMQProducerImpl().queryMessageByUniqKey(producer.withNamespace(topic), msgIds[random.nextInt(batchNum)]);
         }
     }
 
@@ -101,8 +102,8 @@ public class BatchSendIT extends BaseConf {
 
         Thread.sleep(2000);
 
-        Message messageByOffset = producer.viewMessage(offsetIds[0]);
-        Message messageByMsgId = producer.viewMessage(topic, msgIds[0]);
+        Message messageByOffset = producer.getDefaultMQProducerImpl().viewMessage(offsetIds[0]);
+        Message messageByMsgId = producer.getDefaultMQProducerImpl().queryMessageByUniqKey(producer.withNamespace(topic), msgIds[0]);
 
         System.out.println(messageByOffset);
         System.out.println(messageByMsgId);

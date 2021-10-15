@@ -126,7 +126,7 @@ public class PullConsumer {
                     }
                     if (offset < 0) {
                         //first time start from last offset
-                        offset = consumer.maxOffset(messageQueue);
+                        offset = consumer.getDefaultMQPullConsumerImpl().maxOffset(messageQueue);
                     }
                     //make sure
                     if (offset < 0) {

@@ -288,7 +288,7 @@ public class MonitorService {
             // Delay
             if (ow.getLastTimestamp() > 0) {
                 try {
-                    long maxOffset = this.defaultMQPullConsumer.maxOffset(mq);
+                    long maxOffset = this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().maxOffset(mq);
                     if (maxOffset > 0) {
                         PullResult pull = this.defaultMQPullConsumer.pull(mq, "*", maxOffset - 1, 1);
                         switch (pull.getPullStatus()) {

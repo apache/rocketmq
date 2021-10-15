@@ -254,13 +254,13 @@ public class ConsumeMessageCommand implements SubCommand {
                 if (countLeft == 0) {
                     return;
                 }
-                long minOffset = defaultMQPullConsumer.minOffset(mq);
-                long maxOffset = defaultMQPullConsumer.maxOffset(mq);
+                long minOffset = defaultMQPullConsumer.getDefaultMQPullConsumerImpl().minOffset(mq);
+                long maxOffset = defaultMQPullConsumer.getDefaultMQPullConsumerImpl().maxOffset(mq);
                 if (timeValueBegin > 0) {
-                    minOffset = defaultMQPullConsumer.searchOffset(mq, timeValueBegin);
+                    minOffset = defaultMQPullConsumer.getDefaultMQPullConsumerImpl().searchOffset(mq, timeValueBegin);
                 }
                 if (timeValueEnd > 0) {
-                    maxOffset = defaultMQPullConsumer.searchOffset(mq, timeValueEnd);
+                    maxOffset = defaultMQPullConsumer.getDefaultMQPullConsumerImpl().searchOffset(mq, timeValueEnd);
                 }
                 if (maxOffset - minOffset > countLeft) {
                     System.out.printf("The older %d message of the %d queue will be provided\n", countLeft, mq.getQueueId());
@@ -280,13 +280,13 @@ public class ConsumeMessageCommand implements SubCommand {
     private void executeByCondition(String brokerName, String queueId, long offset, long timeValueBegin, long timeValueEnd) {
         MessageQueue mq = new MessageQueue(topic, brokerName, Integer.parseInt(queueId));
         try {
-            long minOffset = defaultMQPullConsumer.minOffset(mq);
-            long maxOffset = defaultMQPullConsumer.maxOffset(mq);
+            long minOffset = defaultMQPullConsumer.getDefaultMQPullConsumerImpl().minOffset(mq);
+            long maxOffset = defaultMQPullConsumer.getDefaultMQPullConsumerImpl().maxOffset(mq);
             if (timeValueBegin > 0) {
-                minOffset = defaultMQPullConsumer.searchOffset(mq, timeValueBegin);
+                minOffset = defaultMQPullConsumer.getDefaultMQPullConsumerImpl().searchOffset(mq, timeValueBegin);
             }
             if (timeValueEnd > 0) {
-                maxOffset = defaultMQPullConsumer.searchOffset(mq, timeValueEnd);
+                maxOffset = defaultMQPullConsumer.getDefaultMQPullConsumerImpl().searchOffset(mq, timeValueEnd);
             }
             if (offset > maxOffset) {
                 System.out.printf("%s no matched msg, offset=%s\n", mq, offset);

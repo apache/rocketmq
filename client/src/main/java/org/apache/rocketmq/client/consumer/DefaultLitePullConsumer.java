@@ -177,7 +177,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     /**
      * Default constructor.
+     * @deprecated Use builder() method to create.
      */
+    @Deprecated
     public DefaultLitePullConsumer() {
         this(null, MixAll.DEFAULT_CONSUMER_GROUP, null);
     }
@@ -186,7 +188,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Constructor specifying consumer group.
      *
      * @param consumerGroup Consumer group.
+     * @deprecated Use builder() method to create.
      */
+    @Deprecated
     public DefaultLitePullConsumer(final String consumerGroup) {
         this(null, consumerGroup, null);
     }
@@ -195,7 +199,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Constructor specifying RPC hook.
      *
      * @param rpcHook RPC hook to execute before each remoting command.
+     * @deprecated Use builder() method to create.
      */
+    @Deprecated
     public DefaultLitePullConsumer(RPCHook rpcHook) {
         this(null, MixAll.DEFAULT_CONSUMER_GROUP, rpcHook);
     }
@@ -205,7 +211,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      *
      * @param consumerGroup Consumer group.
      * @param rpcHook RPC hook to execute before each remoting command.
+     * @deprecated Use builder() method to create.
      */
+    @Deprecated
     public DefaultLitePullConsumer(final String consumerGroup, RPCHook rpcHook) {
         this(null, consumerGroup, rpcHook);
     }
@@ -556,5 +564,13 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setEnableMsgTrace(boolean enableMsgTrace) {
         this.enableMsgTrace = enableMsgTrace;
+    }
+
+    /**
+     * Create a builder for DefaultLitePullConsumer
+     * @return MQConsumerBuilder
+     */
+    public static MQConsumerBuilder builder() {
+        return new MQConsumerBuilder();
     }
 }

@@ -19,21 +19,12 @@ package org.apache.rocketmq.client.consumer;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.rocketmq.client.Lifecycle;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-public interface LitePullConsumer {
-
-    /**
-     * Start the consumer
-     */
-    void start() throws MQClientException;
-
-    /**
-     * Shutdown the consumer
-     */
-    void shutdown();
+public interface LitePullConsumer extends Lifecycle {
 
     /**
      * This consumer is still running

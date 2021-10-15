@@ -65,7 +65,7 @@ public class QueryMsgByIdIT extends BaseConf {
         MessageExt queryMsg = null;
         try {
             TestUtils.waitForMoment(3000);
-            queryMsg = producer.getProducer().viewMessage(((MessageClientExt) recvMsg).getOffsetMsgId());
+            queryMsg = producer.getProducer().getDefaultMQProducerImpl().viewMessage(((MessageClientExt) recvMsg).getOffsetMsgId());
         } catch (Exception e) {
         }
 

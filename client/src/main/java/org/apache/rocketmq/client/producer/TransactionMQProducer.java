@@ -35,18 +35,44 @@ public class TransactionMQProducer extends DefaultMQProducer {
     public TransactionMQProducer() {
     }
 
+    /**
+     * @deprecated Use builder() method to create.
+     * @param producerGroup
+     */
+    @Deprecated
     public TransactionMQProducer(final String producerGroup) {
         this(null, producerGroup, null);
     }
 
+    /**
+     * @deprecated Use builder() method to create.
+     * @param namespace
+     * @param producerGroup
+     */
+    @Deprecated
     public TransactionMQProducer(final String namespace, final String producerGroup) {
         this(namespace, producerGroup, null);
     }
 
+    /**
+     *
+     * @param producerGroup
+     * @param rpcHook
+     * @deprecated Use builder() method to create.
+     */
+    @Deprecated
     public TransactionMQProducer(final String producerGroup, RPCHook rpcHook) {
         this(null, producerGroup, rpcHook);
     }
 
+    /**
+     *
+     * @param namespace
+     * @param producerGroup
+     * @param rpcHook
+     * @deprecated Use builder() method to create.
+     */
+    @Deprecated
     public TransactionMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
         super(namespace, producerGroup, rpcHook);
     }
@@ -157,4 +183,5 @@ public class TransactionMQProducer extends DefaultMQProducer {
     public void setTransactionListener(TransactionListener transactionListener) {
         this.transactionListener = transactionListener;
     }
+
 }

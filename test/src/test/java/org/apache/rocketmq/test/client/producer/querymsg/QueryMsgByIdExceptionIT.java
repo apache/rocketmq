@@ -55,7 +55,7 @@ public class QueryMsgByIdExceptionIT extends BaseConf {
 
         MessageExt queryMsg = null;
         try {
-            queryMsg = producer.getProducer().viewMessage(errorMsgId);
+            queryMsg = producer.getProducer().getDefaultMQProducerImpl().viewMessage(errorMsgId);
         } catch (Exception e) {
         }
 
@@ -72,7 +72,7 @@ public class QueryMsgByIdExceptionIT extends BaseConf {
 
         MessageExt queryMsg = null;
         try {
-            queryMsg = producer.getProducer().viewMessage(errorMsgId);
+            queryMsg = producer.getProducer().getDefaultMQProducerImpl().viewMessage(errorMsgId);
         } catch (Exception e) {
         }
 

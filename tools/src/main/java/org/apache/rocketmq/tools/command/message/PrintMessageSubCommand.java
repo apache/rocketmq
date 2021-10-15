@@ -119,19 +119,19 @@ public class PrintMessageSubCommand implements SubCommand {
 
             Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues(topic);
             for (MessageQueue mq : mqs) {
-                long minOffset = consumer.minOffset(mq);
-                long maxOffset = consumer.maxOffset(mq);
+                long minOffset = consumer.getDefaultMQPullConsumerImpl().minOffset(mq);
+                long maxOffset = consumer.getDefaultMQPullConsumerImpl().maxOffset(mq);
 
                 if (commandLine.hasOption('b')) {
                     String timestampStr = commandLine.getOptionValue('b').trim();
                     long timeValue = timestampFormat(timestampStr);
-                    minOffset = consumer.searchOffset(mq, timeValue);
+                    minOffset = consumer.getDefaultMQPullConsumerImpl().searchOffset(mq, timeValue);
                 }
 
                 if (commandLine.hasOption('e')) {
                     String timestampStr = commandLine.getOptionValue('e').trim();
                     long timeValue = timestampFormat(timestampStr);
-                    maxOffset = consumer.searchOffset(mq, timeValue);
+                    maxOffset = consumer.getDefaultMQPullConsumerImpl().searchOffset(mq, timeValue);
                 }
 
                 System.out.printf("minOffset=%s, maxOffset=%s, %s", minOffset, maxOffset, mq);

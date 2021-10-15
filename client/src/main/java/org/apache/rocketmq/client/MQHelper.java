@@ -61,7 +61,7 @@ public class MQHelper {
             if (mqs != null && !mqs.isEmpty()) {
                 TreeSet<MessageQueue> mqsNew = new TreeSet<MessageQueue>(mqs);
                 for (MessageQueue mq : mqsNew) {
-                    long offset = consumer.searchOffset(mq, timestamp);
+                    long offset = consumer.getDefaultMQPullConsumerImpl().searchOffset(mq, timestamp);
                     if (offset >= 0) {
                         consumer.updateConsumeOffset(mq, offset);
                         log.info("resetOffsetByTimestamp updateConsumeOffset success, {} {} {}",

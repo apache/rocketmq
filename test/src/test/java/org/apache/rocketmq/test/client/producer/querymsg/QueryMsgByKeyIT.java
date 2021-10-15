@@ -60,7 +60,7 @@ public class QueryMsgByKeyIT extends BaseConf {
         List<MessageExt> queryMsgs = null;
         try {
             TestUtils.waitForMoment(500 * 3);
-            queryMsgs = producer.getProducer().queryMessage(topic, key, msgSize, begin - 5000,
+            queryMsgs = producer.getProducer().getDefaultMQProducerImpl().queryMessage(topic, key, msgSize, begin - 5000,
                 System.currentTimeMillis() + 5000).getMessageList();
         } catch (Exception e) {
         }
@@ -81,13 +81,13 @@ public class QueryMsgByKeyIT extends BaseConf {
 
         List<MessageExt> queryMsgs = null;
         try {
-            queryMsgs = producer.getProducer().queryMessage(topic, key, msgSize, begin - 15000,
+            queryMsgs = producer.getProducer().getDefaultMQProducerImpl().queryMessage(topic, key, msgSize, begin - 15000,
                 System.currentTimeMillis() + 15000).getMessageList();
 
             int i = 3;
             while (queryMsgs == null || queryMsgs.size() != brokerNum) {
                 i--;
-                queryMsgs = producer.getProducer().queryMessage(topic, key, msgSize, begin - 15000,
+                queryMsgs = producer.getProducer().getDefaultMQProducerImpl().queryMessage(topic, key, msgSize, begin - 15000,
                     System.currentTimeMillis() + 15000).getMessageList();
                 TestUtils.waitForMoment(1000);
 
