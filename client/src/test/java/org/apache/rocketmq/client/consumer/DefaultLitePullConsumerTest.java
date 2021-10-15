@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -51,6 +52,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -669,5 +671,38 @@ public class DefaultLitePullConsumerTest {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
         factoryTable.put(litePullConsumer.buildMQClientId(), mQClientFactory);
         doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+    }
+
+    @Test
+    public void testCreateConsumerFromBuilder() {
+        RPCHook rpcHook = new RPCHook() {
+            @Override
+            public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+
+            }
+
+            @Override
+            public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+
+            }
+        };
+        final AllocateMessageQueueAveragely allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
+        DefaultLitePullConsumer consumer = DefaultLitePullConsumer.builder().consumerGroup("GID_1")
+                .consumeFrom(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET)
+                .allocateMessageQueueStrategy(allocateMessageQueueStrategy)
+                .consumeThreadNum(1).enableMessageTrace(null).instanceName("instance1")
+                .messageModel(MessageModel.BROADCASTING).nameserverAddress("NS_ADDR:9876").rpcHook(rpcHook).createLitePullConsumer();
+
+        assertThat(consumer).isNotNull();
+        assertThat(consumer.getConsumerGroup()).isEqualTo("GID_1");
+        assertThat(consumer.getConsumeFromWhere()).isEqualTo(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        assertThat(consumer.getAllocateMessageQueueStrategy()).isEqualTo(allocateMessageQueueStrategy);
+        assertThat(consumer.getPullThreadNums()).isEqualTo(1);
+        assertThat(consumer.isEnableMsgTrace()).isEqualTo(false);
+        assertThat(consumer.getCustomizedTraceTopic()).isNullOrEmpty();
+        assertThat(consumer.getInstanceName()).isEqualTo("instance1");
+        assertThat(consumer.getMessageModel()).isEqualTo(MessageModel.BROADCASTING);
+        assertThat(consumer.getNamesrvAddr()).isEqualTo("NS_ADDR:9876");
+
     }
 }

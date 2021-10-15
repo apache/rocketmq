@@ -34,6 +34,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.CommunicationMode;
@@ -50,13 +51,16 @@ import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
 import org.apache.rocketmq.client.impl.consumer.RebalancePushImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -340,5 +344,40 @@ public class DefaultMQPushConsumerTest {
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
         assertThat(messageExts[0]).isNull();
+    }
+
+    @Test
+    public void testCreateConsumerFromBuilder() {
+        RPCHook rpcHook = new RPCHook() {
+            @Override
+            public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+
+            }
+
+            @Override
+            public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+
+            }
+        };
+        final AllocateMessageQueueAveragely allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
+        DefaultMQPushConsumer consumer = DefaultMQPushConsumer.builder().consumerGroup("GID_1")
+                .consumeFrom(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP)
+                .allocateMessageQueueStrategy(allocateMessageQueueStrategy)
+                .consumeThreadNum(1).instanceName("instance1")
+                .messageModel(MessageModel.BROADCASTING).nameserverAddress("NS_ADDR:9876")
+                .consumeTimeoutMinutes(10).rpcHook(rpcHook).createPushConsumer();
+
+        assertThat(consumer).isNotNull();
+        assertThat(consumer.getConsumerGroup()).isEqualTo("GID_1");
+        assertThat(consumer.getConsumeFromWhere()).isEqualTo(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
+        assertThat(consumer.getConsumeTimestamp()).isNotEmpty();
+        assertThat(consumer.getAllocateMessageQueueStrategy()).isEqualTo(allocateMessageQueueStrategy);
+        assertThat(consumer.getConsumeThreadMax()).isEqualTo(1);
+        assertThat(consumer.getConsumeThreadMin()).isEqualTo(1);
+        assertThat(consumer.getInstanceName()).isEqualTo("instance1");
+        assertThat(consumer.getMessageModel()).isEqualTo(MessageModel.BROADCASTING);
+        assertThat(consumer.getNamesrvAddr()).isEqualTo("NS_ADDR:9876");
+        assertThat(consumer.getConsumeTimeout()).isEqualTo(10);
+
     }
 }

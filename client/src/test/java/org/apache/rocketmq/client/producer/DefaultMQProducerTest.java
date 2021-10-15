@@ -47,9 +47,11 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -516,5 +518,29 @@ public class DefaultMQProducerTest {
             assertionErrors[0] = e;
         }
         return assertionErrors[0];
+    }
+
+    @Test
+    public void testCreateProducer() {
+        RPCHook rpcHook = new RPCHook() {
+            @Override
+            public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+
+            }
+
+            @Override
+            public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+
+            }
+        };
+        DefaultMQProducer producer = DefaultMQProducer.builder().producerGroup("GID_1").enableMessageTrace("trace_topic")
+                .namespace("ns").nameserverAddress("NS_ADDR:9876").rpcHook(rpcHook).sendMsgTimeout(5000)
+                .createProducer();
+
+        assertThat(producer.getProducerGroup()).isEqualTo("GID_1");
+        assertThat(producer.getTraceDispatcher()).isNotNull();
+        assertThat(producer.getNamespace()).isEqualTo("ns");
+        assertThat(producer.getNamesrvAddr()).isEqualTo("NS_ADDR:9876");
+        assertThat(producer.getSendMsgTimeout()).isEqualTo(5000);
     }
 }
