@@ -910,7 +910,8 @@ public class BrokerController {
 
     }
 
-    public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
+    public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion,
+        boolean checkOrderConfig, boolean oneway) {
         TopicConfig registerTopicConfig = topicConfig;
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
             || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
@@ -925,7 +926,7 @@ public class BrokerController {
         topicConfigSerializeWrapper.setDataVersion(dataVersion);
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
 
-        doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
+        doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigSerializeWrapper);
     }
 
     public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
