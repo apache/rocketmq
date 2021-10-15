@@ -259,7 +259,7 @@ public class ExportMetricsCommand implements SubCommand {
         totalOneDayNumMap.put("transOneDayInNum", totalOneDayNumMap.get("transOneDayInNum") + transOneDayInNum);
         totalOneDayNumMap.put("scheduleOneDayInNum", totalOneDayNumMap.get("scheduleOneDayInNum") + scheduleOneDayInNum);
 
-        // putMessageAverageSize 平均
+        // putMessageAverageSize
         runtimeQuotaMap.put("messageAverageSize", kvTable.getTable().get("putMessageAverageSize"));
 
         //topicSize
