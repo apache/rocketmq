@@ -864,8 +864,9 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
 
             ConsumeMessageStagedConcurrentlyService.this.getConsumerStatsManager()
                 .incConsumeRT(ConsumeMessageStagedConcurrentlyService.this.consumerGroup, messageQueue.getTopic(), consumeRT);
-            continueConsume.set(ConsumeMessageStagedConcurrentlyService.this.processConsumeResult(strategyId, groupId, msgs, status, context, this)
-                && continueConsume.get());
+            if (!ConsumeMessageStagedConcurrentlyService.this.processConsumeResult(strategyId, groupId, msgs, status, context, this)) {
+                continueConsume.set(false);
+            }
         }
     }
 
