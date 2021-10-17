@@ -179,15 +179,20 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
         if (null == groupByStrategy) {
             ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> stageOffset = stageOffsetStore == null ?
                 new ConcurrentHashMap<>() : convert(stageOffsetStore.readStageOffset(messageQueue, ReadOffsetType.MEMORY_FIRST_THEN_STORE));
-            currentStageOffsetMap.putIfAbsent(topic, stageOffset);
+            currentStageOffsetMap.put(topic, stageOffset);
             groupByStrategy = currentStageOffsetMap.get(topic);
         }
-        ConcurrentMap<String, AtomicInteger> groups = groupByStrategy.putIfAbsent(strategyId, new ConcurrentHashMap<>());
+        ConcurrentMap<String, AtomicInteger> groups = groupByStrategy.get(strategyId);
         if (null == groups) {
+            groupByStrategy.put(strategyId, new ConcurrentHashMap<>());
             groups = groupByStrategy.get(strategyId);
         }
-        groups.putIfAbsent(groupId, new AtomicInteger(0));
-        return groups.get(groupId);
+        AtomicInteger result = groups.get(groupId);
+        if (null == result) {
+            groups.put(groupId, new AtomicInteger(0));
+            result = groups.get(groupId);
+        }
+        return result;
     }
 
     private ConcurrentMap<String, ConcurrentMap<String, AtomicInteger>> convert(
@@ -711,12 +716,14 @@ public class ConsumeMessageStagedConcurrentlyService implements ConsumeMessageSe
                     log.error("computeGroup failed with exception:" + e.getMessage() + " !");
                 }
                 //null strategy means direct concurrency
-                Map<String, List<MessageExt>> messageGroupByStrategy = messageGroupByStrategyThenGroup.putIfAbsent(strategyId, new LinkedHashMap<>());
+                Map<String, List<MessageExt>> messageGroupByStrategy = messageGroupByStrategyThenGroup.get(strategyId);
                 if (null == messageGroupByStrategy) {
+                    messageGroupByStrategyThenGroup.put(strategyId, new LinkedHashMap<>());
                     messageGroupByStrategy = messageGroupByStrategyThenGroup.get(strategyId);
                 }
-                List<MessageExt> messages = messageGroupByStrategy.putIfAbsent(groupId, new CopyOnWriteArrayList<>());
+                List<MessageExt> messages = messageGroupByStrategy.get(groupId);
                 if (null == messages) {
+                    messageGroupByStrategy.put(groupId, new CopyOnWriteArrayList<>());
                     messages = messageGroupByStrategy.get(groupId);
                 }
                 messages.add(message);
