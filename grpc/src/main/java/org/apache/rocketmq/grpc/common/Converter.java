@@ -155,7 +155,7 @@ public class Converter {
             .build();
     }
 
-    private static Map<String, String> buildUserAttributes(MessageExt messageExt) {
+    protected static Map<String, String> buildUserAttributes(MessageExt messageExt) {
         Map<String, String> userAttributes = new HashMap<>();
         Map<String, String> properties = messageExt.getProperties();
 
@@ -168,7 +168,7 @@ public class Converter {
         return userAttributes;
     }
 
-    private static SystemAttribute buildSystemAttributes(MessageExt messageExt) {
+    protected static SystemAttribute buildSystemAttributes(MessageExt messageExt) {
         SystemAttribute.Builder systemAttributeBuilder = SystemAttribute.newBuilder();
 
         // tag
@@ -210,7 +210,8 @@ public class Converter {
         if (isTransValue.equals(isTrans)) {
             systemAttributeBuilder.setMessageType(MessageType.TRANSACTION);
         } else if (messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
-            || messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
+            || messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
+            || messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
             systemAttributeBuilder.setMessageType(MessageType.DELAY);
         } else if (messageExt.getProperty(MessageConst.PROPERTY_SHARDING_KEY) != null) {
             systemAttributeBuilder.setMessageType(MessageType.FIFO);
