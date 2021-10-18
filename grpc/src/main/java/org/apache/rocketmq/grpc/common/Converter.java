@@ -473,7 +473,598 @@ public class Converter {
             case "5.0.1": {
                 return MQVersion.Version.V5_0_1.ordinal();
             }
+            case "5.0.2-SNAPSHOT": {
+                return MQVersion.Version.V5_0_2_SNAPSHOT.ordinal();
+            }
+            case "5.0.2": {
+                return MQVersion.Version.V5_0_2.ordinal();
+            }
+            case "5.0.3-SNAPSHOT": {
+                return MQVersion.Version.V5_0_3_SNAPSHOT.ordinal();
+            }
+            case "5.0.3": {
+                return MQVersion.Version.V5_0_3.ordinal();
+            }
+            case "5.0.4-SNAPSHOT": {
+                return MQVersion.Version.V5_0_4_SNAPSHOT.ordinal();
+            }
+            case "5.0.4": {
+                return MQVersion.Version.V5_0_4.ordinal();
+            }
+            case "5.0.5-SNAPSHOT": {
+                return MQVersion.Version.V5_0_5_SNAPSHOT.ordinal();
+            }
+            case "5.0.5": {
+                return MQVersion.Version.V5_0_5.ordinal();
+            }
+            case "5.0.6-SNAPSHOT": {
+                return MQVersion.Version.V5_0_6_SNAPSHOT.ordinal();
+            }
+            case "5.0.6": {
+                return MQVersion.Version.V5_0_6.ordinal();
+            }
+            case "5.0.7-SNAPSHOT": {
+                return MQVersion.Version.V5_0_7_SNAPSHOT.ordinal();
+            }
+            case "5.0.7": {
+                return MQVersion.Version.V5_0_7.ordinal();
+            }
+            case "5.0.8-SNAPSHOT": {
+                return MQVersion.Version.V5_0_8_SNAPSHOT.ordinal();
+            }
+            case "5.0.8": {
+                return MQVersion.Version.V5_0_8.ordinal();
+            }
+            case "5.0.9-SNAPSHOT": {
+                return MQVersion.Version.V5_0_9_SNAPSHOT.ordinal();
+            }
+            case "5.0.9": {
+                return MQVersion.Version.V5_0_9.ordinal();
+            }
+            case "5.1.0-SNAPSHOT": {
+                return MQVersion.Version.V5_1_0_SNAPSHOT.ordinal();
+            }
+            case "5.1.0": {
+                return MQVersion.Version.V5_1_0.ordinal();
+            }
+            case "5.1.1-SNAPSHOT": {
+                return MQVersion.Version.V5_1_1_SNAPSHOT.ordinal();
+            }
+            case "5.1.1": {
+                return MQVersion.Version.V5_1_1.ordinal();
+            }
+            case "5.1.2-SNAPSHOT": {
+                return MQVersion.Version.V5_1_2_SNAPSHOT.ordinal();
+            }
+            case "5.1.2": {
+                return MQVersion.Version.V5_1_2.ordinal();
+            }
+            case "5.1.3-SNAPSHOT": {
+                return MQVersion.Version.V5_1_3_SNAPSHOT.ordinal();
+            }
+            case "5.1.3": {
+                return MQVersion.Version.V5_1_3.ordinal();
+            }
+            case "5.1.4-SNAPSHOT": {
+                return MQVersion.Version.V5_1_4_SNAPSHOT.ordinal();
+            }
+            case "5.1.4": {
+                return MQVersion.Version.V5_1_4.ordinal();
+            }
+            case "5.1.5-SNAPSHOT": {
+                return MQVersion.Version.V5_1_5_SNAPSHOT.ordinal();
+            }
+            case "5.1.5": {
+                return MQVersion.Version.V5_1_5.ordinal();
+            }
+            case "5.1.6-SNAPSHOT": {
+                return MQVersion.Version.V5_1_6_SNAPSHOT.ordinal();
+            }
+            case "5.1.6": {
+                return MQVersion.Version.V5_1_6.ordinal();
+            }
+            case "5.1.7-SNAPSHOT": {
+                return MQVersion.Version.V5_1_7_SNAPSHOT.ordinal();
+            }
+            case "5.1.7": {
+                return MQVersion.Version.V5_1_7.ordinal();
+            }
+            case "5.1.8-SNAPSHOT": {
+                return MQVersion.Version.V5_1_8_SNAPSHOT.ordinal();
+            }
+            case "5.1.8": {
+                return MQVersion.Version.V5_1_8.ordinal();
+            }
+            case "5.1.9-SNAPSHOT": {
+                return MQVersion.Version.V5_1_9_SNAPSHOT.ordinal();
+            }
+            case "5.1.9": {
+                return MQVersion.Version.V5_1_9.ordinal();
+            }
+            case "5.2.0-SNAPSHOT": {
+                return MQVersion.Version.V5_2_0_SNAPSHOT.ordinal();
+            }
+            case "5.2.0": {
+                return MQVersion.Version.V5_2_0.ordinal();
+            }
+            case "5.2.1-SNAPSHOT": {
+                return MQVersion.Version.V5_2_1_SNAPSHOT.ordinal();
+            }
+            case "5.2.1": {
+                return MQVersion.Version.V5_2_1.ordinal();
+            }
+            case "5.2.2-SNAPSHOT": {
+                return MQVersion.Version.V5_2_2_SNAPSHOT.ordinal();
+            }
+            case "5.2.2": {
+                return MQVersion.Version.V5_2_2.ordinal();
+            }
+            case "5.2.3-SNAPSHOT": {
+                return MQVersion.Version.V5_2_3_SNAPSHOT.ordinal();
+            }
+            case "5.2.3": {
+                return MQVersion.Version.V5_2_3.ordinal();
+            }
+            case "5.2.4-SNAPSHOT": {
+                return MQVersion.Version.V5_2_4_SNAPSHOT.ordinal();
+            }
+            case "5.2.4": {
+                return MQVersion.Version.V5_2_4.ordinal();
+            }
+            case "5.2.5-SNAPSHOT": {
+                return MQVersion.Version.V5_2_5_SNAPSHOT.ordinal();
+            }
+            case "5.2.5": {
+                return MQVersion.Version.V5_2_5.ordinal();
+            }
+            case "5.2.6-SNAPSHOT": {
+                return MQVersion.Version.V5_2_6_SNAPSHOT.ordinal();
+            }
+            case "5.2.6": {
+                return MQVersion.Version.V5_2_6.ordinal();
+            }
+            case "5.2.7-SNAPSHOT": {
+                return MQVersion.Version.V5_2_7_SNAPSHOT.ordinal();
+            }
+            case "5.2.7": {
+                return MQVersion.Version.V5_2_7.ordinal();
+            }
+            case "5.2.8-SNAPSHOT": {
+                return MQVersion.Version.V5_2_8_SNAPSHOT.ordinal();
+            }
+            case "5.2.8": {
+                return MQVersion.Version.V5_2_8.ordinal();
+            }
+            case "5.2.9-SNAPSHOT": {
+                return MQVersion.Version.V5_2_9_SNAPSHOT.ordinal();
+            }
+            case "5.2.9": {
+                return MQVersion.Version.V5_2_9.ordinal();
+            }
+            case "5.3.0-SNAPSHOT": {
+                return MQVersion.Version.V5_3_0_SNAPSHOT.ordinal();
+            }
+            case "5.3.0": {
+                return MQVersion.Version.V5_3_0.ordinal();
+            }
+            case "5.3.1-SNAPSHOT": {
+                return MQVersion.Version.V5_3_1_SNAPSHOT.ordinal();
+            }
+            case "5.3.1": {
+                return MQVersion.Version.V5_3_1.ordinal();
+            }
+            case "5.3.2-SNAPSHOT": {
+                return MQVersion.Version.V5_3_2_SNAPSHOT.ordinal();
+            }
+            case "5.3.2": {
+                return MQVersion.Version.V5_3_2.ordinal();
+            }
+            case "5.3.3-SNAPSHOT": {
+                return MQVersion.Version.V5_3_3_SNAPSHOT.ordinal();
+            }
+            case "5.3.3": {
+                return MQVersion.Version.V5_3_3.ordinal();
+            }
+            case "5.3.4-SNAPSHOT": {
+                return MQVersion.Version.V5_3_4_SNAPSHOT.ordinal();
+            }
+            case "5.3.4": {
+                return MQVersion.Version.V5_3_4.ordinal();
+            }
+            case "5.3.5-SNAPSHOT": {
+                return MQVersion.Version.V5_3_5_SNAPSHOT.ordinal();
+            }
+            case "5.3.5": {
+                return MQVersion.Version.V5_3_5.ordinal();
+            }
+            case "5.3.6-SNAPSHOT": {
+                return MQVersion.Version.V5_3_6_SNAPSHOT.ordinal();
+            }
+            case "5.3.6": {
+                return MQVersion.Version.V5_3_6.ordinal();
+            }
+            case "5.3.7-SNAPSHOT": {
+                return MQVersion.Version.V5_3_7_SNAPSHOT.ordinal();
+            }
+            case "5.3.7": {
+                return MQVersion.Version.V5_3_7.ordinal();
+            }
+            case "5.3.8-SNAPSHOT": {
+                return MQVersion.Version.V5_3_8_SNAPSHOT.ordinal();
+            }
+            case "5.3.8": {
+                return MQVersion.Version.V5_3_8.ordinal();
+            }
+            case "5.3.9-SNAPSHOT": {
+                return MQVersion.Version.V5_3_9_SNAPSHOT.ordinal();
+            }
+            case "5.3.9": {
+                return MQVersion.Version.V5_3_9.ordinal();
+            }
+            case "5.4.0-SNAPSHOT": {
+                return MQVersion.Version.V5_4_0_SNAPSHOT.ordinal();
+            }
+            case "5.4.0": {
+                return MQVersion.Version.V5_4_0.ordinal();
+            }
+            case "5.4.1-SNAPSHOT": {
+                return MQVersion.Version.V5_4_1_SNAPSHOT.ordinal();
+            }
+            case "5.4.1": {
+                return MQVersion.Version.V5_4_1.ordinal();
+            }
+            case "5.4.2-SNAPSHOT": {
+                return MQVersion.Version.V5_4_2_SNAPSHOT.ordinal();
+            }
+            case "5.4.2": {
+                return MQVersion.Version.V5_4_2.ordinal();
+            }
+            case "5.4.3-SNAPSHOT": {
+                return MQVersion.Version.V5_4_3_SNAPSHOT.ordinal();
+            }
+            case "5.4.3": {
+                return MQVersion.Version.V5_4_3.ordinal();
+            }
+            case "5.4.4-SNAPSHOT": {
+                return MQVersion.Version.V5_4_4_SNAPSHOT.ordinal();
+            }
+            case "5.4.4": {
+                return MQVersion.Version.V5_4_4.ordinal();
+            }
+            case "5.4.5-SNAPSHOT": {
+                return MQVersion.Version.V5_4_5_SNAPSHOT.ordinal();
+            }
+            case "5.4.5": {
+                return MQVersion.Version.V5_4_5.ordinal();
+            }
+            case "5.4.6-SNAPSHOT": {
+                return MQVersion.Version.V5_4_6_SNAPSHOT.ordinal();
+            }
+            case "5.4.6": {
+                return MQVersion.Version.V5_4_6.ordinal();
+            }
+            case "5.4.7-SNAPSHOT": {
+                return MQVersion.Version.V5_4_7_SNAPSHOT.ordinal();
+            }
+            case "5.4.7": {
+                return MQVersion.Version.V5_4_7.ordinal();
+            }
+            case "5.4.8-SNAPSHOT": {
+                return MQVersion.Version.V5_4_8_SNAPSHOT.ordinal();
+            }
+            case "5.4.8": {
+                return MQVersion.Version.V5_4_8.ordinal();
+            }
+            case "5.4.9-SNAPSHOT": {
+                return MQVersion.Version.V5_4_9_SNAPSHOT.ordinal();
+            }
+            case "5.4.9": {
+                return MQVersion.Version.V5_4_9.ordinal();
+            }
+            case "5.5.0-SNAPSHOT": {
+                return MQVersion.Version.V5_5_0_SNAPSHOT.ordinal();
+            }
+            case "5.5.0": {
+                return MQVersion.Version.V5_5_0.ordinal();
+            }
+            case "5.5.1-SNAPSHOT": {
+                return MQVersion.Version.V5_5_1_SNAPSHOT.ordinal();
+            }
+            case "5.5.1": {
+                return MQVersion.Version.V5_5_1.ordinal();
+            }
+            case "5.5.2-SNAPSHOT": {
+                return MQVersion.Version.V5_5_2_SNAPSHOT.ordinal();
+            }
+            case "5.5.2": {
+                return MQVersion.Version.V5_5_2.ordinal();
+            }
+            case "5.5.3-SNAPSHOT": {
+                return MQVersion.Version.V5_5_3_SNAPSHOT.ordinal();
+            }
+            case "5.5.3": {
+                return MQVersion.Version.V5_5_3.ordinal();
+            }
+            case "5.5.4-SNAPSHOT": {
+                return MQVersion.Version.V5_5_4_SNAPSHOT.ordinal();
+            }
+            case "5.5.4": {
+                return MQVersion.Version.V5_5_4.ordinal();
+            }
+            case "5.5.5-SNAPSHOT": {
+                return MQVersion.Version.V5_5_5_SNAPSHOT.ordinal();
+            }
+            case "5.5.5": {
+                return MQVersion.Version.V5_5_5.ordinal();
+            }
+            case "5.5.6-SNAPSHOT": {
+                return MQVersion.Version.V5_5_6_SNAPSHOT.ordinal();
+            }
+            case "5.5.6": {
+                return MQVersion.Version.V5_5_6.ordinal();
+            }
+            case "5.5.7-SNAPSHOT": {
+                return MQVersion.Version.V5_5_7_SNAPSHOT.ordinal();
+            }
+            case "5.5.7": {
+                return MQVersion.Version.V5_5_7.ordinal();
+            }
+            case "5.5.8-SNAPSHOT": {
+                return MQVersion.Version.V5_5_8_SNAPSHOT.ordinal();
+            }
+            case "5.5.8": {
+                return MQVersion.Version.V5_5_8.ordinal();
+            }
+            case "5.5.9-SNAPSHOT": {
+                return MQVersion.Version.V5_5_9_SNAPSHOT.ordinal();
+            }
+            case "5.5.9": {
+                return MQVersion.Version.V5_5_9.ordinal();
+            }
+            case "5.6.0-SNAPSHOT": {
+                return MQVersion.Version.V5_6_0_SNAPSHOT.ordinal();
+            }
+            case "5.6.0": {
+                return MQVersion.Version.V5_6_0.ordinal();
+            }
+            case "5.6.1-SNAPSHOT": {
+                return MQVersion.Version.V5_6_1_SNAPSHOT.ordinal();
+            }
+            case "5.6.1": {
+                return MQVersion.Version.V5_6_1.ordinal();
+            }
+            case "5.6.2-SNAPSHOT": {
+                return MQVersion.Version.V5_6_2_SNAPSHOT.ordinal();
+            }
+            case "5.6.2": {
+                return MQVersion.Version.V5_6_2.ordinal();
+            }
+            case "5.6.3-SNAPSHOT": {
+                return MQVersion.Version.V5_6_3_SNAPSHOT.ordinal();
+            }
+            case "5.6.3": {
+                return MQVersion.Version.V5_6_3.ordinal();
+            }
+            case "5.6.4-SNAPSHOT": {
+                return MQVersion.Version.V5_6_4_SNAPSHOT.ordinal();
+            }
+            case "5.6.4": {
+                return MQVersion.Version.V5_6_4.ordinal();
+            }
+            case "5.6.5-SNAPSHOT": {
+                return MQVersion.Version.V5_6_5_SNAPSHOT.ordinal();
+            }
+            case "5.6.5": {
+                return MQVersion.Version.V5_6_5.ordinal();
+            }
+            case "5.6.6-SNAPSHOT": {
+                return MQVersion.Version.V5_6_6_SNAPSHOT.ordinal();
+            }
+            case "5.6.6": {
+                return MQVersion.Version.V5_6_6.ordinal();
+            }
+            case "5.6.7-SNAPSHOT": {
+                return MQVersion.Version.V5_6_7_SNAPSHOT.ordinal();
+            }
+            case "5.6.7": {
+                return MQVersion.Version.V5_6_7.ordinal();
+            }
+            case "5.6.8-SNAPSHOT": {
+                return MQVersion.Version.V5_6_8_SNAPSHOT.ordinal();
+            }
+            case "5.6.8": {
+                return MQVersion.Version.V5_6_8.ordinal();
+            }
+            case "5.6.9-SNAPSHOT": {
+                return MQVersion.Version.V5_6_9_SNAPSHOT.ordinal();
+            }
+            case "5.6.9": {
+                return MQVersion.Version.V5_6_9.ordinal();
+            }
+            case "5.7.0-SNAPSHOT": {
+                return MQVersion.Version.V5_7_0_SNAPSHOT.ordinal();
+            }
+            case "5.7.0": {
+                return MQVersion.Version.V5_7_0.ordinal();
+            }
+            case "5.7.1-SNAPSHOT": {
+                return MQVersion.Version.V5_7_1_SNAPSHOT.ordinal();
+            }
+            case "5.7.1": {
+                return MQVersion.Version.V5_7_1.ordinal();
+            }
+            case "5.7.2-SNAPSHOT": {
+                return MQVersion.Version.V5_7_2_SNAPSHOT.ordinal();
+            }
+            case "5.7.2": {
+                return MQVersion.Version.V5_7_2.ordinal();
+            }
+            case "5.7.3-SNAPSHOT": {
+                return MQVersion.Version.V5_7_3_SNAPSHOT.ordinal();
+            }
+            case "5.7.3": {
+                return MQVersion.Version.V5_7_3.ordinal();
+            }
+            case "5.7.4-SNAPSHOT": {
+                return MQVersion.Version.V5_7_4_SNAPSHOT.ordinal();
+            }
+            case "5.7.4": {
+                return MQVersion.Version.V5_7_4.ordinal();
+            }
+            case "5.7.5-SNAPSHOT": {
+                return MQVersion.Version.V5_7_5_SNAPSHOT.ordinal();
+            }
+            case "5.7.5": {
+                return MQVersion.Version.V5_7_5.ordinal();
+            }
+            case "5.7.6-SNAPSHOT": {
+                return MQVersion.Version.V5_7_6_SNAPSHOT.ordinal();
+            }
+            case "5.7.6": {
+                return MQVersion.Version.V5_7_6.ordinal();
+            }
+            case "5.7.7-SNAPSHOT": {
+                return MQVersion.Version.V5_7_7_SNAPSHOT.ordinal();
+            }
+            case "5.7.7": {
+                return MQVersion.Version.V5_7_7.ordinal();
+            }
+            case "5.7.8-SNAPSHOT": {
+                return MQVersion.Version.V5_7_8_SNAPSHOT.ordinal();
+            }
+            case "5.7.8": {
+                return MQVersion.Version.V5_7_8.ordinal();
+            }
+            case "5.7.9-SNAPSHOT": {
+                return MQVersion.Version.V5_7_9_SNAPSHOT.ordinal();
+            }
+            case "5.7.9": {
+                return MQVersion.Version.V5_7_9.ordinal();
+            }
+            case "5.8.0-SNAPSHOT": {
+                return MQVersion.Version.V5_8_0_SNAPSHOT.ordinal();
+            }
+            case "5.8.0": {
+                return MQVersion.Version.V5_8_0.ordinal();
+            }
+            case "5.8.1-SNAPSHOT": {
+                return MQVersion.Version.V5_8_1_SNAPSHOT.ordinal();
+            }
+            case "5.8.1": {
+                return MQVersion.Version.V5_8_1.ordinal();
+            }
+            case "5.8.2-SNAPSHOT": {
+                return MQVersion.Version.V5_8_2_SNAPSHOT.ordinal();
+            }
+            case "5.8.2": {
+                return MQVersion.Version.V5_8_2.ordinal();
+            }
+            case "5.8.3-SNAPSHOT": {
+                return MQVersion.Version.V5_8_3_SNAPSHOT.ordinal();
+            }
+            case "5.8.3": {
+                return MQVersion.Version.V5_8_3.ordinal();
+            }
+            case "5.8.4-SNAPSHOT": {
+                return MQVersion.Version.V5_8_4_SNAPSHOT.ordinal();
+            }
+            case "5.8.4": {
+                return MQVersion.Version.V5_8_4.ordinal();
+            }
+            case "5.8.5-SNAPSHOT": {
+                return MQVersion.Version.V5_8_5_SNAPSHOT.ordinal();
+            }
+            case "5.8.5": {
+                return MQVersion.Version.V5_8_5.ordinal();
+            }
+            case "5.8.6-SNAPSHOT": {
+                return MQVersion.Version.V5_8_6_SNAPSHOT.ordinal();
+            }
+            case "5.8.6": {
+                return MQVersion.Version.V5_8_6.ordinal();
+            }
+            case "5.8.7-SNAPSHOT": {
+                return MQVersion.Version.V5_8_7_SNAPSHOT.ordinal();
+            }
+            case "5.8.7": {
+                return MQVersion.Version.V5_8_7.ordinal();
+            }
+            case "5.8.8-SNAPSHOT": {
+                return MQVersion.Version.V5_8_8_SNAPSHOT.ordinal();
+            }
+            case "5.8.8": {
+                return MQVersion.Version.V5_8_8.ordinal();
+            }
+            case "5.8.9-SNAPSHOT": {
+                return MQVersion.Version.V5_8_9_SNAPSHOT.ordinal();
+            }
+            case "5.8.9": {
+                return MQVersion.Version.V5_8_9.ordinal();
+            }
+            case "5.9.0-SNAPSHOT": {
+                return MQVersion.Version.V5_9_0_SNAPSHOT.ordinal();
+            }
+            case "5.9.0": {
+                return MQVersion.Version.V5_9_0.ordinal();
+            }
+            case "5.9.1-SNAPSHOT": {
+                return MQVersion.Version.V5_9_1_SNAPSHOT.ordinal();
+            }
+            case "5.9.1": {
+                return MQVersion.Version.V5_9_1.ordinal();
+            }
+            case "5.9.2-SNAPSHOT": {
+                return MQVersion.Version.V5_9_2_SNAPSHOT.ordinal();
+            }
+            case "5.9.2": {
+                return MQVersion.Version.V5_9_2.ordinal();
+            }
+            case "5.9.3-SNAPSHOT": {
+                return MQVersion.Version.V5_9_3_SNAPSHOT.ordinal();
+            }
+            case "5.9.3": {
+                return MQVersion.Version.V5_9_3.ordinal();
+            }
+            case "5.9.4-SNAPSHOT": {
+                return MQVersion.Version.V5_9_4_SNAPSHOT.ordinal();
+            }
+            case "5.9.4": {
+                return MQVersion.Version.V5_9_4.ordinal();
+            }
+            case "5.9.5-SNAPSHOT": {
+                return MQVersion.Version.V5_9_5_SNAPSHOT.ordinal();
+            }
+            case "5.9.5": {
+                return MQVersion.Version.V5_9_5.ordinal();
+            }
+            case "5.9.6-SNAPSHOT": {
+                return MQVersion.Version.V5_9_6_SNAPSHOT.ordinal();
+            }
+            case "5.9.6": {
+                return MQVersion.Version.V5_9_6.ordinal();
+            }
+            case "5.9.7-SNAPSHOT": {
+                return MQVersion.Version.V5_9_7_SNAPSHOT.ordinal();
+            }
+            case "5.9.7": {
+                return MQVersion.Version.V5_9_7.ordinal();
+            }
+            case "5.9.8-SNAPSHOT": {
+                return MQVersion.Version.V5_9_8_SNAPSHOT.ordinal();
+            }
+            case "5.9.8": {
+                return MQVersion.Version.V5_9_8.ordinal();
+            }
+            case "5.9.9-SNAPSHOT": {
+                return MQVersion.Version.V5_9_9_SNAPSHOT.ordinal();
+            }
+            case "5.9.9": {
+                return MQVersion.Version.V5_9_9.ordinal();
+            }
             default: {
+                if (Integer.parseInt(Character.toString(version.charAt(0))) < 5) {
+                    return 0;
+                }
                 return MQVersion.Version.HIGHER_VERSION.ordinal();
             }
         }
