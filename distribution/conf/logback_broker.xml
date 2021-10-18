@@ -277,8 +277,32 @@
         </encoder>
     </appender>
 
+    <appender name="RocketmqGrpcBrokerAppender_inner"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/logs/rocketmqlogs/grpc_broker.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/grpc_broker.%i.log.gz</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>5</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy
+            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>100MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+
     <appender name="RocketmqPopAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqPopAppender_inner"/>
+    </appender>
+
+    <appender name="RocketmqGrpcBrokerAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqGrpcBrokerAppender_inner"/>
+        <discardingThreshold>0</discardingThreshold>
     </appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -357,6 +381,11 @@
     <logger name="RocketmqPop" additivity="false">
         <level value="INFO" />
         <appender-ref ref="RocketmqPopAppender" />
+    </logger>
+
+    <logger name="RocketmqGrpc" additivity="false">
+        <level value="INFO" />
+        <appender-ref ref="RocketmqGrpcBrokerAppender" />
     </logger>
 
     <root>
