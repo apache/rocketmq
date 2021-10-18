@@ -237,6 +237,7 @@
                         <exclude>.gitmodules</exclude>
                         <exclude>.travis.yml</exclude>
                         <exclude>CONTRIBUTING.md</exclude>
+                        <exclude>README.md</exclude>
                         <exclude>bin/README.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>src/main/proto/.github/**</exclude>
