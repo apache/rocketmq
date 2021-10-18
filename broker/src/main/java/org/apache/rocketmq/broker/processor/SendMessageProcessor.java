@@ -25,6 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.grpc.transaction.TransactionHandle;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
@@ -54,6 +55,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RemotingResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
@@ -539,9 +541,17 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
             response.setRemark(null);
 
+            String transactionId = "";
+            String isTrans = msg.getProperties().get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+            if (isTrans != null && isTrans.equals("true")) {
+                AppendMessageResult result = putMessageResult.getAppendMessageResult();
+                TransactionHandle handle = new TransactionHandle(result.getMsgId(), result.getLogicsOffset(), result.getWroteOffset());
+                transactionId = handle.encode();
+            }
             responseHeader.setMsgId(putMessageResult.getAppendMessageResult().getMsgId());
             responseHeader.setQueueId(queueIdInt);
             responseHeader.setQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
+            responseHeader.setTransactionId(transactionId);
 
             doResponse(ctx, request, response);
 
