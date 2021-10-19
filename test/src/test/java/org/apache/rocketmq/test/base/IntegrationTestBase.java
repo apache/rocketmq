@@ -28,6 +28,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.grpc.server.GrpcServerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
@@ -106,6 +107,7 @@ public class IntegrationTestBase {
     public static NamesrvController createAndStartNamesrv() {
         String baseDir = createBaseDir();
         NamesrvConfig namesrvConfig = new NamesrvConfig();
+        namesrvConfig.setEnableGrpcServer(false);
         NettyServerConfig nameServerNettyServerConfig = new NettyServerConfig();
         namesrvConfig.setKvConfigPath(baseDir + SEP + "namesrv" + SEP + "kvConfig.json");
         namesrvConfig.setConfigStorePath(baseDir + SEP + "namesrv" + SEP + "namesrv.properties");
@@ -128,6 +130,7 @@ public class IntegrationTestBase {
     public static BrokerController createAndStartBroker(String nsAddr) {
         String baseDir = createBaseDir();
         BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setEnableGrpcServer(false);
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.getAndIncrement());
         brokerConfig.setBrokerIP1("127.0.0.1");
