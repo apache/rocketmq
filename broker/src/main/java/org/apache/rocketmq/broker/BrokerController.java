@@ -339,7 +339,9 @@ public class BrokerController {
 
         if (result) {
             if (nettyServerConfig.isInheritGrpcPortToHTTP2()) {
-                nettyServerConfig.setHttp2ProxyPort(this.grpcServerConfig.getPort());
+                if (this.grpcServerConfig != null) {
+                    nettyServerConfig.setHttp2ProxyPort(this.grpcServerConfig.getPort());
+                }
             }
 
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
@@ -347,6 +349,10 @@ public class BrokerController {
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             if (this.brokerConfig.isEnableGrpcServer()) {
+                if (grpcServerConfig == null) {
+                    GRPC_LOGGER.error("Grpc config is null");
+                    return false;
+                }
                 try {
                     this.grpcServer = new GrpcServer(grpcServerConfig,
                         ServerInterceptors.intercept(brokerGrpcService, new HeaderServerInterceptor()),

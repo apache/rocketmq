@@ -86,8 +86,10 @@ public class NamesrvController {
     }
 
     public boolean initialize() {
-        if (nettyServerConfig.isInheritGrpcPortToHTTP2()) {
-            nettyServerConfig.setHttp2ProxyPort(this.grpcServerConfig.getPort());
+        if (this.namesrvConfig.isEnableGrpcServer() && this.nettyServerConfig.isInheritGrpcPortToHTTP2()) {
+            if (this.grpcServerConfig != null) {
+                nettyServerConfig.setHttp2ProxyPort(this.grpcServerConfig.getPort());
+            }
         }
 
         this.kvConfigManager.load();
@@ -95,10 +97,14 @@ public class NamesrvController {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         if (this.namesrvConfig.isEnableGrpcServer()) {
+            if (this.grpcServerConfig == null) {
+                GRPC_LOGGER.error("Grpc config is null");
+                return false;
+            }
             try {
                 this.grpcServer = new GrpcServer(this.grpcServerConfig, new NameServerGrpcService(this), true);
             } catch (Exception e) {
-                log.error("Initialize grpc server failed", e);
+                GRPC_LOGGER.error("Initialize grpc server failed", e);
                 return false;
             }
         }
