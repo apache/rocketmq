@@ -66,24 +66,32 @@ public class ResponseBuilder {
                 code = Code.OK;
                 break;
             }
-            case ResponseCode.SYSTEM_ERROR:
-            case ResponseCode.FLUSH_DISK_TIMEOUT:
-            case ResponseCode.SLAVE_NOT_AVAILABLE:
-            case ResponseCode.FLUSH_SLAVE_TIMEOUT: {
+            case ResponseCode.SYSTEM_ERROR: {
                 code = Code.INTERNAL;
                 break;
             }
-            case ResponseCode.SYSTEM_BUSY: {
+            case ResponseCode.SYSTEM_BUSY:
+            case ResponseCode.POLLING_FULL: {
                 code = Code.RESOURCE_EXHAUSTED;
                 break;
             }
-            case ResponseCode.REQUEST_CODE_NOT_SUPPORTED:
+            case ResponseCode.REQUEST_CODE_NOT_SUPPORTED: {
+                code = Code.UNIMPLEMENTED;
+                break;
+            }
             case ResponseCode.MESSAGE_ILLEGAL:
-            case ResponseCode.VERSION_NOT_SUPPORTED: {
+            case ResponseCode.VERSION_NOT_SUPPORTED:
+            case ResponseCode.SUBSCRIPTION_PARSE_FAILED:
+            case ResponseCode.FILTER_DATA_NOT_EXIST: {
                 code = Code.INVALID_ARGUMENT;
                 break;
             }
-            case ResponseCode.SERVICE_NOT_AVAILABLE: {
+            case ResponseCode.SERVICE_NOT_AVAILABLE:
+            case ResponseCode.SLAVE_NOT_AVAILABLE:
+            case ResponseCode.PULL_RETRY_IMMEDIATELY:
+            case ResponseCode.PULL_OFFSET_MOVED:
+            case ResponseCode.SUBSCRIPTION_NOT_LATEST:
+            case ResponseCode.FILTER_DATA_NOT_LATEST: {
                 code = Code.UNAVAILABLE;
                 break;
             }
@@ -91,10 +99,25 @@ public class ResponseBuilder {
                 code = Code.PERMISSION_DENIED;
                 break;
             }
-            case ResponseCode.TOPIC_NOT_EXIST: {
+            case ResponseCode.TOPIC_NOT_EXIST:
+            case ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST:
+            case ResponseCode.SUBSCRIPTION_NOT_EXIST:
+            case ResponseCode.PULL_NOT_FOUND:
+            case ResponseCode.QUERY_NOT_FOUND:
+            case ResponseCode.CONSUMER_NOT_ONLINE: {
                 code = Code.NOT_FOUND;
                 break;
             }
+            case ResponseCode.POLLING_TIMEOUT:
+            case ResponseCode.FLUSH_DISK_TIMEOUT:
+            case ResponseCode.FLUSH_SLAVE_TIMEOUT: {
+                code = Code.DEADLINE_EXCEEDED;
+                break;
+            }
+            default: {
+                code = Code.UNKNOWN;
+            }
+
         }
         return code;
     }
