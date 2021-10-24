@@ -443,7 +443,7 @@ public class MappedFileQueue {
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
             int offset = mappedFile.flush(flushLeastPages);
-            if (mappedFile.getflushError()) {
+            if (mappedFile.isflushError()) {
                 this.flushError = true;
             }
             long where = mappedFile.getFileFromOffset() + offset;

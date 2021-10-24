@@ -584,7 +584,7 @@ public class MappedFile extends ReferenceResource {
     public String toString() {
         return this.fileName;
     }
-    public boolean getflushError() {
+    public boolean isflushError() {
         return this.flushError;
     }
 
