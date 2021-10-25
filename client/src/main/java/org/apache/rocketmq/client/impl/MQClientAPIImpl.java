@@ -474,7 +474,7 @@ public class MQClientAPIImpl {
                 final AtomicInteger times = new AtomicInteger();
                 long costTimeAsync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeAsync) {
-                    throw new RemotingTooMuchRequestException("sendMessage call timeout");
+                    throw new RemotingTimeoutException("sendMessage call timeout");
                 }
                 this.sendMessageAsync(addr, brokerName, msg, timeoutMillis - costTimeAsync, request, sendCallback, topicPublishInfo, instance,
                     retryTimesWhenSendFailed, times, context, producer);
@@ -482,7 +482,7 @@ public class MQClientAPIImpl {
             case SYNC:
                 long costTimeSync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeSync) {
-                    throw new RemotingTooMuchRequestException("sendMessage call timeout");
+                    throw new RemotingTimeoutException("sendMessage call timeout");
                 }
                 return this.sendMessageSync(addr, brokerName, msg, timeoutMillis - costTimeSync, request);
             default:
