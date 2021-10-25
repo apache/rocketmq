@@ -39,6 +39,7 @@ public class ClientConfig {
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     protected String namespace;
+    private boolean namespaceInitialized = false;
     protected AccessChannel accessChannel = AccessChannel.LOCAL;
 
     /**
@@ -274,20 +275,28 @@ public class ClientConfig {
     }
 
     public String getNamespace() {
+        if (namespaceInitialized) {
+            return namespace;
+        }
+
         if (StringUtils.isNotEmpty(namespace)) {
             return namespace;
         }
 
         if (StringUtils.isNotEmpty(this.namesrvAddr)) {
             if (NameServerAddressUtils.validateInstanceEndpoint(namesrvAddr)) {
-                return NameServerAddressUtils.parseInstanceIdFromEndpoint(namesrvAddr);
+                namespace = NameServerAddressUtils.parseInstanceIdFromEndpoint(namesrvAddr);
             }
         }
+        namespaceInitialized = true;
         return namespace;
     }
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+        if (StringUtils.isNotEmpty(namespace)) {
+            namespaceInitialized = true;
+        }
     }
 
     public AccessChannel getAccessChannel() {
