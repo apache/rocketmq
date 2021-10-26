@@ -114,7 +114,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
     private static String createBodyFile(MessageExt msg, int index) throws IOException {
         DataOutputStream dos = null;
         try {
-            StringBuffer bodyTmpFilePath = new StringBuffer("/tmp/rocketmq/msgbodys");
+            StringBuilder bodyTmpFilePath = new StringBuilder("/tmp/rocketmq/msgbodys");
             File file = new File(bodyTmpFilePath.toString());
             if (!file.exists()) {
                 file.mkdirs();
@@ -127,8 +127,9 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
             dos.write(msg.getBody());
             return bodyTmpFilePath.toString();
         } finally {
-            if (dos != null)
+            if (dos != null) {
                 dos.close();
+            }
         }
     }
 

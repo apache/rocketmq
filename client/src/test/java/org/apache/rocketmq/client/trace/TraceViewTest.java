@@ -17,12 +17,12 @@
 
 package org.apache.rocketmq.client.trace;
 
-import org.apache.commons.codec.Charsets;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageType;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class TraceViewTest {
@@ -46,7 +46,7 @@ public class TraceViewTest {
             .append(true).append(TraceConstants.FIELD_SPLITOR)
             .toString();
         MessageExt message = new MessageExt();
-        message.setBody(messageBody.getBytes(Charsets.UTF_8));
+        message.setBody(messageBody.getBytes(StandardCharsets.UTF_8));
         String key = "AC1415116D1418B4AAC217FE1B4E0000";
         List<TraceView> traceViews = TraceView.decodeFromTraceTransData(key, message);
         Assert.assertEquals(traceViews.size(), 1);

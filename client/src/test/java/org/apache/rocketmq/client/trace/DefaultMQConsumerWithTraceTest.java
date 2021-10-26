@@ -69,6 +69,7 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -234,6 +235,14 @@ public class DefaultMQConsumerWithTraceTest {
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);
         assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
+    }
+    
+    @Test
+    public void testPushConsumerWithTraceTLS() {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumerGroup", true);
+        consumer.setUseTLS(true);
+        AsyncTraceDispatcher asyncTraceDispatcher = (AsyncTraceDispatcher) consumer.getTraceDispatcher();
+        Assert.assertTrue(asyncTraceDispatcher.getTraceProducer().isUseTLS());
     }
 
     private PullRequest createPullRequest() {

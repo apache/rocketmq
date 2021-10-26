@@ -19,6 +19,7 @@ package org.apache.rocketmq.acl.plain;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -524,7 +525,7 @@ public class PlainAccessValidatorTest {
         // Verify the dateversion element is correct or not
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
-        
+
         // Restore the backup file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
@@ -616,4 +617,44 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(aclConfig.getPlainAccessConfigs().size(), 2);
     }
 
+
+    @Test
+    public void updateAccessConfigEmptyPermListTest(){
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        String accessKey = "updateAccessConfigEmptyPerm";
+        plainAccessConfig.setAccessKey(accessKey);
+        plainAccessConfig.setSecretKey("123456789111");
+        plainAccessConfig.setTopicPerms(Collections.singletonList("topicB=PUB"));
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        plainAccessConfig.setTopicPerms(new ArrayList<>());
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        PlainAccessConfig result = plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()
+                .stream().filter(c->c.getAccessKey().equals(accessKey)).findFirst().orElse(null);
+        Assert.assertEquals(0, result.getTopicPerms().size());
+
+        plainAccessValidator.deleteAccessConfig(accessKey);
+    }
+
+    @Test
+    public void updateAccessConfigEmptyWhiteRemoteAddressTest(){
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        String accessKey = "updateAccessConfigEmptyWhiteRemoteAddress";
+        plainAccessConfig.setAccessKey(accessKey);
+        plainAccessConfig.setSecretKey("123456789111");
+        plainAccessConfig.setWhiteRemoteAddress("127.0.0.1");
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        plainAccessConfig.setWhiteRemoteAddress("");
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+
+        PlainAccessConfig result = plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()
+                .stream().filter(c->c.getAccessKey().equals(accessKey)).findFirst().orElse(null);
+        Assert.assertEquals("", result.getWhiteRemoteAddress());
+
+        plainAccessValidator.deleteAccessConfig(accessKey);
+    }
 }

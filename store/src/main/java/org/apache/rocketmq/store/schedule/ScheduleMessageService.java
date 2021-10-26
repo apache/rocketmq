@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.topic.TopicValidator;
@@ -77,8 +78,7 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     /**
-     * @param writeMessageStore
-     *     the writeMessageStore to set
+     * @param writeMessageStore the writeMessageStore to set
      */
     public void setWriteMessageStore(MessageStore writeMessageStore) {
         this.writeMessageStore = writeMessageStore;
@@ -132,7 +132,9 @@ public class ScheduleMessageService extends ConfigManager {
                 @Override
                 public void run() {
                     try {
-                        if (started.get()) ScheduleMessageService.this.persist();
+                        if (started.get()) {
+                            ScheduleMessageService.this.persist();
+                        }
                     } catch (Throwable e) {
                         log.error("scheduleAtFixedRate flush exception", e);
                     }
@@ -164,7 +166,44 @@ public class ScheduleMessageService extends ConfigManager {
     public boolean load() {
         boolean result = super.load();
         result = result && this.parseDelayLevel();
+        result = result && this.correctDelayOffset();
         return result;
+    }
+
+    public boolean correctDelayOffset() {
+        try {
+            for (int delayLevel : delayLevelTable.keySet()) {
+                ConsumeQueue cq =
+                    ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+                        delayLevel2QueueId(delayLevel));
+                Long currentDelayOffset = offsetTable.get(delayLevel);
+                if (currentDelayOffset == null || cq == null) {
+                    continue;
+                }
+                long correctDelayOffset = currentDelayOffset;
+                long cqMinOffset = cq.getMinOffsetInQueue();
+                long cqMaxOffset = cq.getMaxOffsetInQueue();
+                if (currentDelayOffset < cqMinOffset) {
+                    correctDelayOffset = cqMinOffset;
+                    log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
+                        currentDelayOffset, cqMinOffset, cqMaxOffset, cq.getQueueId());
+                }
+
+                if (currentDelayOffset > cqMaxOffset) {
+                    correctDelayOffset = cqMaxOffset;
+                    log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
+                        currentDelayOffset, cqMinOffset, cqMaxOffset, cq.getQueueId());
+                }
+                if (correctDelayOffset != currentDelayOffset) {
+                    log.error("correct delay offset [ delayLevel {} ] from {} to {}", delayLevel, currentDelayOffset, correctDelayOffset);
+                    offsetTable.put(delayLevel, correctDelayOffset);
+                }
+            }
+        } catch (Exception e) {
+            log.error("correctDelayOffset exception", e);
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -308,7 +347,7 @@ public class ScheduleMessageService extends ConfigManager {
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                         if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                                             log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
-                                                    msgInner.getTopic(), msgInner);
+                                                msgInner.getTopic(), msgInner);
                                             continue;
                                         }
                                         PutMessageResult putMessageResult =
@@ -318,6 +357,10 @@ public class ScheduleMessageService extends ConfigManager {
                                         if (putMessageResult != null
                                             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                                             if (ScheduleMessageService.this.defaultMessageStore.getMessageStoreConfig().isEnableScheduleMessageStats()) {
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incQueueGetNums(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, delayLevel - 1, putMessageResult.getAppendMessageResult().getMsgNum());
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incQueueGetSize(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, delayLevel - 1, putMessageResult.getAppendMessageResult().getWroteBytes());
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incGroupGetNums(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, putMessageResult.getAppendMessageResult().getMsgNum());
+                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incGroupGetSize(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, putMessageResult.getAppendMessageResult().getWroteBytes());
                                                 ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
                                                 ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
                                                     putMessageResult.getAppendMessageResult().getWroteBytes());
@@ -339,14 +382,9 @@ public class ScheduleMessageService extends ConfigManager {
                                     } catch (Exception e) {
                                         /*
                                          * XXX: warn and notify me
-
-
-
                                          */
                                         log.error(
-                                            "ScheduleMessageService, messageTimeup execute error, drop it. msgExt="
-                                                + msgExt + ", nextOffset=" + nextOffset + ",offsetPy="
-                                                + offsetPy + ",sizePy=" + sizePy, e);
+                                            "ScheduleMessageService, messageTimeup execute error, drop it. msgExt={}, nextOffset={}, offsetPy={}, sizePy={}", msgExt, nextOffset, offsetPy, sizePy, e);
                                     }
                                 }
                             } else {
@@ -371,10 +409,17 @@ public class ScheduleMessageService extends ConfigManager {
                 else {
 
                     long cqMinOffset = cq.getMinOffsetInQueue();
+                    long cqMaxOffset = cq.getMaxOffsetInQueue();
                     if (offset < cqMinOffset) {
                         failScheduleOffset = cqMinOffset;
-                        log.error("schedule CQ offset invalid. offset=" + offset + ", cqMinOffset="
-                            + cqMinOffset + ", queueId=" + cq.getQueueId());
+                        log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
+                            offset, cqMinOffset, cqMaxOffset, cq.getQueueId());
+                    }
+
+                    if (offset > cqMaxOffset) {
+                        failScheduleOffset = cqMaxOffset;
+                        log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
+                            offset, cqMinOffset, cqMaxOffset, cq.getQueueId());
                     }
                 }
             } // end of if (cq != null)
