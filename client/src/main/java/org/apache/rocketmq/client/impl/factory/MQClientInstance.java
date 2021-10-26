@@ -896,11 +896,7 @@ public class MQClientInstance {
                         try {
                             this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, clientConfig.getMqClientApiTimeout());
                             log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, brokerName, entry1.getKey(), addr);
-                        } catch (RemotingException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        } catch (InterruptedException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
-                        } catch (MQBrokerException e) {
+                        } catch (RemotingException | InterruptedException | MQBrokerException e) {
                             log.error("unregister client exception from broker: " + addr, e);
                         }
                     }
