@@ -274,6 +274,10 @@ public class BrokerConfig {
         return enablePopBufferMerge;
     }
 
+    public void setEnablePopBufferMerge(boolean enablePopBufferMerge) {
+        this.enablePopBufferMerge = enablePopBufferMerge;
+    }
+
     public int getPopCkMaxBufferSize() {
         return popCkMaxBufferSize;
     }
