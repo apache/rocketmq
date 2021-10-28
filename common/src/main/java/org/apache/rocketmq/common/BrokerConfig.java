@@ -238,36 +238,72 @@ public class BrokerConfig {
         return maxPopPollingSize;
     }
 
+    public void setMaxPopPollingSize(long maxPopPollingSize) {
+        this.maxPopPollingSize = maxPopPollingSize;
+    }
+
     public int getReviveQueueNum() {
         return reviveQueueNum;
+    }
+
+    public void setReviveQueueNum(int reviveQueueNum) {
+        this.reviveQueueNum = reviveQueueNum;
     }
 
     public long getReviveInterval() {
         return reviveInterval;
     }
 
+    public void setReviveInterval(long reviveInterval) {
+        this.reviveInterval = reviveInterval;
+    }
+
     public int getPopCkStayBufferTime() {
         return popCkStayBufferTime;
+    }
+
+    public void setPopCkStayBufferTime(int popCkStayBufferTime) {
+        this.popCkStayBufferTime = popCkStayBufferTime;
     }
 
     public int getPopCkStayBufferTimeOut() {
         return popCkStayBufferTimeOut;
     }
 
+    public void setPopCkStayBufferTimeOut(int popCkStayBufferTimeOut) {
+        this.popCkStayBufferTimeOut = popCkStayBufferTimeOut;
+    }
+
     public int getPopPollingMapSize() {
         return popPollingMapSize;
+    }
+
+    public void setPopPollingMapSize(int popPollingMapSize) {
+        this.popPollingMapSize = popPollingMapSize;
     }
 
     public long getReviveScanTime() {
         return reviveScanTime;
     }
 
+    public void setReviveScanTime(long reviveScanTime) {
+        this.reviveScanTime = reviveScanTime;
+    }
+
     public long getReviveMaxSlow() {
         return reviveMaxSlow;
     }
 
+    public void setReviveMaxSlow(long reviveMaxSlow) {
+        this.reviveMaxSlow = reviveMaxSlow;
+    }
+
     public int getPopPollingSize() {
         return popPollingSize;
+    }
+
+    public void setPopPollingSize(int popPollingSize) {
+        this.popPollingSize = popPollingSize;
     }
 
     public boolean isEnablePopBufferMerge() {
@@ -282,12 +318,24 @@ public class BrokerConfig {
         return popCkMaxBufferSize;
     }
 
+    public void setPopCkMaxBufferSize(int popCkMaxBufferSize) {
+        this.popCkMaxBufferSize = popCkMaxBufferSize;
+    }
+
     public int getPopCkOffsetMaxQueueSize() {
         return popCkOffsetMaxQueueSize;
     }
 
+    public void setPopCkOffsetMaxQueueSize(int popCkOffsetMaxQueueSize) {
+        this.popCkOffsetMaxQueueSize = popCkOffsetMaxQueueSize;
+    }
+
     public boolean isEnablePopLog() {
         return enablePopLog;
+    }
+
+    public void setEnablePopLog(boolean enablePopLog) {
+        this.enablePopLog = enablePopLog;
     }
 
     public boolean isTraceOn() {
@@ -954,11 +1002,9 @@ public class BrokerConfig {
         this.defaultMessageRequestMode = MessageRequestMode.valueOf(defaultMessageRequestMode);
     }
 
-
     public int getDefaultPopShareQueueNum() {
         return defaultPopShareQueueNum;
     }
-
 
     public void setDefaultPopShareQueueNum(int defaultPopShareQueueNum) {
         this.defaultPopShareQueueNum = defaultPopShareQueueNum;
