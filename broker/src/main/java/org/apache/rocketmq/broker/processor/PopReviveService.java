@@ -325,6 +325,7 @@ public class PopReviveService extends ServiceThread {
             }
             offset = offset + messageExts.size();
         }
+        consumeReviveObj.newOffset = offset - 1;
         consumeReviveObj.endTime = endTime;
     }
 
@@ -335,7 +336,6 @@ public class PopReviveService extends ServiceThread {
             POP_LOGGER.info("reviveQueueId={}, 1st ck, startOffset={}, reviveOffset={} ; last ck, startOffset={}, reviveOffset={}", queueId, sortList.get(0).getStartOffset(),
                     sortList.get(0).getReviveOffset(), sortList.get(sortList.size() - 1).getStartOffset(), sortList.get(sortList.size() - 1).getReviveOffset());
         }
-        long newOffset = consumeReviveObj.oldOffset;
         for (PopCheckPoint popCheckPoint : sortList) {
             if (!checkAndSetMaster()) {
                 POP_LOGGER.info("slave skip ck process , revive topic={}, reviveQueueId={}", reviveTopic, queueId);
@@ -349,27 +349,22 @@ public class PopReviveService extends ServiceThread {
             String normalTopic = KeyBuilder.parseNormalTopic(popCheckPoint.getTopic(), popCheckPoint.getCId());
             if (brokerController.getTopicConfigManager().selectTopicConfig(normalTopic) == null) {
                 POP_LOGGER.warn("reviveQueueId={},can not get normal topic {} , then continue ", queueId, popCheckPoint.getTopic());
-                newOffset = popCheckPoint.getReviveOffset();
                 continue;
             }
             if (null == brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(popCheckPoint.getCId())) {
                 POP_LOGGER.warn("reviveQueueId={},can not get cid {} , then continue ", queueId, popCheckPoint.getCId());
-                newOffset = popCheckPoint.getReviveOffset();
                 continue;
             }
 
             reviveMsgFromCk(popCheckPoint);
-
-            newOffset = popCheckPoint.getReviveOffset();
         }
-        if (newOffset > consumeReviveObj.oldOffset) {
+        if (consumeReviveObj.newOffset > consumeReviveObj.oldOffset) {
             if (!checkAndSetMaster()) {
                 POP_LOGGER.info("slave skip commit, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                 return;
             }
-            brokerController.getConsumerOffsetManager().commitOffset(PopAckConstants.LOCAL_HOST, PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, newOffset);
+            brokerController.getConsumerOffsetManager().commitOffset(PopAckConstants.LOCAL_HOST, PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, consumeReviveObj.newOffset);
         }
-        consumeReviveObj.newOffset = newOffset;
     }
 
     private void reviveMsgFromCk(PopCheckPoint popCheckPoint) throws Throwable {
