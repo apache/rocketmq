@@ -1182,7 +1182,7 @@ public class BrokerController {
         handleSlaveSynchronize(BrokerRole.SLAVE);
 
         try {
-            this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
+            this.registerBrokerAll(true, true, true);
         } catch (Throwable ignored) {
 
         }
@@ -1219,7 +1219,7 @@ public class BrokerController {
         messageStoreConfig.setBrokerRole(role);
 
         try {
-            this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
+            this.registerBrokerAll(true, true, true);
         } catch (Throwable ignored) {
 
         }
