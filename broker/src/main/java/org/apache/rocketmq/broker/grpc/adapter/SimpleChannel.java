@@ -43,6 +43,7 @@ public class SimpleChannel extends AbstractChannel {
 
     private final String remoteAddress;
     private final String localAddress;
+    private final long expiredTimeSec;
 
     private long lastAccessTime;
 
@@ -54,13 +55,15 @@ public class SimpleChannel extends AbstractChannel {
      * @param parent the parent of this channel. {@code null} if there's no parent.
      * @param remoteAddress Remote address
      * @param localAddress Local address
+     * @param expiredTimeSec Expired time second for cleaning channel
      */
-    public SimpleChannel(Channel parent, String remoteAddress, String localAddress) {
+    public SimpleChannel(Channel parent, String remoteAddress, String localAddress, long expiredTimeSec) {
         super(parent);
         lastAccessTime = System.currentTimeMillis();
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;
         this.inFlightRequestMap = new ConcurrentHashMap<>();
+        this.expiredTimeSec = expiredTimeSec;
     }
 
     public SimpleChannel(SimpleChannel other) {
@@ -69,6 +72,7 @@ public class SimpleChannel extends AbstractChannel {
         this.remoteAddress = other.remoteAddress;
         this.localAddress = other.localAddress;
         this.inFlightRequestMap = other.inFlightRequestMap;
+        this.expiredTimeSec = other.expiredTimeSec;
     }
 
     @Override
@@ -208,7 +212,7 @@ public class SimpleChannel extends AbstractChannel {
         int count = 0;
         while (iterator.hasNext()) {
             Map.Entry<Integer, InvocationContext> entry = iterator.next();
-            if (entry.getValue().expired()) {
+            if (entry.getValue().expired(expiredTimeSec)) {
                 iterator.remove();
                 count++;
                 LOGGER.debug("An expired request is found, created time-point: {}, Request: {}",

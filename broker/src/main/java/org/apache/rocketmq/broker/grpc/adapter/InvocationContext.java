@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.grpc.adapter;
 
 import io.grpc.stub.ServerCallStreamObserver;
+import java.util.concurrent.TimeUnit;
 
 public class InvocationContext<R, W> {
     final private R request;
@@ -29,8 +30,8 @@ public class InvocationContext<R, W> {
         streamObserver = resp;
     }
 
-    public boolean expired() {
-        return System.currentTimeMillis() - timestamp >= 120 * 1000;
+    public boolean expired(long expiredTimeSec) {
+        return System.currentTimeMillis() - timestamp >= TimeUnit.SECONDS.toMillis(expiredTimeSec);
     }
 
     public R getRequest() {

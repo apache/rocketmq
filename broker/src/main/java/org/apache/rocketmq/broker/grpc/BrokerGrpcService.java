@@ -795,6 +795,6 @@ public class BrokerGrpcService extends MessagingServiceGrpc.MessagingServiceImpl
             .get(InterceptorConstants.REMOTE_ADDRESS);
         final String localAddress = InterceptorConstants.METADATA.get(Context.current())
             .get(InterceptorConstants.LOCAL_ADDRESS);
-        return new SimpleChannel(null, clientHost, localAddress);
+        return new SimpleChannel(null, clientHost, localAddress, controller.getGrpcServerConfig().getExpiredChannelTimeSec());
     }
 }

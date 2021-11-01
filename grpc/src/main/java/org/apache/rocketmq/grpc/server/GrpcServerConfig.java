@@ -24,6 +24,7 @@ public class GrpcServerConfig {
     private int executorMaxThreadNumber = (Runtime.getRuntime().availableProcessors() + 1) * 16;
     private int executorQueueLength = 10000;
     private long rpcRoadReserveTimeMs = 10;
+    private long expiredChannelTimeSec = 120;
 
     public GrpcServerConfig() {
     }
@@ -74,5 +75,13 @@ public class GrpcServerConfig {
 
     public void setRpcRoadReserveTimeMs(long rpcRoadReserveTimeMs) {
         this.rpcRoadReserveTimeMs = rpcRoadReserveTimeMs;
+    }
+
+    public long getExpiredChannelTimeSec() {
+        return expiredChannelTimeSec;
+    }
+
+    public void setExpiredChannelTimeSec(long expiredChannelTimeSec) {
+        this.expiredChannelTimeSec = expiredChannelTimeSec;
     }
 }
