@@ -640,9 +640,6 @@ public class MQVersion {
         V4_9_9_SNAPSHOT,
         V4_9_9,
 
-        V5_0_0_PREVIEW_SNAPSHOT,
-        V5_0_0_PREVIEW,
-
         V5_0_0_SNAPSHOT,
         V5_0_0,
 
