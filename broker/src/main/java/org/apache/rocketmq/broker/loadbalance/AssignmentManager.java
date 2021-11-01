@@ -117,10 +117,10 @@ public class AssignmentManager {
         try {
             TopicRouteData topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             Map<String, BrokerData> brokerDataMap = new HashMap<>();
-            for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
-                brokerDataMap.put(brokerData.getBrokerName(), brokerData);
-            }
             if (topicRouteData != null) {
+                for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+                    brokerDataMap.put(brokerData.getBrokerName(), brokerData);
+                }
                 Set<MessageQueue> newSubscribeInfo = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                 Set<AddressableMessageQueue> newAddressableMessageQueueSet = new HashSet<>();
                 for (MessageQueue mq : newSubscribeInfo) {
