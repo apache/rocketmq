@@ -58,6 +58,8 @@ import org.apache.rocketmq.tools.command.logicalqueue.MigrateTopicLogicalQueueCo
 import org.apache.rocketmq.tools.command.logicalqueue.QueryTopicLogicalQueueMappingCommand;
 import org.apache.rocketmq.tools.command.logicalqueue.UpdateTopicLogicalQueueMappingCommand;
 import org.apache.rocketmq.tools.command.logicalqueue.UpdateTopicLogicalQueueNumCommand;
+import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
+import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
@@ -80,6 +82,7 @@ import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
+import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.topic.TopicClusterSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicRouteSubCommand;
@@ -160,7 +163,6 @@ public class MQAdminStartup {
         initCommand(new UpdateTopicSubCommand());
         initCommand(new DeleteTopicSubCommand());
         initCommand(new UpdateSubGroupSubCommand());
-        initCommand(new SetConsumeModeSubCommand());
         initCommand(new DeleteSubscriptionGroupCommand());
         initCommand(new UpdateBrokerConfigSubCommand());
         initCommand(new UpdateTopicPermSubCommand());
@@ -230,6 +232,10 @@ public class MQAdminStartup {
         initCommand(new QueryTopicLogicalQueueMappingCommand());
         initCommand(new MigrateTopicLogicalQueueCommand());
         initCommand(new UpdateTopicLogicalQueueNumCommand());
+
+        initCommand(new ExportMetadataCommand());
+        initCommand(new ExportConfigsCommand());
+        initCommand(new ExportMetricsCommand());
     }
 
     private static void initLogback() throws JoranException {

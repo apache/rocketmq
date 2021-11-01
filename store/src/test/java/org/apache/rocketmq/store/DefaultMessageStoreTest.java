@@ -605,6 +605,22 @@ public class DefaultMessageStoreTest {
         }
     }
 
+    @Test
+    public void testStorePathOK() {
+        if (messageStore instanceof DefaultMessageStore) {
+            assertTrue(fileExists(((DefaultMessageStore) messageStore).getStorePathPhysic()));
+            assertTrue(fileExists(((DefaultMessageStore) messageStore).getStorePathLogic()));
+        }
+    }
+
+    private boolean fileExists(String path) {
+        if (path != null) {
+            File f = new File(path);
+            return f.exists();
+        }
+        return false;
+    }
+
     private void damageCommitlog(long offset) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathCommitLog() + File.separator + "00000000000000000000");
