@@ -300,8 +300,8 @@ public class CustomDelayMessageService extends ConfigManager {
         if (queueId > CustomDelayMessageService.MAX_LIMIT_LEVEL) {
             queueId = CustomDelayMessageService.MAX_LIMIT_LEVEL;
         }
-        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_SPECIFY_DELAY_LEVEL, String.valueOf(queueId));
-        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_SPECIFY_DELAY_TAG, "1");
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CUSTOM_DELAY_LEVEL, String.valueOf(queueId));
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CUSTOM_DELAY_TAG, "1");
 
         topic = CustomDelayMessageService.SCHEDULE_TOPIC;
         // Backup real topic, queueId
@@ -402,7 +402,7 @@ public class CustomDelayMessageService extends ConfigManager {
                                     final String isDragon =
                                             msgInner.getProperties().get(MessageConst.PROPERTY_CUSTOM_DELAY_TIME);
                                     if (StringUtils.isBlank(isDragon)) {
-                                        MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_SPECIFY_DELAY_TAG);
+                                        MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_CUSTOM_DELAY_TAG);
                                     }
                                     PutMessageResult putMessageResult =
                                             CustomDelayMessageService.this.writeMessageStore

@@ -362,7 +362,7 @@ public class CommitLog {
                 }
                 // custom timing message process
                 {
-                    String t = propertiesMap.get(MessageConst.PROPERTY_SPECIFY_DELAY_LEVEL);
+                    String t = propertiesMap.get(MessageConst.PROPERTY_CUSTOM_DELAY_LEVEL);
                     if (t != null) {
                         int delayLevel = Integer.parseInt(t);
                         if (delayLevel > this.defaultMessageStore.getCustomDelayMessageService().getMaxDelayLevel()) {

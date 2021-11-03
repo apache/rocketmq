@@ -53,8 +53,8 @@ public class MessageConst {
     public static final String PROPERTY_CLUSTER = "CLUSTER";
     public static final String PROPERTY_MESSAGE_TYPE = "MSG_TYPE";
     public static final String PROPERTY_CUSTOM_DELAY_TIME = "CUSTOM_DELAY_TIME";
-    public static final String PROPERTY_SPECIFY_DELAY_TAG = "PROPERTY_SPECIFY_DELAY_TAG";
-    public static final String PROPERTY_SPECIFY_DELAY_LEVEL = "PROPERTY_SPECIFY_DELAY_LEVEL";
+    public static final String PROPERTY_CUSTOM_DELAY_TAG = "PROPERTY_CUSTOM_DELAY_TAG";
+    public static final String PROPERTY_CUSTOM_DELAY_LEVEL = "PROPERTY_CUSTOM_DELAY_LEVEL";
 
 
     public static final String KEY_SEPARATOR = " ";
