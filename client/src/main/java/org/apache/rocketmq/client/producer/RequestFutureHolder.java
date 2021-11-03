@@ -32,9 +32,9 @@ import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 
-public class RequestFutureTable {
+public class RequestFutureHolder {
     private static InternalLogger log = ClientLogger.getLog();
-    private static final RequestFutureTable INSTANCE = new RequestFutureTable();
+    private static final RequestFutureHolder INSTANCE = new RequestFutureHolder();
     private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
     private final AtomicInteger PRODUCER_NUM = new AtomicInteger(0);
     private final ScheduledExecutorService scheduledExecutorService = Executors
@@ -74,7 +74,7 @@ public class RequestFutureTable {
         }
     }
 
-    private RequestFutureTable() {
+    private RequestFutureHolder() {
     }
 
     public AtomicInteger getProducerNum() {
@@ -85,7 +85,7 @@ public class RequestFutureTable {
         return scheduledExecutorService;
     }
 
-    public static RequestFutureTable getInstance() {
+    public static RequestFutureHolder getInstance() {
         return INSTANCE;
     }
 }

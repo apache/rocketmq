@@ -56,7 +56,7 @@ import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.RequestCallback;
-import org.apache.rocketmq.client.producer.RequestFutureTable;
+import org.apache.rocketmq.client.producer.RequestFutureHolder;
 import org.apache.rocketmq.client.producer.RequestResponseFuture;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -228,12 +228,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void startScheduledTask() {
-        if (RequestFutureTable.getInstance().getProducerNum().incrementAndGet() == 1) {
-            RequestFutureTable.getInstance().getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
+        if (RequestFutureHolder.getInstance().getProducerNum().incrementAndGet() == 1) {
+            RequestFutureHolder.getInstance().getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        RequestFutureTable.getInstance().scanExpiredRequest();
+                        RequestFutureHolder.getInstance().scanExpiredRequest();
                     } catch (Throwable e) {
                         log.error("scan RequestFutureTable exception", e);
                     }
@@ -269,8 +269,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
-                if (RequestFutureTable.getInstance().getProducerNum().decrementAndGet() == 0) {
-                    RequestFutureTable.getInstance().getScheduledExecutorService().shutdown();
+                if (RequestFutureHolder.getInstance().getProducerNum().decrementAndGet() == 0) {
+                    RequestFutureHolder.getInstance().getScheduledExecutorService().shutdown();
                 }
                 log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
@@ -1391,7 +1391,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         try {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureTable.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
@@ -1410,7 +1410,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             return waitResponse(msg, timeout, requestResponseFuture, cost);
         } finally {
-            RequestFutureTable.getInstance().getRequestFutureTable().remove(correlationId);
+            RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         }
     }
 
@@ -1421,7 +1421,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
-        RequestFutureTable.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
         this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
@@ -1447,7 +1447,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         try {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureTable.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
@@ -1466,7 +1466,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             return waitResponse(msg, timeout, requestResponseFuture, cost);
         } finally {
-            RequestFutureTable.getInstance().getRequestFutureTable().remove(correlationId);
+            RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         }
     }
 
@@ -1478,7 +1478,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
-        RequestFutureTable.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
         this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
@@ -1504,7 +1504,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         try {
             final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, null);
-            RequestFutureTable.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+            RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
             long cost = System.currentTimeMillis() - beginTimestamp;
             this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
@@ -1523,7 +1523,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             return waitResponse(msg, timeout, requestResponseFuture, cost);
         } finally {
-            RequestFutureTable.getInstance().getRequestFutureTable().remove(correlationId);
+            RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         }
     }
 
@@ -1547,7 +1547,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final String correlationId = msg.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
 
         final RequestResponseFuture requestResponseFuture = new RequestResponseFuture(correlationId, timeout, requestCallback);
-        RequestFutureTable.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
+        RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
         this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
@@ -1565,7 +1565,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void requestFail(final String correlationId) {
-        RequestResponseFuture responseFuture = RequestFutureTable.getInstance().getRequestFutureTable().remove(correlationId);
+        RequestResponseFuture responseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         if (responseFuture != null) {
             responseFuture.setSendRequestOk(false);
             responseFuture.putResponseMessage(null);
