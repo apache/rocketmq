@@ -159,6 +159,9 @@ public class MessageStoreConfig {
 
     private boolean enableScheduleMessageStats = true;
 
+    private boolean enableScheduleAsyncReput = false;
+    private int scheduleAsyncReputMaxPendingLimit = 1000;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -743,5 +746,21 @@ public class MessageStoreConfig {
 
     public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
         this.enableScheduleMessageStats = enableScheduleMessageStats;
+    }
+
+    public boolean isEnableScheduleAsyncReput() {
+        return enableScheduleAsyncReput;
+    }
+
+    public void setEnableScheduleAsyncReput(boolean enableScheduleAsyncReput) {
+        this.enableScheduleAsyncReput = enableScheduleAsyncReput;
+    }
+
+    public int getScheduleAsyncReputMaxPendingLimit() {
+        return scheduleAsyncReputMaxPendingLimit;
+    }
+
+    public void setScheduleAsyncReputMaxPendingLimit(int scheduleAsyncReputMaxPendingLimit) {
+        this.scheduleAsyncReputMaxPendingLimit = scheduleAsyncReputMaxPendingLimit;
     }
 }
