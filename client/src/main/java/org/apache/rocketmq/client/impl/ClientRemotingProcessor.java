@@ -274,11 +274,11 @@ public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implemen
 
     private void processReplyMessage(MessageExt replyMsg) {
         final String correlationId = replyMsg.getUserProperty(MessageConst.PROPERTY_CORRELATION_ID);
-        final RequestResponseFuture requestResponseFuture = RequestFutureTable.getRequestFutureTable().get(correlationId);
+        final RequestResponseFuture requestResponseFuture = RequestFutureTable.getInstance().getRequestFutureTable().get(correlationId);
         if (requestResponseFuture != null) {
             requestResponseFuture.putResponseMessage(replyMsg);
 
-            RequestFutureTable.getRequestFutureTable().remove(correlationId);
+            RequestFutureTable.getInstance().getRequestFutureTable().remove(correlationId);
 
             if (requestResponseFuture.getRequestCallback() != null) {
                 requestResponseFuture.getRequestCallback().onSuccess(replyMsg);
