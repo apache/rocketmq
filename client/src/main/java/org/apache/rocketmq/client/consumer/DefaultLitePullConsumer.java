@@ -535,7 +535,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private void setTraceDispatcher() {
         if (isEnableMsgTrace()) {
             try {
-                this.traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, null);
+                AsyncTraceDispatcher traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, null);
+                traceDispatcher.getTraceProducer().setUseTLS(this.isUseTLS());
+                this.traceDispatcher = traceDispatcher;
                 this.defaultLitePullConsumerImpl.registerConsumeMessageHook(
                     new ConsumeMessageTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {

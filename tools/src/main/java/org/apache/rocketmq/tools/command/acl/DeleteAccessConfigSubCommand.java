@@ -85,9 +85,9 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
 
                 defaultMQAdminExt.start();
 
-                Set<String> masterSet =
-                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
-                for (String addr : masterSet) {
+                Set<String> brokerAddrSet =
+                    CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : brokerAddrSet) {
                     defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
                     System.out.printf("delete plain access config account from %s success.%n", addr);
                 }

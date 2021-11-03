@@ -43,6 +43,7 @@ before_script:
   - ulimit -c unlimited
 
 script:
+  - mvn verify -DskipTests
   - travis_retry mvn -B clean apache-rat:check
   - travis_retry mvn -B package jacoco:report coveralls:report
 

@@ -14,30 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.tools.command.namesrv;
 
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.tools.command.SubCommandException;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class RemotingUtilTest {
-    @Test
-    public void testGetLocalAddress() throws Exception {
-        String localAddress = RemotingUtil.getLocalAddress();
-        assertThat(localAddress).isNotNull();
-        assertThat(localAddress.length()).isGreaterThan(0);
-    }
+public class AddWritePermSubCommandTest {
 
     @Test
-    public void testConvert2IpStringWithIp() {
-        String result = RemotingUtil.convert2IpString("127.0.0.1:9876");
-        assertThat(result).isEqualTo("127.0.0.1:9876");
-    }
-
-    @Test
-    public void testConvert2IpStringWithHost() {
-        String result = RemotingUtil.convert2IpString("localhost:9876");
-        assertThat(result).isEqualTo("127.0.0.1:9876");
+    public void testExecute() throws SubCommandException {
+        AddWritePermSubCommand cmd = new AddWritePermSubCommand();
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        String[] subargs = new String[]{"-b default-broker"};
+        final CommandLine commandLine =
+                ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+        cmd.execute(commandLine, options, null);
     }
 }

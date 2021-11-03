@@ -16,11 +16,13 @@
  */
 package org.apache.rocketmq.example.benchmark;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -29,11 +31,9 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
@@ -47,7 +47,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Producer {
 
-    public static void main(String[] args) throws MQClientException, UnsupportedEncodingException {
+    private static byte[] msgBody;
+
+    public static void main(String[] args) throws MQClientException {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkProducer", args, buildCommandlineOptions(options), new PosixParser());
@@ -69,6 +71,12 @@ public class Producer {
 
         System.out.printf("topic: %s threadCount: %d messageSize: %d keyEnable: %s propertySize: %d tagCount: %d traceEnable: %s aclEnable: %s messageQuantity: %d%n delayEnable: %s%n delayLevel: %s%n",
             topic, threadCount, messageSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable, messageNum, delayEnable, delayLevel);
+
+        StringBuilder sb = new StringBuilder(messageSize);
+        for (int i = 0; i < messageSize; i++) {
+            sb.append(RandomStringUtils.randomAlphanumeric(1));
+        }
+        msgBody = sb.toString().getBytes(StandardCharsets.UTF_8);
 
         final InternalLogger log = ClientLogger.getLog();
 
@@ -142,13 +150,7 @@ public class Producer {
                     int num = 0;
                     while (true) {
                         try {
-                            final Message msg;
-                            try {
-                                msg = buildMessage(messageSize, topic);
-                            } catch (UnsupportedEncodingException e) {
-                                e.printStackTrace();
-                                return;
-                            }
+                            final Message msg = buildMessage(topic);
                             final long beginTimestamp = System.currentTimeMillis();
                             if (keyEnable) {
                                 msg.setKeys(String.valueOf(beginTimestamp / 1000));
@@ -290,18 +292,8 @@ public class Producer {
         return options;
     }
 
-    private static Message buildMessage(final int messageSize, final String topic) throws UnsupportedEncodingException {
-        Message msg = new Message();
-        msg.setTopic(topic);
-
-        StringBuilder sb = new StringBuilder(messageSize);
-        for (int i = 0; i < messageSize; i += 10) {
-            sb.append("hello baby");
-        }
-
-        msg.setBody(sb.toString().getBytes(RemotingHelper.DEFAULT_CHARSET));
-
-        return msg;
+    private static Message buildMessage(final String topic) {
+        return new Message(topic, msgBody);
     }
 
     private static void doPrintStats(final LinkedList<Long[]> snapshotList, final StatsBenchmarkProducer statsBenchmark, boolean done) {
