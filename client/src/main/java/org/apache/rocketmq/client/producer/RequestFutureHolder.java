@@ -36,7 +36,7 @@ public class RequestFutureHolder {
     private static InternalLogger log = ClientLogger.getLog();
     private static final RequestFutureHolder INSTANCE = new RequestFutureHolder();
     private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
-    private final AtomicInteger PRODUCER_NUM = new AtomicInteger(0);
+    private final AtomicInteger producerNum = new AtomicInteger(0);
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactory() {
             @Override
@@ -78,7 +78,7 @@ public class RequestFutureHolder {
     }
 
     public AtomicInteger getProducerNum() {
-        return PRODUCER_NUM;
+        return producerNum;
     }
 
     public ScheduledExecutorService getScheduledExecutorService() {
