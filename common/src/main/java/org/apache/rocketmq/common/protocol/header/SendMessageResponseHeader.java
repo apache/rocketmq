@@ -20,11 +20,14 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import java.util.HashMap;
+
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
-public class SendMessageResponseHeader implements CommandCustomHeader {
+public class SendMessageResponseHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private String msgId;
     @CFNotNull
@@ -35,6 +38,29 @@ public class SendMessageResponseHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    @Override
+    public void decode(HashMap<String, String> fields) throws RemotingCommandException {
+        String str = getAndCheckNotNull(fields, "msgId");
+        if (str != null) {
+            this.msgId = str;
+        }
+
+        str = getAndCheckNotNull(fields, "queueId");
+        if (str != null) {
+            this.queueId = Integer.parseInt(str);
+        }
+
+        str = getAndCheckNotNull(fields, "queueOffset");
+        if (str != null) {
+            this.queueOffset = Long.parseLong(str);
+        }
+
+        str = fields.get("transactionId");
+        if (str != null) {
+            this.transactionId = str;
+        }
     }
 
     public String getMsgId() {

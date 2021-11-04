@@ -35,7 +35,7 @@ public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
     public static final String SERIALIZE_TYPE_ENV = "ROCKETMQ_SERIALIZE_TYPE";
     public static final String REMOTING_VERSION_KEY = "rocketmq.remoting.version";
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
     private static final int RPC_ONEWAY = 1; // 0, RPC
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
@@ -243,6 +243,11 @@ public class RemotingCommand {
         }
 
         if (this.extFields != null) {
+            if (objectHeader instanceof FastCodesHeader) {
+                ((FastCodesHeader) objectHeader).decode(this.extFields);
+                objectHeader.checkFields();
+                return objectHeader;
+            }
 
             Field[] fields = getClazzFields(classHeader);
             for (Field field : fields) {
