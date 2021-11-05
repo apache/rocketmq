@@ -21,6 +21,8 @@ import java.util.HashMap;
 
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+import io.netty.buffer.ByteBuf;
+
 public interface FastCodesHeader {
 
     default String getAndCheckNotNull(HashMap<String, String> fields, String field) {
@@ -32,6 +34,15 @@ public interface FastCodesHeader {
         }
         return value;
     }
+
+    default void writeIfNotNull(ByteBuf out, String key, Object value) {
+        if (value != null) {
+            RocketMQSerializable.writeStr(out, true, key);
+            RocketMQSerializable.writeStr(out, false, value.toString());
+        }
+    }
+
+    public void encode(ByteBuf out);
 
     void decode(HashMap<String, String> fields) throws RemotingCommandException;
 

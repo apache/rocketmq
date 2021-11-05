@@ -28,6 +28,8 @@ import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
+import io.netty.buffer.ByteBuf;
+
 public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private String consumerGroup;
@@ -53,6 +55,21 @@ public class PullMessageRequestHeader implements CommandCustomHeader, FastCodesH
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    @Override
+    public void encode(ByteBuf out) {
+        writeIfNotNull(out, "consumerGroup", consumerGroup);
+        writeIfNotNull(out, "topic", topic);
+        writeIfNotNull(out, "queueId", queueId);
+        writeIfNotNull(out, "queueOffset", queueOffset);
+        writeIfNotNull(out, "maxMsgNums", maxMsgNums);
+        writeIfNotNull(out, "sysFlag", sysFlag);
+        writeIfNotNull(out, "commitOffset", commitOffset);
+        writeIfNotNull(out, "suspendTimeoutMillis", suspendTimeoutMillis);
+        writeIfNotNull(out, "subscription", subscription);
+        writeIfNotNull(out, "subVersion", subVersion);
+        writeIfNotNull(out, "expressionType", expressionType);
     }
 
     @Override

@@ -27,6 +27,8 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
+import io.netty.buffer.ByteBuf;
+
 public class PullMessageResponseHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private Long suggestWhichBrokerId;
@@ -39,6 +41,14 @@ public class PullMessageResponseHeader implements CommandCustomHeader, FastCodes
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    @Override
+    public void encode(ByteBuf out) {
+        writeIfNotNull(out, "suggestWhichBrokerId", suggestWhichBrokerId);
+        writeIfNotNull(out, "nextBeginOffset", nextBeginOffset);
+        writeIfNotNull(out, "minOffset", minOffset);
+        writeIfNotNull(out, "maxOffset", maxOffset);
     }
 
     @Override

@@ -27,6 +27,8 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 
+import io.netty.buffer.ByteBuf;
+
 public class SendMessageResponseHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private String msgId;
@@ -38,6 +40,14 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    @Override
+    public void encode(ByteBuf out) {
+        writeIfNotNull(out, "msgId", msgId);
+        writeIfNotNull(out, "queueId", queueId);
+        writeIfNotNull(out, "queueOffset", queueOffset);
+        writeIfNotNull(out, "transactionId", transactionId);
     }
 
     @Override

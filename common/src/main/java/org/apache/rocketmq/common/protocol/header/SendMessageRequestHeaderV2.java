@@ -25,6 +25,8 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+import io.netty.buffer.ByteBuf;
+
 /**
  * Use short variable name to speed up FastJson deserialization process.
  */
@@ -95,6 +97,23 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
 
     @Override
     public void checkFields() throws RemotingCommandException {
+    }
+
+    @Override
+    public void encode(ByteBuf out) {
+        writeIfNotNull(out, "a", a);
+        writeIfNotNull(out, "b", b);
+        writeIfNotNull(out, "c", c);
+        writeIfNotNull(out, "d", d);
+        writeIfNotNull(out, "e", e);
+        writeIfNotNull(out, "f", f);
+        writeIfNotNull(out, "g", g);
+        writeIfNotNull(out, "h", h);
+        writeIfNotNull(out, "i", i);
+        writeIfNotNull(out, "j", j);
+        writeIfNotNull(out, "k", k);
+        writeIfNotNull(out, "l", l);
+        writeIfNotNull(out, "m", m);
     }
 
     @Override
