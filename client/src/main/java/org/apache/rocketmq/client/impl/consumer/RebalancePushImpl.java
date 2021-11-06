@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -188,7 +189,8 @@ public class RebalancePushImpl extends RebalanceImpl {
                         }
                     }
                 } else {
-                    result = -1;
+                    throw new MQClientException(ResponseCode.QUERY_NOT_FOUND, "Failed to query consume offset from " +
+                            "offset store");
                 }
                 break;
             }
@@ -197,9 +199,11 @@ public class RebalancePushImpl extends RebalanceImpl {
                 if (lastOffset >= 0) {
                     result = lastOffset;
                 } else if (-1 == lastOffset) {
+                    //the offset will be fixed by the OFFSET_ILLEGAL process
                     result = 0L;
                 } else {
-                    result = -1;
+                    throw new MQClientException(ResponseCode.QUERY_NOT_FOUND, "Failed to query offset from offset " +
+                            "store");
                 }
                 break;
             }
@@ -226,13 +230,18 @@ public class RebalancePushImpl extends RebalanceImpl {
                         }
                     }
                 } else {
-                    result = -1;
+                    throw new MQClientException(ResponseCode.QUERY_NOT_FOUND, "Failed to query offset from offset " +
+                            "store");
                 }
                 break;
             }
 
             default:
                 break;
+        }
+
+        if (result < 0) {
+            throw new MQClientException(ResponseCode.SYSTEM_ERROR, "Found unexpected result " + result);
         }
 
         return result;

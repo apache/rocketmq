@@ -66,7 +66,6 @@ import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.common.protocol.body.MigrateLogicalQueueBody;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
@@ -76,11 +75,13 @@ import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
-import org.apache.rocketmq.common.protocol.route.MessageQueueRouteState;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
+import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -94,15 +95,10 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.admin.api.TrackType;
 
-public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
+import static org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils.checkAndBuildMappingItems;
+import static org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
 
-    private final InternalLogger log = ClientLogger.getLog();
-    private final DefaultMQAdminExt defaultMQAdminExt;
-    private ServiceState serviceState = ServiceState.CREATE_JUST;
-    private MQClientInstance mqClientInstance;
-    private RPCHook rpcHook;
-    private long timeoutMillis = 20000;
-    private Random random = new Random();
+public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     private static final Set<String> SYSTEM_GROUP_SET = new HashSet<String>();
 
@@ -121,6 +117,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_PULL_GROUP);
         SYSTEM_GROUP_SET.add(MixAll.CID_SYS_RMQ_TRANS);
     }
+
+    private final InternalLogger log = ClientLogger.getLog();
+    private final DefaultMQAdminExt defaultMQAdminExt;
+    private ServiceState serviceState = ServiceState.CREATE_JUST;
+    private MQClientInstance mqClientInstance;
+    private RPCHook rpcHook;
+    private long timeoutMillis = 20000;
+    private Random random = new Random();
 
     public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt, long timeoutMillis) {
         this(defaultMQAdminExt, null, timeoutMillis);
@@ -247,7 +251,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public TopicConfig examineTopicConfig(String addr, String topic) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+    public TopicConfig examineTopicConfig(String addr,
+        String topic) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         return this.mqClientInstance.getMQClientAPIImpl().getTopicConfig(addr, topic, timeoutMillis);
     }
 
@@ -266,11 +271,22 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             }
         }
 
+        //Get the static stats
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigFromRoute(topic, topicRouteData, defaultMQAdminExt);
+        MQAdminUtils.convertPhysicalTopicStats(topic, brokerConfigMap, topicStatsTable);
+
         if (topicStatsTable.getOffsetTable().isEmpty()) {
             throw new MQClientException("Not found the topic stats info", null);
         }
 
         return topicStatsTable;
+    }
+
+    @Override
+    public TopicStatsTable examineTopicStats(String brokerAddr,
+        String topic) throws RemotingException, MQClientException, InterruptedException,
+        MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(brokerAddr, topic, timeoutMillis);
     }
 
     @Override
@@ -317,12 +333,29 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             }
         }
 
-        if (result.getOffsetTable().isEmpty()) {
+        Set<String> topics = new HashSet<>();
+        for (MessageQueue messageQueue: result.getOffsetTable().keySet()) {
+            topics.add(messageQueue.getTopic());
+        }
+
+        ConsumeStats staticResult = new ConsumeStats();
+        staticResult.setConsumeTps(result.getConsumeTps());
+        // for topic, we put the physical stats, how about group?
+        // staticResult.getOffsetTable().putAll(result.getOffsetTable());
+
+        for (String currentTopic: topics) {
+            TopicRouteData currentRoute = this.examineTopicRouteInfo(currentTopic);
+            Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigFromRoute(currentTopic, currentRoute, defaultMQAdminExt);
+            ConsumeStats consumeStats = MQAdminUtils.convertPhysicalConsumeStats(brokerConfigMap, result);
+            staticResult.getOffsetTable().putAll(consumeStats.getOffsetTable());
+        }
+
+        if (staticResult.getOffsetTable().isEmpty()) {
             throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE,
                 "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
         }
 
-        return result;
+        return staticResult;
     }
 
     @Override
@@ -347,54 +380,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             log.warn("the msgId maybe created by new client. msgId={}", msgId, e);
         }
         return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(topic, msgId);
-    }
-
-    @Override
-    public void updateTopicLogicalQueueMapping(String brokerAddr, String topic, int queueId, int logicalQueueIndex) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        this.mqClientInstance.getMQClientAPIImpl().updateTopicLogicalQueue(brokerAddr, topic, queueId, logicalQueueIndex, timeoutMillis);
-    }
-
-    @Override
-    public LogicalQueuesInfo queryTopicLogicalQueueMapping(String brokerAddr, String topic) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        return this.mqClientInstance.getMQClientAPIImpl().queryTopicLogicalQueue(brokerAddr, topic, timeoutMillis);
-    }
-
-    @Override
-    public void deleteTopicLogicalQueueMapping(String brokerAddr, String topic) throws InterruptedException, RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException, MQBrokerException {
-        this.mqClientInstance.getMQClientAPIImpl().deleteTopicLogicalQueueMapping(brokerAddr, topic, timeoutMillis);
-    }
-
-    @Override
-    public LogicalQueueRouteData sealTopicLogicalQueue(String brokerAddr, LogicalQueueRouteData queueRouteData) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        return this.mqClientInstance.getMQClientAPIImpl().sealTopicLogicalQueue(brokerAddr, queueRouteData, timeoutMillis);
-    }
-
-    @Override public LogicalQueueRouteData reuseTopicLogicalQueue(String brokerAddr, String topic, int queueId,
-        int logicalQueueIdx, MessageQueueRouteState messageQueueRouteState) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        return this.mqClientInstance.getMQClientAPIImpl().reuseTopicLogicalQueue(brokerAddr, topic, queueId, logicalQueueIdx, messageQueueRouteState, timeoutMillis);
-    }
-
-    @Override public LogicalQueueRouteData createMessageQueueForLogicalQueue(String brokerAddr, String topic,
-        int logicalQueueIdx, MessageQueueRouteState messageQueueStatus) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        return this.mqClientInstance.getMQClientAPIImpl().createMessageQueueForLogicalQueue(brokerAddr, topic, logicalQueueIdx, messageQueueStatus, timeoutMillis);
-    }
-
-    @Override public MigrateLogicalQueueBody migrateTopicLogicalQueuePrepare(
-        LogicalQueueRouteData fromQueueRouteData,
-        LogicalQueueRouteData toQueueRouteData) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        return this.mqClientInstance.getMQClientAPIImpl().migrateTopicLogicalQueuePrepare(fromQueueRouteData.getBrokerAddr(), fromQueueRouteData, toQueueRouteData, timeoutMillis);
-    }
-
-    @Override public MigrateLogicalQueueBody migrateTopicLogicalQueueCommit(
-        LogicalQueueRouteData fromQueueRouteData,
-        LogicalQueueRouteData toQueueRouteData) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        return this.mqClientInstance.getMQClientAPIImpl().migrateTopicLogicalQueueCommit(toQueueRouteData.getBrokerAddr(), fromQueueRouteData, toQueueRouteData, timeoutMillis);
-    }
-
-    @Override public void migrateTopicLogicalQueueNotify(String brokerAddr,
-        LogicalQueueRouteData fromQueueRouteData,
-        LogicalQueueRouteData toQueueRouteData) throws InterruptedException, RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException, MQBrokerException {
-        this.mqClientInstance.getMQClientAPIImpl().migrateTopicLogicalQueueNotify(brokerAddr, fromQueueRouteData, toQueueRouteData, timeoutMillis);
     }
 
     @Override
@@ -457,7 +442,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public int addWritePermOfBroker(String namesrvAddr, String brokerName) throws RemotingCommandException,
-            RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQClientException {
+        RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQClientException {
         return this.mqClientInstance.getMQClientAPIImpl().addWritePermOfBroker(namesrvAddr, brokerName, timeoutMillis);
     }
 
@@ -1088,6 +1073,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,
+        final TopicQueueMappingDetail mappingDetail,
+        final boolean force) throws RemotingException, InterruptedException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail, force, timeoutMillis);
+    }
+
+    @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return this.mqClientInstance.getMQAdminImpl().searchOffset(mq, timestamp);
     }
@@ -1095,10 +1087,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public long maxOffset(MessageQueue mq) throws MQClientException {
         return this.mqClientInstance.getMQAdminImpl().maxOffset(mq);
-    }
-
-    public long maxOffset(MessageQueue mq, boolean committed) throws MQClientException {
-        return this.mqClientInstance.getMQAdminImpl().maxOffset(mq, committed);
     }
 
     @Override
@@ -1188,7 +1176,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public void setMessageRequestMode(final String brokerAddr, final String topic, final String consumerGroup, final
-        MessageRequestMode mode, final int popShareQueueNum, final long timeoutMillis)
+    MessageRequestMode mode, final int popShareQueueNum, final long timeoutMillis)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().setMessageRequestMode(brokerAddr, topic, consumerGroup, mode, popShareQueueNum, timeoutMillis);

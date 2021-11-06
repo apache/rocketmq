@@ -16,17 +16,18 @@
  */
 package org.apache.rocketmq.broker.slave;
 
-import java.io.IOException;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+
+import java.io.IOException;
 
 public class SlaveSynchronize {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -56,7 +57,7 @@ public class SlaveSynchronize {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
             try {
-                TopicConfigSerializeWrapper topicWrapper =
+                TopicConfigAndMappingSerializeWrapper topicWrapper =
                     this.brokerController.getBrokerOuterAPI().getAllTopicConfig(masterAddrBak);
                 if (!this.brokerController.getTopicConfigManager().getDataVersion()
                     .equals(topicWrapper.getDataVersion())) {
@@ -67,9 +68,17 @@ public class SlaveSynchronize {
                     this.brokerController.getTopicConfigManager().getTopicConfigTable()
                         .putAll(topicWrapper.getTopicConfigTable());
                     this.brokerController.getTopicConfigManager().persist();
-
-                    log.info("Update slave topic config from master, {}", masterAddrBak);
                 }
+                if (topicWrapper.getTopicQueueMappingDetailMap() != null
+                        && !topicWrapper.getMappingDataVersion().equals(this.brokerController.getTopicQueueMappingManager().getDataVersion())) {
+                    this.brokerController.getTopicQueueMappingManager().getDataVersion()
+                            .assignNewOne(topicWrapper.getMappingDataVersion());
+                    this.brokerController.getTopicQueueMappingManager().getTopicQueueMappingTable().clear();
+                    this.brokerController.getTopicQueueMappingManager().getTopicQueueMappingTable()
+                            .putAll(topicWrapper.getTopicQueueMappingDetailMap());
+                    this.brokerController.getTopicQueueMappingManager().persist();
+                }
+                log.info("Update slave topic config from master, {}", masterAddrBak);
             } catch (Exception e) {
                 log.error("SyncTopicConfig Exception, {}", masterAddrBak, e);
             }

@@ -23,6 +23,9 @@ package org.apache.rocketmq.common.protocol.route;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicRouteData extends RemotingSerializable {
@@ -30,7 +33,8 @@ public class TopicRouteData extends RemotingSerializable {
     private List<QueueData> queueDatas;
     private List<BrokerData> brokerDatas;
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
-    private LogicalQueuesInfo logicalQueuesInfo;
+    //It could be null or empty
+    private Map<String/*brokerName*/, TopicQueueMappingInfo> topicQueueMappingByBroker;
 
     public TopicRouteData() {
     }
@@ -53,8 +57,8 @@ public class TopicRouteData extends RemotingSerializable {
             this.filterServerTable.putAll(topicRouteData.filterServerTable);
         }
 
-        if (topicRouteData.logicalQueuesInfo != null) {
-            this.logicalQueuesInfo = new LogicalQueuesInfo(topicRouteData.logicalQueuesInfo);
+        if (topicRouteData.topicQueueMappingByBroker != null) {
+            this.topicQueueMappingByBroker = new HashMap<String, TopicQueueMappingInfo>(topicRouteData.topicQueueMappingByBroker);
         }
     }
 
@@ -90,12 +94,12 @@ public class TopicRouteData extends RemotingSerializable {
         this.orderTopicConf = orderTopicConf;
     }
 
-    public LogicalQueuesInfo getLogicalQueuesInfo() {
-        return logicalQueuesInfo;
+    public Map<String, TopicQueueMappingInfo> getTopicQueueMappingByBroker() {
+        return topicQueueMappingByBroker;
     }
 
-    public void setLogicalQueuesInfo(LogicalQueuesInfo logicalQueuesInfo) {
-        this.logicalQueuesInfo = logicalQueuesInfo;
+    public void setTopicQueueMappingByBroker(Map<String, TopicQueueMappingInfo> topicQueueMappingByBroker) {
+        this.topicQueueMappingByBroker = topicQueueMappingByBroker;
     }
 
     @Override
@@ -106,7 +110,7 @@ public class TopicRouteData extends RemotingSerializable {
         result = prime * result + ((orderTopicConf == null) ? 0 : orderTopicConf.hashCode());
         result = prime * result + ((queueDatas == null) ? 0 : queueDatas.hashCode());
         result = prime * result + ((filterServerTable == null) ? 0 : filterServerTable.hashCode());
-        result = prime * result + ((logicalQueuesInfo == null) ? 0 : logicalQueuesInfo.hashCode());
+        result = prime * result + ((topicQueueMappingByBroker == null) ? 0 : topicQueueMappingByBroker.hashCode());
         return result;
     }
 
@@ -139,10 +143,10 @@ public class TopicRouteData extends RemotingSerializable {
                 return false;
         } else if (!filterServerTable.equals(other.filterServerTable))
             return false;
-        if (logicalQueuesInfo == null) {
-            if (other.logicalQueuesInfo != null)
+        if (topicQueueMappingByBroker == null) {
+            if (other.topicQueueMappingByBroker != null)
                 return false;
-        } else if (!logicalQueuesInfo.equals(other.logicalQueuesInfo))
+        } else if (!topicQueueMappingByBroker.equals(other.topicQueueMappingByBroker))
             return false;
         return true;
     }
@@ -150,6 +154,6 @@ public class TopicRouteData extends RemotingSerializable {
     @Override
     public String toString() {
         return "TopicRouteData [orderTopicConf=" + orderTopicConf + ", queueDatas=" + queueDatas
-            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + ", logicalQueuesInfo=" + logicalQueuesInfo + "]";
+            + ", brokerDatas=" + brokerDatas + ", filterServerTable=" + filterServerTable + ", topicQueueMappingInfoTable=" + topicQueueMappingByBroker + "]";
     }
 }

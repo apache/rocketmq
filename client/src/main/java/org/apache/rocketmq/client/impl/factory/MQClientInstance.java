@@ -16,26 +16,6 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -77,8 +57,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -88,10 +66,32 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.io.UnsupportedEncodingException;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static org.apache.rocketmq.common.rpc.ClientMetadata.topicRouteData2EndpointsForStaticTopic;
 
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
-    private final InternalLogger log = ClientLogger.getLog();
+    private final static InternalLogger log = ClientLogger.getLog();
     private final ClientConfig clientConfig;
     private final int instanceIndex;
     private final String clientId;
@@ -103,6 +103,7 @@ public class MQClientInstance {
     private final MQClientAPIImpl mQClientAPIImpl;
     private final MQAdminImpl mQAdminImpl;
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
+    private final ConcurrentMap<String/* Topic */, ConcurrentMap<MessageQueue, String/*brokerName*/>> topicEndPointsTable = new ConcurrentHashMap<>();
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
@@ -162,8 +163,12 @@ public class MQClientInstance {
             MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION), RemotingCommand.getSerializeTypeConfigInThisServer());
     }
 
+
+
+
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
+        // TO DO should check the usage of raw route, it is better to remove such field
         info.setTopicRouteData(route);
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             String[] brokers = route.getOrderTopicConf().split(";");
@@ -177,28 +182,13 @@ public class MQClientInstance {
             }
 
             info.setOrderTopic(true);
-        } else if (route.getOrderTopicConf() == null  && route.getLogicalQueuesInfo() != null) {
+        } else if (route.getOrderTopicConf() == null
+                && route.getTopicQueueMappingByBroker() != null
+                && !route.getTopicQueueMappingByBroker().isEmpty()) {
             info.setOrderTopic(false);
-            List<MessageQueue> messageQueueList = info.getMessageQueueList();
-            LogicalQueuesInfo logicalQueueInfo = route.getLogicalQueuesInfo();
-            for (Map.Entry<Integer, List<LogicalQueueRouteData>> entry : logicalQueueInfo.entrySet()) {
-                boolean someWritable = false;
-                for (LogicalQueueRouteData logicalQueueRouteData : entry.getValue()) {
-                    if (logicalQueueRouteData.isWritable()) {
-                        someWritable = true;
-                        break;
-                    }
-                }
-                if (!someWritable) {
-                    continue;
-                }
-                MessageQueue mq = new MessageQueue();
-                mq.setQueueId(entry.getKey());
-                mq.setBrokerName(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME);
-                mq.setTopic(topic);
-                messageQueueList.add(mq);
-            }
-            Collections.sort(messageQueueList, new Comparator<MessageQueue>() {
+            ConcurrentMap<MessageQueue, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, route);
+            info.getMessageQueueList().addAll(mqEndPoints.keySet());
+            Collections.sort(info.getMessageQueueList(), new Comparator<MessageQueue>() {
                 @Override public int compare(MessageQueue o1, MessageQueue o2) {
                     return MixAll.compareInteger(o1.getQueueId(), o2.getQueueId());
                 }
@@ -239,26 +229,10 @@ public class MQClientInstance {
 
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
-        if (route.getLogicalQueuesInfo() != null) {
-            LogicalQueuesInfo logicalQueueInfo = route.getLogicalQueuesInfo();
-            for (Map.Entry<Integer, List<LogicalQueueRouteData>> entry : logicalQueueInfo.entrySet()) {
-                boolean someReadable = false;
-                for (LogicalQueueRouteData logicalQueueRouteData : entry.getValue()) {
-                    if (logicalQueueRouteData.isReadable()) {
-                        someReadable = true;
-                        break;
-                    }
-                }
-                if (!someReadable) {
-                    continue;
-                }
-                MessageQueue mq = new MessageQueue();
-                mq.setQueueId(entry.getKey());
-                mq.setBrokerName(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME);
-                mq.setTopic(topic);
-                mqList.add(mq);
-            }
-            return mqList;
+        if (route.getTopicQueueMappingByBroker() != null
+                && !route.getTopicQueueMappingByBroker().isEmpty()) {
+            ConcurrentMap<MessageQueue, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, route);
+            return mqEndPoints.keySet();
         }
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
@@ -656,11 +630,6 @@ public class MQClientInstance {
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
         DefaultMQProducer defaultMQProducer) {
-        return this.updateTopicRouteInfoFromNameServer(topic, isDefault, defaultMQProducer, null);
-    }
-
-    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
-        DefaultMQProducer defaultMQProducer, Set<Integer> logicalQueueIdsFilter) {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
@@ -676,7 +645,7 @@ public class MQClientInstance {
                             }
                         }
                     } else {
-                        topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, clientConfig.getMqClientApiTimeout(), true, logicalQueueIdsFilter);
+                        topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, clientConfig.getMqClientApiTimeout());
                     }
                     if (topicRouteData != null) {
                         TopicRouteData old = this.topicRouteTable.get(topic);
@@ -688,29 +657,17 @@ public class MQClientInstance {
                         }
 
                         if (changed) {
-                            TopicRouteData cloneTopicRouteData = new TopicRouteData(topicRouteData);
-                            if (logicalQueueIdsFilter != null && cloneTopicRouteData.getLogicalQueuesInfo() != null) {
-                                TopicRouteData curTopicRouteData = this.topicRouteTable.get(topic);
-                                if (curTopicRouteData != null) {
-                                    LogicalQueuesInfo curLogicalQueuesInfo = curTopicRouteData.getLogicalQueuesInfo();
-                                    if (curLogicalQueuesInfo != null) {
-                                        LogicalQueuesInfo cloneLogicalQueuesInfo = cloneTopicRouteData.getLogicalQueuesInfo();
-                                        curLogicalQueuesInfo.readLock().lock();
-                                        try {
-                                            for (Entry<Integer, List<LogicalQueueRouteData>> entry : curLogicalQueuesInfo.entrySet()) {
-                                                if (!cloneLogicalQueuesInfo.containsKey(entry.getKey())) {
-                                                    cloneLogicalQueuesInfo.put(entry.getKey(), entry.getValue());
-                                                }
-                                            }
-                                        } finally {
-                                            curLogicalQueuesInfo.readLock().unlock();
-                                        }
-                                    }
-                                }
-                            }
 
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
+                            }
+
+                            // Update endpoint map
+                            {
+                                ConcurrentMap<MessageQueue, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, topicRouteData);
+                                if (mqEndPoints != null && !mqEndPoints.isEmpty()) {
+                                    topicEndPointsTable.put(topic, mqEndPoints);
+                                }
                             }
 
                             // Update Pub info
@@ -739,6 +696,7 @@ public class MQClientInstance {
                                     }
                                 }
                             }
+                            TopicRouteData cloneTopicRouteData =  new TopicRouteData(topicRouteData);
                             log.info("topicRouteTable.put. Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
@@ -865,13 +823,6 @@ public class MQClientInstance {
     private boolean topicRouteDataIsChange(TopicRouteData olddata, TopicRouteData nowdata) {
         if (olddata == null || nowdata == null)
             return true;
-        LogicalQueuesInfo oldLogicalQueuesInfo = olddata.getLogicalQueuesInfo();
-        LogicalQueuesInfo newLogicalQueuesInfo = nowdata.getLogicalQueuesInfo();
-        if (oldLogicalQueuesInfo != null && newLogicalQueuesInfo != null) {
-            return oldLogicalQueuesInfo.keySet().equals(newLogicalQueuesInfo.keySet());
-        } else if (oldLogicalQueuesInfo != null || newLogicalQueuesInfo != null) {
-            return true;
-        }
         TopicRouteData old = new TopicRouteData(olddata);
         TopicRouteData now = new TopicRouteData(nowdata);
         Collections.sort(old.getQueueDatas());
@@ -1067,7 +1018,21 @@ public class MQClientInstance {
         return this.consumerTable.get(group);
     }
 
+
+    public String getBrokerNameFromMessageQueue(final MessageQueue mq) {
+        if (topicEndPointsTable != null
+            && topicEndPointsTable.get(mq.getTopic()) != null
+            && !topicEndPointsTable.get(mq.getTopic()).isEmpty()) {
+            return topicEndPointsTable.get(mq.getTopic()).get(mq);
+        }
+        return mq.getBrokerName();
+    }
+
+
     public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
+        if (brokerName == null) {
+            return null;
+        }
         String brokerAddr = null;
         boolean slave = false;
         boolean found = false;
@@ -1097,7 +1062,11 @@ public class MQClientInstance {
         return null;
     }
 
+
     public String findBrokerAddressInPublish(final String brokerName) {
+        if (brokerName == null) {
+            return null;
+        }
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
             return map.get(MixAll.MASTER_ID);
@@ -1106,11 +1075,15 @@ public class MQClientInstance {
         return null;
     }
 
+
     public FindBrokerResult findBrokerAddressInSubscribe(
         final String brokerName,
         final long brokerId,
         final boolean onlyThisBroker
     ) {
+        if (brokerName == null) {
+            return null;
+        }
         String brokerAddr = null;
         boolean slave = false;
         boolean found = false;
@@ -1141,7 +1114,7 @@ public class MQClientInstance {
         return null;
     }
 
-    public int findBrokerVersion(String brokerName, String brokerAddr) {
+    private int findBrokerVersion(String brokerName, String brokerAddr) {
         if (this.brokerVersionTable.containsKey(brokerName)) {
             if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);
