@@ -22,6 +22,7 @@ package org.apache.rocketmq.common.protocol.header;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class PullMessageResponseHeader implements CommandCustomHeader {
@@ -33,6 +34,8 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
     private Long minOffset;
     @CFNotNull
     private Long maxOffset;
+    @CFNullable
+    private Long offsetDelta;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -68,5 +71,13 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
 
     public void setSuggestWhichBrokerId(Long suggestWhichBrokerId) {
         this.suggestWhichBrokerId = suggestWhichBrokerId;
+    }
+
+    public Long getOffsetDelta() {
+        return offsetDelta;
+    }
+
+    public void setOffsetDelta(Long offsetDelta) {
+        this.offsetDelta = offsetDelta;
     }
 }

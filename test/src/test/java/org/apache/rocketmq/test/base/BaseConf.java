@@ -19,8 +19,10 @@ package org.apache.rocketmq.test.base;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -29,7 +31,6 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.MQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPushConsumer;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.MQProducer;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.MQVersion;
@@ -44,7 +45,7 @@ import org.apache.rocketmq.test.clientinterface.AbstractMQConsumer;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.AbstractListener;
-import org.apache.rocketmq.test.util.MQAdmin;
+import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
@@ -55,6 +56,8 @@ public class BaseConf {
     public final static String nsAddr;
     protected final static String broker1Name;
     protected final static String broker2Name;
+    //the logic queue test need at least three brokers
+    protected final static String broker3Name;
     protected final static String clusterName;
     protected final static int brokerNum;
     protected final static int waitTime = 5;
@@ -63,6 +66,7 @@ public class BaseConf {
     protected final static NamesrvController namesrvController;
     protected final static BrokerController brokerController1;
     protected final static BrokerController brokerController2;
+    protected final static BrokerController brokerController3;
     protected final static List<BrokerController> brokerControllerList;
     protected final static Map<String, BrokerController> brokerControllerMap;
     protected final static List<Object> mqClients = new ArrayList<Object>();
@@ -75,11 +79,13 @@ public class BaseConf {
         nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
         brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr);
         brokerController2 = IntegrationTestBase.createAndStartBroker(nsAddr);
+        brokerController3 = IntegrationTestBase.createAndStartBroker(nsAddr);
         clusterName = brokerController1.getBrokerConfig().getBrokerClusterName();
         broker1Name = brokerController1.getBrokerConfig().getBrokerName();
         broker2Name = brokerController2.getBrokerConfig().getBrokerName();
-        brokerNum = 2;
-        brokerControllerList = ImmutableList.of(brokerController1, brokerController2);
+        broker3Name = brokerController3.getBrokerConfig().getBrokerName();
+        brokerNum = 3;
+        brokerControllerList = ImmutableList.of(brokerController1, brokerController2, brokerController3);
         brokerControllerMap = brokerControllerList.stream().collect(Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
     }
 
@@ -97,7 +103,10 @@ public class BaseConf {
                 List<BrokerData> brokerDatas = mqAdminExt.examineTopicRouteInfo(clusterName).getBrokerDatas();
                 return brokerDatas.size() == brokerNum;
             });
-        } catch (MQClientException e) {
+            for (BrokerController brokerController: brokerControllerList) {
+                brokerController.getBrokerOuterAPI().refreshMetadata();
+            }
+        } catch (Exception e) {
             log.error("init failed, please check BaseConf");
         }
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
@@ -116,9 +125,18 @@ public class BaseConf {
     }
 
     public static String initConsumerGroup(String group) {
-        MQAdmin.createSub(nsAddr, clusterName, group);
+        MQAdminTestUtils.createSub(nsAddr, clusterName, group);
         return group;
     }
+
+    public static DefaultMQAdminExt getAdmin(String nsAddr) {
+        final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(500);
+        mqAdminExt.setNamesrvAddr(nsAddr);
+        mqAdminExt.setPollNameServerInterval(100);
+        mqClients.add(mqAdminExt);
+        return mqAdminExt;
+    }
+
 
     public static RMQNormalProducer getProducer(String nsAddr, String topic) {
         return getProducer(nsAddr, topic, false);
@@ -195,6 +213,14 @@ public class BaseConf {
         ImmutableList<Object> mqClients = ImmutableList.copyOf(BaseConf.mqClients);
         BaseConf.mqClients.clear();
         shutdown(mqClients);
+    }
+
+    public static Set<String> getBrokers() {
+        Set<String> brokers = new HashSet<>();
+        brokers.add(broker1Name);
+        brokers.add(broker2Name);
+        brokers.add(broker3Name);
+        return brokers;
     }
 
     public static void shutdown(List<Object> mqClients) {

@@ -35,6 +35,10 @@ public class BrokerPathConfigHelper {
         return rootDir + File.separator + "config" + File.separator + "topics.json";
     }
 
+    public static String getTopicQueueMappingPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "topicQueueMapping.json";
+    }
+
     public static String getConsumerOffsetPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "consumerOffset.json";
     }

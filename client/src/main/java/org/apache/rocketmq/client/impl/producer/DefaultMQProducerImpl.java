@@ -16,16 +16,12 @@
  */
 package org.apache.rocketmq.client.impl.producer;
 
-import com.alibaba.fastjson.JSON;
-import com.google.common.base.Objects;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -45,7 +41,6 @@ import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.exception.MQRedirectException;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.hook.CheckForbiddenContext;
 import org.apache.rocketmq.client.hook.CheckForbiddenHook;
@@ -67,7 +62,6 @@ import org.apache.rocketmq.client.producer.RequestFutureTable;
 import org.apache.rocketmq.client.producer.RequestResponseFuture;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.SendResultForLogicalQueue;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.client.producer.TransactionCheckListener;
 import org.apache.rocketmq.client.producer.TransactionListener;
@@ -88,13 +82,9 @@ import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageType;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.CorrelationIdUtil;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -730,43 +720,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final SendCallback sendCallback,
         final TopicPublishInfo topicPublishInfo,
         final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(mq.getBrokerName())) {
-            LogicalQueueSendContext logicalQueueContext = new LogicalQueueSendContext(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout);
-            while (true) {
-                try {
-                    SendResult sendResult = this.sendKernelImplWithoutRetry(msg,
-                        logicalQueueContext.getModifiedMessageQueue(),
-                        communicationMode,
-                        logicalQueueContext.wrapSendCallback(),
-                        topicPublishInfo,
-                        timeout);
-                    return logicalQueueContext.wrapSendResult(sendResult);
-                } catch (MQRedirectException e) {
-                    if (!logicalQueueContext.shouldRetry(e)) {
-                        throw new MQBrokerException(ResponseCode.SYSTEM_ERROR, "redirect");
-                    }
-                } catch (RemotingException e) {
-                    if (!logicalQueueContext.shouldRetry(e)) {
-                        throw e;
-                    }
-                }
-            }
-        } else {
-            return sendKernelImplWithoutRetry(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout);
-        }
-    }
-
-    private SendResult sendKernelImplWithoutRetry(final Message msg,
-        final MessageQueue mq,
-        final CommunicationMode communicationMode,
-        SendCallback sendCallback,
-        final TopicPublishInfo topicPublishInfo,
-        final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+        String brokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(mq);
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(brokerName);
         if (null == brokerAddr) {
             tryToFindTopicPublishInfo(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+            brokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(mq);
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(brokerName);
         }
 
         SendMessageContext context = null;
@@ -796,10 +756,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (tranMsg != null && Boolean.parseBoolean(tranMsg)) {
                     sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
-                }
-
-                if (!CommunicationMode.ONEWAY.equals(communicationMode)) {
-                    sysFlag |= MessageSysFlag.LOGICAL_QUEUE_FLAG;
                 }
 
                 if (hasCheckForbiddenHook()) {
@@ -890,7 +846,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         }
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
-                            mq.getBrokerName(),
+                            brokerName,
                             tmpMessage,
                             requestHeader,
                             timeout - costTimeAsync,
@@ -910,7 +866,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         }
                         sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(
                             brokerAddr,
-                            mq.getBrokerName(),
+                            brokerName,
                             msg,
                             requestHeader,
                             timeout - costTimeSync,
@@ -941,7 +897,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
         }
 
-        throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+        throw new MQClientException("The broker[" + brokerName + "] not exist", null);
     }
 
     public MQClientInstance getmQClientFactory() {
@@ -1042,7 +998,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             executeEndTransactionHook(context);
         }
     }
-
     /**
      * DEFAULT ONEWAY -------------------------------------------------------
      */
@@ -1377,7 +1332,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
         }
         String transactionId = sendResult.getTransactionId();
-        final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(sendResult.getMessageQueue().getBrokerName());
+        final String destBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(defaultMQProducer.queueWithNamespace(sendResult.getMessageQueue()));
+        final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(destBrokerName);
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
         requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
@@ -1681,179 +1637,5 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public DefaultMQProducer getDefaultMQProducer() {
         return defaultMQProducer;
-    }
-
-    private class LogicalQueueSendContext implements SendCallback {
-        private final Message msg;
-        private final MessageQueue mq;
-        private final CommunicationMode communicationMode;
-        private final SendCallback sendCallback;
-        private final TopicPublishInfo topicPublishInfo;
-        private final long timeout;
-
-        private volatile LogicalQueuesInfo logicalQueuesInfo;
-        private volatile LogicalQueueRouteData writableQueueRouteData;
-
-        private final AtomicInteger retry = new AtomicInteger();
-
-        public LogicalQueueSendContext(Message msg, MessageQueue mq,
-            CommunicationMode communicationMode, SendCallback sendCallback,
-            TopicPublishInfo topicPublishInfo, long timeout) {
-            this.msg = msg;
-            this.mq = mq;
-            this.communicationMode = communicationMode;
-            this.sendCallback = sendCallback;
-            this.topicPublishInfo = topicPublishInfo;
-            this.timeout = timeout;
-
-            if (topicPublishInfo == null) {
-                topicPublishInfo = DefaultMQProducerImpl.this.tryToFindTopicPublishInfo(mq.getTopic());
-            }
-            if (topicPublishInfo != null) {
-                this.logicalQueuesInfo = topicPublishInfo.getTopicRouteData().getLogicalQueuesInfo();
-            } else {
-                this.logicalQueuesInfo = null;
-            }
-        }
-
-        private boolean notUsingLogicalQueue() {
-            return !Objects.equal(mq.getBrokerName(), MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME) || this.logicalQueuesInfo == null;
-        }
-
-        public MessageQueue getModifiedMessageQueue() throws MQClientException {
-            if (this.notUsingLogicalQueue()) {
-                return this.mq;
-            }
-            this.writableQueueRouteData = getWritableQueueRouteData();
-            MessageQueue mq = new MessageQueue(this.mq);
-            mq.setBrokerName(writableQueueRouteData.getBrokerName());
-            mq.setQueueId(writableQueueRouteData.getQueueId());
-            return mq;
-        }
-
-        private LogicalQueueRouteData getWritableQueueRouteData() throws MQClientException {
-            this.logicalQueuesInfo.readLock().lock();
-            try {
-                List<LogicalQueueRouteData> queueRouteDataList = logicalQueuesInfo.get(mq.getQueueId());
-                if (queueRouteDataList == null || queueRouteDataList.size() == 0) {
-                    throw new MQClientException(String.format(Locale.ENGLISH, "send to a logical queue %d but no queue route data found", mq.getQueueId()), null);
-                }
-                // usually writable queue is placed in the last position, or second last when queue migrating
-                for (int i = queueRouteDataList.size() - 1; i >= 0; i--) {
-                    LogicalQueueRouteData queueRouteData = queueRouteDataList.get(i);
-                    if (queueRouteData.isWritable()) {
-                        return queueRouteData;
-                    }
-                }
-                throw new MQClientException(String.format(Locale.ENGLISH, "send to a logical queue %d but no writable queue route data found", mq.getQueueId()), null);
-            } finally {
-                this.logicalQueuesInfo.readLock().unlock();
-            }
-        }
-
-        @Override public void onSuccess(SendResult sendResult) {
-            this.sendCallback.onSuccess(this.wrapSendResult(sendResult));
-        }
-
-        @Override public void onException(Throwable t) {
-            if (this.shouldRetry(t)) {
-                try {
-                    DefaultMQProducerImpl.this.sendKernelImplWithoutRetry(msg, this.getModifiedMessageQueue(), communicationMode, this, topicPublishInfo, timeout);
-                    return;
-                } catch (Exception e) {
-                    t = e;
-                }
-            }
-            if (t instanceof MQRedirectException) {
-                t = new MQBrokerException(ResponseCode.SYSTEM_ERROR, "redirect");
-            }
-            this.sendCallback.onException(t);
-        }
-
-        private void handleRedirectException(MQRedirectException re) {
-            byte[] responseBody = re.getBody();
-            log.info("LogicalQueueContext.processResponseBody got redirect {}: {}", this.writableQueueRouteData, responseBody != null ? new String(responseBody, MessageDecoder.CHARSET_UTF8) : null);
-
-            try {
-                List<LogicalQueueRouteData> newQueueRouteDataList = JSON.parseObject(responseBody, MixAll.TYPE_LIST_LOGICAL_QUEUE_ROUTE_DATA);
-                this.logicalQueuesInfo.updateLogicalQueueRouteDataList(this.mq.getQueueId(), newQueueRouteDataList);
-            } catch (Exception e) {
-                log.warn("LogicalQueueContext.processResponseBody {} update exception, fallback to updateTopicRouteInfoFromNameServer", this.writableQueueRouteData, e);
-                DefaultMQProducerImpl.this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.mq.getTopic(), false, null, Collections.singleton(mq.getQueueId()));
-                TopicRouteData topicRouteData = DefaultMQProducerImpl.this.mQClientFactory.getAnExistTopicRouteData(mq.getTopic());
-                if (topicRouteData != null) {
-                    this.logicalQueuesInfo = topicRouteData.getLogicalQueuesInfo();
-                } else {
-                    this.logicalQueuesInfo = null;
-                }
-            }
-        }
-
-        public SendCallback wrapSendCallback() {
-            if (this.notUsingLogicalQueue()) {
-                return this.sendCallback;
-            }
-            if (!CommunicationMode.ASYNC.equals(this.communicationMode)) {
-                return this.sendCallback;
-            }
-            return this;
-        }
-
-        public boolean shouldRetry(Throwable t) {
-            this.incrRetry();
-            if (this.exceedMaxRetry()) {
-                log.warn("retry {} too many times: {}", this.retry.get(), this.writableQueueRouteData);
-                return false;
-            }
-            if (!this.writableQueueRouteData.isWritable()) {
-                log.warn("no writable queue: {}", this.writableQueueRouteData);
-                return false;
-            }
-            if (t instanceof MQRedirectException) {
-                this.handleRedirectException((MQRedirectException) t);
-                return true;
-            }
-            return !(t instanceof RemotingException) || this.handleRemotingException((RemotingException) t);
-        }
-
-        public boolean exceedMaxRetry() {
-            return this.retry.get() >= 3;
-        }
-
-        public void incrRetry() {
-            this.retry.incrementAndGet();
-        }
-
-        public SendResult wrapSendResult(SendResult sendResult) {
-            if (sendResult == null) {
-                return null;
-            }
-            SendResultForLogicalQueue newSendResult = new SendResultForLogicalQueue(sendResult, this.writableQueueRouteData.getLogicalQueueIndex());
-            long queueOffset = newSendResult.getQueueOffset();
-            if (queueOffset >= 0) {
-                newSendResult.setQueueOffset(LogicalQueueSendContext.this.writableQueueRouteData.toLogicalQueueOffset(queueOffset));
-            }
-            return newSendResult;
-        }
-
-        public boolean handleRemotingException(RemotingException e) {
-            if (e instanceof RemotingTooMuchRequestException) {
-                return false;
-            }
-            DefaultMQProducerImpl.this.mQClientFactory.updateTopicRouteInfoFromNameServer(this.mq.getTopic(), false, null, Collections.singleton(mq.getQueueId()));
-            this.logicalQueuesInfo = DefaultMQProducerImpl.this.getTopicPublishInfoTable().get(mq.getTopic()).getTopicRouteData().getLogicalQueuesInfo();
-            LogicalQueueRouteData writableQueueRouteData;
-            try {
-                writableQueueRouteData = this.getWritableQueueRouteData();
-            } catch (MQClientException ce) {
-                log.warn("getWritableQueueRouteData exception: {}", this.logicalQueuesInfo.get(mq.getQueueId()), ce);
-                return false;
-            }
-            if (Objects.equal(this.writableQueueRouteData.getMessageQueue(), writableQueueRouteData.getMessageQueue()) && writableQueueRouteData.isWritable()) {
-                // still same MessageQueue and still writable, no need to retry
-                return false;
-            }
-            return true;
-        }
     }
 }

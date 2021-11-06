@@ -47,6 +47,12 @@ public class TopicConfig {
         this.order = other.order;
     }
 
+    public TopicConfig(String topicName, int readQueueNums, int writeQueueNums) {
+        this.topicName = topicName;
+        this.readQueueNums = readQueueNums;
+        this.writeQueueNums = writeQueueNums;
+    }
+
     public TopicConfig(String topicName, int readQueueNums, int writeQueueNums, int perm) {
         this.topicName = topicName;
         this.readQueueNums = readQueueNums;
