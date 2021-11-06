@@ -1,4 +1,4 @@
-package org.apache.rocketmq.common.protocol.route;
+package org.apache.rocketmq.common;
 
 public class LogicQueueMappingItem {
 

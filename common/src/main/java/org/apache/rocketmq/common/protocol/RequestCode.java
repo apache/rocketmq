@@ -209,4 +209,8 @@ public class RequestCode {
     public static final int MIGRATE_TOPIC_LOGICAL_QUEUE_PREPARE = 417;
     public static final int MIGRATE_TOPIC_LOGICAL_QUEUE_COMMIT = 418;
     public static final int MIGRATE_TOPIC_LOGICAL_QUEUE_NOTIFY = 419;
+
+
+    public static final int UPDATE_AND_CREATE_STATIC_TOPIC = 513;
+
 }

@@ -80,6 +80,7 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
@@ -179,6 +180,7 @@ public class BrokerController {
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
     private TopicConfigManager topicConfigManager;
+    private TopicQueueMappingManager topicQueueMappingManager;
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
     private ExecutorService ackMessageExecutor;
@@ -215,6 +217,7 @@ public class BrokerController {
         this.messageStoreConfig = messageStoreConfig;
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.topicConfigManager = new TopicConfigManager(this);
+        this.topicQueueMappingManager = new TopicQueueMappingManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pullRequestHoldService = new PullRequestHoldService(this);
         this.popMessageProcessor = new PopMessageProcessor(this);
@@ -286,6 +289,8 @@ public class BrokerController {
 
     public boolean initialize() throws CloneNotSupportedException {
         boolean result = this.topicConfigManager.load();
+
+        result = result && this.topicQueueMappingManager.load();
 
         result = result && this.consumerOffsetManager.load();
         result = result && this.subscriptionGroupManager.load();
@@ -1182,6 +1187,10 @@ public class BrokerController {
 
     public void setTopicConfigManager(TopicConfigManager topicConfigManager) {
         this.topicConfigManager = topicConfigManager;
+    }
+
+    public TopicQueueMappingManager getTopicQueueMappingManager() {
+        return topicQueueMappingManager;
     }
 
     public String getHAServerAddr() {

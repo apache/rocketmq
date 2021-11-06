@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.body.TopicQueueMappingSerializeWrapper;
-import org.apache.rocketmq.common.protocol.route.TopicQueueMappingInfo;
+import org.apache.rocketmq.common.TopicQueueMappingInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
@@ -45,7 +45,14 @@ public class TopicQueueMappingManager extends ConfigManager {
 
     public TopicQueueMappingManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+    }
 
+    public void updateTopicQueueMapping(TopicQueueMappingInfo topicQueueMappingInfo) {
+        topicQueueMappingTable.put(topicQueueMappingInfo.getTopic(), topicQueueMappingInfo);
+    }
+
+    public TopicQueueMappingInfo getTopicQueueMapping(String topic) {
+        return topicQueueMappingTable.get(topic);
     }
 
     @Override

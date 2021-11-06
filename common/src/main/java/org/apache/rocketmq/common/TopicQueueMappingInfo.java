@@ -14,21 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common.protocol.route;
+package org.apache.rocketmq.common;
+
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TopicQueueMappingInfo {
+public class TopicQueueMappingInfo extends RemotingSerializable {
 
+    private String topic; // redundant field
     private int totalQueues;
     private String bname;  //identify the host name
     //the newest mapping is in current broker
     private Map<Integer/*global id*/, List<LogicQueueMappingItem>> hostedQueues = new HashMap<Integer, List<LogicQueueMappingItem>>();
 
 
-    public TopicQueueMappingInfo(int totalQueues, String bname) {
+    public TopicQueueMappingInfo(String topic, int totalQueues, String bname) {
+        this.topic = topic;
         this.totalQueues = totalQueues;
         this.bname = bname;
     }
@@ -57,5 +61,7 @@ public class TopicQueueMappingInfo {
         return bname;
     }
 
-
+    public String getTopic() {
+        return topic;
+    }
 }

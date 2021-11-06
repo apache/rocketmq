@@ -29,6 +29,8 @@ public class GetTopicConfigRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String topic;
 
+    private Boolean withMapping;
+
     /**
      * @return the topic
      */
@@ -41,5 +43,13 @@ public class GetTopicConfigRequestHeader implements CommandCustomHeader {
      */
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public Boolean getWithMapping() {
+        return withMapping;
+    }
+
+    public void setWithMapping(Boolean withMapping) {
+        this.withMapping = withMapping;
     }
 }

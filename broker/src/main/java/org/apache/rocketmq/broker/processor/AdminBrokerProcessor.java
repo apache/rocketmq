@@ -54,13 +54,7 @@ import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
-import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.PlainAccessConfig;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.TopicQueueId;
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.*;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicOffset;
@@ -74,28 +68,7 @@ import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsItem;
-import org.apache.rocketmq.common.protocol.body.Connection;
-import org.apache.rocketmq.common.protocol.body.ConsumeQueueData;
-import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
-import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
-import org.apache.rocketmq.common.protocol.body.CreateMessageQueueForLogicalQueueRequestBody;
-import org.apache.rocketmq.common.protocol.body.GroupList;
-import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.body.LockBatchResponseBody;
-import org.apache.rocketmq.common.protocol.body.MigrateLogicalQueueBody;
-import org.apache.rocketmq.common.protocol.body.ProducerConnection;
-import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
-import org.apache.rocketmq.common.protocol.body.QueryConsumeTimeSpanBody;
-import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
-import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
-import org.apache.rocketmq.common.protocol.body.ReuseTopicLogicalQueueRequestBody;
-import org.apache.rocketmq.common.protocol.body.SealTopicLogicalQueueRequestBody;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.body.UpdateTopicLogicalQueueMappingRequestBody;
+import org.apache.rocketmq.common.protocol.body.*;
 import org.apache.rocketmq.common.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.CreateAccessConfigRequestHeader;
@@ -282,6 +255,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return migrateTopicLogicalQueueCommit(ctx, request);
             case RequestCode.MIGRATE_TOPIC_LOGICAL_QUEUE_NOTIFY:
                 return migrateTopicLogicalQueueNotify(ctx, request);
+            case RequestCode.UPDATE_AND_CREATE_STATIC_TOPIC:
+                return this.updateAndCreateStaticTopic(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -322,6 +297,42 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         response.setCode(ResponseCode.SUCCESS);
         return response;
     }
+
+    private synchronized RemotingCommand updateAndCreateStaticTopic(ChannelHandlerContext ctx,
+                                                              RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final CreateTopicRequestHeader requestHeader =
+                (CreateTopicRequestHeader) request.decodeCommandCustomHeader(CreateTopicRequestHeader.class);
+        log.info("updateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        final TopicQueueMappingBody topicQueueMappingBody = RemotingSerializable.decode(request.getBody(), TopicQueueMappingBody.class);
+
+        String topic = requestHeader.getTopic();
+
+        if (!TopicValidator.validateTopic(topic, response)) {
+            return response;
+        }
+        if (TopicValidator.isSystemTopic(topic, response)) {
+            return response;
+        }
+
+        TopicConfig topicConfig = new TopicConfig(topic);
+        topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
+        topicConfig.setWriteQueueNums(requestHeader.getWriteQueueNums());
+        topicConfig.setTopicFilterType(requestHeader.getTopicFilterTypeEnum());
+        topicConfig.setPerm(requestHeader.getPerm());
+        topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
+
+        this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
+
+        this.brokerController.getTopicQueueMappingManager().updateTopicQueueMapping(topicQueueMappingBody);
+
+        this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
+
+        response.setCode(ResponseCode.SUCCESS);
+        return response;
+    }
+
 
     private synchronized RemotingCommand deleteTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
@@ -1715,7 +1726,11 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             response.setRemark("No topic in this broker. topic: " + requestHeader.getTopic());
             return response;
         }
-        String content = JSONObject.toJSONString(topicConfig);
+        TopicQueueMappingInfo topicQueueMappingInfo = null;
+        if (Boolean.TRUE.equals(requestHeader.getWithMapping())) {
+            topicQueueMappingInfo = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(requestHeader.getTopic());
+        }
+        String content = JSONObject.toJSONString(new TopicConfigAndQueueMapping(topicConfig, topicQueueMappingInfo));
         try {
             response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
         } catch (UnsupportedEncodingException e) {

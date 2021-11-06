@@ -14,32 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.common.protocol.body;
 
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.TopicQueueMappingInfo;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-import java.util.Map;
+public class TopicQueueMappingBody extends TopicQueueMappingInfo {
 
-public class TopicQueueMappingSerializeWrapper extends RemotingSerializable {
-    private Map<String/* topic */, TopicQueueMappingInfo> topicQueueMappingInfoMap;
-    private DataVersion dataVersion = new DataVersion();
-
-    public Map<String, TopicQueueMappingInfo> getTopicQueueMappingInfoMap() {
-        return topicQueueMappingInfoMap;
-    }
-
-    public void setTopicQueueMappingInfoMap(Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap) {
-        this.topicQueueMappingInfoMap = topicQueueMappingInfoMap;
-    }
-
-    public DataVersion getDataVersion() {
-        return dataVersion;
-    }
-
-    public void setDataVersion(DataVersion dataVersion) {
-        this.dataVersion = dataVersion;
+    public TopicQueueMappingBody(String topic, int totalQueues, String bname) {
+        super(topic, totalQueues, bname);
     }
 }
