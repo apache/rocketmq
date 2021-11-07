@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.body.TopicQueueMappingSerializeWrapper;
-import org.apache.rocketmq.common.TopicQueueMappingInfo;
+import org.apache.rocketmq.common.TopicQueueMappingDetail;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
@@ -41,18 +41,18 @@ public class TopicQueueMappingManager extends ConfigManager {
     private final DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
 
-    private final ConcurrentMap<String, TopicQueueMappingInfo> topicQueueMappingTable = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, TopicQueueMappingDetail> topicQueueMappingTable = new ConcurrentHashMap<>();
 
 
     public TopicQueueMappingManager(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
-    public void updateTopicQueueMapping(TopicQueueMappingInfo topicQueueMappingInfo) {
-        topicQueueMappingTable.put(topicQueueMappingInfo.getTopic(), topicQueueMappingInfo);
+    public void updateTopicQueueMapping(TopicQueueMappingDetail topicQueueMappingDetail) {
+        topicQueueMappingTable.put(topicQueueMappingDetail.getTopic(), topicQueueMappingDetail);
     }
 
-    public TopicQueueMappingInfo getTopicQueueMapping(String topic) {
+    public TopicQueueMappingDetail getTopicQueueMapping(String topic) {
         return topicQueueMappingTable.get(topic);
     }
 
@@ -86,7 +86,7 @@ public class TopicQueueMappingManager extends ConfigManager {
         }
     }
 
-    public ConcurrentMap<String, TopicQueueMappingInfo> getTopicQueueMappingTable() {
+    public ConcurrentMap<String, TopicQueueMappingDetail> getTopicQueueMappingTable() {
         return topicQueueMappingTable;
     }
 

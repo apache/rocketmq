@@ -200,7 +200,7 @@ public class DefaultRequestProcessorTest {
             .contains(new HashMap.SimpleEntry("broker", broker));
     }
 
-    @Test
+    /*@Test
     public void testProcessRequest_RegisterBrokerLogicalQueue() throws Exception {
         String cluster = "cluster";
         String broker1Name = "broker1";
@@ -299,7 +299,7 @@ public class DefaultRequestProcessorTest {
             assertThat(topicRouteDataNameSrv.getLogicalQueuesInfoUnordered()).isEqualTo(logicalQueuesInfoUnordered);
         }
     }
-
+*/
     @Test
     public void testProcessRequest_RegisterBrokerWithFilterServer() throws RemotingCommandException,
         NoSuchFieldException, IllegalAccessException {

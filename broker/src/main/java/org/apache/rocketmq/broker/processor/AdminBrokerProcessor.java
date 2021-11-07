@@ -1726,11 +1726,11 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             response.setRemark("No topic in this broker. topic: " + requestHeader.getTopic());
             return response;
         }
-        TopicQueueMappingInfo topicQueueMappingInfo = null;
+        TopicQueueMappingDetail topicQueueMappingDetail = null;
         if (Boolean.TRUE.equals(requestHeader.getWithMapping())) {
-            topicQueueMappingInfo = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(requestHeader.getTopic());
+            topicQueueMappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(requestHeader.getTopic());
         }
-        String content = JSONObject.toJSONString(new TopicConfigAndQueueMapping(topicConfig, topicQueueMappingInfo));
+        String content = JSONObject.toJSONString(new TopicConfigAndQueueMapping(topicConfig, topicQueueMappingDetail));
         try {
             response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
         } catch (UnsupportedEncodingException e) {

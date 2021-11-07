@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.common.protocol.body;
 
-import org.apache.rocketmq.common.TopicQueueMappingInfo;
+import org.apache.rocketmq.common.TopicQueueMappingDetail;
 
-public class TopicQueueMappingBody extends TopicQueueMappingInfo {
+public class TopicQueueMappingBody extends TopicQueueMappingDetail {
 
     public TopicQueueMappingBody(String topic, int totalQueues, String bname) {
         super(topic, totalQueues, bname);

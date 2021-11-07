@@ -18,15 +18,15 @@ package org.apache.rocketmq.common;
 
 public class TopicConfigAndQueueMapping {
     private TopicConfig topicConfig;
-    private TopicQueueMappingInfo topicQueueMappingInfo;
+    private TopicQueueMappingDetail topicQueueMappingDetail;
 
-    public TopicConfigAndQueueMapping(TopicConfig topicConfig, TopicQueueMappingInfo topicQueueMappingInfo) {
+    public TopicConfigAndQueueMapping(TopicConfig topicConfig, TopicQueueMappingDetail topicQueueMappingDetail) {
         this.topicConfig = topicConfig;
-        this.topicQueueMappingInfo = topicQueueMappingInfo;
+        this.topicQueueMappingDetail = topicQueueMappingDetail;
     }
 
-    public TopicQueueMappingInfo getTopicQueueMappingInfo() {
-        return topicQueueMappingInfo;
+    public TopicQueueMappingDetail getTopicQueueMappingInfo() {
+        return topicQueueMappingDetail;
     }
 
     public TopicConfig getTopicConfig() {

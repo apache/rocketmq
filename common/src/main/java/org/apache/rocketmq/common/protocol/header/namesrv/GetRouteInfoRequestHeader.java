@@ -20,7 +20,6 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv;
 
-import java.util.Set;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -28,9 +27,6 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 public class GetRouteInfoRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String topic;
-
-    private int sysFlag;
-    private Set<Integer> logicalQueueIdsFilter;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -42,21 +38,5 @@ public class GetRouteInfoRequestHeader implements CommandCustomHeader {
 
     public void setTopic(String topic) {
         this.topic = topic;
-    }
-
-    public int getSysFlag() {
-        return sysFlag;
-    }
-
-    public void setSysFlag(int sysFlag) {
-        this.sysFlag = sysFlag;
-    }
-
-    public void setLogicalQueueIdsFilter(Set<Integer> filter) {
-        this.logicalQueueIdsFilter = filter;
-    }
-
-    public Set<Integer> getLogicalQueueIdsFilter() {
-        return logicalQueueIdsFilter;
     }
 }
