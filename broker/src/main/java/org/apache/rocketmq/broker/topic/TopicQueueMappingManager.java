@@ -37,6 +37,7 @@ public class TopicQueueMappingManager extends ConfigManager {
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lock = new ReentrantLock();
 
+    //this data version should be equal to the TopicConfigManager
     private final DataVersion dataVersion = new DataVersion();
     private transient BrokerController brokerController;
 
@@ -83,6 +84,10 @@ public class TopicQueueMappingManager extends ConfigManager {
                 this.dataVersion.assignNewOne(wrapper.getDataVersion());
             }
         }
+    }
+
+    public ConcurrentMap<String, TopicQueueMappingInfo> getTopicQueueMappingTable() {
+        return topicQueueMappingTable;
     }
 
     public DataVersion getDataVersion() {

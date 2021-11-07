@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
-public class TopicConfigAndQueueMapping extends TopicConfig {
+public class TopicConfigAndQueueMapping {
     private TopicConfig topicConfig;
     private TopicQueueMappingInfo topicQueueMappingInfo;
 

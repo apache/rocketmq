@@ -441,8 +441,6 @@ public class TopicConfigManager extends ConfigManager {
     public TopicConfigSerializeWrapper buildTopicConfigSerializeWrapper() {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
-        String brokerName = this.brokerController.getBrokerConfig().getBrokerName();
-        topicConfigSerializeWrapper.setLogicalQueuesInfoMap(this.logicalQueuesInfoTable.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new LogicalQueuesInfoInBroker(e.getValue(), data -> Objects.equals(data.getBrokerName(), brokerName)))));
         topicConfigSerializeWrapper.setDataVersion(this.dataVersion);
         return topicConfigSerializeWrapper;
     }
@@ -474,7 +472,6 @@ public class TopicConfigManager extends ConfigManager {
     public String encode(final boolean prettyFormat) {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
-        topicConfigSerializeWrapper.setLogicalQueuesInfoMap(this.logicalQueuesInfoTable.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new LogicalQueuesInfoInBroker(e.getValue()))));
         topicConfigSerializeWrapper.setDataVersion(this.dataVersion);
         return topicConfigSerializeWrapper.toJson(prettyFormat);
     }

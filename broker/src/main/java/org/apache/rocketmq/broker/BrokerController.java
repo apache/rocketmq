@@ -95,12 +95,14 @@ import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.TopicQueueMappingInfo;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
@@ -1058,7 +1060,7 @@ public class BrokerController {
             return;
         }
 
-        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        TopicConfigAndMappingSerializeWrapper topicConfigSerializeWrapper = new TopicConfigAndMappingSerializeWrapper();
         topicConfigSerializeWrapper.setDataVersion(dataVersion);
 
         ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigList.stream()
@@ -1079,30 +1081,30 @@ public class BrokerController {
             .collect(Collectors.toConcurrentMap(TopicConfig::getTopicName, Function.identity()));
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
 
-        String brokerName = this.brokerConfig.getBrokerName();
-        Map<String, LogicalQueuesInfo> logicalQueuesInfoMap = topicConfigList.stream()
+        Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = topicConfigList.stream()
             .map(TopicConfig::getTopicName)
-            .map(topicName -> Optional.ofNullable(this.topicConfigManager.selectLogicalQueuesInfo(topicName))
-                .map(info -> {
-                    info.readLock().lock();
-                    try {
-                        return new AbstractMap.SimpleImmutableEntry<>(topicName, new LogicalQueuesInfoInBroker(info, data -> Objects.equals(data.getBrokerName(), brokerName)));
-                    } finally {
-                        info.readLock().unlock();
-                    }
-                })
+            .map(topicName -> Optional.ofNullable(this.topicQueueMappingManager.getTopicQueueMapping(topicName))
+                .map(info -> new AbstractMap.SimpleImmutableEntry<>(topicName, info.clone4register()))
                 .orElse(null))
             .filter(Objects::nonNull)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        if (!logicalQueuesInfoMap.isEmpty()) {
-            topicConfigSerializeWrapper.setLogicalQueuesInfoMap(logicalQueuesInfoMap);
+        if (!topicQueueMappingInfoMap.isEmpty()) {
+            topicConfigSerializeWrapper.setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
         }
 
         doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
     }
 
     public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
-        TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+
+        TopicConfigAndMappingSerializeWrapper topicConfigWrapper = new TopicConfigAndMappingSerializeWrapper();
+
+        topicConfigWrapper.setDataVersion(this.getTopicConfigManager().getDataVersion());
+        topicConfigWrapper.setTopicConfigTable(this.getTopicConfigManager().getTopicConfigTable());
+
+        topicConfigWrapper.setTopicQueueMappingInfoMap(this.getTopicQueueMappingManager().getTopicQueueMappingTable().entrySet().stream().map(
+                entry ->  new AbstractMap.SimpleImmutableEntry<>(entry.getKey(), entry.getValue().clone4register())
+        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
             || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
@@ -1121,8 +1123,8 @@ public class BrokerController {
                 }
             }
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
-            topicConfigWrapper.setLogicalQueuesInfoMap(logicalQueuesInfoMap);
         }
+
 
         if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
@@ -1134,7 +1136,7 @@ public class BrokerController {
     }
 
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
-        TopicConfigSerializeWrapper topicConfigWrapper) {
+        TopicConfigAndMappingSerializeWrapper topicConfigWrapper) {
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
