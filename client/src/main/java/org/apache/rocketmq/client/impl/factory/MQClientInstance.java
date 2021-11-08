@@ -304,17 +304,6 @@ public class MQClientInstance {
             }
         }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    MQClientInstance.this.adjustThreadPool();
-                } catch (Exception e) {
-                    log.error("ScheduledTask adjustThreadPool exception", e);
-                }
-            }
-        }, 1, 1, TimeUnit.MINUTES);
     }
 
     public String getClientId() {
