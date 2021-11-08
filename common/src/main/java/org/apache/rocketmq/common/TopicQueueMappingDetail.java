@@ -63,13 +63,13 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
                     && items.size() >= 1) {
                 LogicQueueMappingItem curr = items.get(items.size() - 1);
                 if (bname.equals(curr.getBname())) {
-                    tmpIdMap.put(curr.getQueueId(), globalId);
+                    tmpIdMap.put(globalId, curr.getQueueId());
                 }
             } else if (level == LEVEL_1
                     && items.size() >= 2) {
                 LogicQueueMappingItem prev = items.get(items.size() - 1);
                 if (bname.equals(prev.getBname())) {
-                    tmpIdMap.put(prev.getQueueId(), globalId);
+                    tmpIdMap.put(globalId, prev.getQueueId());
                 }
             }
         }
