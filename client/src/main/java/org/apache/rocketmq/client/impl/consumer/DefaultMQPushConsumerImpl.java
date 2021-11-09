@@ -718,11 +718,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName, final MessageQueue mq)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
+            String desBrokerName = brokerName;
+            if (mq != null) {
+                String tmpBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(mq);
+                if (tmpBrokerName != null) {
+                    desBrokerName = tmpBrokerName;
+                }
+            }
             String brokerAddr = null;
-            if (null != mq) {
-                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
-            } else if (null != brokerName) {
-                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(brokerName);
+            if (null != desBrokerName) {
+                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(desBrokerName);
             } else {
                 RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
             }

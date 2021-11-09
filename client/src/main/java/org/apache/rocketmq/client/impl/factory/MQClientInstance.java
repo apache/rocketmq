@@ -1055,16 +1055,11 @@ public class MQClientInstance {
         return mq.getBrokerName();
     }
 
-    public FindBrokerResult findBrokerAddressInAdmin(final MessageQueue mq) {
-        String brokerName = getBrokerNameFromMessageQueue(mq);
-        if (brokerName == null) {
-            return null;
-        } else {
-            return findBrokerAddressInAdmin(brokerName);
-        }
-    }
 
     public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
+        if (brokerName == null) {
+            return null;
+        }
         String brokerAddr = null;
         boolean slave = false;
         boolean found = false;
@@ -1094,16 +1089,11 @@ public class MQClientInstance {
         return null;
     }
 
-    public String findBrokerAddressInPublish(final MessageQueue mq) {
-        String brokerName = getBrokerNameFromMessageQueue(mq);
+
+    public String findBrokerAddressInPublish(final String brokerName) {
         if (brokerName == null) {
             return null;
-        } else {
-            return findBrokerAddressInPublish(brokerName);
         }
-    }
-    //This is used for retry only
-    public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
             return map.get(MixAll.MASTER_ID);
@@ -1112,20 +1102,15 @@ public class MQClientInstance {
         return null;
     }
 
-    public FindBrokerResult findBrokerAddressInSubscribe(final MessageQueue mq, final long brokerId, final boolean onlyThisBroker) {
-        String brokerName = getBrokerNameFromMessageQueue(mq);
-        if (brokerName == null) {
-            return null;
-        } else {
-            return findBrokerAddressInSubscribe(brokerName, brokerId, onlyThisBroker);
-        }
-    }
 
     public FindBrokerResult findBrokerAddressInSubscribe(
         final String brokerName,
         final long brokerId,
         final boolean onlyThisBroker
     ) {
+        if (brokerName == null) {
+            return null;
+        }
         String brokerAddr = null;
         boolean slave = false;
         boolean found = false;

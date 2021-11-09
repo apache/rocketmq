@@ -41,7 +41,6 @@ import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -191,10 +190,10 @@ public class MQAdminImpl {
         if (logicalQueueRouteData != null) {
             mq = logicalQueueRouteData.getMessageQueue();
         }
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         }
 
         if (brokerAddr != null) {
@@ -227,10 +226,10 @@ public class MQAdminImpl {
                 previousQueueRouteData = maxQueueRouteData;
                 mq = maxQueueRouteData.getMessageQueue();
             }
-            String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+            String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
             if (null == brokerAddr) {
                 this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
             }
 
             if (brokerAddr != null) {
@@ -256,10 +255,10 @@ public class MQAdminImpl {
             mq = minQueueRouteData.getMessageQueue();
         }
 
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         }
 
         if (brokerAddr != null) {
@@ -298,10 +297,10 @@ public class MQAdminImpl {
             mq = minQueueRouteData.getMessageQueue();
         }
 
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         }
 
         if (brokerAddr != null) {
