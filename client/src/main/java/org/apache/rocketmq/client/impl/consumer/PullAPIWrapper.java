@@ -452,7 +452,8 @@ public class PullAPIWrapper {
         private void buildLogicalQueuesInfo() {
             TopicRouteData topicRouteData = PullAPIWrapper.this.mQClientFactory.queryTopicRouteData(mq.getTopic());
             if (topicRouteData != null) {
-                this.logicalQueuesInfo = topicRouteData.getLogicalQueuesInfo();
+                //TODO
+                //this.logicalQueuesInfo = topicRouteData.getLogicalQueuesInfo();
             }
         }
 
@@ -623,7 +624,8 @@ public class PullAPIWrapper {
                     log.warn("LogicalQueueContext.processResponseBody {} update exception, fallback to updateTopicRouteInfoFromNameServer", this.logicalQueueRouteData, e);
                 }
             }
-            PullAPIWrapper.this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic(), false, null, Collections.singleton(this.mq.getQueueId()));
+            //TODO
+            //PullAPIWrapper.this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic(), false, null, Collections.singleton(this.mq.getQueueId()));
             this.buildLogicalQueuesInfo();
         }
     }

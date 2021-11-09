@@ -704,11 +704,28 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         log.info("resume this consumer, {}", this.defaultMQPushConsumer.getConsumerGroup());
     }
 
+    @Deprecated
     public void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        sendMessageBack(msg, delayLevel, brokerName, null);
+    }
+
+    public void sendMessageBack(MessageExt msg, int delayLevel, final MessageQueue mq)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        sendMessageBack(msg, delayLevel, null, mq);
+    }
+
+    private void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName, final MessageQueue mq)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
-                : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+            String brokerAddr = null;
+            if (null != mq) {
+                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
+            } else if (null != brokerName) {
+                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(brokerName);
+            } else {
+                RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+            }
             this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
                 this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, getMaxReconsumeTimes());
         } catch (Exception e) {

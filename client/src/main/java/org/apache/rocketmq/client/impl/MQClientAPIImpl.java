@@ -624,13 +624,9 @@ public class MQClientAPIImpl {
 
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
                     } catch (Exception e) {
-                        if (e instanceof MQRedirectException) {
-                            sendCallback.onException(e);
-                        } else {
-                            producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
-                            onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
-                                retryTimesWhenSendFailed, times, e, context, false, producer);
-                        }
+                        producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
+                        onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
+                            retryTimesWhenSendFailed, times, e, context, false, producer);
                     }
                 } else {
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
@@ -672,7 +668,7 @@ public class MQClientAPIImpl {
             String retryBrokerName = brokerName;//by default, it will send to the same broker
             if (topicPublishInfo != null) { //select one message queue accordingly, in order to determine which broker to send
                 MessageQueue mqChosen = producer.selectOneMessageQueue(topicPublishInfo, brokerName);
-                retryBrokerName = mqChosen.getBrokerName();
+                retryBrokerName = instance.getBrokerNameFromMessageQueue(mqChosen);
             }
             String addr = instance.findBrokerAddressInPublish(retryBrokerName);
             log.warn(String.format("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
@@ -709,11 +705,6 @@ public class MQClientAPIImpl {
         final RemotingCommand response,
         final String addr
     ) throws MQBrokerException, RemotingCommandException {
-        HashMap<String, String> extFields = response.getExtFields();
-        if (extFields != null && extFields.containsKey(MessageConst.PROPERTY_REDIRECT)) {
-            throw new MQRedirectException(response.getBody());
-        }
-
         SendStatus sendStatus;
         switch (response.getCode()) {
             case ResponseCode.FLUSH_DISK_TIMEOUT: {
@@ -962,11 +953,6 @@ public class MQClientAPIImpl {
     private PullResult processPullResponse(
         final RemotingCommand response,
         final String addr) throws MQBrokerException, RemotingCommandException {
-        HashMap<String, String> extFields = response.getExtFields();
-        if (extFields != null && extFields.containsKey(MessageConst.PROPERTY_REDIRECT)) {
-            throw new MQRedirectException(response.getBody());
-        }
-
         PullStatus pullStatus = PullStatus.NO_NEW_MSG;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS:
@@ -981,6 +967,7 @@ public class MQClientAPIImpl {
             case ResponseCode.PULL_OFFSET_MOVED:
                 pullStatus = PullStatus.OFFSET_ILLEGAL;
                 break;
+
             default:
                 throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
         }
@@ -1649,15 +1636,8 @@ public class MQClientAPIImpl {
 
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis,
         boolean allowTopicNotExist) throws MQClientException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        return getTopicRouteInfoFromNameServer(topic, timeoutMillis, allowTopicNotExist, null);
-    }
-
-    public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis,
-        boolean allowTopicNotExist, Set<Integer> logicalQueueIdsFilter) throws MQClientException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
         requestHeader.setTopic(topic);
-        requestHeader.setSysFlag(MessageSysFlag.LOGICAL_QUEUE_FLAG);
-        requestHeader.setLogicalQueueIdsFilter(logicalQueueIdsFilter);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, requestHeader);
 
@@ -1674,11 +1654,7 @@ public class MQClientAPIImpl {
             case ResponseCode.SUCCESS: {
                 byte[] body = response.getBody();
                 if (body != null) {
-                    return fromNullable(RemotingSerializable.decode(body, TopicRouteDataNameSrv.class)).transform(new Function<TopicRouteDataNameSrv, TopicRouteData>() {
-                        @Override public TopicRouteData apply(TopicRouteDataNameSrv srv) {
-                            return srv.toTopicRouteData();
-                        }
-                    }).orNull();
+                    return TopicRouteData.decode(body, TopicRouteData.class);
                 }
             }
             default:

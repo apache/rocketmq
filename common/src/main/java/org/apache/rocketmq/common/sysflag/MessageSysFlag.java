@@ -25,6 +25,7 @@ public class MessageSysFlag {
     public final static int TRANSACTION_ROLLBACK_TYPE = 0x3 << 2;
     public final static int BORNHOST_V6_FLAG = 0x1 << 4;
     public final static int STOREHOSTADDRESS_V6_FLAG = 0x1 << 5;
+    //TODO remove the LOGICAL_QUEUE_FLAG
     public final static int LOGICAL_QUEUE_FLAG = 0x1 << 6;
 
     public static int getTransactionValue(final int flag) {

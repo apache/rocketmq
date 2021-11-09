@@ -1046,6 +1046,24 @@ public class MQClientInstance {
         return this.consumerTable.get(group);
     }
 
+
+    public String getBrokerNameFromMessageQueue(final MessageQueue mq) {
+        if (topicEndPointsTable.get(mq.getTopic()) != null
+            && !topicEndPointsTable.get(mq.getTopic()).isEmpty()) {
+            return topicEndPointsTable.get(mq.getTopic()).get(mq);
+        }
+        return mq.getBrokerName();
+    }
+
+    public FindBrokerResult findBrokerAddressInAdmin(final MessageQueue mq) {
+        String brokerName = getBrokerNameFromMessageQueue(mq);
+        if (brokerName == null) {
+            return null;
+        } else {
+            return findBrokerAddressInAdmin(brokerName);
+        }
+    }
+
     public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
         String brokerAddr = null;
         boolean slave = false;
@@ -1076,6 +1094,15 @@ public class MQClientInstance {
         return null;
     }
 
+    public String findBrokerAddressInPublish(final MessageQueue mq) {
+        String brokerName = getBrokerNameFromMessageQueue(mq);
+        if (brokerName == null) {
+            return null;
+        } else {
+            return findBrokerAddressInPublish(brokerName);
+        }
+    }
+    //This is used for retry only
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
@@ -1083,6 +1110,15 @@ public class MQClientInstance {
         }
 
         return null;
+    }
+
+    public FindBrokerResult findBrokerAddressInSubscribe(final MessageQueue mq, final long brokerId, final boolean onlyThisBroker) {
+        String brokerName = getBrokerNameFromMessageQueue(mq);
+        if (brokerName == null) {
+            return null;
+        } else {
+            return findBrokerAddressInSubscribe(brokerName, brokerId, onlyThisBroker);
+        }
     }
 
     public FindBrokerResult findBrokerAddressInSubscribe(
@@ -1120,7 +1156,7 @@ public class MQClientInstance {
         return null;
     }
 
-    public int findBrokerVersion(String brokerName, String brokerAddr) {
+    private int findBrokerVersion(String brokerName, String brokerAddr) {
         if (this.brokerVersionTable.containsKey(brokerName)) {
             if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
                 return this.brokerVersionTable.get(brokerName).get(brokerAddr);

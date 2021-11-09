@@ -191,10 +191,10 @@ public class MQAdminImpl {
         if (logicalQueueRouteData != null) {
             mq = logicalQueueRouteData.getMessageQueue();
         }
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
         }
 
         if (brokerAddr != null) {
@@ -227,10 +227,10 @@ public class MQAdminImpl {
                 previousQueueRouteData = maxQueueRouteData;
                 mq = maxQueueRouteData.getMessageQueue();
             }
-            String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+            String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
             if (null == brokerAddr) {
                 this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
             }
 
             if (brokerAddr != null) {
@@ -238,7 +238,8 @@ public class MQAdminImpl {
                     long offset = this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, topic, mq.getQueueId(), committed, maxQueueRouteData != null, timeoutMillis);
                     return correctLogicalQueueOffset(offset, maxQueueRouteData);
                 } catch (MQRedirectException e) {
-                    this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, false, null, Collections.singleton(mq.getQueueId()));
+                    //TODO
+                    //this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, false, null, Collections.singleton(mq.getQueueId()));
                     continue;
                 } catch (Exception e) {
                     throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
@@ -255,10 +256,10 @@ public class MQAdminImpl {
             mq = minQueueRouteData.getMessageQueue();
         }
 
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
         }
 
         if (brokerAddr != null) {
@@ -281,10 +282,11 @@ public class MQAdminImpl {
                 topicRouteData = this.mQClientFactory.queryTopicRouteData(mq.getTopic());
             }
             if (topicRouteData != null) {
-                LogicalQueuesInfo logicalQueuesInfo = topicRouteData.getLogicalQueuesInfo();
+                //TODO
+                /*LogicalQueuesInfo logicalQueuesInfo = topicRouteData.getLogicalQueuesInfo();
                 if (logicalQueuesInfo != null) {
                     return logicalQueuesInfo.get(mq.getQueueId());
-                }
+                }*/
             }
         }
         return null;
@@ -296,10 +298,10 @@ public class MQAdminImpl {
             mq = minQueueRouteData.getMessageQueue();
         }
 
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq);
         }
 
         if (brokerAddr != null) {
