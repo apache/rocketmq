@@ -721,11 +721,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final TopicPublishInfo topicPublishInfo,
         final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
-        String brokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(mq);
-        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(brokerName);
+        String destBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(mq);
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(destBrokerName);
         if (null == brokerAddr) {
             tryToFindTopicPublishInfo(mq.getTopic());
-            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(brokerName);
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(destBrokerName);
         }
 
         SendMessageContext context = null;

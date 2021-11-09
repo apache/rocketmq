@@ -725,6 +725,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     desBrokerName = tmpBrokerName;
                 }
             }
+            if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(desBrokerName)) {
+                desBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(this.defaultMQPushConsumer.queueWithNamespace(new MessageQueue(msg.getTopic(), msg.getBrokerName(), msg.getQueueId())));
+            }
+
             String brokerAddr = null;
             if (null != desBrokerName) {
                 brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(desBrokerName);
@@ -765,15 +769,21 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             long queueOffset = ExtraInfoUtil.getQueueOffset(extraInfoStrs);
             String topic = message.getTopic();
 
+            String desBrokerName = brokerName;
+            if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(brokerName)) {
+                desBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(this.defaultMQPushConsumer.queueWithNamespace(new MessageQueue(topic, brokerName, queueId)));
+            }
+
+
             FindBrokerResult
-                findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
+                findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(desBrokerName, MixAll.MASTER_ID, true);
             if (null == findBrokerResult) {
                 this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-                findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
+                findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(desBrokerName, MixAll.MASTER_ID, true);
             }
 
             if (findBrokerResult == null) {
-                log.error("The broker[" + brokerName + "] not exist");
+                log.error("The broker[" + desBrokerName + "] not exist");
                 return;
             }
 
@@ -806,11 +816,17 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         String[] extraInfoStrs = ExtraInfoUtil.split(extraInfo);
         String brokerName = ExtraInfoUtil.getBrokerName(extraInfoStrs);
         int queueId = ExtraInfoUtil.getQueueId(extraInfoStrs);
+
+        String desBrokerName = brokerName;
+        if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(brokerName)) {
+            desBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(this.defaultMQPushConsumer.queueWithNamespace(new MessageQueue(topic, brokerName, queueId)));
+        }
+
         FindBrokerResult
-            findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
+            findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(desBrokerName, MixAll.MASTER_ID, true);
         if (null == findBrokerResult) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-            findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
+            findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(desBrokerName, MixAll.MASTER_ID, true);
         }
         if (findBrokerResult != null) {
             ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
@@ -820,10 +836,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             requestHeader.setConsumerGroup(consumerGroup);
             requestHeader.setExtraInfo(extraInfo);
             requestHeader.setInvisibleTime(invisibleTime);
+            //here the broker should be polished
             this.mQClientFactory.getMQClientAPIImpl().changeInvisibleTimeAsync(brokerName, findBrokerResult.getBrokerAddr(), requestHeader, ASYNC_TIMEOUT, callback);
             return;
         }
-        throw new MQClientException("The broker[" + brokerName + "] not exist", null);
+        throw new MQClientException("The broker[" + desBrokerName + "] not exist", null);
     }
 
     public int getMaxReconsumeTimes() {
