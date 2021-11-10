@@ -20,12 +20,12 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.RequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class SendMessageRequestHeader implements CommandCustomHeader {
+public class SendMessageRequestHeader extends RequestHeader {
     @CFNotNull
     private String producerGroup;
     @CFNotNull

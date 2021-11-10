@@ -27,9 +27,6 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     // the mapping info in current broker, do not register to nameserver
     ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
-    transient ConcurrentMap<Integer/*physicalId*/, Integer/*logicId*/> currIdMapRevert = new ConcurrentHashMap<Integer, Integer>();
-
-
 
     public TopicQueueMappingDetail(String topic, int totalQueues, String bname) {
         super(topic, totalQueues, bname);
@@ -48,7 +45,6 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     public void buildIdMap() {
         this.currIdMap = buildIdMap(LEVEL_0);
         this.prevIdMap = buildIdMap(LEVEL_1);
-        this.currIdMapRevert = revert(this.currIdMap);
     }
 
     public ConcurrentMap<Integer, Integer> revert(ConcurrentMap<Integer, Integer> original) {
@@ -103,14 +99,46 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
             return -1;
         }
         if (bname.equals(mappingItems.get(mappingItems.size() - 1).getBname())) {
-            return mappingItems.get(mappingItems.size() - 1).convertToStaticLogicOffset(physicalLogicOffset);
+            return mappingItems.get(mappingItems.size() - 1).convertToStaticQueueOffset(physicalLogicOffset);
         }
         //Consider the "switch" process, reduce the error
         if (mappingItems.size() >= 2
             && bname.equals(mappingItems.get(mappingItems.size() - 2).getBname())) {
-            return mappingItems.get(mappingItems.size() - 2).convertToStaticLogicOffset(physicalLogicOffset);
+            return mappingItems.get(mappingItems.size() - 2).convertToStaticQueueOffset(physicalLogicOffset);
         }
         return -1;
+    }
+
+    public LogicQueueMappingItem getLogicQueueMappingItem(Integer globalId, long logicOffset) {
+        List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
+        if (mappingItems == null
+                || mappingItems.isEmpty()) {
+            return null;
+        }
+        //Could use bi-search to polish performance
+        for (int i = mappingItems.size() - 1; i >= 0; i--) {
+            LogicQueueMappingItem item =  mappingItems.get(i);
+            if (logicOffset >= item.getLogicOffset()) {
+                return item;
+            }
+        }
+        //if not found, maybe out of range, return the first one
+        for (int i = 0; i < mappingItems.size(); i++) {
+            if (!mappingItems.get(i).isShouldDeleted()) {
+                return mappingItems.get(i);
+            }
+        }
+        return null;
+    }
+
+    public long getMaxOffsetFromMapping(Integer globalId) {
+        List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
+        if (mappingItems == null
+                || mappingItems.isEmpty()) {
+            return -1;
+        }
+        LogicQueueMappingItem item =  mappingItems.get(mappingItems.size() - 1);
+        return item.convertToMaxStaticQueueOffset();
     }
 
 
@@ -122,13 +150,6 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         return topicQueueMappingInfo;
     }
 
-    public ConcurrentMap<Integer, Integer> getCurrIdMapRevert() {
-        return currIdMapRevert;
-    }
-
-    public void setCurrIdMapRevert(ConcurrentMap<Integer, Integer> currIdMapRevert) {
-        this.currIdMapRevert = currIdMapRevert;
-    }
 
     public int getTotalQueues() {
         return totalQueues;

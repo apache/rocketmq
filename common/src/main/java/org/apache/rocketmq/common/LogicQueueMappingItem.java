@@ -7,6 +7,7 @@ public class LogicQueueMappingItem {
     private String bname;
     private long logicOffset; // the start of the logic offset
     private long startOffset; // the start of the physical offset
+    private long endOffset; // the end of the physical offset
     private long timeOfStart = -1; //mutable
 
     public LogicQueueMappingItem(int gen, int queueId, String bname, long logicOffset, long startOffset, long timeOfStart) {
@@ -18,8 +19,32 @@ public class LogicQueueMappingItem {
         this.timeOfStart = timeOfStart;
     }
 
-    public long convertToStaticLogicOffset(long physicalLogicOffset) {
-        return  logicOffset + (physicalLogicOffset - startOffset);
+    public long convertToStaticQueueOffset(long physicalQueueOffset) {
+        return  logicOffset + (physicalQueueOffset - startOffset);
+    }
+
+    public long convertToPhysicalQueueOffset(long staticQueueOffset) {
+        return  (staticQueueOffset - logicOffset) + startOffset;
+    }
+
+    public long convertToMaxStaticQueueOffset() {
+        if (endOffset >= startOffset) {
+            return logicOffset + endOffset - startOffset;
+        } else {
+            return logicOffset;
+        }
+    }
+    public boolean isShouldDeleted() {
+        return endOffset == startOffset;
+    }
+
+    public boolean isEndOffsetDecided() {
+        //if the endOffset == startOffset, then the item should be deleted
+        return endOffset > startOffset;
+    }
+
+    public long convertOffsetDelta() {
+        return logicOffset - startOffset;
     }
 
     public int getGen() {
@@ -54,5 +79,14 @@ public class LogicQueueMappingItem {
 
     public long getStartOffset() {
         return startOffset;
+    }
+
+    public long getEndOffset() {
+        return endOffset;
+    }
+
+
+    public void setEndOffset(long endOffset) {
+        this.endOffset = endOffset;
     }
 }

@@ -24,6 +24,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
 import java.nio.ByteBuffer;
 import java.util.List;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.domain.LogicalQueuesInfoInBroker;
@@ -35,9 +36,15 @@ import org.apache.rocketmq.broker.longpolling.PullRequest;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.impl.consumer.PullResultExt;
+import org.apache.rocketmq.common.LogicQueueMappingItem;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.TopicQueueMappingContext;
+import org.apache.rocketmq.common.TopicQueueMappingDetail;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
@@ -49,6 +56,8 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
@@ -94,6 +103,132 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
     public boolean rejectRequest() {
         return false;
     }
+
+
+    private RemotingCommand buildErrorResponse(int code, String remark) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
+        response.setCode(code);
+        response.setRemark(remark);
+        return response;
+    }
+
+    private TopicQueueMappingContext buildTopicQueueMappingContext(PullMessageRequestHeader requestHeader) {
+        if (requestHeader.getPhysical() != null
+                && Boolean.TRUE.equals(requestHeader.getPhysical())) {
+            return null;
+        }
+        TopicQueueMappingDetail mappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(requestHeader.getTopic());
+        if (mappingDetail == null) {
+            //it is not static topic
+            return null;
+        }
+        String topic = requestHeader.getTopic();
+        Integer globalId = requestHeader.getQueueId();
+        Long globalOffset = requestHeader.getQueueOffset();
+
+        LogicQueueMappingItem mappingItem = mappingDetail.getLogicQueueMappingItem(globalId, globalOffset);
+        return new TopicQueueMappingContext(topic, globalId, globalOffset, mappingDetail, mappingItem);
+    }
+
+    private RemotingCommand rewriteRequestForStaticTopic(PullMessageRequestHeader requestHeader, TopicQueueMappingContext mappingContext) {
+        try {
+            if (mappingContext == null) {
+                return null;
+            }
+            String topic = mappingContext.getTopic();
+            Integer globalId = mappingContext.getGlobalId();
+            Long globalOffset = mappingContext.getGlobalOffset();
+
+            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
+            if (mappingItem == null) {
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d cannot find mapping item in request process of current broker %s",
+                        topic, globalId, this.brokerController.getBrokerConfig().getBrokerName()));
+            }
+
+            if (globalOffset < mappingItem.getStartOffset()) {
+                log.warn("{}-{} fetch offset {} smaller than the min mapping offset {}", topic, globalId, globalOffset, mappingItem.getStartOffset());
+                return buildErrorResponse(ResponseCode.PULL_OFFSET_MOVED, String.format("%s-%d fetch offset {} smaller than the min mapping offset {} in  broker %s",
+                        topic, globalId, globalOffset, mappingItem.getStartOffset(), this.brokerController.getBrokerConfig().getBrokerName()));
+            }
+            //below are physical info
+            String bname = mappingItem.getBname();
+            Integer phyQueueId = mappingItem.getQueueId();
+            Long phyQueueOffset = mappingItem.convertToPhysicalQueueOffset(globalOffset);
+            requestHeader.setQueueId(phyQueueId);
+            requestHeader.setQueueOffset(phyQueueOffset);
+            if (mappingItem.isEndOffsetDecided()
+                    && requestHeader.getMaxMsgNums() != null) {
+                requestHeader.setMaxMsgNums((int) Math.min(mappingItem.getEndOffset() - mappingItem.getStartOffset(), requestHeader.getMaxMsgNums()));
+            }
+
+            if (this.brokerController.getBrokerConfig().getBrokerName().equals(bname)) {
+                //just let it go
+                return null;
+            }
+
+            requestHeader.setPhysical(true);
+            RemotingCommand response = this.brokerController.getBrokerOuterAPI().pullMessage(bname, requestHeader, this.brokerController.getBrokerConfig().getForwardTimeout());
+            switch (response.getCode()) {
+                case ResponseCode.SYSTEM_ERROR:
+                    return response;
+                case ResponseCode.SUCCESS:
+                case ResponseCode.PULL_NOT_FOUND:
+               case ResponseCode.PULL_RETRY_IMMEDIATELY:
+                case ResponseCode.PULL_OFFSET_MOVED:
+                    break;
+                default:
+                    throw new MQBrokerException(response.getCode(), response.getRemark(), mappingItem.getBname());
+            }
+            PullMessageResponseHeader responseHeader =
+                    (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+            {
+                RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext);
+                if (rewriteResult != null) {
+                    return rewriteResult;
+                }
+            }
+            return response;
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
+    }
+
+    private RemotingCommand rewriteResponseForStaticTopic(PullMessageRequestHeader requestHeader, PullMessageResponseHeader responseHeader, TopicQueueMappingContext mappingContext) {
+        try {
+            if (mappingContext == null) {
+                return null;
+            }
+            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
+            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
+            //handle nextBeginOffset
+            {
+                long nextBeginOffset = responseHeader.getNextBeginOffset();
+                assert nextBeginOffset >= requestHeader.getQueueOffset();
+                //the next begin offset should no more than the end offset
+                if (mappingItem.isEndOffsetDecided()
+                        && nextBeginOffset >= mappingItem.getEndOffset()) {
+                    nextBeginOffset = mappingItem.getEndOffset();
+                }
+                responseHeader.setNextBeginOffset(mappingItem.convertToStaticQueueOffset(nextBeginOffset));
+            }
+            //handle min offset
+            responseHeader.setMinOffset(mappingItem.convertToStaticQueueOffset(Math.max(mappingItem.getStartOffset(), responseHeader.getMinOffset())));
+            //handle max offset
+            {
+                if (mappingItem.isEndOffsetDecided()) {
+                    responseHeader.setMaxOffset(Math.max(mappingItem.convertToMaxStaticQueueOffset(), mappingDetail.getMaxOffsetFromMapping(mappingContext.getGlobalId())));
+                } else {
+                    responseHeader.setMaxOffset(mappingItem.convertToStaticQueueOffset(responseHeader.getMaxOffset()));
+                }
+            }
+            //set the offsetDelta
+            responseHeader.setOffsetDelta(mappingItem.convertOffsetDelta());
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
+        return null;
+    }
+
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
@@ -145,6 +280,15 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the topic[" + topic + "] pulling message is forbidden");
             return response;
+        }
+
+        TopicQueueMappingContext mappingContext = buildTopicQueueMappingContext(requestHeader);
+
+        {
+            RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);
+            if (rewriteResult != null) {
+                return rewriteResult;
+            }
         }
 
         int queueId = requestHeader.getQueueId();
@@ -395,6 +539,15 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                     break;
             }
 
+            //rewrite the response for the
+            {
+                RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext);
+                if (rewriteResult != null) {
+                    return rewriteResult;
+                }
+            }
+
+
             if (this.hasConsumeMessageHook()) {
                 ConsumeMessageContext context = new ConsumeMessageContext();
                 context.setConsumerGroup(requestHeader.getConsumerGroup());
@@ -507,31 +660,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 case ResponseCode.PULL_RETRY_IMMEDIATELY:
                     break;
                 case ResponseCode.PULL_OFFSET_MOVED:
-                    if (this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE
-                        || this.brokerController.getMessageStoreConfig().isOffsetCheckInSlave()) {
-                        MessageQueue mq = new MessageQueue();
-                        mq.setTopic(requestHeader.getTopic());
-                        mq.setQueueId(requestHeader.getQueueId());
-                        mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
-
-                        OffsetMovedEvent event = new OffsetMovedEvent();
-                        event.setConsumerGroup(requestHeader.getConsumerGroup());
-                        event.setMessageQueue(mq);
-                        event.setOffsetRequest(requestHeader.getQueueOffset());
-                        event.setOffsetNew(nextBeginOffset);
-                        this.generateOffsetMovedEvent(event);
-                        log.warn(
-                            "PULL_OFFSET_MOVED:correction offset. topic={}, groupId={}, requestOffset={}, newOffset={}, suggestBrokerId={}",
-                            requestHeader.getTopic(), requestHeader.getConsumerGroup(), event.getOffsetRequest(), event.getOffsetNew(),
-                            responseHeader.getSuggestWhichBrokerId());
-                    } else {
-                        responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
-                        response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
-                        log.warn("PULL_OFFSET_MOVED:none correction. topic={}, groupId={}, requestOffset={}, suggestBrokerId={}",
-                            requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueOffset(),
-                            responseHeader.getSuggestWhichBrokerId());
-                    }
-
+                    handleOffsetMoved(requestHeader, responseHeader, response, nextBeginOffset, subscriptionGroupConfig);
                     break;
                 default:
                     assert false;
@@ -550,6 +679,35 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 requestHeader.getConsumerGroup(), topic, queueId, requestHeader.getCommitOffset());
         }
         return response;
+    }
+
+    public void handleOffsetMoved(PullMessageRequestHeader requestHeader, PullMessageResponseHeader responseHeader, RemotingCommand response,
+                                  long nextBeginOffset,
+                                  SubscriptionGroupConfig subscriptionGroupConfig) {
+        if (this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE
+                || this.brokerController.getMessageStoreConfig().isOffsetCheckInSlave()) {
+            MessageQueue mq = new MessageQueue();
+            mq.setTopic(requestHeader.getTopic());
+            mq.setQueueId(requestHeader.getQueueId());
+            mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+
+            OffsetMovedEvent event = new OffsetMovedEvent();
+            event.setConsumerGroup(requestHeader.getConsumerGroup());
+            event.setMessageQueue(mq);
+            event.setOffsetRequest(requestHeader.getQueueOffset());
+            event.setOffsetNew(nextBeginOffset);
+            this.generateOffsetMovedEvent(event);
+            log.warn(
+                    "PULL_OFFSET_MOVED:correction offset. topic={}, groupId={}, requestOffset={}, newOffset={}, suggestBrokerId={}",
+                    requestHeader.getTopic(), requestHeader.getConsumerGroup(), event.getOffsetRequest(), event.getOffsetNew(),
+                    responseHeader.getSuggestWhichBrokerId());
+        } else {
+            responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getBrokerId());
+            response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
+            log.warn("PULL_OFFSET_MOVED:none correction. topic={}, groupId={}, requestOffset={}, suggestBrokerId={}",
+                    requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueOffset(),
+                    responseHeader.getSuggestWhichBrokerId());
+        }
     }
 
     private void prepareRedirectResponse(RemotingCommand response, LogicalQueuesInfoInBroker logicalQueuesInfo,
