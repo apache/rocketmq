@@ -18,6 +18,10 @@ public class LogicQueueMappingItem {
         this.timeOfStart = timeOfStart;
     }
 
+    public long convertToStaticLogicOffset(long physicalLogicOffset) {
+        return  logicOffset + (physicalLogicOffset - startOffset);
+    }
+
     public int getGen() {
         return gen;
     }

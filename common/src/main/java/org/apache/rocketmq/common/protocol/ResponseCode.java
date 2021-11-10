@@ -84,4 +84,6 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int POLLING_FULL = 209;
 
     public static final int POLLING_TIMEOUT = 210;
+
+    public static final int NOT_LEADER_FOR_QUEUE = 501;
 }

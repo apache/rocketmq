@@ -81,6 +81,24 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     }
 
 
+    public long convertToLogicOffset(Integer globalId, long physicalLogicOffset) {
+        List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
+        if (mappingItems == null
+                || mappingItems.isEmpty()) {
+            return -1;
+        }
+        if (bname.equals(mappingItems.get(mappingItems.size() - 1).getBname())) {
+            return mappingItems.get(mappingItems.size() - 1).convertToStaticLogicOffset(physicalLogicOffset);
+        }
+        //Consider the "switch" process, reduce the error
+        if (mappingItems.size() >= 2
+            && bname.equals(mappingItems.get(mappingItems.size() - 2).getBname())) {
+            return mappingItems.get(mappingItems.size() - 2).convertToStaticLogicOffset(physicalLogicOffset);
+        }
+        return -1;
+    }
+
+
     public TopicQueueMappingInfo cloneAsMappingInfo() {
         TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(this.topic, this.totalQueues, this.bname);
         topicQueueMappingInfo.currIdMap = this.buildIdMap(LEVEL_0);
