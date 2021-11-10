@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.processor;
 
 import java.net.SocketAddress;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -126,16 +127,28 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         try {
             TopicQueueMappingDetail mappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(requestHeader.getTopic());
             if (mappingDetail == null) {
+                //it is not static topic
                 return null;
             }
-            if (!mappingDetail.getCurrIdMap().containsKey(requestHeader.getQueueId())) {
-               return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in current broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), this.brokerController.getBrokerConfig().getBrokerName()));
+            Integer phyQueueId = null;
+            //compatible with the old logic, but it fact, this should not happen
+            if (requestHeader.getQueueId() < 0) {
+                Iterator<Map.Entry<Integer, Integer>> it  = mappingDetail.getCurrIdMap().entrySet().iterator();
+                if (it.hasNext()) {
+                    phyQueueId = it.next().getValue();
+                }
+            } else {
+                phyQueueId = mappingDetail.getCurrIdMap().get(requestHeader.getQueueId());
             }
-            requestHeader.setQueueId(mappingDetail.getCurrIdMap().get(requestHeader.getQueueId()));
+            if (phyQueueId == null) {
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), this.brokerController.getBrokerConfig().getBrokerName()));
+            } else {
+                requestHeader.setQueueId(phyQueueId);
+                return null;
+            }
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
-        return null;
     }
 
     private RemotingCommand rewriteResponseForStaticTopic(String topic, SendMessageResponseHeader responseHeader) {
@@ -144,14 +157,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (mappingDetail == null) {
                 return null;
             }
-            if (!mappingDetail.getCurrIdMap().containsKey(responseHeader.getQueueId())) {
-                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in current broker %s", topic, responseHeader.getQueueId(), this.brokerController.getBrokerConfig().getBrokerName()));
+            Integer globalId = mappingDetail.getCurrIdMapRevert().get(responseHeader.getQueueId());
+            if (globalId == null) {
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exist in response process of current broker %s", topic, responseHeader.getQueueId(), this.brokerController.getBrokerConfig().getBrokerName()));
             }
-            long staticLogicOffset = mappingDetail.convertToLogicOffset(responseHeader.getQueueId(), responseHeader.getQueueOffset());
+            long staticLogicOffset = mappingDetail.convertToLogicOffset(globalId, responseHeader.getQueueOffset());
             if (staticLogicOffset < 0) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d convert offset error in current broker %s", topic, responseHeader.getQueueId(), this.brokerController.getBrokerConfig().getBrokerName()));
 
             }
+            responseHeader.setQueueId(globalId);
             responseHeader.setQueueOffset(staticLogicOffset);
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());

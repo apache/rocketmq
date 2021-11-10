@@ -27,6 +27,9 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     // the mapping info in current broker, do not register to nameserver
     ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
+    transient ConcurrentMap<Integer/*physicalId*/, Integer/*logicId*/> currIdMapRevert = new ConcurrentHashMap<Integer, Integer>();
+
+
 
     public TopicQueueMappingDetail(String topic, int totalQueues, String bname) {
         super(topic, totalQueues, bname);
@@ -45,6 +48,18 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     public void buildIdMap() {
         this.currIdMap = buildIdMap(LEVEL_0);
         this.prevIdMap = buildIdMap(LEVEL_1);
+        this.currIdMapRevert = revert(this.currIdMap);
+    }
+
+    public ConcurrentMap<Integer, Integer> revert(ConcurrentMap<Integer, Integer> original) {
+        if (original == null || original.isEmpty()) {
+            return new ConcurrentHashMap<Integer, Integer>();
+        }
+        ConcurrentMap<Integer, Integer> tmpIdMap = new ConcurrentHashMap<Integer, Integer>();
+        for (Map.Entry<Integer, Integer> entry: tmpIdMap.entrySet()) {
+            tmpIdMap.put(entry.getValue(), entry.getKey());
+        }
+        return tmpIdMap;
     }
 
     public ConcurrentMap<Integer, Integer> buildIdMap(int level) {
@@ -105,6 +120,14 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         topicQueueMappingInfo.prevIdMap = this.buildIdMap(LEVEL_1);
 
         return topicQueueMappingInfo;
+    }
+
+    public ConcurrentMap<Integer, Integer> getCurrIdMapRevert() {
+        return currIdMapRevert;
+    }
+
+    public void setCurrIdMapRevert(ConcurrentMap<Integer, Integer> currIdMapRevert) {
+        this.currIdMapRevert = currIdMapRevert;
     }
 
     public int getTotalQueues() {
