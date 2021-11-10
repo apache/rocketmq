@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -85,10 +87,10 @@ public class RocketMQSerializable {
             Map.Entry<String, String> entry = it.next();
             if (entry.getKey() != null && entry.getValue() != null) {
                 kvLength =
-                    // keySize + Key
-                    2 + entry.getKey().getBytes(CHARSET_UTF8).length
-                        // valSize + val
-                        + 4 + entry.getValue().getBytes(CHARSET_UTF8).length;
+                        // keySize + Key
+                        2 + entry.getKey().getBytes(CHARSET_UTF8).length
+                                // valSize + val
+                                + 4 + entry.getValue().getBytes(CHARSET_UTF8).length;
                 totalLength += kvLength;
             }
         }
@@ -117,23 +119,23 @@ public class RocketMQSerializable {
     private static int calTotalLen(int remark, int ext) {
         // int code(~32767)
         int length = 2
-            // LanguageCode language
-            + 1
-            // int version(~32767)
-            + 2
-            // int opaque
-            + 4
-            // int flag
-            + 4
-            // String remark
-            + 4 + remark
-            // HashMap<String, String> extFields
-            + 4 + ext;
+                // LanguageCode language
+                + 1
+                // int version(~32767)
+                + 2
+                // int opaque
+                + 4
+                // int flag
+                + 4
+                // String remark
+                + 4 + remark
+                // HashMap<String, String> extFields
+                + 4 + ext;
 
         return length;
     }
 
-    public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) {
+    public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) throws RemotingCommandException {
         RemotingCommand cmd = new RemotingCommand();
         ByteBuffer headerBuffer = ByteBuffer.wrap(headerArray);
         // int code(~32767)
@@ -149,6 +151,9 @@ public class RocketMQSerializable {
         // String remark
         int remarkLength = headerBuffer.getInt();
         if (remarkLength > 0) {
+            if (remarkLength > headerArray.length) {
+                throw new RemotingCommandException("RocketMQ protocol decoding failed, remark length: " + remarkLength + ", but header length: " + headerArray.length);
+            }
             byte[] remarkContent = new byte[remarkLength];
             headerBuffer.get(remarkContent);
             cmd.setRemark(new String(remarkContent, CHARSET_UTF8));
@@ -157,6 +162,9 @@ public class RocketMQSerializable {
         // HashMap<String, String> extFields
         int extFieldsLength = headerBuffer.getInt();
         if (extFieldsLength > 0) {
+            if (extFieldsLength > headerArray.length) {
+                throw new RemotingCommandException("RocketMQ protocol decoding failed, extFields length: " + extFieldsLength + ", but header length: " + headerArray.length);
+            }
             byte[] extFieldsBytes = new byte[extFieldsLength];
             headerBuffer.get(extFieldsBytes);
             cmd.setExtFields(mapDeserialize(extFieldsBytes));
