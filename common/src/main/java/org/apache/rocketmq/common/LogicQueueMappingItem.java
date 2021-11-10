@@ -8,62 +8,51 @@ public class LogicQueueMappingItem {
     private long logicOffset; // the start of the logic offset
     private long startOffset; // the start of the physical offset
     private long endOffset; // the end of the physical offset
-    private long timeOfStart = -1; //mutable
+    private long timeOfStart = -1; // mutable
+    private long timeOfEnd = -1; // mutable
 
-    public LogicQueueMappingItem(int gen, int queueId, String bname, long logicOffset, long startOffset, long timeOfStart) {
+    public LogicQueueMappingItem(int gen, int queueId, String bname, long logicOffset, long startOffset, long endOffset, long timeOfStart, long timeOfEnd) {
         this.gen = gen;
         this.queueId = queueId;
         this.bname = bname;
         this.logicOffset = logicOffset;
         this.startOffset = startOffset;
+        this.endOffset = endOffset;
         this.timeOfStart = timeOfStart;
+        this.timeOfEnd = timeOfEnd;
     }
 
-    public long convertToStaticQueueOffset(long physicalQueueOffset) {
+    public long computeStaticQueueOffset(long physicalQueueOffset) {
         return  logicOffset + (physicalQueueOffset - startOffset);
     }
 
-    public long convertToPhysicalQueueOffset(long staticQueueOffset) {
+    public long computePhysicalQueueOffset(long staticQueueOffset) {
         return  (staticQueueOffset - logicOffset) + startOffset;
     }
 
-    public long convertToMaxStaticQueueOffset() {
+    public long computeMaxStaticQueueOffset() {
         if (endOffset >= startOffset) {
             return logicOffset + endOffset - startOffset;
         } else {
             return logicOffset;
         }
     }
-    public boolean isShouldDeleted() {
+    public boolean checkIfShouldDeleted() {
         return endOffset == startOffset;
     }
 
-    public boolean isEndOffsetDecided() {
+    public boolean checkIfEndOffsetDecided() {
         //if the endOffset == startOffset, then the item should be deleted
         return endOffset > startOffset;
     }
 
-    public long convertOffsetDelta() {
+    public long computeOffsetDelta() {
         return logicOffset - startOffset;
     }
 
     public int getGen() {
         return gen;
     }
-
-    public void setGen(int gen) {
-        this.gen = gen;
-    }
-
-
-    public long getTimeOfStart() {
-        return timeOfStart;
-    }
-
-    public void setTimeOfStart(long timeOfStart) {
-        this.timeOfStart = timeOfStart;
-    }
-
 
     public int getQueueId() {
         return queueId;
@@ -85,8 +74,11 @@ public class LogicQueueMappingItem {
         return endOffset;
     }
 
+    public long getTimeOfStart() {
+        return timeOfStart;
+    }
 
-    public void setEndOffset(long endOffset) {
-        this.endOffset = endOffset;
+    public long getTimeOfEnd() {
+        return timeOfEnd;
     }
 }

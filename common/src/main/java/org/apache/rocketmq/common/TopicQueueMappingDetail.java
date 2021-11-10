@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     // the mapping info in current broker, do not register to nameserver
-    ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
+    private ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
 
     public TopicQueueMappingDetail(String topic, int totalQueues, String bname) {
         super(topic, totalQueues, bname);
@@ -47,16 +47,6 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         this.prevIdMap = buildIdMap(LEVEL_1);
     }
 
-    public ConcurrentMap<Integer, Integer> revert(ConcurrentMap<Integer, Integer> original) {
-        if (original == null || original.isEmpty()) {
-            return new ConcurrentHashMap<Integer, Integer>();
-        }
-        ConcurrentMap<Integer, Integer> tmpIdMap = new ConcurrentHashMap<Integer, Integer>();
-        for (Map.Entry<Integer, Integer> entry: tmpIdMap.entrySet()) {
-            tmpIdMap.put(entry.getValue(), entry.getKey());
-        }
-        return tmpIdMap;
-    }
 
     public ConcurrentMap<Integer, Integer> buildIdMap(int level) {
         //level 0 means current leader in this broker
@@ -92,24 +82,24 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     }
 
 
-    public long convertToLogicOffset(Integer globalId, long physicalLogicOffset) {
+    public long computeStaticQueueOffset(Integer globalId, long physicalLogicOffset) {
         List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
         if (mappingItems == null
                 || mappingItems.isEmpty()) {
             return -1;
         }
         if (bname.equals(mappingItems.get(mappingItems.size() - 1).getBname())) {
-            return mappingItems.get(mappingItems.size() - 1).convertToStaticQueueOffset(physicalLogicOffset);
+            return mappingItems.get(mappingItems.size() - 1).computeStaticQueueOffset(physicalLogicOffset);
         }
         //Consider the "switch" process, reduce the error
         if (mappingItems.size() >= 2
             && bname.equals(mappingItems.get(mappingItems.size() - 2).getBname())) {
-            return mappingItems.get(mappingItems.size() - 2).convertToStaticQueueOffset(physicalLogicOffset);
+            return mappingItems.get(mappingItems.size() - 2).computeStaticQueueOffset(physicalLogicOffset);
         }
         return -1;
     }
 
-    public LogicQueueMappingItem getLogicQueueMappingItem(Integer globalId, long logicOffset) {
+    public LogicQueueMappingItem findLogicQueueMappingItem(Integer globalId, long logicOffset) {
         List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
         if (mappingItems == null
                 || mappingItems.isEmpty()) {
@@ -124,21 +114,21 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         }
         //if not found, maybe out of range, return the first one
         for (int i = 0; i < mappingItems.size(); i++) {
-            if (!mappingItems.get(i).isShouldDeleted()) {
+            if (!mappingItems.get(i).checkIfShouldDeleted()) {
                 return mappingItems.get(i);
             }
         }
         return null;
     }
 
-    public long getMaxOffsetFromMapping(Integer globalId) {
+    public long computeMaxOffsetFromMapping(Integer globalId) {
         List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
         if (mappingItems == null
                 || mappingItems.isEmpty()) {
             return -1;
         }
         LogicQueueMappingItem item =  mappingItems.get(mappingItems.size() - 1);
-        return item.convertToMaxStaticQueueOffset();
+        return item.computeMaxStaticQueueOffset();
     }
 
 
@@ -150,20 +140,7 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         return topicQueueMappingInfo;
     }
 
-
-    public int getTotalQueues() {
-        return totalQueues;
-    }
-
-    public void setTotalQueues(int totalQueues) {
-        this.totalQueues = totalQueues;
-    }
-
-    public String getBname() {
-        return bname;
-    }
-
-    public String getTopic() {
-        return topic;
+    public ConcurrentMap<Integer, ImmutableList<LogicQueueMappingItem>> getHostedQueues() {
+        return hostedQueues;
     }
 }

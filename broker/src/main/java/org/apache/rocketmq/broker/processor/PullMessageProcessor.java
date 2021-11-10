@@ -36,9 +36,7 @@ import org.apache.rocketmq.broker.longpolling.PullRequest;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
-import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.common.LogicQueueMappingItem;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -56,8 +54,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
@@ -126,7 +122,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         Integer globalId = requestHeader.getQueueId();
         Long globalOffset = requestHeader.getQueueOffset();
 
-        LogicQueueMappingItem mappingItem = mappingDetail.getLogicQueueMappingItem(globalId, globalOffset);
+        LogicQueueMappingItem mappingItem = mappingDetail.findLogicQueueMappingItem(globalId, globalOffset);
         return new TopicQueueMappingContext(topic, globalId, globalOffset, mappingDetail, mappingItem);
     }
 
@@ -153,10 +149,10 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             //below are physical info
             String bname = mappingItem.getBname();
             Integer phyQueueId = mappingItem.getQueueId();
-            Long phyQueueOffset = mappingItem.convertToPhysicalQueueOffset(globalOffset);
+            Long phyQueueOffset = mappingItem.computePhysicalQueueOffset(globalOffset);
             requestHeader.setQueueId(phyQueueId);
             requestHeader.setQueueOffset(phyQueueOffset);
-            if (mappingItem.isEndOffsetDecided()
+            if (mappingItem.checkIfEndOffsetDecided()
                     && requestHeader.getMaxMsgNums() != null) {
                 requestHeader.setMaxMsgNums((int) Math.min(mappingItem.getEndOffset() - mappingItem.getStartOffset(), requestHeader.getMaxMsgNums()));
             }
@@ -205,24 +201,24 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 long nextBeginOffset = responseHeader.getNextBeginOffset();
                 assert nextBeginOffset >= requestHeader.getQueueOffset();
                 //the next begin offset should no more than the end offset
-                if (mappingItem.isEndOffsetDecided()
+                if (mappingItem.checkIfEndOffsetDecided()
                         && nextBeginOffset >= mappingItem.getEndOffset()) {
                     nextBeginOffset = mappingItem.getEndOffset();
                 }
-                responseHeader.setNextBeginOffset(mappingItem.convertToStaticQueueOffset(nextBeginOffset));
+                responseHeader.setNextBeginOffset(mappingItem.computeStaticQueueOffset(nextBeginOffset));
             }
             //handle min offset
-            responseHeader.setMinOffset(mappingItem.convertToStaticQueueOffset(Math.max(mappingItem.getStartOffset(), responseHeader.getMinOffset())));
+            responseHeader.setMinOffset(mappingItem.computeStaticQueueOffset(Math.max(mappingItem.getStartOffset(), responseHeader.getMinOffset())));
             //handle max offset
             {
-                if (mappingItem.isEndOffsetDecided()) {
-                    responseHeader.setMaxOffset(Math.max(mappingItem.convertToMaxStaticQueueOffset(), mappingDetail.getMaxOffsetFromMapping(mappingContext.getGlobalId())));
+                if (mappingItem.checkIfEndOffsetDecided()) {
+                    responseHeader.setMaxOffset(Math.max(mappingItem.computeMaxStaticQueueOffset(), mappingDetail.computeMaxOffsetFromMapping(mappingContext.getGlobalId())));
                 } else {
-                    responseHeader.setMaxOffset(mappingItem.convertToStaticQueueOffset(responseHeader.getMaxOffset()));
+                    responseHeader.setMaxOffset(mappingItem.computeStaticQueueOffset(responseHeader.getMaxOffset()));
                 }
             }
             //set the offsetDelta
-            responseHeader.setOffsetDelta(mappingItem.convertOffsetDelta());
+            responseHeader.setOffsetDelta(mappingItem.computeOffsetDelta());
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
