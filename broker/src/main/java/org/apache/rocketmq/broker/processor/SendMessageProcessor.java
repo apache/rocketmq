@@ -54,7 +54,9 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RemotingResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
@@ -644,7 +646,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
     private String diskUtil() {
         double physicRatio = 100;
-        String storePath = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
+        String storePath;
+        MessageStore messageStore = this.brokerController.getMessageStore();
+        if (messageStore instanceof DefaultMessageStore) {
+            storePath = ((DefaultMessageStore) messageStore).getStorePathPhysic();
+        } else {
+            storePath = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
+        }
         String[] paths = storePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
         for (String storePathPhysic : paths) {
             physicRatio = Math.min(physicRatio, UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic));
