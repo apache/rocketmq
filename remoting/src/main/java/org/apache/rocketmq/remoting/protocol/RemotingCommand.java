@@ -17,21 +17,22 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.RpcRequest;
+import org.apache.rocketmq.remoting.RpcResponse;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.RpcRequest;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
@@ -87,7 +88,15 @@ public class RemotingCommand {
     protected RemotingCommand() {
     }
 
-    public static RemotingCommand createRequestCommand(RpcRequest rpcRequest) {
+    public static RemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader) {
+        RemotingCommand cmd = new RemotingCommand();
+        cmd.setCode(code);
+        cmd.customHeader = customHeader;
+        setCmdVersion(cmd);
+        return cmd;
+    }
+
+    public static RemotingCommand createCommandForRpcRequest(RpcRequest rpcRequest) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.setCode(rpcRequest.getCode());
         cmd.customHeader = rpcRequest.getHeader();
@@ -96,10 +105,11 @@ public class RemotingCommand {
         return cmd;
     }
 
-    public static RemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader) {
+    public static RemotingCommand createCommandForRpcResponse(RpcResponse rpcResponse) {
         RemotingCommand cmd = new RemotingCommand();
-        cmd.setCode(code);
-        cmd.customHeader = customHeader;
+        cmd.markResponseType();
+        cmd.setCode(rpcResponse.getCode());
+        cmd.setRemark(rpcResponse.getException() == null ? "" : rpcResponse.getException().getMessage());
         setCmdVersion(cmd);
         return cmd;
     }

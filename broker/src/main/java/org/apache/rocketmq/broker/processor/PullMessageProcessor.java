@@ -51,6 +51,7 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
@@ -65,6 +66,8 @@ import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.RpcRequest;
+import org.apache.rocketmq.remoting.RpcResponse;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -141,27 +144,20 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             }
 
             requestHeader.setPhysical(true);
-            RemotingCommand response = this.brokerController.getBrokerOuterAPI().pullMessage(bname, requestHeader, this.brokerController.getBrokerConfig().getForwardTimeout());
-            switch (response.getCode()) {
-                case ResponseCode.SYSTEM_ERROR:
-                    return response;
-                case ResponseCode.SUCCESS:
-                case ResponseCode.PULL_NOT_FOUND:
-               case ResponseCode.PULL_RETRY_IMMEDIATELY:
-                case ResponseCode.PULL_OFFSET_MOVED:
-                    break;
-                default:
-                    throw new MQBrokerException(response.getCode(), response.getRemark(), mappingItem.getBname());
+            RpcRequest rpcRequest = new RpcRequest(RequestCode.PULL_MESSAGE, requestHeader, null);
+            RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().pullMessage(bname, rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout());
+            if (rpcResponse.getException() != null) {
+                throw rpcResponse.getException();
             }
-            PullMessageResponseHeader responseHeader =
-                    (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+
+            PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) rpcResponse.getHeader();
             {
                 RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext);
                 if (rewriteResult != null) {
                     return rewriteResult;
                 }
             }
-            return response;
+            return RemotingCommand.createCommandForRpcResponse(rpcResponse);
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
