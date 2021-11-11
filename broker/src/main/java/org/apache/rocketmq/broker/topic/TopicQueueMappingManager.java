@@ -17,20 +17,31 @@
 package org.apache.rocketmq.broker.topic;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
+import org.apache.rocketmq.common.LogicQueueMappingItem;
+import org.apache.rocketmq.common.TopicQueueMappingContext;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.TopicQueueMappingSerializeWrapper;
 import org.apache.rocketmq.common.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.TopicQueueRequestHeader;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
 public class TopicQueueMappingManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -92,6 +103,76 @@ public class TopicQueueMappingManager extends ConfigManager {
 
     public DataVersion getDataVersion() {
         return dataVersion;
+    }
+
+    public TopicQueueMappingContext buildTopicQueueMappingContext(TopicQueueRequestHeader requestHeader) {
+        return buildTopicQueueMappingContext(requestHeader, false, Long.MAX_VALUE);
+    }
+
+    //Do not return a null context
+    public TopicQueueMappingContext buildTopicQueueMappingContext(TopicQueueRequestHeader requestHeader, boolean selectOneWhenMiss,  Long globalOffset) {
+        if (requestHeader.getPhysical() != null
+                && Boolean.TRUE.equals(requestHeader.getPhysical())) {
+            return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, null, null, null);
+        }
+        TopicQueueMappingDetail mappingDetail = getTopicQueueMapping(requestHeader.getTopic());
+        if (mappingDetail == null) {
+            //it is not static topic
+            return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, null, null, null);
+        }
+        //If not find mappingItem, it encounters some errors
+        Integer globalId = requestHeader.getQueueId();
+        if (globalId < 0 && !selectOneWhenMiss) {
+            return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, globalOffset, mappingDetail, null, null);
+        }
+
+        if (globalId < 0) {
+            try {
+                if (!mappingDetail.getHostedQueues().isEmpty()) {
+                    //do not check
+                    globalId = mappingDetail.getHostedQueues().keySet().iterator().next();
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        if (globalId < 0) {
+            return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, globalOffset, mappingDetail, null, null);
+        }
+
+        ImmutableList<LogicQueueMappingItem> mappingItemList = null;
+        LogicQueueMappingItem mappingItem = null;
+
+        if (globalOffset == null
+                || Long.MAX_VALUE == globalOffset) {
+            mappingItemList = mappingDetail.getMappingInfo(globalId);
+            if (mappingItemList != null
+                && mappingItemList.size() > 0) {
+                mappingItem = mappingItemList.get(mappingItemList.size() - 1);
+            }
+        } else {
+            mappingItemList = mappingDetail.getMappingInfo(globalId);
+            mappingItem = TopicQueueMappingDetail.findLogicQueueMappingItem(mappingItemList, globalOffset);
+        }
+        return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, globalOffset, mappingDetail, mappingItemList, mappingItem);
+    }
+
+
+    public  RemotingCommand rewriteRequestForStaticTopic(TopicQueueRequestHeader requestHeader, TopicQueueMappingContext mappingContext) {
+        try {
+            if (mappingContext.getMappingDetail() == null) {
+                return null;
+            }
+            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
+            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
+            if (mappingItem == null
+                    || !mappingDetail.getBname().equals(mappingItem.getBname())) {
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), mappingDetail.getBname()));
+            }
+            requestHeader.setQueueId(mappingItem.getQueueId());
+            return null;
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
     }
 
 

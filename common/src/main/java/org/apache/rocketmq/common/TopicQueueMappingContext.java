@@ -16,19 +16,29 @@
  */
 package org.apache.rocketmq.common;
 
+import com.google.common.collect.ImmutableList;
+
 public class TopicQueueMappingContext  {
     private String topic;
     private Integer globalId;
     private Long globalOffset;
     private TopicQueueMappingDetail mappingDetail;
+    private ImmutableList<LogicQueueMappingItem> mappingItemList;
     private LogicQueueMappingItem mappingItem;
 
-    public TopicQueueMappingContext(String topic, Integer globalId, Long globalOffset, TopicQueueMappingDetail mappingDetail, LogicQueueMappingItem mappingItem) {
+    public TopicQueueMappingContext(String topic, Integer globalId, Long globalOffset, TopicQueueMappingDetail mappingDetail, ImmutableList<LogicQueueMappingItem> mappingItemList, LogicQueueMappingItem mappingItem) {
         this.topic = topic;
         this.globalId = globalId;
         this.globalOffset = globalOffset;
         this.mappingDetail = mappingDetail;
+        this.mappingItemList = mappingItemList;
         this.mappingItem = mappingItem;
+    }
+
+    public boolean checkIfAsPhysical() {
+        return mappingDetail == null
+                || mappingItemList == null
+                || (mappingItemList.size() == 1 &&  mappingItemList.get(0).getLogicOffset() == 0);
     }
 
     public String getTopic() {
@@ -61,6 +71,14 @@ public class TopicQueueMappingContext  {
 
     public void setMappingDetail(TopicQueueMappingDetail mappingDetail) {
         this.mappingDetail = mappingDetail;
+    }
+
+    public ImmutableList<LogicQueueMappingItem> getMappingItemList() {
+        return mappingItemList;
+    }
+
+    public void setMappingItemList(ImmutableList<LogicQueueMappingItem> mappingItemList) {
+        this.mappingItemList = mappingItemList;
     }
 
     public LogicQueueMappingItem getMappingItem() {

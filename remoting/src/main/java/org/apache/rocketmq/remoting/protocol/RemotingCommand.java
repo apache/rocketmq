@@ -110,6 +110,13 @@ public class RemotingCommand {
         return createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
     }
 
+    public static RemotingCommand buildErrorResponse(int code, String remark) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(code);
+        response.setRemark(remark);
+        return response;
+    }
+
     public static RemotingCommand createResponseCommand(int code, String remark,
         Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();

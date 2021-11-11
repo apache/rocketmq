@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     // the mapping info in current broker, do not register to nameserver
+    // make sure this value is not null
     private ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
 
     public TopicQueueMappingDetail(String topic, int totalQueues, String bname) {
@@ -77,30 +78,14 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         return tmpIdMap;
     }
 
-    public List<LogicQueueMappingItem> getMappingInfo(Integer globalId) {
+    public ImmutableList<LogicQueueMappingItem> getMappingInfo(Integer globalId) {
         return hostedQueues.get(globalId);
     }
 
 
-    public long computeStaticQueueOffset(Integer globalId, long physicalLogicOffset) {
-        List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
-        if (mappingItems == null
-                || mappingItems.isEmpty()) {
-            return -1;
-        }
-        if (bname.equals(mappingItems.get(mappingItems.size() - 1).getBname())) {
-            return mappingItems.get(mappingItems.size() - 1).computeStaticQueueOffset(physicalLogicOffset);
-        }
-        //Consider the "switch" process, reduce the error
-        if (mappingItems.size() >= 2
-            && bname.equals(mappingItems.get(mappingItems.size() - 2).getBname())) {
-            return mappingItems.get(mappingItems.size() - 2).computeStaticQueueOffset(physicalLogicOffset);
-        }
-        return -1;
-    }
 
-    public LogicQueueMappingItem findLogicQueueMappingItem(Integer globalId, long logicOffset) {
-        List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
+
+    public static LogicQueueMappingItem findLogicQueueMappingItem(ImmutableList<LogicQueueMappingItem> mappingItems, long logicOffset) {
         if (mappingItems == null
                 || mappingItems.isEmpty()) {
             return null;
@@ -142,5 +127,12 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     public ConcurrentMap<Integer, ImmutableList<LogicQueueMappingItem>> getHostedQueues() {
         return hostedQueues;
+    }
+
+    public boolean checkIfAsPhysical(Integer globalId) {
+        List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
+        return mappingItems == null
+                || (mappingItems.size() == 1
+                &&  mappingItems.get(0).getLogicOffset() == 0);
     }
 }

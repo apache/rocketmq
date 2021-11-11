@@ -80,6 +80,8 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
+
 public class PullMessageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -101,50 +103,26 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
     }
 
 
-    private RemotingCommand buildErrorResponse(int code, String remark) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
-        response.setCode(code);
-        response.setRemark(remark);
-        return response;
-    }
-
-    private TopicQueueMappingContext buildTopicQueueMappingContext(PullMessageRequestHeader requestHeader) {
-        if (requestHeader.getPhysical() != null
-                && Boolean.TRUE.equals(requestHeader.getPhysical())) {
-            return null;
-        }
-        TopicQueueMappingDetail mappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(requestHeader.getTopic());
-        if (mappingDetail == null) {
-            //it is not static topic
-            return null;
-        }
-        String topic = requestHeader.getTopic();
-        Integer globalId = requestHeader.getQueueId();
-        Long globalOffset = requestHeader.getQueueOffset();
-
-        LogicQueueMappingItem mappingItem = mappingDetail.findLogicQueueMappingItem(globalId, globalOffset);
-        return new TopicQueueMappingContext(topic, globalId, globalOffset, mappingDetail, mappingItem);
-    }
 
     private RemotingCommand rewriteRequestForStaticTopic(PullMessageRequestHeader requestHeader, TopicQueueMappingContext mappingContext) {
         try {
-            if (mappingContext == null) {
+            if (mappingContext.getMappingDetail() == null) {
                 return null;
             }
+            TopicQueueMappingDetail mappingDetail =  mappingContext.getMappingDetail();
             String topic = mappingContext.getTopic();
             Integer globalId = mappingContext.getGlobalId();
             Long globalOffset = mappingContext.getGlobalOffset();
 
             LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
             if (mappingItem == null) {
-                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d cannot find mapping item in request process of current broker %s",
-                        topic, globalId, this.brokerController.getBrokerConfig().getBrokerName()));
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d cannot find mapping item in request process of current broker %s", topic, globalId, mappingDetail.getBname()));
             }
 
             if (globalOffset < mappingItem.getStartOffset()) {
                 log.warn("{}-{} fetch offset {} smaller than the min mapping offset {}", topic, globalId, globalOffset, mappingItem.getStartOffset());
                 return buildErrorResponse(ResponseCode.PULL_OFFSET_MOVED, String.format("%s-%d fetch offset {} smaller than the min mapping offset {} in  broker %s",
-                        topic, globalId, globalOffset, mappingItem.getStartOffset(), this.brokerController.getBrokerConfig().getBrokerName()));
+                        topic, globalId, globalOffset, mappingItem.getStartOffset(), mappingDetail.getBname()));
             }
             //below are physical info
             String bname = mappingItem.getBname();
@@ -157,7 +135,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 requestHeader.setMaxMsgNums((int) Math.min(mappingItem.getEndOffset() - mappingItem.getStartOffset(), requestHeader.getMaxMsgNums()));
             }
 
-            if (this.brokerController.getBrokerConfig().getBrokerName().equals(bname)) {
+            if (mappingDetail.getBname().equals(bname)) {
                 //just let it go
                 return null;
             }
@@ -278,7 +256,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
 
-        TopicQueueMappingContext mappingContext = buildTopicQueueMappingContext(requestHeader);
+        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false, requestHeader.getQueueOffset());
 
         {
             RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);

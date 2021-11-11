@@ -29,6 +29,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
+import org.apache.rocketmq.common.LogicQueueMappingItem;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -53,6 +54,7 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.remoting.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RemotingResponseCallback;
@@ -62,6 +64,8 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
+import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
@@ -99,8 +103,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 if (requestHeader == null) {
                     return CompletableFuture.completedFuture(null);
                 }
-                TopicQueueMappingContext mappingContext = buildTopicQueueMappingContext(requestHeader);
-                RemotingCommand rewriteResult =  rewriteRequestForStaticTopic(requestHeader, mappingContext);
+                TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, true, Long.MAX_VALUE);
+                RemotingCommand rewriteResult =  this.brokerController.getTopicQueueMappingManager().rewriteRequestForStaticTopic(requestHeader, mappingContext);
                 if (rewriteResult != null) {
                     return CompletableFuture.completedFuture(rewriteResult);
                 }
@@ -115,68 +119,27 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
     }
 
 
-
-    private RemotingCommand buildErrorResponse(int code, String remark) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.setCode(code);
-        response.setRemark(remark);
-        return response;
-    }
-
-    private TopicQueueMappingContext buildTopicQueueMappingContext(SendMessageRequestHeader requestHeader) {
-        if (requestHeader.getPhysical() != null
-                && Boolean.TRUE.equals(requestHeader.getPhysical())) {
-            return null;
-        }
-        TopicQueueMappingDetail mappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(requestHeader.getTopic());
-        if (mappingDetail == null) {
-            //it is not static topic
-            return null;
-        }
-        return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, mappingDetail, null);
-    }
     /**
      * If the response is not null, it meets some errors
-     * @param requestHeader
      * @return
      */
-    private RemotingCommand rewriteRequestForStaticTopic(SendMessageRequestHeader requestHeader, TopicQueueMappingContext mappingContext) {
-        try {
-            if (mappingContext == null) {
-                return null;
-            }
-            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
-            Integer phyQueueId = null;
-            //compatible with the old logic, but it fact, this should not happen
-            if (requestHeader.getQueueId() < 0) {
-                Iterator<Map.Entry<Integer, Integer>> it  = mappingDetail.getCurrIdMap().entrySet().iterator();
-                if (it.hasNext()) {
-                    phyQueueId = it.next().getValue();
-                }
-            } else {
-                phyQueueId = mappingDetail.getCurrIdMap().get(requestHeader.getQueueId());
-            }
-            if (phyQueueId == null) {
-                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), this.brokerController.getBrokerConfig().getBrokerName()));
-            } else {
-                requestHeader.setQueueId(phyQueueId);
-                return null;
-            }
-        } catch (Throwable t) {
-            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
-        }
-    }
 
-    private RemotingCommand rewriteResponseForStaticTopic(SendMessageRequestHeader requestHeader, SendMessageResponseHeader responseHeader,  TopicQueueMappingContext mappingContext) {
+
+    private RemotingCommand rewriteResponseForStaticTopic(SendMessageResponseHeader responseHeader,  TopicQueueMappingContext mappingContext) {
         try {
-            if (mappingContext == null) {
+            if (mappingContext.getMappingDetail() == null) {
                 return null;
             }
             TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
 
-            long staticLogicOffset = mappingDetail.computeStaticQueueOffset(mappingContext.getGlobalId(), responseHeader.getQueueOffset());
+            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
+            if (mappingItem == null) {
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
+            }
+            //no need to care the broker name
+            long staticLogicOffset = mappingItem.computeStaticQueueOffset(responseHeader.getQueueOffset());
             if (staticLogicOffset < 0) {
-                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d convert offset error in current broker %s", mappingContext.getTopic(), responseHeader.getQueueId(), this.brokerController.getBrokerConfig().getBrokerName()));
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d convert offset error in current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
             }
             responseHeader.setQueueId(mappingContext.getGlobalId());
             responseHeader.setQueueOffset(staticLogicOffset);
@@ -626,7 +589,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             responseHeader.setQueueId(queueIdInt);
             responseHeader.setQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
 
-            RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext);
+            RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(responseHeader, mappingContext);
             if (rewriteResult != null) {
                 return rewriteResult;
             }

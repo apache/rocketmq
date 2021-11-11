@@ -20,12 +20,12 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
-import org.apache.rocketmq.remoting.RequestHeader;
+import org.apache.rocketmq.remoting.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class SendMessageRequestHeader extends RequestHeader {
+public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private String producerGroup;
     @CFNotNull
@@ -64,10 +64,12 @@ public class SendMessageRequestHeader extends RequestHeader {
         this.producerGroup = producerGroup;
     }
 
+    @Override
     public String getTopic() {
         return topic;
     }
 
+    @Override
     public void setTopic(String topic) {
         this.topic = topic;
     }
@@ -88,10 +90,12 @@ public class SendMessageRequestHeader extends RequestHeader {
         this.defaultTopicQueueNums = defaultTopicQueueNums;
     }
 
+    @Override
     public Integer getQueueId() {
         return queueId;
     }
 
+    @Override
     public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
