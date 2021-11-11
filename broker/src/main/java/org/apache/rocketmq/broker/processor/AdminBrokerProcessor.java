@@ -139,6 +139,8 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
+import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
+
 public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -614,12 +616,43 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         return response;
     }
 
+    private RemotingCommand rewriteRequestForStaticTopic(SearchOffsetRequestHeader requestHeader, TopicQueueMappingContext mappingContext) {
+        try {
+            if (mappingContext.getMappingDetail() == null) {
+                return null;
+            }
+            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
+            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
+            if (mappingItem == null
+                    || !mappingDetail.getBname().equals(mappingItem.getBname())) {
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), mappingDetail.getBname()));
+            }
+            ImmutableList<LogicQueueMappingItem> mappingItems = mappingContext.getMappingItemList();
+            //TODO should make sure the offset timestamp is equal or bigger than the searched timestamp
+            for (int i = mappingItems.size() - 1; i >=0; i--) {
+
+            }
+            requestHeader.setQueueId(mappingItem.getQueueId());
+            return null;
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
+    }
+
     private RemotingCommand searchOffsetByTimestamp(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
         final SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
         final SearchOffsetRequestHeader requestHeader =
             (SearchOffsetRequestHeader) request.decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
+
+        {
+            TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
+            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
+            if (mappingDetail != null) {
+
+            }
+        }
 
         long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
             requestHeader.getTimestamp());

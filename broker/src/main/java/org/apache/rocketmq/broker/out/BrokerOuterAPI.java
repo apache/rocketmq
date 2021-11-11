@@ -45,8 +45,15 @@ import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionResponseHeader;
@@ -59,6 +66,8 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingClient;
+import org.apache.rocketmq.remoting.RpcRequest;
+import org.apache.rocketmq.remoting.RpcResponse;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -75,6 +84,7 @@ public class BrokerOuterAPI {
     private final BrokerController brokerController;
     private final TopAddressing topAddressing = new TopAddressing(MixAll.getWSAddr());
     private String nameSrvAddr = null;
+    private final String currBrokerName;
     private BrokerFixedThreadPoolExecutor brokerOuterExecutor = new BrokerFixedThreadPoolExecutor(4, 10, 1, TimeUnit.MINUTES,
         new ArrayBlockingQueue<Runnable>(32), new ThreadFactoryImpl("brokerOutApi_thread_", true));
 
@@ -86,6 +96,7 @@ public class BrokerOuterAPI {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
         this.remotingClient.registerRPCHook(rpcHook);
         this.brokerController = brokerController;
+        this.currBrokerName =  brokerController.getBrokerConfig().getBrokerName();
     }
 
     public void start() {
@@ -463,14 +474,13 @@ public class BrokerOuterAPI {
         this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, invokeCallback);
     }
 
-    public RemotingCommand pullMessage(String brokerName, PullMessageRequestHeader requestHeader, long timeoutMillis) throws Exception {
+    public RemotingCommand pullMessage(String bname, PullMessageRequestHeader requestHeader, long timeoutMillis) throws Exception {
 
-        String addr = this.brokerController.getBrokerAddrByName(brokerName);
+        String addr = this.brokerController.getBrokerAddrByName(bname);
         if (addr == null) {
-            final RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("%s-%d cannot find addr when forward to broker %s in broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), brokerName, this.brokerController.getBrokerConfig().getBrokerName()));
-            return response;
+            return RemotingCommand.buildErrorResponse(ResponseCode.SYSTEM_ERROR,
+                    String.format("%s-%d cannot find addr when forward to broker %s in broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), bname, currBrokerName),
+                    PullMessageResponseHeader.class);
         }
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
@@ -478,4 +488,108 @@ public class BrokerOuterAPI {
         return response;
 
     }
+
+    public RpcResponse pullMessage(String bname, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+        String addr = this.brokerController.getBrokerAddrByName(bname);
+        if (addr == null) {
+            RpcResponse rpcResponse = new RpcResponse(ResponseCode.SYSTEM_ERROR, null, null);
+            rpcResponse.setException(new MQBrokerException(ResponseCode.SYSTEM_ERROR, "cannot find addr for broker " + bname, addr));
+            return rpcResponse;
+        }
+        RemotingCommand requestCommand = RemotingCommand.createRequestCommand(rpcRequest );
+        RemotingCommand responseCommand = this.remotingClient.invokeSync(addr, requestCommand, timeoutMillis);
+        assert responseCommand != null;
+
+        switch (responseCommand.getCode()) {
+            case ResponseCode.SUCCESS:
+            case ResponseCode.PULL_NOT_FOUND:
+            case ResponseCode.PULL_RETRY_IMMEDIATELY:
+            case ResponseCode.PULL_OFFSET_MOVED:
+                PullMessageResponseHeader responseHeader =
+                        (PullMessageResponseHeader) responseCommand.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+                return new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody());
+            default:
+                RpcResponse rpcResponse = new RpcResponse(responseCommand.getCode(), null, null);
+                rpcResponse.setException(new MQBrokerException(responseCommand.getCode(), "unknown remote error", addr));
+                return rpcResponse;
+        }
+    }
+
+    public RpcResponse searchOffset(String bname, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+        String addr = this.brokerController.getBrokerAddrByName(bname);
+        if (addr == null) {
+            RpcResponse rpcResponse = new RpcResponse(ResponseCode.SYSTEM_ERROR, null, null);
+            rpcResponse.setException(new MQBrokerException(ResponseCode.SYSTEM_ERROR, "cannot find addr for broker " + bname, addr));
+            return rpcResponse;
+        }
+        RemotingCommand requestCommand = RemotingCommand.createRequestCommand(rpcRequest);
+        RemotingCommand responseCommand = this.remotingClient.invokeSync(addr, requestCommand, timeoutMillis);
+        assert responseCommand != null;
+        switch (responseCommand.getCode()) {
+            case ResponseCode.SUCCESS: {
+                SearchOffsetResponseHeader responseHeader =
+                        (SearchOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+                return new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody());
+            }
+            default:{
+                RpcResponse rpcResponse = new RpcResponse(responseCommand.getCode(), null, null);
+                rpcResponse.setException(new MQBrokerException(responseCommand.getCode(), "unknown remote error", addr));
+                return rpcResponse;
+            }
+        }
+    }
+
+    public RpcResponse getMinOffset(String bname, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+        String addr = this.brokerController.getBrokerAddrByName(bname);
+        if (addr == null) {
+            RpcResponse rpcResponse = new RpcResponse(ResponseCode.SYSTEM_ERROR, null, null);
+            rpcResponse.setException(new MQBrokerException(ResponseCode.SYSTEM_ERROR, "cannot find addr for broker " + bname, addr));
+            return rpcResponse;
+        }
+
+        RemotingCommand requestCommand = RemotingCommand.createRequestCommand(rpcRequest);
+
+        RemotingCommand responseCommand = this.remotingClient.invokeSync(addr, requestCommand, timeoutMillis);
+        assert responseCommand != null;
+        switch (responseCommand.getCode()) {
+            case ResponseCode.SUCCESS: {
+                GetMinOffsetResponseHeader responseHeader =
+                        (GetMinOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
+                return new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody());
+            }
+            default:{
+                RpcResponse rpcResponse = new RpcResponse(responseCommand.getCode(), null, null);
+                rpcResponse.setException(new MQBrokerException(responseCommand.getCode(), "unknown remote error", addr));
+                return rpcResponse;
+            }
+        }
+    }
+
+    public RpcResponse getEarliestMsgStoretime(String bname, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+        String addr = this.brokerController.getBrokerAddrByName(bname);
+        if (addr == null) {
+            RpcResponse rpcResponse = new RpcResponse(ResponseCode.SYSTEM_ERROR, null, null);
+            rpcResponse.setException(new MQBrokerException(ResponseCode.SYSTEM_ERROR, "cannot find addr for broker " + bname, addr));
+            return rpcResponse;
+        }
+
+        RemotingCommand requestCommand = RemotingCommand.createRequestCommand(rpcRequest);
+
+        RemotingCommand responseCommand = this.remotingClient.invokeSync(addr, requestCommand, timeoutMillis);
+        assert responseCommand != null;
+        switch (responseCommand.getCode()) {
+            case ResponseCode.SUCCESS: {
+                GetEarliestMsgStoretimeResponseHeader responseHeader =
+                        (GetEarliestMsgStoretimeResponseHeader) responseCommand.decodeCommandCustomHeader(GetEarliestMsgStoretimeResponseHeader.class);
+                return new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody());
+
+            }
+            default:{
+                RpcResponse rpcResponse = new RpcResponse(responseCommand.getCode(), null, null);
+                rpcResponse.setException(new MQBrokerException(responseCommand.getCode(), "unknown remote error", addr));
+                return rpcResponse;
+            }
+        }
+    }
+
 }

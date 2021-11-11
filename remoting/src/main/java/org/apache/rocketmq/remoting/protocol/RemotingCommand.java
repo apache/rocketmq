@@ -20,11 +20,13 @@ import com.alibaba.fastjson.annotation.JSONField;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.RpcRequest;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -85,6 +87,15 @@ public class RemotingCommand {
     protected RemotingCommand() {
     }
 
+    public static RemotingCommand createRequestCommand(RpcRequest rpcRequest) {
+        RemotingCommand cmd = new RemotingCommand();
+        cmd.setCode(rpcRequest.getCode());
+        cmd.customHeader = rpcRequest.getHeader();
+        setCmdVersion(cmd);
+        cmd.setBody(rpcRequest.getBody());
+        return cmd;
+    }
+
     public static RemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.setCode(code);
@@ -110,12 +121,20 @@ public class RemotingCommand {
         return createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
     }
 
+    public static RemotingCommand buildErrorResponse(int code, String remark, Class<? extends CommandCustomHeader> classHeader) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(classHeader);
+        response.setCode(code);
+        response.setRemark(remark);
+        return response;
+    }
+
     public static RemotingCommand buildErrorResponse(int code, String remark) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(code);
         response.setRemark(remark);
         return response;
     }
+
 
     public static RemotingCommand createResponseCommand(int code, String remark,
         Class<? extends CommandCustomHeader> classHeader) {
