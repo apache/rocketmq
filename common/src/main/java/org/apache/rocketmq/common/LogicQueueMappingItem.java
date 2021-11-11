@@ -6,8 +6,8 @@ public class LogicQueueMappingItem {
     private int queueId;
     private String bname;
     private long logicOffset; // the start of the logic offset
-    private long startOffset; // the start of the physical offset
-    private long endOffset; // the end of the physical offset
+    private long startOffset; // the start of the physical offset, included
+    private long endOffset; // the end of the physical offset, excluded
     private long timeOfStart = -1; // mutable
     private long timeOfEnd = -1; // mutable
 
@@ -23,6 +23,13 @@ public class LogicQueueMappingItem {
     }
 
     public long computeStaticQueueOffset(long physicalQueueOffset) {
+        if (physicalQueueOffset < startOffset) {
+            return logicOffset;
+        }
+        if (endOffset >= startOffset
+            && endOffset < physicalQueueOffset) {
+            return logicOffset + (endOffset - startOffset);
+        }
         return  logicOffset + (physicalQueueOffset - startOffset);
     }
 

@@ -119,6 +119,8 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.RpcRequest;
+import org.apache.rocketmq.remoting.RpcResponse;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -625,15 +627,46 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
             if (mappingItem == null
                     || !mappingDetail.getBname().equals(mappingItem.getBname())) {
-                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), mappingDetail.getBname()));
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
             }
             ImmutableList<LogicQueueMappingItem> mappingItems = mappingContext.getMappingItemList();
-            //TODO should make sure the offset timestamp is equal or bigger than the searched timestamp
-            for (int i = mappingItems.size() - 1; i >=0; i--) {
+            //TODO should make sure the timestampOfOffset is equal or bigger than the searched timestamp
+            Long timestamp = requestHeader.getTimestamp();
+            long offset = -1;
+            for (int i = 0; i < mappingItems.size(); i++) {
+                LogicQueueMappingItem item = mappingItems.get(i);
+                if (mappingDetail.getBname().equals(item.getBname())) {
+                    //means the leader
+                    assert i ==  mappingItems.size() - 1;
+                    offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(mappingContext.getTopic(), item.getQueueId(), timestamp);
+                    if (offset > 0) {
+                        offset = item.computeStaticQueueOffset(offset);
+                    }
+                } else {
+                    requestHeader.setPhysical(true);
+                    requestHeader.setTimestamp(timestamp);
+                    requestHeader.setQueueId(item.getQueueId());
+                    RpcRequest rpcRequest = new RpcRequest(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader, null);
+                    RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().pullMessage(item.getBname(), rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout());
+                    if (rpcResponse.getException() != null) {
+                        throw rpcResponse.getException();
+                    }
+                    SearchOffsetResponseHeader offsetResponseHeader = (SearchOffsetResponseHeader)rpcResponse.getHeader();
+                    if (offsetResponseHeader.getOffset() < 0
+                            || (item.checkIfEndOffsetDecided() && offsetResponseHeader.getOffset() >= item.getEndOffset())) {
+                        continue;
+                    } else {
+                        offset = item.computeStaticQueueOffset(offsetResponseHeader.getOffset());
+                    }
 
+                }
             }
-            requestHeader.setQueueId(mappingItem.getQueueId());
-            return null;
+            final RemotingCommand response = RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
+            final SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
+            responseHeader.setOffset(offset);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
@@ -646,12 +679,11 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         final SearchOffsetRequestHeader requestHeader =
             (SearchOffsetRequestHeader) request.decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
 
-        {
-            TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
-            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
-            if (mappingDetail != null) {
+        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
 
-            }
+        RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);
+        if (rewriteResult != null) {
+            return rewriteResult;
         }
 
         long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
