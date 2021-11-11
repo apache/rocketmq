@@ -1126,7 +1126,6 @@ public class MQClientAPIImpl {
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
         requestHeader.setCommitted(committed);
-        requestHeader.setLogicalQueue(fromLogicalQueue);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),

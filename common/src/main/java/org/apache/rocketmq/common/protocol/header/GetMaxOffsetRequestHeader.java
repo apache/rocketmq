@@ -20,34 +20,37 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class GetMaxOffsetRequestHeader implements CommandCustomHeader {
+public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private String topic;
     @CFNotNull
     private Integer queueId;
     private boolean committed;
-    private boolean logicalQueue;
 
     @Override
     public void checkFields() throws RemotingCommandException {
     }
 
+    @Override
     public String getTopic() {
         return topic;
     }
 
+    @Override
     public void setTopic(String topic) {
         this.topic = topic;
     }
 
+    @Override
     public Integer getQueueId() {
         return queueId;
     }
 
+    @Override
     public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
@@ -58,13 +61,5 @@ public class GetMaxOffsetRequestHeader implements CommandCustomHeader {
 
     public boolean isCommitted() {
         return committed;
-    }
-
-    public void setLogicalQueue(boolean logicalQueue) {
-        this.logicalQueue = logicalQueue;
-    }
-
-    public boolean getLogicalQueue() {
-        return logicalQueue;
     }
 }
