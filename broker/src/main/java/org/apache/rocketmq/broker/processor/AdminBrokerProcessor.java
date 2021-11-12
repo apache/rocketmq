@@ -647,7 +647,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                     requestHeader.setTimestamp(timestamp);
                     requestHeader.setQueueId(item.getQueueId());
                     RpcRequest rpcRequest = new RpcRequest(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader, null);
-                    RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().pullMessage(item.getBname(), rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout());
+                    RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().searchOffset(item.getBname(), rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout());
                     if (rpcResponse.getException() != null) {
                         throw rpcResponse.getException();
                     }
