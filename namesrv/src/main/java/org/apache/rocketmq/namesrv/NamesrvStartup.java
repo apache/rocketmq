@@ -54,6 +54,7 @@ public class NamesrvStartup {
     public static NamesrvController main0(String[] args) {
 
         try {
+            //创建NamesrvController
             NamesrvController controller = createNamesrvController(args);
             start(controller);
             String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
@@ -78,8 +79,10 @@ public class NamesrvStartup {
             System.exit(-1);
             return null;
         }
-
+        //namesrv 默认配置信息
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
+
+        //nettyServer 默认配置信息
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
         if (commandLine.hasOption('c')) {
