@@ -16,17 +16,44 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+/**
+ * nettyServer参数配置
+ */
 public class NettyServerConfig implements Cloneable {
+    /**
+     * netty监听端口号，后面被换位9876
+     */
     private int listenPort = 8888;
+    /**
+     * 工作线程数量
+     */
     private int serverWorkerThreads = 8;
+    /**
+     * netty 的public线程池的线程数，默认为0
+     */
     private int serverCallbackExecutorThreads = 0;
+    /**
+     * netty的IO线程池的线程数量，默认为3，用于解析网络请求，解析完成之，将请求转发给worker线程。
+     */
     private int serverSelectorThreads = 3;
+    //broker端的参数
     private int serverOnewaySemaphoreValue = 256;
     private int serverAsyncSemaphoreValue = 64;
+    /**
+     * 空闲超时时间
+     */
     private int serverChannelMaxIdleTimeSeconds = 120;
-
+    /**
+     * socket send buffer缓冲区大小
+     */
     private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;
+    /**
+     * socket rcv buffer缓冲区大小
+     */
     private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
+    /**
+     * byteBuffer是否开启缓存
+     */
     private boolean serverPooledByteBufAllocatorEnable = true;
 
     /**
@@ -35,6 +62,9 @@ public class NettyServerConfig implements Cloneable {
      *
      * ../glibc-2.10.1/configure \ --prefix=/usr \ --with-headers=/usr/include \
      * --host=x86_64-linux-gnu \ --build=x86_64-pc-linux-gnu \ --without-gd
+     */
+    /**
+     * 是否启用epoll模型
      */
     private boolean useEpollNativeSelector = false;
 
