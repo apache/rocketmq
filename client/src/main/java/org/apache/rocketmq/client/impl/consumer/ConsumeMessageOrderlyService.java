@@ -121,10 +121,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
     @Override
     public void incCorePoolSize() {
+        int corePoolSize = consumeExecutor.getCorePoolSize();
+        updateCorePoolSize(++corePoolSize);
     }
 
     @Override
     public void decCorePoolSize() {
+        int corePoolSize = consumeExecutor.getCorePoolSize();
+        updateCorePoolSize(--corePoolSize);
     }
 
     @Override
