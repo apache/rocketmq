@@ -17,6 +17,9 @@
 package org.apache.rocketmq.remoting.common;
 
 import io.netty.channel.Channel;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -34,6 +37,7 @@ public class RemotingHelper {
     public static final String DEFAULT_CHARSET = "UTF-8";
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
+    private static final AttributeKey<String> REMOTE_ADDR_KEY = AttributeKey.valueOf("RemoteAddr");
 
     public static String exceptionSimpleDesc(final Throwable e) {
         StringBuilder sb = new StringBuilder();
@@ -155,6 +159,20 @@ public class RemotingHelper {
         if (null == channel) {
             return "";
         }
+        Attribute<String> att = channel.attr(REMOTE_ADDR_KEY);
+        if (att == null) {
+            // mocked in unit test
+            return parseChannelRemoteAddr0(channel);
+        }
+        String addr = att.get();
+        if (addr == null) {
+            addr = parseChannelRemoteAddr0(channel);
+            att.set(addr);
+        }
+        return addr;
+    }
+
+    private static String parseChannelRemoteAddr0(final Channel channel) {
         SocketAddress remote = channel.remoteAddress();
         final String addr = remote != null ? remote.toString() : "";
 
