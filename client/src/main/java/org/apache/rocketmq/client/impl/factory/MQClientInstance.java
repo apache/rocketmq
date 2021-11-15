@@ -87,6 +87,8 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import static org.apache.rocketmq.common.rpc.ClientMetadata.topicRouteData2EndpointsForStaticTopic;
+
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final static InternalLogger log = ClientLogger.getLog();
@@ -162,37 +164,7 @@ public class MQClientInstance {
     }
 
 
-    public static ConcurrentMap<MessageQueue, String> topicRouteData2EndpointsForStaticTopic(final String topic, final TopicRouteData route) {
-        if (route.getTopicQueueMappingByBroker() == null
-            || route.getTopicQueueMappingByBroker().isEmpty()) {
-            return new ConcurrentHashMap<>();
-        }
-        ConcurrentMap<MessageQueue, String> mqEndPoints = new ConcurrentHashMap<>();
-        int totalNums = 0;
-        for (Map.Entry<String, TopicQueueMappingInfo> entry : route.getTopicQueueMappingByBroker().entrySet()) {
-            String brokerName = entry.getKey();
-            if (entry.getValue().getTotalQueues() > totalNums) {
-                if (totalNums != 0) {
-                    log.warn("The static logic queue totalNums dose not match before {} {} != {}", topic, totalNums, entry.getValue().getTotalQueues());
-                }
-                totalNums = entry.getValue().getTotalQueues();
-            }
-            for (Map.Entry<Integer, Integer> idEntry : entry.getValue().getCurrIdMap().entrySet()) {
-                int globalId = idEntry.getKey();
-                MessageQueue mq = new MessageQueue(topic, MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, globalId);
-                String oldBrokerName = mqEndPoints.put(mq, brokerName);
-                log.warn("The static logic queue is duplicated {} {} {} ", mq, oldBrokerName, brokerName);
-            }
-        }
-        //accomplish the static logic queues
-        for (int i = 0; i < totalNums; i++) {
-            MessageQueue mq = new MessageQueue(topic, MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, i);
-            if (!mqEndPoints.containsKey(mq)) {
-                mqEndPoints.put(mq, MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST);
-            }
-        }
-        return mqEndPoints;
-    }
+
 
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();

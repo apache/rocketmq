@@ -14,16 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting;
+package org.apache.rocketmq.common.rpc;
 
-public abstract class RequestHeader implements  CommandCustomHeader {
-    protected Boolean physical;
+public class RpcRequest {
+    private int code;
+    private CommonRpcHeader header;
+    private Object body;
 
-    public Boolean getPhysical() {
-        return physical;
+    public RpcRequest(int code, CommonRpcHeader header, Object body) {
+        this.code = code;
+        this.header = header;
+        this.body = body;
     }
 
-    public void setPhysical(Boolean physical) {
-        this.physical = physical;
+    public int getCode() {
+        return code;
+    }
+
+    public CommonRpcHeader getHeader() {
+        return header;
+    }
+
+    public Object getBody() {
+        return body;
     }
 }

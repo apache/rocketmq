@@ -14,9 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting;
+package org.apache.rocketmq.common.rpc;
 
-public abstract class TopicQueueRequestHeader extends   RequestHeader  {
+public abstract class TopicQueueRequestHeader extends CommonRpcHeader {
+    //Physical or Logical
+    protected Boolean physical;
+
+    @Override
+    public Boolean getPhysical() {
+        return physical;
+    }
+
+    @Override
+    public void setPhysical(Boolean physical) {
+        this.physical = physical;
+    }
+
     public abstract String getTopic();
     public abstract void setTopic(String topic);
     public abstract Integer getQueueId();

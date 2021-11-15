@@ -14,18 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting;
+package org.apache.rocketmq.common.rpc;
+
+import org.apache.rocketmq.remoting.CommandCustomHeader;
 
 public class RpcResponse   {
     private int code;
     private CommandCustomHeader header;
-    private byte[] body;
-    public Exception exception;
+    private Object body;
+    public RpcException exception;
+
+    public RpcResponse() {
+
+    }
 
     public RpcResponse(int code, CommandCustomHeader header, byte[] body) {
         this.code = code;
         this.header = header;
         this.body = body;
+    }
+
+    public RpcResponse(RpcException rpcException) {
+        this.code = rpcException.getErrorCode();
+        this.exception = rpcException;
     }
 
     public int getCode() {
@@ -36,15 +47,16 @@ public class RpcResponse   {
         return header;
     }
 
-    public byte[] getBody() {
+    public Object getBody() {
         return body;
     }
 
-    public Exception getException() {
+    public RpcException getException() {
         return exception;
     }
 
-    public void setException(Exception exception) {
+    public void setException(RpcException exception) {
         this.exception = exception;
     }
+
 }

@@ -20,8 +20,6 @@ import com.alibaba.fastjson.annotation.JSONField;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.RpcRequest;
-import org.apache.rocketmq.remoting.RpcResponse;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -88,6 +86,7 @@ public class RemotingCommand {
     protected RemotingCommand() {
     }
 
+
     public static RemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.setCode(code);
@@ -96,20 +95,11 @@ public class RemotingCommand {
         return cmd;
     }
 
-    public static RemotingCommand createCommandForRpcRequest(RpcRequest rpcRequest) {
+    public static RemotingCommand createResponseCommand(int code, CommandCustomHeader customHeader) {
         RemotingCommand cmd = new RemotingCommand();
-        cmd.setCode(rpcRequest.getCode());
-        cmd.customHeader = rpcRequest.getHeader();
-        setCmdVersion(cmd);
-        cmd.setBody(rpcRequest.getBody());
-        return cmd;
-    }
-
-    public static RemotingCommand createCommandForRpcResponse(RpcResponse rpcResponse) {
-        RemotingCommand cmd = new RemotingCommand();
+        cmd.setCode(code);
         cmd.markResponseType();
-        cmd.setCode(rpcResponse.getCode());
-        cmd.setRemark(rpcResponse.getException() == null ? "" : rpcResponse.getException().getMessage());
+        cmd.customHeader = customHeader;
         setCmdVersion(cmd);
         return cmd;
     }
