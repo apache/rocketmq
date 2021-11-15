@@ -164,6 +164,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int consumeThreadMax = 20;
 
     /**
+     * Queue size of consumption request;
+     */
+    private int consumeQueueSize = 10000;
+
+    /**
      * Threshold for dynamic adjustment of the number of thread pool
      */
     private long adjustThreadPoolNumsThreshold = 100000;
@@ -556,6 +561,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumeThreadMin(int consumeThreadMin) {
         this.consumeThreadMin = consumeThreadMin;
+    }
+
+    public int getConsumeQueueSize() {
+        return consumeQueueSize;
+    }
+
+    public void setConsumeQueueSize(int consumeQueueSize) {
+        this.consumeQueueSize = consumeQueueSize;
     }
 
     /**

@@ -61,6 +61,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final ScheduledExecutorService scheduledExecutorService;
     private final ScheduledExecutorService cleanExpireMsgExecutors;
 
+    /**
+     * The default delay in milliseconds when submitting a {@link ConsumeRequest} when encounters RejectedExecutionException
+     */
+    private static final int DEFAULT_CONSUME_REQUEST_LATER_DELAY_MILLS = 5000;
+
+    /**
+     *The maximum delay in milliseconds when submitting a {@link ConsumeRequest} when encounters RejectedExecutionException
+     */
+    private static final int MAX_CONSUME_REQUEST_LATER_DELAY_MILLS = 5000 << 3;
+
+
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerConcurrently messageListener) {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
@@ -68,7 +79,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
-        this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();
+        this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>(this.defaultMQPushConsumer.getConsumeQueueSize());
 
         this.consumeExecutor = new ThreadPoolExecutor(
             this.defaultMQPushConsumer.getConsumeThreadMin(),
@@ -190,7 +201,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             try {
                 this.consumeExecutor.submit(consumeRequest);
             } catch (RejectedExecutionException e) {
-                this.submitConsumeRequestLater(consumeRequest);
+                this.submitConsumeRequestLater(consumeRequest, DEFAULT_CONSUME_REQUEST_LATER_DELAY_MILLS);
             }
         } else {
             for (int total = 0; total < msgs.size(); ) {
@@ -211,7 +222,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                         msgThis.add(msgs.get(total));
                     }
 
-                    this.submitConsumeRequestLater(consumeRequest);
+                    this.submitConsumeRequestLater(consumeRequest, DEFAULT_CONSUME_REQUEST_LATER_DELAY_MILLS);
                 }
             }
         }
@@ -322,19 +333,27 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             public void run() {
                 ConsumeMessageConcurrentlyService.this.submitConsumeRequest(msgs, processQueue, messageQueue, true);
             }
-        }, 5000, TimeUnit.MILLISECONDS);
+        }, DEFAULT_CONSUME_REQUEST_LATER_DELAY_MILLS, TimeUnit.MILLISECONDS);
     }
 
-    private void submitConsumeRequestLater(final ConsumeRequest consumeRequest
+    private void submitConsumeRequestLater(final ConsumeRequest consumeRequest, final int delayMs
     ) {
 
         this.scheduledExecutorService.schedule(new Runnable() {
 
             @Override
             public void run() {
-                ConsumeMessageConcurrentlyService.this.consumeExecutor.submit(consumeRequest);
+                try {
+                    ConsumeMessageConcurrentlyService.this.consumeExecutor.submit(consumeRequest);
+                } catch (RejectedExecutionException e) {
+                    int retryDelayMs =  delayMs << 1;
+                    if (retryDelayMs > MAX_CONSUME_REQUEST_LATER_DELAY_MILLS) {
+                        retryDelayMs = MAX_CONSUME_REQUEST_LATER_DELAY_MILLS;
+                    }
+                    submitConsumeRequestLater(consumeRequest, retryDelayMs);
+                }
             }
-        }, 5000, TimeUnit.MILLISECONDS);
+        }, delayMs, TimeUnit.MILLISECONDS);
     }
 
     class ConsumeRequest implements Runnable {
