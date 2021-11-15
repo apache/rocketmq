@@ -18,12 +18,19 @@ package org.apache.rocketmq.client.impl.consumer;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -62,9 +69,10 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConsumeMessageConcurrentlyServiceTest {
@@ -215,5 +223,57 @@ public class ConsumeMessageConcurrentlyServiceTest {
             outputStream.write(MessageDecoder.encode(messageExt, false));
         }
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
+    }
+
+    @Ignore
+    @Test
+    public void testSubmitConsumeRequestLater() throws InterruptedException, NoSuchFieldException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
+
+        pushConsumer.setConsumeThreadMin(1);
+        pushConsumer.setConsumeQueueSize(1);
+        pushConsumer.setConsumeThreadMax(2);
+        pushConsumer.setConsumeMessageBatchMaxSize(1);
+
+        ConsumeMessageConcurrentlyService  normalServie = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                                                            ConsumeConcurrentlyContext context) {
+                messageAtomic.set(msgs.get(0));
+                countDownLatch.countDown();
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(normalServie);
+        ConsumeMessageConcurrentlyService.ConsumeRequest consumeRequest =
+                mock(ConsumeMessageConcurrentlyService.ConsumeRequest.class);
+
+        Method submitConsumeRequestLater = normalServie.getClass()
+                .getDeclaredMethod("submitConsumeRequestLater", new Class[]{ConsumeMessageConcurrentlyService.ConsumeRequest.class, int.class});
+        submitConsumeRequestLater.setAccessible(true);
+        Field field = normalServie.getClass().getDeclaredField("consumeExecutor");
+        field.setAccessible(true);
+        ThreadPoolExecutor consumeExecutor = (ThreadPoolExecutor)field.get(normalServie);
+        AtomicInteger retryTimesAfterReject = new AtomicInteger(0);
+        consumeExecutor.setRejectedExecutionHandler(new RejectedExecutionHandler() {
+
+            @Override
+            public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+                retryTimesAfterReject.incrementAndGet();
+                throw new RejectedExecutionException("Task " + r.toString() +
+                        " rejected from " +
+                        e.toString());
+            }
+        });
+
+        int taskNum = 10;
+        for (int i = 0; i < taskNum; i++) {
+            submitConsumeRequestLater.invoke(normalServie, consumeRequest, 500);
+        }
+        consumeExecutor.awaitTermination(60, TimeUnit.SECONDS);
+
+        assertThat(retryTimesAfterReject.get()).isGreaterThan(1);
+        assertThat(consumeExecutor.getCompletedTaskCount()).isEqualTo(taskNum);
     }
 }
