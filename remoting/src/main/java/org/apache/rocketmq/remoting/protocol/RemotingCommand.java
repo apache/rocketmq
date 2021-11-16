@@ -86,8 +86,7 @@ public class RemotingCommand {
     protected RemotingCommand() {
     }
 
-
-    public static RemotingCommand createRequestCommandWithHeader(int code, CommandCustomHeader customHeader) {
+    public static RemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.setCode(code);
         cmd.customHeader = customHeader;
@@ -129,10 +128,7 @@ public class RemotingCommand {
     }
 
     public static RemotingCommand buildErrorResponse(int code, String remark) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.setCode(code);
-        response.setRemark(remark);
-        return response;
+        return buildErrorResponse(code, remark, null);
     }
 
 
