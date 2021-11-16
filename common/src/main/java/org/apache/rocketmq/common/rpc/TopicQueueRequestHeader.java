@@ -20,12 +20,10 @@ public abstract class TopicQueueRequestHeader extends CommonRpcHeader {
     //Physical or Logical
     protected Boolean physical;
 
-    @Override
     public Boolean getPhysical() {
         return physical;
     }
 
-    @Override
     public void setPhysical(Boolean physical) {
         this.physical = physical;
     }
