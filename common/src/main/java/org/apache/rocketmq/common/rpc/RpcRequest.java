@@ -17,18 +17,12 @@
 package org.apache.rocketmq.common.rpc;
 
 public class RpcRequest {
-    private int code;
     private CommonRpcHeader header;
     private Object body;
 
-    public RpcRequest(int code, CommonRpcHeader header, Object body) {
-        this.code = code;
+    public RpcRequest(CommonRpcHeader header, Object body) {
         this.header = header;
         this.body = body;
-    }
-
-    public int getCode() {
-        return code;
     }
 
     public CommonRpcHeader getHeader() {

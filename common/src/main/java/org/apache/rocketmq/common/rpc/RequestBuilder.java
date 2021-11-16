@@ -25,6 +25,7 @@ public class RequestBuilder {
         }
         try {
             CommonRpcHeader requestHeader = (CommonRpcHeader) requestHeaderClass.newInstance();
+            requestHeader.setCode(requestCode);
             requestHeader.setOneway(oneway);
             requestHeader.setBname(destBrokerName);
             return requestHeader;
@@ -52,6 +53,7 @@ public class RequestBuilder {
         }
         try {
             TopicQueueRequestHeader requestHeader = (TopicQueueRequestHeader) requestHeaderClass.newInstance();
+            requestHeader.setCode(requestCode);
             requestHeader.setOneway(oneway);
             requestHeader.setBname(destBrokerName);
             requestHeader.setTopic(topic);

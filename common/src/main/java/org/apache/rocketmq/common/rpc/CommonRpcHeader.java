@@ -24,6 +24,8 @@ public abstract class CommonRpcHeader implements CommandCustomHeader {
     //if the data has been namespaced
     protected Boolean namespaced;
 
+    protected int code;
+
     //the abstract remote addr name, usually the physical broker name
     protected String bname;
 
@@ -59,5 +61,13 @@ public abstract class CommonRpcHeader implements CommandCustomHeader {
 
     public void setNamespaced(Boolean namespaced) {
         this.namespaced = namespaced;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(int code) {
+        this.code = code;
     }
 }

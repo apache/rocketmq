@@ -54,6 +54,9 @@ import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestH
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.rpc.ClientMetadata;
+import org.apache.rocketmq.common.rpc.RpcClient;
+import org.apache.rocketmq.common.rpc.RpcClientImpl;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -81,15 +84,21 @@ public class BrokerOuterAPI {
     private BrokerFixedThreadPoolExecutor brokerOuterExecutor = new BrokerFixedThreadPoolExecutor(4, 10, 1, TimeUnit.MINUTES,
         new ArrayBlockingQueue<Runnable>(32), new ThreadFactoryImpl("brokerOutApi_thread_", true));
 
+    private ClientMetadata clientMetadata;
+    private RpcClient rpcClient;
+
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig, final BrokerController brokerController) {
-        this(nettyClientConfig, null, brokerController);
+
+        this(nettyClientConfig, null, brokerController, new ClientMetadata());
     }
 
-    public BrokerOuterAPI(final NettyClientConfig nettyClientConfig, RPCHook rpcHook, final BrokerController brokerController) {
+    private BrokerOuterAPI(final NettyClientConfig nettyClientConfig, RPCHook rpcHook, final BrokerController brokerController, ClientMetadata clientMetadata) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.clientMetadata = clientMetadata;
         this.remotingClient.registerRPCHook(rpcHook);
         this.brokerController = brokerController;
         this.currBrokerName =  brokerController.getBrokerConfig().getBrokerName();
+        this.rpcClient = new RpcClientImpl(this.clientMetadata, this.remotingClient);
     }
 
     public void start() {
@@ -468,5 +477,11 @@ public class BrokerOuterAPI {
     }
 
 
+    public ClientMetadata getClientMetadata() {
+        return clientMetadata;
+    }
 
+    public RpcClient getRpcClient() {
+        return rpcClient;
+    }
 }
