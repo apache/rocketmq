@@ -145,8 +145,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
 
             requestHeader.setPhysical(true);
             requestHeader.setBname(bname);
-            requestHeader.setCode(RequestCode.PULL_MESSAGE);
-            RpcRequest rpcRequest = new RpcRequest(requestHeader, null);
+            RpcRequest rpcRequest = new RpcRequest(RequestCode.PULL_MESSAGE, requestHeader, null);
             RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
             if (rpcResponse.getException() != null) {
                 throw rpcResponse.getException();

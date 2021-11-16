@@ -646,9 +646,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                     requestHeader.setPhysical(true);
                     requestHeader.setTimestamp(timestamp);
                     requestHeader.setQueueId(item.getQueueId());
-                    requestHeader.setCode(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP);
                     requestHeader.setBname(item.getBname());
-                    RpcRequest rpcRequest = new RpcRequest(requestHeader, null);
+                    RpcRequest rpcRequest = new RpcRequest(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader, null);
                     RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
                     if (rpcResponse.getException() != null) {
                         throw rpcResponse.getException();
@@ -753,11 +752,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
         };
         try {
-            requestHeader.setCode(RequestCode.GET_MIN_OFFSET);
             requestHeader.setBname(mappingItem.getBname());
             requestHeader.setPhysical(true);
             //TODO check if it is leader
-            RpcRequest rpcRequest = new RpcRequest(requestHeader, null);
+            RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_MIN_OFFSET, requestHeader, null);
             RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
             if (rpcResponse.getException() != null) {
                 throw rpcResponse.getException();
@@ -808,10 +806,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
         };
         try {
-            requestHeader.setCode(RequestCode.GET_MIN_OFFSET);
             requestHeader.setBname(mappingItem.getBname());
             requestHeader.setPhysical(true);
-            RpcRequest rpcRequest = new RpcRequest(requestHeader, null);
+            RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_MIN_OFFSET, requestHeader, null);
             //TODO check if it is leader
             RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
             if (rpcResponse.getException() != null) {

@@ -16,8 +16,11 @@
  */
 package org.apache.rocketmq.common.rpc;
 
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+
 public class RpcResponse   {
-    private RpcHeader header;
+    private int code;
+    private CommandCustomHeader header;
     private Object body;
     public RpcException exception;
 
@@ -25,21 +28,26 @@ public class RpcResponse   {
 
     }
 
-    public RpcResponse(RpcHeader header, byte[] body) {
+    public RpcResponse(int code, CommandCustomHeader header, byte[] body) {
+        this.code = code;
         this.header = header;
         this.body = body;
     }
 
-    public RpcResponse(RpcException rpcException) {
-        this.header = new RpcHeader(rpcException.getErrorCode());
+    RpcResponse(RpcException rpcException) {
+        this.code = rpcException.getErrorCode();
         this.exception = rpcException;
     }
 
-    public RpcHeader getHeader() {
+    public int getCode() {
+        return code;
+    }
+
+    public CommandCustomHeader getHeader() {
         return header;
     }
 
-    public void setHeader(RpcHeader header) {
+    public void setHeader(CommandCustomHeader header) {
         this.header = header;
     }
 

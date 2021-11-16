@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.common.rpc;
 
-public abstract class RpcRequestHeader extends RpcHeader {
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+
+public abstract class RpcRequestHeader implements CommandCustomHeader {
     //the namespace name
     protected String namespace;
     //if the data has been namespaced
