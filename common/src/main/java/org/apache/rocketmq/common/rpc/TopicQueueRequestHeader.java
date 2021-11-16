@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.common.rpc;
 
-public abstract class TopicQueueRequestHeader extends CommonRpcHeader {
+public abstract class TopicQueueRequestHeader extends RpcRequestHeader {
     //Physical or Logical
     protected Boolean physical;
 

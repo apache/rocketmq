@@ -8,13 +8,13 @@ import java.nio.ByteBuffer;
 public class RpcClientUtils {
 
     public static RemotingCommand createCommandForRpcRequest(RpcRequest rpcRequest) {
-        RemotingCommand cmd = RemotingCommand.createRequestCommand(rpcRequest.getCode(), rpcRequest.getHeader());
+        RemotingCommand cmd = RemotingCommand.createRequestCommandWithHeader(rpcRequest.getHeader().getCode(), rpcRequest.getHeader());
         cmd.setBody(encodeBody(rpcRequest.getBody()));
         return cmd;
     }
 
     public static RemotingCommand createCommandForRpcResponse(RpcResponse rpcResponse) {
-        RemotingCommand cmd = RemotingCommand.createResponseCommand(rpcResponse.getCode(), rpcResponse.getHeader());
+        RemotingCommand cmd = RemotingCommand.createResponseCommandWithHeader(rpcResponse.getCode(), rpcResponse.getHeader());
         cmd.setRemark(rpcResponse.getException() == null ? "" : rpcResponse.getException().getMessage());
         cmd.setBody(encodeBody(rpcResponse.getBody()));
         return cmd;

@@ -17,15 +17,15 @@
 package org.apache.rocketmq.common.rpc;
 
 public class RpcRequest {
-    private CommonRpcHeader header;
+    private RpcRequestHeader header;
     private Object body;
 
-    public RpcRequest(CommonRpcHeader header, Object body) {
+    public RpcRequest(RpcRequestHeader header, Object body) {
         this.header = header;
         this.body = body;
     }
 
-    public CommonRpcHeader getHeader() {
+    public RpcRequestHeader getHeader() {
         return header;
     }
 

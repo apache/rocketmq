@@ -20,11 +20,12 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import org.apache.rocketmq.common.rpc.RpcHeader;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class GetEarliestMsgStoretimeResponseHeader implements CommandCustomHeader {
+public class GetEarliestMsgStoretimeResponseHeader extends RpcHeader {
     @CFNotNull
     private Long timestamp;
 

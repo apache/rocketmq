@@ -14,17 +14,17 @@ public class RequestBuilder {
         requestCodeMap.put(RequestCode.PULL_MESSAGE, PullMessageRequestHeader.class);
     }
 
-    public static CommonRpcHeader buildCommonRpcHeader(int requestCode, String destBrokerName) {
+    public static RpcRequestHeader buildCommonRpcHeader(int requestCode, String destBrokerName) {
         return buildCommonRpcHeader(requestCode, null, destBrokerName);
     }
 
-    public static CommonRpcHeader buildCommonRpcHeader(int requestCode, Boolean oneway, String destBrokerName) {
+    public static RpcRequestHeader buildCommonRpcHeader(int requestCode, Boolean oneway, String destBrokerName) {
         Class requestHeaderClass = requestCodeMap.get(requestCode);
         if (requestHeaderClass == null) {
             throw new UnsupportedOperationException("unknown " + requestCode);
         }
         try {
-            CommonRpcHeader requestHeader = (CommonRpcHeader) requestHeaderClass.newInstance();
+            RpcRequestHeader requestHeader = (RpcRequestHeader) requestHeaderClass.newInstance();
             requestHeader.setCode(requestCode);
             requestHeader.setOneway(oneway);
             requestHeader.setBname(destBrokerName);

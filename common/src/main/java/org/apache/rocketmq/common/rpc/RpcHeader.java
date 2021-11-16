@@ -17,50 +17,18 @@
 package org.apache.rocketmq.common.rpc;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public abstract class CommonRpcHeader implements CommandCustomHeader {
-    //the namespace name
-    protected String namespace;
-    //if the data has been namespaced
-    protected Boolean namespaced;
+public class RpcHeader implements CommandCustomHeader {
+
 
     protected int code;
 
-    //the abstract remote addr name, usually the physical broker name
-    protected String bname;
-
-    protected Boolean oneway;
-
-    public String getBname() {
-        return bname;
+    public RpcHeader() {
     }
 
-    public void setBname(String bname) {
-        this.bname = bname;
-    }
-
-    public Boolean getOneway() {
-        return oneway;
-    }
-
-    public void setOneway(Boolean oneway) {
-        this.oneway = oneway;
-    }
-
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
-    }
-
-    public Boolean getNamespaced() {
-        return namespaced;
-    }
-
-    public void setNamespaced(Boolean namespaced) {
-        this.namespaced = namespaced;
+    public RpcHeader(int code) {
+        this.code = code;
     }
 
     public int getCode() {
@@ -69,5 +37,10 @@ public abstract class CommonRpcHeader implements CommandCustomHeader {
 
     public void setCode(int code) {
         this.code = code;
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
+
     }
 }

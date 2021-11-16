@@ -16,47 +16,45 @@
  */
 package org.apache.rocketmq.common.rpc;
 
-public class RpcResponse   {
-    private RpcHeader header;
-    private Object body;
-    public RpcException exception;
+public abstract class RpcRequestHeader extends RpcHeader {
+    //the namespace name
+    protected String namespace;
+    //if the data has been namespaced
+    protected Boolean namespaced;
+    //the abstract remote addr name, usually the physical broker name
+    protected String bname;
 
-    public RpcResponse() {
+    protected Boolean oneway;
 
+    public String getBname() {
+        return bname;
     }
 
-    public RpcResponse(RpcHeader header, byte[] body) {
-        this.header = header;
-        this.body = body;
+    public void setBname(String bname) {
+        this.bname = bname;
     }
 
-    public RpcResponse(RpcException rpcException) {
-        this.header = new RpcHeader(rpcException.getErrorCode());
-        this.exception = rpcException;
+    public Boolean getOneway() {
+        return oneway;
     }
 
-    public RpcHeader getHeader() {
-        return header;
+    public void setOneway(Boolean oneway) {
+        this.oneway = oneway;
     }
 
-    public void setHeader(RpcHeader header) {
-        this.header = header;
+    public String getNamespace() {
+        return namespace;
     }
 
-    public Object getBody() {
-        return body;
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
-    public void setBody(Object body) {
-        this.body = body;
+    public Boolean getNamespaced() {
+        return namespaced;
     }
 
-    public RpcException getException() {
-        return exception;
+    public void setNamespaced(Boolean namespaced) {
+        this.namespaced = namespaced;
     }
-
-    public void setException(RpcException exception) {
-        this.exception = exception;
-    }
-
 }

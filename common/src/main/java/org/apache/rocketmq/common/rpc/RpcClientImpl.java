@@ -1,9 +1,5 @@
 package org.apache.rocketmq.common.rpc;
 
-import com.google.common.util.concurrent.Futures;
-import com.sun.org.apache.xpath.internal.functions.FuncPosition;
-import io.netty.util.concurrent.DefaultPromise;
-import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 import io.netty.util.concurrent.Promise;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -20,10 +16,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 
 public class RpcClientImpl implements RpcClient {
 
@@ -68,12 +61,12 @@ public class RpcClientImpl implements RpcClient {
         String addr = getBrokerAddrByNameOrException(request.getHeader().bname);
         Promise<RpcResponse> rpcResponsePromise = null;
         try {
-            switch (request.getCode()) {
+            switch (request.getHeader().getCode()) {
                 case RequestCode.PULL_MESSAGE:
                     rpcResponsePromise = handlePullMessage(addr, request, timeoutMs);
                     break;
                 default:
-                    throw new RpcException(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, "Unknown request code " + request.getCode());
+                    throw new RpcException(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, "Unknown request code " + request.getHeader().getCode());
             }
         } catch (RpcException rpcException) {
             throw rpcException;
@@ -135,7 +128,8 @@ public class RpcClientImpl implements RpcClient {
                         case ResponseCode.PULL_OFFSET_MOVED:
                             PullMessageResponseHeader responseHeader =
                                     (PullMessageResponseHeader) responseCommand.decodeCommandCustomHeader(PullMessageResponseHeader.class);
-                            rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody()));
+                            responseHeader.setCode(responseCommand.getCode());
+                            rpcResponsePromise.setSuccess(new RpcResponse(responseHeader, responseCommand.getBody()));
                         default:
                             RpcResponse rpcResponse = new RpcResponse(new RpcException(responseCommand.getCode(), "unexpected remote response code"));
                             rpcResponsePromise.setSuccess(rpcResponse);
@@ -162,11 +156,11 @@ public class RpcClientImpl implements RpcClient {
             case ResponseCode.SUCCESS: {
                 SearchOffsetResponseHeader responseHeader =
                         (SearchOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
-                return new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody());
+                responseHeader.setCode(responseCommand.getCode());
+                return new RpcResponse(responseHeader, responseCommand.getBody());
             }
             default:{
-                RpcResponse rpcResponse = new RpcResponse(responseCommand.getCode(), null, null);
-                rpcResponse.setException(new RpcException(responseCommand.getCode(), "unknown remote error"));
+                RpcResponse rpcResponse = new RpcResponse(new RpcException(responseCommand.getCode(), "unknown remote error"));
                 return rpcResponse;
             }
         }
@@ -183,11 +177,11 @@ public class RpcClientImpl implements RpcClient {
             case ResponseCode.SUCCESS: {
                 GetMinOffsetResponseHeader responseHeader =
                         (GetMinOffsetResponseHeader) responseCommand.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
-                return new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody());
+                responseHeader.setCode(responseCommand.getCode());
+                return new RpcResponse(responseHeader, responseCommand.getBody());
             }
             default:{
-                RpcResponse rpcResponse = new RpcResponse(responseCommand.getCode(), null, null);
-                rpcResponse.setException(new RpcException(responseCommand.getCode(), "unknown remote error"));
+                RpcResponse rpcResponse = new RpcResponse(new RpcException(responseCommand.getCode(), "unknown remote error"));
                 return rpcResponse;
             }
         }
@@ -204,12 +198,12 @@ public class RpcClientImpl implements RpcClient {
             case ResponseCode.SUCCESS: {
                 GetEarliestMsgStoretimeResponseHeader responseHeader =
                         (GetEarliestMsgStoretimeResponseHeader) responseCommand.decodeCommandCustomHeader(GetEarliestMsgStoretimeResponseHeader.class);
-                return new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody());
+                responseHeader.setCode(responseCommand.getCode());
+                return new RpcResponse(responseHeader, responseCommand.getBody());
 
             }
             default:{
-                RpcResponse rpcResponse = new RpcResponse(responseCommand.getCode(), null, null);
-                rpcResponse.setException(new RpcException(responseCommand.getCode(), "unknown remote error"));
+                RpcResponse rpcResponse = new RpcResponse(new RpcException(responseCommand.getCode(), "unknown remote error"));
                 return rpcResponse;
             }
         }

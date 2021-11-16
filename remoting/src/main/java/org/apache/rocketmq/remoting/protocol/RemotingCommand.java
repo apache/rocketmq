@@ -87,7 +87,7 @@ public class RemotingCommand {
     }
 
 
-    public static RemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader) {
+    public static RemotingCommand createRequestCommandWithHeader(int code, CommandCustomHeader customHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.setCode(code);
         cmd.customHeader = customHeader;
@@ -95,7 +95,7 @@ public class RemotingCommand {
         return cmd;
     }
 
-    public static RemotingCommand createResponseCommand(int code, CommandCustomHeader customHeader) {
+    public static RemotingCommand createResponseCommandWithHeader(int code, CommandCustomHeader customHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.setCode(code);
         cmd.markResponseType();
