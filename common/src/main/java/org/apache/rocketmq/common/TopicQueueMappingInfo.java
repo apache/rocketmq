@@ -55,9 +55,6 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
         return totalQueues;
     }
 
-    public void setTotalQueues(int totalQueues) {
-        this.totalQueues = totalQueues;
-    }
 
     public String getBname() {
         return bname;
@@ -69,6 +66,14 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
 
     public int getEpoch() {
         return epoch;
+    }
+
+    public void setEpoch(int epoch) {
+        this.epoch = epoch;
+    }
+
+    public void setTotalQueues(int totalQueues) {
+        this.totalQueues = totalQueues;
     }
 
     public ConcurrentMap<Integer, Integer> getCurrIdMap() {

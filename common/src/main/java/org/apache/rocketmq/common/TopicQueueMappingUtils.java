@@ -29,16 +29,18 @@ import java.util.Random;
 
 public class TopicQueueMappingUtils {
 
-    public static class MappingState {
+    public static class MappingAllocator {
         Map<String, Integer> brokerNumMap = new HashMap<String, Integer>();
+        Map<Integer, String> idToBroker = new HashMap<Integer, String>();
         int currentIndex = 0;
         Random random = new Random();
         List<String> leastBrokers = new ArrayList<String>();
-        private MappingState(Map<String, Integer> brokerNumMap) {
+        private MappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap) {
+            this.idToBroker.putAll(idToBroker);
             this.brokerNumMap.putAll(brokerNumMap);
         }
 
-        public void freshState() {
+        private void freshState() {
             int minNum = -1;
             for (Map.Entry<String, Integer> entry : brokerNumMap.entrySet()) {
                 if (entry.getValue() > minNum) {
@@ -50,20 +52,41 @@ public class TopicQueueMappingUtils {
             }
             currentIndex = random.nextInt(leastBrokers.size());
         }
-
-        public String nextBroker() {
+        private String nextBroker() {
             if (leastBrokers.isEmpty()) {
                 freshState();
             }
-            int tmpIndex = (++currentIndex) % leastBrokers.size();
-            String broker = leastBrokers.remove(tmpIndex);
-            currentIndex--;
-            return broker;
+            int tmpIndex = currentIndex % leastBrokers.size();
+            return leastBrokers.remove(tmpIndex);
+        }
+
+        public Map<String, Integer> getBrokerNumMap() {
+            return brokerNumMap;
+        }
+
+        public void upToNum(int maxQueueNum) {
+            int currSize = idToBroker.size();
+            if (maxQueueNum <= currSize) {
+                return;
+            }
+            for (int i = currSize; i < maxQueueNum; i++) {
+                String nextBroker = nextBroker();
+                if (brokerNumMap.containsKey(nextBroker)) {
+                    brokerNumMap.put(nextBroker, brokerNumMap.get(nextBroker) + 1);
+                } else {
+                    brokerNumMap.put(nextBroker, 1);
+                }
+                idToBroker.put(i, nextBroker);
+            }
+        }
+
+        public Map<Integer, String> getIdToBroker() {
+            return idToBroker;
         }
     }
 
-    public static MappingState buildMappingState(Map<String, Integer> brokerNumMap) {
-        return new MappingState(brokerNumMap);
+    public static MappingAllocator buildMappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap) {
+        return new MappingAllocator(idToBroker, brokerNumMap);
     }
 
     public static Map.Entry<Integer, Integer> findMaxEpochAndQueueNum(List<TopicQueueMappingDetail> mappingDetailList) {
@@ -92,14 +115,14 @@ public class TopicQueueMappingUtils {
         for (TopicQueueMappingDetail mappingDetail : mappingDetailList) {
             for (Map.Entry<Integer, ImmutableList<LogicQueueMappingItem>>  entry : mappingDetail.getHostedQueues().entrySet()) {
                 Integer globalid = entry.getKey();
-                String leaerBrokerName  = entry.getValue().iterator().next().getBname();
-                if (!leaerBrokerName.equals(mappingDetail.getBname())) {
+                String leaderBrokerName  = getLeaderBroker(entry.getValue());
+                if (!leaderBrokerName.equals(mappingDetail.getBname())) {
                     //not the leader
                     continue;
                 }
                 if (globalIdMap.containsKey(globalid)) {
                     if (!replace) {
-                        throw new RuntimeException(String.format("The queue id is duplicated in broker %s %s", leaerBrokerName, mappingDetail.getBname()));
+                        throw new RuntimeException(String.format("The queue id is duplicated in broker %s %s", leaderBrokerName, mappingDetail.getBname()));
                     }
                 } else {
                     globalIdMap.put(globalid, entry.getValue());
@@ -107,5 +130,13 @@ public class TopicQueueMappingUtils {
             }
         }
         return globalIdMap;
+    }
+
+    public static String getLeaderBroker(ImmutableList<LogicQueueMappingItem> items) {
+        return getLeaderItem(items).getBname();
+    }
+    public static LogicQueueMappingItem getLeaderItem(ImmutableList<LogicQueueMappingItem> items) {
+        assert items.size() > 0;
+        return items.get(items.size() - 1);
     }
 }
