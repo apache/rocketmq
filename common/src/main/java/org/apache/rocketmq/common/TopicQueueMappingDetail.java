@@ -29,7 +29,7 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     // make sure this value is not null
     private ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
 
-    public TopicQueueMappingDetail(String topic, int totalQueues, String bname, int epoch) {
+    public TopicQueueMappingDetail(String topic, int totalQueues, String bname, long epoch) {
         super(topic, totalQueues, bname, epoch);
         buildIdMap();
     }

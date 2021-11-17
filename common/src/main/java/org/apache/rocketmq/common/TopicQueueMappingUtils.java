@@ -89,8 +89,8 @@ public class TopicQueueMappingUtils {
         return new MappingAllocator(idToBroker, brokerNumMap);
     }
 
-    public static Map.Entry<Integer, Integer> findMaxEpochAndQueueNum(List<TopicQueueMappingDetail> mappingDetailList) {
-        int epoch = -1;
+    public static Map.Entry<Long, Integer> findMaxEpochAndQueueNum(List<TopicQueueMappingDetail> mappingDetailList) {
+        long epoch = -1;
         int queueNum = 0;
         for (TopicQueueMappingDetail mappingDetail : mappingDetailList) {
             if (mappingDetail.getEpoch() > epoch) {
@@ -100,14 +100,14 @@ public class TopicQueueMappingUtils {
                 queueNum = mappingDetail.getTotalQueues();
             }
         }
-        return new AbstractMap.SimpleImmutableEntry<Integer, Integer>(epoch, queueNum);
+        return new AbstractMap.SimpleImmutableEntry<Long, Integer>(epoch, queueNum);
     }
 
     public static Map<Integer, ImmutableList<LogicQueueMappingItem>> buildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace) {
         Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
             @Override
             public int compare(TopicQueueMappingDetail o1, TopicQueueMappingDetail o2) {
-                return o2.getEpoch() - o1.getEpoch();
+                return (int)(o2.getEpoch() - o1.getEpoch());
             }
         });
 

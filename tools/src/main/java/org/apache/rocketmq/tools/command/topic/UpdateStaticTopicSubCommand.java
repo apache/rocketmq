@@ -134,7 +134,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 }
             }
 
-            Map.Entry<Integer, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<>(-1, queueNum);
+            Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<>(System.currentTimeMillis(), queueNum);
             if (!existedTopicConfigMap.isEmpty()) {
                 //make sure it it not null
                 existedTopicConfigMap.forEach((key, value) -> {
@@ -155,7 +155,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 List<TopicQueueMappingDetail> detailList = existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList());
                 //check the epoch and qnum
                 maxEpochAndNum = TopicQueueMappingUtils.findMaxEpochAndQueueNum(detailList);
-                final Map.Entry<Integer, Integer> tmpMaxEpochAndNum = maxEpochAndNum;
+                final Map.Entry<Long, Integer> tmpMaxEpochAndNum = maxEpochAndNum;
                 detailList.forEach( mappingDetail -> {
                     if (tmpMaxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
                         throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", tmpMaxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
@@ -200,7 +200,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             Map<Integer, String> newIdToBroker = allocator.getIdToBroker();
 
             //construct the topic configAndMapping
-            int epoch = maxEpochAndNum.getKey() + 1;
+            long epoch = Math.max(maxEpochAndNum.getKey() + 1000, System.currentTimeMillis());
             newIdToBroker.forEach( (queueId, broker) -> {
                 TopicConfigAndQueueMapping configMapping;
                 if (!existedTopicConfigMap.containsKey(broker)) {
@@ -218,6 +218,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 configMapping.getMappingDetail().putMappingInfo(queueId, ImmutableList.of(mappingItem));
             });
 
+            //If some succeed, and others fail, it will cause inconsistent data
             for (Map.Entry<String, TopicConfigAndQueueMapping> entry : existedTopicConfigMap.entrySet()) {
                 String broker = entry.getKey();
                 String addr = clientMetadata.findMasterBrokerAddr(broker);

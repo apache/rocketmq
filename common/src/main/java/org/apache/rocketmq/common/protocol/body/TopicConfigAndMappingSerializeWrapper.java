@@ -35,7 +35,7 @@ public class TopicConfigAndMappingSerializeWrapper extends TopicConfigSerializeW
 
     public static TopicConfigAndMappingSerializeWrapper from(TopicConfigSerializeWrapper wrapper) {
         if (wrapper instanceof  TopicConfigAndMappingSerializeWrapper) {
-            return (TopicConfigAndMappingSerializeWrapper)wrapper;
+            return (TopicConfigAndMappingSerializeWrapper) wrapper;
         }
         TopicConfigAndMappingSerializeWrapper mappingSerializeWrapper =  new TopicConfigAndMappingSerializeWrapper();
         mappingSerializeWrapper.setDataVersion(wrapper.getDataVersion());
