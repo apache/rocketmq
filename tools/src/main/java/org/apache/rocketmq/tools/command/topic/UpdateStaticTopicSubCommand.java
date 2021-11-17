@@ -24,6 +24,7 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.LogicQueueMappingItem;
 import org.apache.rocketmq.common.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -34,9 +35,12 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class UpdateStaticTopicSubCommand implements SubCommand {
 
@@ -73,7 +77,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         return options;
     }
 
-    private void validate(Map.Entry<String, TopicConfigAndQueueMapping> entry, boolean shouldNull) {
+    private void validateIfNull(Map.Entry<String, TopicConfigAndQueueMapping> entry, boolean shouldNull) {
         if (shouldNull) {
             if (entry.getValue().getTopicQueueMappingInfo() != null) {
                 throw new RuntimeException("Mapping info should be null in broker " + entry.getKey());
@@ -82,30 +86,9 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             if (entry.getValue().getTopicQueueMappingInfo() == null) {
                 throw new RuntimeException("Mapping info should not be null in broker  " + entry.getKey());
             }
-            if (!entry.getKey().equals(entry.getValue().getTopicQueueMappingInfo().getBname())) {
-                throw new RuntimeException(String.format("The broker name is not equal %s != %s ",  entry.getKey(), entry.getValue().getTopicQueueMappingInfo().getBname()));
-            }
         }
     }
 
-    public void validateQueueMappingInfo(Map<Integer, ImmutableList<LogicQueueMappingItem>> globalIdMap, TopicQueueMappingDetail mappingDetail) {
-        if (mappingDetail.isDirty()) {
-            throw new RuntimeException("The mapping info is dirty in broker  " + mappingDetail.getBname());
-        }
-        for (Map.Entry<Integer, ImmutableList<LogicQueueMappingItem>>  entry : mappingDetail.getHostedQueues().entrySet()) {
-            Integer globalid = entry.getKey();
-            String leaerBrokerName  = entry.getValue().iterator().next().getBname();
-            if (!leaerBrokerName.equals(mappingDetail.getBname())) {
-                //not the leader
-                continue;
-            }
-            if (globalIdMap.containsKey(globalid)) {
-                throw new RuntimeException(String.format("The queue id is duplicated in broker %s %s", leaerBrokerName, mappingDetail.getBname()));
-            } else {
-                globalIdMap.put(globalid, entry.getValue());
-            }
-        }
-    }
 
     @Override
     public void execute(final CommandLine commandLine, final Options options,
@@ -129,7 +112,6 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 throw new RuntimeException("The Cluster info is null for " + cluster);
             }
             clientMetadata.refreshClusterInfo(clusterInfo);
-
             //first get the existed topic config and mapping
             {
                 TopicRouteData routeData = defaultMQAdminExt.examineTopicRouteInfo(topic);
@@ -146,29 +128,45 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                         }
                     }
                 }
-
             }
+            // the
             {
                 if (!existedTopicConfigMap.isEmpty()) {
-                    Iterator<Map.Entry<String, TopicConfigAndQueueMapping>> it = existedTopicConfigMap.entrySet().iterator();
-                    Map.Entry<String, TopicConfigAndQueueMapping> first = it.next();
-                    validate(first, false);
-                    validateQueueMappingInfo(globalIdMap, first.getValue().getTopicQueueMappingInfo());
-                    TopicQueueMappingDetail firstMapping = first.getValue().getTopicQueueMappingInfo();
-                    while (it.hasNext()) {
-                        Map.Entry<String, TopicConfigAndQueueMapping> next = it.next();
-                        validate(next, false);
-                        validateQueueMappingInfo(globalIdMap, next.getValue().getTopicQueueMappingInfo());
-                        TopicQueueMappingDetail nextMapping = next.getValue().getTopicQueueMappingInfo();
-                        if (firstMapping.getEpoch() !=  nextMapping.getEpoch()) {
-                            throw new RuntimeException(String.format("epoch dose not match %d != %d in %s %s", firstMapping.getEpoch(), nextMapping.getEpoch(), firstMapping.getBname(), nextMapping.getBname()));
+                    //make sure it it not null
+                    existedTopicConfigMap.entrySet().forEach(entry -> {
+                        validateIfNull(entry, false);
+                    });
+                    //make sure the detail is not dirty
+                    existedTopicConfigMap.entrySet().forEach(entry -> {
+                        if (!entry.getKey().equals(entry.getValue().getTopicQueueMappingInfo().getBname())) {
+                            throw new RuntimeException(String.format("The broker name is not equal %s != %s ",  entry.getKey(), entry.getValue().getTopicQueueMappingInfo().getBname()));
                         }
-                        if (firstMapping.getTotalQueues() !=  nextMapping.getTotalQueues()) {
-                            throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s %s", firstMapping.getTotalQueues(), nextMapping.getTotalQueues(), firstMapping.getBname(), nextMapping.getBname()));
+                        if (entry.getValue().getTopicQueueMappingInfo().isDirty()) {
+                            throw new RuntimeException("The mapping info is dirty in broker  " + entry.getValue().getTopicQueueMappingInfo().getBname());
                         }
+                    });
+
+                    List<TopicQueueMappingDetail> detailList = existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getTopicQueueMappingInfo).collect(Collectors.toList());
+                    //check the epoch and qnum
+                    Map.Entry<Integer, Integer> maxEpochAndNum = TopicQueueMappingUtils.findMaxEpochAndQueueNum(detailList);
+                    detailList.forEach( mappingDetail -> {
+                        if (maxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
+                            throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", maxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
+                        }
+                        if (maxEpochAndNum.getValue() != mappingDetail.getTotalQueues()) {
+                            throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", maxEpochAndNum.getValue(), mappingDetail.getTotalQueues(), mappingDetail.getBname()));
+                        }
+                    });
+
+                    globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(detailList), false);
+
+                    if (maxEpochAndNum.getValue() != globalIdMap.size()) {
+                        throw new RuntimeException(String.format("The total queue number in config dose not match the real hosted queues %d != %d", maxEpochAndNum.getValue(), globalIdMap.size()));
                     }
-                    if (firstMapping.getTotalQueues() != globalIdMap.size()) {
-                        throw new RuntimeException(String.format("The total queue number in config dose not match the real hosted queues %d != %d", firstMapping.getTotalQueues(), globalIdMap.size()));
+                    for (int i = 0; i < maxEpochAndNum.getValue(); i++) {
+                        if (!globalIdMap.containsKey(i)) {
+                            throw new RuntimeException(String.format("The queue number %s is not in globalIdMap", i));
+                        }
                     }
                 }
             }
