@@ -10,6 +10,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +26,42 @@ public class ClientMetadata {
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
             new ConcurrentHashMap<String, HashMap<String, Integer>>();
 
+    public void freshTopicRoute(String topic, TopicRouteData topicRouteData) {
+        if (topic == null
+            || topicRouteData == null) {
+            return;
+        }
+        TopicRouteData old = this.topicRouteTable.get(topic);
+        if (!topicRouteDataIsChange(old, topicRouteData)) {
+            return ;
+        }
+        {
+            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
+            }
+        }
+        {
+            ConcurrentMap<MessageQueue, String> mqEndPoints = topicRouteData2EndpointsForStaticTopic(topic, topicRouteData);
+            if (mqEndPoints != null
+                    && !mqEndPoints.isEmpty()) {
+                topicEndPointsTable.put(topic, mqEndPoints);
+            }
+        }
+    }
+
+
+    public static boolean topicRouteDataIsChange(TopicRouteData olddata, TopicRouteData nowdata) {
+        if (olddata == null || nowdata == null)
+            return true;
+        TopicRouteData old = new TopicRouteData(olddata);
+        TopicRouteData now = new TopicRouteData(nowdata);
+        Collections.sort(old.getQueueDatas());
+        Collections.sort(old.getBrokerDatas());
+        Collections.sort(now.getQueueDatas());
+        Collections.sort(now.getBrokerDatas());
+        return !old.equals(now);
+
+    }
 
     public String getBrokerNameFromMessageQueue(final MessageQueue mq) {
         if (topicEndPointsTable.get(mq.getTopic()) != null
