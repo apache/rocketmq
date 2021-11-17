@@ -126,7 +126,12 @@ public class Producer {
             }
         }, 10000, 10000, TimeUnit.MILLISECONDS);
 
-        RPCHook rpcHook = aclEnable ? AclClient.getAclRPCHook() : null;
+        RPCHook rpcHook = null;
+        if (aclEnable) {
+            String ak = commandLine.hasOption("ak") ? String.valueOf(commandLine.getOptionValue("ak")) : AclClient.ACL_ACCESS_KEY;
+            String sk = commandLine.hasOption("sk") ? String.valueOf(commandLine.getOptionValue("sk")) : AclClient.ACL_SECRET_KEY;
+            rpcHook = AclClient.getAclRPCHook(ak, sk);
+        }
         final DefaultMQProducer producer = new DefaultMQProducer("benchmark_producer", rpcHook, msgTraceEnable, null);
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
@@ -274,6 +279,14 @@ public class Producer {
         options.addOption(opt);
 
         opt = new Option("a", "aclEnable", true, "Acl Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ak", "accessKey", true, "Acl access key, Default: 12345678");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("sk", "secretKey", true, "Acl secret key, Default: rocketmq2");
         opt.setRequired(false);
         options.addOption(opt);
 
