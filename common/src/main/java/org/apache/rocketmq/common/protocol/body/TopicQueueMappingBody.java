@@ -17,10 +17,35 @@
 package org.apache.rocketmq.common.protocol.body;
 
 import org.apache.rocketmq.common.TopicQueueMappingDetail;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class TopicQueueMappingBody extends TopicQueueMappingDetail {
+public class TopicQueueMappingBody extends RemotingSerializable {
 
-    public TopicQueueMappingBody(String topic, int totalQueues, String bname) {
-        super(topic, totalQueues, bname);
+    private boolean force;
+    private int prevGen;
+    private TopicQueueMappingDetail mappingDetail;
+
+    public int getPrevGen() {
+        return prevGen;
+    }
+
+    public void setPrevGen(int prevGen) {
+        this.prevGen = prevGen;
+    }
+
+    public TopicQueueMappingDetail getMappingDetail() {
+        return mappingDetail;
+    }
+
+    public void setMappingDetail(TopicQueueMappingDetail mappingDetail) {
+        this.mappingDetail = mappingDetail;
+    }
+
+    public boolean isForce() {
+        return force;
+    }
+
+    public void setForce(boolean force) {
+        this.force = force;
     }
 }

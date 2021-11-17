@@ -16,20 +16,19 @@
  */
 package org.apache.rocketmq.common;
 
-public class TopicConfigAndQueueMapping {
-    private TopicConfig topicConfig;
+public class TopicConfigAndQueueMapping extends TopicConfig {
     private TopicQueueMappingDetail topicQueueMappingDetail;
 
+    public TopicConfigAndQueueMapping() {
+    }
+
     public TopicConfigAndQueueMapping(TopicConfig topicConfig, TopicQueueMappingDetail topicQueueMappingDetail) {
-        this.topicConfig = topicConfig;
+        super(topicConfig);
         this.topicQueueMappingDetail = topicQueueMappingDetail;
     }
 
+
     public TopicQueueMappingDetail getTopicQueueMappingInfo() {
         return topicQueueMappingDetail;
-    }
-
-    public TopicConfig getTopicConfig() {
-        return topicConfig;
     }
 }

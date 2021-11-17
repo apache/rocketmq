@@ -57,6 +57,8 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.TopicQueueMappingDetail;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
@@ -2704,22 +2706,53 @@ public class MQClientAPIImpl {
         migrateTopicLogicalQueue(RequestCode.MIGRATE_TOPIC_LOGICAL_QUEUE_NOTIFY, brokerAddr, fromQueueRouteData, toQueueRouteData, timeoutMillis);
     }
 
-    public TopicConfig getTopicConfig(final String brokerAddr, String topic,
+    public TopicConfigAndQueueMapping getTopicConfig(final String brokerAddr, String topic,
         long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         GetTopicConfigRequestHeader header = new GetTopicConfigRequestHeader();
         header.setTopic(topic);
+        header.setWithMapping(true);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_CONFIG, header);
         RemotingCommand response = this.remotingClient
             .invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                return RemotingSerializable.decode(response.getBody(), TopicConfig.class);
+                return RemotingSerializable.decode(response.getBody(), TopicConfigAndQueueMapping.class);
             }
             default:
                 break;
         }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig, final TopicQueueMappingDetail topicQueueMappingDetail,
+                            final long timeoutMillis)
+            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
+        requestHeader.setTopic(topicConfig.getTopicName());
+        requestHeader.setDefaultTopic(defaultTopic);
+        requestHeader.setReadQueueNums(topicConfig.getReadQueueNums());
+        requestHeader.setWriteQueueNums(topicConfig.getWriteQueueNums());
+        requestHeader.setPerm(topicConfig.getPerm());
+        requestHeader.setTopicFilterType(topicConfig.getTopicFilterType().name());
+        requestHeader.setTopicSysFlag(topicConfig.getTopicSysFlag());
+        requestHeader.setOrder(topicConfig.isOrder());
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_STATIC_TOPIC, requestHeader);
+        request.setBody(topicQueueMappingDetail.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+                request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 }
