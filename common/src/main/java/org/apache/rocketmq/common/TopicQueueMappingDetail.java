@@ -29,8 +29,8 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     // make sure this value is not null
     private ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
 
-    public TopicQueueMappingDetail(String topic, int totalQueues, String bname, int gen) {
-        super(topic, totalQueues, bname, gen);
+    public TopicQueueMappingDetail(String topic, int totalQueues, String bname, int epoch) {
+        super(topic, totalQueues, bname, epoch);
         buildIdMap();
     }
 
@@ -118,7 +118,7 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
 
     public TopicQueueMappingInfo cloneAsMappingInfo() {
-        TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(this.topic, this.totalQueues, this.bname, this.gen);
+        TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(this.topic, this.totalQueues, this.bname, this.epoch);
         topicQueueMappingInfo.currIdMap = this.buildIdMap(LEVEL_0);
         topicQueueMappingInfo.prevIdMap = this.buildIdMap(LEVEL_1);
 

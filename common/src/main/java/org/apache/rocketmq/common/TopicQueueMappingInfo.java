@@ -28,19 +28,28 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
     String topic; // redundant field
     int totalQueues;
     String bname;  //identify the hosted broker name
-    int gen; //important to fence the old dirty data
+    int epoch; //important to fence the old dirty data
+    boolean dirty; //indicate if the data is dirty
     //register to broker to construct the route
     transient ConcurrentMap<Integer/*logicId*/, Integer/*physicalId*/> currIdMap = new ConcurrentHashMap<Integer, Integer>();
     //register to broker to help detect remapping failure
     transient ConcurrentMap<Integer/*logicId*/, Integer/*physicalId*/> prevIdMap = new ConcurrentHashMap<Integer, Integer>();
 
-    public TopicQueueMappingInfo(String topic, int totalQueues, String bname, int gen) {
+    public TopicQueueMappingInfo(String topic, int totalQueues, String bname, int epoch) {
         this.topic = topic;
         this.totalQueues = totalQueues;
         this.bname = bname;
-        this.gen = gen;
+        this.epoch = epoch;
+        this.dirty = false;
     }
 
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    public void setDirty(boolean dirty) {
+        this.dirty = dirty;
+    }
 
     public int getTotalQueues() {
         return totalQueues;
@@ -58,8 +67,8 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
         return topic;
     }
 
-    public int getGen() {
-        return gen;
+    public int getEpoch() {
+        return epoch;
     }
 
     public ConcurrentMap<Integer, Integer> getCurrIdMap() {

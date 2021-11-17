@@ -57,9 +57,11 @@ public class ClientMetadata {
             return new ConcurrentHashMap<MessageQueue, String>();
         }
         ConcurrentMap<MessageQueue, String> mqEndPoints = new ConcurrentHashMap<MessageQueue, String>();
+
         int totalNums = 0;
         for (Map.Entry<String, TopicQueueMappingInfo> entry : route.getTopicQueueMappingByBroker().entrySet()) {
             String brokerName = entry.getKey();
+            //TODO check the epoch of
             if (entry.getValue().getTotalQueues() > totalNums) {
                 if (totalNums != 0) {
                     log.warn("The static logic queue totalNums dose not match before {} {} != {}", topic, totalNums, entry.getValue().getTotalQueues());

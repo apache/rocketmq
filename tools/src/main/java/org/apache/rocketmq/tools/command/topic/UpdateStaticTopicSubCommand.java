@@ -21,6 +21,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -74,6 +75,16 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
+
+            String topic = commandLine.getOptionValue('t').trim();
+            int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
+            String cluster = commandLine.getOptionValue('c').trim();
+
+            //first check the topic route
+            {
+                TopicRouteData routeData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+
+            }
             TopicConfig topicConfig = new TopicConfig();
             topicConfig.setReadQueueNums(8);
             topicConfig.setWriteQueueNums(8);
