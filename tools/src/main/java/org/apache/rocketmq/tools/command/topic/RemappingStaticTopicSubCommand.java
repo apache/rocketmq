@@ -17,7 +17,6 @@
 package org.apache.rocketmq.tools.command.topic;
 
 import com.google.common.collect.ImmutableList;
-import com.sun.xml.internal.ws.api.BindingIDFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -39,15 +38,17 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 import java.util.AbstractMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class UpdateStaticTopicSubCommand implements SubCommand {
+public class RemappingStaticTopicSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
@@ -65,7 +66,10 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
         Option opt = null;
 
-        opt = new Option("c", "clusters", true, "create topic to clusters, comma separated");
+        opt = new Option("c", "clusters", true, "remapping static topic to clusters, comma separated");
+        optionGroup.addOption(opt);
+
+        opt = new Option("b", "brokers", true, "remapping static topic to brokers, comma separated");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
@@ -74,11 +78,6 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         opt = new Option("t", "topic", true, "topic name");
         opt.setRequired(true);
         options.addOption(opt);
-
-        opt = new Option("qn", "totalQueueNum", true, "total queue num");
-        opt.setRequired(true);
-        options.addOption(opt);
-
         return options;
     }
 
@@ -93,32 +92,38 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         Map<String, TopicConfigAndQueueMapping> existedTopicConfigMap = new HashMap<>();
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();
         Set<String> brokers = new HashSet<>();
-
+        Map.Entry<Long, Integer> maxEpochAndNum = null;
         try {
-            if (!commandLine.hasOption('t')
-                    || !commandLine.hasOption('c')
-                    || !commandLine.hasOption("qn")) {
+            if ((!commandLine.hasOption("b") && !commandLine.hasOption('c'))
+                    || !commandLine.hasOption('t')) {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
                 return;
             }
             String topic = commandLine.getOptionValue('t').trim();
-            int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
-            String clusters = commandLine.getOptionValue('c').trim();
+
             ClusterInfo clusterInfo  = defaultMQAdminExt.examineBrokerClusterInfo();
             if (clusterInfo == null
                     || clusterInfo.getClusterAddrTable().isEmpty()) {
                 throw new RuntimeException("The Cluster info is empty");
-            } else {
-                clientMetadata.refreshClusterInfo(clusterInfo);
             }
-            for (String cluster : clusters.split(",")) {
-                cluster = cluster.trim();
-                if (clusterInfo.getClusterAddrTable().get(cluster) != null) {
-                    brokers.addAll(clusterInfo.getClusterAddrTable().get(cluster));
+            clientMetadata.refreshClusterInfo(clusterInfo);
+
+            if (commandLine.hasOption("b")) {
+                String brokerStrs = commandLine.getOptionValue("b").trim();
+                for (String broker: brokerStrs.split(",")) {
+                    brokers.add(broker.trim());
+                }
+            } else if (commandLine.hasOption("c")) {
+                String clusters = commandLine.getOptionValue('c').trim();
+                for (String cluster : clusters.split(",")) {
+                    cluster = cluster.trim();
+                    if (clusterInfo.getClusterAddrTable().get(cluster) != null) {
+                        brokers.addAll(clusterInfo.getClusterAddrTable().get(cluster));
+                    }
                 }
             }
             if (brokers.isEmpty()) {
-                throw new RuntimeException("Find none brokers for " + clusters);
+                throw new RuntimeException("Find none brokers");
             }
             for (String broker : brokers) {
                 String addr = clientMetadata.findMasterBrokerAddr(broker);
@@ -143,74 +148,86 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 }
             }
 
-            Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<>(System.currentTimeMillis(), queueNum);
-            if (!existedTopicConfigMap.isEmpty()) {
-                //make sure it it not null
-                existedTopicConfigMap.forEach((key, value) -> {
-                    if (value.getMappingDetail() != null) {
-                        throw new RuntimeException("Mapping info should be null in broker " + key);
-                    }
-                });
-                //make sure the detail is not dirty
-                existedTopicConfigMap.forEach((key, value) -> {
-                    if (!key.equals(value.getMappingDetail().getBname())) {
-                        throw new RuntimeException(String.format("The broker name is not equal %s != %s ", key, value.getMappingDetail().getBname()));
-                    }
-                    if (value.getMappingDetail().isDirty()) {
-                        throw new RuntimeException("The mapping info is dirty in broker  " + value.getMappingDetail().getBname());
-                    }
-                });
-
-                List<TopicQueueMappingDetail> detailList = existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList());
-                //check the epoch and qnum
-                maxEpochAndNum = TopicQueueMappingUtils.findMaxEpochAndQueueNum(detailList);
-                final Map.Entry<Long, Integer> tmpMaxEpochAndNum = maxEpochAndNum;
-                detailList.forEach( mappingDetail -> {
-                    if (tmpMaxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
-                        throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", tmpMaxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
-                    }
-                    if (tmpMaxEpochAndNum.getValue() != mappingDetail.getTotalQueues()) {
-                        throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", tmpMaxEpochAndNum.getValue(), mappingDetail.getTotalQueues(), mappingDetail.getBname()));
-                    }
-                });
-
-                globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(detailList), false);
-
-                if (maxEpochAndNum.getValue() != globalIdMap.size()) {
-                    throw new RuntimeException(String.format("The total queue number in config dose not match the real hosted queues %d != %d", maxEpochAndNum.getValue(), globalIdMap.size()));
-                }
-                for (int i = 0; i < maxEpochAndNum.getValue(); i++) {
-                    if (!globalIdMap.containsKey(i)) {
-                        throw new RuntimeException(String.format("The queue number %s is not in globalIdMap", i));
-                    }
-                }
+            if (existedTopicConfigMap.isEmpty()) {
+                throw new RuntimeException("No topic route to do the remapping");
             }
-            if (queueNum < globalIdMap.size()) {
-                throw new RuntimeException(String.format("Cannot decrease the queue num for static topic %d < %d", queueNum, globalIdMap.size()));
-            }
-            //check the queue number
-            if (queueNum == globalIdMap.size()) {
-                throw new RuntimeException("The topic queue num is equal the existed queue num, do nothing");
-            }
-            //the check is ok, now do the mapping allocation
-            Map<String, Integer> brokerNumMap = brokers.stream().collect(Collectors.toMap( x -> x, x -> 0));
-            Map<Integer, String> idToBroker = new HashMap<>();
-            globalIdMap.forEach((key, value) -> {
-                String leaderbroker = value.getBname();
-                idToBroker.put(key, leaderbroker);
-                if (!brokerNumMap.containsKey(leaderbroker)) {
-                    brokerNumMap.put(leaderbroker, 1);
-                } else {
-                    brokerNumMap.put(leaderbroker, brokerNumMap.get(leaderbroker) + 1);
+
+            //make sure it it not null
+            existedTopicConfigMap.forEach((key, value) -> {
+                if (value.getMappingDetail() != null) {
+                    throw new RuntimeException("Mapping info should be null in broker " + key);
                 }
             });
-            TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(idToBroker, brokerNumMap);
-            allocator.upToNum(queueNum);
-            Map<Integer, String> newIdToBroker = allocator.getIdToBroker();
+            //make sure the detail is not dirty
+            existedTopicConfigMap.forEach((key, value) -> {
+                if (!key.equals(value.getMappingDetail().getBname())) {
+                    throw new RuntimeException(String.format("The broker name is not equal %s != %s ", key, value.getMappingDetail().getBname()));
+                }
+                if (value.getMappingDetail().isDirty()) {
+                    throw new RuntimeException("The mapping info is dirty in broker  " + value.getMappingDetail().getBname());
+                }
+            });
+
+            List<TopicQueueMappingDetail> detailList = existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList());
+            //check the epoch and qnum
+            maxEpochAndNum = TopicQueueMappingUtils.findMaxEpochAndQueueNum(detailList);
+            final Map.Entry<Long, Integer> tmpMaxEpochAndNum = maxEpochAndNum;
+            detailList.forEach( mappingDetail -> {
+                if (tmpMaxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
+                    throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", tmpMaxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
+                }
+                if (tmpMaxEpochAndNum.getValue() != mappingDetail.getTotalQueues()) {
+                    throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", tmpMaxEpochAndNum.getValue(), mappingDetail.getTotalQueues(), mappingDetail.getBname()));
+                }
+            });
+
+            globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(detailList), false);
+
+            if (maxEpochAndNum.getValue() != globalIdMap.size()) {
+                throw new RuntimeException(String.format("The total queue number in config dose not match the real hosted queues %d != %d", maxEpochAndNum.getValue(), globalIdMap.size()));
+            }
+            for (int i = 0; i < maxEpochAndNum.getValue(); i++) {
+                if (!globalIdMap.containsKey(i)) {
+                    throw new RuntimeException(String.format("The queue number %s is not in globalIdMap", i));
+                }
+            }
+
+            //the check is ok, now do the mapping allocation
+            int maxNum = maxEpochAndNum.getValue();
+            TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(new HashMap<>(), brokers.stream().collect(Collectors.toMap( x -> x, x -> 0)));
+            allocator.upToNum(maxNum);
+            Map<String, Integer> expectedBrokerNumMap = allocator.getBrokerNumMap();
+            Queue<Integer> waitAssignQueues = new ArrayDeque<Integer>();
+            Map<Integer, String> expectedIdToBroker = new HashMap<>();
+            //the following logic will make sure that, for one broker, only "take in" or "take out" queues
+            //It can't, take in some queues but alse take out some queues.
+            globalIdMap.forEach((queueId, mappingOne) -> {
+                String leaderBroker = mappingOne.getBname();
+                if (expectedBrokerNumMap.containsKey(leaderBroker)) {
+                    if (expectedBrokerNumMap.get(leaderBroker) > 0) {
+                        expectedIdToBroker.put(queueId, leaderBroker);
+                        expectedBrokerNumMap.put(leaderBroker, expectedBrokerNumMap.get(leaderBroker) - 1);
+                    } else {
+                        waitAssignQueues.add(queueId);
+                        expectedBrokerNumMap.remove(leaderBroker);
+                    }
+                } else {
+                    waitAssignQueues.add(queueId);
+                }
+            });
+            expectedBrokerNumMap.forEach((broker, queueNum) -> {
+                for (int i = 0; i < queueNum; i++) {
+                    expectedIdToBroker.put(waitAssignQueues.poll(), broker);
+                }
+            });
+
+            Set<Broker>
+
+            //Now construct the remapping info
 
             //construct the topic configAndMapping
             long epoch = Math.max(maxEpochAndNum.getKey() + 1000, System.currentTimeMillis());
-            for (Map.Entry<Integer, String> e : newIdToBroker.entrySet()) {
+            for (Map.Entry<Integer, String> e : expectedIdToBroker.entrySet()) {
                 Integer queueId = e.getKey();
                 String broker = e.getValue();
                 if (globalIdMap.containsKey(queueId)) {
@@ -219,22 +236,21 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 }
                 TopicConfigAndQueueMapping configMapping;
                 if (!existedTopicConfigMap.containsKey(broker)) {
-                    configMapping = new TopicConfigAndQueueMapping(new TopicConfig(topic), new TopicQueueMappingDetail(topic, 0, broker, -1));
-                    configMapping.setWriteQueueNums(1);
-                    configMapping.setReadQueueNums(1);
+                    TopicConfig topicConfig = new TopicConfig(topic, 1, 1);
+                    TopicQueueMappingDetail mappingDetail = new TopicQueueMappingDetail(topic, 0, broker, epoch);
+                    configMapping = new TopicConfigAndQueueMapping(topicConfig, mappingDetail);
                     existedTopicConfigMap.put(broker, configMapping);
                 } else {
                     configMapping = existedTopicConfigMap.get(broker);
                     configMapping.setWriteQueueNums(configMapping.getWriteQueueNums() + 1);
                     configMapping.setWriteQueueNums(configMapping.getWriteQueueNums() + 1);
+                    configMapping.getMappingDetail().setEpoch(epoch);
+                    configMapping.getMappingDetail().setTotalQueues(0);
                 }
                 LogicQueueMappingItem mappingItem = new LogicQueueMappingItem(0, configMapping.getWriteQueueNums() - 1, broker, 0, 0, -1, -1, -1);
                 configMapping.getMappingDetail().putMappingInfo(queueId, ImmutableList.of(mappingItem));
             }
-            existedTopicConfigMap.values().forEach( configMapping -> {
-                configMapping.getMappingDetail().setEpoch(epoch);
-                configMapping.getMappingDetail().setTotalQueues(queueNum);
-            });
+
             //If some succeed, and others fail, it will cause inconsistent data
             for (Map.Entry<String, TopicConfigAndQueueMapping> entry : existedTopicConfigMap.entrySet()) {
                 String broker = entry.getKey();

@@ -103,7 +103,7 @@ public class TopicQueueMappingUtils {
         return new AbstractMap.SimpleImmutableEntry<Long, Integer>(epoch, queueNum);
     }
 
-    public static Map<Integer, ImmutableList<LogicQueueMappingItem>> buildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace) {
+    public static Map<Integer, TopicQueueMappingOne> buildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace) {
         Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
             @Override
             public int compare(TopicQueueMappingDetail o1, TopicQueueMappingDetail o2) {
@@ -111,7 +111,7 @@ public class TopicQueueMappingUtils {
             }
         });
 
-        Map<Integer, ImmutableList<LogicQueueMappingItem>> globalIdMap = new HashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
+        Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
         for (TopicQueueMappingDetail mappingDetail : mappingDetailList) {
             for (Map.Entry<Integer, ImmutableList<LogicQueueMappingItem>>  entry : mappingDetail.getHostedQueues().entrySet()) {
                 Integer globalid = entry.getKey();
@@ -125,7 +125,7 @@ public class TopicQueueMappingUtils {
                         throw new RuntimeException(String.format("The queue id is duplicated in broker %s %s", leaderBrokerName, mappingDetail.getBname()));
                     }
                 } else {
-                    globalIdMap.put(globalid, entry.getValue());
+                    globalIdMap.put(globalid, new TopicQueueMappingOne(mappingDetail.topic, mappingDetail.bname, globalid, entry.getValue()));
                 }
             }
         }
