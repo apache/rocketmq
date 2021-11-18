@@ -88,4 +88,22 @@ public class LogicQueueMappingItem {
     public long getTimeOfEnd() {
         return timeOfEnd;
     }
+
+    public void setLogicOffset(long logicOffset) {
+        this.logicOffset = logicOffset;
+    }
+
+    @Override
+    public String toString() {
+        return "LogicQueueMappingItem{" +
+                "gen=" + gen +
+                ", queueId=" + queueId +
+                ", bname='" + bname + '\'' +
+                ", logicOffset=" + logicOffset +
+                ", startOffset=" + startOffset +
+                ", endOffset=" + endOffset +
+                ", timeOfStart=" + timeOfStart +
+                ", timeOfEnd=" + timeOfEnd +
+                '}';
+    }
 }
