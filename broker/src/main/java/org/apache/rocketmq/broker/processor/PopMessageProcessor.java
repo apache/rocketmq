@@ -807,6 +807,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                             if (first == null) {
                                 break;
                             }
+                            if (!PopMessageProcessor.this.queueLockManager.isLock(key)) {
+                                totalPollingNum.decrementAndGet();
+                                wakeUp(first);
+                                continue;
+                            }
                             if (!first.isTimeout()) {
                                 if (popQ.add(first)) {
                                     break;
@@ -946,6 +951,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             if (timedLock != null) {
                 timedLock.unLock();
             }
+        }
+
+        public boolean isLock(String key) {
+            TimedLock timedLock = expiredLocalCache.get(key);
+
+            if (timedLock == null) {
+                return false;
+            }
+            return timedLock.isLock();
         }
 
         @Override
