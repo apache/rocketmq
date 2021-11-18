@@ -226,7 +226,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 } else {
                     configMapping = existedTopicConfigMap.get(broker);
                     configMapping.setWriteQueueNums(configMapping.getWriteQueueNums() + 1);
-                    configMapping.setWriteQueueNums(configMapping.getWriteQueueNums() + 1);
+                    configMapping.setReadQueueNums(configMapping.getReadQueueNums() + 1);
                 }
                 LogicQueueMappingItem mappingItem = new LogicQueueMappingItem(0, configMapping.getWriteQueueNums() - 1, broker, 0, 0, -1, -1, -1);
                 configMapping.getMappingDetail().putMappingInfo(queueId, ImmutableList.of(mappingItem));
