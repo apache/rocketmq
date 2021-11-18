@@ -496,17 +496,19 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             getMessageTmpResult = this.brokerController.getMessageStore().getMessage(requestHeader.getConsumerGroup()
                     , topic, queueId, offset,
                     requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
+            if (getMessageTmpResult == null) {
+                return this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
+            }
             // maybe store offset is not correct.
-            if (getMessageTmpResult == null
-                || GetMessageStatus.OFFSET_TOO_SMALL.equals(getMessageTmpResult.getStatus())
+            if (GetMessageStatus.OFFSET_TOO_SMALL.equals(getMessageTmpResult.getStatus())
                     || GetMessageStatus.OFFSET_OVERFLOW_BADLY.equals(getMessageTmpResult.getStatus())
                     || GetMessageStatus.OFFSET_FOUND_NULL.equals(getMessageTmpResult.getStatus())) {
                 // commit offset, because the offset is not correct
                 // If offset in store is greater than cq offset, it will cause duplicate messages,
                 // because offset in PopBuffer is not committed.
                 POP_LOGGER.warn("Pop initial offset, because store is no correct, {}, {}->{}",
-                        lockKey, offset, getMessageTmpResult != null ? getMessageTmpResult.getNextBeginOffset() : "null");
-                offset = getMessageTmpResult != null ? getMessageTmpResult.getNextBeginOffset() : 0;
+                        lockKey, offset, getMessageTmpResult.getNextBeginOffset());
+                offset = getMessageTmpResult.getNextBeginOffset();
                 this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
                         queueId, offset);
                 getMessageTmpResult =
