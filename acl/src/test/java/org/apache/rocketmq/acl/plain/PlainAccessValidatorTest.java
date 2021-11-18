@@ -328,7 +328,7 @@ public class PlainAccessValidatorTest {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
 
         String targetFileName = "src/test/resources/conf/plain_acl_update_create.yml";
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        AclUtils.copyFile(targetFileName, buildBackupPath(targetFileName));
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         plainAccessConfig.setAccessKey("RocketMQ");
@@ -370,8 +370,8 @@ public class PlainAccessValidatorTest {
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get("dataVersion");
         Assert.assertEquals(1,dataVersions.get(0).get("counter"));
 
-        // Restore the backup file and flush to yaml file
-        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
+        // Restore the backup file
+        AclUtils.moveFile(buildBackupPath(targetFileName), targetFileName);
     }
 
     @Test
@@ -380,7 +380,7 @@ public class PlainAccessValidatorTest {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
 
         String targetFileName = "src/test/resources/conf/plain_acl_update_create.yml";
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        AclUtils.copyFile(targetFileName, buildBackupPath(targetFileName));
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         plainAccessConfig.setAccessKey("RocketMQ");
@@ -401,10 +401,9 @@ public class PlainAccessValidatorTest {
         }
         Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"123456789111");
 
-        // Restore the backup file and flush to yaml file
-        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
+        // Restore the backup file
+        AclUtils.moveFile(buildBackupPath(targetFileName), targetFileName);
     }
-
 
     @Test
     public void createAndUpdateAccessAclYamlConfigNormalTest() {
@@ -412,7 +411,7 @@ public class PlainAccessValidatorTest {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_update_create.yml");
 
         String targetFileName = "src/test/resources/conf/plain_acl_update_create.yml";
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        AclUtils.copyFile(targetFileName, buildBackupPath(targetFileName));
 
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         plainAccessConfig.setAccessKey("RocketMQ33");
@@ -478,9 +477,8 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(2,dataVersions2.get(0).get(AclConstants.CONFIG_COUNTER));
         Assert.assertEquals(verifyMap2.get(AclConstants.CONFIG_SECRET_KEY),"1234567890123");
 
-
-        // Restore the backup file and flush to yaml file
-        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
+        // Restore the backup file
+        AclUtils.moveFile(buildBackupPath(targetFileName), targetFileName);
     }
 
     @Test(expected = AclException.class)
@@ -503,15 +501,14 @@ public class PlainAccessValidatorTest {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_delete.yml");
 
         String targetFileName = "src/test/resources/conf/plain_acl_delete.yml";
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-
+        AclUtils.copyFile(targetFileName, buildBackupPath(targetFileName));
 
         String accessKey = "rocketmq2";
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         plainAccessValidator.deleteAccessConfig(accessKey);
 
         Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-        List<Map<String, Object>> accounts =  (List<Map<String, Object>>)readableMap.get(AclConstants.CONFIG_ACCOUNTS);
+        List<Map<String, Object>> accounts = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_ACCOUNTS);
         Map<String, Object> verifyMap = null;
         for (Map<String, Object> account : accounts) {
             if (account.get(AclConstants.CONFIG_ACCESS_KEY).equals(accessKey)) {
@@ -526,8 +523,8 @@ public class PlainAccessValidatorTest {
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
 
-        // Restore the backup file and flush to yaml file
-        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
+        // Restore the backup file
+        AclUtils.moveFile(buildBackupPath(targetFileName), targetFileName);
     }
 
     @Test
@@ -583,7 +580,7 @@ public class PlainAccessValidatorTest {
         System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl_global_white_addrs.yml");
 
         String targetFileName = "src/test/resources/conf/plain_acl_global_white_addrs.yml";
-        Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
+        AclUtils.copyFile(targetFileName, buildBackupPath(targetFileName));
 
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         // Update global white remote addr value list in the acl access yaml config file
@@ -605,8 +602,8 @@ public class PlainAccessValidatorTest {
         List<Map<String, Object>> dataVersions = (List<Map<String, Object>>) readableMap.get(AclConstants.CONFIG_DATA_VERSION);
         Assert.assertEquals(1,dataVersions.get(0).get(AclConstants.CONFIG_COUNTER));
 
-        // Restore the backup file and flush to yaml file
-        AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
+        // Restore the backup file
+        AclUtils.moveFile(buildBackupPath(targetFileName), targetFileName);
     }
 
     @Test
@@ -620,6 +617,9 @@ public class PlainAccessValidatorTest {
 
     @Test
     public void updateAccessConfigEmptyPermListTest(){
+        String targetFileName = "src/test/resources/conf/plain_acl.yml";
+        AclUtils.copyFile(targetFileName, this.buildBackupPath(targetFileName));
+
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         String accessKey = "updateAccessConfigEmptyPerm";
@@ -636,10 +636,16 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(0, result.getTopicPerms().size());
 
         plainAccessValidator.deleteAccessConfig(accessKey);
+
+        // Restore the backup file
+        AclUtils.moveFile(buildBackupPath(targetFileName), targetFileName);
     }
 
     @Test
     public void updateAccessConfigEmptyWhiteRemoteAddressTest(){
+        String targetFileName = "src/test/resources/conf/plain_acl.yml";
+        AclUtils.copyFile(targetFileName, this.buildBackupPath(targetFileName));
+
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
         String accessKey = "updateAccessConfigEmptyWhiteRemoteAddress";
@@ -656,5 +662,12 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals("", result.getWhiteRemoteAddress());
 
         plainAccessValidator.deleteAccessConfig(accessKey);
+
+        // Restore the backup file
+        AclUtils.moveFile(buildBackupPath(targetFileName), targetFileName);
+    }
+
+    private String buildBackupPath(String path) {
+        return String.format("%s_backup", path);
     }
 }
