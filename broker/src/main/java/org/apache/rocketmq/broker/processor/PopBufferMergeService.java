@@ -558,6 +558,7 @@ public class PopBufferMergeService extends ServiceThread {
         msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.charset));
         msgInner.setQueueId(pointWrapper.getReviveQueueId());
         msgInner.setTags(PopAckConstants.ACK_TAG);
+        msgInner.setKeys(PopMessageProcessor.buildAckKeys(ackMsg));
         msgInner.setBornTimestamp(System.currentTimeMillis());
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());

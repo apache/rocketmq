@@ -136,6 +136,20 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 + PopAckConstants.SPLIT + PopAckConstants.CK_TAG;
     }
 
+    public static String buildCKKeys(PopCheckPoint checkPoint) {
+        return checkPoint.getTopic()
+                + PopAckConstants.SPLIT + checkPoint.getCId()
+                + PopAckConstants.SPLIT + checkPoint.getQueueId()
+                + PopAckConstants.SPLIT + checkPoint.getPopTime();
+    }
+
+    public static String buildAckKeys(AckMsg ackMsg) {
+        return ackMsg.getTopic()
+                + PopAckConstants.SPLIT + ackMsg.getConsumerGroup()
+                + PopAckConstants.SPLIT + ackMsg.getQueueId()
+                + PopAckConstants.SPLIT + ackMsg.getPopTime();
+    }
+
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
@@ -654,6 +668,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         msgInner.setBody(JSON.toJSONString(ck).getBytes(DataConverter.charset));
         msgInner.setQueueId(reviveQid);
         msgInner.setTags(PopAckConstants.CK_TAG);
+        msgInner.setKeys(buildCKKeys(ck));
         msgInner.setBornTimestamp(System.currentTimeMillis());
         msgInner.setBornHost(this.brokerController.getStoreHost());
         msgInner.setStoreHost(this.brokerController.getStoreHost());

@@ -169,6 +169,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         //msgInner.setQueueId(Integer.valueOf(extraInfo[3]));
         msgInner.setQueueId(rqId);
         msgInner.setTags(PopAckConstants.ACK_TAG);
+        msgInner.setKeys(PopMessageProcessor.buildAckKeys(ackMsg));
         msgInner.setBornTimestamp(System.currentTimeMillis());
         msgInner.setBornHost(this.brokerController.getStoreHost());
         msgInner.setStoreHost(this.brokerController.getStoreHost());
