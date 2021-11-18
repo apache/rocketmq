@@ -87,7 +87,7 @@ public class MigrateTopicLogicalQueueCommand implements SubCommand {
         String toBrokerName,
         Long forceDelta) throws RemotingException, MQBrokerException, InterruptedException, SubCommandException, MQClientException {
         TopicRouteData topicRouteInfo = mqAdminExt.examineTopicRouteInfo(topic);
-        LogicalQueuesInfo logicalQueuesInfo = topicRouteInfo.getLogicalQueuesInfo();
+        LogicalQueuesInfo logicalQueuesInfo =  null; /*topicRouteInfo.getLogicalQueuesInfo();*/
         if (logicalQueuesInfo == null) {
             throw new SubCommandException("topic not enabled logical queue");
         }

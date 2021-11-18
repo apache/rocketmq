@@ -172,26 +172,15 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
             List<TopicQueueMappingDetail> detailList = existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList());
             //check the epoch and qnum
             maxEpochAndNum = TopicQueueMappingUtils.findMaxEpochAndQueueNum(detailList);
-            final Map.Entry<Long, Integer> tmpMaxEpochAndNum = maxEpochAndNum;
-            detailList.forEach( mappingDetail -> {
-                if (tmpMaxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
-                    throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", tmpMaxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
+            for (TopicQueueMappingDetail mappingDetail : detailList) {
+                if (maxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
+                    throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", maxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
                 }
-                if (tmpMaxEpochAndNum.getValue() != mappingDetail.getTotalQueues()) {
-                    throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", tmpMaxEpochAndNum.getValue(), mappingDetail.getTotalQueues(), mappingDetail.getBname()));
-                }
-            });
-
-            globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(detailList), false);
-
-            if (maxEpochAndNum.getValue() != globalIdMap.size()) {
-                throw new RuntimeException(String.format("The total queue number in config dose not match the real hosted queues %d != %d", maxEpochAndNum.getValue(), globalIdMap.size()));
-            }
-            for (int i = 0; i < maxEpochAndNum.getValue(); i++) {
-                if (!globalIdMap.containsKey(i)) {
-                    throw new RuntimeException(String.format("The queue number %s is not in globalIdMap", i));
+                if (maxEpochAndNum.getValue() != mappingDetail.getTotalQueues()) {
+                    throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", maxEpochAndNum.getValue(), mappingDetail.getTotalQueues(), mappingDetail.getBname()));
                 }
             }
+            globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(detailList), false, true);
 
             //the check is ok, now do the mapping allocation
             int maxNum = maxEpochAndNum.getValue();
@@ -262,6 +251,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
                 configMapping.getMappingDetail().setEpoch(epoch);
                 configMapping.getMappingDetail().setTotalQueues(maxNum);
             });
+            TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList())), false, true);
             // now do the remapping
             //Step1: let the new leader can be write without the logicOffset
             for (String broker: brokersToMapIn) {

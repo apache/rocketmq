@@ -103,7 +103,7 @@ public class TopicQueueMappingUtils {
         return new AbstractMap.SimpleImmutableEntry<Long, Integer>(epoch, queueNum);
     }
 
-    public static Map<Integer, TopicQueueMappingOne> buildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace) {
+    public static Map<Integer, TopicQueueMappingOne> buildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
         Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
             @Override
             public int compare(TopicQueueMappingDetail o1, TopicQueueMappingDetail o2) {
@@ -111,8 +111,12 @@ public class TopicQueueMappingUtils {
             }
         });
 
+        int maxNum = 0;
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
         for (TopicQueueMappingDetail mappingDetail : mappingDetailList) {
+            if (mappingDetail.totalQueues > maxNum) {
+                maxNum = mappingDetail.totalQueues;
+            }
             for (Map.Entry<Integer, ImmutableList<LogicQueueMappingItem>>  entry : mappingDetail.getHostedQueues().entrySet()) {
                 Integer globalid = entry.getKey();
                 String leaderBrokerName  = getLeaderBroker(entry.getValue());
@@ -126,6 +130,16 @@ public class TopicQueueMappingUtils {
                     }
                 } else {
                     globalIdMap.put(globalid, new TopicQueueMappingOne(mappingDetail.topic, mappingDetail.bname, globalid, entry.getValue()));
+                }
+            }
+        }
+        if (checkConsistence) {
+            if (maxNum != globalIdMap.size()) {
+                throw new RuntimeException(String.format("The total queue number in config dose not match the real hosted queues %d != %d", maxNum, globalIdMap.size()));
+            }
+            for (int i = 0; i < maxNum; i++) {
+                if (!globalIdMap.containsKey(i)) {
+                    throw new RuntimeException(String.format("The queue number %s is not in globalIdMap", i));
                 }
             }
         }

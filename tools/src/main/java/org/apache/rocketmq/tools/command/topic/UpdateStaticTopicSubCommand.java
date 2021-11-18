@@ -64,7 +64,10 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
         Option opt = null;
 
-        opt = new Option("c", "clusters", true, "create topic to clusters, comma separated");
+        opt = new Option("c", "clusters", true, "remapping static topic to clusters, comma separated");
+        optionGroup.addOption(opt);
+
+        opt = new Option("b", "brokers", true, "remapping static topic to brokers, comma separated");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
@@ -94,22 +97,23 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         Set<String> brokers = new HashSet<>();
 
         try {
-            if (!commandLine.hasOption('t')
-                    || !commandLine.hasOption('c')
+            if ((!commandLine.hasOption("b") && !commandLine.hasOption('c'))
+                    || !commandLine.hasOption('t')
                     || !commandLine.hasOption("qn")) {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
                 return;
             }
-            String topic = commandLine.getOptionValue('t').trim();
-            int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
-            String clusters = commandLine.getOptionValue('c').trim();
+
             ClusterInfo clusterInfo  = defaultMQAdminExt.examineBrokerClusterInfo();
             if (clusterInfo == null
                     || clusterInfo.getClusterAddrTable().isEmpty()) {
                 throw new RuntimeException("The Cluster info is empty");
-            } else {
-                clientMetadata.refreshClusterInfo(clusterInfo);
             }
+            clientMetadata.refreshClusterInfo(clusterInfo);
+
+            String topic = commandLine.getOptionValue('t').trim();
+            int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
+            String clusters = commandLine.getOptionValue('c').trim();
             for (String cluster : clusters.split(",")) {
                 cluster = cluster.trim();
                 if (clusterInfo.getClusterAddrTable().get(cluster) != null) {
@@ -163,26 +167,15 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 List<TopicQueueMappingDetail> detailList = existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList());
                 //check the epoch and qnum
                 maxEpochAndNum = TopicQueueMappingUtils.findMaxEpochAndQueueNum(detailList);
-                final Map.Entry<Long, Integer> tmpMaxEpochAndNum = maxEpochAndNum;
-                detailList.forEach( mappingDetail -> {
-                    if (tmpMaxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
-                        throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", tmpMaxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
+                for (TopicQueueMappingDetail mappingDetail : detailList) {
+                    if (maxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
+                        throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", maxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
                     }
-                    if (tmpMaxEpochAndNum.getValue() != mappingDetail.getTotalQueues()) {
-                        throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", tmpMaxEpochAndNum.getValue(), mappingDetail.getTotalQueues(), mappingDetail.getBname()));
-                    }
-                });
-
-                globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(detailList), false);
-
-                if (maxEpochAndNum.getValue() != globalIdMap.size()) {
-                    throw new RuntimeException(String.format("The total queue number in config dose not match the real hosted queues %d != %d", maxEpochAndNum.getValue(), globalIdMap.size()));
-                }
-                for (int i = 0; i < maxEpochAndNum.getValue(); i++) {
-                    if (!globalIdMap.containsKey(i)) {
-                        throw new RuntimeException(String.format("The queue number %s is not in globalIdMap", i));
+                    if (maxEpochAndNum.getValue() != mappingDetail.getTotalQueues()) {
+                        throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", maxEpochAndNum.getValue(), mappingDetail.getTotalQueues(), mappingDetail.getBname()));
                     }
                 }
+                globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(detailList), false, true);
             }
             if (queueNum < globalIdMap.size()) {
                 throw new RuntimeException(String.format("Cannot decrease the queue num for static topic %d < %d", queueNum, globalIdMap.size()));
@@ -230,10 +223,14 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 LogicQueueMappingItem mappingItem = new LogicQueueMappingItem(0, configMapping.getWriteQueueNums() - 1, broker, 0, 0, -1, -1, -1);
                 configMapping.getMappingDetail().putMappingInfo(queueId, ImmutableList.of(mappingItem));
             }
+
+            //double check the topic config map
             existedTopicConfigMap.values().forEach( configMapping -> {
                 configMapping.getMappingDetail().setEpoch(epoch);
                 configMapping.getMappingDetail().setTotalQueues(queueNum);
             });
+            TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList())), false, true);
+
             //If some succeed, and others fail, it will cause inconsistent data
             for (Map.Entry<String, TopicConfigAndQueueMapping> entry : existedTopicConfigMap.entrySet()) {
                 String broker = entry.getKey();
