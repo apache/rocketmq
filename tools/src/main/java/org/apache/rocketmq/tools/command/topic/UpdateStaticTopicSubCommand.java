@@ -39,7 +39,6 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-import java.nio.charset.Charset;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,7 +83,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("f", "mapFile", true, "The map file name");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
@@ -99,12 +98,13 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         ClientMetadata clientMetadata = new ClientMetadata();
 
         try {
+            String topic = commandLine.getOptionValue('t').trim();
             String mapFileName = commandLine.getOptionValue('f').trim();
             String mapData = MixAll.file2String(mapFileName);
             TopicRemappingDetailWrapper wrapper = TopicRemappingDetailWrapper.decode(mapData.getBytes(), TopicRemappingDetailWrapper.class);
             //double check the config
-            TopicQueueMappingUtils.validConsistenceOfTopicConfigAndQueueMapping(wrapper.getBrokerConfigMap());
-            TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(wrapper.getBrokerConfigMap().values())), false, true);
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, wrapper.getBrokerConfigMap());
+            TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(wrapper.getBrokerConfigMap().values())), false, true);
 
             ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
             if (clusterInfo == null
@@ -131,6 +131,11 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
     @Override
     public void execute(final CommandLine commandLine, final Options options,
         RPCHook rpcHook) throws SubCommandException {
+        if (!commandLine.hasOption('t')) {
+            ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
+            return;
+        }
+
         if (commandLine.hasOption("f")) {
             executeFromFile(commandLine, options, rpcHook);
             return;
@@ -158,7 +163,6 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 throw new RuntimeException("The Cluster info is empty");
             }
             clientMetadata.refreshClusterInfo(clusterInfo);
-
 
             String clusters = commandLine.getOptionValue('c').trim();
             for (String cluster : clusters.split(",")) {
@@ -200,8 +204,8 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
             Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<>(System.currentTimeMillis(), queueNum);
             if (!brokerConfigMap.isEmpty()) {
-                maxEpochAndNum = TopicQueueMappingUtils.validConsistenceOfTopicConfigAndQueueMapping(brokerConfigMap);
-                globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+                maxEpochAndNum = TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+                globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
             }
             if (queueNum < globalIdMap.size()) {
                 throw new RuntimeException(String.format("Cannot decrease the queue num for static topic %d < %d", queueNum, globalIdMap.size()));
@@ -213,7 +217,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
             {
                 TopicRemappingDetailWrapper oldWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, maxEpochAndNum.getKey(), new HashMap<>(), brokerConfigMap);
-                String oldMappingDataFile = TopicQueueMappingUtils.writeToTemp(oldWrapper, "before");
+                String oldMappingDataFile = TopicQueueMappingUtils.writeToTemp(oldWrapper, false);
                 System.out.println("The old mapping data is written to file " + oldMappingDataFile);
             }
 
@@ -264,12 +268,12 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 configMapping.getMappingDetail().setTotalQueues(queueNum);
             });
             //double check the config
-            TopicQueueMappingUtils.validConsistenceOfTopicConfigAndQueueMapping(brokerConfigMap);
-            TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
 
             {
                 TopicRemappingDetailWrapper newWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, newEpoch, newIdToBroker, brokerConfigMap);
-                String newMappingDataFile = TopicQueueMappingUtils.writeToTemp(newWrapper, "after");
+                String newMappingDataFile = TopicQueueMappingUtils.writeToTemp(newWrapper, true);
                 System.out.println("The new mapping data is written to file " + newMappingDataFile);
             }
 

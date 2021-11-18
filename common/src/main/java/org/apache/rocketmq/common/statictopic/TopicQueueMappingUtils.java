@@ -116,13 +116,12 @@ public class TopicQueueMappingUtils {
         return detailList;
     }
 
-    public static Map.Entry<Long, Integer> validConsistenceOfTopicConfigAndQueueMapping(Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+    public static Map.Entry<Long, Integer> checkConsistenceOfTopicConfigAndQueueMapping(String topic, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
         if (brokerConfigMap == null
             || brokerConfigMap.isEmpty()) {
             return null;
         }
         //make sure it it not null
-        String topic = null;
         long maxEpoch = -1;
         int maxNum = -1;
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
@@ -143,9 +142,7 @@ public class TopicQueueMappingUtils {
             }
             if (topic != null
                 && !topic.equals(mappingDetail.getTopic())) {
-                throw new RuntimeException("The topic name is inconsistent in broker  " + broker);
-            } else {
-                topic = mappingDetail.getTopic();
+                throw new RuntimeException("The topic name is not match for broker  " + broker);
             }
 
             if (maxEpoch != -1
@@ -165,7 +162,7 @@ public class TopicQueueMappingUtils {
         return new AbstractMap.SimpleEntry<Long, Integer>(maxEpoch, maxNum);
     }
 
-    public static Map<Integer, TopicQueueMappingOne> buildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
+    public static Map<Integer, TopicQueueMappingOne> checkAndBuildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
         Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
             @Override
             public int compare(TopicQueueMappingDetail o1, TopicQueueMappingDetail o2) {
@@ -216,10 +213,14 @@ public class TopicQueueMappingUtils {
         return items.get(items.size() - 1);
     }
 
-    public static String writeToTemp(TopicRemappingDetailWrapper wrapper, String suffix) {
+    public static String writeToTemp(TopicRemappingDetailWrapper wrapper, boolean after) {
         String topic = wrapper.getTopic();
         String data = wrapper.toJson();
-        String fileName = System.getProperty("java.io.tmpdir") + File.separator + topic + "-" + wrapper.getEpoch() + "-" + suffix;
+        String suffix = TopicRemappingDetailWrapper.SUFFIX_BEFORE;
+        if (after) {
+            suffix = TopicRemappingDetailWrapper.SUFFIX_AFTER;
+        }
+        String fileName = System.getProperty("java.io.tmpdir") + File.separator + topic + "-" + wrapper.getEpoch() + suffix;
         try {
             MixAll.string2File(data, fileName);
             return fileName;
