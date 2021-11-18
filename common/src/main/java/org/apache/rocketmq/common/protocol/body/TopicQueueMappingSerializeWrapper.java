@@ -18,7 +18,7 @@
 package org.apache.rocketmq.common.protocol.body;
 
 import org.apache.rocketmq.common.DataVersion;
-import org.apache.rocketmq.common.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.util.Map;

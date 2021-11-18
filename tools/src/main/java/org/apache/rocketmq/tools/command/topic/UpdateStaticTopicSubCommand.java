@@ -17,17 +17,16 @@
 package org.apache.rocketmq.tools.command.topic;
 
 import com.google.common.collect.ImmutableList;
-import com.sun.xml.internal.ws.api.BindingIDFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.LogicQueueMappingItem;
+import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.TopicConfigAndQueueMapping;
-import org.apache.rocketmq.common.TopicQueueMappingDetail;
-import org.apache.rocketmq.common.TopicQueueMappingOne;
-import org.apache.rocketmq.common.TopicQueueMappingUtils;
+import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;

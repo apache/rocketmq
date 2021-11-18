@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.body;
 
-import org.apache.rocketmq.common.TopicQueueMappingInfo;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

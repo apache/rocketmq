@@ -1,4 +1,4 @@
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.common.statictopic;
 
 public class LogicQueueMappingItem {
 

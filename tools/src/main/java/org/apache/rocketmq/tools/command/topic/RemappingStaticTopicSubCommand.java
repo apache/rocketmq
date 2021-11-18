@@ -16,18 +16,16 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
-import com.alibaba.fastjson.JSON;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.LogicQueueMappingItem;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.TopicConfigAndQueueMapping;
-import org.apache.rocketmq.common.TopicQueueMappingDetail;
-import org.apache.rocketmq.common.TopicQueueMappingOne;
-import org.apache.rocketmq.common.TopicQueueMappingUtils;
+import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
+import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -41,7 +39,6 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;

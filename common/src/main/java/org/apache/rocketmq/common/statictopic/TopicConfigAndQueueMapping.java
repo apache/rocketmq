@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.common.statictopic;
+
+import org.apache.rocketmq.common.TopicConfig;
 
 public class TopicConfigAndQueueMapping extends TopicConfig {
     private TopicQueueMappingDetail mappingDetail;
