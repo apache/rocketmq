@@ -64,7 +64,7 @@ public class SetConsumeModeSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("n", "popShareQueueNum", true, "num fo queue which share in pop mode");
+        opt = new Option("q", "popShareQueueNum", true, "num of queue which share in pop mode");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -89,8 +89,8 @@ public class SetConsumeModeSubCommand implements SubCommand {
 
 
             int popShareQueueNum = 0;
-            if (commandLine.hasOption('n')) {
-                popShareQueueNum = Integer.parseInt(commandLine.getOptionValue('n')
+            if (commandLine.hasOption('q')) {
+                popShareQueueNum = Integer.parseInt(commandLine.getOptionValue('q')
                         .trim());
             }
 
