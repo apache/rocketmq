@@ -244,6 +244,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
             {
                 TopicRouteData routeData = defaultMQAdminExt.examineTopicRouteInfo(topic);
                 clientMetadata.freshTopicRoute(topic, routeData);
+
                 if (routeData != null
                         && !routeData.getQueueDatas().isEmpty()) {
                     for (QueueData queueData: routeData.getQueueDatas()) {
