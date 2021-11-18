@@ -21,6 +21,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
@@ -31,17 +32,18 @@ import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.rpc.ClientMetadata;
+import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+import java.nio.charset.Charset;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -81,18 +83,64 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("f", "mapFile", true, "The map file name");
+        opt.setRequired(true);
+        options.addOption(opt);
+
         return options;
+    }
+
+
+
+    public void executeFromFile(final CommandLine commandLine, final Options options,
+                        RPCHook rpcHook) throws SubCommandException {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+        ClientMetadata clientMetadata = new ClientMetadata();
+
+        try {
+            String mapFileName = commandLine.getOptionValue('f').trim();
+            String mapData = MixAll.file2String(mapFileName);
+            TopicRemappingDetailWrapper wrapper = TopicRemappingDetailWrapper.decode(mapData.getBytes(), TopicRemappingDetailWrapper.class);
+            //double check the config
+            TopicQueueMappingUtils.validConsistenceOfTopicConfigAndQueueMapping(wrapper.getBrokerConfigMap());
+            TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(wrapper.getBrokerConfigMap().values())), false, true);
+
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            if (clusterInfo == null
+                    || clusterInfo.getClusterAddrTable().isEmpty()) {
+                throw new RuntimeException("The Cluster info is empty");
+            }
+            clientMetadata.refreshClusterInfo(clusterInfo);
+            //If some succeed, and others fail, it will cause inconsistent data
+            for (Map.Entry<String, TopicConfigAndQueueMapping> entry : wrapper.getBrokerConfigMap().entrySet()) {
+                String broker = entry.getKey();
+                String addr = clientMetadata.findMasterBrokerAddr(broker);
+                TopicConfigAndQueueMapping configMapping = entry.getValue();
+                defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail());
+            }
+            return;
+        }catch (Exception e) {
+            throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
+        } finally {
+            defaultMQAdminExt.shutdown();
+        }
     }
 
 
     @Override
     public void execute(final CommandLine commandLine, final Options options,
         RPCHook rpcHook) throws SubCommandException {
+        if (commandLine.hasOption("f")) {
+            executeFromFile(commandLine, options, rpcHook);
+            return;
+        }
+
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-
         ClientMetadata clientMetadata = new ClientMetadata();
-        Map<String, TopicConfigAndQueueMapping> existedTopicConfigMap = new HashMap<>();
+
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<>();
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();
         Set<String> brokers = new HashSet<>();
 
@@ -111,8 +159,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             }
             clientMetadata.refreshClusterInfo(clusterInfo);
 
-            String topic = commandLine.getOptionValue('t').trim();
-            int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
+
             String clusters = commandLine.getOptionValue('c').trim();
             for (String cluster : clusters.split(",")) {
                 cluster = cluster.trim();
@@ -131,51 +178,30 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             }
 
             //get the existed topic config and mapping
-            TopicRouteData routeData = defaultMQAdminExt.examineTopicRouteInfo(topic);
-            clientMetadata.freshTopicRoute(topic, routeData);
-            if (routeData != null
-                    && !routeData.getQueueDatas().isEmpty()) {
-                for (QueueData queueData: routeData.getQueueDatas()) {
-                    String bname = queueData.getBrokerName();
-                    String addr = clientMetadata.findMasterBrokerAddr(bname);
-                    TopicConfigAndQueueMapping mapping = (TopicConfigAndQueueMapping) defaultMQAdminExt.examineTopicConfig(addr, topic);
-                    //allow the config is null
-                    if (mapping != null) {
-                        existedTopicConfigMap.put(bname, mapping);
+            String topic = commandLine.getOptionValue('t').trim();
+            int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
+            {
+                TopicRouteData routeData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+                clientMetadata.freshTopicRoute(topic, routeData);
+
+                if (routeData != null
+                        && !routeData.getQueueDatas().isEmpty()) {
+                    for (QueueData queueData: routeData.getQueueDatas()) {
+                        String bname = queueData.getBrokerName();
+                        String addr = clientMetadata.findMasterBrokerAddr(bname);
+                        TopicConfigAndQueueMapping mapping = (TopicConfigAndQueueMapping) defaultMQAdminExt.examineTopicConfig(addr, topic);
+                        //allow the config is null
+                        if (mapping != null) {
+                            brokerConfigMap.put(bname, mapping);
+                        }
                     }
                 }
             }
 
             Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<>(System.currentTimeMillis(), queueNum);
-            if (!existedTopicConfigMap.isEmpty()) {
-                //make sure it it not null
-                existedTopicConfigMap.forEach((key, value) -> {
-                    if (value.getMappingDetail() != null) {
-                        throw new RuntimeException("Mapping info should be null in broker " + key);
-                    }
-                });
-                //make sure the detail is not dirty
-                existedTopicConfigMap.forEach((key, value) -> {
-                    if (!key.equals(value.getMappingDetail().getBname())) {
-                        throw new RuntimeException(String.format("The broker name is not equal %s != %s ", key, value.getMappingDetail().getBname()));
-                    }
-                    if (value.getMappingDetail().isDirty()) {
-                        throw new RuntimeException("The mapping info is dirty in broker  " + value.getMappingDetail().getBname());
-                    }
-                });
-
-                List<TopicQueueMappingDetail> detailList = existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList());
-                //check the epoch and qnum
-                maxEpochAndNum = TopicQueueMappingUtils.findMaxEpochAndQueueNum(detailList);
-                for (TopicQueueMappingDetail mappingDetail : detailList) {
-                    if (maxEpochAndNum.getKey() != mappingDetail.getEpoch()) {
-                        throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", maxEpochAndNum.getKey(), mappingDetail.getEpoch(), mappingDetail.getBname()));
-                    }
-                    if (maxEpochAndNum.getValue() != mappingDetail.getTotalQueues()) {
-                        throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", maxEpochAndNum.getValue(), mappingDetail.getTotalQueues(), mappingDetail.getBname()));
-                    }
-                }
-                globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(detailList), false, true);
+            if (!brokerConfigMap.isEmpty()) {
+                maxEpochAndNum = TopicQueueMappingUtils.validConsistenceOfTopicConfigAndQueueMapping(brokerConfigMap);
+                globalIdMap = TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
             }
             if (queueNum < globalIdMap.size()) {
                 throw new RuntimeException(String.format("Cannot decrease the queue num for static topic %d < %d", queueNum, globalIdMap.size()));
@@ -184,24 +210,32 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             if (queueNum == globalIdMap.size()) {
                 throw new RuntimeException("The topic queue num is equal the existed queue num, do nothing");
             }
+
+            {
+                TopicRemappingDetailWrapper oldWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, maxEpochAndNum.getKey(), new HashMap<>(), brokerConfigMap);
+                String oldMappingDataFile = TopicQueueMappingUtils.writeToTemp(oldWrapper, "before");
+                System.out.println("The old mapping data is written to file " + oldMappingDataFile);
+            }
+
+
             //the check is ok, now do the mapping allocation
             Map<String, Integer> brokerNumMap = brokers.stream().collect(Collectors.toMap( x -> x, x -> 0));
-            Map<Integer, String> idToBroker = new HashMap<>();
+            final Map<Integer, String> oldIdToBroker = new HashMap<>();
             globalIdMap.forEach((key, value) -> {
                 String leaderbroker = value.getBname();
-                idToBroker.put(key, leaderbroker);
+                oldIdToBroker.put(key, leaderbroker);
                 if (!brokerNumMap.containsKey(leaderbroker)) {
                     brokerNumMap.put(leaderbroker, 1);
                 } else {
                     brokerNumMap.put(leaderbroker, brokerNumMap.get(leaderbroker) + 1);
                 }
             });
-            TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(idToBroker, brokerNumMap);
+            TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(oldIdToBroker, brokerNumMap);
             allocator.upToNum(queueNum);
             Map<Integer, String> newIdToBroker = allocator.getIdToBroker();
 
             //construct the topic configAndMapping
-            long epoch = Math.max(maxEpochAndNum.getKey() + 1000, System.currentTimeMillis());
+            long newEpoch = Math.max(maxEpochAndNum.getKey() + 1000, System.currentTimeMillis());
             for (Map.Entry<Integer, String> e : newIdToBroker.entrySet()) {
                 Integer queueId = e.getKey();
                 String broker = e.getValue();
@@ -210,13 +244,13 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                     continue;
                 }
                 TopicConfigAndQueueMapping configMapping;
-                if (!existedTopicConfigMap.containsKey(broker)) {
+                if (!brokerConfigMap.containsKey(broker)) {
                     configMapping = new TopicConfigAndQueueMapping(new TopicConfig(topic), new TopicQueueMappingDetail(topic, 0, broker, -1));
                     configMapping.setWriteQueueNums(1);
                     configMapping.setReadQueueNums(1);
-                    existedTopicConfigMap.put(broker, configMapping);
+                    brokerConfigMap.put(broker, configMapping);
                 } else {
-                    configMapping = existedTopicConfigMap.get(broker);
+                    configMapping = brokerConfigMap.get(broker);
                     configMapping.setWriteQueueNums(configMapping.getWriteQueueNums() + 1);
                     configMapping.setReadQueueNums(configMapping.getReadQueueNums() + 1);
                 }
@@ -224,15 +258,23 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 configMapping.getMappingDetail().putMappingInfo(queueId, ImmutableList.of(mappingItem));
             }
 
-            //double check the topic config map
-            existedTopicConfigMap.values().forEach( configMapping -> {
-                configMapping.getMappingDetail().setEpoch(epoch);
+            // set the topic config
+            brokerConfigMap.values().forEach(configMapping -> {
+                configMapping.getMappingDetail().setEpoch(newEpoch);
                 configMapping.getMappingDetail().setTotalQueues(queueNum);
             });
-            TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(existedTopicConfigMap.values().stream().map(TopicConfigAndQueueMapping::getMappingDetail).collect(Collectors.toList())), false, true);
+            //double check the config
+            TopicQueueMappingUtils.validConsistenceOfTopicConfigAndQueueMapping(brokerConfigMap);
+            TopicQueueMappingUtils.buildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+
+            {
+                TopicRemappingDetailWrapper newWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, newEpoch, newIdToBroker, brokerConfigMap);
+                String newMappingDataFile = TopicQueueMappingUtils.writeToTemp(newWrapper, "after");
+                System.out.println("The new mapping data is written to file " + newMappingDataFile);
+            }
 
             //If some succeed, and others fail, it will cause inconsistent data
-            for (Map.Entry<String, TopicConfigAndQueueMapping> entry : existedTopicConfigMap.entrySet()) {
+            for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
                 String broker = entry.getKey();
                 String addr = clientMetadata.findMasterBrokerAddr(broker);
                 TopicConfigAndQueueMapping configMapping = entry.getValue();

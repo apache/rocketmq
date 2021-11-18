@@ -1,4 +1,4 @@
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.common.statictopic;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -9,9 +9,17 @@ import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Map;
 
 public class TopicQueueMappingTest {
+
+    @Test
+    public void testWriteToFile() {
+        System.out.println(System.getProperty("java.io.tmpdir"));
+        System.out.println(File.separator);
+    }
+
 
     @Test
     public void testJsonSerialize() {
@@ -30,7 +38,7 @@ public class TopicQueueMappingTest {
         Assert.assertEquals(mappingItemMap.get("timeOfStart"), mappingItem.getTimeOfStart());
         Assert.assertEquals(mappingItemMap.get("timeOfEnd"), mappingItem.getTimeOfEnd());
 
-        TopicQueueMappingDetail mappingDetail = new TopicQueueMappingDetail("test", 1, "broker01");
+        TopicQueueMappingDetail mappingDetail = new TopicQueueMappingDetail("test", 1, "broker01", System.currentTimeMillis());
         mappingDetail.putMappingInfo(0, ImmutableList.of(mappingItem));
 
         String mappingDetailJson = JSON.toJSONString(mappingDetail);

@@ -17,9 +17,12 @@
 package org.apache.rocketmq.common.statictopic;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.rocketmq.common.MixAll;
 
+import java.io.File;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -103,6 +106,65 @@ public class TopicQueueMappingUtils {
         return new AbstractMap.SimpleImmutableEntry<Long, Integer>(epoch, queueNum);
     }
 
+    public static List<TopicQueueMappingDetail> getMappingDetailFromConfig(Collection<TopicConfigAndQueueMapping> configs) {
+        List<TopicQueueMappingDetail> detailList = new ArrayList<TopicQueueMappingDetail>();
+        for (TopicConfigAndQueueMapping configMapping : configs) {
+            if (configMapping.getMappingDetail() != null) {
+                detailList.add(configMapping.getMappingDetail());
+            }
+        }
+        return detailList;
+    }
+
+    public static Map.Entry<Long, Integer> validConsistenceOfTopicConfigAndQueueMapping(Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+        if (brokerConfigMap == null
+            || brokerConfigMap.isEmpty()) {
+            return null;
+        }
+        //make sure it it not null
+        String topic = null;
+        long maxEpoch = -1;
+        int maxNum = -1;
+        for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
+            String broker = entry.getKey();
+            TopicConfigAndQueueMapping configMapping = entry.getValue();
+            if (configMapping.getMappingDetail() == null) {
+                throw new RuntimeException("Mapping info should not be null in broker " + broker);
+            }
+            TopicQueueMappingDetail mappingDetail = configMapping.getMappingDetail();
+            if (!broker.equals(mappingDetail.getBname())) {
+                throw new RuntimeException(String.format("The broker name is not equal %s != %s ", broker, mappingDetail.getBname()));
+            }
+            if (mappingDetail.isDirty()) {
+                throw new RuntimeException("The mapping info is dirty in broker  " + broker);
+            }
+            if (!configMapping.getTopicName().equals(mappingDetail.getTopic())) {
+                throw new RuntimeException("The topic name is inconsistent in broker  " + broker);
+            }
+            if (topic != null
+                && !topic.equals(mappingDetail.getTopic())) {
+                throw new RuntimeException("The topic name is inconsistent in broker  " + broker);
+            } else {
+                topic = mappingDetail.getTopic();
+            }
+
+            if (maxEpoch != -1
+                && maxEpoch != mappingDetail.getEpoch()) {
+                throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", maxEpoch, mappingDetail.getEpoch(), mappingDetail.getBname()));
+            } else {
+                maxEpoch = mappingDetail.getEpoch();
+            }
+
+            if (maxNum != -1
+                && maxNum != mappingDetail.getTotalQueues()) {
+                throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", maxNum, mappingDetail.getTotalQueues(), mappingDetail.getBname()));
+            } else {
+                maxNum = mappingDetail.getTotalQueues();
+            }
+        }
+        return new AbstractMap.SimpleEntry<Long, Integer>(maxEpoch, maxNum);
+    }
+
     public static Map<Integer, TopicQueueMappingOne> buildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
         Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
             @Override
@@ -153,4 +215,19 @@ public class TopicQueueMappingUtils {
         assert items.size() > 0;
         return items.get(items.size() - 1);
     }
+
+    public static String writeToTemp(TopicRemappingDetailWrapper wrapper, String suffix) {
+        String topic = wrapper.getTopic();
+        String data = wrapper.toJson();
+        String fileName = System.getProperty("java.io.tmpdir") + File.separator + topic + "-" + wrapper.getEpoch() + "-" + suffix;
+        try {
+            MixAll.string2File(data, fileName);
+            return fileName;
+        } catch (Exception e) {
+            throw new RuntimeException("write file failed " + fileName,e);
+        }
+    }
+
+
+
 }
