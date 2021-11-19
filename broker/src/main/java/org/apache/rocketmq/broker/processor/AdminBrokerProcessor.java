@@ -323,6 +323,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (TopicValidator.isSystemTopic(topic, response)) {
             return response;
         }
+        boolean force = false;
+        if (requestHeader.getForce() != null && requestHeader.getForce()) {
+            force = true;
+        }
 
         TopicConfig topicConfig = new TopicConfig(topic);
         topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
@@ -331,13 +335,18 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         topicConfig.setPerm(requestHeader.getPerm());
         topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
 
-        this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
+        try {
+            this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
-        this.brokerController.getTopicQueueMappingManager().updateTopicQueueMapping(topicQueueMappingBody.getMappingDetail());
+            this.brokerController.getTopicQueueMappingManager().updateTopicQueueMapping(topicQueueMappingBody.getMappingDetail(), force);
 
-        this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
-
-        response.setCode(ResponseCode.SUCCESS);
+            this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
+            response.setCode(ResponseCode.SUCCESS);
+        } catch (Exception e) {
+            log.error("Update static failed for [{}]", request, e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
         return response;
     }
 

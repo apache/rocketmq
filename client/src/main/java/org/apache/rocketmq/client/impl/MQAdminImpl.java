@@ -80,11 +80,11 @@ public class MQAdminImpl {
         this.timeoutMillis = timeoutMillis;
     }
 
-    public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig, final TopicQueueMappingDetail mappingDetail) throws MQClientException {
+    public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig, final TopicQueueMappingDetail mappingDetail, boolean force) throws MQClientException {
         MQClientException exception = null;
         for (int i = 0; i < 3; i++) {
             try {
-                this.mQClientFactory.getMQClientAPIImpl().createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail, timeoutMillis);
+                this.mQClientFactory.getMQClientAPIImpl().createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail,  force, timeoutMillis);
                 break;
             } catch (Exception e) {
                 if (2 == i) {

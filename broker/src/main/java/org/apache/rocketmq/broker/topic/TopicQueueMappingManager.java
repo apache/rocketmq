@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.TopicQueueMappingSerializeWrapper;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
@@ -56,8 +57,47 @@ public class TopicQueueMappingManager extends ConfigManager {
         this.brokerController = brokerController;
     }
 
-    public void updateTopicQueueMapping(TopicQueueMappingDetail topicQueueMappingDetail) {
-        topicQueueMappingTable.put(topicQueueMappingDetail.getTopic(), topicQueueMappingDetail);
+    public void updateTopicQueueMapping(TopicQueueMappingDetail newDetail, boolean force) {
+        lock.lock();
+        try {
+            if (newDetail == null) {
+                return;
+            }
+            newDetail.getHostedQueues().forEach((queueId, items) -> {
+                TopicQueueMappingUtils.checkLogicQueueMappingItemOffset(items);
+            });
+
+            TopicQueueMappingDetail oldDetail = topicQueueMappingTable.get(newDetail.getTopic());
+            if (oldDetail == null) {
+                topicQueueMappingTable.put(newDetail.getTopic(), newDetail);
+                return;
+            }
+            if (force) {
+                oldDetail.getHostedQueues().forEach( (queueId, items) -> {
+                    newDetail.getHostedQueues().putIfAbsent(queueId, items);
+                });
+                topicQueueMappingTable.put(newDetail.getTopic(), newDetail);
+                return;
+            }
+            //do more check
+            if (newDetail.getEpoch() <= oldDetail.getEpoch()) {
+                throw new RuntimeException(String.format("Can't accept data with small epoch %d < %d", newDetail.getEpoch(), oldDetail.getEpoch()));
+            }
+            for (Integer globalId : oldDetail.getHostedQueues().keySet()) {
+                ImmutableList<LogicQueueMappingItem> oldItems = oldDetail.getHostedQueues().get(globalId);
+                ImmutableList<LogicQueueMappingItem> newItems = newDetail.getHostedQueues().get(globalId);
+                if (newItems == null) {
+                    //keep the old
+                    newDetail.getHostedQueues().put(globalId, oldItems);
+                } else {
+                    TopicQueueMappingUtils.makeSureLogicQueueMappingItemImmutable(oldItems, newItems);
+                }
+            }
+            topicQueueMappingTable.put(newDetail.getTopic(), newDetail);
+        } finally {
+            lock.unlock();
+        }
+
     }
 
     public TopicQueueMappingDetail getTopicQueueMapping(String topic) {
