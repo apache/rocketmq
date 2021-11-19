@@ -7,7 +7,7 @@ public class LogicQueueMappingItem {
     private String bname;
     private long logicOffset; // the start of the logic offset
     private long startOffset; // the start of the physical offset, included
-    private long endOffset; // the end of the physical offset, excluded
+    private long endOffset = -1; // the end of the physical offset, excluded
     private long timeOfStart = -1; // mutable
     private long timeOfEnd = -1; // mutable
 
