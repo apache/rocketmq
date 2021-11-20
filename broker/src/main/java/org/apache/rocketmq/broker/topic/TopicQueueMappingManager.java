@@ -36,6 +36,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -57,9 +58,15 @@ public class TopicQueueMappingManager extends ConfigManager {
         this.brokerController = brokerController;
     }
 
-    public void updateTopicQueueMapping(TopicQueueMappingDetail newDetail, boolean force) {
-        lock.lock();
+    public void updateTopicQueueMapping(TopicQueueMappingDetail newDetail, boolean force) throws Exception {
+        boolean locked = false;
+        boolean updated = false;
         try {
+            if (lock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                locked = true;
+            } else {
+                return;
+            }
             if (newDetail == null) {
                 return;
             }
@@ -70,6 +77,7 @@ public class TopicQueueMappingManager extends ConfigManager {
             TopicQueueMappingDetail oldDetail = topicQueueMappingTable.get(newDetail.getTopic());
             if (oldDetail == null) {
                 topicQueueMappingTable.put(newDetail.getTopic(), newDetail);
+                updated = true;
                 return;
             }
             if (force) {
@@ -77,6 +85,7 @@ public class TopicQueueMappingManager extends ConfigManager {
                     newDetail.getHostedQueues().putIfAbsent(queueId, items);
                 });
                 topicQueueMappingTable.put(newDetail.getTopic(), newDetail);
+                updated = true;
                 return;
             }
             //do more check
@@ -94,8 +103,14 @@ public class TopicQueueMappingManager extends ConfigManager {
                 }
             }
             topicQueueMappingTable.put(newDetail.getTopic(), newDetail);
-        } finally {
-            lock.unlock();
+            updated = true;
+        }  finally {
+            if (locked) {
+                this.lock.unlock();
+            }
+            if (updated) {
+                this.persist();
+            }
         }
 
     }
