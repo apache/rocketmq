@@ -180,16 +180,16 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                         && nextBeginOffset >= mappingItem.getEndOffset()) {
                     nextBeginOffset = mappingItem.getEndOffset();
                 }
-                responseHeader.setNextBeginOffset(mappingItem.computeStaticQueueOffset(nextBeginOffset));
+                responseHeader.setNextBeginOffset(mappingItem.computeStaticQueueOffsetUpToEnd(nextBeginOffset));
             }
             //handle min offset
-            responseHeader.setMinOffset(mappingItem.computeStaticQueueOffset(Math.max(mappingItem.getStartOffset(), responseHeader.getMinOffset())));
+            responseHeader.setMinOffset(mappingItem.computeStaticQueueOffsetUpToEnd(Math.max(mappingItem.getStartOffset(), responseHeader.getMinOffset())));
             //handle max offset
             {
                 if (mappingItem.checkIfEndOffsetDecided()) {
                     responseHeader.setMaxOffset(Math.max(mappingItem.computeMaxStaticQueueOffset(), mappingDetail.computeMaxOffsetFromMapping(mappingContext.getGlobalId())));
                 } else {
-                    responseHeader.setMaxOffset(mappingItem.computeStaticQueueOffset(responseHeader.getMaxOffset()));
+                    responseHeader.setMaxOffset(mappingItem.computeStaticQueueOffsetUpToEnd(responseHeader.getMaxOffset()));
                 }
             }
             //set the offsetDelta

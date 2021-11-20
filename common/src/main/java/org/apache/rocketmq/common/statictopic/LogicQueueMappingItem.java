@@ -22,13 +22,20 @@ public class LogicQueueMappingItem {
         this.timeOfEnd = timeOfEnd;
     }
 
-    public long computeStaticQueueOffset(long physicalQueueOffset) {
+    public long computeStaticQueueOffsetUpToEnd(long physicalQueueOffset) {
         if (physicalQueueOffset < startOffset) {
             return logicOffset;
         }
         if (endOffset >= startOffset
             && endOffset < physicalQueueOffset) {
             return logicOffset + (endOffset - startOffset);
+        }
+        return  logicOffset + (physicalQueueOffset - startOffset);
+    }
+
+    public long computeStaticQueueOffset(long physicalQueueOffset) {
+        if (physicalQueueOffset < startOffset) {
+            return logicOffset;
         }
         return  logicOffset + (physicalQueueOffset - startOffset);
     }

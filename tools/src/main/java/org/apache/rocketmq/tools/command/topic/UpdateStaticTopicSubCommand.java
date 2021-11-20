@@ -82,7 +82,11 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("f", "mapFile", true, "The map file name");
+        opt = new Option("mf", "mapFile", true, "The mapping data file name");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("fr", "forceReplace", true, "Force replace the old mapping");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -104,6 +108,10 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             TopicRemappingDetailWrapper wrapper = TopicRemappingDetailWrapper.decode(mapData.getBytes(), TopicRemappingDetailWrapper.class);
             //double check the config
             TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, wrapper.getBrokerConfigMap());
+            boolean force = false;
+            if (commandLine.hasOption("fr") && Boolean.parseBoolean(commandLine.getOptionValue("fr").trim())) {
+                force = true;
+            }
             TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(wrapper.getBrokerConfigMap().values())), false, true);
 
             ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
@@ -112,7 +120,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 throw new RuntimeException("The Cluster info is empty");
             }
             clientMetadata.refreshClusterInfo(clusterInfo);
-            doUpdate(wrapper.getBrokerConfigMap(), clientMetadata, defaultMQAdminExt);
+            doUpdate(wrapper.getBrokerConfigMap(), clientMetadata, defaultMQAdminExt, force);
             return;
         }catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
@@ -121,13 +129,13 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         }
     }
 
-    public void doUpdate(Map<String, TopicConfigAndQueueMapping> brokerConfigMap, ClientMetadata clientMetadata, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
+    public void doUpdate(Map<String, TopicConfigAndQueueMapping> brokerConfigMap, ClientMetadata clientMetadata, DefaultMQAdminExt defaultMQAdminExt, boolean force) throws Exception {
         //If some succeed, and others fail, it will cause inconsistent data
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
             String broker = entry.getKey();
             String addr = clientMetadata.findMasterBrokerAddr(broker);
             TopicConfigAndQueueMapping configMapping = entry.getValue();
-            defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), false);
+            defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
         }
     }
 
@@ -288,7 +296,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 System.out.println("The new mapping data is written to file " + newMappingDataFile);
             }
 
-            doUpdate(brokerConfigMap, clientMetadata, defaultMQAdminExt);
+            doUpdate(brokerConfigMap, clientMetadata, defaultMQAdminExt, false);
 
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

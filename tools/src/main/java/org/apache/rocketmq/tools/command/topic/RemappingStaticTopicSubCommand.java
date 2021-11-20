@@ -81,9 +81,14 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("f", "mapFile", true, "The map file name");
+        opt = new Option("mf", "mapFile", true, "The mapping data file name ");
         opt.setRequired(false);
         options.addOption(opt);
+
+        opt = new Option("fr", "forceReplace", true, "Force replace the old mapping");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -111,7 +116,12 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
                 throw new RuntimeException("The Cluster info is empty");
             }
             clientMetadata.refreshClusterInfo(clusterInfo);
-            doRemapping(topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), wrapper.getBrokerConfigMap(), clientMetadata, defaultMQAdminExt, false);
+
+            boolean force = false;
+            if (commandLine.hasOption("fr") && Boolean.parseBoolean(commandLine.getOptionValue("fr").trim())) {
+                force = true;
+            }
+            doRemapping(topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), wrapper.getBrokerConfigMap(), clientMetadata, defaultMQAdminExt, force);
             return;
         }catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
@@ -161,7 +171,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
                 if (topicOffset.getMaxOffset() < oldLeader.getStartOffset()) {
                     throw new RuntimeException("The max offset is smaller then the start offset " + oldLeader + " " + topicOffset.getMaxOffset());
                 }
-                newLeader.setLogicOffset(oldLeader.computeStaticQueueOffset(topicOffset.getMaxOffset() + 10000));
+                newLeader.setLogicOffset(TopicQueueMappingUtils.blockSeqRoundUp(oldLeader.computeStaticQueueOffset(topicOffset.getMaxOffset()), 10000));
                 TopicConfigAndQueueMapping mapInConfig = brokerConfigMap.get(newLeader.getBname());
                 //fresh the new leader
                 mapInConfig.getMappingDetail().putMappingInfo(globalId, items);
@@ -171,7 +181,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
         for (String broker: brokersToMapIn) {
             String addr = clientMetadata.findMasterBrokerAddr(broker);
             TopicConfigAndQueueMapping configMapping = brokerConfigMap.get(broker);
-            defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), false);
+            defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
         }
     }
 

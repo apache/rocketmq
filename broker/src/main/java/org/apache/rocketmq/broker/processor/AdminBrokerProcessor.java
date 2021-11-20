@@ -653,7 +653,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                     assert i ==  mappingItems.size() - 1;
                     offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(mappingContext.getTopic(), item.getQueueId(), timestamp);
                     if (offset > 0) {
-                        offset = item.computeStaticQueueOffset(offset);
+                        offset = item.computeStaticQueueOffsetUpToEnd(offset);
                     }
                 } else {
                     requestHeader.setPhysical(true);
@@ -670,7 +670,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                             || (item.checkIfEndOffsetDecided() && offsetResponseHeader.getOffset() >= item.getEndOffset())) {
                         continue;
                     } else {
-                        offset = item.computeStaticQueueOffset(offsetResponseHeader.getOffset());
+                        offset = item.computeStaticQueueOffsetUpToEnd(offsetResponseHeader.getOffset());
                     }
 
                 }
@@ -722,7 +722,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         }
         long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(mappingContext.getTopic(), mappingItem.getQueueId());
 
-        offset = mappingItem.computeStaticQueueOffset(offset);
+        offset = mappingItem.computeStaticQueueOffsetUpToEnd(offset);
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
         final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
@@ -774,7 +774,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 throw rpcResponse.getException();
             }
             GetMinOffsetResponseHeader offsetResponseHeader = (GetMinOffsetResponseHeader) rpcResponse.getHeader();
-            long offset = mappingItem.computeStaticQueueOffset(offsetResponseHeader.getOffset());
+            long offset = mappingItem.computeStaticQueueOffsetUpToEnd(offsetResponseHeader.getOffset());
 
             final RemotingCommand response = RemotingCommand.createResponseCommand(GetMinOffsetResponseHeader.class);
             final GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.readCustomHeader();

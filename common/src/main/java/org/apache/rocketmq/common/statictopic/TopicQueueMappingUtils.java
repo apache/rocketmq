@@ -296,6 +296,16 @@ public class TopicQueueMappingUtils {
         }
     }
 
+    public static long blockSeqRoundUp(long offset, long blockSeqSize) {
+        long num = offset/blockSeqSize;
+        long left = offset % blockSeqSize;
+        if (left < blockSeqSize/2) {
+            return (num + 1) * blockSeqSize;
+        } else {
+            return (num + 2) * blockSeqSize;
+        }
+    }
+
 
 
 }
