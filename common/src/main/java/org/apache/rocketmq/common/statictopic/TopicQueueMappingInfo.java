@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentMap;
 
 public class TopicQueueMappingInfo extends RemotingSerializable {
     public static final int LEVEL_0 = 0;
-    public static final int LEVEL_1 = 1;
 
     String topic; // redundant field
     int totalQueues;
@@ -32,8 +31,6 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
     boolean dirty; //indicate if the data is dirty
     //register to broker to construct the route
     transient ConcurrentMap<Integer/*logicId*/, Integer/*physicalId*/> currIdMap = new ConcurrentHashMap<Integer, Integer>();
-    //register to broker to help detect remapping failure
-    transient ConcurrentMap<Integer/*logicId*/, Integer/*physicalId*/> prevIdMap = new ConcurrentHashMap<Integer, Integer>();
 
     public TopicQueueMappingInfo(String topic, int totalQueues, String bname, long epoch) {
         this.topic = topic;
@@ -78,9 +75,5 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
 
     public ConcurrentMap<Integer, Integer> getCurrIdMap() {
         return currIdMap;
-    }
-
-    public ConcurrentMap<Integer, Integer> getPrevIdMap() {
-        return prevIdMap;
     }
 }

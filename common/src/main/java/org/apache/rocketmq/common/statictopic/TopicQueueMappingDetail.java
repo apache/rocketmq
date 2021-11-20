@@ -45,14 +45,13 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     public void buildIdMap() {
         this.currIdMap = buildIdMap(LEVEL_0);
-        this.prevIdMap = buildIdMap(LEVEL_1);
     }
 
 
     public ConcurrentMap<Integer, Integer> buildIdMap(int level) {
         //level 0 means current leader in this broker
-        //level 1 means previous leader in this broker
-        assert level == LEVEL_0 || level == LEVEL_1;
+        //level 1 means previous leader in this broker, reserved for
+        assert level == LEVEL_0 ;
 
         if (hostedQueues == null || hostedQueues.isEmpty()) {
             return new ConcurrentHashMap<Integer, Integer>();
@@ -66,12 +65,6 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
                 LogicQueueMappingItem curr = items.get(items.size() - 1);
                 if (bname.equals(curr.getBname())) {
                     tmpIdMap.put(globalId, curr.getQueueId());
-                }
-            } else if (level == LEVEL_1
-                    && items.size() >= 2) {
-                LogicQueueMappingItem prev = items.get(items.size() - 1);
-                if (bname.equals(prev.getBname())) {
-                    tmpIdMap.put(globalId, prev.getQueueId());
                 }
             }
         }
@@ -120,8 +113,6 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     public TopicQueueMappingInfo cloneAsMappingInfo() {
         TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(this.topic, this.totalQueues, this.bname, this.epoch);
         topicQueueMappingInfo.currIdMap = this.buildIdMap(LEVEL_0);
-        topicQueueMappingInfo.prevIdMap = this.buildIdMap(LEVEL_1);
-
         return topicQueueMappingInfo;
     }
 
