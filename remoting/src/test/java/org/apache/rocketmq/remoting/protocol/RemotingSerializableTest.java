@@ -17,7 +17,10 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,6 +81,20 @@ public class RemotingSerializableTest {
             "\t\t\"v\"\n" +
             "\t]\n" +
             "}");
+    }
+
+    @Test
+    public void testMapSample() {
+        Map<Sample, Sample> map = new HashMap<>();
+        Sample sample = new Sample();
+        map.put(sample, sample);
+        MapSample ms = new MapSample();
+        ms.setMapping(map);
+
+        String json = RemotingSerializable.toJson(ms, false);
+        MapSample decoded = RemotingSerializable.decode(json.getBytes(), MapSample.class);
+        assertThat(decoded).isEqualTo(ms);
+        assertThat(decoded.getMapping()).isEqualTo(ms.getMapping());
     }
 
 }
@@ -158,5 +175,31 @@ class Sample {
         result = 31 * result + Arrays.hashCode(doubleArray);
         result = 31 * result + (stringList != null ? stringList.hashCode() : 0);
         return result;
+    }
+}
+
+class MapSample {
+    private Map<Sample, Sample> mapping;
+
+    public Map<Sample, Sample> getMapping() {
+        return mapping;
+    }
+
+    public void setMapping(
+        Map<Sample, Sample> mapping) {
+        this.mapping = mapping;
+    }
+
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        MapSample sample = (MapSample) o;
+        return Objects.equals(mapping, sample.mapping);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(mapping);
     }
 }
