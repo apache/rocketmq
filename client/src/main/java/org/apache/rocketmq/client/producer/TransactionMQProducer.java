@@ -32,6 +32,11 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     private TransactionListener transactionListener;
 
+    /**
+     * a switch which make the sending result of the transaction message ignore SLAVE_NOT_AVAILABLE or FLUSH_SLAVE_TIMEOUT
+     */
+    private boolean txIgnoreSlaveError = false;
+
     public TransactionMQProducer() {
     }
 
@@ -156,5 +161,13 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     public void setTransactionListener(TransactionListener transactionListener) {
         this.transactionListener = transactionListener;
+    }
+
+    public boolean isTxIgnoreSlaveError() {
+        return txIgnoreSlaveError;
+    }
+
+    public void setTxIgnoreSlaveError(boolean txIgnoreSlaveError) {
+        this.txIgnoreSlaveError = txIgnoreSlaveError;
     }
 }

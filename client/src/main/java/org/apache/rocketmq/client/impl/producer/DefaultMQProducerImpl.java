@@ -1245,6 +1245,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         LocalTransactionState localTransactionState = LocalTransactionState.UNKNOW;
         Throwable localException = null;
         switch (sendResult.getSendStatus()) {
+            case FLUSH_SLAVE_TIMEOUT:
+            case SLAVE_NOT_AVAILABLE:
+                if (!((TransactionMQProducer)defaultMQProducer).isTxIgnoreSlaveError()) {
+                    localTransactionState = LocalTransactionState.ROLLBACK_MESSAGE;
+                    break;
+                }
             case SEND_OK: {
                 try {
                     if (sendResult.getTransactionId() != null) {
@@ -1276,8 +1282,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
             break;
             case FLUSH_DISK_TIMEOUT:
-            case FLUSH_SLAVE_TIMEOUT:
-            case SLAVE_NOT_AVAILABLE:
                 localTransactionState = LocalTransactionState.ROLLBACK_MESSAGE;
                 break;
             default:
