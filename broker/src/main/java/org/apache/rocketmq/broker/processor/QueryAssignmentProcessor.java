@@ -208,33 +208,8 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                     }
 
                     if (setMessageRequestModeRequestBody != null && setMessageRequestModeRequestBody.getMode() == MessageRequestMode.POP) {
-                        if (setMessageRequestModeRequestBody.getPopShareQueueNum() <= 0) {
-                            //each client pop all messagequeue
-                            allocateResult = new ArrayList<>(mqAll.size());
-                            for (MessageQueue mq : mqAll) {
-                                //must create new MessageQueue in case of change cache in AssignmentManager
-                                MessageQueue newMq = new MessageQueue(mq.getTopic(), mq.getBrokerName(), -1);
-                                allocateResult.add(newMq);
-                            }
-
-                        } else {
-                            if (cidAll.size() <= mqAll.size()) {
-                                //consumer working in pop mode could share the MessageQueues assigned to the N (N = popWorkGroupSize) consumer following it in the cid list
-                                allocateResult = allocateMessageQueueStrategy.allocate(consumerGroup, clientId, mqAll, cidAll);
-                                int index = cidAll.indexOf(clientId);
-                                if (index >= 0) {
-                                    for (int i = 1; i <= setMessageRequestModeRequestBody.getPopShareQueueNum(); i++) {
-                                        index++;
-                                        index = index % cidAll.size();
-                                        List<MessageQueue> tmp = allocateMessageQueueStrategy.allocate(consumerGroup, cidAll.get(index), mqAll, cidAll);
-                                        allocateResult.addAll(tmp);
-                                    }
-                                }
-                            } else {
-                                //make sure each cid is assigned
-                                allocateResult = allocate(consumerGroup, clientId, mqAll, cidAll);
-                            }
-                        }
+                        allocateResult = allocate4Pop(allocateMessageQueueStrategy, consumerGroup, clientId, mqAll,
+                            cidAll, setMessageRequestModeRequestBody.getPopShareQueueNum());
 
                     } else {
                         allocateResult = allocateMessageQueueStrategy.allocate(consumerGroup, clientId, mqAll, cidAll);
@@ -254,6 +229,42 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                 break;
         }
         return assignedQueueSet;
+    }
+
+    public List<MessageQueue> allocate4Pop(AllocateMessageQueueStrategy allocateMessageQueueStrategy,
+        final String consumerGroup, final String clientId, List<MessageQueue> mqAll, List<String> cidAll,
+        int popShareQueueNum) {
+
+        List<MessageQueue> allocateResult;
+        if (popShareQueueNum <= 0 || popShareQueueNum >= cidAll.size() - 1) {
+            //each client pop all messagequeue
+            allocateResult = new ArrayList<>(mqAll.size());
+            for (MessageQueue mq : mqAll) {
+                //must create new MessageQueue in case of change cache in AssignmentManager
+                MessageQueue newMq = new MessageQueue(mq.getTopic(), mq.getBrokerName(), -1);
+                allocateResult.add(newMq);
+            }
+
+        } else {
+            if (cidAll.size() <= mqAll.size()) {
+                //consumer working in pop mode could share the MessageQueues assigned to the N (N = popWorkGroupSize) consumer following it in the cid list
+                allocateResult = allocateMessageQueueStrategy.allocate(consumerGroup, clientId, mqAll, cidAll);
+                int index = cidAll.indexOf(clientId);
+                if (index >= 0) {
+                    for (int i = 1; i <= popShareQueueNum; i++) {
+                        index++;
+                        index = index % cidAll.size();
+                        List<MessageQueue> tmp = allocateMessageQueueStrategy.allocate(consumerGroup, cidAll.get(index), mqAll, cidAll);
+                        allocateResult.addAll(tmp);
+                    }
+                }
+            } else {
+                //make sure each cid is assigned
+                allocateResult = allocate(consumerGroup, clientId, mqAll, cidAll);
+            }
+        }
+
+        return allocateResult;
     }
 
     private List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
