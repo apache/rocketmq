@@ -120,6 +120,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 throw new RuntimeException("The Cluster info is empty");
             }
             clientMetadata.refreshClusterInfo(clusterInfo);
+
             doUpdate(wrapper.getBrokerConfigMap(), clientMetadata, defaultMQAdminExt, force);
             return;
         }catch (Exception e) {
@@ -130,6 +131,13 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
     }
 
     public void doUpdate(Map<String, TopicConfigAndQueueMapping> brokerConfigMap, ClientMetadata clientMetadata, DefaultMQAdminExt defaultMQAdminExt, boolean force) throws Exception {
+        //check it before
+        for (String broker : brokerConfigMap.keySet()) {
+            String addr = clientMetadata.findMasterBrokerAddr(broker);
+            if (addr == null) {
+                throw new RuntimeException("Can't find addr for broker " + broker);
+            }
+        }
         //If some succeed, and others fail, it will cause inconsistent data
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
             String broker = entry.getKey();
@@ -158,7 +166,6 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         ClientMetadata clientMetadata = new ClientMetadata();
 
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<>();
-        Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();
         Set<String> targetBrokers = new HashSet<>();
 
         try {
@@ -202,101 +209,30 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             }
 
             //get the existed topic config and mapping
-            int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
-            {
-                TopicRouteData routeData = defaultMQAdminExt.examineTopicRouteInfo(topic);
-                clientMetadata.freshTopicRoute(topic, routeData);
 
-                if (routeData != null
-                        && !routeData.getQueueDatas().isEmpty()) {
-                    for (QueueData queueData: routeData.getQueueDatas()) {
-                        String bname = queueData.getBrokerName();
-                        String addr = clientMetadata.findMasterBrokerAddr(bname);
-                        TopicConfigAndQueueMapping mapping = (TopicConfigAndQueueMapping) defaultMQAdminExt.examineTopicConfig(addr, topic);
-                        //allow the config is null
-                        if (mapping != null) {
-                            brokerConfigMap.put(bname, mapping);
-                        }
-                    }
-                }
-            }
+            brokerConfigMap = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
+            int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
 
             Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<>(System.currentTimeMillis(), queueNum);
             if (!brokerConfigMap.isEmpty()) {
                 maxEpochAndNum = TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
-                globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
-            }
-            if (queueNum < globalIdMap.size()) {
-                throw new RuntimeException(String.format("Cannot decrease the queue num for static topic %d < %d", queueNum, globalIdMap.size()));
-            }
-            //check the queue number
-            if (queueNum == globalIdMap.size()) {
-                throw new RuntimeException("The topic queue num is equal the existed queue num, do nothing");
             }
 
             {
-                TopicRemappingDetailWrapper oldWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, maxEpochAndNum.getKey(), new HashMap<>(), brokerConfigMap);
+                TopicRemappingDetailWrapper oldWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, maxEpochAndNum.getKey(), brokerConfigMap, new HashSet<String>(), new HashSet<String>());
                 String oldMappingDataFile = TopicQueueMappingUtils.writeToTemp(oldWrapper, false);
                 System.out.println("The old mapping data is written to file " + oldMappingDataFile);
             }
 
-
-            //the check is ok, now do the mapping allocation
-            Map<String, Integer> brokerNumMap = targetBrokers.stream().collect(Collectors.toMap( x -> x, x -> 0));
-            final Map<Integer, String> oldIdToBroker = new HashMap<>();
-            globalIdMap.forEach((key, value) -> {
-                String leaderbroker = value.getBname();
-                oldIdToBroker.put(key, leaderbroker);
-                if (!brokerNumMap.containsKey(leaderbroker)) {
-                    brokerNumMap.put(leaderbroker, 1);
-                } else {
-                    brokerNumMap.put(leaderbroker, brokerNumMap.get(leaderbroker) + 1);
-                }
-            });
-            TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(oldIdToBroker, brokerNumMap);
-            allocator.upToNum(queueNum);
-            Map<Integer, String> newIdToBroker = allocator.getIdToBroker();
-
-            //construct the topic configAndMapping
-            long newEpoch = Math.max(maxEpochAndNum.getKey() + 1000, System.currentTimeMillis());
-            for (Map.Entry<Integer, String> e : newIdToBroker.entrySet()) {
-                Integer queueId = e.getKey();
-                String broker = e.getValue();
-                if (globalIdMap.containsKey(queueId)) {
-                    //ignore the exited
-                    continue;
-                }
-                TopicConfigAndQueueMapping configMapping;
-                if (!brokerConfigMap.containsKey(broker)) {
-                    configMapping = new TopicConfigAndQueueMapping(new TopicConfig(topic), new TopicQueueMappingDetail(topic, 0, broker, -1));
-                    configMapping.setWriteQueueNums(1);
-                    configMapping.setReadQueueNums(1);
-                    brokerConfigMap.put(broker, configMapping);
-                } else {
-                    configMapping = brokerConfigMap.get(broker);
-                    configMapping.setWriteQueueNums(configMapping.getWriteQueueNums() + 1);
-                    configMapping.setReadQueueNums(configMapping.getReadQueueNums() + 1);
-                }
-                LogicQueueMappingItem mappingItem = new LogicQueueMappingItem(0, configMapping.getWriteQueueNums() - 1, broker, 0, 0, -1, -1, -1);
-                configMapping.getMappingDetail().putMappingInfo(queueId, ImmutableList.of(mappingItem));
-            }
-
-            // set the topic config
-            brokerConfigMap.values().forEach(configMapping -> {
-                configMapping.getMappingDetail().setEpoch(newEpoch);
-                configMapping.getMappingDetail().setTotalQueues(queueNum);
-            });
-            //double check the config
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
-            TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            //calculate the new data
+            TopicRemappingDetailWrapper newWrapper = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
 
             {
-                TopicRemappingDetailWrapper newWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, newEpoch, newIdToBroker, brokerConfigMap);
                 String newMappingDataFile = TopicQueueMappingUtils.writeToTemp(newWrapper, true);
                 System.out.println("The new mapping data is written to file " + newMappingDataFile);
             }
 
-            doUpdate(brokerConfigMap, clientMetadata, defaultMQAdminExt, false);
+            doUpdate(newWrapper.getBrokerConfigMap(), clientMetadata, defaultMQAdminExt, false);
 
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

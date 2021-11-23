@@ -1110,8 +1110,68 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         this.mqClientInstance.getMQAdminImpl().createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail, force);
     }
 
+
     @Override
-    public Map<String, TopicConfigAndQueueMapping> getTopicConfigMap(ClientMetadata clientMetadata, String topic) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public void remappingStaticTopic(ClientMetadata clientMetadata, String topic, Set<String> brokersToMapIn, Set<String> brokersToMapOut, Map<String, TopicConfigAndQueueMapping> brokerConfigMap, int blockSeqSize, boolean force) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        for (String broker : brokerConfigMap.keySet()) {
+            String addr = clientMetadata.findMasterBrokerAddr(broker);
+            if (addr == null) {
+                throw new RuntimeException("Can't find addr for broker " + broker);
+            }
+        }
+        // now do the remapping
+        //Step1: let the new leader can be write without the logicOffset
+        for (String broker: brokersToMapIn) {
+            String addr = clientMetadata.findMasterBrokerAddr(broker);
+            TopicConfigAndQueueMapping configMapping = brokerConfigMap.get(broker);
+            createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
+        }
+        //Step2: forbid the write of old leader
+        for (String broker: brokersToMapOut) {
+            String addr = clientMetadata.findMasterBrokerAddr(broker);
+            TopicConfigAndQueueMapping configMapping = brokerConfigMap.get(broker);
+            createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
+        }
+        //Step3: decide the logic offset
+        for (String broker: brokersToMapOut) {
+            String addr = clientMetadata.findMasterBrokerAddr(broker);
+            TopicStatsTable statsTable = examineTopicStats(addr, topic);
+            TopicConfigAndQueueMapping mapOutConfig = brokerConfigMap.get(broker);
+            for (Map.Entry<Integer, ImmutableList<LogicQueueMappingItem>> entry : mapOutConfig.getMappingDetail().getHostedQueues().entrySet()) {
+                ImmutableList<LogicQueueMappingItem> items = entry.getValue();
+                Integer globalId = entry.getKey();
+                if (items.size() < 2) {
+                    continue;
+                }
+                LogicQueueMappingItem newLeader = items.get(items.size() - 1);
+                LogicQueueMappingItem oldLeader = items.get(items.size() - 2);
+                if (newLeader.getLogicOffset()  > 0) {
+                    continue;
+                }
+                TopicOffset topicOffset = statsTable.getOffsetTable().get(new MessageQueue(topic, oldLeader.getBname(), oldLeader.getQueueId()));
+                if (topicOffset == null) {
+                    throw new RuntimeException("Cannot get the max offset for old leader " + oldLeader);
+                }
+                //TODO check the max offset, will it return -1?
+                if (topicOffset.getMaxOffset() < oldLeader.getStartOffset()) {
+                    throw new RuntimeException("The max offset is smaller then the start offset " + oldLeader + " " + topicOffset.getMaxOffset());
+                }
+                newLeader.setLogicOffset(TopicQueueMappingUtils.blockSeqRoundUp(oldLeader.computeStaticQueueOffset(topicOffset.getMaxOffset()), blockSeqSize));
+                TopicConfigAndQueueMapping mapInConfig = brokerConfigMap.get(newLeader.getBname());
+                //fresh the new leader
+                mapInConfig.getMappingDetail().putMappingInfo(globalId, items);
+            }
+        }
+        //Step4: write to the new leader with logic offset
+        for (String broker: brokersToMapIn) {
+            String addr = clientMetadata.findMasterBrokerAddr(broker);
+            TopicConfigAndQueueMapping configMapping = brokerConfigMap.get(broker);
+            createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
+        }
+    }
+
+    @Override
+    public Map<String, TopicConfigAndQueueMapping> examineTopicConfigAll(ClientMetadata clientMetadata, String topic) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         TopicRouteData routeData = examineTopicRouteInfo(topic);
         clientMetadata.freshTopicRoute(topic, routeData);
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<>();

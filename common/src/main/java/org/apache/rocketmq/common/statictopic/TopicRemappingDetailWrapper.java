@@ -18,7 +18,6 @@ public class TopicRemappingDetailWrapper extends RemotingSerializable {
     private final String topic;
     private final String type;
     private final long epoch;
-    private Map<Integer, String> expectedIdToBroker = new HashMap<Integer, String>();
 
     private Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
 
@@ -26,12 +25,13 @@ public class TopicRemappingDetailWrapper extends RemotingSerializable {
 
     private Set<String> brokerToMapOut = new HashSet<String>();
 
-    public TopicRemappingDetailWrapper(String topic, String type, long epoch, Map<Integer, String> expectedIdToBroker, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+    public TopicRemappingDetailWrapper(String topic, String type, long epoch, Map<String, TopicConfigAndQueueMapping> brokerConfigMap, Set<String> brokerToMapIn, Set<String> brokerToMapOut) {
         this.topic = topic;
         this.type = type;
         this.epoch = epoch;
-        this.expectedIdToBroker = expectedIdToBroker;
         this.brokerConfigMap = brokerConfigMap;
+        this.brokerToMapIn = brokerToMapIn;
+        this.brokerToMapOut = brokerToMapOut;
     }
 
     public String getTopic() {
@@ -46,10 +46,6 @@ public class TopicRemappingDetailWrapper extends RemotingSerializable {
         return epoch;
     }
 
-    public Map<Integer, String> getExpectedIdToBroker() {
-        return expectedIdToBroker;
-    }
-
     public Map<String, TopicConfigAndQueueMapping> getBrokerConfigMap() {
         return brokerConfigMap;
     }
@@ -58,15 +54,7 @@ public class TopicRemappingDetailWrapper extends RemotingSerializable {
         return brokerToMapIn;
     }
 
-    public void setBrokerToMapIn(Set<String> brokerToMapIn) {
-        this.brokerToMapIn = brokerToMapIn;
-    }
-
     public Set<String> getBrokerToMapOut() {
         return brokerToMapOut;
-    }
-
-    public void setBrokerToMapOut(Set<String> brokerToMapOut) {
-        this.brokerToMapOut = brokerToMapOut;
     }
 }
