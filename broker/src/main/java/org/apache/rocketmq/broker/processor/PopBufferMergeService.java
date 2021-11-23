@@ -442,7 +442,9 @@ public class PopBufferMergeService extends ServiceThread {
         }
 
         if (this.counter.get() > brokerController.getBrokerConfig().getPopCkMaxBufferSize()) {
-            POP_LOGGER.warn("[PopBuffer]add ck, max size, {}, {}", point, this.counter.get());
+            if (brokerController.getBrokerConfig().isEnablePopLog()) {
+                POP_LOGGER.warn("[PopBuffer]add ck, max size, {}, {}", point, this.counter.get());
+            }
             return false;
         }
 
@@ -538,6 +540,14 @@ public class PopBufferMergeService extends ServiceThread {
         }
         pointWrapper.setCkStored(true);
         pointWrapper.setReviveQueueOffset(putMessageResult.getAppendMessageResult().getLogicsOffset());
+        if (msgInner.getDelayTimeLevel() > 0) {
+            this.brokerController.getBrokerStatsManager().incTopicPutNums(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+            this.brokerController.getBrokerStatsManager().incTopicPutSize(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+                    putMessageResult.getAppendMessageResult().getWroteBytes());
+            this.brokerController.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+            this.brokerController.getBrokerStatsManager().incQueuePutNums(msgInner.getTopic(), msgInner.getQueueId(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+            this.brokerController.getBrokerStatsManager().incQueuePutSize(msgInner.getTopic(), msgInner.getQueueId(), putMessageResult.getAppendMessageResult().getWroteBytes());
+        }
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("[PopBuffer]put ck to store ok: {}, {}", pointWrapper, putMessageResult);
         }
