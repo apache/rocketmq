@@ -33,13 +33,13 @@ public class StaticTopicIT extends BaseConf {
         defaultMQAdminExt = getAdmin(nsAddr);
         waitBrokerRegistered(nsAddr, clusterName);
         clientMetadata = new ClientMetadata();
+        defaultMQAdminExt.start();
         ClusterInfo clusterInfo  = defaultMQAdminExt.examineBrokerClusterInfo();
         if (clusterInfo == null
                 || clusterInfo.getClusterAddrTable().isEmpty()) {
             throw new RuntimeException("The Cluster info is empty");
         }
         clientMetadata.refreshClusterInfo(clusterInfo);
-
     }
 
     @Test

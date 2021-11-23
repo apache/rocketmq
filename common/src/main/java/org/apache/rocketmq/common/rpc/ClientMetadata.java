@@ -91,6 +91,10 @@ public class ClientMetadata {
         return brokerAddrTable.get(brokerName).get(MixAll.MASTER_ID);
     }
 
+    public ConcurrentMap<String, HashMap<Long, String>> getBrokerAddrTable() {
+        return brokerAddrTable;
+    }
+
     public static ConcurrentMap<MessageQueue, String> topicRouteData2EndpointsForStaticTopic(final String topic, final TopicRouteData route) {
         if (route.getTopicQueueMappingByBroker() == null
                 || route.getTopicQueueMappingByBroker().isEmpty()) {

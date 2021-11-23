@@ -1880,7 +1880,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().getTopicConfigTable().get(requestHeader.getTopic());
         if (topicConfig == null) {
             log.error("No topic in this broker, client: {} topic: {}", ctx.channel().remoteAddress(), requestHeader.getTopic());
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            //be care of the response code, should set "not-exist" explictly
+            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("No topic in this broker. topic: " + requestHeader.getTopic());
             return response;
         }

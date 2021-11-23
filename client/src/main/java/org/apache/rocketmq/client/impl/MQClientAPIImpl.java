@@ -332,7 +332,7 @@ public class MQClientAPIImpl {
 
     public void createTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,
         final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
         requestHeader.setTopic(topicConfig.getTopicName());
         requestHeader.setDefaultTopic(defaultTopic);
@@ -2708,7 +2708,7 @@ public class MQClientAPIImpl {
 
     public TopicConfigAndQueueMapping getTopicConfig(final String brokerAddr, String topic,
         long timeoutMillis) throws InterruptedException,
-        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
         GetTopicConfigRequestHeader header = new GetTopicConfigRequestHeader();
         header.setTopic(topic);
         header.setWithMapping(true);
@@ -2720,15 +2720,19 @@ public class MQClientAPIImpl {
             case ResponseCode.SUCCESS: {
                 return RemotingSerializable.decode(response.getBody(), TopicConfigAndQueueMapping.class);
             }
+            //should check the exist
+            case ResponseCode.TOPIC_NOT_EXIST: {
+                //should return null?
+                break;
+            }
             default:
                 break;
         }
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        throw new MQClientException(response.getCode(), response.getRemark());
     }
 
     public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig, final TopicQueueMappingDetail topicQueueMappingDetail, boolean force,
-                            final long timeoutMillis)
-            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+                            final long timeoutMillis) throws RemotingException, InterruptedException, MQClientException {
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
         requestHeader.setTopic(topicConfig.getTopicName());
         requestHeader.setDefaultTopic(defaultTopic);
@@ -2753,6 +2757,6 @@ public class MQClientAPIImpl {
                 break;
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark());
+        throw new MQClientException(response.getCode(), response.getRemark());
     }
 }
