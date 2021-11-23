@@ -150,13 +150,7 @@ public class DefaultMQAdminExtTest {
         topicRouteData.setBrokerDatas(brokerDatas);
         topicRouteData.setQueueDatas(new ArrayList<QueueData>());
         topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        LogicalQueuesInfo logicalQueuesInfoinfo = new LogicalQueuesInfo();
-        logicalQueuesInfoinfo.put(0, Lists.newArrayList(
-            new LogicalQueueRouteData(0, 0, new MessageQueue(topic1, broker1Name, 0), MessageQueueRouteState.ReadOnly, 0, 1000, 2000, 3000, broker1Addr),
-            new LogicalQueueRouteData(0, 1000, new MessageQueue(topic1, broker2Name, 0), MessageQueueRouteState.Normal, 0, -1, -1, -1, broker2Addr)
-        ));
-        topicRouteData.setLogicalQueuesInfo(logicalQueuesInfoinfo);
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong(), anyBoolean(), any())).thenReturn(topicRouteData);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
 
         HashMap<String, String> result = new HashMap<>();
         result.put("id", String.valueOf(MixAll.MASTER_ID));

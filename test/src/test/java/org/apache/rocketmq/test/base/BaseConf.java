@@ -19,8 +19,10 @@ package org.apache.rocketmq.test.base;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -120,6 +122,13 @@ public class BaseConf {
         return group;
     }
 
+    public static DefaultMQAdminExt getAdmin(String nsAddr) {
+        final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(500);
+        mqAdminExt.setNamesrvAddr(nsAddr);
+        mqClients.add(mqAdminExt);
+        return mqAdminExt;
+    }
+
     public static RMQNormalProducer getProducer(String nsAddr, String topic) {
         return getProducer(nsAddr, topic, false);
     }
@@ -195,6 +204,13 @@ public class BaseConf {
         ImmutableList<Object> mqClients = ImmutableList.copyOf(BaseConf.mqClients);
         BaseConf.mqClients.clear();
         shutdown(mqClients);
+    }
+
+    public static Set<String> getBrokers() {
+        Set<String> brokers = new HashSet<>();
+        brokers.add(broker1Name);
+        brokers.add(broker2Name);
+        return brokers;
     }
 
     public static void shutdown(List<Object> mqClients) {
