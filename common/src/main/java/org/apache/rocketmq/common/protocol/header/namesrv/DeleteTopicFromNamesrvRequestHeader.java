@@ -20,7 +20,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class DeleteTopicInNamesrvRequestHeader implements CommandCustomHeader {
+public class DeleteTopicFromNamesrvRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String topic;
 
