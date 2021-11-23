@@ -138,6 +138,7 @@ import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterMessageFilte
 import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.DeleteKVConfigRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.DeleteTopicFromNamesrvRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVConfigResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.GetKVListByNamespaceRequestHeader;
@@ -1446,7 +1447,7 @@ public class MQClientAPIImpl {
     }
 
     public void deleteTopicInBroker(final String addr, final String topic, final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
         DeleteTopicRequestHeader requestHeader = new DeleteTopicRequestHeader();
         requestHeader.setTopic(topic);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_BROKER, requestHeader);
@@ -1466,8 +1467,8 @@ public class MQClientAPIImpl {
     }
 
     public void deleteTopicInNameServer(final String addr, final String topic, final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        DeleteTopicRequestHeader requestHeader = new DeleteTopicRequestHeader();
+        throws RemotingException, InterruptedException, MQClientException {
+        DeleteTopicFromNamesrvRequestHeader requestHeader = new DeleteTopicFromNamesrvRequestHeader();
         requestHeader.setTopic(topic);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_NAMESRV, requestHeader);
 
@@ -1485,7 +1486,7 @@ public class MQClientAPIImpl {
     }
 
     public void deleteSubscriptionGroup(final String addr, final String groupName, final boolean removeOffset, final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
         DeleteSubscriptionGroupRequestHeader requestHeader = new DeleteSubscriptionGroupRequestHeader();
         requestHeader.setGroupName(groupName);
         requestHeader.setRemoveOffset(removeOffset);
