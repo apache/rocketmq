@@ -18,6 +18,9 @@ package org.apache.rocketmq.common.statictopic;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.rpc.ClientMetadata;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 import java.io.File;
 import java.util.AbstractMap;
@@ -29,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TopicQueueMappingUtils {
 
@@ -306,6 +311,75 @@ public class TopicQueueMappingUtils {
         }
     }
 
+    public Map<String, TopicConfigAndQueueMapping> createTopicConfigMapping(String topic, int queueNum, Set<String> targetBrokers, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+        Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
+        Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<Long, Integer>(System.currentTimeMillis(), queueNum);
+        if (!brokerConfigMap.isEmpty()) {
+            maxEpochAndNum = TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+        }
+        if (queueNum < globalIdMap.size()) {
+            throw new RuntimeException(String.format("Cannot decrease the queue num for static topic %d < %d", queueNum, globalIdMap.size()));
+        }
+        //check the queue number
+        if (queueNum == globalIdMap.size()) {
+            throw new RuntimeException("The topic queue num is equal the existed queue num, do nothing");
+        }
 
+        //the check is ok, now do the mapping allocation
+        Map<String, Integer> brokerNumMap = new HashMap<String, Integer>();
+        for (String broker: targetBrokers) {
+            brokerNumMap.put(broker, 0);
+        }
+        final Map<Integer, String> oldIdToBroker = new HashMap<Integer, String>();
+        for (Map.Entry<Integer, TopicQueueMappingOne> entry : globalIdMap.entrySet()) {
+            String leaderbroker = entry.getValue().getBname();
+            oldIdToBroker.put(entry.getKey(), leaderbroker);
+            if (!brokerNumMap.containsKey(leaderbroker)) {
+                brokerNumMap.put(leaderbroker, 1);
+            } else {
+                brokerNumMap.put(leaderbroker, brokerNumMap.get(leaderbroker) + 1);
+            }
+        }
+        TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(oldIdToBroker, brokerNumMap);
+        allocator.upToNum(queueNum);
+        Map<Integer, String> newIdToBroker = allocator.getIdToBroker();
+
+        //construct the topic configAndMapping
+        long newEpoch = Math.max(maxEpochAndNum.getKey() + 1000, System.currentTimeMillis());
+        for (Map.Entry<Integer, String> e : newIdToBroker.entrySet()) {
+            Integer queueId = e.getKey();
+            String broker = e.getValue();
+            if (globalIdMap.containsKey(queueId)) {
+                //ignore the exited
+                continue;
+            }
+            TopicConfigAndQueueMapping configMapping;
+            if (!brokerConfigMap.containsKey(broker)) {
+                configMapping = new TopicConfigAndQueueMapping(new TopicConfig(topic), new TopicQueueMappingDetail(topic, 0, broker, -1));
+                configMapping.setWriteQueueNums(1);
+                configMapping.setReadQueueNums(1);
+                brokerConfigMap.put(broker, configMapping);
+            } else {
+                configMapping = brokerConfigMap.get(broker);
+                configMapping.setWriteQueueNums(configMapping.getWriteQueueNums() + 1);
+                configMapping.setReadQueueNums(configMapping.getReadQueueNums() + 1);
+            }
+            LogicQueueMappingItem mappingItem = new LogicQueueMappingItem(0, configMapping.getWriteQueueNums() - 1, broker, 0, 0, -1, -1, -1);
+            configMapping.getMappingDetail().putMappingInfo(queueId, ImmutableList.of(mappingItem));
+        }
+
+        // set the topic config
+        for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
+            TopicConfigAndQueueMapping configMapping = entry.getValue();
+            configMapping.getMappingDetail().setEpoch(newEpoch);
+            configMapping.getMappingDetail().setTotalQueues(queueNum);
+        }
+        //double check the config
+        TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+
+        return brokerConfigMap;
+    }
 
 }

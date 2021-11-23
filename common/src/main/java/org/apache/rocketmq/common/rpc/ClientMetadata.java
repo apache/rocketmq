@@ -112,7 +112,7 @@ public class ClientMetadata {
         for (Map.Entry<String, TopicQueueMappingInfo> entry : mappingInfos) {
             TopicQueueMappingInfo info = entry.getValue();
             if (info.getEpoch() >= maxTotalNumOfEpoch && info.getTotalQueues() > maxTotalNums) {
-                maxTotalNums = entry.getValue().getTotalQueues();
+                maxTotalNums = info.getTotalQueues();
             }
             for (Map.Entry<Integer, Integer> idEntry : entry.getValue().getCurrIdMap().entrySet()) {
                 int globalId = idEntry.getKey();
