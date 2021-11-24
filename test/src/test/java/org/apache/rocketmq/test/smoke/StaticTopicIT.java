@@ -6,7 +6,6 @@ import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
-import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -17,8 +16,6 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,6 +46,7 @@ public class StaticTopicIT extends BaseConf {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
         Assert.assertTrue(brokerConfigMap.isEmpty());
         TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
+        Assert.assertEquals(2, brokerConfigMap.size());
         //If some succeed, and others fail, it will cause inconsistent data
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
             String broker = entry.getKey();
@@ -63,19 +61,19 @@ public class StaticTopicIT extends BaseConf {
     public void testCreateAndRemappingStaticTopic() throws Exception {
         String topic = "static" + MQRandomUtils.getRandomTopic();
         int queueNum = 10;
-        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = createStaticTopic(topic, queueNum, getBrokers());
+        Map<String, TopicConfigAndQueueMapping> localBrokerConfigMap = createStaticTopic(topic, queueNum, getBrokers());
         {
-            Map<String, TopicConfigAndQueueMapping> brokerConfigMapFromRemote = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
-            Assert.assertEquals(2, brokerConfigMapFromRemote.size());
-            for (Map.Entry<String, TopicConfigAndQueueMapping> entry: brokerConfigMapFromRemote.entrySet())  {
+            Map<String, TopicConfigAndQueueMapping> remoteBrokerConfigMap = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
+            Assert.assertEquals(2, remoteBrokerConfigMap.size());
+            for (Map.Entry<String, TopicConfigAndQueueMapping> entry: remoteBrokerConfigMap.entrySet())  {
                 String broker = entry.getKey();
                 TopicConfigAndQueueMapping configMapping = entry.getValue();
-                TopicConfigAndQueueMapping configMappingLocal = brokerConfigMap.get(broker);
-                Assert.assertNotNull(configMappingLocal);
-                Assert.assertEquals(configMapping, configMappingLocal);
+                TopicConfigAndQueueMapping localConfigMapping = localBrokerConfigMap.get(broker);
+                Assert.assertNotNull(localConfigMapping);
+                Assert.assertEquals(configMapping, localConfigMapping);
             }
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMapFromRemote);
-            Map<Integer, TopicQueueMappingOne>  globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(getMappingDetailFromConfig(brokerConfigMapFromRemote.values())), false, true);
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, remoteBrokerConfigMap);
+            Map<Integer, TopicQueueMappingOne>  globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(getMappingDetailFromConfig(remoteBrokerConfigMap.values())), false, true);
             Assert.assertEquals(queueNum, globalIdMap.size());
         }
         /*{
