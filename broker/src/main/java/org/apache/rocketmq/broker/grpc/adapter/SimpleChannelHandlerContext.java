@@ -28,13 +28,11 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.EventExecutor;
 import java.net.SocketAddress;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.commons.lang3.NotImplementedException;
 
 public class SimpleChannelHandlerContext implements ChannelHandlerContext {
 
     private final Channel channel;
-
-    private RemotingCommand command;
 
     public SimpleChannelHandlerContext(Channel channel) {
         this.channel = channel;
@@ -47,17 +45,17 @@ public class SimpleChannelHandlerContext implements ChannelHandlerContext {
 
     @Override
     public EventExecutor executor() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public String name() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandler handler() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
@@ -67,127 +65,127 @@ public class SimpleChannelHandlerContext implements ChannelHandlerContext {
 
     @Override
     public ChannelHandlerContext fireChannelRegistered() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext fireChannelUnregistered() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext fireChannelActive() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext fireChannelInactive() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext fireExceptionCaught(Throwable cause) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext fireUserEventTriggered(Object evt) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext fireChannelRead(Object msg) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext fireChannelReadComplete() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext fireChannelWritabilityChanged() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture bind(SocketAddress localAddress) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture disconnect() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture close() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture deregister() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture disconnect(ChannelPromise promise) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture close(ChannelPromise promise) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture deregister(ChannelPromise promise) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext read() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture write(Object msg) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture write(Object msg, ChannelPromise promise) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelHandlerContext flush() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
@@ -202,52 +200,47 @@ public class SimpleChannelHandlerContext implements ChannelHandlerContext {
 
     @Override
     public ChannelPipeline pipeline() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ByteBufAllocator alloc() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelPromise newPromise() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelProgressivePromise newProgressivePromise() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture newSucceededFuture() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelFuture newFailedFuture(Throwable cause) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public ChannelPromise voidPromise() {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
     @Override
     public <T> Attribute<T> attr(AttributeKey<T> key) {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 
 
     @Override
     public <T> boolean hasAttr(AttributeKey<T> attributeKey) {
         return false;
-    }
-
-
-    public RemotingCommand getCommand() {
-        return command;
     }
 }
