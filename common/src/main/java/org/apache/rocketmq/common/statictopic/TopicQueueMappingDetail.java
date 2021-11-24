@@ -29,6 +29,13 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     // make sure this value is not null
     private ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
 
+
+
+    public TopicQueueMappingDetail() {
+
+    }
+
+
     public TopicQueueMappingDetail(String topic, int totalQueues, String bname, long epoch) {
         super(topic, totalQueues, bname, epoch);
         buildIdMap();
@@ -118,6 +125,10 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     public ConcurrentMap<Integer, ImmutableList<LogicQueueMappingItem>> getHostedQueues() {
         return hostedQueues;
+    }
+
+    public void setHostedQueues(ConcurrentMap<Integer, ImmutableList<LogicQueueMappingItem>> hostedQueues) {
+        this.hostedQueues = hostedQueues;
     }
 
     public boolean checkIfAsPhysical(Integer globalId) {

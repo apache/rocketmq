@@ -32,6 +32,10 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
     //register to broker to construct the route
     transient ConcurrentMap<Integer/*logicId*/, Integer/*physicalId*/> currIdMap = new ConcurrentHashMap<Integer, Integer>();
 
+    public TopicQueueMappingInfo() {
+
+    }
+
     public TopicQueueMappingInfo(String topic, int totalQueues, String bname, long epoch) {
         this.topic = topic;
         this.totalQueues = totalQueues;

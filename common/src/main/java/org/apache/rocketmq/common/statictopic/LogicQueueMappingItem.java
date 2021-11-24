@@ -100,6 +100,18 @@ public class LogicQueueMappingItem {
         this.logicOffset = logicOffset;
     }
 
+    public void setEndOffset(long endOffset) {
+        this.endOffset = endOffset;
+    }
+
+    public void setTimeOfStart(long timeOfStart) {
+        this.timeOfStart = timeOfStart;
+    }
+
+    public void setTimeOfEnd(long timeOfEnd) {
+        this.timeOfEnd = timeOfEnd;
+    }
+
     @Override
     public String toString() {
         return "LogicQueueMappingItem{" +

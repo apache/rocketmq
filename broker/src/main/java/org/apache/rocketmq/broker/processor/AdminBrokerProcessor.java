@@ -313,7 +313,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 (CreateTopicRequestHeader) request.decodeCommandCustomHeader(CreateTopicRequestHeader.class);
         log.info("updateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
-        final TopicQueueMappingBody topicQueueMappingBody = RemotingSerializable.decode(request.getBody(), TopicQueueMappingBody.class);
+        final TopicQueueMappingDetail topicQueueMappingDetail = RemotingSerializable.decode(request.getBody(), TopicQueueMappingDetail.class);
 
         String topic = requestHeader.getTopic();
 
@@ -338,7 +338,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         try {
             this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
-            this.brokerController.getTopicQueueMappingManager().updateTopicQueueMapping(topicQueueMappingBody.getMappingDetail(), force);
+            System.out.println("Broker body:" + new String(request.getBody()));
+            System.out.println("Broker bodetaildy:" + topicQueueMappingDetail.toJson());
+
+            this.brokerController.getTopicQueueMappingManager().updateTopicQueueMapping(topicQueueMappingDetail, force);
 
             this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
             response.setCode(ResponseCode.SUCCESS);

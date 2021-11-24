@@ -80,23 +80,6 @@ public class MQAdminImpl {
         this.timeoutMillis = timeoutMillis;
     }
 
-    public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig, final TopicQueueMappingDetail mappingDetail, boolean force) throws MQClientException {
-        MQClientException exception = null;
-        for (int i = 0; i < 3; i++) {
-            try {
-                this.mQClientFactory.getMQClientAPIImpl().createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail,  force, timeoutMillis);
-                break;
-            } catch (Exception e) {
-                if (2 == i) {
-                    exception = new MQClientException("create topic to broker exception", e);
-                }
-            }
-        }
-        if (exception != null) {
-            throw exception;
-        }
-    }
-
 
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, newTopic, queueNum, 0);

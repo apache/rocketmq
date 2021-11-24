@@ -2708,7 +2708,7 @@ public class MQClientAPIImpl {
 
     public TopicConfigAndQueueMapping getTopicConfig(final String brokerAddr, String topic,
         long timeoutMillis) throws InterruptedException,
-        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         GetTopicConfigRequestHeader header = new GetTopicConfigRequestHeader();
         header.setTopic(topic);
         header.setWithMapping(true);
@@ -2728,11 +2728,11 @@ public class MQClientAPIImpl {
             default:
                 break;
         }
-        throw new MQClientException(response.getCode(), response.getRemark());
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
     public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig, final TopicQueueMappingDetail topicQueueMappingDetail, boolean force,
-                            final long timeoutMillis) throws RemotingException, InterruptedException, MQClientException {
+                            final long timeoutMillis) throws RemotingException, InterruptedException, MQBrokerException {
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
         requestHeader.setTopic(topicConfig.getTopicName());
         requestHeader.setDefaultTopic(defaultTopic);
@@ -2757,6 +2757,6 @@ public class MQClientAPIImpl {
                 break;
         }
 
-        throw new MQClientException(response.getCode(), response.getRemark());
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 }

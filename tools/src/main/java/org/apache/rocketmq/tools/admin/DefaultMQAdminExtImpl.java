@@ -211,7 +211,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws RemotingException, InterruptedException, MQClientException {
+    public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().createTopic(addr, this.defaultMQAdminExt.getCreateTopicKey(), config, timeoutMillis);
     }
 
@@ -257,7 +258,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public TopicConfig examineTopicConfig(String addr, String topic) throws InterruptedException, MQClientException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+    public TopicConfig examineTopicConfig(String addr, String topic) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         return this.mqClientInstance.getMQClientAPIImpl().getTopicConfig(addr, topic, timeoutMillis);
     }
 
@@ -1105,8 +1106,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig, final TopicQueueMappingDetail mappingDetail, final boolean force) throws MQClientException {
-        this.mqClientInstance.getMQAdminImpl().createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail, force);
+    public void createStaticTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig, final TopicQueueMappingDetail mappingDetail, final boolean force) throws RemotingException,  InterruptedException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail, force, timeoutMillis);
     }
 
 
@@ -1170,13 +1171,23 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public Map<String, TopicConfigAndQueueMapping> examineTopicConfigAll(ClientMetadata clientMetadata, String topic) throws RemotingException, InterruptedException, MQClientException {
+    public Map<String, TopicConfigAndQueueMapping> examineTopicConfigAll(ClientMetadata clientMetadata, String topic) throws RemotingException,  InterruptedException, MQBrokerException {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<>();
+        boolean getFromBrokers = false;
+        TopicRouteData routeData = null;
         try {
-            TopicRouteData routeData = examineTopicRouteInfo(topic);
-            clientMetadata.freshTopicRoute(topic, routeData);
+            routeData = examineTopicRouteInfo(topic);
+        } catch (MQClientException  exception) {
+            if (exception.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
+                throw new MQBrokerException(exception.getResponseCode(), exception.getErrorMessage());
+            } else {
+                getFromBrokers = true;
+            }
+        }
+        if (!getFromBrokers) {
             if (routeData != null
                     && !routeData.getQueueDatas().isEmpty()) {
+                clientMetadata.freshTopicRoute(topic, routeData);
                 for (QueueData queueData: routeData.getQueueDatas()) {
                     String bname = queueData.getBrokerName();
                     String addr = clientMetadata.findMasterBrokerAddr(bname);
@@ -1186,29 +1197,21 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                         if (mapping != null) {
                             brokerConfigMap.put(bname, mapping);
                         }
-                    } catch (MQClientException exception) {
+                    } catch (MQBrokerException exception) {
                         if (exception.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
                             throw exception;
                         }
-
                     }
 
                 }
             }
-        } catch (MQClientException  exception) {
-            if (exception.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
-                throw exception;
-            }
+        } else {
             log.info("The topic {} dose not exist in nameserver, so check it from all brokers", topic);
             //if cannot get from nameserver, then check all the brokers
-            try {
-                ClusterInfo clusterInfo = examineBrokerClusterInfo();
-                if (clusterInfo != null
-                        && clusterInfo.getBrokerAddrTable() != null) {
-                    clientMetadata.refreshClusterInfo(clusterInfo);
-                }
-            }catch (MQBrokerException e) {
-                throw new MQClientException(e.getResponseCode(), e.getMessage());
+            ClusterInfo clusterInfo = examineBrokerClusterInfo();
+            if (clusterInfo != null
+                    && clusterInfo.getBrokerAddrTable() != null) {
+                clientMetadata.refreshClusterInfo(clusterInfo);
             }
             for (Entry<String, HashMap<Long, String>> entry : clientMetadata.getBrokerAddrTable().entrySet()) {
                 String bname = entry.getKey();
@@ -1221,12 +1224,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                         if (mapping != null) {
                             brokerConfigMap.put(bname, mapping);
                         }
-                    }  catch (MQClientException clientException) {
-                        if (clientException.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
-                            throw clientException;
+                    }  catch (MQBrokerException exception1) {
+                        if (exception1.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
+                            throw exception1;
                         }
                     }
-
                 }
             }
         }
