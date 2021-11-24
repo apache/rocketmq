@@ -234,7 +234,7 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     public boolean parseDelayLevel() {
-        HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
+        HashMap<String, Long> timeUnitTable = new HashMap<String, Long>(4, 1);
         timeUnitTable.put("s", 1000L);
         timeUnitTable.put("m", 1000L * 60);
         timeUnitTable.put("h", 1000L * 60 * 60);

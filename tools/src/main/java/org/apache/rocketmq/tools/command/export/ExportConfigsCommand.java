@@ -69,16 +69,17 @@ public class ExportConfigsCommand implements SubCommand {
                 .trim();
 
             defaultMQAdminExt.start();
-            Map<String, Object> result = new HashMap<>();
+            Map<String, Object> result = new HashMap<>(2, 1);
             // name servers
             List<String> nameServerAddressList = defaultMQAdminExt.getNameServerAddressList();
 
             //broker
             int masterBrokerSize = 0;
             int slaveBrokerSize = 0;
-            Map<String, Properties> brokerConfigs = new HashMap<>();
+
             Map<String, List<String>> masterAndSlaveMap
                 = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
+            Map<String, Properties> brokerConfigs = new HashMap<>(masterAndSlaveMap.size(), 1);
             for (String masterAddr : masterAndSlaveMap.keySet()) {
                 Properties masterProperties = defaultMQAdminExt.getBrokerConfig(masterAddr);
                 masterBrokerSize++;
@@ -87,7 +88,7 @@ public class ExportConfigsCommand implements SubCommand {
                 brokerConfigs.put(masterProperties.getProperty("brokerName"), needBrokerProprties(masterProperties));
             }
 
-            Map<String, Integer> clusterScaleMap = new HashMap<>();
+            Map<String, Integer> clusterScaleMap = new HashMap<>(3, 1);
             clusterScaleMap.put("namesrvSize", nameServerAddressList.size());
             clusterScaleMap.put("masterBrokerSize", masterBrokerSize);
             clusterScaleMap.put("slaveBrokerSize", slaveBrokerSize);

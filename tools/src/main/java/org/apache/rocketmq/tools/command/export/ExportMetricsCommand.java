@@ -147,7 +147,7 @@ public class ExportMetricsCommand implements SubCommand {
 
     private Map<String, Object> getRuntimeVersion(DefaultMQAdminExt defaultMQAdminExt,
         SubscriptionGroupWrapper subscriptionGroupWrapper) {
-        Map<String, Object> runtimeVersionMap = new HashMap();
+        Map<String, Object> runtimeVersionMap = new HashMap(2, 1);
 
         Set<String> clientInfoSet = new HashSet<>();
         for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper
