@@ -54,6 +54,7 @@ public class ScheduleMessageService extends ConfigManager {
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
+    private static final long WAIT_FOR_SHUTDOWN = 5000L;
 
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
@@ -148,7 +149,13 @@ public class ScheduleMessageService extends ConfigManager {
 
     public void shutdown() {
         if (this.started.compareAndSet(true, false) && null != this.deliverExecutorService) {
-            this.deliverExecutorService.shutdownNow();
+            this.deliverExecutorService.shutdown();
+            try {
+                this.deliverExecutorService.awaitTermination(WAIT_FOR_SHUTDOWN, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.error("deliverExecutorService awaitTermination error", e);
+            }
+            this.persist();
         }
     }
 
@@ -317,7 +324,7 @@ public class ScheduleMessageService extends ConfigManager {
                         long nextOffset = offset;
                         int i = 0;
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                        for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                        for (; i < bufferCQ.getSize() && isStarted(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                             long offsetPy = bufferCQ.getByteBuffer().getLong();
                             int sizePy = bufferCQ.getByteBuffer().getInt();
                             long tagsCode = bufferCQ.getByteBuffer().getLong();
@@ -376,11 +383,10 @@ public class ScheduleMessageService extends ConfigManager {
                                             log.error(
                                                 "ScheduleMessageService, a message time up, but reput it failed, topic: {} msgId {}",
                                                 msgExt.getTopic(), msgExt.getMsgId());
+                                            ScheduleMessageService.this.updateOffset(this.delayLevel,nextOffset);
                                             ScheduleMessageService.this.deliverExecutorService.schedule(
                                                 new DeliverDelayedMessageTimerTask(this.delayLevel,
                                                     nextOffset), DELAY_FOR_A_PERIOD, TimeUnit.MILLISECONDS);
-                                            ScheduleMessageService.this.updateOffset(this.delayLevel,
-                                                nextOffset);
                                             return;
                                         }
                                     } catch (Exception e) {
@@ -392,18 +398,18 @@ public class ScheduleMessageService extends ConfigManager {
                                     }
                                 }
                             } else {
+                                ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                                 ScheduleMessageService.this.deliverExecutorService.schedule(
                                     new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
                                     countdown, TimeUnit.MILLISECONDS);
-                                ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                                 return;
                             }
                         } // end of for
 
                         nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                        ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                         ScheduleMessageService.this.deliverExecutorService.schedule(new DeliverDelayedMessageTimerTask(
                             this.delayLevel, nextOffset), DELAY_FOR_A_WHILE, TimeUnit.MILLISECONDS);
-                        ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                         return;
                     } finally {
 
