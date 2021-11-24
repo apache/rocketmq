@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.grpc.handler;
 
 import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageResponse;
+import apache.rocketmq.v1.Resource;
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
@@ -121,6 +122,12 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                             }
                         }
                     }
+                    Resource topic = context.getRequest()
+                        .getPartition()
+                        .getTopic();
+                    String topicName = Converter.getResourceNameWithNamespace(topic);
+                    messageExt.setTopic(topicName);
+                    messageExt.setBrokerName(brokerName);
                     messageExt.getProperties().computeIfAbsent(MessageConst.PROPERTY_FIRST_POP_TIME,
                         k -> String.valueOf(responseHeader.getPopTime()));
                 }
