@@ -18,10 +18,16 @@
 package org.apache.rocketmq.broker;
 
 import java.io.File;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.rocketmq.broker.latency.FutureTaskExt;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Ignore;
@@ -46,5 +52,34 @@ public class BrokerControllerTest {
     @After
     public void destroy() {
         UtilAll.deleteFile(new File(new MessageStoreConfig().getStorePathRootDir()));
+    }
+
+    @Test
+    public void testHeadSlowTimeMills() throws Exception {
+        BrokerController brokerController = new BrokerController(
+                new BrokerConfig(),
+                new NettyServerConfig(),
+                new NettyClientConfig(),
+                new MessageStoreConfig());
+        brokerController.initialize();
+        BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
+
+        //create task is not instance of FutureTaskExt;
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+
+            }
+        };
+        queue.add(runnable);
+
+        RequestTask requestTask = new RequestTask(runnable, null, null);
+        // the requestTask is not the head of queue;
+        queue.add(new FutureTaskExt<>(requestTask, null));
+
+        long headSlowTimeMills = 100;
+        TimeUnit.MILLISECONDS.sleep(headSlowTimeMills);
+        assertThat(brokerController.headSlowTimeMills(queue)).isGreaterThanOrEqualTo(headSlowTimeMills);
+        //Attention: if we use the previous version method BrokerController#headSlowTimeMills, it will return 0;
     }
 }
