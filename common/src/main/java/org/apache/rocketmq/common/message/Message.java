@@ -25,10 +25,11 @@ import java.util.Map;
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
-    private String topic;
+    private String topic; //主题
     private int flag;
-    private Map<String, String> properties;
-    private byte[] body;
+    //这里面设置消息
+    private Map<String, String> properties; //消息扩展信息 ----> Tag   keys  延迟级别都是存在这里
+    private byte[] body; //消息体字节数组  ,需要注意生产者用什么编码  消费者也必须使用什么编码，否则会乱码
     private String transactionId;
 
     public Message() {
@@ -98,7 +99,14 @@ public class Message implements Serializable {
         return this.getProperty(name);
     }
 
+    /**
+     * 从一个hashMap中取值
+     *
+     * @param name
+     * @return
+     */
     public String getProperty(final String name) {
+        //空值判断是这样的
         if (null == this.properties) {
             this.properties = new HashMap<String, String>();
         }
@@ -153,7 +161,7 @@ public class Message implements Serializable {
         String result = this.getProperty(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
         if (null == result)
             return true;
-
+         //首先判断
         return Boolean.parseBoolean(result);
     }
 

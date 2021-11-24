@@ -75,14 +75,17 @@ public class Validators {
     }
 
     /**
+     * 验证消息
+     * 验证下topic的关键字
      * Validate message
      */
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
         throws MQClientException {
+        //message为空直接返回
         if (null == msg) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
-        // topic
+        // topic 长度 空值及是否与关键字重复
         Validators.checkTopic(msg.getTopic());
 
         // body
@@ -104,6 +107,7 @@ public class Validators {
      * Validate topic
      */
     public static void checkTopic(String topic) throws MQClientException {
+        //判断字符串是否为空
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("The specified topic is blank", null);
         }
@@ -114,10 +118,12 @@ public class Validators {
                 VALID_PATTERN_STR), null);
         }
 
+        //topic的长度最大是255
         if (topic.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("The specified topic is longer than topic max length 255.", null);
         }
 
+        //判断是否跟system reserved关键字相同
         //whether the same with system reserved keyword
         if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
             throw new MQClientException(

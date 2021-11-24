@@ -184,6 +184,13 @@ public class DefaultMQProducerTest {
         });
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
     }
+
+    /**
+     * 先来看下异步的
+     * @throws RemotingException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
     @Test
     public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
         final AtomicInteger cc = new AtomicInteger(0);
@@ -192,6 +199,7 @@ public class DefaultMQProducerTest {
         SendCallback sendCallback = new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
+                System.out.println("****Success!******");
             }
 
             @Override
@@ -210,7 +218,7 @@ public class DefaultMQProducerTest {
 
         Message message = new Message();
         message.setTopic("test");
-        message.setBody("hello world".getBytes());
+        message.setBody("hello world".getBytes());//字节的形式进行传输进行保存
         producer.send(new Message(),sendCallback);
         producer.send(message,sendCallback,1000);
         producer.send(message,new MessageQueue(),sendCallback);

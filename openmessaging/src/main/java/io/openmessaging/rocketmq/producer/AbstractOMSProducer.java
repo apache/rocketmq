@@ -44,12 +44,13 @@ import static io.openmessaging.rocketmq.utils.OMSUtil.buildInstanceName;
 abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
     final static InternalLogger log = ClientLogger.getLog();
     final KeyValue properties;
-    final DefaultMQProducer rocketmqProducer;
+    final  DefaultMQProducer rocketmqProducer;
     private boolean started = false;
     private final ClientConfig clientConfig;
 
     AbstractOMSProducer(final KeyValue properties) {
         this.properties = properties;
+
         this.rocketmqProducer = new DefaultMQProducer();
         this.clientConfig = BeanUtils.populate(properties, ClientConfig.class);
 

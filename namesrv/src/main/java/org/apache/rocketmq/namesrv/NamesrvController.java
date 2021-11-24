@@ -74,16 +74,19 @@ public class NamesrvController {
     }
 
     public boolean initialize() {
-
+          //从NamesrvConfig#KvConfigPath指定的文件中反序列化数据到  KVConfigManager #configTable中
         this.kvConfigManager.load();
-
+          //启动网络通信Netty服务
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
+        //初始化一下负责处理Netty互联网交互数据的线程池
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
+        //注册一个默认负责处理Netty网络交互数据的DefaultRequestProcessor 这个Processor使用
+        //remotingExecutor执行
         this.registerProcessor();
-
+                        //每10s扫描下失效的Broker
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -92,6 +95,7 @@ public class NamesrvController {
             }
         }, 5, 10, TimeUnit.SECONDS);
 
+        //每10s中打印下前面被蹂躏的配置
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -100,6 +104,7 @@ public class NamesrvController {
             }
         }, 1, 10, TimeUnit.MINUTES);
 
+        //设置 TLS
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {
@@ -153,6 +158,7 @@ public class NamesrvController {
     }
 
     public void start() throws Exception {
+        //正在启动Netty
         this.remotingServer.start();
 
         if (this.fileWatchService != null) {

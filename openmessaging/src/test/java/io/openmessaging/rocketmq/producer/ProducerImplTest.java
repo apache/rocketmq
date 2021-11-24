@@ -61,6 +61,13 @@ public class ProducerImplTest {
         producer.startup();
     }
 
+    /**
+     * 测试发送消息
+     * @throws InterruptedException
+     * @throws RemotingException
+     * @throws MQClientException
+     * @throws MQBrokerException
+     */
     @Test
     public void testSend_OK() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         SendResult sendResult = new SendResult();
@@ -71,6 +78,8 @@ public class ProducerImplTest {
             producer.send(producer.createBytesMessage("HELLO_TOPIC", new byte[] {'a'}));
 
         assertThat(omsResult.messageId()).isEqualTo("TestMsgID");
+
+
     }
 
     @Test

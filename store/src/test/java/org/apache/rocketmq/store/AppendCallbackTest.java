@@ -76,6 +76,7 @@ public class AppendCallbackTest {
             msg.setTags("abc");
             messages.add(msg);
         }
+
         MessageExtBatch messageExtBatch = new MessageExtBatch();
         messageExtBatch.setTopic(topic);
         messageExtBatch.setQueueId(queue);

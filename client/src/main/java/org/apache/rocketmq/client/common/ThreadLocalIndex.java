@@ -23,6 +23,12 @@ public class ThreadLocalIndex {
     private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
     private final Random random = new Random();
 
+
+    public static void main(String[] args) {
+        for(int i=0;i<10;i++) {
+            System.out.println(Math.abs(new ThreadLocalIndex().getAndIncrement())%4);
+        }
+    }
     public int getAndIncrement() {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {

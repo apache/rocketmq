@@ -28,6 +28,7 @@ import java.util.Map;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -90,9 +91,12 @@ public class ConsumeQueueTest {
         messageStoreConfig.setMappedFileSizeConsumeQueueExt(cqExtFileSize);
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(enableCqExt);
-
-        messageStoreConfig.setStorePathRootDir(storePath);
-        messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
+// 添加上同步刷新磁盘
+     //   messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+//        messageStoreConfig.setStorePathRootDir(storePath);
+//        messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
+       messageStoreConfig.setStorePathRootDir("E:\\GitHub_Project\\Open_Source_Project\\alibaba\\rocketmq\\store");
+       messageStoreConfig.setStorePathCommitLog("E:\\GitHub_Project\\Open_Source_Project\\alibaba\\rocketmq\\store\\commitlog");
 
         return messageStoreConfig;
     }
@@ -116,7 +120,7 @@ public class ConsumeQueueTest {
             , brokerConfig);
 
         assertThat(master.load()).isTrue();
-
+        //启动线程
         master.start();
 
         return master;

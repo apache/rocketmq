@@ -54,7 +54,9 @@ public class NamesrvStartup {
     public static NamesrvController main0(String[] args) {
 
         try {
+            //创建NameSrvController
             NamesrvController controller = createNamesrvController(args);
+            //启动
             start(controller);
             String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
             log.info(tip);
@@ -72,6 +74,8 @@ public class NamesrvStartup {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
 
+        //根据命令行参数，使用commons-cli 命令行工具包解析生产CommandLine对象
+        //在parseCmdLine中  如果命令行中有-h选项，执行打印帮助文档的逻辑，然后退出，不在继续
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
@@ -79,6 +83,12 @@ public class NamesrvStartup {
             return null;
         }
 
+        /**
+         * 初始化了2个配置 NameSrvConfig  NettyServerConfig  ,其中 NettyServerConfig是硬编码  9876
+         * 通过命令 -c  指定一个配置文件  然后将配置文件的参数解析成NameSrvConfig、NettyServerConfig
+         * 设置 NamesrvConfig ,NettyServerConfig  的逻辑是看类中的set方法
+         * 如果set方法后的名字和配置文件中的key匹配，就会设置对应的值
+         */
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);

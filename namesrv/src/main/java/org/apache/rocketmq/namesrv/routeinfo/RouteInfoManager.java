@@ -47,12 +47,18 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    //broker 存活的时间周期  默认 120s
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    //topic和队列的信息    队列可能在一个Broker也可能在不同的Broker中
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    //broker名称和broker信息
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    //集群和broker名称的关系
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    //在线broker地址和Broker信息的对应关系
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    //过滤服务器的名称
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {

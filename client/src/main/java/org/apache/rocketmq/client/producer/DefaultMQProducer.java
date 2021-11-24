@@ -42,7 +42,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 
-/**
+/**这个类是打算发送消息的程序的入口
  * This class is the entry point for applications intending to send messages.
  * </p>
  *
@@ -91,20 +91,23 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private volatile int defaultTopicQueueNums = 4;
 
     /**
-     * Timeout for sending messages.
+     * Timeout for sending messages. 发送消息的超时时间的默认值
      */
     private int sendMsgTimeout = 3000;
 
     /**
+     * 消息体压缩阀值，当消息体大于4k时触发压缩
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
     /**
+     * 同步模式在声明发送失败之前重试的最大次数
      * Maximum number of retry to perform internally before claiming sending failure in synchronous mode.
      * </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
+     * 这可能导致消息重复，这要有应用程序的开发人员来解决
      */
     private int retryTimesWhenSendFailed = 2;
 
@@ -122,7 +125,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
     /**
+     *允许最大的消息的大小字节数
      * Maximum allowed message size in bytes.
+     * 最大允许4M
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 
@@ -262,13 +267,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
+     * 以同步的方式发送消息
+     * 这个方法内部具有重试机制
      * Send message in synchronous mode. This method returns only when the sending procedure totally completes.
      * </p>
      *
      * <strong>Warn:</strong> this method has internal retry-mechanism, that is, internal implementation will retry
      * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may potentially
      * delivered to broker(s). It's up to the application developers to resolve potential duplication issue.
-     *
+     *   警告： 这个方法在返回失败消息前，会又重试机制，重试的问题是可能导致消息重复
      * @param msg Message to send.
      * @return {@link SendResult} instance to inform senders details of the deliverable, say Message ID of the message,
      * {@link SendStatus} indicating broker storage/replication status, message queue sent to, etc.
@@ -297,8 +304,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public SendResult send(Message msg,
-        long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+       long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        System.out.println("timeout");
+        System.out.println("***********02***********");
         return this.defaultMQProducerImpl.send(msg, timeout);
+
+
     }
 
     /**

@@ -343,6 +343,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         long beginTime = this.getSystemClock().now();
+        //添加消息到commitLog文件中
         PutMessageResult result = this.commitLog.putMessage(msg);
 
         long eclipseTime = this.getSystemClock().now() - beginTime;
@@ -359,12 +360,14 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public PutMessageResult putMessages(MessageExtBatch messageExtBatch) {
+        //如果当前broker停止工作
         if (this.shutdown) {
             log.warn("DefaultMessageStore has shutdown, so putMessages is forbidden");
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
-
+       // 如果当前broker的角色是slave角色
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
+            //增加一
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
                 log.warn("DefaultMessageStore is in slave mode, so putMessages is forbidden ");
@@ -372,8 +375,9 @@ public class DefaultMessageStore implements MessageStore {
 
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
-
+        //如果当前的
         if (!this.runningFlags.isWriteable()) {
+            //增加一
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
                 log.warn("DefaultMessageStore is not writable, so putMessages is forbidden " + this.runningFlags.getFlagBits());
@@ -383,25 +387,27 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.printTimes.set(0);
         }
-
+        //topic长度大于127
         if (messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("PutMessages topic length too long " + messageExtBatch.getTopic().length());
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
-
+        //body最大长度
         if (messageExtBatch.getBody().length > messageStoreConfig.getMaxMessageSize()) {
             log.warn("PutMessages body length too long " + messageExtBatch.getBody().length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
-
+        //判断操作系统PageCache是否繁忙
         if (this.isOSPageCacheBusy()) {
             return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
         }
 
         long beginTime = this.getSystemClock().now();
+        //
         PutMessageResult result = this.commitLog.putMessages(messageExtBatch);
 
         long eclipseTime = this.getSystemClock().now() - beginTime;
+        //当超过500时将会记个warn
         if (eclipseTime > 500) {
             log.warn("not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, messageExtBatch.getBody().length);
         }
@@ -414,6 +420,7 @@ public class DefaultMessageStore implements MessageStore {
         return result;
     }
 
+    //操作系统的pageCache忙吗  ---通过时间判断
     @Override
     public boolean isOSPageCacheBusy() {
         long begin = this.getCommitLog().getBeginTimeInLock();

@@ -107,6 +107,7 @@ public class MessageClientIDSetter {
     }
 
     private static byte[] createUniqIDBuffer() {
+        //堆外内存
         ByteBuffer buffer = ByteBuffer.allocate(4 + 2);
         long current = System.currentTimeMillis();
         if (current >= nextStartTime) {
@@ -119,6 +120,7 @@ public class MessageClientIDSetter {
     }
 
     public static void setUniqID(final Message msg) {
+        //判断下Message 中Property 中 key  UNIQ_KEY 中值是否为null
         if (msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX) == null) {
             msg.putProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, createUniqID());
         }

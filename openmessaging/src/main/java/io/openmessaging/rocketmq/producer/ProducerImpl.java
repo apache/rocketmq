@@ -28,6 +28,7 @@ import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
 import io.openmessaging.rocketmq.promise.DefaultPromise;
 import io.openmessaging.rocketmq.utils.OMSUtil;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendStatus;
 
@@ -46,6 +47,7 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
 
     @Override
     public SendResult send(final Message message) {
+        System.out.println("******0*****");
         return send(message, this.rocketmqProducer.getSendMsgTimeout());
     }
 
@@ -62,9 +64,12 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
     }
 
     private SendResult send(final Message message, long timeout) {
+
+        System.out.println("***01****");
         checkMessageType(message);
         org.apache.rocketmq.common.message.Message rmqMessage = msgConvert((BytesMessage) message);
         try {
+            System.out.println(this.rocketmqProducer.getClass().getName());
             org.apache.rocketmq.client.producer.SendResult rmqResult = this.rocketmqProducer.send(rmqMessage, timeout);
             if (!rmqResult.getSendStatus().equals(SendStatus.SEND_OK)) {
                 log.error(String.format("Send message to RocketMQ failed, %s", message));
@@ -73,9 +78,11 @@ public class ProducerImpl extends AbstractOMSProducer implements Producer {
             message.sysHeaders().put(Message.BuiltinKeys.MESSAGE_ID, rmqResult.getMsgId());
             return OMSUtil.sendResultConvert(rmqResult);
         } catch (Exception e) {
+            System.out.println("skadjfkids");
             log.error(String.format("Send message to RocketMQ failed, %s", message), e);
-            throw checkProducerException(rmqMessage.getTopic(), message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID), e);
+           throw checkProducerException(rmqMessage.getTopic(), message.sysHeaders().getString(Message.BuiltinKeys.MESSAGE_ID), e);
         }
+
     }
 
     @Override

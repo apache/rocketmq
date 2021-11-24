@@ -45,9 +45,13 @@ public class Producer {
          * </pre>
          */
 
+
         /*
          * Launch the instance.
          */
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        //开启延时故障功能
+      //  producer.setSendLatencyFaultEnable(true);
         producer.start();
 
         for (int i = 0; i < 1000; i++) {
@@ -56,15 +60,18 @@ public class Producer {
                 /*
                  * Create a message instance, specifying topic, tag and message body.
                  */
-                Message msg = new Message("TopicTest" /* Topic */,
+                Message msg = new Message("testTopic"/* Topic */,
                     "TagA" /* Tag */,
                     ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
+                msg.setWaitStoreMsgOK(true);
+                msg.setDelayTimeLevel(2);
 
                 /*
                  * Call send message to deliver message to one of brokers.
                  */
                 SendResult sendResult = producer.send(msg);
+
 
                 System.out.printf("%s%n", sendResult);
             } catch (Exception e) {

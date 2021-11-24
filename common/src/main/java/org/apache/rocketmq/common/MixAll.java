@@ -120,7 +120,15 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
+    /**
+     * 替换的方式就是端口-2返回一个新的地址  用127.0.0.1:8873  用:切分 然后端口直接减去2
+     * 这里有一个bug 如果设置端口直接就是1  那么直接减去2岂不是就有问题了
+     * @param isChange
+     * @param brokerAddr
+     * @return
+     */
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
+
         if (isChange) {
             String[] ipAndPort = brokerAddr.split(":");
             String brokerAddrNew = ipAndPort[0] + ":" + (Integer.parseInt(ipAndPort[1]) - 2);
@@ -319,6 +327,16 @@ public class MixAll {
         return properties;
     }
 
+    /**
+     * Properties是继承自HashTable然后读取配置文件的中的所有的kv
+     * 通过反射获取这个类中多有的set方法（所有的方法名称）
+     * 截取第四位开始然后在截取第三位和第四位转换为小写拼成 名称
+     * 然后从properties中获取对应的值
+     * 然后判断set方法的参数是什么类型，
+     * 然后将转换为相应的类型
+     * @param p
+     * @param object
+     */
     public static void properties2Object(final Properties p, final Object object) {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {

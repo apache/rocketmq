@@ -396,6 +396,14 @@ public class MessageDecoder {
         return sb.toString();
     }
 
+    /**
+     * 思路：  首先用2 切分
+     *   然后使用 循环用 1 切分每一个
+     *    如果切成 2 个那么就会直接默认使用  0  ，1  添加到map中
+     *    String2 messageProperties
+     * @param properties
+     * @return
+     */
     public static Map<String, String> string2messageProperties(final String properties) {
         Map<String, String> map = new HashMap<String, String>();
         if (properties != null) {

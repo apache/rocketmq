@@ -303,6 +303,13 @@ public class UtilAll {
         return result;
     }
 
+    /**
+     * 压缩消息体
+     * @param src
+     * @param level  压缩的级别
+     * @return
+     * @throws IOException
+     */
     public static byte[] compress(final byte[] src, final int level) throws IOException {
         byte[] result = src;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(src.length);
@@ -372,6 +379,7 @@ public class UtilAll {
         return str;
     }
 
+    //判断String是否为空
     public static boolean isBlank(String str) {
         int strLen;
         if (str == null || (strLen = str.length()) == 0) {
