@@ -18,15 +18,17 @@ package org.apache.rocketmq.common.statictopic;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 public class TopicQueueMappingContext  {
     private String topic;
     private Integer globalId;
     private Long globalOffset;
     private TopicQueueMappingDetail mappingDetail;
-    private ImmutableList<LogicQueueMappingItem> mappingItemList;
+    private List<LogicQueueMappingItem> mappingItemList;
     private LogicQueueMappingItem mappingItem;
 
-    public TopicQueueMappingContext(String topic, Integer globalId, Long globalOffset, TopicQueueMappingDetail mappingDetail, ImmutableList<LogicQueueMappingItem> mappingItemList, LogicQueueMappingItem mappingItem) {
+    public TopicQueueMappingContext(String topic, Integer globalId, Long globalOffset, TopicQueueMappingDetail mappingDetail, List<LogicQueueMappingItem> mappingItemList, LogicQueueMappingItem mappingItem) {
         this.topic = topic;
         this.globalId = globalId;
         this.globalOffset = globalOffset;
@@ -73,7 +75,7 @@ public class TopicQueueMappingContext  {
         this.mappingDetail = mappingDetail;
     }
 
-    public ImmutableList<LogicQueueMappingItem> getMappingItemList() {
+    public List<LogicQueueMappingItem> getMappingItemList() {
         return mappingItemList;
     }
 

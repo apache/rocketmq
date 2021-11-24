@@ -187,7 +187,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             //handle max offset
             {
                 if (mappingItem.checkIfEndOffsetDecided()) {
-                    responseHeader.setMaxOffset(Math.max(mappingItem.computeMaxStaticQueueOffset(), mappingDetail.computeMaxOffsetFromMapping(mappingContext.getGlobalId())));
+                    responseHeader.setMaxOffset(Math.max(mappingItem.computeMaxStaticQueueOffset(), TopicQueueMappingDetail.computeMaxOffsetFromMapping(mappingDetail, mappingContext.getGlobalId())));
                 } else {
                     responseHeader.setMaxOffset(mappingItem.computeStaticQueueOffsetUpToEnd(responseHeader.getMaxOffset()));
                 }

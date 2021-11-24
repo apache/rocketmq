@@ -645,7 +645,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                     || !mappingDetail.getBname().equals(mappingItem.getBname())) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
             }
-            ImmutableList<LogicQueueMappingItem> mappingItems = mappingContext.getMappingItemList();
+            List<LogicQueueMappingItem> mappingItems = mappingContext.getMappingItemList();
             //TODO should make sure the timestampOfOffset is equal or bigger than the searched timestamp
             Long timestamp = requestHeader.getTimestamp();
             long offset = -1;

@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.common.statictopic;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,50 +25,45 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     // the mapping info in current broker, do not register to nameserver
     // make sure this value is not null
-    private ConcurrentMap<Integer/*global id*/, ImmutableList<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, ImmutableList<LogicQueueMappingItem>>();
+    private ConcurrentMap<Integer/*global id*/, List<LogicQueueMappingItem>> hostedQueues = new ConcurrentHashMap<Integer, List<LogicQueueMappingItem>>();
 
-
-
+    //make sure there is a default constructor
     public TopicQueueMappingDetail() {
 
     }
 
-
     public TopicQueueMappingDetail(String topic, int totalQueues, String bname, long epoch) {
         super(topic, totalQueues, bname, epoch);
-        buildIdMap();
     }
 
-    public boolean putMappingInfo(Integer globalId, ImmutableList<LogicQueueMappingItem> mappingInfo) {
+    public static boolean putMappingInfo(TopicQueueMappingDetail mappingDetail, Integer globalId, List<LogicQueueMappingItem> mappingInfo) {
         if (mappingInfo.isEmpty()) {
             return true;
         }
-        hostedQueues.put(globalId, mappingInfo);
-        buildIdMap();
+        mappingDetail.hostedQueues.put(globalId, mappingInfo);
         return true;
     }
 
-    public void buildIdMap() {
-        this.currIdMap = buildIdMap(LEVEL_0);
+    public static List<LogicQueueMappingItem> getMappingInfo(TopicQueueMappingDetail mappingDetail, Integer globalId) {
+        return mappingDetail.hostedQueues.get(globalId);
     }
 
-
-    public ConcurrentMap<Integer, Integer> buildIdMap(int level) {
+    public static ConcurrentMap<Integer, Integer> buildIdMap(TopicQueueMappingDetail mappingDetail, int level) {
         //level 0 means current leader in this broker
         //level 1 means previous leader in this broker, reserved for
         assert level == LEVEL_0 ;
 
-        if (hostedQueues == null || hostedQueues.isEmpty()) {
+        if (mappingDetail.hostedQueues == null || mappingDetail.hostedQueues.isEmpty()) {
             return new ConcurrentHashMap<Integer, Integer>();
         }
         ConcurrentMap<Integer, Integer> tmpIdMap = new ConcurrentHashMap<Integer, Integer>();
-        for (Map.Entry<Integer, ImmutableList<LogicQueueMappingItem>> entry: hostedQueues.entrySet()) {
+        for (Map.Entry<Integer, List<LogicQueueMappingItem>> entry: mappingDetail.hostedQueues.entrySet()) {
             Integer globalId =  entry.getKey();
-            ImmutableList<LogicQueueMappingItem> items = entry.getValue();
+            List<LogicQueueMappingItem> items = entry.getValue();
             if (level == LEVEL_0
                     && items.size() >= 1) {
                 LogicQueueMappingItem curr = items.get(items.size() - 1);
-                if (bname.equals(curr.getBname())) {
+                if (mappingDetail.bname.equals(curr.getBname())) {
                     tmpIdMap.put(globalId, curr.getQueueId());
                 }
             }
@@ -78,14 +71,8 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         return tmpIdMap;
     }
 
-    public ImmutableList<LogicQueueMappingItem> getMappingInfo(Integer globalId) {
-        return hostedQueues.get(globalId);
-    }
 
-
-
-
-    public static LogicQueueMappingItem findLogicQueueMappingItem(ImmutableList<LogicQueueMappingItem> mappingItems, long logicOffset) {
+    public static LogicQueueMappingItem findLogicQueueMappingItem(List<LogicQueueMappingItem> mappingItems, long logicOffset) {
         if (mappingItems == null
                 || mappingItems.isEmpty()) {
             return null;
@@ -106,8 +93,8 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         return null;
     }
 
-    public long computeMaxOffsetFromMapping(Integer globalId) {
-        List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
+    public static long computeMaxOffsetFromMapping(TopicQueueMappingDetail mappingDetail, Integer globalId) {
+        List<LogicQueueMappingItem> mappingItems = getMappingInfo(mappingDetail, globalId);
         if (mappingItems == null
                 || mappingItems.isEmpty()) {
             return -1;
@@ -117,24 +104,24 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     }
 
 
-    public TopicQueueMappingInfo cloneAsMappingInfo() {
-        TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(this.topic, this.totalQueues, this.bname, this.epoch);
-        topicQueueMappingInfo.currIdMap = this.buildIdMap(LEVEL_0);
+    public static TopicQueueMappingInfo cloneAsMappingInfo(TopicQueueMappingDetail mappingDetail) {
+        TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(mappingDetail.topic, mappingDetail.totalQueues, mappingDetail.bname, mappingDetail.epoch);
+        topicQueueMappingInfo.currIdMap = TopicQueueMappingDetail.buildIdMap(mappingDetail, LEVEL_0);
         return topicQueueMappingInfo;
     }
 
-    public ConcurrentMap<Integer, ImmutableList<LogicQueueMappingItem>> getHostedQueues() {
-        return hostedQueues;
-    }
-
-    public void setHostedQueues(ConcurrentMap<Integer, ImmutableList<LogicQueueMappingItem>> hostedQueues) {
-        this.hostedQueues = hostedQueues;
-    }
-
-    public boolean checkIfAsPhysical(Integer globalId) {
-        List<LogicQueueMappingItem> mappingItems = getMappingInfo(globalId);
+    public static boolean checkIfAsPhysical(TopicQueueMappingDetail mappingDetail, Integer globalId) {
+        List<LogicQueueMappingItem> mappingItems = getMappingInfo(mappingDetail, globalId);
         return mappingItems == null
                 || (mappingItems.size() == 1
                 &&  mappingItems.get(0).getLogicOffset() == 0);
+    }
+
+    public ConcurrentMap<Integer, List<LogicQueueMappingItem>> getHostedQueues() {
+        return hostedQueues;
+    }
+
+    public void setHostedQueues(ConcurrentMap<Integer, List<LogicQueueMappingItem>> hostedQueues) {
+        this.hostedQueues = hostedQueues;
     }
 }

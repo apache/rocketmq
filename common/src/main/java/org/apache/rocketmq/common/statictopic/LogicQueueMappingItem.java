@@ -1,15 +1,22 @@
 package org.apache.rocketmq.common.statictopic;
 
-public class LogicQueueMappingItem {
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-    private final int gen; // immutable
-    private final int queueId; //, immutable
-    private final String bname; //important, immutable
+public class LogicQueueMappingItem extends RemotingSerializable {
+
+    private int gen; // immutable
+    private int queueId; //, immutable
+    private String bname; //important, immutable
     private long logicOffset; // the start of the logic offset, important, can be changed by command only once
-    private final long startOffset; // the start of the physical offset, should always be 0, immutable
+    private long startOffset; // the start of the physical offset, should always be 0, immutable
     private long endOffset = -1; // the end of the physical offset, excluded, revered -1, mutable
     private long timeOfStart = -1; // mutable, reserved
     private long timeOfEnd = -1; // mutable, reserved
+
+    //make sure it has a default constructor
+    public LogicQueueMappingItem() {
+
+    }
 
     public LogicQueueMappingItem(int gen, int queueId, String bname, long logicOffset, long startOffset, long endOffset, long timeOfStart, long timeOfEnd) {
         this.gen = gen;
@@ -110,6 +117,22 @@ public class LogicQueueMappingItem {
 
     public void setTimeOfEnd(long timeOfEnd) {
         this.timeOfEnd = timeOfEnd;
+    }
+
+    public void setGen(int gen) {
+        this.gen = gen;
+    }
+
+    public void setQueueId(int queueId) {
+        this.queueId = queueId;
+    }
+
+    public void setBname(String bname) {
+        this.bname = bname;
+    }
+
+    public void setStartOffset(long startOffset) {
+        this.startOffset = startOffset;
     }
 
     @Override

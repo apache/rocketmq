@@ -19,14 +19,16 @@ package org.apache.rocketmq.common.statictopic;
 import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+import java.util.List;
+
 public class TopicQueueMappingOne extends RemotingSerializable {
 
     String topic; // redundant field
     String bname;  //identify the hosted broker name
     Integer globalId;
-    ImmutableList<LogicQueueMappingItem> items;
+    List<LogicQueueMappingItem> items;
 
-    public TopicQueueMappingOne(String topic, String bname, Integer globalId, ImmutableList<LogicQueueMappingItem> items) {
+    public TopicQueueMappingOne(String topic, String bname, Integer globalId, List<LogicQueueMappingItem> items) {
         this.topic = topic;
         this.bname = bname;
         this.globalId = globalId;
@@ -45,7 +47,7 @@ public class TopicQueueMappingOne extends RemotingSerializable {
         return globalId;
     }
 
-    public ImmutableList<LogicQueueMappingItem> getItems() {
+    public List<LogicQueueMappingItem> getItems() {
         return items;
     }
 }

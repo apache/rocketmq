@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TopicQueueMappingUtils {
 
@@ -168,7 +167,7 @@ public class TopicQueueMappingUtils {
         return new AbstractMap.SimpleEntry<Long, Integer>(maxEpoch, maxNum);
     }
 
-    public static void makeSureLogicQueueMappingItemImmutable(ImmutableList<LogicQueueMappingItem> oldItems, ImmutableList<LogicQueueMappingItem> newItems) {
+    public static void makeSureLogicQueueMappingItemImmutable(List<LogicQueueMappingItem> oldItems, List<LogicQueueMappingItem> newItems) {
         if (oldItems == null || oldItems.isEmpty()) {
             return;
         }
@@ -198,7 +197,7 @@ public class TopicQueueMappingUtils {
     }
 
 
-    public static void checkLogicQueueMappingItemOffset(ImmutableList<LogicQueueMappingItem> items) {
+    public static void checkLogicQueueMappingItemOffset(List<LogicQueueMappingItem> items) {
         if (items == null
             || items.isEmpty()) {
             return;
@@ -248,7 +247,7 @@ public class TopicQueueMappingUtils {
             if (mappingDetail.totalQueues > maxNum) {
                 maxNum = mappingDetail.totalQueues;
             }
-            for (Map.Entry<Integer, ImmutableList<LogicQueueMappingItem>>  entry : mappingDetail.getHostedQueues().entrySet()) {
+            for (Map.Entry<Integer, List<LogicQueueMappingItem>>  entry : mappingDetail.getHostedQueues().entrySet()) {
                 Integer globalid = entry.getKey();
                 checkLogicQueueMappingItemOffset(entry.getValue());
                 String leaderBrokerName  = getLeaderBroker(entry.getValue());
@@ -278,10 +277,10 @@ public class TopicQueueMappingUtils {
         return globalIdMap;
     }
 
-    public static String getLeaderBroker(ImmutableList<LogicQueueMappingItem> items) {
+    public static String getLeaderBroker(List<LogicQueueMappingItem> items) {
         return getLeaderItem(items).getBname();
     }
-    public static LogicQueueMappingItem getLeaderItem(ImmutableList<LogicQueueMappingItem> items) {
+    public static LogicQueueMappingItem getLeaderItem(List<LogicQueueMappingItem> items) {
         assert items.size() > 0;
         return items.get(items.size() - 1);
     }
@@ -367,7 +366,7 @@ public class TopicQueueMappingUtils {
                 configMapping.setReadQueueNums(configMapping.getReadQueueNums() + 1);
             }
             LogicQueueMappingItem mappingItem = new LogicQueueMappingItem(0, configMapping.getWriteQueueNums() - 1, broker, 0, 0, -1, -1, -1);
-            configMapping.getMappingDetail().putMappingInfo(queueId, ImmutableList.of(mappingItem));
+            TopicQueueMappingDetail.putMappingInfo(configMapping.getMappingDetail(), queueId, ImmutableList.of(mappingItem));
         }
 
         // set the topic config
@@ -458,8 +457,8 @@ public class TopicQueueMappingUtils {
 
             ImmutableList<LogicQueueMappingItem> resultItems = ImmutableList.copyOf(items);
             //Use the same object
-            mapInConfig.getMappingDetail().putMappingInfo(queueId, resultItems);
-            mapOutConfig.getMappingDetail().putMappingInfo(queueId, resultItems);
+            TopicQueueMappingDetail.putMappingInfo(mapInConfig.getMappingDetail(), queueId, resultItems);
+            TopicQueueMappingDetail.putMappingInfo(mapOutConfig.getMappingDetail(), queueId, resultItems);
         }
 
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {

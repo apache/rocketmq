@@ -34,6 +34,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -93,8 +94,8 @@ public class TopicQueueMappingManager extends ConfigManager {
                 throw new RuntimeException(String.format("Can't accept data with small epoch %d < %d", newDetail.getEpoch(), oldDetail.getEpoch()));
             }
             for (Integer globalId : oldDetail.getHostedQueues().keySet()) {
-                ImmutableList<LogicQueueMappingItem> oldItems = oldDetail.getHostedQueues().get(globalId);
-                ImmutableList<LogicQueueMappingItem> newItems = newDetail.getHostedQueues().get(globalId);
+                List<LogicQueueMappingItem> oldItems = oldDetail.getHostedQueues().get(globalId);
+                List<LogicQueueMappingItem> newItems = newDetail.getHostedQueues().get(globalId);
                 if (newItems == null) {
                     //keep the old
                     newDetail.getHostedQueues().put(globalId, oldItems);
@@ -191,18 +192,18 @@ public class TopicQueueMappingManager extends ConfigManager {
             return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, globalOffset, mappingDetail, null, null);
         }
 
-        ImmutableList<LogicQueueMappingItem> mappingItemList = null;
+        List<LogicQueueMappingItem> mappingItemList = null;
         LogicQueueMappingItem mappingItem = null;
 
         if (globalOffset == null
                 || Long.MAX_VALUE == globalOffset) {
-            mappingItemList = mappingDetail.getMappingInfo(globalId);
+            mappingItemList = TopicQueueMappingDetail.getMappingInfo(mappingDetail, globalId);
             if (mappingItemList != null
                 && mappingItemList.size() > 0) {
                 mappingItem = mappingItemList.get(mappingItemList.size() - 1);
             }
         } else {
-            mappingItemList = mappingDetail.getMappingInfo(globalId);
+            mappingItemList = TopicQueueMappingDetail.getMappingInfo(mappingDetail, globalId);
             mappingItem = TopicQueueMappingDetail.findLogicQueueMappingItem(mappingItemList, globalOffset);
         }
         return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, globalOffset, mappingDetail, mappingItemList, mappingItem);

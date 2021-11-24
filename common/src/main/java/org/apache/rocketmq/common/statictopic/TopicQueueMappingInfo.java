@@ -30,7 +30,7 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
     long epoch; //important to fence the old dirty data
     boolean dirty; //indicate if the data is dirty
     //register to broker to construct the route
-    transient ConcurrentMap<Integer/*logicId*/, Integer/*physicalId*/> currIdMap = new ConcurrentHashMap<Integer, Integer>();
+    protected ConcurrentMap<Integer/*logicId*/, Integer/*physicalId*/> currIdMap = new ConcurrentHashMap<Integer, Integer>();
 
     public TopicQueueMappingInfo() {
 
@@ -79,5 +79,17 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
 
     public ConcurrentMap<Integer, Integer> getCurrIdMap() {
         return currIdMap;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public void setBname(String bname) {
+        this.bname = bname;
+    }
+
+    public void setCurrIdMap(ConcurrentMap<Integer, Integer> currIdMap) {
+        this.currIdMap = currIdMap;
     }
 }

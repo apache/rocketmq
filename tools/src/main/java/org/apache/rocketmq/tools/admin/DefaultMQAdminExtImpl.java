@@ -1137,8 +1137,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             String addr = clientMetadata.findMasterBrokerAddr(broker);
             TopicStatsTable statsTable = examineTopicStats(addr, topic);
             TopicConfigAndQueueMapping mapOutConfig = brokerConfigMap.get(broker);
-            for (Map.Entry<Integer, ImmutableList<LogicQueueMappingItem>> entry : mapOutConfig.getMappingDetail().getHostedQueues().entrySet()) {
-                ImmutableList<LogicQueueMappingItem> items = entry.getValue();
+            for (Map.Entry<Integer, List<LogicQueueMappingItem>> entry : mapOutConfig.getMappingDetail().getHostedQueues().entrySet()) {
+                List<LogicQueueMappingItem> items = entry.getValue();
                 Integer globalId = entry.getKey();
                 if (items.size() < 2) {
                     continue;
@@ -1159,7 +1159,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 newLeader.setLogicOffset(TopicQueueMappingUtils.blockSeqRoundUp(oldLeader.computeStaticQueueOffset(topicOffset.getMaxOffset()), blockSeqSize));
                 TopicConfigAndQueueMapping mapInConfig = brokerConfigMap.get(newLeader.getBname());
                 //fresh the new leader
-                mapInConfig.getMappingDetail().putMappingInfo(globalId, items);
+                TopicQueueMappingDetail.putMappingInfo(mapInConfig.getMappingDetail(), globalId, items);
             }
         }
         //Step4: write to the new leader with logic offset
