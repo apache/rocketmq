@@ -32,4 +32,8 @@ public class TopicConfigAndQueueMapping extends TopicConfig {
     public TopicQueueMappingDetail getMappingDetail() {
         return mappingDetail;
     }
+
+    public void setMappingDetail(TopicQueueMappingDetail mappingDetail) {
+        this.mappingDetail = mappingDetail;
+    }
 }

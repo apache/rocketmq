@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.common.statictopic;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.util.List;

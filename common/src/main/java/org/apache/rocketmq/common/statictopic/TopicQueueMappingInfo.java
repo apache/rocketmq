@@ -92,4 +92,6 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
     public void setCurrIdMap(ConcurrentMap<Integer, Integer> currIdMap) {
         this.currIdMap = currIdMap;
     }
+
+
 }

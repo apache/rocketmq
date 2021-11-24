@@ -15,15 +15,19 @@ public class TopicRemappingDetailWrapper extends RemotingSerializable {
     public static final String SUFFIX_AFTER = ".after";
 
 
-    private final String topic;
-    private final String type;
-    private final long epoch;
+    private String topic;
+    private String type;
+    private long epoch;
 
     private Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
 
     private Set<String> brokerToMapIn = new HashSet<String>();
 
     private Set<String> brokerToMapOut = new HashSet<String>();
+
+    public TopicRemappingDetailWrapper() {
+
+    }
 
     public TopicRemappingDetailWrapper(String topic, String type, long epoch, Map<String, TopicConfigAndQueueMapping> brokerConfigMap, Set<String> brokerToMapIn, Set<String> brokerToMapOut) {
         this.topic = topic;
@@ -56,5 +60,29 @@ public class TopicRemappingDetailWrapper extends RemotingSerializable {
 
     public Set<String> getBrokerToMapOut() {
         return brokerToMapOut;
+    }
+
+    public void setBrokerConfigMap(Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+        this.brokerConfigMap = brokerConfigMap;
+    }
+
+    public void setBrokerToMapIn(Set<String> brokerToMapIn) {
+        this.brokerToMapIn = brokerToMapIn;
+    }
+
+    public void setBrokerToMapOut(Set<String> brokerToMapOut) {
+        this.brokerToMapOut = brokerToMapOut;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setEpoch(long epoch) {
+        this.epoch = epoch;
     }
 }
