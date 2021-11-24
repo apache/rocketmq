@@ -31,6 +31,7 @@ public class TopicQueueMappingTest {
         //test the decode encode
         {
             LogicQueueMappingItem mappingItemFromJson = RemotingSerializable.fromJson(mappingItemJson, LogicQueueMappingItem.class);
+            Assert.assertEquals(mappingItem, mappingItemFromJson);
             Assert.assertEquals(mappingItemJson, RemotingSerializable.toJson(mappingItemFromJson, false));
         }
         TopicQueueMappingDetail mappingDetail = new TopicQueueMappingDetail("test", 1, "broker01", System.currentTimeMillis());
@@ -48,6 +49,7 @@ public class TopicQueueMappingTest {
             TopicQueueMappingDetail mappingDetailFromJson = RemotingSerializable.decode(mappingDetailJson.getBytes(), TopicQueueMappingDetail.class);
             Assert.assertEquals(1, mappingDetailFromJson.getHostedQueues().size());
             Assert.assertEquals(1, mappingDetailFromJson.getHostedQueues().get(0).size());
+            Assert.assertEquals(mappingItem, mappingDetailFromJson.getHostedQueues().get(0).get(0));
             Assert.assertEquals(mappingDetailJson, RemotingSerializable.toJson(mappingDetailFromJson, false));
         }
     }

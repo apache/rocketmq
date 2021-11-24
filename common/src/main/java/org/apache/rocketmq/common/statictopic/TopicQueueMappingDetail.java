@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.common.statictopic;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -123,5 +126,25 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
 
     public void setHostedQueues(ConcurrentMap<Integer, List<LogicQueueMappingItem>> hostedQueues) {
         this.hostedQueues = hostedQueues;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (!(o instanceof TopicQueueMappingDetail)) return false;
+
+        TopicQueueMappingDetail that = (TopicQueueMappingDetail) o;
+
+        return new EqualsBuilder()
+                .append(hostedQueues, that.hostedQueues)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+                .append(hostedQueues)
+                .toHashCode();
     }
 }

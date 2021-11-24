@@ -1,5 +1,7 @@
 package org.apache.rocketmq.common.statictopic;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class LogicQueueMappingItem extends RemotingSerializable {
@@ -133,6 +135,41 @@ public class LogicQueueMappingItem extends RemotingSerializable {
 
     public void setStartOffset(long startOffset) {
         this.startOffset = startOffset;
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (!(o instanceof LogicQueueMappingItem)) return false;
+
+        LogicQueueMappingItem item = (LogicQueueMappingItem) o;
+
+        return new EqualsBuilder()
+                .append(gen, item.gen)
+                .append(queueId, item.queueId)
+                .append(logicOffset, item.logicOffset)
+                .append(startOffset, item.startOffset)
+                .append(endOffset, item.endOffset)
+                .append(timeOfStart, item.timeOfStart)
+                .append(timeOfEnd, item.timeOfEnd)
+                .append(bname, item.bname)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+                .append(gen)
+                .append(queueId)
+                .append(bname)
+                .append(logicOffset)
+                .append(startOffset)
+                .append(endOffset)
+                .append(timeOfStart)
+                .append(timeOfEnd)
+                .toHashCode();
     }
 
     @Override

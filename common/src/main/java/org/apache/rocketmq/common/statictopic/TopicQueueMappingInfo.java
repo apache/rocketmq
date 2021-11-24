@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common.statictopic;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -93,5 +95,33 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
         this.currIdMap = currIdMap;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
 
+        if (!(o instanceof TopicQueueMappingInfo)) return false;
+
+        TopicQueueMappingInfo info = (TopicQueueMappingInfo) o;
+
+        return new EqualsBuilder()
+                .append(totalQueues, info.totalQueues)
+                .append(epoch, info.epoch)
+                .append(dirty, info.dirty)
+                .append(topic, info.topic)
+                .append(bname, info.bname)
+                .append(currIdMap, info.currIdMap)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+                .append(topic)
+                .append(totalQueues)
+                .append(bname)
+                .append(epoch)
+                .append(dirty)
+                .append(currIdMap)
+                .toHashCode();
+    }
 }
