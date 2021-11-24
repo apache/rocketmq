@@ -338,9 +338,6 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         try {
             this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
-            System.out.println("Broker body:" + new String(request.getBody()));
-            System.out.println("Broker bodetaildy:" + topicQueueMappingDetail.toJson());
-
             this.brokerController.getTopicQueueMappingManager().updateTopicQueueMapping(topicQueueMappingDetail, force);
 
             this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());

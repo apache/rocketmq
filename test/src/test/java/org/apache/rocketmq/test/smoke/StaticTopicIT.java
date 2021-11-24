@@ -57,7 +57,6 @@ public class StaticTopicIT extends BaseConf {
                 String broker = entry.getKey();
                 String addr = clientMetadata.findMasterBrokerAddr(broker);
                 TopicConfigAndQueueMapping configMapping = entry.getValue();
-                System.out.println(configMapping.getMappingDetail().toJson());
                 defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), false);
             }
         }

@@ -49,11 +49,12 @@ public class TopicQueueMappingUtils {
         }
 
         private void freshState() {
-            int minNum = -1;
+            int minNum = Integer.MAX_VALUE;
             for (Map.Entry<String, Integer> entry : brokerNumMap.entrySet()) {
-                if (entry.getValue() > minNum) {
+                if (entry.getValue() < minNum) {
                     leastBrokers.clear();
                     leastBrokers.add(entry.getKey());
+                    minNum = entry.getValue();
                 } else if (entry.getValue() == minNum) {
                     leastBrokers.add(entry.getKey());
                 }
