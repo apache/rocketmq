@@ -35,25 +35,9 @@ public class ResponseWriter {
                 return;
             }
 
-            if (serverCallStreamObserver.isReady()) {
-                LOGGER.debug("start to write response. response: {}", response);
-                serverCallStreamObserver.onNext(response);
-                serverCallStreamObserver.onCompleted();
-            } else {
-                final String sequence = UUID.randomUUID()
-                    .toString();
-                LOGGER.warn("[BackPressure] CallStreamObserver is not ready. Set onReadyHandler. sequence: {}",
-                    sequence);
-                serverCallStreamObserver.setOnReadyHandler(() -> {
-                    LOGGER.warn("[BackPressure] start to write response. sequence: {}", sequence);
-                    serverCallStreamObserver.onNext(response);
-                    serverCallStreamObserver.onCompleted();
-                });
-
-                serverCallStreamObserver.setOnCancelHandler(() -> {
-                    LOGGER.warn("client has cancelled the request. response to write: {}", response);
-                });
-            }
+            LOGGER.debug("start to write response. response: {}", response);
+            serverCallStreamObserver.onNext(response);
+            serverCallStreamObserver.onCompleted();
         }
     }
 
@@ -69,21 +53,9 @@ public class ResponseWriter {
                 return;
             }
 
-            if (serverCallStreamObserver.isReady()) {
-                LOGGER.debug("Start to write error response", e);
-                serverCallStreamObserver.onError(e);
-                serverCallStreamObserver.onCompleted();
-            } else {
-                serverCallStreamObserver.setOnReadyHandler(() -> {
-                    LOGGER.debug("Start to write error response", e);
-                    serverCallStreamObserver.onError(e);
-                    serverCallStreamObserver.onCompleted();
-                });
-
-                serverCallStreamObserver.setOnCancelHandler(() -> {
-                    LOGGER.warn("Client has cancelled the request. Exception to write", e);
-                });
-            }
+            LOGGER.debug("Start to write error response", e);
+            serverCallStreamObserver.onError(e);
+            serverCallStreamObserver.onCompleted();
         }
     }
 }
