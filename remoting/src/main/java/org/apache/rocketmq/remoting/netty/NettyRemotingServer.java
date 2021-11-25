@@ -37,16 +37,18 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
+import io.netty.util.TimerTask;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
 import java.util.NoSuchElementException;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -72,8 +74,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     private final ExecutorService publicExecutor;
     private final ChannelEventListener channelEventListener;
-
-    private final Timer timer = new Timer("ServerHouseKeepingService", true);
+    private final HashedWheelTimer hashedWheelTimer = new HashedWheelTimer(r -> new Thread(r, "ServerHouseKeepingService"));
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
 
@@ -236,25 +237,26 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             this.nettyEventExecutor.start();
         }
 
-        this.timer.scheduleAtFixedRate(new TimerTask() {
-
+        TimerTask timerTask = new TimerTask() {
             @Override
-            public void run() {
+            public void run(Timeout timeout) {
                 try {
                     NettyRemotingServer.this.scanResponseTable();
                 } catch (Throwable e) {
                     log.error("scanResponseTable exception", e);
+                }finally {
+                    hashedWheelTimer.newTimeout(this, 1000, TimeUnit.MILLISECONDS);
                 }
             }
-        }, 1000 * 3, 1000);
+        };
+
+        this.hashedWheelTimer.newTimeout(timerTask,1000 * 3, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void shutdown() {
         try {
-            if (this.timer != null) {
-                this.timer.cancel();
-            }
+            this.hashedWheelTimer.stop();
 
             this.eventLoopGroupBoss.shutdownGracefully();
 
