@@ -39,6 +39,8 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         super(topic, totalQueues, bname, epoch);
     }
 
+
+
     public static boolean putMappingInfo(TopicQueueMappingDetail mappingDetail, Integer globalId, List<LogicQueueMappingItem> mappingInfo) {
         if (mappingInfo.isEmpty()) {
             return true;

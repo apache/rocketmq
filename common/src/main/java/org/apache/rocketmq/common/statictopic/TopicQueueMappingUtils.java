@@ -39,12 +39,15 @@ public class TopicQueueMappingUtils {
     public static class MappingAllocator {
         Map<String, Integer> brokerNumMap = new HashMap<String, Integer>();
         Map<Integer, String> idToBroker = new HashMap<Integer, String>();
+        //used for remapping
+        Map<String, Integer> brokerNumMapBeforeRemapping = null;
         int currentIndex = 0;
         Random random = new Random();
         List<String> leastBrokers = new ArrayList<String>();
-        private MappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap) {
+        private MappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap, Map<String, Integer> brokerNumMapBeforeRemapping) {
             this.idToBroker.putAll(idToBroker);
             this.brokerNumMap.putAll(brokerNumMap);
+            this.brokerNumMapBeforeRemapping = brokerNumMapBeforeRemapping;
         }
 
         private void freshState() {
@@ -58,7 +61,27 @@ public class TopicQueueMappingUtils {
                     leastBrokers.add(entry.getKey());
                 }
             }
-            currentIndex = random.nextInt(leastBrokers.size());
+            //reduce the remapping
+            if (brokerNumMapBeforeRemapping != null
+                    && !brokerNumMapBeforeRemapping.isEmpty()) {
+                Collections.sort(leastBrokers, new Comparator<String>() {
+                    @Override
+                    public int compare(String o1, String o2) {
+                        int i1 = 0, i2 = 0;
+                        if (brokerNumMapBeforeRemapping.containsKey(o1)) {
+                            i1 = brokerNumMapBeforeRemapping.get(o1);
+                        }
+                        if (brokerNumMapBeforeRemapping.containsKey(o2)) {
+                            i2 = brokerNumMapBeforeRemapping.get(o2);
+                        }
+                        return i1 - i2;
+                    }
+                });
+            } else {
+                //reduce the imbalance
+                Collections.shuffle(leastBrokers);
+            }
+            currentIndex = leastBrokers.size() - 1;
         }
         private String nextBroker() {
             if (leastBrokers.isEmpty()) {
@@ -93,8 +116,9 @@ public class TopicQueueMappingUtils {
         }
     }
 
-    public static MappingAllocator buildMappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap) {
-        return new MappingAllocator(idToBroker, brokerNumMap);
+
+    public static MappingAllocator buildMappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap, Map<String, Integer> brokerNumMapBeforeRemapping) {
+        return new MappingAllocator(idToBroker, brokerNumMap, brokerNumMapBeforeRemapping);
     }
 
     public static Map.Entry<Long, Integer> findMaxEpochAndQueueNum(List<TopicQueueMappingDetail> mappingDetailList) {
@@ -367,16 +391,28 @@ public class TopicQueueMappingUtils {
         }
     }
 
-    public static void checkIfTargetBrokersComplete(Set<String> targetBrokers, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+    public static void checkTargetBrokersComplete(Set<String> targetBrokers, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
         for (String broker : brokerConfigMap.keySet()) {
+            if (brokerConfigMap.get(broker).getMappingDetail().getHostedQueues().isEmpty()) {
+                continue;
+            }
             if (!targetBrokers.contains(broker)) {
                 throw new RuntimeException("The existed broker " + broker + " dose not in target brokers ");
             }
         }
     }
 
-    public static TopicRemappingDetailWrapper createTopicConfigMapping(String topic, int queueNum, Set<String> targetBrokers, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
-        checkIfTargetBrokersComplete(targetBrokers, brokerConfigMap);
+    public static void checkNonTargetBrokers(Set<String> targetBrokers, Set<String> nonTargetBrokers) {
+        for (String broker : nonTargetBrokers) {
+            if (targetBrokers.contains(broker)) {
+                throw new RuntimeException("The non-target broker exist in target broker");
+            }
+        }
+    }
+
+    public static TopicRemappingDetailWrapper createTopicConfigMapping(String topic, int queueNum, Set<String> targetBrokers, Set<String> nonTargetBrokers,  Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+        checkTargetBrokersComplete(targetBrokers, brokerConfigMap);
+        checkNonTargetBrokers(targetBrokers, nonTargetBrokers);
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
         Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<Long, Integer>(System.currentTimeMillis(), queueNum);
         if (!brokerConfigMap.isEmpty()) {
@@ -408,7 +444,7 @@ public class TopicQueueMappingUtils {
                 brokerNumMap.put(leaderbroker, brokerNumMap.get(leaderbroker) + 1);
             }
         }
-        TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(oldIdToBroker, brokerNumMap);
+        TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(oldIdToBroker, brokerNumMap, null);
         allocator.upToNum(queueNum);
         Map<Integer, String> newIdToBroker = allocator.getIdToBroker();
 
@@ -436,6 +472,12 @@ public class TopicQueueMappingUtils {
             TopicQueueMappingDetail.putMappingInfo(configMapping.getMappingDetail(), queueId, new ArrayList<LogicQueueMappingItem>(Collections.singletonList(mappingItem)));
         }
 
+        //set the non target brokers
+        for (String broker : nonTargetBrokers) {
+            if (!brokerConfigMap.containsKey(broker)) {
+                brokerConfigMap.put(broker, new TopicConfigAndQueueMapping(new TopicConfig(topic, 0, 0), new TopicQueueMappingDetail(topic, queueNum, broker, newEpoch)));
+            }
+        }
         // set the topic config
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
             TopicConfigAndQueueMapping configMapping = entry.getValue();
@@ -466,10 +508,20 @@ public class TopicQueueMappingUtils {
         for (String broker: targetBrokers) {
             brokerNumMap.put(broker, 0);
         }
-        TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(new HashMap<Integer, String>(), brokerNumMap);
+        Map<String, Integer> brokerNumMapBeforeRemapping = new HashMap<String, Integer>();
+        for (TopicQueueMappingOne mappingOne: globalIdMap.values()) {
+            if(brokerNumMapBeforeRemapping.containsKey(mappingOne.bname)) {
+                brokerNumMapBeforeRemapping.put(mappingOne.bname, brokerNumMapBeforeRemapping.get(mappingOne.bname) + 1);
+            } else {
+                brokerNumMapBeforeRemapping.put(mappingOne.bname, 1);
+            }
+        }
+
+        TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(new HashMap<Integer, String>(), brokerNumMap, brokerNumMapBeforeRemapping);
         allocator.upToNum(maxNum);
         Map<String, Integer> expectedBrokerNumMap = allocator.getBrokerNumMap();
         Queue<Integer> waitAssignQueues = new ArrayDeque<Integer>();
+        //cannot directly use the idBrokerMap from allocator, for the number of globalId maybe not in the natural order
         Map<Integer, String> expectedIdToBroker = new HashMap<Integer, String>();
         //the following logic will make sure that, for one broker, either "map in" or "map out"
         //It can't both,  map in some queues but also map out some queues.
