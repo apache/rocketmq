@@ -5,6 +5,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -110,6 +111,7 @@ public class TopicMappingUtilsTest {
                 TopicConfigAndQueueMapping configMapping = entry.getValue();
                 Assert.assertEquals(5, configMapping.getReadQueueNums());
                 Assert.assertEquals(5, configMapping.getWriteQueueNums());
+                Assert.assertTrue(configMapping.getMappingDetail().epoch > System.currentTimeMillis());
                 for (List<LogicQueueMappingItem> items: configMapping.getMappingDetail().getHostedQueues().values()) {
                     for (LogicQueueMappingItem item: items) {
                         Assert.assertEquals(0, item.getStartOffset());
@@ -120,5 +122,78 @@ public class TopicMappingUtilsTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void testCreateStaticTopic_Error() {
+        String topic = "static";
+        int queueNum = 10;
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
+        Set<String> targetBrokers = buildTargetBrokers(2);
+        TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
+        Assert.assertEquals(wrapper.getBrokerConfigMap(), brokerConfigMap);
+        Assert.assertEquals(2, brokerConfigMap.size());
+        TopicConfigAndQueueMapping configMapping = brokerConfigMap.values().iterator().next();
+        List<LogicQueueMappingItem> items = configMapping.getMappingDetail().getHostedQueues().values().iterator().next();
+        Map.Entry<Long, Integer> maxEpochNum = TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        int exceptionNum = 0;
+        try {
+            configMapping.getMappingDetail().setTopic("xxxx");
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        } catch (RuntimeException ignore) {
+            exceptionNum++;
+            configMapping.getMappingDetail().setTopic(topic);
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        }
+
+        try {
+            configMapping.getMappingDetail().setTotalQueues(1);
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        } catch (RuntimeException ignore) {
+            exceptionNum++;
+            configMapping.getMappingDetail().setTotalQueues(10);
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        }
+
+        try {
+            configMapping.getMappingDetail().setEpoch(0);
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        } catch (RuntimeException ignore) {
+            exceptionNum++;
+            configMapping.getMappingDetail().setEpoch(maxEpochNum.getKey());
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        }
+
+
+        try {
+            configMapping.getMappingDetail().getHostedQueues().put(10000, new ArrayList<LogicQueueMappingItem>(Collections.singletonList(new LogicQueueMappingItem(1, 1, targetBrokers.iterator().next(), 0, 0, -1, -1, -1))));
+            TopicQueueMappingUtils.checkAndBuildMappingItems(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
+        } catch (RuntimeException ignore) {
+            exceptionNum++;
+            configMapping.getMappingDetail().getHostedQueues().remove(10000);
+            TopicQueueMappingUtils.checkAndBuildMappingItems(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
+        }
+
+        try {
+            configMapping.setWriteQueueNums(1);
+            TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+        } catch (RuntimeException ignore) {
+            exceptionNum++;
+            configMapping.setWriteQueueNums(5);
+            TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+        }
+
+        try {
+            items.add(new LogicQueueMappingItem(1, 1, targetBrokers.iterator().next(), 0, 0, -1, -1, -1));
+            Map<Integer, TopicQueueMappingOne> map = TopicQueueMappingUtils.checkAndBuildMappingItems(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
+            TopicQueueMappingUtils.checkIfReusePhysicalQueue(map.values());
+        } catch (RuntimeException ignore) {
+            exceptionNum++;
+            items.remove(items.size() - 1);
+            Map<Integer, TopicQueueMappingOne> map = TopicQueueMappingUtils.checkAndBuildMappingItems(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
+            TopicQueueMappingUtils.checkIfReusePhysicalQueue(map.values());
+        }
+        Assert.assertEquals(6, exceptionNum);
+
     }
 }

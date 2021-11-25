@@ -263,6 +263,9 @@ public class TopicQueueMappingUtils {
                         throw new RuntimeException("The start offset dose not begin from 0");
                     }
                     TopicConfig topicConfig = brokerConfigMap.get(item.getBname());
+                    if (topicConfig == null) {
+                        throw new RuntimeException("The broker dose not exist");
+                    }
                     if (item.getQueueId() >= topicConfig.getWriteQueueNums()) {
                         throw new RuntimeException("The physical queue id is overflow the write queues");
                     }
@@ -406,7 +409,7 @@ public class TopicQueueMappingUtils {
             }
             TopicConfigAndQueueMapping configMapping;
             if (!brokerConfigMap.containsKey(broker)) {
-                configMapping = new TopicConfigAndQueueMapping(new TopicConfig(topic), new TopicQueueMappingDetail(topic, 0, broker, -1));
+                configMapping = new TopicConfigAndQueueMapping(new TopicConfig(topic), new TopicQueueMappingDetail(topic, 0, broker, System.currentTimeMillis()));
                 configMapping.setWriteQueueNums(1);
                 configMapping.setReadQueueNums(1);
                 brokerConfigMap.put(broker, configMapping);
@@ -416,7 +419,7 @@ public class TopicQueueMappingUtils {
                 configMapping.setReadQueueNums(configMapping.getReadQueueNums() + 1);
             }
             LogicQueueMappingItem mappingItem = new LogicQueueMappingItem(0, configMapping.getWriteQueueNums() - 1, broker, 0, 0, -1, -1, -1);
-            TopicQueueMappingDetail.putMappingInfo(configMapping.getMappingDetail(), queueId, ImmutableList.of(mappingItem));
+            TopicQueueMappingDetail.putMappingInfo(configMapping.getMappingDetail(), queueId, new ArrayList<LogicQueueMappingItem>(Collections.singletonList(mappingItem)));
         }
 
         // set the topic config
@@ -508,10 +511,9 @@ public class TopicQueueMappingUtils {
             LogicQueueMappingItem last = items.get(items.size() - 1);
             items.add(new LogicQueueMappingItem(last.getGen() + 1, mapInConfig.getWriteQueueNums() - 1, mapInBroker, 0, 0, -1, -1, -1));
 
-            ImmutableList<LogicQueueMappingItem> resultItems = ImmutableList.copyOf(items);
             //Use the same object
-            TopicQueueMappingDetail.putMappingInfo(mapInConfig.getMappingDetail(), queueId, resultItems);
-            TopicQueueMappingDetail.putMappingInfo(mapOutConfig.getMappingDetail(), queueId, resultItems);
+            TopicQueueMappingDetail.putMappingInfo(mapInConfig.getMappingDetail(), queueId, items);
+            TopicQueueMappingDetail.putMappingInfo(mapOutConfig.getMappingDetail(), queueId, items);
         }
 
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
