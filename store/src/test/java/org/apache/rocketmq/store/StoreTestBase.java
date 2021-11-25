@@ -16,17 +16,19 @@
  */
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.junit.After;
+
 import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.common.UtilAll;
-import org.junit.After;
 
 public class StoreTestBase {
 
@@ -44,6 +46,28 @@ public class StoreTestBase {
         return port.addAndGet(5);
     }
 
+    protected MessageExtBatch buildBatchMessage(int size) {
+        MessageExtBatch messageExtBatch = new MessageExtBatch();
+        messageExtBatch.setTopic("StoreTest");
+        messageExtBatch.setTags("TAG1");
+        messageExtBatch.setKeys("Hello");
+        messageExtBatch.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        messageExtBatch.setSysFlag(0);
+
+        messageExtBatch.setBornTimestamp(System.currentTimeMillis());
+        messageExtBatch.setBornHost(BornHost);
+        messageExtBatch.setStoreHost(StoreHost);
+
+        List<Message> messageList = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            messageList.add(buildMessage());
+        }
+
+        messageExtBatch.setBody(MessageDecoder.encodeMessages(messageList));
+
+        return messageExtBatch;
+    }
+
     protected MessageExtBrokerInner buildMessage() {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic("StoreTest");
@@ -57,6 +81,40 @@ public class StoreTestBase {
         msg.setStoreHost(StoreHost);
         msg.setBornHost(BornHost);
         return msg;
+    }
+
+    protected MessageExtBatch buildIPv6HostBatchMessage(int size) {
+        MessageExtBatch messageExtBatch = new MessageExtBatch();
+        messageExtBatch.setTopic("StoreTest");
+        messageExtBatch.setTags("TAG1");
+        messageExtBatch.setKeys("Hello");
+        messageExtBatch.setBody(MessageBody);
+        messageExtBatch.setMsgId("24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0");
+        messageExtBatch.setKeys(String.valueOf(System.currentTimeMillis()));
+        messageExtBatch.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        messageExtBatch.setSysFlag(0);
+        messageExtBatch.setBornHostV6Flag();
+        messageExtBatch.setStoreHostAddressV6Flag();
+        messageExtBatch.setBornTimestamp(System.currentTimeMillis());
+        try {
+            messageExtBatch.setBornHost(new InetSocketAddress(InetAddress.getByName("1050:0000:0000:0000:0005:0600:300c:326b"), 8123));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            messageExtBatch.setStoreHost(new InetSocketAddress(InetAddress.getByName("::1"), 8123));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        List<Message> messageList = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            messageList.add(buildIPv6HostMessage());
+        }
+
+        messageExtBatch.setBody(MessageDecoder.encodeMessages(messageList));
+        return messageExtBatch;
     }
 
     protected MessageExtBrokerInner buildIPv6HostMessage() {

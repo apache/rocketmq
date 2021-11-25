@@ -44,6 +44,14 @@ public class SelectMessageQueueByHashTest {
         String anotherOrderId = "234";
         MessageQueue selected = selector.select(messageQueues, message, orderId);
         assertThat(selector.select(messageQueues, message, anotherOrderId)).isNotEqualTo(selected);
+
+        //No exception is thrown while order Id hashcode is Integer.MIN
+        anotherOrderId = "polygenelubricants";
+        selector.select(messageQueues, message, anotherOrderId);
+        anotherOrderId = "GydZG_";
+        selector.select(messageQueues, message, anotherOrderId);
+        anotherOrderId = "DESIGNING WORKHOUSES";
+        selector.select(messageQueues, message, anotherOrderId);
     }
 
 }

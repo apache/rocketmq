@@ -17,10 +17,14 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
+
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 
 public class MessageStoreConfig {
+
+    public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
+
     //The root directory in which the log data is kept
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
@@ -29,6 +33,8 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
+
+    private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
@@ -54,13 +60,12 @@ public class MessageStoreConfig {
 
     /**
      * introduced since 4.0.x. Determine whether to use mutex reentrantLock when putting message.<br/>
-     * By default it is set to false indicating using spin lock when putting message.
      */
-    private boolean useReentrantLockWhenPutMessage = false;
+    private boolean useReentrantLockWhenPutMessage = true;
 
-    // Whether schedule flush,default is real-time
+    // Whether schedule flush
     @ImportantField
-    private boolean flushCommitLogTimed = false;
+    private boolean flushCommitLogTimed = true;
     // ConsumeQueue flush interval
     private int flushIntervalConsumeQueue = 1000;
     // Resource reclaim interval
@@ -147,6 +152,12 @@ public class MessageStoreConfig {
     private String dLegerGroup;
     private String dLegerPeers;
     private String dLegerSelfId;
+
+    private String preferredLeaderId;
+
+    private boolean isEnableBatchPush = false;
+
+    private boolean enableScheduleMessageStats = true;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -671,6 +682,13 @@ public class MessageStoreConfig {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
 
+    public String getReadOnlyCommitLogStorePaths() {
+        return readOnlyCommitLogStorePaths;
+    }
+
+    public void setReadOnlyCommitLogStorePaths(String readOnlyCommitLogStorePaths) {
+        this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
+    }
     public String getdLegerGroup() {
         return dLegerGroup;
     }
@@ -701,5 +719,29 @@ public class MessageStoreConfig {
 
     public void setEnableDLegerCommitLog(boolean enableDLegerCommitLog) {
         this.enableDLegerCommitLog = enableDLegerCommitLog;
+    }
+
+    public String getPreferredLeaderId() {
+        return preferredLeaderId;
+    }
+
+    public void setPreferredLeaderId(String preferredLeaderId) {
+        this.preferredLeaderId = preferredLeaderId;
+    }
+
+    public boolean isEnableBatchPush() {
+        return isEnableBatchPush;
+    }
+
+    public void setEnableBatchPush(boolean enableBatchPush) {
+        isEnableBatchPush = enableBatchPush;
+    }
+
+    public boolean isEnableScheduleMessageStats() {
+        return enableScheduleMessageStats;
+    }
+
+    public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
+        this.enableScheduleMessageStats = enableScheduleMessageStats;
     }
 }

@@ -19,9 +19,11 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
@@ -59,7 +61,6 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
 
     protected final static int DLQ_NUMS_PER_GROUP = 1;
     protected final BrokerController brokerController;
-    protected final Random random = new Random(System.currentTimeMillis());
     protected final SocketAddress storeHost;
     private List<SendMessageHook> sendMessageHookList;
 
@@ -108,7 +109,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         final SendMessageRequestHeader requestHeader, final byte[] body, TopicConfig topicConfig) {
         int queueIdInt = requestHeader.getQueueId();
         if (queueIdInt < 0) {
-            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
+            queueIdInt = ThreadLocalRandom.current().nextInt(99999999) % topicConfig.getWriteQueueNums();
         }
         int sysFlag = requestHeader.getSysFlag();
 
@@ -257,8 +258,8 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                 try {
                     final SendMessageRequestHeader requestHeader = parseRequestHeader(request);
 
-                    String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
                     if (null != requestHeader) {
+                        String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
                         context.setNamespace(namespace);
                         context.setProducerGroup(requestHeader.getProducerGroup());
                         context.setTopic(requestHeader.getTopic());
@@ -288,9 +289,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         switch (request.getCode()) {
             case RequestCode.SEND_BATCH_MESSAGE:
             case RequestCode.SEND_MESSAGE_V2:
-                requestHeaderV2 =
-                    (SendMessageRequestHeaderV2) request
-                        .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+                requestHeaderV2 = decodeSendMessageHeaderV2(request);
             case RequestCode.SEND_MESSAGE:
                 if (null == requestHeaderV2) {
                     requestHeader =
@@ -303,6 +302,79 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                 break;
         }
         return requestHeader;
+    }
+
+    static SendMessageRequestHeaderV2 decodeSendMessageHeaderV2(RemotingCommand request)
+            throws RemotingCommandException {
+        SendMessageRequestHeaderV2 r = new SendMessageRequestHeaderV2();
+        HashMap<String, String> fields = request.getExtFields();
+        if (fields == null) {
+            throw new RemotingCommandException("the ext fields is null");
+        }
+
+        String s = fields.get("a");
+        checkNotNull(s, "the custom field <a> is null");
+        r.setA(s);
+
+        s = fields.get("b");
+        checkNotNull(s, "the custom field <b> is null");
+        r.setB(s);
+
+        s = fields.get("c");
+        checkNotNull(s, "the custom field <c> is null");
+        r.setC(s);
+
+        s = fields.get("d");
+        checkNotNull(s, "the custom field <d> is null");
+        r.setD(Integer.parseInt(s));
+
+        s = fields.get("e");
+        checkNotNull(s, "the custom field <e> is null");
+        r.setE(Integer.parseInt(s));
+
+        s = fields.get("f");
+        checkNotNull(s, "the custom field <f> is null");
+        r.setF(Integer.parseInt(s));
+
+        s = fields.get("g");
+        checkNotNull(s, "the custom field <g> is null");
+        r.setG(Long.parseLong(s));
+
+        s = fields.get("h");
+        checkNotNull(s, "the custom field <h> is null");
+        r.setH(Integer.parseInt(s));
+
+        s = fields.get("i");
+        if (s != null) {
+            r.setI(s);
+        }
+
+        s = fields.get("j");
+        if (s != null) {
+            r.setJ(Integer.parseInt(s));
+        }
+
+        s = fields.get("k");
+        if (s != null) {
+            r.setK(Boolean.parseBoolean(s));
+        }
+
+        s = fields.get("l");
+        if (s != null) {
+            r.setL(Integer.parseInt(s));
+        }
+
+        s = fields.get("m");
+        if (s != null) {
+            r.setM(Boolean.parseBoolean(s));
+        }
+        return r;
+    }
+
+    private static void checkNotNull(String s, String msg) throws RemotingCommandException {
+        if (s == null) {
+            throw new RemotingCommandException(msg);
+        }
     }
 
     public void executeSendMessageHookAfter(final RemotingCommand response, final SendMessageContext context) {

@@ -45,8 +45,8 @@
 
 Producer的send方法本身支持内部重试，重试逻辑如下：
 
-- 至多重试2次（同步发送为2次，异步发送为0次）。
-- 如果发送失败，则轮转到下一个Broker。这个方法的总耗时时间不超过sendMsgTimeout设置的值，默认10s。
+- 至多重试2次。
+- 如果同步模式发送失败，则轮转到下一个Broker，如果异步模式发送失败，则只会在当前Broker进行重试。这个方法的总耗时时间不超过sendMsgTimeout设置的值，默认10s。
 - 如果本身向broker发送消息产生超时异常，就不会再重试。
 
 以上策略也是在一定程度上保证了消息可以发送成功。如果业务对消息可靠性要求比较高，建议应用增加相应的重试逻辑：比如调用send同步方法发送失败时，则尝试将消息存储到db，然后由后台线程定时重试，确保消息一定到达Broker。
@@ -186,8 +186,8 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 | brokerName        | null                         | broker 的名称                           |
 | brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluser 名称           |
 | brokerId             | 0                              | broker id, 0 表示 master, 其他的正整数表示 slave                                                 |
+| storePathRootDir                         | $HOME/store/                   | 存储根路径                                            |
 | storePathCommitLog                      | $HOME/store/commitlog/                              | 存储 commit log 的路径                                                |
-| storePathConsumerQueue                   | $HOME/store/consumequeue/                              | 存储 consume queue 的路径                                              |
 | mappedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | commit log 的映射文件大小                                       |​ 
 | deleteWhen     | 04 | 在每天的什么时间删除已经超过文件保留时间的 commit log                                        |​ 
 | fileReservedTime     | 72 | 以小时计算的文件保留时间                                        |​ 

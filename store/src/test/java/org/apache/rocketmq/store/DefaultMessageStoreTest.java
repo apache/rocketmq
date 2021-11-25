@@ -133,7 +133,7 @@ public class DefaultMessageStoreTest {
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
         for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = messageStore.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
+            GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
             result.release();
         }
@@ -471,7 +471,7 @@ public class DefaultMessageStoreTest {
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
         for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
+            GetMessageResult result = master.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
             result.release();
 
@@ -603,6 +603,22 @@ public class DefaultMessageStoreTest {
             messageExtBrokerInner.setQueueId(0);
             messageStore.putMessage(messageExtBrokerInner);
         }
+    }
+
+    @Test
+    public void testStorePathOK() {
+        if (messageStore instanceof DefaultMessageStore) {
+            assertTrue(fileExists(((DefaultMessageStore) messageStore).getStorePathPhysic()));
+            assertTrue(fileExists(((DefaultMessageStore) messageStore).getStorePathLogic()));
+        }
+    }
+
+    private boolean fileExists(String path) {
+        if (path != null) {
+            File f = new File(path);
+            return f.exists();
+        }
+        return false;
     }
 
     private void damageCommitlog(long offset) throws Exception {
