@@ -1,13 +1,27 @@
 package org.apache.rocketmq.common.statictopic;
 
+import org.apache.rocketmq.common.TopicConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class TopicMappingUtilsTest {
 
+
+
+    private Set<String> buildTargetBrokers(int num) {
+        Set<String> brokers = new HashSet<String>();
+        for (int i = 0; i < num; i++) {
+            brokers.add("broker" + i);
+        }
+        return brokers;
+    }
 
     private Map<String, Integer> buildBrokerNumMap(int num) {
         Map<String, Integer> map = new HashMap<String, Integer>();
@@ -56,6 +70,55 @@ public class TopicMappingUtilsTest {
             }
             Assert.assertEquals(num * 3 - 1, allocator.getIdToBroker().size());
             testIdToBroker(allocator.idToBroker, allocator.getBrokerNumMap());
+        }
+    }
+
+
+    @Test(expected = RuntimeException.class)
+    public void testTargetBrokersComplete() {
+        String topic = "static";
+        String broker1 = "broker1";
+        String broker2 = "broker2";
+        Set<String> targetBrokers = new HashSet<String>();
+        targetBrokers.add(broker1);
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
+        brokerConfigMap.put(broker2, new TopicConfigAndQueueMapping(new TopicConfig(topic, 0, 0), new TopicQueueMappingDetail(topic, 0, broker2, 0)));
+        TopicQueueMappingUtils.checkIfTargetBrokersComplete(targetBrokers, brokerConfigMap);
+    }
+
+
+
+    @Test
+    public void testCreateStaticTopic() {
+        String topic = "static";
+        int queueNum;
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
+        for (int i = 1; i < 10; i++) {
+            Set<String> targetBrokers = buildTargetBrokers(2 * i);
+            queueNum = 10 * i;
+            TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
+            Assert.assertEquals(wrapper.getBrokerConfigMap(), brokerConfigMap);
+            Assert.assertEquals(2 * i, brokerConfigMap.size());
+
+            //do the check manually
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            Map<Integer, TopicQueueMappingOne> globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            TopicQueueMappingUtils.checkIfReusePhysicalQueue(globalIdMap.values());
+            TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+
+            for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
+                TopicConfigAndQueueMapping configMapping = entry.getValue();
+                Assert.assertEquals(5, configMapping.getReadQueueNums());
+                Assert.assertEquals(5, configMapping.getWriteQueueNums());
+                for (List<LogicQueueMappingItem> items: configMapping.getMappingDetail().getHostedQueues().values()) {
+                    for (LogicQueueMappingItem item: items) {
+                        Assert.assertEquals(0, item.getStartOffset());
+                        Assert.assertEquals(0, item.getLogicOffset());
+                        TopicConfig topicConfig = brokerConfigMap.get(item.getBname());
+                        Assert.assertTrue(item.getQueueId() < topicConfig.getWriteQueueNums());
+                    }
+                }
+            }
         }
     }
 }

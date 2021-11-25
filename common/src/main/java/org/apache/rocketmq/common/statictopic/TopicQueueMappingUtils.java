@@ -234,6 +234,43 @@ public class TopicQueueMappingUtils {
         }
     }
 
+    public static void  checkIfReusePhysicalQueue(Collection<TopicQueueMappingOne> mappingOnes) {
+        Map<String, TopicQueueMappingOne>  physicalQueueIdMap = new HashMap<String, TopicQueueMappingOne>();
+        for (TopicQueueMappingOne mappingOne : mappingOnes) {
+            for (LogicQueueMappingItem item: mappingOne.items) {
+                String physicalQueueId = item.getBname() + "-" + item.getQueueId();
+                if (physicalQueueIdMap.containsKey(physicalQueueId)) {
+                    throw new RuntimeException(String.format("Topic %s global queue id %d and %d shared the same physical queue %s",
+                            mappingOne.topic, mappingOne.globalId, physicalQueueIdMap.get(physicalQueueId).globalId, physicalQueueId));
+                } else {
+                    physicalQueueIdMap.put(physicalQueueId, mappingOne);
+                }
+            }
+        }
+    }
+
+    public static void  checkPhysicalQueueConsistence(Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+        for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
+            TopicConfigAndQueueMapping configMapping = entry.getValue();
+            assert configMapping != null;
+            assert configMapping.getMappingDetail() != null;
+            if (configMapping.getReadQueueNums() < configMapping.getWriteQueueNums()) {
+                throw new RuntimeException("Read queues is smaller than write queues");
+            }
+            for (List<LogicQueueMappingItem> items: configMapping.getMappingDetail().getHostedQueues().values()) {
+                for (LogicQueueMappingItem item: items) {
+                    if (item.getStartOffset() != 0) {
+                        throw new RuntimeException("The start offset dose not begin from 0");
+                    }
+                    TopicConfig topicConfig = brokerConfigMap.get(item.getBname());
+                    if (item.getQueueId() >= topicConfig.getWriteQueueNums()) {
+                        throw new RuntimeException("The physical queue id is overflow the write queues");
+                    }
+                }
+            }
+        }
+    }
+
     public static Map<Integer, TopicQueueMappingOne> checkAndBuildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
         Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
             @Override
@@ -275,6 +312,7 @@ public class TopicQueueMappingUtils {
                 }
             }
         }
+        checkIfReusePhysicalQueue(globalIdMap.values());
         return globalIdMap;
     }
 
@@ -312,12 +350,23 @@ public class TopicQueueMappingUtils {
         }
     }
 
+    public static void checkIfTargetBrokersComplete(Set<String> targetBrokers, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+        for (String broker : brokerConfigMap.keySet()) {
+            if (!targetBrokers.contains(broker)) {
+                throw new RuntimeException("The existed broker " + broker + " dose not in target brokers ");
+            }
+        }
+    }
+
     public static TopicRemappingDetailWrapper createTopicConfigMapping(String topic, int queueNum, Set<String> targetBrokers, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+        checkIfTargetBrokersComplete(targetBrokers, brokerConfigMap);
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
         Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<Long, Integer>(System.currentTimeMillis(), queueNum);
         if (!brokerConfigMap.isEmpty()) {
             maxEpochAndNum = TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
             globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            checkIfReusePhysicalQueue(globalIdMap.values());
+            checkPhysicalQueueConsistence(brokerConfigMap);
         }
         if (queueNum < globalIdMap.size()) {
             throw new RuntimeException(String.format("Cannot decrease the queue num for static topic %d < %d", queueNum, globalIdMap.size()));
@@ -377,9 +426,12 @@ public class TopicQueueMappingUtils {
             configMapping.getMappingDetail().setTotalQueues(queueNum);
         }
         //double check the config
-        TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
-        TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
-
+        {
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            checkIfReusePhysicalQueue(globalIdMap.values());
+            checkPhysicalQueueConsistence(brokerConfigMap);
+        }
         return new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, newEpoch, brokerConfigMap, new HashSet<String>(), new HashSet<String>());
     }
 
@@ -454,7 +506,7 @@ public class TopicQueueMappingUtils {
 
             List<LogicQueueMappingItem> items = new ArrayList<LogicQueueMappingItem>(topicQueueMappingOne.getItems());
             LogicQueueMappingItem last = items.get(items.size() - 1);
-            items.add(new LogicQueueMappingItem(last.getGen() + 1, mapInConfig.getWriteQueueNums() - 1, mapInBroker, -1, 0, -1, -1, -1));
+            items.add(new LogicQueueMappingItem(last.getGen() + 1, mapInConfig.getWriteQueueNums() - 1, mapInBroker, 0, 0, -1, -1, -1));
 
             ImmutableList<LogicQueueMappingItem> resultItems = ImmutableList.copyOf(items);
             //Use the same object
@@ -469,8 +521,10 @@ public class TopicQueueMappingUtils {
         }
 
         //double check
-        TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
-        TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+        {
+            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        }
+
 
         return new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_REMAPPING, newEpoch, brokerConfigMap, brokersToMapIn, brokersToMapOut);
     }
