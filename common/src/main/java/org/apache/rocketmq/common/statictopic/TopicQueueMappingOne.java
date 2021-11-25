@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common.statictopic;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.util.List;
@@ -48,5 +50,31 @@ public class TopicQueueMappingOne extends RemotingSerializable {
 
     public List<LogicQueueMappingItem> getItems() {
         return items;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (!(o instanceof TopicQueueMappingOne)) return false;
+
+        TopicQueueMappingOne that = (TopicQueueMappingOne) o;
+
+        return new EqualsBuilder()
+                .append(topic, that.topic)
+                .append(bname, that.bname)
+                .append(globalId, that.globalId)
+                .append(items, that.items)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+                .append(topic)
+                .append(bname)
+                .append(globalId)
+                .append(items)
+                .toHashCode();
     }
 }

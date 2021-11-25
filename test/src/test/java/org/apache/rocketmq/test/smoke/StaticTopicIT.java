@@ -72,7 +72,7 @@ public class StaticTopicIT extends BaseConf {
                 Assert.assertNotNull(localConfigMapping);
                 Assert.assertEquals(configMapping, localConfigMapping);
             }
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, remoteBrokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, remoteBrokerConfigMap);
             Map<Integer, TopicQueueMappingOne>  globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(getMappingDetailFromConfig(remoteBrokerConfigMap.values())), false, true);
             Assert.assertEquals(queueNum, globalIdMap.size());
         }

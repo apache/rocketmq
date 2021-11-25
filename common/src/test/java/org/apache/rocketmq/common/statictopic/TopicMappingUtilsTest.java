@@ -15,11 +15,14 @@ import java.util.Set;
 public class TopicMappingUtilsTest {
 
 
-
     private Set<String> buildTargetBrokers(int num) {
+        return buildTargetBrokers(num, "");
+    }
+
+    private Set<String> buildTargetBrokers(int num, String suffix) {
         Set<String> brokers = new HashSet<String>();
         for (int i = 0; i < num; i++) {
-            brokers.add("broker" + i);
+            brokers.add("broker" + suffix + i);
         }
         return brokers;
     }
@@ -102,7 +105,7 @@ public class TopicMappingUtilsTest {
             Assert.assertEquals(2 * i, brokerConfigMap.size());
 
             //do the check manually
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
             Map<Integer, TopicQueueMappingOne> globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
             TopicQueueMappingUtils.checkIfReusePhysicalQueue(globalIdMap.values());
             TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
@@ -125,7 +128,52 @@ public class TopicMappingUtilsTest {
     }
 
     @Test
-    public void testCreateStaticTopic_Error() {
+    public void testRemappingStaticTopic() {
+        String topic = "static";
+        int queueNum = 7;
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
+        Set<String>  originalBrokers = buildTargetBrokers(2);
+        TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, originalBrokers, brokerConfigMap);
+        Assert.assertEquals(wrapper.getBrokerConfigMap(), brokerConfigMap);
+        Assert.assertEquals(2, brokerConfigMap.size());
+
+        {
+            //do the check manually
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+            Map<Integer, TopicQueueMappingOne> globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            TopicQueueMappingUtils.checkIfReusePhysicalQueue(globalIdMap.values());
+        }
+
+        for (int i = 0; i < 10; i++) {
+            Set<String> targetBrokers = buildTargetBrokers(2, "test" + i);
+            TopicQueueMappingUtils.remappingStaticTopic(topic, brokerConfigMap, targetBrokers);
+            //do the check manually
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+            Map<Integer, TopicQueueMappingOne> globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            TopicQueueMappingUtils.checkIfReusePhysicalQueue(globalIdMap.values());
+            TopicQueueMappingUtils.checkLeaderInTargetBrokers(globalIdMap.values(), targetBrokers);
+
+            Assert.assertEquals((i + 2) * 2, brokerConfigMap.size());
+
+            //check and complete the logicOffset
+            for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
+                TopicConfigAndQueueMapping configMapping = entry.getValue();
+                if (!targetBrokers.contains(configMapping.getMappingDetail().bname)) {
+                    continue;
+                }
+                for (List<LogicQueueMappingItem> items: configMapping.getMappingDetail().getHostedQueues().values()) {
+                    Assert.assertEquals(i + 2, items.size());
+                    items.get(items.size() - 1).setLogicOffset(i + 1);
+                }
+            }
+        }
+    }
+
+
+    @Test
+    public void testUtilsCheck() {
         String topic = "static";
         int queueNum = 10;
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
@@ -135,33 +183,33 @@ public class TopicMappingUtilsTest {
         Assert.assertEquals(2, brokerConfigMap.size());
         TopicConfigAndQueueMapping configMapping = brokerConfigMap.values().iterator().next();
         List<LogicQueueMappingItem> items = configMapping.getMappingDetail().getHostedQueues().values().iterator().next();
-        Map.Entry<Long, Integer> maxEpochNum = TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+        Map.Entry<Long, Integer> maxEpochNum = TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
         int exceptionNum = 0;
         try {
             configMapping.getMappingDetail().setTopic("xxxx");
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
         } catch (RuntimeException ignore) {
             exceptionNum++;
             configMapping.getMappingDetail().setTopic(topic);
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
         }
 
         try {
             configMapping.getMappingDetail().setTotalQueues(1);
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
         } catch (RuntimeException ignore) {
             exceptionNum++;
             configMapping.getMappingDetail().setTotalQueues(10);
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
         }
 
         try {
             configMapping.getMappingDetail().setEpoch(0);
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
         } catch (RuntimeException ignore) {
             exceptionNum++;
             configMapping.getMappingDetail().setEpoch(maxEpochNum.getKey());
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
         }
 
 

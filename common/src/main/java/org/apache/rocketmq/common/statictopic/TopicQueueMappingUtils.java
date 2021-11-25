@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.common.statictopic;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 
@@ -122,7 +121,7 @@ public class TopicQueueMappingUtils {
         return detailList;
     }
 
-    public static Map.Entry<Long, Integer> checkConsistenceOfTopicConfigAndQueueMapping(String topic, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+    public static Map.Entry<Long, Integer> checkNameEpochNumConsistence(String topic, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
         if (brokerConfigMap == null
             || brokerConfigMap.isEmpty()) {
             return null;
@@ -212,6 +211,11 @@ public class TopicQueueMappingUtils {
                     || item.getQueueId() < 0) {
                 throw new RuntimeException("The field is illegal, should not be negative");
             }
+            if (items.size() >= 2
+                    && i <= items.size() - 2
+                    && items.get(i).getLogicOffset() < 0) {
+                throw new RuntimeException("The non-latest item has negative logic offset");
+            }
             if (lastGen != -1 && item.getGen() >= lastGen) {
                 throw new RuntimeException("The gen dose not increase monotonically");
             }
@@ -249,6 +253,14 @@ public class TopicQueueMappingUtils {
         }
     }
 
+    public static void  checkLeaderInTargetBrokers(Collection<TopicQueueMappingOne> mappingOnes, Set<String> targetBrokers) {
+        for (TopicQueueMappingOne mappingOne : mappingOnes) {
+            if (!targetBrokers.contains(mappingOne.bname)) {
+                throw new RuntimeException("The leader broker does not in target broker");
+            }
+        }
+    }
+
     public static void  checkPhysicalQueueConsistence(Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
             TopicConfigAndQueueMapping configMapping = entry.getValue();
@@ -264,7 +276,7 @@ public class TopicQueueMappingUtils {
                     }
                     TopicConfig topicConfig = brokerConfigMap.get(item.getBname());
                     if (topicConfig == null) {
-                        throw new RuntimeException("The broker dose not exist");
+                        throw new RuntimeException("The broker of item dose not exist");
                     }
                     if (item.getQueueId() >= topicConfig.getWriteQueueNums()) {
                         throw new RuntimeException("The physical queue id is overflow the write queues");
@@ -273,6 +285,8 @@ public class TopicQueueMappingUtils {
             }
         }
     }
+
+
 
     public static Map<Integer, TopicQueueMappingOne> checkAndBuildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
         Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
@@ -366,7 +380,7 @@ public class TopicQueueMappingUtils {
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
         Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<Long, Integer>(System.currentTimeMillis(), queueNum);
         if (!brokerConfigMap.isEmpty()) {
-            maxEpochAndNum = TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            maxEpochAndNum = TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
             globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
             checkIfReusePhysicalQueue(globalIdMap.values());
             checkPhysicalQueueConsistence(brokerConfigMap);
@@ -430,8 +444,8 @@ public class TopicQueueMappingUtils {
         }
         //double check the config
         {
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
-            globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
+            globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
             checkIfReusePhysicalQueue(globalIdMap.values());
             checkPhysicalQueueConsistence(brokerConfigMap);
         }
@@ -440,8 +454,11 @@ public class TopicQueueMappingUtils {
 
 
     public static TopicRemappingDetailWrapper remappingStaticTopic(String topic, Map<String, TopicConfigAndQueueMapping> brokerConfigMap, Set<String> targetBrokers) {
-        final Map.Entry<Long, Integer> maxEpochAndNum = TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
-        final Map<Integer, TopicQueueMappingOne> globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<TopicQueueMappingDetail>(TopicQueueMappingUtils.getMappingDetailFromConfig(brokerConfigMap.values())), false, true);
+        Map.Entry<Long, Integer> maxEpochAndNum = TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
+        Map<Integer, TopicQueueMappingOne> globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
+        TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+        TopicQueueMappingUtils.checkIfReusePhysicalQueue(globalIdMap.values());
+
         //the check is ok, now do the mapping allocation
         int maxNum = maxEpochAndNum.getValue();
 
@@ -449,7 +466,6 @@ public class TopicQueueMappingUtils {
         for (String broker: targetBrokers) {
             brokerNumMap.put(broker, 0);
         }
-
         TopicQueueMappingUtils.MappingAllocator allocator = TopicQueueMappingUtils.buildMappingAllocator(new HashMap<Integer, String>(), brokerNumMap);
         allocator.upToNum(maxNum);
         Map<String, Integer> expectedBrokerNumMap = allocator.getBrokerNumMap();
@@ -504,12 +520,17 @@ public class TopicQueueMappingUtils {
             TopicConfigAndQueueMapping mapInConfig = brokerConfigMap.get(mapInBroker);
             TopicConfigAndQueueMapping mapOutConfig = brokerConfigMap.get(mapOutBroker);
 
+            if (mapInConfig == null) {
+                mapInConfig = new TopicConfigAndQueueMapping(new TopicConfig(topic, 0, 0), new TopicQueueMappingDetail(topic, maxNum, mapInBroker, newEpoch));
+                brokerConfigMap.put(mapInBroker, mapInConfig);
+            }
+
             mapInConfig.setWriteQueueNums(mapInConfig.getWriteQueueNums() + 1);
-            mapInConfig.setWriteQueueNums(mapInConfig.getWriteQueueNums() + 1);
+            mapInConfig.setReadQueueNums(mapInConfig.getReadQueueNums() + 1);
 
             List<LogicQueueMappingItem> items = new ArrayList<LogicQueueMappingItem>(topicQueueMappingOne.getItems());
             LogicQueueMappingItem last = items.get(items.size() - 1);
-            items.add(new LogicQueueMappingItem(last.getGen() + 1, mapInConfig.getWriteQueueNums() - 1, mapInBroker, 0, 0, -1, -1, -1));
+            items.add(new LogicQueueMappingItem(last.getGen() + 1, mapInConfig.getWriteQueueNums() - 1, mapInBroker, -1, 0, -1, -1, -1));
 
             //Use the same object
             TopicQueueMappingDetail.putMappingInfo(mapInConfig.getMappingDetail(), queueId, items);
@@ -524,10 +545,12 @@ public class TopicQueueMappingUtils {
 
         //double check
         {
-            TopicQueueMappingUtils.checkConsistenceOfTopicConfigAndQueueMapping(topic, brokerConfigMap);
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
+            globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(getMappingDetailFromConfig(brokerConfigMap.values()), false, true);
+            TopicQueueMappingUtils.checkPhysicalQueueConsistence(brokerConfigMap);
+            TopicQueueMappingUtils.checkIfReusePhysicalQueue(globalIdMap.values());
+            TopicQueueMappingUtils.checkLeaderInTargetBrokers(globalIdMap.values(), targetBrokers);
         }
-
-
         return new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_REMAPPING, newEpoch, brokerConfigMap, brokersToMapIn, brokersToMapOut);
     }
 
