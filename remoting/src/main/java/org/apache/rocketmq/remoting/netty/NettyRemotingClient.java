@@ -37,12 +37,13 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.security.cert.CertificateException;
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
+import io.netty.util.TimerTask;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -78,8 +79,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final EventLoopGroup eventLoopGroupWorker;
     private final Lock lockChannelTables = new ReentrantLock();
     private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>();
-
-    private final Timer timer = new Timer("ClientHouseKeepingService", true);
+    private final HashedWheelTimer hashedWheelTimer = new HashedWheelTimer(r -> new Thread(r, "ClientHouseKeepingService_"));
 
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<List<String>>();
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
@@ -189,16 +189,19 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             });
 
-        this.timer.scheduleAtFixedRate(new TimerTask() {
+        TimerTask timerTask = new TimerTask() {
             @Override
-            public void run() {
+            public void run(Timeout timeout) {
                 try {
                     NettyRemotingClient.this.scanResponseTable();
                 } catch (Throwable e) {
                     log.error("scanResponseTable exception", e);
+                }finally {
+                    hashedWheelTimer.newTimeout(this, 1000, TimeUnit.MILLISECONDS);
                 }
             }
-        }, 1000 * 3, 1000);
+        };
+        this.hashedWheelTimer.newTimeout(timerTask,1000 * 3, TimeUnit.MILLISECONDS);
 
         if (this.channelEventListener != null) {
             this.nettyEventExecutor.start();
@@ -208,7 +211,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public void shutdown() {
         try {
-            this.timer.cancel();
+            this.hashedWheelTimer.stop();
 
             for (ChannelWrapper cw : this.channelTables.values()) {
                 this.closeChannel(null, cw.getChannel());
