@@ -75,7 +75,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final ExecutorService publicExecutor;
     private final ChannelEventListener channelEventListener;
 
-    private final HashedWheelTimer hashedWheelTimer = new HashedWheelTimer(r -> new Thread(r, "ClientHouseKeepingService_"));
+    private final HashedWheelTimer hashedWheelTimer = new HashedWheelTimer(r -> new Thread(r, "ServerHouseKeepingService_"));
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
 
