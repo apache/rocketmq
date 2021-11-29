@@ -107,6 +107,10 @@ public class PullAPIWrapper {
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
                     Long.toString(pullResult.getMaxOffset()));
                 msg.setBrokerName(mq.getBrokerName());
+                msg.setQueueId(mq.getQueueId());
+                if (pullResultExt.getOffsetDelta() != null) {
+                    msg.setQueueOffset(pullResultExt.getOffsetDelta() + msg.getQueueOffset());
+                }
             }
 
             pullResultExt.setMsgFoundList(msgListFilterAgain);
