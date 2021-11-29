@@ -265,9 +265,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             null
         );
         this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
-        if (pullResult instanceof PullResultWithLogicalQueues) {
-            pullResult = ((PullResultWithLogicalQueues) pullResult).getOrigPullResultExt();
-        }
         //If namespace is not null , reset Topic without namespace.
         this.resetTopic(pullResult.getMsgFoundList());
         if (!this.consumeMessageHookList.isEmpty()) {

@@ -16,41 +16,6 @@
  */
 package org.apache.rocketmq.client.impl;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Lists;
-import org.apache.rocketmq.client.QueryResult;
-import org.apache.rocketmq.client.Validators;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.exception.MQRedirectException;
-import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
-import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.common.message.MessageClientIDSetter;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageId;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.netty.ResponseFuture;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,6 +26,36 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.rocketmq.client.QueryResult;
+import org.apache.rocketmq.client.Validators;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageId;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.InvokeCallback;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class MQAdminImpl {
 
@@ -79,7 +74,6 @@ public class MQAdminImpl {
     public void setTimeoutMillis(long timeoutMillis) {
         this.timeoutMillis = timeoutMillis;
     }
-
 
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, newTopic, queueNum, 0);
@@ -188,10 +182,6 @@ public class MQAdminImpl {
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
-        LogicalQueueRouteData logicalQueueRouteData = searchLogicalQueueRouteByTimestamp(mq, timestamp);
-        if (logicalQueueRouteData != null) {
-            mq = logicalQueueRouteData.getMessageQueue();
-        }
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
@@ -200,9 +190,8 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                long offset = this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timestamp,
+                return this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timestamp,
                     timeoutMillis);
-                return correctLogicalQueueOffset(offset, logicalQueueRouteData);
             } catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }
@@ -212,51 +201,6 @@ public class MQAdminImpl {
     }
 
     public long maxOffset(MessageQueue mq) throws MQClientException {
-        return this.maxOffset(mq, true);
-    }
-
-    public long maxOffset(MessageQueue mq, boolean committed) throws MQClientException {
-        final MessageQueue origMq = mq;
-        String topic = mq.getTopic();
-        LogicalQueueRouteData previousQueueRouteData = null;
-        for (int i = 0; i < 5; i++) {
-            LogicalQueueRouteData maxQueueRouteData = this.searchLogicalQueueRouteByOffset(origMq, Long.MAX_VALUE);
-            if (maxQueueRouteData != null) {
-                if (previousQueueRouteData != null && Objects.equal(previousQueueRouteData.getMessageQueue(), maxQueueRouteData.getMessageQueue())) {
-                    throw new MQClientException("Topic route info not latest", null);
-                }
-                previousQueueRouteData = maxQueueRouteData;
-                mq = maxQueueRouteData.getMessageQueue();
-            }
-            String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
-            if (null == brokerAddr) {
-                this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
-            }
-
-            if (brokerAddr != null) {
-                try {
-                    long offset = this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, topic, mq.getQueueId(), committed, maxQueueRouteData != null, timeoutMillis);
-                    return correctLogicalQueueOffset(offset, maxQueueRouteData);
-                } catch (MQRedirectException e) {
-                    //TODO
-                    //this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, false, null, Collections.singleton(mq.getQueueId()));
-                    continue;
-                } catch (Exception e) {
-                    throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
-                }
-            }
-            throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
-        }
-        throw new MQClientException("Redirect exceed max times", null);
-    }
-
-    public long minOffset(MessageQueue mq) throws MQClientException {
-        LogicalQueueRouteData minQueueRouteData = searchLogicalQueueRouteByOffset(mq, 0L);
-        if (minQueueRouteData != null) {
-            mq = minQueueRouteData.getMessageQueue();
-        }
-
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
@@ -265,8 +209,7 @@ public class MQAdminImpl {
 
         if (brokerAddr != null) {
             try {
-                long offset = this.mQClientFactory.getMQClientAPIImpl().getMinOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timeoutMillis);
-                return correctLogicalQueueOffset(offset, minQueueRouteData);
+                return this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timeoutMillis);
             } catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }
@@ -275,30 +218,25 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-    private List<LogicalQueueRouteData> queryLogicalQueueRouteData(MessageQueue mq) {
-        if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(mq.getBrokerName())) {
-            TopicRouteData topicRouteData = this.mQClientFactory.queryTopicRouteData(mq.getTopic());
-            if (topicRouteData == null) {
-                this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-                topicRouteData = this.mQClientFactory.queryTopicRouteData(mq.getTopic());
-            }
-            if (topicRouteData != null) {
-                //TODO
-                /*LogicalQueuesInfo logicalQueuesInfo = topicRouteData.getLogicalQueuesInfo();
-                if (logicalQueuesInfo != null) {
-                    return logicalQueuesInfo.get(mq.getQueueId());
-                }*/
+    public long minOffset(MessageQueue mq) throws MQClientException {
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
+        if (null == brokerAddr) {
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
+        }
+
+        if (brokerAddr != null) {
+            try {
+                return this.mQClientFactory.getMQClientAPIImpl().getMinOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timeoutMillis);
+            } catch (Exception e) {
+                throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }
         }
-        return null;
+
+        throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
     public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
-        LogicalQueueRouteData minQueueRouteData = searchLogicalQueueRouteByOffset(mq, 0L);
-        if (minQueueRouteData != null) {
-            mq = minQueueRouteData.getMessageQueue();
-        }
-
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(this.mQClientFactory.getBrokerNameFromMessageQueue(mq));
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
@@ -506,72 +444,5 @@ public class MQAdminImpl {
         }
 
         throw new MQClientException(ResponseCode.TOPIC_NOT_EXIST, "The topic[" + topic + "] not matched route info");
-    }
-
-    private static long correctLogicalQueueOffset(long offset, LogicalQueueRouteData logicalQueueRouteData) {
-        if (logicalQueueRouteData == null) {
-            return offset;
-        }
-        return logicalQueueRouteData.toLogicalQueueOffset(offset);
-    }
-
-    private LogicalQueueRouteData searchLogicalQueueRouteByTimestamp(MessageQueue mq, long timestamp) {
-        List<LogicalQueueRouteData> queueRouteDataList = this.queryLogicalQueueRouteData(mq);
-        if (queueRouteDataList == null) {
-            return null;
-        }
-        LogicalQueueRouteData logicalQueueRouteData = null;
-        for (LogicalQueueRouteData el : queueRouteDataList) {
-            if (!el.isReadable()) {
-                continue;
-            }
-            if (logicalQueueRouteData == null && el.getFirstMsgTimeMillis() < 0) {
-                logicalQueueRouteData = el;
-            } else if (el.getFirstMsgTimeMillis() >= 0) {
-                if (el.getFirstMsgTimeMillis() <= timestamp && el.getLastMsgTimeMillis() >= timestamp) {
-                    logicalQueueRouteData = el;
-                    break;
-                }
-            }
-        }
-        if (logicalQueueRouteData == null) {
-            logicalQueueRouteData = queueRouteDataList.get(queueRouteDataList.size() - 1);
-        }
-        return logicalQueueRouteData;
-    }
-
-    private LogicalQueueRouteData searchLogicalQueueRouteByOffset(MessageQueue mq, long offset) {
-        List<LogicalQueueRouteData> queueRouteDataList = this.queryLogicalQueueRouteData(mq);
-        if (queueRouteDataList == null) {
-            return null;
-        }
-        {
-            List<LogicalQueueRouteData> list = Lists.newArrayListWithCapacity(queueRouteDataList.size());
-            for (LogicalQueueRouteData queueRouteData : queueRouteDataList) {
-                if (LogicalQueueRouteData.READABLE_PREDICT.apply(queueRouteData)) {
-                    list.add(queueRouteData);
-                }
-            }
-            queueRouteDataList = list;
-        }
-        if (queueRouteDataList.isEmpty()) {
-            return null;
-        }
-        if (offset <= 0) {
-            // min
-            return Collections.min(queueRouteDataList);
-        } else if (offset == Long.MAX_VALUE) {
-            // max
-            return Collections.max(queueRouteDataList);
-        }
-        Collections.sort(queueRouteDataList);
-        LogicalQueueRouteData searchKey = new LogicalQueueRouteData();
-        searchKey.setLogicalQueueDelta(offset);
-        int idx = Collections.binarySearch(queueRouteDataList, searchKey);
-        if (idx < 0) {
-            idx = -idx - 1;
-            idx -= 1;
-        }
-        return queueRouteDataList.get(idx);
     }
 }

@@ -16,18 +16,6 @@
  */
 package org.apache.rocketmq.client.impl;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
@@ -57,8 +45,6 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
@@ -83,13 +69,11 @@ import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.body.CreateMessageQueueForLogicalQueueRequestBody;
 import org.apache.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.body.LockBatchResponseBody;
-import org.apache.rocketmq.common.protocol.body.MigrateLogicalQueueBody;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.common.protocol.body.QueryAssignmentRequestBody;
 import org.apache.rocketmq.common.protocol.body.QueryAssignmentResponseBody;
@@ -99,13 +83,10 @@ import org.apache.rocketmq.common.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.common.protocol.body.SetMessageRequestModeRequestBody;
-import org.apache.rocketmq.common.protocol.body.ReuseTopicLogicalQueueRequestBody;
-import org.apache.rocketmq.common.protocol.body.SealTopicLogicalQueueRequestBody;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.body.UpdateTopicLogicalQueueMappingRequestBody;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
@@ -116,7 +97,6 @@ import org.apache.rocketmq.common.protocol.header.CreateAccessConfigRequestHeade
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteAccessConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteSubscriptionGroupRequestHeader;
-import org.apache.rocketmq.common.protocol.header.DeleteTopicLogicalQueueRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
@@ -150,7 +130,6 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHea
 import org.apache.rocketmq.common.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryTopicConsumeByWhoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryTopicLogicalQueueMappingRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
@@ -177,10 +156,9 @@ import org.apache.rocketmq.common.protocol.header.namesrv.WipeWritePermOfBrokerR
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueueRouteData;
-import org.apache.rocketmq.common.protocol.route.LogicalQueuesInfo;
-import org.apache.rocketmq.common.protocol.route.MessageQueueRouteState;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
@@ -199,6 +177,19 @@ import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MQClientAPIImpl {
 
@@ -2581,130 +2572,6 @@ public class MQClientAPIImpl {
         }
     }
 
-    public LogicalQueuesInfo queryTopicLogicalQueue(String brokerAddr, String topic,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        QueryTopicLogicalQueueMappingRequestHeader requestHeader = new QueryTopicLogicalQueueMappingRequestHeader();
-        requestHeader.setTopic(topic);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_TOPIC_LOGICAL_QUEUE_MAPPING, requestHeader);
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        assert response != null;
-        if (response.getCode() != ResponseCode.SUCCESS) {
-            throw new MQBrokerException(response.getCode(), response.getRemark());
-        }
-        return RemotingSerializable.decode(response.getBody(), LogicalQueuesInfo.class);
-    }
-
-    public void updateTopicLogicalQueue(String brokerAddr, String topic, int queueId, int logicalQueueIndex,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_TOPIC_LOGICAL_QUEUE_MAPPING, null);
-        UpdateTopicLogicalQueueMappingRequestBody requestBody = new UpdateTopicLogicalQueueMappingRequestBody();
-        requestBody.setTopic(topic);
-        requestBody.setQueueId(queueId);
-        requestBody.setLogicalQueueIdx(logicalQueueIndex);
-        request.setBody(requestBody.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        assert response != null;
-        if (response.getCode() != ResponseCode.SUCCESS) {
-            throw new MQBrokerException(response.getCode(), response.getRemark());
-        }
-    }
-
-    public void deleteTopicLogicalQueueMapping(String brokerAddr, String topic, long timeoutMillis) throws MQBrokerException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        DeleteTopicLogicalQueueRequestHeader requestHeader = new DeleteTopicLogicalQueueRequestHeader();
-        requestHeader.setTopic(topic);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_LOGICAL_QUEUE_MAPPING, requestHeader);
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        assert response != null;
-        if (response.getCode() != ResponseCode.SUCCESS) {
-            throw new MQBrokerException(response.getCode(), response.getRemark());
-        }
-    }
-
-    public LogicalQueueRouteData sealTopicLogicalQueue(String brokerAddr, LogicalQueueRouteData queueRouteData, long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEAL_TOPIC_LOGICAL_QUEUE, null);
-        SealTopicLogicalQueueRequestBody requestBody = new SealTopicLogicalQueueRequestBody();
-        MessageQueue messageQueue = queueRouteData.getMessageQueue();
-        requestBody.setTopic(messageQueue.getTopic());
-        requestBody.setQueueId(messageQueue.getQueueId());
-        requestBody.setLogicalQueueIndex(queueRouteData.getLogicalQueueIndex());
-        request.setBody(requestBody.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        assert response != null;
-        if (response.getCode() != ResponseCode.SUCCESS) {
-            throw new MQBrokerException(response.getCode(), response.getRemark());
-        }
-        return RemotingSerializable.decode(response.getBody(), LogicalQueueRouteData.class);
-    }
-
-    public LogicalQueueRouteData reuseTopicLogicalQueue(String brokerAddr, String topic, int queueId,
-        int logicalQueueIdx,
-        MessageQueueRouteState messageQueueRouteState, long timeoutMillis) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REUSE_TOPIC_LOGICAL_QUEUE, null);
-        ReuseTopicLogicalQueueRequestBody requestBody = new ReuseTopicLogicalQueueRequestBody();
-        requestBody.setTopic(topic);
-        requestBody.setQueueId(queueId);
-        requestBody.setLogicalQueueIndex(logicalQueueIdx);
-        requestBody.setMessageQueueRouteState(messageQueueRouteState);
-        request.setBody(requestBody.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        assert response != null;
-        if (response.getCode() != ResponseCode.SUCCESS) {
-            throw new MQBrokerException(response.getCode(), response.getRemark());
-        }
-        return RemotingSerializable.decode(response.getBody(), LogicalQueueRouteData.class);
-    }
-
-    public LogicalQueueRouteData createMessageQueueForLogicalQueue(String brokerAddr, String topic, int logicalQueueIdx,
-        MessageQueueRouteState messageQueueStatus,
-        long timeoutMillis) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_MESSAGE_QUEUE_FOR_LOGICAL_QUEUE, null);
-        CreateMessageQueueForLogicalQueueRequestBody requestBody = new CreateMessageQueueForLogicalQueueRequestBody();
-        requestBody.setTopic(topic);
-        requestBody.setLogicalQueueIndex(logicalQueueIdx);
-        requestBody.setMessageQueueStatus(messageQueueStatus);
-        request.setBody(requestBody.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        assert response != null;
-        if (response.getCode() != ResponseCode.SUCCESS) {
-            throw new MQBrokerException(response.getCode(), response.getRemark());
-        }
-        return RemotingSerializable.decode(response.getBody(), LogicalQueueRouteData.class);
-    }
-
-    private MigrateLogicalQueueBody migrateTopicLogicalQueue(int requestCode, String brokerAddr,
-        LogicalQueueRouteData fromQueueRouteData, LogicalQueueRouteData toQueueRouteData,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, null);
-        MigrateLogicalQueueBody requestBody = new MigrateLogicalQueueBody();
-        requestBody.setFromQueueRouteData(fromQueueRouteData);
-        requestBody.setToQueueRouteData(toQueueRouteData);
-        request.setBody(requestBody.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        assert response != null;
-        if (response.getCode() != ResponseCode.SUCCESS) {
-            throw new MQBrokerException(response.getCode(), response.getRemark());
-        }
-        return response.getBody() != null ? RemotingSerializable.decode(response.getBody(), MigrateLogicalQueueBody.class) : null;
-    }
-
-    public MigrateLogicalQueueBody migrateTopicLogicalQueuePrepare(String brokerAddr,
-        LogicalQueueRouteData fromQueueRouteData, LogicalQueueRouteData toQueueRouteData,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        return migrateTopicLogicalQueue(RequestCode.MIGRATE_TOPIC_LOGICAL_QUEUE_PREPARE, brokerAddr, fromQueueRouteData, toQueueRouteData, timeoutMillis);
-    }
-
-    public MigrateLogicalQueueBody migrateTopicLogicalQueueCommit(String brokerAddr,
-        LogicalQueueRouteData fromQueueRouteData, LogicalQueueRouteData toQueueRouteData,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        return migrateTopicLogicalQueue(RequestCode.MIGRATE_TOPIC_LOGICAL_QUEUE_COMMIT, brokerAddr, fromQueueRouteData, toQueueRouteData, timeoutMillis);
-    }
-
-    public void migrateTopicLogicalQueueNotify(String brokerAddr,
-        LogicalQueueRouteData fromQueueRouteData,
-        LogicalQueueRouteData toQueueRouteData,
-        long timeoutMillis) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        migrateTopicLogicalQueue(RequestCode.MIGRATE_TOPIC_LOGICAL_QUEUE_NOTIFY, brokerAddr, fromQueueRouteData, toQueueRouteData, timeoutMillis);
-    }
 
     public TopicConfigAndQueueMapping getTopicConfig(final String brokerAddr, String topic,
         long timeoutMillis) throws InterruptedException,
