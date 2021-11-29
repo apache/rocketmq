@@ -33,7 +33,7 @@ LogicQueue的思路就是为了解决这一问题。
 ### 设计目标
 #### 总体目标
 提供『Static Topic』的特性。
-引入以下概念：
+引入以下核心概念：
 - physical message queue, physical queue for short, a shard bound to a specified broker.
 - logic message queue, logic queue for short, a shard vertically composed by physical queues.
 - dynamic sharded topic, dynamic topic for short, which has queues increasing with the broker numbers.
@@ -41,6 +41,11 @@ LogicQueue的思路就是为了解决这一问题。
 
 『Static Topic』拥有固定的分片数量，每个分片称之为『Logic Queue』。
 每个『Logic Queue』由多个『Physical Queue』进行纵向分段映射组成。
+
+引入以下非核心概念，对用户无感知，但对于讨论问题非常重要：
+- Leader Queue， 某个『Logic Queue』最新映射的『Physical Queue』，也即可写的那个Queue
+- Second Leader Queue，某个『Logic Queue』次新映射的『Physical Queue』，也即最新一次切换之前的『Leader Queue』
+
 
 #### LogicQueue 目标
 在客户端，LogicQueue 与 Physical Queue 使用体感上没有任何区别，使用一样的概念和对象，遵循一样的语义。
@@ -149,7 +154,7 @@ LogicQueue 的 Source of Truth 就是 LogicQueue 到 Physical Queue 的映射关
 * 位点范围『0-1000』映射到 Physical Queue 『broker01-0』上面
 * 位点范围『1000-』映射到 Physical Queue 『broker02-0』上面
 
-『拥有』的定义是指，映射关系的最新队列在当前Broker。注意，在实现时，也会把次新队列存储下来作为备份。
+『拥有』的定义是指，Leader Queue 在当前Broker。注意，在实现时，也会把Second Leader Queue存储下来作为备份。
 
 注意以下要点：
 
