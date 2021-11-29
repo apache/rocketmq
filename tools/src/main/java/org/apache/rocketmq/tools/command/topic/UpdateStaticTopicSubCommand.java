@@ -215,6 +215,8 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 String oldMappingDataFile = TopicQueueMappingUtils.writeToTemp(oldWrapper, false);
                 System.out.println("The old mapping data is written to file " + oldMappingDataFile);
             }
+            //add the existed brokers to target brokers
+            targetBrokers.addAll(brokerConfigMap.keySet());
 
             //calculate the new data
             TopicRemappingDetailWrapper newWrapper = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, new HashSet<>(), brokerConfigMap);

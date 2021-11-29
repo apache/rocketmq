@@ -132,6 +132,12 @@ public class RMQNormalProducer extends AbstractMQProducer {
         }
     }
 
+    public void send(int num, MessageQueue mq) {
+        for (int i = 0; i < num; i++) {
+            sendMQ((Message) getMessageByTag(null), mq);
+        }
+    }
+
     public ResultWrapper sendMQ(Message msg, MessageQueue mq) {
         org.apache.rocketmq.client.producer.SendResult metaqResult = null;
         try {
@@ -145,6 +151,9 @@ public class RMQNormalProducer extends AbstractMQProducer {
             sendResult.setSendResult(metaqResult.getSendStatus().equals(SendStatus.SEND_OK));
             sendResult.setBrokerIp(metaqResult.getMessageQueue().getBrokerName());
             msgBodys.addData(new String(msg.getBody()));
+            if (originMsgs.getAllData().contains(msg)) {
+                System.out.println("Hash collision");
+            }
             originMsgs.addData(msg);
             originMsgIndex.put(new String(msg.getBody()), metaqResult);
         } catch (Exception e) {

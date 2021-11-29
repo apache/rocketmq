@@ -767,14 +767,21 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         try {
             requestHeader.setBname(mappingItem.getBname());
             requestHeader.setPhysical(true);
-            //TODO check if it is leader
-            RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_MIN_OFFSET, requestHeader, null);
-            RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
-            if (rpcResponse.getException() != null) {
-                throw rpcResponse.getException();
+            requestHeader.setQueueId(mappingItem.getQueueId());
+            long physicalOffset;
+            //run in local
+            if (mappingItem.getBname().equals(mappingDetail.getBname())) {
+                physicalOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(mappingDetail.getTopic(), mappingItem.getQueueId());
+            } else {
+                RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_MIN_OFFSET, requestHeader, null);
+                RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
+                if (rpcResponse.getException() != null) {
+                    throw rpcResponse.getException();
+                }
+                GetMinOffsetResponseHeader offsetResponseHeader = (GetMinOffsetResponseHeader) rpcResponse.getHeader();
+                physicalOffset = offsetResponseHeader.getOffset();
             }
-            GetMinOffsetResponseHeader offsetResponseHeader = (GetMinOffsetResponseHeader) rpcResponse.getHeader();
-            long offset = mappingItem.computeStaticQueueOffsetUpToEnd(offsetResponseHeader.getOffset());
+            long offset = mappingItem.computeStaticQueueOffsetUpToEnd(physicalOffset);
 
             final RemotingCommand response = RemotingCommand.createResponseCommand(GetMinOffsetResponseHeader.class);
             final GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.readCustomHeader();

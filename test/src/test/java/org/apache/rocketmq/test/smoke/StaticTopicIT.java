@@ -1,12 +1,15 @@
 package org.apache.rocketmq.test.smoke;
 
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.test.base.BaseConf;
+import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.After;
@@ -17,6 +20,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -61,6 +65,7 @@ public class StaticTopicIT extends BaseConf {
     @Test
     public void testCreateAndRemappingStaticTopic() throws Exception {
         String topic = "static" + MQRandomUtils.getRandomTopic();
+        RMQNormalProducer producer = getProducer(nsAddr, topic);
         int queueNum = 10;
         Map<String, TopicConfigAndQueueMapping> localBrokerConfigMap = createStaticTopic(topic, queueNum, getBrokers());
         {
@@ -77,6 +82,26 @@ public class StaticTopicIT extends BaseConf {
             Map<Integer, TopicQueueMappingOne>  globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(getMappingDetailFromConfig(remoteBrokerConfigMap.values())), false, true);
             Assert.assertEquals(queueNum, globalIdMap.size());
         }
+        List<MessageQueue> messageQueueList = producer.getMessageQueue();
+        Assert.assertEquals(queueNum, messageQueueList.size());
+        producer.setDebug(true);
+        for (int i = 0; i < queueNum; i++) {
+            MessageQueue messageQueue = messageQueueList.get(i);
+            Assert.assertEquals(topic, messageQueue.getTopic());
+            Assert.assertEquals(i, messageQueue.getQueueId());
+            Assert.assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, messageQueue.getBrokerName());
+        }
+        for(MessageQueue messageQueue: messageQueueList) {
+            producer.send(100, messageQueue);
+        }
+        //leave the time to build the cq
+        Thread.sleep(500);
+        for(MessageQueue messageQueue: messageQueueList) {
+            Assert.assertEquals(0, defaultMQAdminExt.minOffset(messageQueue));
+            Assert.assertEquals(100, defaultMQAdminExt.maxOffset(messageQueue));
+        }
+        Assert.assertEquals(100 * queueNum, producer.getAllOriginMsg().size());
+        Assert.assertEquals(0, producer.getSendErrorMsg().size());
         /*{
             Set<String> targetBrokers = Collections.singleton(broker1Name);
             Map<String, TopicConfigAndQueueMapping> brokerConfigMapFromRemote = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
