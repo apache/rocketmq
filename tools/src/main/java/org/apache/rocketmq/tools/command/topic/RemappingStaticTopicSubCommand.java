@@ -43,7 +43,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "updateStaticTopic";
+        return "remappingStaticTopic";
     }
 
     @Override
