@@ -35,6 +35,7 @@ public class TopicQueueMappingContext  {
         this.mappingDetail = mappingDetail;
         this.mappingItemList = mappingItemList;
         this.mappingItem = mappingItem;
+
     }
 
     public boolean checkIfAsPhysical() {
@@ -42,6 +43,37 @@ public class TopicQueueMappingContext  {
                 || mappingItemList == null
                 || (mappingItemList.size() == 1 &&  mappingItemList.get(0).getLogicOffset() == 0);
     }
+
+    public boolean isLeader() {
+        if (mappingDetail == null
+                || mappingItemList == null
+                || mappingItemList.isEmpty()) {
+            return false;
+        }
+        LogicQueueMappingItem mappingItem = mappingItemList.get(mappingItemList.size() - 1);
+        return mappingItem.getBname().equals(mappingDetail.getBname());
+    }
+
+    public LogicQueueMappingItem findNext() {
+        if (mappingDetail == null
+                || mappingItem == null
+                || mappingItemList == null
+                || mappingItemList.isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < mappingItemList.size(); i++) {
+            LogicQueueMappingItem item = mappingItemList.get(i);
+            if (item.getGen() == mappingItem.getGen()) {
+                if (i < mappingItemList.size() - 1) {
+                    return mappingItemList.get(i + 1);
+                } else {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
 
     public String getTopic() {
         return topic;
@@ -90,4 +122,6 @@ public class TopicQueueMappingContext  {
     public void setMappingItem(LogicQueueMappingItem mappingItem) {
         this.mappingItem = mappingItem;
     }
+
+
 }

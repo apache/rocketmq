@@ -21,6 +21,9 @@ public class RpcClientUtils {
     }
 
     public static byte[] encodeBody(Object body) {
+        if (body == null) {
+            return null;
+        }
         if (body instanceof byte[]) {
             return (byte[])body;
         } else if (body instanceof RemotingSerializable) {

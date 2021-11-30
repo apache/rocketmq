@@ -73,6 +73,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
         producer.setProducerGroup(getProducerGroupName());
         producer.setInstanceName(getProducerInstanceName());
         producer.setUseTLS(useTLS);
+        producer.setPollNameServerInterval(100);
 
         if (nsAddr != null) {
             producer.setNamesrvAddr(nsAddr);

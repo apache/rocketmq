@@ -85,7 +85,8 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
         //Could use bi-search to polish performance
         for (int i = mappingItems.size() - 1; i >= 0; i--) {
             LogicQueueMappingItem item =  mappingItems.get(i);
-            if (logicOffset >= item.getLogicOffset()) {
+            if (item.getLogicOffset() >= 0
+                    && logicOffset >= item.getLogicOffset()) {
                 return item;
             }
         }

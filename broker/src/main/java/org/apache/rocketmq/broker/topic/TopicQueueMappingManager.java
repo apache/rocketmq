@@ -82,6 +82,7 @@ public class TopicQueueMappingManager extends ConfigManager {
                 return;
             }
             if (force) {
+                //bakeup the old items
                 oldDetail.getHostedQueues().forEach( (queueId, items) -> {
                     newDetail.getHostedQueues().putIfAbsent(queueId, items);
                 });
@@ -90,17 +91,21 @@ public class TopicQueueMappingManager extends ConfigManager {
                 return;
             }
             //do more check
-            if (newDetail.getEpoch() <= oldDetail.getEpoch()) {
+            if (newDetail.getEpoch() < oldDetail.getEpoch()) {
                 throw new RuntimeException(String.format("Can't accept data with small epoch %d < %d", newDetail.getEpoch(), oldDetail.getEpoch()));
             }
+            boolean epochEqual = newDetail.getEpoch() == oldDetail.getEpoch();
             for (Integer globalId : oldDetail.getHostedQueues().keySet()) {
                 List<LogicQueueMappingItem> oldItems = oldDetail.getHostedQueues().get(globalId);
                 List<LogicQueueMappingItem> newItems = newDetail.getHostedQueues().get(globalId);
                 if (newItems == null) {
-                    //keep the old
-                    newDetail.getHostedQueues().put(globalId, oldItems);
+                    if (epochEqual) {
+                        throw new RuntimeException("Cannot accept equal epoch with null data");
+                    } else {
+                        newDetail.getHostedQueues().put(globalId, oldItems);
+                    }
                 } else {
-                    TopicQueueMappingUtils.makeSureLogicQueueMappingItemImmutable(oldItems, newItems);
+                    TopicQueueMappingUtils.makeSureLogicQueueMappingItemImmutable(oldItems, newItems, epochEqual);
                 }
             }
             topicQueueMappingTable.put(newDetail.getTopic(), newDetail);

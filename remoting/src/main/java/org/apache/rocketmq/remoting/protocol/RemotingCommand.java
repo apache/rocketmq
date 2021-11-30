@@ -28,8 +28,13 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RemotingCommand {
@@ -313,11 +318,17 @@ public class RemotingCommand {
         return objectHeader;
     }
 
-    private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
+    //make it able to test
+    Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
         Field[] field = CLASS_HASH_MAP.get(classHeader);
 
         if (field == null) {
-            field = classHeader.getDeclaredFields();
+            Set<Field> fieldList = new HashSet<Field>();
+            for (Class className = classHeader; className != Object.class; className = className.getSuperclass()) {
+                Field[] fields = className.getDeclaredFields();
+                fieldList.addAll(Arrays.asList(fields));
+            }
+            field = fieldList.toArray(new Field[0]);
             synchronized (CLASS_HASH_MAP) {
                 CLASS_HASH_MAP.put(classHeader, field);
             }

@@ -100,7 +100,10 @@ public class BaseConf {
                 List<BrokerData> brokerDatas = mqAdminExt.examineTopicRouteInfo(clusterName).getBrokerDatas();
                 return brokerDatas.size() == brokerNum;
             });
-        } catch (MQClientException e) {
+            for (BrokerController brokerController: brokerControllerList) {
+                brokerController.getBrokerOuterAPI().refreshMetadata();
+            }
+        } catch (Exception e) {
             log.error("init failed, please check BaseConf");
         }
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
@@ -126,6 +129,7 @@ public class BaseConf {
     public static DefaultMQAdminExt getAdmin(String nsAddr) {
         final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(500);
         mqAdminExt.setNamesrvAddr(nsAddr);
+        mqAdminExt.setPollNameServerInterval(100);
         mqClients.add(mqAdminExt);
         return mqAdminExt;
     }

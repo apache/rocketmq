@@ -2,6 +2,7 @@ package org.apache.rocketmq.test.smoke;
 
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -11,6 +12,7 @@ import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
+import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -23,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
+import sun.jvm.hotspot.runtime.aarch64.AARCH64CurrentFrameGuess;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,7 +64,7 @@ public class StaticTopicIT extends BaseConf {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
         Assert.assertTrue(brokerConfigMap.isEmpty());
         TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, new HashSet<>(), brokerConfigMap);
-        Assert.assertEquals(2, brokerConfigMap.size());
+        Assert.assertEquals(targetBrokers.size(), brokerConfigMap.size());
         //If some succeed, and others fail, it will cause inconsistent data
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
             String broker = entry.getKey();
@@ -71,6 +74,22 @@ public class StaticTopicIT extends BaseConf {
         }
         return brokerConfigMap;
     }
+
+    public void remappingStaticTopic(String topic, Set<String> targetBrokers) throws Exception {
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
+        Assert.assertFalse(brokerConfigMap.isEmpty());
+        TopicRemappingDetailWrapper wrapper = TopicQueueMappingUtils.remappingStaticTopic(topic, brokerConfigMap, targetBrokers);
+        defaultMQAdminExt.remappingStaticTopic(clientMetadata, topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), brokerConfigMap, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, false);
+    }
+
+
+
+
+    @Test
+    public void testNonTargetBrokers() {
+
+    }
+
 
     @Test
     public void testCreateProduceConsumeStaticTopic() throws Exception {
@@ -120,7 +139,7 @@ public class StaticTopicIT extends BaseConf {
         Assert.assertEquals(msgEachQueue * queueNum, producer.getAllOriginMsg().size());
         Assert.assertEquals(0, producer.getSendErrorMsg().size());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 3000);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                 consumer.getListener().getAllMsgBody()))
                 .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -148,6 +167,110 @@ public class StaticTopicIT extends BaseConf {
         }
     }
 
+
+    @Test
+    public void testRemappingProduceConsumeStaticTopic() throws Exception {
+        String topic = "static" + MQRandomUtils.getRandomTopic();
+        RMQNormalProducer producer = getProducer(nsAddr, topic);
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        producer.getProducer().setPollNameServerInterval(100);
+
+        int queueNum = 10;
+        int msgEachQueue = 100;
+        //create static topic
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker1Name);
+            createStaticTopic(topic, queueNum, targetBrokers);
+        }
+        //produce the messages
+        {
+            List<MessageQueue> messageQueueList = producer.getMessageQueue();
+            for (int i = 0; i < queueNum; i++) {
+                MessageQueue messageQueue = messageQueueList.get(i);
+                Assert.assertEquals(i, messageQueue.getQueueId());
+                Assert.assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, messageQueue.getBrokerName());
+            }
+            for(MessageQueue messageQueue: messageQueueList) {
+                producer.send(msgEachQueue, messageQueue);
+            }
+            Assert.assertEquals(0, producer.getSendErrorMsg().size());
+            //leave the time to build the cq
+            Thread.sleep(100);
+            for(MessageQueue messageQueue: messageQueueList) {
+                //Assert.assertEquals(0, defaultMQAdminExt.minOffset(messageQueue));
+                Assert.assertEquals(msgEachQueue, defaultMQAdminExt.maxOffset(messageQueue));
+            }
+        }
+
+        //remapping the static topic
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker2Name);
+            remappingStaticTopic(topic, targetBrokers);
+            Map<String, TopicConfigAndQueueMapping> remoteBrokerConfigMap = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
+
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, remoteBrokerConfigMap);
+            Map<Integer, TopicQueueMappingOne>  globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(getMappingDetailFromConfig(remoteBrokerConfigMap.values())), false, true);
+            Assert.assertEquals(queueNum, globalIdMap.size());
+            for (TopicQueueMappingOne mappingOne: globalIdMap.values()) {
+                Assert.assertEquals(broker2Name, mappingOne.getBname());
+            }
+        }
+        //leave the time to refresh the metadata
+        Thread.sleep(500);
+        producer.setDebug(true);
+        {
+            List<MessageQueue> messageQueueList = producer.getMessageQueue();
+            for (int i = 0; i < queueNum; i++) {
+                MessageQueue messageQueue = messageQueueList.get(i);
+                Assert.assertEquals(i, messageQueue.getQueueId());
+                Assert.assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, messageQueue.getBrokerName());
+                String destBrokerName = clientMetadata.getBrokerNameFromMessageQueue(messageQueue);
+                Assert.assertEquals(destBrokerName, broker2Name);
+            }
+
+            for(MessageQueue messageQueue: messageQueueList) {
+                producer.send(msgEachQueue, messageQueue);
+            }
+            Assert.assertEquals(0, producer.getSendErrorMsg().size());
+            //leave the time to build the cq
+            Thread.sleep(100);
+            for(MessageQueue messageQueue: messageQueueList) {
+                Assert.assertEquals(0, defaultMQAdminExt.minOffset(messageQueue));
+                Assert.assertEquals(msgEachQueue + TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, defaultMQAdminExt.maxOffset(messageQueue));
+            }
+        }
+        {
+            consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 3000);
+            System.out.println("Consume: " + consumer.getListener().getAllMsgBody().size());
+            assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                    consumer.getListener().getAllMsgBody()))
+                    .containsExactlyElementsIn(producer.getAllMsgBody());
+            Map<Integer, List<MessageExt>> messagesByQueue = new HashMap<>();
+            for (Object object : consumer.getListener().getAllOriginMsg()) {
+                MessageExt messageExt = (MessageExt) object;
+                if (!messagesByQueue.containsKey(messageExt.getQueueId())) {
+                    messagesByQueue.put(messageExt.getQueueId(), new ArrayList<>());
+                }
+                messagesByQueue.get(messageExt.getQueueId()).add(messageExt);
+            }
+            Assert.assertEquals(queueNum, messagesByQueue.size());
+            for (int i = 0; i < queueNum; i++) {
+                List<MessageExt> messageExts = messagesByQueue.get(i);
+                Assert.assertEquals(msgEachQueue, messageExts.size());
+                Collections.sort(messageExts, new Comparator<MessageExt>() {
+                    @Override
+                    public int compare(MessageExt o1, MessageExt o2) {
+                        return (int) (o1.getQueueOffset() - o2.getQueueOffset());
+                    }
+                });
+                for (int j = 0; j < msgEachQueue; j++) {
+                    Assert.assertEquals(j, messageExts.get(j).getQueueOffset());
+                }
+            }
+        }
+    }
 
     @After
     public void tearDown() {

@@ -36,6 +36,8 @@ import java.util.Set;
 
 public class TopicQueueMappingUtils {
 
+    public static final int DEFAULT_BLOCK_SEQ_SIZE = 10000;
+
     public static class MappingAllocator {
         Map<String, Integer> brokerNumMap = new HashMap<String, Integer>();
         Map<Integer, String> idToBroker = new HashMap<Integer, String>();
@@ -191,7 +193,7 @@ public class TopicQueueMappingUtils {
         return new AbstractMap.SimpleEntry<Long, Integer>(maxEpoch, maxNum);
     }
 
-    public static void makeSureLogicQueueMappingItemImmutable(List<LogicQueueMappingItem> oldItems, List<LogicQueueMappingItem> newItems) {
+    public static void makeSureLogicQueueMappingItemImmutable(List<LogicQueueMappingItem> oldItems, List<LogicQueueMappingItem> newItems, boolean epochEqual) {
         if (oldItems == null || oldItems.isEmpty()) {
             return;
         }
@@ -216,6 +218,16 @@ public class TopicQueueMappingUtils {
                 }
                 iold++;
                 inew++;
+            }
+        }
+        if (epochEqual) {
+            LogicQueueMappingItem oldLeader = oldItems.get(oldItems.size() - 1);
+            LogicQueueMappingItem newLeader = newItems.get(newItems.size() - 1);
+            if (newLeader.getGen() != oldLeader.getGen()
+                || !newLeader.getBname().equals(oldLeader.getBname())
+                || newLeader.getQueueId() != oldLeader.getQueueId()
+                || newLeader.getStartOffset() != oldLeader.getStartOffset()) {
+                throw new RuntimeException("The new leader is different but epoch equal");
             }
         }
     }

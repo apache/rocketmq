@@ -492,11 +492,11 @@ public class BrokerController {
 
             this.scheduledExecutorService.scheduleAtFixedRate(() -> {
                 try {
-                    BrokerController.this.refreshBrokerNameMapping();
+                    BrokerController.this.brokerOuterAPI.refreshMetadata();
                 } catch (Exception e) {
-                    log.error("ScheduledTask examineBrokerClusterInfo exception", e);
+                    log.error("ScheduledTask refresh metadata exception", e);
                 }
-            }, 10, 10, TimeUnit.SECONDS);
+            }, 1, 5, TimeUnit.SECONDS);
 
             if (!messageStoreConfig.isEnableDLegerCommitLog()) {
                 if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
@@ -624,13 +624,6 @@ public class BrokerController {
         }
     }
 
-    private void refreshBrokerNameMapping() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        ClusterInfo brokerClusterInfo = this.brokerOuterAPI.getBrokerClusterInfo();
-        brokerClusterInfo.getBrokerAddrTable().forEach((brokerName, data) -> {
-            String masterBrokerAddr = data.getBrokerAddrs().get(MixAll.MASTER_ID);
-            this.brokerName2AddrMap.put(brokerName, masterBrokerAddr);
-        });
-    }
 
     public String getBrokerAddrByName(String brokerName) {
         return this.brokerName2AddrMap.get(brokerName);

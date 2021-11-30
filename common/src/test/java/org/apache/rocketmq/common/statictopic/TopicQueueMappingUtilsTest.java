@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-public class TopicMappingUtilsTest {
+public class TopicQueueMappingUtilsTest {
 
 
     private Set<String> buildTargetBrokers(int num) {

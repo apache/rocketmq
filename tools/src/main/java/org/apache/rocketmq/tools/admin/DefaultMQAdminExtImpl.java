@@ -1112,6 +1112,15 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             TopicConfigAndQueueMapping configMapping = brokerConfigMap.get(broker);
             createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
         }
+        //Step5: write the non-target brokers
+        for (String broker: brokerConfigMap.keySet()) {
+            if (brokersToMapIn.contains(broker) || brokersToMapOut.contains(broker)) {
+                continue;
+            }
+            String addr = clientMetadata.findMasterBrokerAddr(broker);
+            TopicConfigAndQueueMapping configMapping = brokerConfigMap.get(broker);
+            createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
+        }
     }
 
     @Override

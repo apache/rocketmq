@@ -68,6 +68,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -78,6 +79,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
+import static org.apache.rocketmq.remoting.protocol.RemotingCommand.decode;
 
 public class PullMessageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -134,6 +136,11 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                     && requestHeader.getMaxMsgNums() != null) {
                 requestHeader.setMaxMsgNums((int) Math.min(mappingItem.getEndOffset() - mappingItem.getStartOffset(), requestHeader.getMaxMsgNums()));
             }
+            int sysFlag = requestHeader.getSysFlag();
+            if (!mappingContext.isLeader()) {
+                sysFlag = PullSysFlag.clearCommitOffsetFlag(sysFlag);
+                requestHeader.setSysFlag(sysFlag);
+            }
 
             if (mappingDetail.getBname().equals(bname)) {
                 //just let it go, do the local pull process
@@ -142,6 +149,9 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
 
             requestHeader.setPhysical(true);
             requestHeader.setBname(bname);
+            sysFlag = PullSysFlag.clearSuspendFlag(sysFlag);
+            sysFlag = PullSysFlag.clearCommitOffsetFlag(sysFlag);
+            requestHeader.setSysFlag(sysFlag);
             RpcRequest rpcRequest = new RpcRequest(RequestCode.PULL_MESSAGE, requestHeader, null);
             RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
             if (rpcResponse.getException() != null) {
@@ -150,7 +160,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
 
             PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) rpcResponse.getHeader();
             {
-                RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext);
+                RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext, rpcResponse.getCode());
                 if (rewriteResult != null) {
                     return rewriteResult;
                 }
@@ -161,35 +171,73 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         }
     }
 
-    private RemotingCommand rewriteResponseForStaticTopic(PullMessageRequestHeader requestHeader, PullMessageResponseHeader responseHeader, TopicQueueMappingContext mappingContext) {
+    private RemotingCommand rewriteResponseForStaticTopic(PullMessageRequestHeader requestHeader, PullMessageResponseHeader responseHeader,
+                                                          TopicQueueMappingContext mappingContext, final int code) {
         try {
             if (mappingContext == null) {
                 return null;
             }
             TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
             LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
-            //handle nextBeginOffset
-            {
-                long nextBeginOffset = responseHeader.getNextBeginOffset();
-                assert nextBeginOffset >= requestHeader.getQueueOffset();
-                //the next begin offset should no more than the end offset
-                if (mappingItem.checkIfEndOffsetDecided()
-                        && nextBeginOffset >= mappingItem.getEndOffset()) {
-                    nextBeginOffset = mappingItem.getEndOffset();
+
+            long requestOffset = requestHeader.getQueueOffset();
+            long nextBeginOffset = responseHeader.getNextBeginOffset();
+            long minOffset = responseHeader.getMinOffset();
+            long maxOffset = responseHeader.getMaxOffset();
+            int responseCode = code;
+            if (responseCode != ResponseCode.SUCCESS
+                    && responseCode != ResponseCode.PULL_RETRY_IMMEDIATELY) {
+                if (mappingContext.isLeader()) {
+                    if (requestOffset < minOffset) {
+                        nextBeginOffset = minOffset;
+                        responseCode = ResponseCode.PULL_NOT_FOUND;
+                    } else if (requestOffset > maxOffset) {
+                        responseCode = ResponseCode.PULL_OFFSET_MOVED;
+                    } else if (requestOffset == maxOffset) {
+                        responseCode = ResponseCode.PULL_NOT_FOUND;
+                    } else {
+                        //let it go
+                    }
+                } else {
+                    if (requestOffset < minOffset) {
+                        nextBeginOffset = minOffset;
+                        responseCode = ResponseCode.PULL_NOT_FOUND;
+                    } else if (requestOffset >= maxOffset) {
+                        responseCode = ResponseCode.PULL_NOT_FOUND;
+                        //just move to another item
+                        mappingItem = mappingContext.findNext();
+                        assert  mappingItem != null;
+                        nextBeginOffset = mappingItem.getStartOffset();
+                        minOffset = mappingItem.getStartOffset();
+                        maxOffset = minOffset;
+                    }
                 }
-                responseHeader.setNextBeginOffset(mappingItem.computeStaticQueueOffsetUpToEnd(nextBeginOffset));
             }
+
+            //handle nextBeginOffset
+            //the next begin offset should no more than the end offset
+            if (mappingItem.checkIfEndOffsetDecided()
+                    && nextBeginOffset >= mappingItem.getEndOffset()) {
+                nextBeginOffset = mappingItem.getEndOffset();
+            }
+            responseHeader.setNextBeginOffset(mappingItem.computeStaticQueueOffsetUpToEnd(nextBeginOffset));
             //handle min offset
-            responseHeader.setMinOffset(mappingItem.computeStaticQueueOffsetUpToEnd(Math.max(mappingItem.getStartOffset(), responseHeader.getMinOffset())));
+            responseHeader.setMinOffset(mappingItem.computeStaticQueueOffsetUpToEnd(Math.max(mappingItem.getStartOffset(), minOffset)));
             //handle max offset
-            responseHeader.setMaxOffset(Math.max(mappingItem.computeStaticQueueOffsetUpToEnd(responseHeader.getMaxOffset()),
+            responseHeader.setMaxOffset(Math.max(mappingItem.computeStaticQueueOffsetUpToEnd(maxOffset),
                     TopicQueueMappingDetail.computeMaxOffsetFromMapping(mappingDetail, mappingContext.getGlobalId())));
             //set the offsetDelta
             responseHeader.setOffsetDelta(mappingItem.computeOffsetDelta());
+
+            if (code != ResponseCode.SUCCESS
+                && code != ResponseCode.PULL_RETRY_IMMEDIATELY) {
+                return RemotingCommand.createResponseCommandWithHeader(responseCode, responseHeader);
+            } else {
+                return null;
+            }
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
-        return null;
     }
 
 
@@ -440,13 +488,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                     break;
             }
 
-            //rewrite the response for the
-            {
-                RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext);
-                if (rewriteResult != null) {
-                    return rewriteResult;
-                }
-            }
+
 
 
             if (this.hasConsumeMessageHook()) {
@@ -489,6 +531,12 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 }
 
                 this.executeConsumeMessageHookBefore(context);
+            }
+
+            //rewrite the response for the
+            RemotingCommand rewriteResult =  rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext, response.getCode());
+            if (rewriteResult != null) {
+                response = rewriteResult;
             }
 
             switch (response.getCode()) {
