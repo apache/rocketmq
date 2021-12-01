@@ -82,7 +82,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | subscription                 |                               | subscription relation                                                    |
 | messageListener              |                               | message listener                                                  |
 | offsetStore                  |                               | Consumption progress store                                                 |
-| consumeThreadMin             | 10                            | Minimum of thread in consumption thread pool                                               |
+| consumeThreadMin             | 20                            | Minimum of thread in consumption thread pool                                               |
 | consumeThreadMax             | 20                            | Maximum of thread in consumption thread pool                                               |
 |                              |                               |                                                              |
 | consumeConcurrentlyMaxSpan   | 2000                          | Maximum span allowed for single queue parallel consumption                                 |
