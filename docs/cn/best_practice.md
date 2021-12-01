@@ -287,7 +287,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | subscription                 |                               | 订阅关系                                                     |
 | messageListener              |                               | 消息监听器                                                   |
 | offsetStore                  |                               | 消费进度存储                                                 |
-| consumeThreadMin             | 10                            | 消费线程池最小线程数                                               |
+| consumeThreadMin             | 20                            | 消费线程池最小线程数                                               |
 | consumeThreadMax             | 20                            | 消费线程池最大线程数                                               |
 | consumeConcurrentlyMaxSpan   | 2000                          | 单队列并行消费允许的最大跨度                                 |
 | pullThresholdForQueue        | 1000                          | 拉消息本地队列缓存消息最大数                                 |
