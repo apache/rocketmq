@@ -350,8 +350,10 @@ Offset的存储，无需转换，直接存储在 LogicQueue 所对应的最新 P
 RocketMQ 没有引入中心化的存储组件，那么如何保证 SOT 的全局一致性呢？
 主要利用两个信息
 * TopicQueueMapping 带上的 epoch
-* TopicQueueMapping 带上 totalQueues
+* TopicQueueMapping 带上 totalQueues  
+
 在更新或者切换时，获取所有Broker上的 TopicQueueMapping，校验 epoch 和 totalQueues，并且根据 TopicQueueMapping 可以完整地构建出对应的Logic Queue，则说明数据是完整一致的。
+
 如果发现数据不一致，可能是以下因素引入的：
 * 集群中有Broker宕机
 * 上次更新没有完全成功
@@ -359,38 +361,37 @@ RocketMQ 没有引入中心化的存储组件，那么如何保证 SOT 的全局
 应该要先修复数据，再执行 更新或切换 操作
 
 #### No Target Brokers
-Target Brokers 是指拥有 LogicQueue 的 Broker。
-考察1个场景，如果某个Topic 只有1个 LogicQueue，而拥有这个 LogicQueue 的 Broker 正好宕机了。此时去更新 Topic，会不会误认为该 Topic 不存在？
-解决这个问题的办法是引入 No Target Brokers，也即集群中除去『Target Brokers』之外的 Broker。
-对于 No Target Broker，依然需要写入一份 TopicQueueMapping，带上 epoch 和 totalQueues，但不拥有任何 LogicQueue。
-有了这个信息之后，在进行一致性校验时，就可以识别出上述场景。
+Target Brokers 是指拥有 LogicQueue 的 Broker。  
+考察1个场景，如果某个Topic 只有1个 LogicQueue，而拥有这个 LogicQueue 的 Broker 正好宕机了。此时去更新 Topic，会不会误认为该 Topic 不存在？  
+解决这个问题的办法是引入 No Target Brokers，也即集群中除去『Target Brokers』之外的 Broker。  
+对于 No Target Broker，依然需要写入一份 TopicQueueMapping，带上 epoch 和 totalQueues，但不拥有任何 LogicQueue。  
+有了这个信息之后，在进行一致性校验时，就可以识别出上述场景。  
 
 尤其要注意，如果 Nameserver 中没有任何信息，则需要主动去所有 Broker 拉取一遍。
 
 #### 切换时最新 LogicQueueMappingItem 的 logicOffset 决策问题
-logicOffset的决策，依赖于上一个 PhysicalQueue 的最大位点。
-此时，要么跳跃位点，要么等待上一个 PhysicalQueue 确保已经禁写。
-
-当前实现，为了保障高可用，采用『切新禁旧再切新』的方式，同时跳跃位点。
+logicOffset的决策，依赖于上一个 PhysicalQueue 的最大位点。  
+此时，要么跳跃位点，要么等待上一个 PhysicalQueue 确保已经禁写。  
+当前实现，为了保障高可用，采用『切新禁旧再切新』的方式，同时跳跃位点。  
 
 #### logicOffset 为 -1 时的处理
-此时，可以写，但返回给 客户端的 offset 也是-1
-此时，不可以读最新 PhysicalQueue。
-需要确保，相关查找  MappingItem 的操作，忽略 logicOffset 为-1的Item，否则可能触发位点被重置！
+此时，可以写，但返回给 客户端的 offset 也是-1。  
+此时，不可以读最新 PhysicalQueue。  
+需要确保，相关查找  MappingItem 的操作，忽略 logicOffset 为-1的Item，否则可能触发位点被重置！  
 
 #### 队列重复映射
-如果允许1个 PhysicalQueue 被重复利用，也即多段映射给多个 LogicQueue，或者从非0开始映射。
+如果允许1个 PhysicalQueue 被重复利用，也即多段映射给多个 LogicQueue，或者从非0开始映射。  
 会带来以下麻烦：
 * 所有位点相关的API，需要考虑 MappingItem endOffset，因为超过了 endOffset 可能已经不属于 当前 LogicQueue 了
-* 新建 MappingItem，需要先获取 旧 MappingItem 的 endOffset
+* 新建 MappingItem，需要先获取 旧 MappingItem 的 endOffset  
 
 当前实现，为了保证简洁，禁止 PhysicalQueue 被重复利用，每次更新映射都会让物理层面的 writeQueues++ 和 readQueues++
 后续实现，可以考虑复用已经被清除掉的Physical，也即已经没有数据，位点从0开始。
 
 
 #### 备机更新映射
-当前，admin操作都是要求在Master操作的。因此，没有这个问题。
-Command操作时，提前预判Master是否存在，如果不存在，则提前报错，减少中间失败率。
+当前，admin操作都是要求在Master操作的。因此，没有这个问题。  
+Command操作时，提前预判Master是否存在，如果不存在，则提前报错，减少中间失败率。  
 
 #### 拉取消息时 OutOfRange 的判断
 以下情况会影响 OutOfRange 的判断
