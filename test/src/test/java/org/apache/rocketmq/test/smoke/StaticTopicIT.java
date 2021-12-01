@@ -48,6 +48,7 @@ public class StaticTopicIT extends BaseConf {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty("rocketmq.client.rebalance.waitInterval", "500");
         defaultMQAdminExt = getAdmin(nsAddr);
         waitBrokerRegistered(nsAddr, clusterName);
         clientMetadata = new ClientMetadata();
@@ -173,7 +174,6 @@ public class StaticTopicIT extends BaseConf {
         String topic = "static" + MQRandomUtils.getRandomTopic();
         RMQNormalProducer producer = getProducer(nsAddr, topic);
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
-        producer.getProducer().setPollNameServerInterval(100);
 
         int queueNum = 10;
         int msgEachQueue = 100;
@@ -183,6 +183,9 @@ public class StaticTopicIT extends BaseConf {
             targetBrokers.add(broker1Name);
             createStaticTopic(topic, queueNum, targetBrokers);
         }
+        //System.out.printf("%s %s\n", broker1Name, clientMetadata.findMasterBrokerAddr(broker1Name));
+        //System.out.printf("%s %s\n", broker2Name, clientMetadata.findMasterBrokerAddr(broker2Name));
+
         //produce the messages
         {
             List<MessageQueue> messageQueueList = producer.getMessageQueue();
@@ -202,6 +205,11 @@ public class StaticTopicIT extends BaseConf {
                 Assert.assertEquals(msgEachQueue, defaultMQAdminExt.maxOffset(messageQueue));
             }
         }
+
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 3000);
+        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                consumer.getListener().getAllMsgBody()))
+                .containsExactlyElementsIn(producer.getAllMsgBody());
 
         //remapping the static topic
         {
@@ -242,8 +250,7 @@ public class StaticTopicIT extends BaseConf {
             }
         }
         {
-            consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 3000);
-            System.out.println("Consume: " + consumer.getListener().getAllMsgBody().size());
+            consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 30000);
             assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                     consumer.getListener().getAllMsgBody()))
                     .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -258,7 +265,7 @@ public class StaticTopicIT extends BaseConf {
             Assert.assertEquals(queueNum, messagesByQueue.size());
             for (int i = 0; i < queueNum; i++) {
                 List<MessageExt> messageExts = messagesByQueue.get(i);
-                Assert.assertEquals(msgEachQueue, messageExts.size());
+                Assert.assertEquals(msgEachQueue * 2, messageExts.size());
                 Collections.sort(messageExts, new Comparator<MessageExt>() {
                     @Override
                     public int compare(MessageExt o1, MessageExt o2) {
@@ -268,12 +275,16 @@ public class StaticTopicIT extends BaseConf {
                 for (int j = 0; j < msgEachQueue; j++) {
                     Assert.assertEquals(j, messageExts.get(j).getQueueOffset());
                 }
+                for (int j = msgEachQueue; j < msgEachQueue * 2; j++) {
+                    Assert.assertEquals(j + TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE - msgEachQueue, messageExts.get(j).getQueueOffset());
+                }
             }
         }
     }
 
     @After
     public void tearDown() {
+        System.setProperty("rocketmq.client.rebalance.waitInterval", "20000");
         super.shutdown();
     }
 

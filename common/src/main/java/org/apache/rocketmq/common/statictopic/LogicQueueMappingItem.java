@@ -32,6 +32,10 @@ public class LogicQueueMappingItem extends RemotingSerializable {
     }
 
     public long computeStaticQueueOffsetUpToEnd(long physicalQueueOffset) {
+        //consider the newly mapped item
+        if (logicOffset < 0) {
+            return -1;
+        }
         if (physicalQueueOffset < startOffset) {
             return logicOffset;
         }
@@ -43,6 +47,9 @@ public class LogicQueueMappingItem extends RemotingSerializable {
     }
 
     public long computeStaticQueueOffset(long physicalQueueOffset) {
+        if (logicOffset < 0) {
+            return logicOffset;
+        }
         if (physicalQueueOffset < startOffset) {
             return logicOffset;
         }

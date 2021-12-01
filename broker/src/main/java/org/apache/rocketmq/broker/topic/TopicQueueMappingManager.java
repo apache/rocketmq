@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.topic;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -164,24 +163,24 @@ public class TopicQueueMappingManager extends ConfigManager {
     }
 
     public TopicQueueMappingContext buildTopicQueueMappingContext(TopicQueueRequestHeader requestHeader) {
-        return buildTopicQueueMappingContext(requestHeader, false, Long.MAX_VALUE);
+        return buildTopicQueueMappingContext(requestHeader, false);
     }
 
     //Do not return a null context
-    public TopicQueueMappingContext buildTopicQueueMappingContext(TopicQueueRequestHeader requestHeader, boolean selectOneWhenMiss,  Long globalOffset) {
+    public TopicQueueMappingContext buildTopicQueueMappingContext(TopicQueueRequestHeader requestHeader, boolean selectOneWhenMiss) {
         if (requestHeader.getPhysical() != null
                 && Boolean.TRUE.equals(requestHeader.getPhysical())) {
-            return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, null, null, null);
+            return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, null, null);
         }
         TopicQueueMappingDetail mappingDetail = getTopicQueueMapping(requestHeader.getTopic());
         if (mappingDetail == null) {
             //it is not static topic
-            return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, null, null, null);
+            return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, null, null);
         }
         //If not find mappingItem, it encounters some errors
         Integer globalId = requestHeader.getQueueId();
         if (globalId < 0 && !selectOneWhenMiss) {
-            return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, globalOffset, mappingDetail, null, null);
+            return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, mappingDetail, null, null);
         }
 
         if (globalId < 0) {
@@ -194,24 +193,17 @@ public class TopicQueueMappingManager extends ConfigManager {
             }
         }
         if (globalId < 0) {
-            return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, globalOffset, mappingDetail, null, null);
+            return new TopicQueueMappingContext(requestHeader.getTopic(), globalId,  mappingDetail, null, null);
         }
 
         List<LogicQueueMappingItem> mappingItemList = null;
-        LogicQueueMappingItem mappingItem = null;
-
-        if (globalOffset == null
-                || Long.MAX_VALUE == globalOffset) {
-            mappingItemList = TopicQueueMappingDetail.getMappingInfo(mappingDetail, globalId);
-            if (mappingItemList != null
+        LogicQueueMappingItem leaderItem = null;
+        mappingItemList = TopicQueueMappingDetail.getMappingInfo(mappingDetail, globalId);
+        if (mappingItemList != null
                 && mappingItemList.size() > 0) {
-                mappingItem = mappingItemList.get(mappingItemList.size() - 1);
-            }
-        } else {
-            mappingItemList = TopicQueueMappingDetail.getMappingInfo(mappingDetail, globalId);
-            mappingItem = TopicQueueMappingDetail.findLogicQueueMappingItem(mappingItemList, globalOffset);
+            leaderItem = mappingItemList.get(mappingItemList.size() - 1);
         }
-        return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, globalOffset, mappingDetail, mappingItemList, mappingItem);
+        return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, mappingDetail, mappingItemList, leaderItem);
     }
 
 
@@ -221,11 +213,10 @@ public class TopicQueueMappingManager extends ConfigManager {
                 return null;
             }
             TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
-            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
-            if (mappingItem == null
-                    || !mappingDetail.getBname().equals(mappingItem.getBname())) {
+            if (!mappingContext.isLeader()) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), mappingDetail.getBname()));
             }
+            LogicQueueMappingItem mappingItem = mappingContext.getLeaderItem();
             requestHeader.setQueueId(mappingItem.getQueueId());
             return null;
         } catch (Throwable t) {

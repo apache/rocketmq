@@ -54,6 +54,7 @@ import org.apache.rocketmq.common.rpc.RpcResponse;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
@@ -68,7 +69,6 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -79,7 +79,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
-import static org.apache.rocketmq.remoting.protocol.RemotingCommand.decode;
 
 public class PullMessageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -111,15 +110,14 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             TopicQueueMappingDetail mappingDetail =  mappingContext.getMappingDetail();
             String topic = mappingContext.getTopic();
             Integer globalId = mappingContext.getGlobalId();
-            Long globalOffset = mappingContext.getGlobalOffset();
-
-            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
-            if (mappingItem == null) {
+            // if the leader? consider the order consumer, which will lock the mq
+            if (!mappingContext.isLeader()) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d cannot find mapping item in request process of current broker %s", topic, globalId, mappingDetail.getBname()));
             }
+            Long globalOffset = requestHeader.getQueueOffset();
 
-            //TODO Check if the leader? consider the order consumer, which will lock the mq
-            //
+            LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), globalOffset, true);
+            mappingContext.setCurrentItem(mappingItem);
 
             if (globalOffset < mappingItem.getLogicOffset()) {
                 //handleOffsetMoved
@@ -174,68 +172,122 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
     private RemotingCommand rewriteResponseForStaticTopic(PullMessageRequestHeader requestHeader, PullMessageResponseHeader responseHeader,
                                                           TopicQueueMappingContext mappingContext, final int code) {
         try {
-            if (mappingContext == null) {
+            if (mappingContext.getMappingDetail() == null) {
                 return null;
             }
             TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
-            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
+            LogicQueueMappingItem leaderItem = mappingContext.getLeaderItem();
+
+            LogicQueueMappingItem currentItem = mappingContext.getCurrentItem();
+
+            LogicQueueMappingItem earlistItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), 0L, true);
+
+            assert currentItem.getLogicOffset() >= 0;
 
             long requestOffset = requestHeader.getQueueOffset();
             long nextBeginOffset = responseHeader.getNextBeginOffset();
             long minOffset = responseHeader.getMinOffset();
             long maxOffset = responseHeader.getMaxOffset();
             int responseCode = code;
-            if (responseCode != ResponseCode.SUCCESS
-                    && responseCode != ResponseCode.PULL_RETRY_IMMEDIATELY) {
-                if (mappingContext.isLeader()) {
-                    if (requestOffset < minOffset) {
+            //consider the following situations
+            // 1. read from slave, currently not supported
+            // 2. the middle queue is truncated because of deleting commitlog
+            if (code != ResponseCode.SUCCESS) {
+                //note the currentItem maybe both the leader and  the earliest
+                if (leaderItem.getGen() == currentItem.getGen()) {
+                    //read the leader
+                    if (requestOffset > maxOffset) {
+                        //actually, we need do nothing, but keep the code structure here
+                        if (code == ResponseCode.PULL_OFFSET_MOVED) {
+                            responseCode = ResponseCode.PULL_OFFSET_MOVED;
+                        } else {
+                            //maybe current broker is the slave
+                            responseCode = code;
+                        }
+                    } else  if (requestOffset < minOffset) {
                         nextBeginOffset = minOffset;
-                        responseCode = ResponseCode.PULL_NOT_FOUND;
-                    } else if (requestOffset > maxOffset) {
-                        responseCode = ResponseCode.PULL_OFFSET_MOVED;
-                    } else if (requestOffset == maxOffset) {
-                        responseCode = ResponseCode.PULL_NOT_FOUND;
+                        responseCode = ResponseCode.PULL_RETRY_IMMEDIATELY;
+                    } else {
+                        responseCode = code;
+                    }
+                }
+                //note the currentItem maybe both the leader and  the earliest
+                if (earlistItem.getGen() == currentItem.getGen()) {
+                    //read the earliest one
+                    if (requestOffset < minOffset) {
+                        if (code == ResponseCode.PULL_OFFSET_MOVED) {
+                            responseCode = ResponseCode.PULL_OFFSET_MOVED;
+                        } else {
+                            //maybe read from slave, but we still set it to moved
+                            responseCode = ResponseCode.PULL_OFFSET_MOVED;
+                        }
+                        nextBeginOffset = minOffset;
+                    } else if (requestOffset >= maxOffset) {
+                        //just move to another item
+                        LogicQueueMappingItem nextItem = TopicQueueMappingUtils.findNext(mappingContext.getMappingItemList(), currentItem, true);
+                        if (nextItem != null) {
+                            currentItem = nextItem;
+                            nextBeginOffset = currentItem.getStartOffset();
+                            minOffset = currentItem.getStartOffset();
+                            maxOffset = minOffset;
+                            responseCode = ResponseCode.PULL_RETRY_IMMEDIATELY;
+                        } else {
+                            //maybe the next one's logic offset is -1
+                            responseCode = ResponseCode.PULL_NOT_FOUND;
+                        }
                     } else {
                         //let it go
+                        responseCode = code;
                     }
-                } else {
+                }
+
+                //read from the middle item, ignore the PULL_OFFSET_MOVED
+                if (leaderItem.getGen() != currentItem.getGen()
+                    && earlistItem.getGen() != currentItem.getGen()) {
                     if (requestOffset < minOffset) {
                         nextBeginOffset = minOffset;
-                        responseCode = ResponseCode.PULL_NOT_FOUND;
+                        responseCode = ResponseCode.PULL_RETRY_IMMEDIATELY;
                     } else if (requestOffset >= maxOffset) {
-                        responseCode = ResponseCode.PULL_NOT_FOUND;
                         //just move to another item
-                        mappingItem = mappingContext.findNext();
-                        assert  mappingItem != null;
-                        nextBeginOffset = mappingItem.getStartOffset();
-                        minOffset = mappingItem.getStartOffset();
-                        maxOffset = minOffset;
+                        LogicQueueMappingItem nextItem = TopicQueueMappingUtils.findNext(mappingContext.getMappingItemList(), currentItem, true);
+                        if (nextItem != null) {
+                            currentItem = nextItem;
+                            nextBeginOffset = currentItem.getStartOffset();
+                            minOffset = currentItem.getStartOffset();
+                            maxOffset = minOffset;
+                            responseCode = ResponseCode.PULL_RETRY_IMMEDIATELY;
+                        } else {
+                            //maybe the next one's logic offset is -1
+                            responseCode = ResponseCode.PULL_NOT_FOUND;
+                        }
+                    } else {
+                        responseCode = code;
                     }
                 }
             }
 
             //handle nextBeginOffset
             //the next begin offset should no more than the end offset
-            if (mappingItem.checkIfEndOffsetDecided()
-                    && nextBeginOffset >= mappingItem.getEndOffset()) {
-                nextBeginOffset = mappingItem.getEndOffset();
+            if (currentItem.checkIfEndOffsetDecided()
+                    && nextBeginOffset >= currentItem.getEndOffset()) {
+                nextBeginOffset = currentItem.getEndOffset();
             }
-            responseHeader.setNextBeginOffset(mappingItem.computeStaticQueueOffsetUpToEnd(nextBeginOffset));
+            responseHeader.setNextBeginOffset(currentItem.computeStaticQueueOffsetUpToEnd(nextBeginOffset));
             //handle min offset
-            responseHeader.setMinOffset(mappingItem.computeStaticQueueOffsetUpToEnd(Math.max(mappingItem.getStartOffset(), minOffset)));
+            responseHeader.setMinOffset(currentItem.computeStaticQueueOffsetUpToEnd(Math.max(currentItem.getStartOffset(), minOffset)));
             //handle max offset
-            responseHeader.setMaxOffset(Math.max(mappingItem.computeStaticQueueOffsetUpToEnd(maxOffset),
+            responseHeader.setMaxOffset(Math.max(currentItem.computeStaticQueueOffsetUpToEnd(maxOffset),
                     TopicQueueMappingDetail.computeMaxOffsetFromMapping(mappingDetail, mappingContext.getGlobalId())));
             //set the offsetDelta
-            responseHeader.setOffsetDelta(mappingItem.computeOffsetDelta());
+            responseHeader.setOffsetDelta(currentItem.computeOffsetDelta());
 
-            if (code != ResponseCode.SUCCESS
-                && code != ResponseCode.PULL_RETRY_IMMEDIATELY) {
+            if (code != ResponseCode.SUCCESS) {
                 return RemotingCommand.createResponseCommandWithHeader(responseCode, responseHeader);
             } else {
                 return null;
             }
         } catch (Throwable t) {
+            t.printStackTrace();
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
     }
@@ -292,7 +344,8 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
 
-        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false, requestHeader.getQueueOffset());
+
+        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
 
         {
             RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);

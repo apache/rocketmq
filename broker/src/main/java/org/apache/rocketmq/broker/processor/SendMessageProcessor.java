@@ -101,7 +101,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 if (requestHeader == null) {
                     return CompletableFuture.completedFuture(null);
                 }
-                TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, true, Long.MAX_VALUE);
+                TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, true);
                 RemotingCommand rewriteResult =  this.brokerController.getTopicQueueMappingManager().rewriteRequestForStaticTopic(requestHeader, mappingContext);
                 if (rewriteResult != null) {
                     return CompletableFuture.completedFuture(rewriteResult);
@@ -130,7 +130,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             }
             TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
 
-            LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
+            LogicQueueMappingItem mappingItem = mappingContext.getLeaderItem();
             if (mappingItem == null) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
             }

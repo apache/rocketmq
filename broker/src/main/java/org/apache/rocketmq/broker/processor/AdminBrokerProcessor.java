@@ -109,6 +109,7 @@ import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsSnapshot;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -621,14 +622,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             if (mappingContext.getMappingDetail() == null) {
                 return null;
             }
-            if (requestHeader.getPhysical() != null && requestHeader.getPhysical()) {
-                return null;
-            }
 
             TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
             List<LogicQueueMappingItem> mappingItems = mappingContext.getMappingItemList();
-            if (mappingItems == null
-                    || mappingItems.isEmpty()) {
+            if (!mappingContext.isLeader()) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
             }
             //TODO should make sure the timestampOfOffset is equal or bigger than the searched timestamp
@@ -702,14 +699,10 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (mappingContext.getMappingDetail() == null) {
             return null;
         }
-        if (requestHeader.getPhysical() != null && requestHeader.getPhysical()) {
-            return null;
-        }
 
         TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
-        LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
-        if (mappingItem == null
-                || !mappingDetail.getBname().equals(mappingItem.getBname())) {
+        LogicQueueMappingItem mappingItem = mappingContext.getLeaderItem();
+        if (!mappingContext.isLeader()) {
             return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
         }
         long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(mappingContext.getTopic(), mappingItem.getQueueId());
@@ -750,16 +743,15 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (mappingContext.getMappingDetail() == null) {
             return null;
         }
-        if (requestHeader.getPhysical() != null && requestHeader.getPhysical()) {
-            return null;
-        }
 
         TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
-        LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
-        if (mappingItem == null) {
+        if (!mappingContext.isLeader()) {
             //this may not
             return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
         };
+
+        LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), 0L, true);
+        assert  mappingItem != null;
         try {
             requestHeader.setBname(mappingItem.getBname());
             requestHeader.setPhysical(true);
@@ -786,7 +778,6 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             response.setRemark(null);
             return response;
         } catch (Throwable t) {
-            t.printStackTrace();
             log.error("rewriteRequestForStaticTopic failed", t);
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
@@ -800,7 +791,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             (GetMinOffsetRequestHeader) request.decodeCommandCustomHeader(GetMinOffsetRequestHeader.class);
 
 
-        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false, 0L);
+        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
         RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);
         if (rewriteResult != null) {
             return rewriteResult;
@@ -818,19 +809,18 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (mappingContext.getMappingDetail() == null) {
             return null;
         }
-        if (requestHeader.getPhysical() != null && requestHeader.getPhysical()) {
-            return null;
-        }
+
         TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
-        LogicQueueMappingItem mappingItem = mappingContext.getMappingItem();
-        if (mappingItem == null) {
+        if (!mappingContext.isLeader()) {
             return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
         };
+        LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), 0L, true);
+        assert mappingItem != null;
         try {
             requestHeader.setBname(mappingItem.getBname());
             requestHeader.setPhysical(true);
             RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_MIN_OFFSET, requestHeader, null);
-            //TODO check if it is leader
+            //TODO check if it is in current broker
             RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
             if (rpcResponse.getException() != null) {
                 throw rpcResponse.getException();
@@ -855,7 +845,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         final GetEarliestMsgStoretimeRequestHeader requestHeader =
             (GetEarliestMsgStoretimeRequestHeader) request.decodeCommandCustomHeader(GetEarliestMsgStoretimeRequestHeader.class);
 
-        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false, 0L);
+        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
         RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);
         if (rewriteResult != null) {
             return rewriteResult;

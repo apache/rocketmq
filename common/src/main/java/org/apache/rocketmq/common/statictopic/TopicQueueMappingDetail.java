@@ -77,28 +77,6 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
     }
 
 
-    public static LogicQueueMappingItem findLogicQueueMappingItem(List<LogicQueueMappingItem> mappingItems, long logicOffset) {
-        if (mappingItems == null
-                || mappingItems.isEmpty()) {
-            return null;
-        }
-        //Could use bi-search to polish performance
-        for (int i = mappingItems.size() - 1; i >= 0; i--) {
-            LogicQueueMappingItem item =  mappingItems.get(i);
-            if (item.getLogicOffset() >= 0
-                    && logicOffset >= item.getLogicOffset()) {
-                return item;
-            }
-        }
-        //if not found, maybe out of range, return the first one
-        for (int i = 0; i < mappingItems.size(); i++) {
-            if (!mappingItems.get(i).checkIfShouldDeleted()) {
-                return mappingItems.get(i);
-            }
-        }
-        return null;
-    }
-
     public static long computeMaxOffsetFromMapping(TopicQueueMappingDetail mappingDetail, Integer globalId) {
         List<LogicQueueMappingItem> mappingItems = getMappingInfo(mappingDetail, globalId);
         if (mappingItems == null

@@ -618,4 +618,58 @@ public class TopicQueueMappingUtils {
         return new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_REMAPPING, newEpoch, brokerConfigMap, brokersToMapIn, brokersToMapOut);
     }
 
+    public static LogicQueueMappingItem findLogicQueueMappingItem(List<LogicQueueMappingItem> mappingItems, long logicOffset, boolean ignoreNegative) {
+        if (mappingItems == null
+                || mappingItems.isEmpty()) {
+            return null;
+        }
+        //Could use bi-search to polish performance
+        for (int i = mappingItems.size() - 1; i >= 0; i--) {
+            LogicQueueMappingItem item =  mappingItems.get(i);
+            if (ignoreNegative && item.getLogicOffset() < 0) {
+                continue;
+            }
+            if (logicOffset >= item.getLogicOffset()) {
+                return item;
+            }
+        }
+        //if not found, maybe out of range, return the first one
+        for (int i = 0; i < mappingItems.size(); i++) {
+            LogicQueueMappingItem item =  mappingItems.get(i);
+            if (ignoreNegative && item.getLogicOffset() < 0) {
+                continue;
+            }
+            if (!item.checkIfShouldDeleted()) {
+                return mappingItems.get(i);
+            }
+        }
+        return null;
+    }
+
+    public static LogicQueueMappingItem findNext(List<LogicQueueMappingItem> items, LogicQueueMappingItem currentItem, boolean ignoreNegative) {
+        if (items == null
+            || currentItem == null) {
+            return null;
+        }
+        for (int i = 0; i < items.size(); i++) {
+            LogicQueueMappingItem item = items.get(i);
+            if (ignoreNegative && item.getLogicOffset() < 0) {
+                continue;
+            }
+            if (item.getGen() == currentItem.getGen()) {
+                if (i < items.size() - 1) {
+                    item = items.get(i  + 1);
+                    if (ignoreNegative && item.getLogicOffset() < 0) {
+                        return null;
+                    } else {
+                        return item;
+                    }
+                } else {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
 }

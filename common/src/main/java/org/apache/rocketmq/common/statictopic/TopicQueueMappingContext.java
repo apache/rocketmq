@@ -23,18 +23,18 @@ import java.util.List;
 public class TopicQueueMappingContext  {
     private String topic;
     private Integer globalId;
-    private Long globalOffset;
     private TopicQueueMappingDetail mappingDetail;
     private List<LogicQueueMappingItem> mappingItemList;
-    private LogicQueueMappingItem mappingItem;
+    private LogicQueueMappingItem leaderItem;
 
-    public TopicQueueMappingContext(String topic, Integer globalId, Long globalOffset, TopicQueueMappingDetail mappingDetail, List<LogicQueueMappingItem> mappingItemList, LogicQueueMappingItem mappingItem) {
+    private LogicQueueMappingItem currentItem;
+
+    public TopicQueueMappingContext(String topic, Integer globalId, TopicQueueMappingDetail mappingDetail, List<LogicQueueMappingItem> mappingItemList, LogicQueueMappingItem leaderItem) {
         this.topic = topic;
         this.globalId = globalId;
-        this.globalOffset = globalOffset;
         this.mappingDetail = mappingDetail;
         this.mappingItemList = mappingItemList;
-        this.mappingItem = mappingItem;
+        this.leaderItem = leaderItem;
 
     }
 
@@ -45,33 +45,7 @@ public class TopicQueueMappingContext  {
     }
 
     public boolean isLeader() {
-        if (mappingDetail == null
-                || mappingItemList == null
-                || mappingItemList.isEmpty()) {
-            return false;
-        }
-        LogicQueueMappingItem mappingItem = mappingItemList.get(mappingItemList.size() - 1);
-        return mappingItem.getBname().equals(mappingDetail.getBname());
-    }
-
-    public LogicQueueMappingItem findNext() {
-        if (mappingDetail == null
-                || mappingItem == null
-                || mappingItemList == null
-                || mappingItemList.isEmpty()) {
-            return null;
-        }
-        for (int i = 0; i < mappingItemList.size(); i++) {
-            LogicQueueMappingItem item = mappingItemList.get(i);
-            if (item.getGen() == mappingItem.getGen()) {
-                if (i < mappingItemList.size() - 1) {
-                    return mappingItemList.get(i + 1);
-                } else {
-                    return null;
-                }
-            }
-        }
-        return null;
+        return leaderItem != null && leaderItem.getBname().equals(mappingDetail.getBname());
     }
 
 
@@ -91,13 +65,6 @@ public class TopicQueueMappingContext  {
         this.globalId = globalId;
     }
 
-    public Long getGlobalOffset() {
-        return globalOffset;
-    }
-
-    public void setGlobalOffset(Long globalOffset) {
-        this.globalOffset = globalOffset;
-    }
 
     public TopicQueueMappingDetail getMappingDetail() {
         return mappingDetail;
@@ -115,13 +82,23 @@ public class TopicQueueMappingContext  {
         this.mappingItemList = mappingItemList;
     }
 
-    public LogicQueueMappingItem getMappingItem() {
-        return mappingItem;
+    public LogicQueueMappingItem getLeaderItem() {
+        return leaderItem;
     }
 
-    public void setMappingItem(LogicQueueMappingItem mappingItem) {
-        this.mappingItem = mappingItem;
+    public void setLeaderItem(LogicQueueMappingItem leaderItem) {
+        this.leaderItem = leaderItem;
     }
 
+    public LogicQueueMappingItem getCurrentItem() {
+        return currentItem;
+    }
 
+    public void setCurrentItem(LogicQueueMappingItem currentItem) {
+        this.currentItem = currentItem;
+    }
+
+    public void setMappingItemList(List<LogicQueueMappingItem> mappingItemList) {
+        this.mappingItemList = mappingItemList;
+    }
 }
