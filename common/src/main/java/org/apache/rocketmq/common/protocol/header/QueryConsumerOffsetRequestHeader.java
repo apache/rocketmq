@@ -32,6 +32,8 @@ public class QueryConsumerOffsetRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private Integer queueId;
 
+    private Boolean setZeroIfNotFound;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -62,5 +64,13 @@ public class QueryConsumerOffsetRequestHeader extends TopicQueueRequestHeader {
     @Override
     public void setQueueId(Integer queueId) {
         this.queueId = queueId;
+    }
+
+    public Boolean getSetZeroIfNotFound() {
+        return setZeroIfNotFound;
+    }
+
+    public void setSetZeroIfNotFound(Boolean setZeroIfNotFound) {
+        this.setZeroIfNotFound = setZeroIfNotFound;
     }
 }

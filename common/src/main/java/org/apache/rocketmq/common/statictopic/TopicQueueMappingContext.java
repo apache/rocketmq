@@ -38,11 +38,6 @@ public class TopicQueueMappingContext  {
 
     }
 
-    public boolean checkIfAsPhysical() {
-        return mappingDetail == null
-                || mappingItemList == null
-                || (mappingItemList.size() == 1 &&  mappingItemList.get(0).getLogicOffset() == 0);
-    }
 
     public boolean isLeader() {
         return leaderItem != null && leaderItem.getBname().equals(mappingDetail.getBname());
