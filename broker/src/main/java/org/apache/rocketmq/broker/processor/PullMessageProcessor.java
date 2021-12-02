@@ -200,6 +200,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                         //actually, we need do nothing, but keep the code structure here
                         if (code == ResponseCode.PULL_OFFSET_MOVED) {
                             responseCode = ResponseCode.PULL_OFFSET_MOVED;
+                            nextBeginOffset = maxOffset;
                         } else {
                             //maybe current broker is the slave
                             responseCode = code;
@@ -217,11 +218,12 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                     if (requestOffset < minOffset) {
                         if (code == ResponseCode.PULL_OFFSET_MOVED) {
                             responseCode = ResponseCode.PULL_OFFSET_MOVED;
+                            nextBeginOffset = minOffset;
                         } else {
                             //maybe read from slave, but we still set it to moved
                             responseCode = ResponseCode.PULL_OFFSET_MOVED;
+                            nextBeginOffset = minOffset;
                         }
-                        nextBeginOffset = minOffset;
                     } else if (requestOffset >= maxOffset) {
                         //just move to another item
                         LogicQueueMappingItem nextItem = TopicQueueMappingUtils.findNext(mappingContext.getMappingItemList(), currentItem, true);
