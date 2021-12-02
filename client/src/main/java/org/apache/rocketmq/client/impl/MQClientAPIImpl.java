@@ -30,6 +30,7 @@ import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.MQRedirectException;
+import org.apache.rocketmq.client.exception.OffsetNotFoundException;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
@@ -1232,8 +1233,10 @@ public class MQClientAPIImpl {
             case ResponseCode.SUCCESS: {
                 QueryConsumerOffsetResponseHeader responseHeader =
                     (QueryConsumerOffsetResponseHeader) response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
-
                 return responseHeader.getOffset();
+            }
+            case ResponseCode.PULL_NOT_FOUND:{
+                throw new OffsetNotFoundException(response.getCode(), response.getRemark(), addr);
             }
             default:
                 break;

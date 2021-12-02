@@ -28,6 +28,7 @@ import org.junit.Test;
 import sun.jvm.hotspot.runtime.aarch64.AARCH64CurrentFrameGuess;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -144,24 +145,11 @@ public class StaticTopicIT extends BaseConf {
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                 consumer.getListener().getAllMsgBody()))
                 .containsExactlyElementsIn(producer.getAllMsgBody());
-        Map<Integer, List<MessageExt>> messagesByQueue = new HashMap<>();
-        for (Object object : consumer.getListener().getAllOriginMsg()) {
-            MessageExt messageExt = (MessageExt) object;
-            if (!messagesByQueue.containsKey(messageExt.getQueueId())) {
-                messagesByQueue.put(messageExt.getQueueId(), new ArrayList<>());
-            }
-            messagesByQueue.get(messageExt.getQueueId()).add(messageExt);
-        }
+        Map<Integer, List<MessageExt>> messagesByQueue = computeMessageByQueue(consumer.getListener().getAllOriginMsg());
         Assert.assertEquals(queueNum, messagesByQueue.size());
         for (int i = 0; i < queueNum; i++) {
             List<MessageExt> messageExts = messagesByQueue.get(i);
             Assert.assertEquals(msgEachQueue, messageExts.size());
-            Collections.sort(messageExts, new Comparator<MessageExt>() {
-                @Override
-                public int compare(MessageExt o1, MessageExt o2) {
-                    return (int) (o1.getQueueOffset() - o2.getQueueOffset());
-                }
-            });
             for (int j = 0; j < msgEachQueue; j++) {
                 Assert.assertEquals(j, messageExts.get(j).getQueueOffset());
             }
@@ -169,11 +157,118 @@ public class StaticTopicIT extends BaseConf {
     }
 
 
+    private Map<Integer, List<MessageExt>> computeMessageByQueue(Collection<Object> msgs) {
+        Map<Integer, List<MessageExt>> messagesByQueue = new HashMap<>();
+        for (Object object : msgs) {
+            MessageExt messageExt = (MessageExt) object;
+            if (!messagesByQueue.containsKey(messageExt.getQueueId())) {
+                messagesByQueue.put(messageExt.getQueueId(), new ArrayList<>());
+            }
+            messagesByQueue.get(messageExt.getQueueId()).add(messageExt);
+        }
+        for (List<MessageExt> msgEachQueue: messagesByQueue.values()) {
+            Collections.sort(msgEachQueue, new Comparator<MessageExt>() {
+                @Override
+                public int compare(MessageExt o1, MessageExt o2) {
+                    return (int) (o1.getQueueOffset() - o2.getQueueOffset());
+                }
+            });
+        }
+        return messagesByQueue;
+    }
+
+    @Test
+    public void testDoubleReadCheck() throws Exception {
+        String topic = "static" + MQRandomUtils.getRandomTopic();
+        String group = initConsumerGroup();
+        RMQNormalProducer producer = getProducer(nsAddr, topic);
+
+        RMQNormalConsumer consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
+
+        //System.out.printf("Group:%s\n", consumer.getConsumerGroup());
+        //System.out.printf("Topic:%s\n", topic);
+
+        int queueNum = 10;
+        int msgEachQueue = 100;
+        //create static topic
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker1Name);
+            createStaticTopic(topic, queueNum, targetBrokers);
+        }
+        //produce the messages
+        {
+            List<MessageQueue> messageQueueList = producer.getMessageQueue();
+            for(MessageQueue messageQueue: messageQueueList) {
+                producer.send(msgEachQueue, messageQueue);
+            }
+            Assert.assertEquals(0, producer.getSendErrorMsg().size());
+            Assert.assertEquals(msgEachQueue * queueNum, producer.getAllMsgBody().size());
+        }
+
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 3000);
+        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                consumer.getListener().getAllMsgBody()))
+                .containsExactlyElementsIn(producer.getAllMsgBody());
+        producer.shutdown();
+        consumer.shutdown();
+
+        //remapping the static topic
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker2Name);
+            remappingStaticTopic(topic, targetBrokers);
+
+        }
+        //make the metadata
+        Thread.sleep(500);
+        //System.out.printf("Group:%s\n", consumer.getConsumerGroup());
+
+        {
+            producer = getProducer(nsAddr, topic);
+            //just refresh the metadata
+            defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
+            List<MessageQueue> messageQueueList = producer.getMessageQueue();
+            for(MessageQueue messageQueue: messageQueueList) {
+                producer.send(msgEachQueue, messageQueue);
+                Assert.assertEquals(broker2Name, clientMetadata.getBrokerNameFromMessageQueue(messageQueue));
+            }
+            Assert.assertEquals(0, producer.getSendErrorMsg().size());
+            Assert.assertEquals(msgEachQueue * queueNum, producer.getAllMsgBody().size());
+            for(MessageQueue messageQueue: messageQueueList) {
+                Assert.assertEquals(0, defaultMQAdminExt.minOffset(messageQueue));
+                Assert.assertEquals(msgEachQueue + TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, defaultMQAdminExt.maxOffset(messageQueue));
+            }
+            //leave the time to build the cq
+            Thread.sleep(100);
+        }
+        {
+            consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
+            consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 6000);
+            //System.out.printf("Consume %d\n", consumer.getListener().getAllMsgBody().size());
+            assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                    consumer.getListener().getAllMsgBody()))
+                    .containsExactlyElementsIn(producer.getAllMsgBody());
+
+            Map<Integer, List<MessageExt>> messagesByQueue = computeMessageByQueue(consumer.getListener().getAllOriginMsg());
+
+            Assert.assertEquals(queueNum, messagesByQueue.size());
+            for (int i = 0; i < queueNum; i++) {
+                List<MessageExt> messageExts = messagesByQueue.get(i);
+                Assert.assertEquals(msgEachQueue, messageExts.size());
+                for (int j = 0; j < msgEachQueue; j++) {
+                    Assert.assertEquals(j + TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, messageExts.get(j).getQueueOffset());
+                }
+            }
+        }
+    }
+
     @Test
     public void testRemappingProduceConsumeStaticTopic() throws Exception {
         String topic = "static" + MQRandomUtils.getRandomTopic();
         RMQNormalProducer producer = getProducer(nsAddr, topic);
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+
 
         int queueNum = 10;
         int msgEachQueue = 100;
@@ -254,24 +349,11 @@ public class StaticTopicIT extends BaseConf {
             assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                     consumer.getListener().getAllMsgBody()))
                     .containsExactlyElementsIn(producer.getAllMsgBody());
-            Map<Integer, List<MessageExt>> messagesByQueue = new HashMap<>();
-            for (Object object : consumer.getListener().getAllOriginMsg()) {
-                MessageExt messageExt = (MessageExt) object;
-                if (!messagesByQueue.containsKey(messageExt.getQueueId())) {
-                    messagesByQueue.put(messageExt.getQueueId(), new ArrayList<>());
-                }
-                messagesByQueue.get(messageExt.getQueueId()).add(messageExt);
-            }
+            Map<Integer, List<MessageExt>> messagesByQueue = computeMessageByQueue(consumer.getListener().getAllOriginMsg());
             Assert.assertEquals(queueNum, messagesByQueue.size());
             for (int i = 0; i < queueNum; i++) {
                 List<MessageExt> messageExts = messagesByQueue.get(i);
                 Assert.assertEquals(msgEachQueue * 2, messageExts.size());
-                Collections.sort(messageExts, new Comparator<MessageExt>() {
-                    @Override
-                    public int compare(MessageExt o1, MessageExt o2) {
-                        return (int) (o1.getQueueOffset() - o2.getQueueOffset());
-                    }
-                });
                 for (int j = 0; j < msgEachQueue; j++) {
                     Assert.assertEquals(j, messageExts.get(j).getQueueOffset());
                 }

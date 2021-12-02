@@ -709,6 +709,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         offset = mappingItem.computeStaticQueueOffsetUpToEnd(offset);
 
+
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
         final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
         responseHeader.setOffset(offset);

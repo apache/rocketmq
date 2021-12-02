@@ -25,11 +25,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.OffsetNotFoundException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
@@ -94,7 +96,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                         return brokerOffset;
                     }
                     // No offset in broker
-                    catch (MQBrokerException e) {
+                    catch (OffsetNotFoundException e) {
                         return -1;
                     }
                     //Other exceptions
@@ -108,7 +110,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             }
         }
 
-        return -1;
+        return -3;
     }
 
     @Override
