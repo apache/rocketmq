@@ -715,48 +715,42 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         sendMessageBack(msg, delayLevel, null, mq);
     }
 
+
     private void sendMessageBack(MessageExt msg, int delayLevel, final String brokerName, final MessageQueue mq)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            String desBrokerName = brokerName;
-            if (mq != null) {
-                String tmpBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(mq);
-                if (tmpBrokerName != null) {
-                    desBrokerName = tmpBrokerName;
-                }
-            }
-            if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(desBrokerName)) {
-                desBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(this.defaultMQPushConsumer.queueWithNamespace(new MessageQueue(msg.getTopic(), msg.getBrokerName(), msg.getQueueId())));
-            }
-
-            String brokerAddr = null;
-            if (null != desBrokerName) {
-                brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(desBrokerName);
+            if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(brokerName)
+                || (mq != null && MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(mq.getBrokerName()))) {
+                sendMessageBackAsNormalMessage(msg);
             } else {
-                RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+                String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
+                        : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+                this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
+                        this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, getMaxReconsumeTimes());
             }
-            this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, msg,
-                this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, getMaxReconsumeTimes());
         } catch (Exception e) {
             log.error("sendMessageBack Exception, " + this.defaultMQPushConsumer.getConsumerGroup(), e);
-
-            Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
-
-            String originMsgId = MessageAccessor.getOriginMessageId(msg);
-            MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
-
-            newMsg.setFlag(msg.getFlag());
-            MessageAccessor.setProperties(newMsg, msg.getProperties());
-            MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
-            MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
-            MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
-            MessageAccessor.clearProperty(newMsg, MessageConst.PROPERTY_TRANSACTION_PREPARED);
-            newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
-
-            this.mQClientFactory.getDefaultMQProducer().send(newMsg);
+            sendMessageBackAsNormalMessage(msg);
         } finally {
             msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultMQPushConsumer.getNamespace()));
         }
+    }
+
+    private void sendMessageBackAsNormalMessage(MessageExt msg) throws  RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
+
+        String originMsgId = MessageAccessor.getOriginMessageId(msg);
+        MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
+
+        newMsg.setFlag(msg.getFlag());
+        MessageAccessor.setProperties(newMsg, msg.getProperties());
+        MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
+        MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
+        MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
+        MessageAccessor.clearProperty(newMsg, MessageConst.PROPERTY_TRANSACTION_PREPARED);
+        newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
+
+        this.mQClientFactory.getDefaultMQProducer().send(newMsg);
     }
 
     void ackAsync(MessageExt message, String consumerGroup) {

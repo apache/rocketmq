@@ -385,9 +385,8 @@ logicOffset的决策，依赖于上一个 PhysicalQueue 的最大位点。
 * 所有位点相关的API，需要考虑 MappingItem endOffset，因为超过了 endOffset 可能已经不属于 当前 LogicQueue 了
 * 新建 MappingItem，需要先获取 旧 MappingItem 的 endOffset  
 
-当前实现，为了保证简洁，禁止 PhysicalQueue 被重复利用，每次更新映射都会让物理层面的 writeQueues++ 和 readQueues++
+当前实现，为了保证简洁，禁止 PhysicalQueue 被重复利用，每次更新映射都会让物理层面的 writeQueues++ 和 readQueues++。  
 后续实现，可以考虑复用已经被清除掉的Physical，也即已经没有数据，位点从0开始。
-
 
 #### 备机更新映射
 当前，admin操作都是要求在Master操作的。因此，没有这个问题。  
@@ -411,10 +410,9 @@ Command操作时，提前预判Master是否存在，如果不存在，则提前�
 #### 拉取消息时的 中断问题
 当1个 PhysicalQueue 被拉取干净时，需要修正 nextBeginOffset 到下一个 PhysicalQueue。
 如果没有处理好，则直接会导致拉取中断，无法前进。
-
-
 #### pullResult 位点由谁设置的问题
-类似于Batch，由客户端设置，避免服务端解开消息。
+类似于Batch，由客户端设置，避免服务端解开消息：  
+在PullResultExt中新增字段 offsetDelta。
 #### 远程读的性能问题
 从实战经验来看，性能损耗几乎不计。
 #### 使用习惯的改变
