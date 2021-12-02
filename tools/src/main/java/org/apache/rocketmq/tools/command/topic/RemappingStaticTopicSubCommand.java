@@ -20,6 +20,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
@@ -30,6 +31,7 @@ import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.admin.MQAdminUtils;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -87,7 +89,6 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        ClientMetadata clientMetadata = new ClientMetadata();
 
         try {
             String topic = commandLine.getOptionValue('t').trim();
@@ -99,24 +100,12 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
             TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, wrapper.getBrokerConfigMap());
             TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(wrapper.getBrokerConfigMap().values())), false, true);
 
-            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-            if (clusterInfo == null
-                    || clusterInfo.getClusterAddrTable().isEmpty()) {
-                throw new RuntimeException("The Cluster info is empty");
-            }
-            clientMetadata.refreshClusterInfo(clusterInfo);
 
             boolean force = false;
             if (commandLine.hasOption("fr") && Boolean.parseBoolean(commandLine.getOptionValue("fr").trim())) {
                 force = true;
             }
-            for (String broker : wrapper.getBrokerConfigMap().keySet()) {
-                String addr = clientMetadata.findMasterBrokerAddr(broker);
-                if (addr == null) {
-                    throw new RuntimeException("Can't find addr for broker " + broker);
-                }
-            }
-            defaultMQAdminExt.remappingStaticTopic(clientMetadata, topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), wrapper.getBrokerConfigMap(), 10000, force);
+            MQAdminUtils.remappingStaticTopic(topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), wrapper.getBrokerConfigMap(), 10000, force, defaultMQAdminExt);
             return;
         }catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
@@ -159,7 +148,6 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
                     || clusterInfo.getClusterAddrTable().isEmpty()) {
                 throw new RuntimeException("The Cluster info is empty");
             }
-            clientMetadata.refreshClusterInfo(clusterInfo);
             {
                 if (commandLine.hasOption("b")) {
                     String brokerStrs = commandLine.getOptionValue("b").trim();
@@ -186,7 +174,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
                 }
             }
 
-            brokerConfigMap  = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
+            brokerConfigMap  = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
             if (brokerConfigMap.isEmpty()) {
                 throw new RuntimeException("No topic route to do the remapping");
             }
@@ -204,7 +192,9 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
                 System.out.println("The old mapping data is written to file " + newMappingDataFile);
             }
 
-            defaultMQAdminExt.remappingStaticTopic(clientMetadata, topic, newWrapper.getBrokerToMapIn(), newWrapper.getBrokerToMapOut(), newWrapper.getBrokerConfigMap(), 10000, false);
+            MQAdminUtils.completeNoTargetBrokers(newWrapper.getBrokerConfigMap(), defaultMQAdminExt);
+
+            MQAdminUtils.remappingStaticTopic(topic, newWrapper.getBrokerToMapIn(), newWrapper.getBrokerToMapOut(), newWrapper.getBrokerConfigMap(), 10000, false, defaultMQAdminExt);
 
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

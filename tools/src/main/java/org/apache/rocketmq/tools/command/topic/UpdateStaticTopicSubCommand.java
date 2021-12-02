@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.admin.MQAdminUtils;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
@@ -106,14 +107,8 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             }
             TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(wrapper.getBrokerConfigMap().values())), false, true);
 
-            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-            if (clusterInfo == null
-                    || clusterInfo.getClusterAddrTable().isEmpty()) {
-                throw new RuntimeException("The Cluster info is empty");
-            }
-            clientMetadata.refreshClusterInfo(clusterInfo);
-
-            doUpdate(wrapper.getBrokerConfigMap(), clientMetadata, defaultMQAdminExt, force);
+            MQAdminUtils.completeNoTargetBrokers(wrapper.getBrokerConfigMap(), defaultMQAdminExt);
+            MQAdminUtils.updateTopicConfigMappingAll(wrapper.getBrokerConfigMap(), defaultMQAdminExt, false);
             return;
         }catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
@@ -122,22 +117,6 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         }
     }
 
-    public void doUpdate(Map<String, TopicConfigAndQueueMapping> brokerConfigMap, ClientMetadata clientMetadata, DefaultMQAdminExt defaultMQAdminExt, boolean force) throws Exception {
-        //check it before
-        for (String broker : brokerConfigMap.keySet()) {
-            String addr = clientMetadata.findMasterBrokerAddr(broker);
-            if (addr == null) {
-                throw new RuntimeException("Can't find addr for broker " + broker);
-            }
-        }
-        //If some succeed, and others fail, it will cause inconsistent data
-        for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
-            String broker = entry.getKey();
-            String addr = clientMetadata.findMasterBrokerAddr(broker);
-            TopicConfigAndQueueMapping configMapping = entry.getValue();
-            defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
-        }
-    }
 
 
     @Override
@@ -155,7 +134,6 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        ClientMetadata clientMetadata = new ClientMetadata();
 
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<>();
         Set<String> targetBrokers = new HashSet<>();
@@ -173,7 +151,6 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                     || clusterInfo.getClusterAddrTable().isEmpty()) {
                 throw new RuntimeException("The Cluster info is empty");
             }
-            clientMetadata.refreshClusterInfo(clusterInfo);
             {
                 if (commandLine.hasOption("b")) {
                     String brokerStrs = commandLine.getOptionValue("b").trim();
@@ -192,17 +169,11 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                 if (targetBrokers.isEmpty()) {
                     throw new RuntimeException("Find none brokers, do nothing");
                 }
-                for (String broker : targetBrokers) {
-                    String addr = clientMetadata.findMasterBrokerAddr(broker);
-                    if (addr == null) {
-                        throw new RuntimeException("Can't find addr for broker " + broker);
-                    }
-                }
             }
 
             //get the existed topic config and mapping
 
-            brokerConfigMap = defaultMQAdminExt.examineTopicConfigAll(clientMetadata, topic);
+            brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
             int queueNum = Integer.parseInt(commandLine.getOptionValue("qn").trim());
 
             Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<>(System.currentTimeMillis(), queueNum);
@@ -219,15 +190,15 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             targetBrokers.addAll(brokerConfigMap.keySet());
 
             //calculate the new data
-            TopicRemappingDetailWrapper newWrapper = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, new HashSet<>(), brokerConfigMap);
+            TopicRemappingDetailWrapper newWrapper = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
 
             {
                 String newMappingDataFile = TopicQueueMappingUtils.writeToTemp(newWrapper, true);
                 System.out.println("The new mapping data is written to file " + newMappingDataFile);
             }
 
-            doUpdate(newWrapper.getBrokerConfigMap(), clientMetadata, defaultMQAdminExt, false);
-
+            MQAdminUtils.completeNoTargetBrokers(brokerConfigMap, defaultMQAdminExt);
+            MQAdminUtils.updateTopicConfigMappingAll(brokerConfigMap, defaultMQAdminExt, false);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

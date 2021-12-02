@@ -422,9 +422,8 @@ public class TopicQueueMappingUtils {
         }
     }
 
-    public static TopicRemappingDetailWrapper createTopicConfigMapping(String topic, int queueNum, Set<String> targetBrokers, Set<String> nonTargetBrokers,  Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
+    public static TopicRemappingDetailWrapper createTopicConfigMapping(String topic, int queueNum, Set<String> targetBrokers, Map<String, TopicConfigAndQueueMapping> brokerConfigMap) {
         checkTargetBrokersComplete(targetBrokers, brokerConfigMap);
-        checkNonTargetBrokers(targetBrokers, nonTargetBrokers);
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<Integer, TopicQueueMappingOne>();
         Map.Entry<Long, Integer> maxEpochAndNum = new AbstractMap.SimpleImmutableEntry<Long, Integer>(System.currentTimeMillis(), queueNum);
         if (!brokerConfigMap.isEmpty()) {
@@ -484,12 +483,6 @@ public class TopicQueueMappingUtils {
             TopicQueueMappingDetail.putMappingInfo(configMapping.getMappingDetail(), queueId, new ArrayList<LogicQueueMappingItem>(Collections.singletonList(mappingItem)));
         }
 
-        //set the non target brokers
-        for (String broker : nonTargetBrokers) {
-            if (!brokerConfigMap.containsKey(broker)) {
-                brokerConfigMap.put(broker, new TopicConfigAndQueueMapping(new TopicConfig(topic, 0, 0), new TopicQueueMappingDetail(topic, queueNum, broker, newEpoch)));
-            }
-        }
         // set the topic config
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
             TopicConfigAndQueueMapping configMapping = entry.getValue();

@@ -220,11 +220,6 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public Map<String, TopicConfigAndQueueMapping> examineTopicConfigAll(ClientMetadata clientMetadata, String topic) throws RemotingException,  InterruptedException, MQBrokerException {
-        return this.defaultMQAdminExtImpl.examineTopicConfigAll(clientMetadata, topic);
-    }
-
-    @Override
     public TopicStatsTable examineTopicStats(
         String topic) throws RemotingException, MQClientException, InterruptedException,
         MQBrokerException {
@@ -621,9 +616,5 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         this.defaultMQAdminExtImpl.createStaticTopic(addr, defaultTopic, topicConfig, mappingDetail, force);
     }
 
-    @Override
-    public void remappingStaticTopic(ClientMetadata clientMetadata, String topic, Set<String> brokersToMapIn, Set<String> brokersToMapOut, Map<String, TopicConfigAndQueueMapping> brokerConfigMap, int blockSeqSize, boolean force) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        this.defaultMQAdminExtImpl.remappingStaticTopic(clientMetadata, topic, brokersToMapIn, brokersToMapOut, brokerConfigMap, blockSeqSize, force);
-    }
 
 }

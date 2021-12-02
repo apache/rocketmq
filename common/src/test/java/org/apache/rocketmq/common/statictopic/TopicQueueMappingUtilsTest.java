@@ -128,9 +128,9 @@ public class TopicQueueMappingUtilsTest {
             Set<String> targetBrokers = buildTargetBrokers(2 * i);
             Set<String> nonTargetBrokers = buildTargetBrokers(2 * i, "test");
             queueNum = 10 * i;
-            TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, nonTargetBrokers, brokerConfigMap);
+            TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
             Assert.assertEquals(wrapper.getBrokerConfigMap(), brokerConfigMap);
-            Assert.assertEquals(4 * i, brokerConfigMap.size());
+            Assert.assertEquals(2 * i, brokerConfigMap.size());
 
             //do the check manually
             Map.Entry<Long, Integer> maxEpochAndNum = TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, brokerConfigMap);
@@ -168,7 +168,7 @@ public class TopicQueueMappingUtilsTest {
         int queueNum = 7;
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
         Set<String>  originalBrokers = buildTargetBrokers(2);
-        TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, originalBrokers, new HashSet<String>(), brokerConfigMap);
+        TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, originalBrokers, brokerConfigMap);
         Assert.assertEquals(wrapper.getBrokerConfigMap(), brokerConfigMap);
         Assert.assertEquals(2, brokerConfigMap.size());
 
@@ -213,7 +213,7 @@ public class TopicQueueMappingUtilsTest {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
         Set<String>  originalBrokers = buildTargetBrokers(2);
         {
-            TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, originalBrokers, new HashSet<String>(), brokerConfigMap);
+            TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, originalBrokers,  brokerConfigMap);
             Assert.assertEquals(wrapper.getBrokerConfigMap(), brokerConfigMap);
             Assert.assertEquals(2, brokerConfigMap.size());
         }
@@ -234,7 +234,7 @@ public class TopicQueueMappingUtilsTest {
         int queueNum = 10;
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<String, TopicConfigAndQueueMapping>();
         Set<String> targetBrokers = buildTargetBrokers(2);
-        TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, new HashSet<String>(), brokerConfigMap);
+        TopicRemappingDetailWrapper wrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
         Assert.assertEquals(wrapper.getBrokerConfigMap(), brokerConfigMap);
         Assert.assertEquals(2, brokerConfigMap.size());
         TopicConfigAndQueueMapping configMapping = brokerConfigMap.values().iterator().next();

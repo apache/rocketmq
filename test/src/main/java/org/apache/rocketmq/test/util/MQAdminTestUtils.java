@@ -18,6 +18,7 @@
 package org.apache.rocketmq.test.util;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ForkJoinPool;
@@ -25,12 +26,16 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
+import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.admin.MQAdminUtils;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
-public class MQAdmin {
-    private static Logger log = Logger.getLogger(MQAdmin.class);
+public class MQAdminTestUtils {
+    private static Logger log = Logger.getLogger(MQAdminTestUtils.class);
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
         int queueNum) {
@@ -161,6 +166,25 @@ public class MQAdmin {
             e.printStackTrace();
         }
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
+    }
+
+    //should only be test, if some middle operation failed, it dose not backup the brokerConfigMap
+    public static Map<String, TopicConfigAndQueueMapping> createStaticTopic(String topic, int queueNum, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
+        assert  brokerConfigMap.isEmpty();
+        TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
+        MQAdminUtils.completeNoTargetBrokers(brokerConfigMap, defaultMQAdminExt);
+        MQAdminUtils.updateTopicConfigMappingAll(brokerConfigMap, defaultMQAdminExt, false);
+        return brokerConfigMap;
+    }
+
+    //should only be test, if some middle operation failed, it dose not backup the brokerConfigMap
+    public static void remappingStaticTopic(String topic, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
+        assert !brokerConfigMap.isEmpty();
+        TopicRemappingDetailWrapper wrapper = TopicQueueMappingUtils.remappingStaticTopic(topic, brokerConfigMap, targetBrokers);
+        MQAdminUtils.completeNoTargetBrokers(brokerConfigMap, defaultMQAdminExt);
+        MQAdminUtils.remappingStaticTopic(topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), brokerConfigMap, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, false, defaultMQAdminExt);
     }
 
 }

@@ -31,8 +31,6 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.MQPullConsumer;
 import org.apache.rocketmq.client.consumer.MQPushConsumer;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MQProducer;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.MQVersion;
@@ -47,7 +45,7 @@ import org.apache.rocketmq.test.clientinterface.AbstractMQConsumer;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.AbstractListener;
-import org.apache.rocketmq.test.util.MQAdmin;
+import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
@@ -122,7 +120,7 @@ public class BaseConf {
     }
 
     public static String initConsumerGroup(String group) {
-        MQAdmin.createSub(nsAddr, clusterName, group);
+        MQAdminTestUtils.createSub(nsAddr, clusterName, group);
         return group;
     }
 
