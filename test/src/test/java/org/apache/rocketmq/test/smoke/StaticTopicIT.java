@@ -52,6 +52,7 @@ public class StaticTopicIT extends BaseConf {
         defaultMQAdminExt.start();
     }
 
+
     @Test
     public void testNoTargetBrokers() throws Exception {
         String topic = "static" + MQRandomUtils.getRandomTopic();
@@ -356,6 +357,85 @@ public class StaticTopicIT extends BaseConf {
             }
         }
     }
+
+    @Test
+    public void testRemappingWithNegativeLogicOffset() throws Exception {
+        String topic = "static" + MQRandomUtils.getRandomTopic();
+        RMQNormalProducer producer = getProducer(nsAddr, topic);
+        int queueNum = 10;
+        int msgEachQueue = 100;
+        //create static topic
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker1Name);
+            MQAdminTestUtils.createStaticTopic(topic, queueNum, targetBrokers, defaultMQAdminExt);
+        }
+        //System.out.printf("%s %s\n", broker1Name, clientMetadata.findMasterBrokerAddr(broker1Name));
+        //System.out.printf("%s %s\n", broker2Name, clientMetadata.findMasterBrokerAddr(broker2Name));
+
+        //produce the messages
+        {
+            List<MessageQueue> messageQueueList = producer.getMessageQueue();
+            for (int i = 0; i < queueNum; i++) {
+                MessageQueue messageQueue = messageQueueList.get(i);
+                Assert.assertEquals(i, messageQueue.getQueueId());
+                Assert.assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, messageQueue.getBrokerName());
+            }
+            for(MessageQueue messageQueue: messageQueueList) {
+                producer.send(msgEachQueue, messageQueue);
+            }
+            Assert.assertEquals(0, producer.getSendErrorMsg().size());
+            //leave the time to build the cq
+            Thread.sleep(100);
+            for(MessageQueue messageQueue: messageQueueList) {
+                //Assert.assertEquals(0, defaultMQAdminExt.minOffset(messageQueue));
+                Assert.assertEquals(msgEachQueue, defaultMQAdminExt.maxOffset(messageQueue));
+            }
+        }
+
+        //remapping the static topic with -1 logic offset
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker2Name);
+            MQAdminTestUtils.remappingStaticTopicWithNegativeLogicOffset(topic, targetBrokers, defaultMQAdminExt);
+            Map<String, TopicConfigAndQueueMapping> remoteBrokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
+
+            TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, remoteBrokerConfigMap);
+            Map<Integer, TopicQueueMappingOne>  globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(getMappingDetailFromConfig(remoteBrokerConfigMap.values())), false, true);
+            Assert.assertEquals(queueNum, globalIdMap.size());
+            for (TopicQueueMappingOne mappingOne: globalIdMap.values()) {
+                Assert.assertEquals(broker2Name, mappingOne.getBname());
+                Assert.assertEquals(-1, mappingOne.getItems().get(mappingOne.getItems().size() - 1).getLogicOffset());
+            }
+        }
+        //leave the time to refresh the metadata
+        Thread.sleep(500);
+        producer.setDebug(true);
+        {
+            ClientMetadata clientMetadata = MQAdminUtils.getBrokerAndTopicMetadata(topic, defaultMQAdminExt);
+            List<MessageQueue> messageQueueList = producer.getMessageQueue();
+            for (int i = 0; i < queueNum; i++) {
+                MessageQueue messageQueue = messageQueueList.get(i);
+                Assert.assertEquals(i, messageQueue.getQueueId());
+                String destBrokerName = clientMetadata.getBrokerNameFromMessageQueue(messageQueue);
+                Assert.assertEquals(destBrokerName, broker2Name);
+            }
+
+            for(MessageQueue messageQueue: messageQueueList) {
+                producer.send(msgEachQueue, messageQueue);
+            }
+            Assert.assertEquals(0, producer.getSendErrorMsg().size());
+            Assert.assertEquals(queueNum * msgEachQueue * 2, producer.getAllOriginMsg().size());
+            //leave the time to build the cq
+            Thread.sleep(100);
+            for(MessageQueue messageQueue: messageQueueList) {
+                Assert.assertEquals(0, defaultMQAdminExt.minOffset(messageQueue));
+                //the max offset should still be msgEachQueue
+                Assert.assertEquals(msgEachQueue, defaultMQAdminExt.maxOffset(messageQueue));
+            }
+        }
+    }
+
 
     @After
     public void tearDown() {

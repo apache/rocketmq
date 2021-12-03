@@ -137,7 +137,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             //no need to care the broker name
             long staticLogicOffset = mappingItem.computeStaticQueueOffsetLoosely(responseHeader.getQueueOffset());
             if (staticLogicOffset < 0) {
-                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d convert offset error in current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
+                //if the logic offset is -1, just let it go
+                //maybe we need a dynamic config
+                //return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d convert offset error in current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
             }
             responseHeader.setQueueId(mappingContext.getGlobalId());
             responseHeader.setQueueOffset(staticLogicOffset);
