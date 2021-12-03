@@ -4,6 +4,8 @@
 | 2021-11-01 | 初稿，包括背景、目标、SOT定义与持久化、SOT生命周期、SOT的使用、API逻辑修改、问题与风险 | dongeforever |
 | 2021-11-15 | 修改 LogicQueue 的定义，不要引入新字段，完全复用旧的MessageQueue; RemappingStaticTopic时，不要迁移『位点』『幂等数据』等，而是采用Double-Check-Read 的机制| dongforever |
 | 2021-12-01 | 更新问题与风险，增加关于一致性、OutOfRange、拉取中断的详细说明| dongforever |
+| 2021-12-03 | 增加代码走读的说明| dongforever |
+
 
 
 中文文档在描述特定专业术语时，仍然使用英文。
