@@ -377,7 +377,12 @@ logicOffset的决策，依赖于上一个 PhysicalQueue 的最大位点。
 #### logicOffset 为 -1 时的处理
 此时，可以写，但返回给 客户端的 offset 也是-1。  
 此时，不可以读最新 PhysicalQueue。  
-需要确保，相关查找  MappingItem 的操作，忽略 logicOffset 为-1的Item，否则可能触发位点被重置！  
+需要非常小心触发位点被重置：  
+- 忽略logicOffset为 -1 的item
+- 计算staticOffset时，如果发现logicOffset为-1，则报错
+
+目前只允许，SendMessage和GetMin时，返回-1。其余场景，要严格校验并报错。
+  
 
 #### 队列重复映射
 如果允许1个 PhysicalQueue 被重复利用，也即多段映射给多个 LogicQueue，或者从非0开始映射。  
@@ -425,6 +430,28 @@ Command操作时，提前预判Master是否存在，如果不存在，则提前�
 例如，定时消息，事务消息。
 二阶消息需要支持远程读写操作。
 一期的LogicQueue不支持『二阶消息』。
+
+### 代码走读要点
+#### Admin 入口
+主要看两个类：  
+UpdateStaticTopicSubCommand   
+RemappingStaticTopicSubCommand   
+#### Metadata 入口
+主要看：  
+TopicQueueMappingManager
+#### Client 入口
+重点关注：  
+MQClientInstance.updateTopicRouteInfoFromNameServer
+#### Server 入口
+以 SendMessageProcessor 为例，插桩代码普遍是以下风格：
+```
+TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, true);
+RemotingCommand rewriteResult =  rewriteRequestForStaticTopic(requestHeader, mappingContext);
+if (rewriteResult != null) {
+    return CompletableFuture.completedFuture(rewriteResult);
+}
+```
+其它Processor类似
 
 
 
