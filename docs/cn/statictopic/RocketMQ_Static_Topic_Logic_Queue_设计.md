@@ -454,6 +454,9 @@ if (rewriteResult != null) {
 }
 ```
 其它Processor类似
+#### 测试入口
+rocketmq-test模块，statictopic目录。
+
 
 
 
