@@ -31,7 +31,9 @@ public class LogicQueueMappingItem extends RemotingSerializable {
         this.timeOfEnd = timeOfEnd;
     }
 
-    public long computeStaticQueueOffsetUpToEnd(long physicalQueueOffset) {
+
+    //should only be user in sendMessage and getMinOffset
+    public long computeStaticQueueOffsetLoosely(long physicalQueueOffset) {
         //consider the newly mapped item
         if (logicOffset < 0) {
             return -1;
@@ -46,10 +48,9 @@ public class LogicQueueMappingItem extends RemotingSerializable {
         return  logicOffset + (physicalQueueOffset - startOffset);
     }
 
-    public long computeStaticQueueOffset(long physicalQueueOffset) {
-        if (logicOffset < 0) {
-            return logicOffset;
-        }
+    public long computeStaticQueueOffsetStrictly(long physicalQueueOffset) {
+        assert logicOffset >= 0;
+
         if (physicalQueueOffset < startOffset) {
             return logicOffset;
         }
@@ -67,13 +68,13 @@ public class LogicQueueMappingItem extends RemotingSerializable {
             return logicOffset;
         }
     }
-    public boolean checkIfShouldDeleted() {
-        return endOffset == startOffset;
-    }
-
     public boolean checkIfEndOffsetDecided() {
         //if the endOffset == startOffset, then the item should be deleted
         return endOffset > startOffset;
+    }
+
+    public boolean checkIfLogicoffsetDecided() {
+        return logicOffset >= 0;
     }
 
     public long computeOffsetDelta() {

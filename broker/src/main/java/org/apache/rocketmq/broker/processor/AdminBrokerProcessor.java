@@ -633,12 +633,14 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             long offset = -1;
             for (int i = 0; i < mappingItems.size(); i++) {
                 LogicQueueMappingItem item = mappingItems.get(i);
+                if (!item.checkIfLogicoffsetDecided()) {
+                    continue;
+                }
                 if (mappingDetail.getBname().equals(item.getBname())) {
-                    //means the leader
-                    assert i ==  mappingItems.size() - 1;
                     offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(mappingContext.getTopic(), item.getQueueId(), timestamp);
                     if (offset > 0) {
-                        offset = item.computeStaticQueueOffsetUpToEnd(offset);
+                        offset = item.computeStaticQueueOffsetStrictly(offset);
+                        break;
                     }
                 } else {
                     requestHeader.setPhysical(true);
@@ -650,12 +652,12 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                     if (rpcResponse.getException() != null) {
                         throw rpcResponse.getException();
                     }
-                    SearchOffsetResponseHeader offsetResponseHeader = (SearchOffsetResponseHeader)rpcResponse.getHeader();
+                    SearchOffsetResponseHeader offsetResponseHeader = (SearchOffsetResponseHeader) rpcResponse.getHeader();
                     if (offsetResponseHeader.getOffset() < 0
                             || (item.checkIfEndOffsetDecided() && offsetResponseHeader.getOffset() >= item.getEndOffset())) {
                         continue;
                     } else {
-                        offset = item.computeStaticQueueOffsetUpToEnd(offsetResponseHeader.getOffset());
+                        offset = item.computeStaticQueueOffsetStrictly(offsetResponseHeader.getOffset());
                     }
 
                 }
@@ -705,17 +707,38 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (!mappingContext.isLeader()) {
             return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
         }
-        long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(mappingContext.getTopic(), mappingItem.getQueueId());
 
-        offset = mappingItem.computeStaticQueueOffsetUpToEnd(offset);
+        try {
+            LogicQueueMappingItem maxItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), Long.MAX_VALUE, true);
+            assert maxItem != null;
+            assert maxItem.getLogicOffset() >= 0;
+            requestHeader.setBname(maxItem.getBname());
+            requestHeader.setPhysical(true);
+            requestHeader.setQueueId(mappingItem.getQueueId());
 
+            long maxPhysicalOffset = Long.MAX_VALUE;
+            if (maxItem.getBname().equals(mappingDetail.getBname())) {
+                //current broker
+                maxPhysicalOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(mappingContext.getTopic(), mappingItem.getQueueId());
+            } else {
+                RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_MAX_OFFSET, requestHeader, null);
+                RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
+                if (rpcResponse.getException() != null) {
+                    throw rpcResponse.getException();
+                }
+                GetMaxOffsetResponseHeader offsetResponseHeader = (GetMaxOffsetResponseHeader) rpcResponse.getHeader();
+                maxPhysicalOffset = offsetResponseHeader.getOffset();
+            }
 
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
-        final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
-        responseHeader.setOffset(offset);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
+            final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
+            final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
+            responseHeader.setOffset(maxItem.computeStaticQueueOffsetStrictly(maxPhysicalOffset));
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
     }
 
     private RemotingCommand getMaxOffset(ChannelHandlerContext ctx,
@@ -770,7 +793,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 GetMinOffsetResponseHeader offsetResponseHeader = (GetMinOffsetResponseHeader) rpcResponse.getHeader();
                 physicalOffset = offsetResponseHeader.getOffset();
             }
-            long offset = mappingItem.computeStaticQueueOffsetUpToEnd(physicalOffset);
+            long offset = mappingItem.computeStaticQueueOffsetLoosely(physicalOffset);
 
             final RemotingCommand response = RemotingCommand.createResponseCommand(GetMinOffsetResponseHeader.class);
             final GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.readCustomHeader();
@@ -820,7 +843,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         try {
             requestHeader.setBname(mappingItem.getBname());
             requestHeader.setPhysical(true);
-            RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_MIN_OFFSET, requestHeader, null);
+            RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_EARLIEST_MSG_STORETIME, requestHeader, null);
             //TODO check if it is in current broker
             RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
             if (rpcResponse.getException() != null) {

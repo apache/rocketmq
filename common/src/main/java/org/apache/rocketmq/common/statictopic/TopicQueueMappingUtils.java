@@ -632,9 +632,6 @@ public class TopicQueueMappingUtils {
             if (ignoreNegative && item.getLogicOffset() < 0) {
                 continue;
             }
-            if (!item.checkIfShouldDeleted()) {
-                return mappingItems.get(i);
-            }
         }
         return null;
     }
