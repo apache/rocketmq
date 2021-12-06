@@ -77,6 +77,7 @@ public class TopicQueueMappingManager extends ConfigManager {
         boolean updated = false;
         TopicQueueMappingDetail oldDetail = null;
         try {
+
             if (lock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 locked = true;
             } else {
@@ -85,6 +86,8 @@ public class TopicQueueMappingManager extends ConfigManager {
             if (newDetail == null) {
                 return;
             }
+            assert newDetail.getBname().equals(this.brokerController.getBrokerConfig().getBrokerName());
+
             newDetail.getHostedQueues().forEach((queueId, items) -> {
                 TopicQueueMappingUtils.checkLogicQueueMappingItemOffset(items);
             });
