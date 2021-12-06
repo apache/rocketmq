@@ -169,6 +169,7 @@ public class RouteInfoManager {
                                 topicQueueMappingInfoTable.put(entry.getKey(), new HashMap<String, TopicQueueMappingInfo>());
                             }
                             //Note asset brokerName equal entry.getValue().getBname()
+                            //here use the mappingDetail.bname
                             topicQueueMappingInfoTable.get(entry.getKey()).put(entry.getValue().getBname(), entry.getValue());
                         }
                     }

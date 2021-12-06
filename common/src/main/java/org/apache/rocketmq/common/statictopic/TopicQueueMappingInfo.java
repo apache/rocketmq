@@ -124,4 +124,16 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
                 .append(currIdMap)
                 .toHashCode();
     }
+
+    @Override
+    public String toString() {
+        return "TopicQueueMappingInfo{" +
+                "topic='" + topic + '\'' +
+                ", totalQueues=" + totalQueues +
+                ", bname='" + bname + '\'' +
+                ", epoch=" + epoch +
+                ", dirty=" + dirty +
+                ", currIdMap=" + currIdMap +
+                '}';
+    }
 }

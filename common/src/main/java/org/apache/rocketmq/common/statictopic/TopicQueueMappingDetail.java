@@ -128,4 +128,17 @@ public class TopicQueueMappingDetail extends TopicQueueMappingInfo {
                 .append(hostedQueues)
                 .toHashCode();
     }
+
+    @Override
+    public String toString() {
+        return "TopicQueueMappingDetail{" +
+                "hostedQueues=" + hostedQueues +
+                ", topic='" + topic + '\'' +
+                ", totalQueues=" + totalQueues +
+                ", bname='" + bname + '\'' +
+                ", epoch=" + epoch +
+                ", dirty=" + dirty +
+                ", currIdMap=" + currIdMap +
+                '}';
+    }
 }
