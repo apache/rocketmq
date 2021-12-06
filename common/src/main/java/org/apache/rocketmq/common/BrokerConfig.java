@@ -88,6 +88,7 @@ public class BrokerConfig {
     private int replyThreadPoolQueueCapacity = 10000;
     private int queryThreadPoolQueueCapacity = 20000;
     private int clientManagerThreadPoolQueueCapacity = 1000000;
+    private int adminBrokerThreadPoolQueueCapacity = 1000000;
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
     private int heartbeatThreadPoolQueueCapacity = 50000;
     private int endTransactionPoolQueueCapacity = 100000;
@@ -803,5 +804,13 @@ public class BrokerConfig {
 
     public void setAutoDeleteUnusedStats(boolean autoDeleteUnusedStats) {
         this.autoDeleteUnusedStats = autoDeleteUnusedStats;
+    }
+
+    public int getAdminBrokerThreadPoolQueueCapacity() {
+        return adminBrokerThreadPoolQueueCapacity;
+    }
+
+    public void setAdminBrokerThreadPoolQueueCapacity(int adminBrokerThreadPoolQueueCapacity) {
+        this.adminBrokerThreadPoolQueueCapacity = adminBrokerThreadPoolQueueCapacity;
     }
 }

@@ -21,11 +21,28 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ParallelTaskExecutor {
     public List<ParallelTask> tasks = new ArrayList<ParallelTask>();
-    public ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
+    public ExecutorService cachedThreadPool = new ThreadPoolExecutor(
+            10,
+            10,
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(100000),
+            new ThreadFactory() {
+                private final AtomicInteger threadIndex = new AtomicInteger(0);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "cachedThreadPool_" + this.threadIndex.incrementAndGet());
+                }
+            });
     public CountDownLatch latch = null;
 
     public ParallelTaskExecutor() {
