@@ -21,6 +21,14 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.admin.TopicOffset;
+import org.apache.rocketmq.common.admin.TopicStatsTable;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
+import org.apache.rocketmq.common.rpc.RpcRequest;
+import org.apache.rocketmq.common.rpc.RpcResponse;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -32,10 +40,14 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.store.DefaultMessageStore;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -269,6 +281,84 @@ public class TopicQueueMappingManager extends ConfigManager {
                     log.info("The topic queue {} {} is expired with items {}", mappingDetail.getTopic(), queueId, items);
                 }
             }
+        }
+    }
+
+
+    public void cleanItemExpired() {
+        String when = this.brokerController.getMessageStoreConfig().getDeleteWhen();
+        if (!UtilAll.isItTimeToDo(when)) {
+            return;
+        }
+        boolean changed = false;
+        long start = System.currentTimeMillis();
+        try {
+            for(String topic : topicQueueMappingTable.keySet()) {
+                TopicQueueMappingDetail mappingDetail = topicQueueMappingTable.get(topic);
+                if (mappingDetail == null
+                        || mappingDetail.getHostedQueues().isEmpty()) {
+                    continue;
+                }
+                if (!mappingDetail.getBname().equals(this.brokerController.getBrokerConfig().getBrokerName())) {
+                    log.warn("The TopicQueueMappingDetail [{}] should not exist in this broker", mappingDetail);
+                    continue;
+                }
+                Set<String> brokers = new HashSet<>();
+                for (List<LogicQueueMappingItem> items: mappingDetail.getHostedQueues().values()) {
+                    if (items.size() < 2) {
+                        continue;
+                    }
+                    LogicQueueMappingItem earlistItem = items.get(0);
+                    brokers.add(earlistItem.getBname());
+                }
+                Map<String, TopicStatsTable> statsTable = new HashMap<>();
+                for (String broker: brokers) {
+                    GetTopicStatsInfoRequestHeader header = new GetTopicStatsInfoRequestHeader();
+                    header.setTopic(topic);
+                    header.setBname(broker);
+                    try {
+                        RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_TOPIC_STATS_INFO, header, null);
+                        RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
+                        if (rpcResponse.getException() != null) {
+                            throw rpcResponse.getException();
+                        }
+                        statsTable.put(broker, (TopicStatsTable) rpcResponse.getBody());
+                    } catch (Throwable rt) {
+                        log.warn("Get remote topic {} state info failed from broker {}", topic, broker, rt);
+                    }
+                }
+                for (List<LogicQueueMappingItem> items: mappingDetail.getHostedQueues().values()) {
+                    if (items.size() < 2) {
+                        continue;
+                    }
+                    LogicQueueMappingItem earlistItem = items.get(0);
+                    TopicStatsTable topicStats = statsTable.get(earlistItem.getBname());
+                    if (topicStats == null) {
+                        continue;
+                    }
+                    TopicOffset topicOffset = topicStats.getOffsetTable().get(new MessageQueue(topic, earlistItem.getBname(), earlistItem.getQueueId()));
+                    if (topicOffset == null) {
+                        //this may should not happen
+                        log.warn("Get null topicOffset for {}", earlistItem);
+                        continue;
+                    }
+                    if (topicOffset.getMaxOffset() == topicOffset.getMinOffset()) {
+                        boolean result = items.remove(earlistItem);
+                        changed = changed || result;
+                        log.info("The logic queue item {} is removed {} because of {}", result, earlistItem, topicOffset);
+                    }
+                }
+                UtilAll.sleep(10);
+            }
+        } catch (Throwable t) {
+            log.error("Try cleanItemExpired failed", t);
+        } finally {
+            if (changed) {
+                this.dataVersion.nextVersion();
+                this.persist();
+                log.info("CleanItemExpired changed");
+            }
+            log.info("cleanItemExpired cost {} ms", System.currentTimeMillis() - start);
         }
     }
 

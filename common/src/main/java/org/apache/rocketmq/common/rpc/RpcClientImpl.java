@@ -1,8 +1,8 @@
 package org.apache.rocketmq.common.rpc;
 
-import com.alibaba.fastjson.JSON;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 import io.netty.util.concurrent.Promise;
+import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -82,6 +82,9 @@ public class RpcClientImpl implements RpcClient {
                     break;
                 case RequestCode.QUERY_CONSUMER_OFFSET:
                     rpcResponsePromise = handleQueryConsumerOffset(addr, request, timeoutMs);
+                    break;
+                case RequestCode.GET_TOPIC_STATS_INFO:
+                    rpcResponsePromise = handleGetTopicStats(addr, request, timeoutMs);
                     break;
                 default:
                     throw new RpcException(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, "Unknown request code " + request.getCode());
@@ -201,6 +204,25 @@ public class RpcClientImpl implements RpcClient {
             }
             case ResponseCode.QUERY_NOT_FOUND: {
                 rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), null, null));
+            }
+            default:{
+                rpcResponsePromise.setSuccess(new RpcResponse(new RpcException(responseCommand.getCode(), "unknown remote error")));
+            }
+        }
+        return rpcResponsePromise;
+    }
+
+    public Promise<RpcResponse> handleGetTopicStats(String addr, RpcRequest rpcRequest, long timeoutMillis) throws Exception {
+        final Promise<RpcResponse> rpcResponsePromise = createResponseFuture();
+
+        RemotingCommand requestCommand = RpcClientUtils.createCommandForRpcRequest(rpcRequest);
+        RemotingCommand responseCommand = this.remotingClient.invokeSync(addr, requestCommand, timeoutMillis);
+        assert responseCommand != null;
+        switch (responseCommand.getCode()) {
+            case ResponseCode.SUCCESS: {
+                TopicStatsTable topicStatsTable = TopicStatsTable.decode(responseCommand.getBody(), TopicStatsTable.class);
+                rpcResponsePromise.setSuccess(new RpcResponse(ResponseCode.SUCCESS, null, topicStatsTable));
+                break;
             }
             default:{
                 rpcResponsePromise.setSuccess(new RpcResponse(new RpcException(responseCommand.getCode(), "unknown remote error")));

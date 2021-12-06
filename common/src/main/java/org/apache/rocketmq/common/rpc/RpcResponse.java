@@ -28,7 +28,7 @@ public class RpcResponse   {
 
     }
 
-    public RpcResponse(int code, CommandCustomHeader header, byte[] body) {
+    public RpcResponse(int code, CommandCustomHeader header, Object body) {
         this.code = code;
         this.header = header;
         this.body = body;

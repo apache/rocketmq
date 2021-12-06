@@ -163,6 +163,9 @@ public class BrokerController {
     private final BrokerOuterAPI brokerOuterAPI;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "BrokerControllerScheduledThread"));
+    //the topic queue mapping is costly, so use an independent executor
+    private final ScheduledExecutorService scheduledForTopicQueueMapping = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "BrokerControllerScheduledThread-TopicQueueMapping"));
     private final SlaveSynchronize slaveSynchronize;
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
     private final BlockingQueue<Runnable> ackThreadPoolQueue;
@@ -497,6 +500,22 @@ public class BrokerController {
                     log.error("ScheduledTask refresh metadata exception", e);
                 }
             }, 1, 5, TimeUnit.SECONDS);
+
+            this.scheduledForTopicQueueMapping.scheduleAtFixedRate( () -> {
+                try {
+                    this.topicQueueMappingManager.cleanItemListMoreThanSecondGen();
+                } catch (Throwable t) {
+                    log.error("ScheduledTask cleanItemListMoreThanSecondGen failed", t);
+                }
+            }, 1, 5, TimeUnit.MINUTES);
+
+            this.scheduledForTopicQueueMapping.scheduleAtFixedRate( () -> {
+                try {
+                    this.topicQueueMappingManager.cleanItemExpired();
+                } catch (Throwable t) {
+                    log.error("ScheduledTask cleanItemExpired failed", t);
+                }
+            }, 1, 5, TimeUnit.MINUTES);
 
             if (!messageStoreConfig.isEnableDLegerCommitLog()) {
                 if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
@@ -890,6 +909,12 @@ public class BrokerController {
         try {
             this.scheduledExecutorService.awaitTermination(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
+        }
+
+        this.scheduledForTopicQueueMapping.shutdown();
+        try {
+            this.scheduledForTopicQueueMapping.awaitTermination(5000, TimeUnit.MILLISECONDS);
+        } catch (Throwable ignored) {
         }
 
         this.unregisterBrokerAll();

@@ -17,11 +17,12 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import org.apache.rocketmq.common.rpc.RpcRequestHeader;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class GetTopicStatsInfoRequestHeader implements CommandCustomHeader {
+public class GetTopicStatsInfoRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private String topic;
 
