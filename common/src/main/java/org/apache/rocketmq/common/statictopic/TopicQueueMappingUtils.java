@@ -193,7 +193,7 @@ public class TopicQueueMappingUtils {
         return new AbstractMap.SimpleEntry<Long, Integer>(maxEpoch, maxNum);
     }
 
-    public static void makeSureLogicQueueMappingItemImmutable(List<LogicQueueMappingItem> oldItems, List<LogicQueueMappingItem> newItems, boolean epochEqual) {
+    public static void makeSureLogicQueueMappingItemImmutable(List<LogicQueueMappingItem> oldItems, List<LogicQueueMappingItem> newItems, boolean epochEqual, boolean isCLean) {
         if (oldItems == null || oldItems.isEmpty()) {
             return;
         }
@@ -205,10 +205,15 @@ public class TopicQueueMappingUtils {
             LogicQueueMappingItem newItem = newItems.get(inew);
             LogicQueueMappingItem oldItem = oldItems.get(iold);
             if (newItem.getGen() < oldItem.getGen()) {
+                //the old one may have been deleted
                 inew++;
-                continue;
             } else if (oldItem.getGen() < newItem.getGen()){
-                throw new RuntimeException("The gen is not correct for old item");
+                //the new one may be the "delete one from "
+                if (isCLean) {
+                    iold++;
+                } else {
+                   throw new RuntimeException("The new item-list has less items than old item-list");
+                }
             } else {
                 assert oldItem.getBname().equals(newItem.getBname());
                 assert oldItem.getQueueId() == newItem.getQueueId();

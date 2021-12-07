@@ -93,7 +93,7 @@ public class TopicQueueMappingManagerTest {
             Assert.assertEquals(0, topicQueueMappingManager.getTopicQueueMappingTable().size());
             for (TopicQueueMappingDetail mappingDetail : mappingDetailMap.values()) {
                 for (int i = 0; i < 10; i++) {
-                    topicQueueMappingManager.updateTopicQueueMapping(mappingDetail, false);
+                    topicQueueMappingManager.updateTopicQueueMapping(mappingDetail, false, false, true);
                 }
             }
             topicQueueMappingManager.persist();

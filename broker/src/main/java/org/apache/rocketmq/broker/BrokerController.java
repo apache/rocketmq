@@ -56,6 +56,7 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
@@ -64,11 +65,9 @@ import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageC
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.broker.util.ServiceProvider;
-import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.DataVersion;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -76,7 +75,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
@@ -87,9 +85,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.TlsMode;
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -163,9 +158,6 @@ public class BrokerController {
     private final BrokerOuterAPI brokerOuterAPI;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "BrokerControllerScheduledThread"));
-    //the topic queue mapping is costly, so use an independent executor
-    private final ScheduledExecutorService scheduledForTopicQueueMapping = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-            "BrokerControllerScheduledThread-TopicQueueMapping"));
     private final SlaveSynchronize slaveSynchronize;
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
     private final BlockingQueue<Runnable> ackThreadPoolQueue;
@@ -202,6 +194,7 @@ public class BrokerController {
     private InetSocketAddress storeHost;
     private BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
+    private TopicQueueMappingCleanService topicQueueMappingCleanService;
     private FileWatchService fileWatchService;
     private TransactionalMessageCheckService transactionalMessageCheckService;
     private TransactionalMessageService transactionalMessageService;
@@ -501,21 +494,6 @@ public class BrokerController {
                 }
             }, 1, 5, TimeUnit.SECONDS);
 
-            this.scheduledForTopicQueueMapping.scheduleAtFixedRate( () -> {
-                try {
-                    this.topicQueueMappingManager.cleanItemListMoreThanSecondGen();
-                } catch (Throwable t) {
-                    log.error("ScheduledTask cleanItemListMoreThanSecondGen failed", t);
-                }
-            }, 1, 5, TimeUnit.MINUTES);
-
-            this.scheduledForTopicQueueMapping.scheduleAtFixedRate( () -> {
-                try {
-                    this.topicQueueMappingManager.cleanItemExpired();
-                } catch (Throwable t) {
-                    log.error("ScheduledTask cleanItemExpired failed", t);
-                }
-            }, 1, 5, TimeUnit.MINUTES);
 
             if (!messageStoreConfig.isEnableDLegerCommitLog()) {
                 if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
@@ -538,6 +516,8 @@ public class BrokerController {
                     }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
                 }
             }
+
+            this.topicQueueMappingCleanService = new TopicQueueMappingCleanService(this);
 
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
@@ -897,6 +877,10 @@ public class BrokerController {
             this.fastRemotingServer.shutdown();
         }
 
+        if (this.topicQueueMappingCleanService != null) {
+            this.topicQueueMappingCleanService.shutdown();
+        }
+
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
@@ -909,12 +893,6 @@ public class BrokerController {
         try {
             this.scheduledExecutorService.awaitTermination(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-        }
-
-        this.scheduledForTopicQueueMapping.shutdown();
-        try {
-            this.scheduledForTopicQueueMapping.awaitTermination(5000, TimeUnit.MILLISECONDS);
-        } catch (Throwable ignored) {
         }
 
         this.unregisterBrokerAll();
@@ -1018,6 +996,10 @@ public class BrokerController {
 
         if (this.fastRemotingServer != null) {
             this.fastRemotingServer.start();
+        }
+
+        if (this.topicQueueMappingCleanService != null) {
+            this.topicQueueMappingCleanService.start();
         }
 
         if (this.fileWatchService != null) {
