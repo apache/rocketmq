@@ -65,14 +65,14 @@ public class GetConsumerConfigSubCommand implements SubCommand {
             List<ConsumerConfigInfo> consumerConfigInfoList = new ArrayList<>();
             ClusterInfo clusterInfo = adminExt.examineBrokerClusterInfo();
             Map<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
-            for (Entry<String, BrokerData> brokerNameEntry : clusterInfo.getBrokerAddrTable().entrySet()) {
-                String clusterName = this.getClusterName(brokerNameEntry.getKey(), clusterAddrTable);
-                String brokerAddress = brokerNameEntry.getValue().selectBrokerAddr();
+            for (Entry<String, BrokerData> brokerEntry : clusterInfo.getBrokerAddrTable().entrySet()) {
+                String clusterName = this.getClusterName(brokerEntry.getKey(), clusterAddrTable);
+                String brokerAddress = brokerEntry.getValue().selectBrokerAddr();
                 SubscriptionGroupConfig subscriptionGroupConfig = adminExt.examineSubscriptionGroupConfig(brokerAddress, groupName);
                 if (subscriptionGroupConfig == null) {
                     continue;
                 }
-                consumerConfigInfoList.add(new ConsumerConfigInfo(clusterName, brokerNameEntry.getKey(), subscriptionGroupConfig));
+                consumerConfigInfoList.add(new ConsumerConfigInfo(clusterName, brokerEntry.getKey(), subscriptionGroupConfig));
             }
             if (CollectionUtils.isEmpty(consumerConfigInfoList)) {
                 return;

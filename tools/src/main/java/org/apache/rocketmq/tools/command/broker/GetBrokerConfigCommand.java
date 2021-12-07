@@ -86,18 +86,18 @@ public class GetBrokerConfigCommand implements SubCommand {
                 Map<String, List<String>> masterAndSlaveMap
                     = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
 
-                for (Entry<String, List<String>> masterAddrEntry : masterAndSlaveMap.entrySet()) {
+                for (Entry<String, List<String>> masterAndSlaveEntry : masterAndSlaveMap.entrySet()) {
 
                     getAndPrint(
                             defaultMQAdminExt,
-                            String.format("============Master: %s============\n", masterAddrEntry.getKey()),
-                            masterAddrEntry.getKey()
+                            String.format("============Master: %s============\n", masterAndSlaveEntry.getKey()),
+                            masterAndSlaveEntry.getKey()
                     );
-                    for (String slaveAddr : masterAddrEntry.getValue()) {
+                    for (String slaveAddr : masterAndSlaveEntry.getValue()) {
 
                         getAndPrint(
                                 defaultMQAdminExt,
-                                String.format("============My Master: %s=====Slave: %s============\n", masterAddrEntry.getKey(), slaveAddr),
+                                String.format("============My Master: %s=====Slave: %s============\n", masterAndSlaveEntry.getKey(), slaveAddr),
                                 slaveAddr
                         );
                     }
@@ -124,8 +124,8 @@ public class GetBrokerConfigCommand implements SubCommand {
             return;
         }
 
-        for (Entry<Object, Object> keyEntry : properties.entrySet()) {
-            System.out.printf("%-50s=  %s\n", keyEntry.getKey(), keyEntry.getValue());
+        for (Entry<Object, Object> entry : properties.entrySet()) {
+            System.out.printf("%-50s=  %s\n", entry.getKey(), entry.getValue());
         }
 
         System.out.printf("%n");

@@ -124,8 +124,8 @@ public class MQAdmin {
             return false;
         } else {
             HashMap<String, BrokerData> brokers = clusterInfo.getBrokerAddrTable();
-            for (Entry<String, BrokerData> brokerNameEntry : brokers.entrySet()) {
-                HashMap<Long, String> brokerIps = brokerNameEntry.getValue().getBrokerAddrs();
+            for (Entry<String, BrokerData> brokerEntry : brokers.entrySet()) {
+                HashMap<Long, String> brokerIps = brokerEntry.getValue().getBrokerAddrs();
                 for (Entry<Long, String> brokerIdEntry : brokerIps.entrySet()) {
                     if (brokerIdEntry.getValue().contains(ip))
                         return true;

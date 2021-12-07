@@ -64,12 +64,12 @@ public class CommandUtil {
             String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
             masterAndSlaveMap.put(masterAddr, new ArrayList<String>());
 
-            for (Entry<Long, String> idEntry : brokerData.getBrokerAddrs().entrySet()) {
-                if (idEntry.getValue() == null || idEntry.getKey() == MixAll.MASTER_ID) {
+            for (Entry<Long, String> brokerAddrEntry : brokerData.getBrokerAddrs().entrySet()) {
+                if (brokerAddrEntry.getValue() == null || brokerAddrEntry.getKey() == MixAll.MASTER_ID) {
                     continue;
                 }
 
-                masterAndSlaveMap.get(masterAddr).add(idEntry.getValue());
+                masterAndSlaveMap.get(masterAddr).add(brokerAddrEntry.getValue());
             }
         }
 

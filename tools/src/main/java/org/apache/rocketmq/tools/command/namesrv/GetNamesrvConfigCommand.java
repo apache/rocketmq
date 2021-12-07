@@ -69,10 +69,10 @@ public class GetNamesrvConfigCommand implements SubCommand {
 
             Map<String, Properties> nameServerConfigs = defaultMQAdminExt.getNameServerConfig(serverList);
 
-            for (Entry<String, Properties> serverEntry : nameServerConfigs.entrySet()) {
+            for (Entry<String, Properties> nameServerConfigEntry : nameServerConfigs.entrySet()) {
                 System.out.printf("============%s============\n",
-                        serverEntry.getKey());
-                for (Entry<Object, Object> entry : serverEntry.getValue().entrySet()) {
+                        nameServerConfigEntry.getKey());
+                for (Entry<Object, Object> entry : nameServerConfigEntry.getValue().entrySet()) {
                     System.out.printf("%-50s=  %s\n", entry.getKey(), entry.getValue());
                 }
             }

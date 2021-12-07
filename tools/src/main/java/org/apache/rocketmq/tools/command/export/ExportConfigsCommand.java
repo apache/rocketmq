@@ -81,10 +81,10 @@ public class ExportConfigsCommand implements SubCommand {
             Map<String, Properties> brokerConfigs = new HashMap<>();
             Map<String, List<String>> masterAndSlaveMap
                 = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
-            for (Entry<String, List<String>> masterAddrEntry : masterAndSlaveMap.entrySet()) {
-                Properties masterProperties = defaultMQAdminExt.getBrokerConfig(masterAddrEntry.getKey());
+            for (Entry<String, List<String>> masterAndSlaveEntry : masterAndSlaveMap.entrySet()) {
+                Properties masterProperties = defaultMQAdminExt.getBrokerConfig(masterAndSlaveEntry.getKey());
                 masterBrokerSize++;
-                slaveBrokerSize += masterAddrEntry.getValue().size();
+                slaveBrokerSize += masterAndSlaveEntry.getValue().size();
 
                 brokerConfigs.put(masterProperties.getProperty("brokerName"), needBrokerProprties(masterProperties));
             }
