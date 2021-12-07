@@ -197,8 +197,8 @@ public class TopicQueueMappingUtils {
         if (oldItems == null || oldItems.isEmpty()) {
             return;
         }
-        if (newItems == null || newItems.isEmpty() || newItems.size() < oldItems.size()) {
-            throw new RuntimeException("The new item list is smaller than old ones");
+        if (newItems == null || newItems.isEmpty()) {
+            throw new RuntimeException("The new item list is null or empty");
         }
         int iold = 0, inew = 0;
         while (iold < oldItems.size() && inew < newItems.size()) {
@@ -665,4 +665,13 @@ public class TopicQueueMappingUtils {
         return null;
     }
 
+
+    public static boolean checkIfLeader(List<LogicQueueMappingItem> items, TopicQueueMappingDetail mappingDetail) {
+        if (items == null
+            || mappingDetail == null
+            || items.isEmpty()) {
+            return false;
+        }
+        return items.get(items.size() - 1).getBname().equals(mappingDetail.getBname());
+    }
 }

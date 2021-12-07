@@ -229,7 +229,7 @@ public class RpcClientImpl implements RpcClient {
         assert responseCommand != null;
         switch (responseCommand.getCode()) {
             case ResponseCode.SUCCESS: {
-                rpcResponsePromise.setSuccess(new RpcResponse(ResponseCode.SUCCESS, null, RemotingSerializable.decode(requestCommand.getBody(), bodyClass)));
+                rpcResponsePromise.setSuccess(new RpcResponse(ResponseCode.SUCCESS, null, RemotingSerializable.decode(responseCommand.getBody(), bodyClass)));
                 break;
             }
             default:{

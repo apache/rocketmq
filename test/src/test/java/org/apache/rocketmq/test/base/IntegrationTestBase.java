@@ -129,7 +129,7 @@ public class IntegrationTestBase {
         String baseDir = createBaseDir();
         BrokerConfig brokerConfig = new BrokerConfig();
         MessageStoreConfig storeConfig = new MessageStoreConfig();
-        brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.getAndIncrement());
+        brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.incrementAndGet());
         brokerConfig.setBrokerIP1("127.0.0.1");
         brokerConfig.setNamesrvAddr(nsAddr);
         brokerConfig.setEnablePropertyFilter(true);
@@ -139,6 +139,7 @@ public class IntegrationTestBase {
         storeConfig.setMappedFileSizeCommitLog(COMMIT_LOG_SIZE);
         storeConfig.setMaxIndexNum(INDEX_NUM);
         storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
+        storeConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
         return createAndStartBroker(storeConfig, brokerConfig);
 
     }

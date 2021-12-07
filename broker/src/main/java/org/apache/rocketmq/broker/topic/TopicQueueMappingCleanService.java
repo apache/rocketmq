@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.rpc.RpcResponse;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -75,6 +76,10 @@ public class TopicQueueMappingCleanService extends ServiceThread {
         log.info("Start topic queue mapping clean service thread!");
         while (!this.isStopped()) {
             try {
+                this.waitForRunning(5L * 60 * 1000);
+            } catch (Throwable ignored) {
+            }
+            try {
                 cleanItemExpired();
             } catch (Throwable t) {
                 log.error("topic queue mapping cleanItemExpired failed", t);
@@ -84,11 +89,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
             } catch (Throwable t) {
                 log.error("topic queue mapping cleanItemListMoreThanSecondGen failed", t);
             }
-            try {
-                this.waitForRunning(5L * 60 * 1000);
-            } catch (Throwable ignore) {
 
-            }
         }
         log.info("End topic queue mapping clean service  thread!");
     }
@@ -119,7 +120,10 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                     }
                     Set<String> brokers = new HashSet<>();
                     for (List<LogicQueueMappingItem> items: mappingDetail.getHostedQueues().values()) {
-                        if (items.size() < 2) {
+                        if (items.size() <= 1) {
+                            continue;
+                        }
+                        if(!TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
                             continue;
                         }
                         LogicQueueMappingItem earlistItem = items.get(0);
@@ -138,11 +142,18 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                             }
                             statsTable.put(broker, (TopicStatsTable) rpcResponse.getBody());
                         } catch (Throwable rt) {
-                            log.warn("Get remote topic {} state info failed from broker {}", topic, broker, rt);
+                            log.error("Get remote topic {} state info failed from broker {}", topic, broker, rt);
                         }
                     }
-                    for (List<LogicQueueMappingItem> items: mappingDetail.getHostedQueues().values()) {
-                        if (items.size() < 2) {
+                    Map<Integer, List<LogicQueueMappingItem>> newHostedQueues = new HashMap<>();
+                    boolean changedForTopic = false;
+                    for (Map.Entry<Integer, List<LogicQueueMappingItem>> entry : mappingDetail.getHostedQueues().entrySet()) {
+                        Integer qid = entry.getKey();
+                        List<LogicQueueMappingItem> items = entry.getValue();
+                        if (items.size() <= 1) {
+                            continue;
+                        }
+                        if(!TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
                             continue;
                         }
                         LogicQueueMappingItem earlistItem = items.get(0);
@@ -153,7 +164,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                         TopicOffset topicOffset = topicStats.getOffsetTable().get(new MessageQueue(topic, earlistItem.getBname(), earlistItem.getQueueId()));
                         if (topicOffset == null) {
                             //this may should not happen
-                            log.warn("Get null topicOffset for {}", earlistItem);
+                            log.error("Get null topicOffset for {} {}",topic,  earlistItem);
                             continue;
                         }
                         //ignore the maxOffset < 0, which may in case of some error
@@ -161,10 +172,19 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                             || topicOffset.getMaxOffset() == 0) {
                             List<LogicQueueMappingItem> newItems = new ArrayList<>(items);
                             boolean result = newItems.remove(earlistItem);
-                            this.topicQueueMappingManager.updateTopicQueueMapping(mappingDetail, false, true, false);
-                            changed = changed || result;
-                            log.info("The logic queue item {} is removed {} because of {}", result, earlistItem, topicOffset);
+                            if (result) {
+                                changedForTopic = true;
+                                newHostedQueues.put(qid, newItems);
+                            }
+                            log.info("The logic queue item {} {} is removed {} because of {}", topic, earlistItem, result, topicOffset);
                         }
+                    }
+                    if (changedForTopic) {
+                        TopicQueueMappingDetail newMappingDetail = new TopicQueueMappingDetail(mappingDetail.getTopic(), mappingDetail.getTotalQueues(), mappingDetail.getBname(), mappingDetail.getEpoch());
+                        newMappingDetail.getHostedQueues().putAll(mappingDetail.getHostedQueues());
+                        newMappingDetail.getHostedQueues().putAll(newHostedQueues);
+                        this.topicQueueMappingManager.updateTopicQueueMapping(newMappingDetail, false, true, false);
+                        changed = true;
                     }
                 } catch (Throwable tt) {
                     log.error("Try CleanItemExpired failed for {}", topic, tt);
@@ -241,6 +261,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                         GetTopicConfigRequestHeader header = new GetTopicConfigRequestHeader();
                         header.setTopic(topic);
                         header.setBname(broker);
+                        header.setWithMapping(true);
                         try {
                             RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_TOPIC_CONFIG, header, null);
                             RpcResponse rpcResponse = rpcClient.invoke(rpcRequest, brokerConfig.getForwardTimeout()).get();
@@ -252,7 +273,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                                 mappingDetailMap.put(broker, mappingDetailRemote);
                             }
                         } catch (Throwable rt) {
-                            log.warn("Get remote topic {} state info failed from broker {}", topic, broker, rt);
+                            log.error("Get remote topic {} state info failed from broker {}", topic, broker, rt);
                         }
                     }
                     //check all the info

@@ -190,61 +190,26 @@ public class MQAdminUtils {
     public static Map<String, TopicConfigAndQueueMapping> examineTopicConfigAll(String topic, DefaultMQAdminExt defaultMQAdminExt) throws RemotingException,  InterruptedException, MQBrokerException {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<>();
         ClientMetadata clientMetadata = new ClientMetadata();
-        boolean getFromBrokers = false;
-        TopicRouteData routeData = null;
-        try {
-            routeData = defaultMQAdminExt.examineTopicRouteInfo(topic);
-        } catch (MQClientException  exception) {
-            if (exception.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
-                throw new MQBrokerException(exception.getResponseCode(), exception.getErrorMessage());
-            } else {
-                getFromBrokers = true;
-            }
+        //check all the brokers
+        ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+        if (clusterInfo != null
+                && clusterInfo.getBrokerAddrTable() != null) {
+            clientMetadata.refreshClusterInfo(clusterInfo);
         }
-        if (!getFromBrokers) {
-            if (routeData != null
-                    && !routeData.getQueueDatas().isEmpty()) {
-                clientMetadata.freshTopicRoute(topic, routeData);
-                for (QueueData queueData: routeData.getQueueDatas()) {
-                    String bname = queueData.getBrokerName();
-                    String addr = clientMetadata.findMasterBrokerAddr(bname);
-                    try {
-                        TopicConfigAndQueueMapping mapping = (TopicConfigAndQueueMapping) defaultMQAdminExt.examineTopicConfig(addr, topic);
-                        //allow the config is null
-                        if (mapping != null) {
-                            brokerConfigMap.put(bname, mapping);
-                        }
-                    } catch (MQBrokerException exception) {
-                        if (exception.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
-                            throw exception;
-                        }
+        for (String broker : clientMetadata.getBrokerAddrTable().keySet()) {
+            String addr = clientMetadata.findMasterBrokerAddr(broker);
+            try {
+                TopicConfigAndQueueMapping mapping = (TopicConfigAndQueueMapping) defaultMQAdminExt.examineTopicConfig(addr, topic);
+                //allow the config is null
+                if (mapping != null) {
+                    if (mapping.getMappingDetail() != null) {
+                        assert mapping.getMappingDetail().getBname().equals(broker);
                     }
-
+                    brokerConfigMap.put(broker, mapping);
                 }
-            }
-        } else {
-            //if cannot get from nameserver, then check all the brokers
-            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-            if (clusterInfo != null
-                    && clusterInfo.getBrokerAddrTable() != null) {
-                clientMetadata.refreshClusterInfo(clusterInfo);
-            }
-            for (Map.Entry<String, HashMap<Long, String>> entry : clientMetadata.getBrokerAddrTable().entrySet()) {
-                String bname = entry.getKey();
-                HashMap<Long, String> map = entry.getValue();
-                String addr = map.get(MixAll.MASTER_ID);
-                if (addr != null) {
-                    try {
-                        TopicConfigAndQueueMapping mapping = (TopicConfigAndQueueMapping) defaultMQAdminExt.examineTopicConfig(addr, topic);
-                        //allow the config is null
-                        if (mapping != null) {
-                            brokerConfigMap.put(bname, mapping);
-                        }
-                    }  catch (MQBrokerException exception1) {
-                        if (exception1.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
-                            throw exception1;
-                        }
-                    }
+            }  catch (MQBrokerException exception1) {
+                if (exception1.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
+                    throw exception1;
                 }
             }
         }

@@ -1438,4 +1438,8 @@ public class BrokerController {
     public QueryAssignmentProcessor getQueryAssignmentProcessor() {
         return queryAssignmentProcessor;
     }
+
+    public TopicQueueMappingCleanService getTopicQueueMappingCleanService() {
+        return topicQueueMappingCleanService;
+    }
 }

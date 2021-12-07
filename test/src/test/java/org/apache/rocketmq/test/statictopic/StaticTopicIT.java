@@ -1,10 +1,13 @@
 package org.apache.rocketmq.test.statictopic;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.rpc.ClientMetadata;
+import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
@@ -356,6 +359,121 @@ public class StaticTopicIT extends BaseConf {
         }
     }
 
+
+    public void sendMessagesAndCheck(RMQNormalProducer producer, String broker, String topic, int queueNum, int msgEachQueue, long baseOffset) throws Exception {
+        ClientMetadata clientMetadata = MQAdminUtils.getBrokerAndTopicMetadata(topic, defaultMQAdminExt);
+        List<MessageQueue> messageQueueList = producer.getMessageQueue();
+        Assert.assertEquals(queueNum, messageQueueList.size());
+        for (int i = 0; i < queueNum; i++) {
+            MessageQueue messageQueue = messageQueueList.get(i);
+            Assert.assertEquals(i, messageQueue.getQueueId());
+            Assert.assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, messageQueue.getBrokerName());
+            String destBrokerName = clientMetadata.getBrokerNameFromMessageQueue(messageQueue);
+            Assert.assertEquals(destBrokerName, broker);
+        }
+
+        for(MessageQueue messageQueue: messageQueueList) {
+            producer.send(msgEachQueue, messageQueue);
+        }
+        Assert.assertEquals(0, producer.getSendErrorMsg().size());
+        //leave the time to build the cq
+        Thread.sleep(100);
+        for(MessageQueue messageQueue: messageQueueList) {
+            Assert.assertEquals(0, defaultMQAdminExt.minOffset(messageQueue));
+            Assert.assertEquals(msgEachQueue + baseOffset, defaultMQAdminExt.maxOffset(messageQueue));
+        }
+    }
+
+
+    @Test
+    public void testRemappingAndClear() throws Exception {
+        String topic = "static" + MQRandomUtils.getRandomTopic();
+        RMQNormalProducer producer = getProducer(nsAddr, topic);
+        int queueNum = 10;
+        int msgEachQueue = 100;
+        //create to broker1Name
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker1Name);
+            MQAdminTestUtils.createStaticTopic(topic, queueNum, targetBrokers, defaultMQAdminExt);
+            //leave the time to refresh the metadata
+            Thread.sleep(500);
+            sendMessagesAndCheck(producer, broker1Name, topic, queueNum, msgEachQueue, 0L);
+        }
+
+        //remapping to broker2Name
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker2Name);
+            MQAdminTestUtils.remappingStaticTopic(topic, targetBrokers, defaultMQAdminExt);
+            //leave the time to refresh the metadata
+            Thread.sleep(500);
+            sendMessagesAndCheck(producer, broker2Name, topic, queueNum, msgEachQueue, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
+        }
+
+        //remapping to broker3Name
+        {
+            Set<String> targetBrokers = new HashSet<>();
+            targetBrokers.add(broker3Name);
+            MQAdminTestUtils.remappingStaticTopic(topic, targetBrokers, defaultMQAdminExt);
+            //leave the time to refresh the metadata
+            Thread.sleep(500);
+            sendMessagesAndCheck(producer, broker3Name, topic, queueNum, msgEachQueue, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE * 2);
+        }
+
+        // 1 -> 2 -> 3, currently 1 should not has any mappings
+
+        {
+            for (int i = 0; i < 10; i++) {
+                for (BrokerController brokerController: brokerControllerList) {
+                    brokerController.getTopicQueueMappingCleanService().wakeup();
+                }
+                Thread.sleep(100);
+            }
+            Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
+            Assert.assertEquals(brokerNum, brokerConfigMap.size());
+            TopicConfigAndQueueMapping config1 = brokerConfigMap.get(broker1Name);
+            TopicConfigAndQueueMapping config2 = brokerConfigMap.get(broker2Name);
+            TopicConfigAndQueueMapping config3 = brokerConfigMap.get(broker3Name);
+            Assert.assertEquals(0, config1.getMappingDetail().getHostedQueues().size());
+            Assert.assertEquals(queueNum, config2.getMappingDetail().getHostedQueues().size());
+
+            Assert.assertEquals(queueNum, config3.getMappingDetail().getHostedQueues().size());
+
+        }
+        {
+            Set<String> topics =  new HashSet<>(brokerController1.getTopicConfigManager().getTopicConfigTable().keySet());
+            topics.remove(topic);
+            brokerController1.getMessageStore().cleanUnusedTopic(topics);
+            brokerController2.getMessageStore().cleanUnusedTopic(topics);
+            for (int i = 0; i < 10; i++) {
+                for (BrokerController brokerController: brokerControllerList) {
+                    brokerController.getTopicQueueMappingCleanService().wakeup();
+                }
+                Thread.sleep(100);
+            }
+
+            Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
+            Assert.assertEquals(brokerNum, brokerConfigMap.size());
+            TopicConfigAndQueueMapping config1 = brokerConfigMap.get(broker1Name);
+            TopicConfigAndQueueMapping config2 = brokerConfigMap.get(broker2Name);
+            TopicConfigAndQueueMapping config3 = brokerConfigMap.get(broker3Name);
+            Assert.assertEquals(0, config1.getMappingDetail().getHostedQueues().size());
+            Assert.assertEquals(queueNum, config2.getMappingDetail().getHostedQueues().size());
+            Assert.assertEquals(queueNum, config3.getMappingDetail().getHostedQueues().size());
+            //The first leader will clear it
+            for (List<LogicQueueMappingItem> items : config1.getMappingDetail().getHostedQueues().values()) {
+                Assert.assertEquals(3, items.size());
+            }
+            //The second leader do nothing
+            for (List<LogicQueueMappingItem> items : config3.getMappingDetail().getHostedQueues().values()) {
+                Assert.assertEquals(1, items.size());
+            }
+
+        }
+
+
+    }
 
 
     @Test
