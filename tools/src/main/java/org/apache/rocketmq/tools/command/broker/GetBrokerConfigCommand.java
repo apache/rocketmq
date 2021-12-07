@@ -20,7 +20,10 @@ package org.apache.rocketmq.tools.command.broker;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -83,19 +86,19 @@ public class GetBrokerConfigCommand implements SubCommand {
                 Map<String, List<String>> masterAndSlaveMap
                     = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
 
-                for (String masterAddr : masterAndSlaveMap.keySet()) {
+                for (Entry<String, List<String>> masterAddrEntry : masterAndSlaveMap.entrySet()) {
 
                     getAndPrint(
-                        defaultMQAdminExt,
-                        String.format("============Master: %s============\n", masterAddr),
-                        masterAddr
+                            defaultMQAdminExt,
+                            String.format("============Master: %s============\n", masterAddrEntry.getKey()),
+                            masterAddrEntry.getKey()
                     );
-                    for (String slaveAddr : masterAndSlaveMap.get(masterAddr)) {
+                    for (String slaveAddr : masterAddrEntry.getValue()) {
 
                         getAndPrint(
-                            defaultMQAdminExt,
-                            String.format("============My Master: %s=====Slave: %s============\n", masterAddr, slaveAddr),
-                            slaveAddr
+                                defaultMQAdminExt,
+                                String.format("============My Master: %s=====Slave: %s============\n", masterAddrEntry.getKey(), slaveAddr),
+                                slaveAddr
                         );
                     }
                 }
@@ -121,8 +124,8 @@ public class GetBrokerConfigCommand implements SubCommand {
             return;
         }
 
-        for (Object key : properties.keySet()) {
-            System.out.printf("%-50s=  %s\n", key, properties.get(key));
+        for (Entry<Object, Object> keyEntry : properties.entrySet()) {
+            System.out.printf("%-50s=  %s\n", keyEntry.getKey(), keyEntry.getValue());
         }
 
         System.out.printf("%n");
