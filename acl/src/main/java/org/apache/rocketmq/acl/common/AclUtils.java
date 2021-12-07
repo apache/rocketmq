@@ -163,7 +163,7 @@ public class AclUtils {
     }
 
     public static boolean isScope(String num) {
-        return isScope(Integer.valueOf(num.trim()));
+        return isScope(Integer.parseInt(num.trim()));
     }
 
     public static boolean isScope(int num) {

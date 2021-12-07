@@ -94,7 +94,7 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setPreferredLeaderId(defaultMessageStore.getMessageStoreConfig().getPreferredLeaderId());
         dLedgerConfig.setEnableBatchPush(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
 
-        id = Integer.valueOf(dLedgerConfig.getSelfId().substring(1)) + 1;
+        id = Integer.parseInt(dLedgerConfig.getSelfId().substring(1)) + 1;
         dLedgerServer = new DLedgerServer(dLedgerConfig);
         dLedgerFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
         DLedgerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -> {
