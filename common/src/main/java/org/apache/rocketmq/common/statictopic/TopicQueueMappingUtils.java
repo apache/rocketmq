@@ -205,15 +205,13 @@ public class TopicQueueMappingUtils {
             LogicQueueMappingItem newItem = newItems.get(inew);
             LogicQueueMappingItem oldItem = oldItems.get(iold);
             if (newItem.getGen() < oldItem.getGen()) {
-                //the old one may have been deleted
+                //the earliest item may have been deleted concurrently
                 inew++;
             } else if (oldItem.getGen() < newItem.getGen()){
-                //the new one may be the "delete one from "
-                if (isCLean) {
-                    iold++;
-                } else {
-                   throw new RuntimeException("The new item-list has less items than old item-list");
-                }
+                //in the following cases, the new item-list has less items than old item-list
+                //1. the queue is mapped back to a broker which hold the logic queue before
+                //2. The earliest item is deleted by  TopicQueueMappingCleanService
+                iold++;
             } else {
                 assert oldItem.getBname().equals(newItem.getBname());
                 assert oldItem.getQueueId() == newItem.getQueueId();

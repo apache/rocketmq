@@ -60,7 +60,7 @@ public class StaticTopicIT extends BaseConf {
             targetBrokers.add(broker1Name);
             MQAdminTestUtils.createStaticTopic(topic, queueNum, targetBrokers, defaultMQAdminExt);
             Map<String, TopicConfigAndQueueMapping> remoteBrokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
-            Assert.assertEquals(2, remoteBrokerConfigMap.size());
+            Assert.assertEquals(brokerNum, remoteBrokerConfigMap.size());
             TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, remoteBrokerConfigMap);
             Map<Integer, TopicQueueMappingOne>  globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(getMappingDetailFromConfig(remoteBrokerConfigMap.values())), false, true);
             Assert.assertEquals(queueNum, globalIdMap.size());
@@ -75,7 +75,7 @@ public class StaticTopicIT extends BaseConf {
             targetBrokers.add(broker2Name);
             MQAdminTestUtils.remappingStaticTopic(topic, targetBrokers, defaultMQAdminExt);
             Map<String, TopicConfigAndQueueMapping> remoteBrokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
-            Assert.assertEquals(2, remoteBrokerConfigMap.size());
+            Assert.assertEquals(brokerNum, remoteBrokerConfigMap.size());
             TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, remoteBrokerConfigMap);
             Map<Integer, TopicQueueMappingOne>  globalIdMap = TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(getMappingDetailFromConfig(remoteBrokerConfigMap.values())), false, true);
             Assert.assertEquals(queueNum, globalIdMap.size());
@@ -97,7 +97,7 @@ public class StaticTopicIT extends BaseConf {
         //check the static topic config
         {
             Map<String, TopicConfigAndQueueMapping> remoteBrokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
-            Assert.assertEquals(2, remoteBrokerConfigMap.size());
+            Assert.assertEquals(brokerNum, remoteBrokerConfigMap.size());
             for (Map.Entry<String, TopicConfigAndQueueMapping> entry: remoteBrokerConfigMap.entrySet())  {
                 String broker = entry.getKey();
                 TopicConfigAndQueueMapping configMapping = entry.getValue();
@@ -355,6 +355,8 @@ public class StaticTopicIT extends BaseConf {
             }
         }
     }
+
+
 
     @Test
     public void testRemappingWithNegativeLogicOffset() throws Exception {

@@ -56,6 +56,8 @@ public class BaseConf {
     public final static String nsAddr;
     protected final static String broker1Name;
     protected final static String broker2Name;
+    //the logic queue test need at least three brokers
+    protected final static String broker3Name;
     protected final static String clusterName;
     protected final static int brokerNum;
     protected final static int waitTime = 5;
@@ -64,6 +66,7 @@ public class BaseConf {
     protected final static NamesrvController namesrvController;
     protected final static BrokerController brokerController1;
     protected final static BrokerController brokerController2;
+    protected final static BrokerController brokerController3;
     protected final static List<BrokerController> brokerControllerList;
     protected final static Map<String, BrokerController> brokerControllerMap;
     protected final static List<Object> mqClients = new ArrayList<Object>();
@@ -76,11 +79,13 @@ public class BaseConf {
         nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
         brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr);
         brokerController2 = IntegrationTestBase.createAndStartBroker(nsAddr);
+        brokerController3 = IntegrationTestBase.createAndStartBroker(nsAddr);
         clusterName = brokerController1.getBrokerConfig().getBrokerClusterName();
         broker1Name = brokerController1.getBrokerConfig().getBrokerName();
         broker2Name = brokerController2.getBrokerConfig().getBrokerName();
-        brokerNum = 2;
-        brokerControllerList = ImmutableList.of(brokerController1, brokerController2);
+        broker3Name = brokerController3.getBrokerConfig().getBrokerName();
+        brokerNum = 3;
+        brokerControllerList = ImmutableList.of(brokerController1, brokerController2, brokerController3);
         brokerControllerMap = brokerControllerList.stream().collect(Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
     }
 
@@ -214,6 +219,7 @@ public class BaseConf {
         Set<String> brokers = new HashSet<>();
         brokers.add(broker1Name);
         brokers.add(broker2Name);
+        brokers.add(broker3Name);
         return brokers;
     }
 
