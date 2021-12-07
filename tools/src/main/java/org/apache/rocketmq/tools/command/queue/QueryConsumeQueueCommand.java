@@ -92,9 +92,9 @@ public class QueryConsumeQueueCommand implements SubCommand {
             defaultMQAdminExt.start();
 
             String topic = commandLine.getOptionValue("t").trim();
-            int queueId = Integer.valueOf(commandLine.getOptionValue("q").trim());
-            long index = Long.valueOf(commandLine.getOptionValue("i").trim());
-            int count = Integer.valueOf(commandLine.getOptionValue("c", "10").trim());
+            int queueId = Integer.parseInt(commandLine.getOptionValue("q").trim());
+            long index = Long.parseLong(commandLine.getOptionValue("i").trim());
+            int count = Integer.parseInt(commandLine.getOptionValue("c", "10").trim());
             String broker = null;
             if (commandLine.hasOption("b")) {
                 broker = commandLine.getOptionValue("b").trim();
