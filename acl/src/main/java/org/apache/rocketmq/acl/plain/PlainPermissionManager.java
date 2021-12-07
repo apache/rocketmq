@@ -18,13 +18,6 @@ package org.apache.rocketmq.acl.plain;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -38,6 +31,14 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.srvutil.FileWatchService;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PlainPermissionManager {
 
@@ -194,9 +195,9 @@ public class PlainPermissionManager {
                     "The secretKey=%s value length should longer than 6",
                     plainAccessConfig.getSecretKey()));
             }
-            newAccountsMap.put(AclConstants.CONFIG_SECRET_KEY, (String) plainAccessConfig.getSecretKey());
+            newAccountsMap.put(AclConstants.CONFIG_SECRET_KEY, plainAccessConfig.getSecretKey());
         }
-        if (!StringUtils.isEmpty(plainAccessConfig.getWhiteRemoteAddress())) {
+        if (plainAccessConfig.getWhiteRemoteAddress() != null) {
             newAccountsMap.put(AclConstants.CONFIG_WHITE_ADDR, plainAccessConfig.getWhiteRemoteAddress());
         }
         if (!StringUtils.isEmpty(String.valueOf(plainAccessConfig.isAdmin()))) {
@@ -208,10 +209,10 @@ public class PlainPermissionManager {
         if (!StringUtils.isEmpty(plainAccessConfig.getDefaultGroupPerm())) {
             newAccountsMap.put(AclConstants.CONFIG_DEFAULT_GROUP_PERM, plainAccessConfig.getDefaultGroupPerm());
         }
-        if (plainAccessConfig.getTopicPerms() != null && !plainAccessConfig.getTopicPerms().isEmpty()) {
+        if (plainAccessConfig.getTopicPerms() != null) {
             newAccountsMap.put(AclConstants.CONFIG_TOPIC_PERMS, plainAccessConfig.getTopicPerms());
         }
-        if (plainAccessConfig.getGroupPerms() != null && !plainAccessConfig.getGroupPerms().isEmpty()) {
+        if (plainAccessConfig.getGroupPerms() != null) {
             newAccountsMap.put(AclConstants.CONFIG_GROUP_PERMS, plainAccessConfig.getGroupPerms());
         }
 

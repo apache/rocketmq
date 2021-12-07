@@ -146,5 +146,4 @@ public class CommandUtil {
         }
         throw new Exception(ERROR_MESSAGE);
     }
-
 }

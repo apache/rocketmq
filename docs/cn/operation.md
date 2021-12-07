@@ -25,7 +25,7 @@ The Name Server boot success...
 ### 启动Broker
 $ nohup sh bin/mqbroker -n localhost:9876 &
 
-### 验证Name Server 是否启动成功，例如Broker的IP为：192.168.1.2，且名称为broker-a
+### 验证Broker是否启动成功，例如Broker的IP为：192.168.1.2，且名称为broker-a
 $ tail -f ~/logs/rocketmqlogs/broker.log 
 The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
@@ -566,6 +566,14 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td class=xl67 width=87 style='width:65pt'>-b</td>
   <td class=xl68 width=87 style='width:65pt'>BrokerName</td>
  </tr>
+ <tr height=57 style='height:43.0pt'>
+   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
+   height:103.0pt;border-top:none;width:143pt'>addWritePerm</td>
+   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
+   border-top:none;width:65pt'>从NameServer上添加 Broker写权限</td>
+   <td class=xl67 width=87 style='width:65pt'>-b</td>
+   <td class=xl68 width=87 style='width:65pt'>BrokerName</td>
+  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
