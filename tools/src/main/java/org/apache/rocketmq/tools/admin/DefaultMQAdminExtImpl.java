@@ -268,6 +268,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             }
         }
 
+
         if (topicStatsTable.getOffsetTable().isEmpty()) {
             throw new MQClientException("Not found the topic stats info", null);
         }

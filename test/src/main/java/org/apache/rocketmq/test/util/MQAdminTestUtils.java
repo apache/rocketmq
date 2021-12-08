@@ -22,9 +22,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -34,9 +41,16 @@ import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
+import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
+import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminUtils;
 import org.apache.rocketmq.tools.command.CommandUtil;
+import org.apache.rocketmq.tools.command.MQAdminStartup;
+import org.apache.rocketmq.tools.command.topic.RemappingStaticTopicSubCommand;
+import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
 
 public class MQAdminTestUtils {
     private static Logger log = Logger.getLogger(MQAdminTestUtils.class);
@@ -231,5 +245,65 @@ public class MQAdminTestUtils {
     }
 
 
+    public static void createStaticTopicWithCommand(String topic, int queueNum, Set<String> brokers, String cluster,  String nameservers) throws Exception {
+        UpdateStaticTopicSubCommand cmd = new UpdateStaticTopicSubCommand();
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        String[] args;
+        if (cluster != null) {
+            args = new String[] {
+                    "-c", cluster,
+                    "-t", topic,
+                    "-qn", String.valueOf(queueNum),
+                    "-n", nameservers
+            };
+        } else {
+            String brokerStr = String.join(",", brokers);
+            args = new String[] {
+                    "-b", brokerStr,
+                    "-t", topic,
+                    "-qn", String.valueOf(queueNum),
+                    "-n", nameservers
+            };
+        }
+        final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), args, cmd.buildCommandlineOptions(options), new PosixParser());
+        if (null == commandLine) {
+            return;
+        }
+        if (commandLine.hasOption('n')) {
+            String namesrvAddr = commandLine.getOptionValue('n');
+            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
+        }
+        cmd.execute(commandLine, options, null);
+    }
+
+
+    public static void remappingStaticTopicWithCommand(String topic, Set<String> brokers, String cluster, String nameservers) throws Exception {
+        RemappingStaticTopicSubCommand cmd = new RemappingStaticTopicSubCommand();
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        String[] args;
+        if (cluster != null) {
+            args = new String[] {
+                    "-c", cluster,
+                    "-t", topic,
+                    "-n", nameservers
+            };
+        } else {
+            String brokerStr = String.join(",", brokers);
+            args = new String[] {
+                    "-b", brokerStr,
+                    "-t", topic,
+                    "-n", nameservers
+            };
+        }
+        final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), args, cmd.buildCommandlineOptions(options), new PosixParser());
+        if (null == commandLine) {
+            return;
+        }
+        if (commandLine.hasOption('n')) {
+            String namesrvAddr = commandLine.getOptionValue('n');
+            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
+        }
+        cmd.execute(commandLine, options, null);
+    }
 
 }

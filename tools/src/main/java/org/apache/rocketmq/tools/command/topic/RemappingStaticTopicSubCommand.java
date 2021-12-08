@@ -20,13 +20,12 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -91,6 +90,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
+            defaultMQAdminExt.start();
             String topic = commandLine.getOptionValue('t').trim();
 
             String mapFileName = commandLine.getOptionValue('f').trim();
@@ -137,6 +137,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
         Set<String> targetBrokers = new HashSet<>();
 
         try {
+            defaultMQAdminExt.start();
             if ((!commandLine.hasOption("b") && !commandLine.hasOption('c'))) {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
                 return;
@@ -148,6 +149,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
                     || clusterInfo.getClusterAddrTable().isEmpty()) {
                 throw new RuntimeException("The Cluster info is empty");
             }
+            clientMetadata.refreshClusterInfo(clusterInfo);
             {
                 if (commandLine.hasOption("b")) {
                     String brokerStrs = commandLine.getOptionValue("b").trim();

@@ -18,11 +18,12 @@
 package org.apache.rocketmq.common.protocol.header;
 
 import org.apache.rocketmq.common.rpc.RpcRequestHeader;
+import org.apache.rocketmq.common.rpc.TopicRequestHeader;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class GetTopicConfigRequestHeader extends RpcRequestHeader {
+public class GetTopicConfigRequestHeader extends TopicRequestHeader {
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -30,7 +31,6 @@ public class GetTopicConfigRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private String topic;
 
-    private Boolean withMapping;
 
     /**
      * @return the topic
@@ -44,13 +44,5 @@ public class GetTopicConfigRequestHeader extends RpcRequestHeader {
      */
     public void setTopic(String topic) {
         this.topic = topic;
-    }
-
-    public Boolean getWithMapping() {
-        return withMapping;
-    }
-
-    public void setWithMapping(Boolean withMapping) {
-        this.withMapping = withMapping;
     }
 }

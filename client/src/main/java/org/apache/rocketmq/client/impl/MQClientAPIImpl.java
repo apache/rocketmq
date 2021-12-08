@@ -2581,7 +2581,7 @@ public class MQClientAPIImpl {
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         GetTopicConfigRequestHeader header = new GetTopicConfigRequestHeader();
         header.setTopic(topic);
-        header.setWithMapping(true);
+        header.setLo(true);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_CONFIG, header);
         RemotingCommand response = this.remotingClient
             .invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, timeoutMillis);

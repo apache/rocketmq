@@ -92,9 +92,9 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
                         RPCHook rpcHook) throws SubCommandException {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
-        ClientMetadata clientMetadata = new ClientMetadata();
 
         try {
+            defaultMQAdminExt.start();
             String topic = commandLine.getOptionValue('t').trim();
             String mapFileName = commandLine.getOptionValue('f').trim();
             String mapData = MixAll.file2String(mapFileName);
@@ -139,6 +139,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
         Set<String> targetBrokers = new HashSet<>();
 
         try {
+            defaultMQAdminExt.start();
             if ((!commandLine.hasOption("b") && !commandLine.hasOption('c'))
                     || !commandLine.hasOption("qn")) {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);

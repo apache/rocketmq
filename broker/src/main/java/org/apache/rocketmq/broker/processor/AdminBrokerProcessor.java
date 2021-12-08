@@ -1996,7 +1996,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
         TopicQueueMappingDetail topicQueueMappingDetail = null;
-        if (Boolean.TRUE.equals(requestHeader.getWithMapping())) {
+        if (Boolean.TRUE.equals(requestHeader.getLo())) {
             topicQueueMappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(requestHeader.getTopic());
         }
         String content = JSONObject.toJSONString(new TopicConfigAndQueueMapping(topicConfig, topicQueueMappingDetail));
