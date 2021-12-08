@@ -40,4 +40,7 @@ jobs:
         cache: maven
     - run: mvn verify -DskipTests
     - run: mvn -B clean apache-rat:check
-    - run: mvn -B package jacoco:report coveralls:report
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
