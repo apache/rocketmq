@@ -34,7 +34,7 @@ public class RpcResponse   {
         this.body = body;
     }
 
-    RpcResponse(RpcException rpcException) {
+    public RpcResponse(RpcException rpcException) {
         this.code = rpcException.getErrorCode();
         this.exception = rpcException;
     }
