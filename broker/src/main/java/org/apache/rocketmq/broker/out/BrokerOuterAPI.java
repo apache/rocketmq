@@ -350,7 +350,7 @@ public class BrokerOuterAPI {
         return changedList;
     }
 
-    public TopicConfigSerializeWrapper getAllTopicConfig(
+    public TopicConfigAndMappingSerializeWrapper getAllTopicConfig(
         final String addr) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, InterruptedException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
@@ -359,7 +359,7 @@ public class BrokerOuterAPI {
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
-                return TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigSerializeWrapper.class);
+                return TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigAndMappingSerializeWrapper.class);
             }
             default:
                 break;
