@@ -40,7 +40,11 @@ jobs:
         cache: maven
     - run: mvn verify -DskipTests
     - run: mvn -B clean apache-rat:check
-    - name: Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - run: |
+        mvn -B package jacoco:report coveralls:report \
+        --no-transfer-progress \
+        -D repoToken=${{ secrets.GITHUB_TOKEN }} \
+        -D serviceName=github \
+        -D serviceBuildUrl=https://github.com/${{ github.repository }}/commit/${{ github.sha }}/checks \
+        -D branch=$BRANCH_NAME \
+        -D pullRequest=$PR_NUMBER
