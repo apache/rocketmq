@@ -23,7 +23,6 @@ import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
-import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -57,6 +56,7 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
@@ -64,6 +64,7 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,7 +82,6 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -119,7 +119,9 @@ public class AdminBrokerProcessorTest {
     @Mock
     private ConsumerOffsetManager consumerOffsetManager;
     @Mock
-    private Broker2Client broker2Client;
+    private DefaultMessageStore defaultMessageStore;
+    @Mock
+    private ScheduleMessageService scheduleMessageService;
 
     @Before
     public void init() {
@@ -408,19 +410,12 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetAllDelayOffset() throws Exception {
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        scheduleMessageService = mock(ScheduleMessageService.class);
+        when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
+        when(defaultMessageStore.getScheduleMessageService()).thenReturn(scheduleMessageService);
+        when(scheduleMessageService.encode()).thenReturn("content");
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
-        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
-    }
-
-    @Test
-    public void testResetOffset() throws Exception {
-        broker2Client = mock(Broker2Client.class);
-        when(brokerController.getBroker2Client()).thenReturn(broker2Client);
-        final RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(null);
-        remotingCommand.setCode(ResponseCode.SUCCESS);
-        when(broker2Client.resetOffset(anyString(), anyString(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(remotingCommand);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
