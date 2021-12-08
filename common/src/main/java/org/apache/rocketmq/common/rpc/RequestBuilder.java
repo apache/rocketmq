@@ -25,7 +25,7 @@ public class RequestBuilder {
         }
         try {
             RpcRequestHeader requestHeader = (RpcRequestHeader) requestHeaderClass.newInstance();
-            requestHeader.setOneway(oneway);
+            requestHeader.setOway(oneway);
             requestHeader.setBname(destBrokerName);
             return requestHeader;
         } catch (Throwable t) {
@@ -37,26 +37,26 @@ public class RequestBuilder {
         return buildTopicQueueRequestHeader(requestCode, null, mq.getBrokerName(), mq.getTopic(), mq.getQueueId(), null);
     }
 
-    public static TopicQueueRequestHeader buildTopicQueueRequestHeader(int requestCode, MessageQueue mq, Boolean physical) {
-        return buildTopicQueueRequestHeader(requestCode, null, mq.getBrokerName(), mq.getTopic(), mq.getQueueId(), physical);
+    public static TopicQueueRequestHeader buildTopicQueueRequestHeader(int requestCode, MessageQueue mq, Boolean logic) {
+        return buildTopicQueueRequestHeader(requestCode, null, mq.getBrokerName(), mq.getTopic(), mq.getQueueId(), logic);
     }
 
-    public static TopicQueueRequestHeader buildTopicQueueRequestHeader(int requestCode, Boolean oneway, MessageQueue mq, Boolean physical) {
-        return buildTopicQueueRequestHeader(requestCode, oneway, mq.getBrokerName(), mq.getTopic(), mq.getQueueId(), physical);
+    public static TopicQueueRequestHeader buildTopicQueueRequestHeader(int requestCode, Boolean oneway, MessageQueue mq, Boolean logic) {
+        return buildTopicQueueRequestHeader(requestCode, oneway, mq.getBrokerName(), mq.getTopic(), mq.getQueueId(), logic);
     }
 
-    public static TopicQueueRequestHeader buildTopicQueueRequestHeader(int requestCode,  Boolean oneway, String destBrokerName, String topic, int queueId, Boolean physical) {
+    public static TopicQueueRequestHeader buildTopicQueueRequestHeader(int requestCode,  Boolean oneway, String destBrokerName, String topic, int queueId, Boolean logic) {
         Class requestHeaderClass = requestCodeMap.get(requestCode);
         if (requestHeaderClass == null) {
             throw new UnsupportedOperationException("unknown " + requestCode);
         }
         try {
             TopicQueueRequestHeader requestHeader = (TopicQueueRequestHeader) requestHeaderClass.newInstance();
-            requestHeader.setOneway(oneway);
+            requestHeader.setOway(oneway);
             requestHeader.setBname(destBrokerName);
             requestHeader.setTopic(topic);
             requestHeader.setQueueId(queueId);
-            requestHeader.setPhysical(physical);
+            requestHeader.setLo(logic);
             return requestHeader;
         } catch (Throwable t) {
             throw new RuntimeException(t);

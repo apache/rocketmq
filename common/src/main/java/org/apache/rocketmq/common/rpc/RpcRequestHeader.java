@@ -20,13 +20,13 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 
 public abstract class RpcRequestHeader implements CommandCustomHeader {
     //the namespace name
-    protected String namespace;
+    protected String ns;
     //if the data has been namespaced
-    protected Boolean namespaced;
+    protected Boolean nsd;
     //the abstract remote addr name, usually the physical broker name
     protected String bname;
-
-    protected Boolean oneway;
+    //oneway
+    protected Boolean oway;
 
     public String getBname() {
         return bname;
@@ -36,27 +36,27 @@ public abstract class RpcRequestHeader implements CommandCustomHeader {
         this.bname = bname;
     }
 
-    public Boolean getOneway() {
-        return oneway;
+    public Boolean getOway() {
+        return oway;
     }
 
-    public void setOneway(Boolean oneway) {
-        this.oneway = oneway;
+    public void setOway(Boolean oway) {
+        this.oway = oway;
     }
 
-    public String getNamespace() {
-        return namespace;
+    public String getNs() {
+        return ns;
     }
 
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
+    public void setNs(String ns) {
+        this.ns = ns;
     }
 
-    public Boolean getNamespaced() {
-        return namespaced;
+    public Boolean getNsd() {
+        return nsd;
     }
 
-    public void setNamespaced(Boolean namespaced) {
-        this.namespaced = namespaced;
+    public void setNsd(Boolean nsd) {
+        this.nsd = nsd;
     }
 }

@@ -214,6 +214,7 @@ public class RpcClientImpl implements RpcClient {
             }
             case ResponseCode.QUERY_NOT_FOUND: {
                 rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), null, null));
+                break;
             }
             default:{
                 rpcResponsePromise.setSuccess(new RpcResponse(new RpcException(responseCommand.getCode(), "unknown remote error")));

@@ -16,9 +16,17 @@
  */
 package org.apache.rocketmq.common.rpc;
 
-public abstract class TopicQueueRequestHeader extends TopicRequestHeader {
+public abstract class TopicRequestHeader extends RpcRequestHeader {
+    //logical
+    protected Boolean lo;
 
-    public abstract Integer getQueueId();
-    public abstract void setQueueId(Integer queueId);
+    public abstract String getTopic();
+    public abstract void setTopic(String topic);
 
+    public Boolean getLo() {
+        return lo;
+    }
+    public void setLo(Boolean lo) {
+        this.lo = lo;
+    }
 }

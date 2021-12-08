@@ -30,6 +30,7 @@ import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
@@ -104,6 +105,7 @@ import org.apache.rocketmq.common.protocol.header.ViewBrokerStatsDataRequestHead
 import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.filtersrv.RegisterFilterServerResponseHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.rpc.RpcClient;
 import org.apache.rocketmq.common.rpc.RpcClientUtils;
 import org.apache.rocketmq.common.rpc.RpcException;
 import org.apache.rocketmq.common.rpc.RpcRequest;
@@ -159,9 +161,13 @@ import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorRe
 public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
+    private final RpcClient rpcClient;
+    private final BrokerConfig brokerConfig;
 
     public AdminBrokerProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
+        this.brokerConfig = brokerController.getBrokerConfig();
+        this.rpcClient = brokerController.getBrokerOuterAPI().getRpcClient();
     }
 
     @Override
@@ -650,7 +656,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                         break;
                     }
                 } else {
-                    requestHeader.setPhysical(true);
+                    requestHeader.setLo(false);
                     requestHeader.setTimestamp(timestamp);
                     requestHeader.setQueueId(item.getQueueId());
                     requestHeader.setBname(item.getBname());
@@ -720,7 +726,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             assert maxItem != null;
             assert maxItem.getLogicOffset() >= 0;
             requestHeader.setBname(maxItem.getBname());
-            requestHeader.setPhysical(true);
+            requestHeader.setLo(false);
             requestHeader.setQueueId(mappingItem.getQueueId());
 
             long maxPhysicalOffset = Long.MAX_VALUE;
@@ -770,7 +776,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         return response;
     }
 
-    private CompletableFuture<RpcResponse> handleGetMinOffsetForStaticTopic(GetMinOffsetRequestHeader requestHeader, TopicQueueMappingContext mappingContext)  {
+    private CompletableFuture<RpcResponse> handleGetMinOffsetForStaticTopic(RpcRequest request, TopicQueueMappingContext mappingContext)  {
         if (mappingContext.getMappingDetail() == null) {
             return null;
         }
@@ -778,14 +784,14 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         if (!mappingContext.isLeader()) {
             //this may not
             return CompletableFuture.completedFuture(new RpcResponse(new RpcException(ResponseCode.NOT_LEADER_FOR_QUEUE,
-                    String.format("%s-%d is not leader in current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()))));
+                    String.format("%s-%d is not leader in broker %s, request code %d", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname(), request.getCode()))));
         };
-
+        GetMinOffsetRequestHeader requestHeader = (GetMinOffsetRequestHeader) request.getHeader();
         LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), 0L, true);
         assert  mappingItem != null;
         try {
             requestHeader.setBname(mappingItem.getBname());
-            requestHeader.setPhysical(true);
+            requestHeader.setLo(false);
             requestHeader.setQueueId(mappingItem.getQueueId());
             long physicalOffset;
             //run in local
@@ -815,7 +821,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         assert request.getCode() == RequestCode.GET_MIN_OFFSET;
         GetMinOffsetRequestHeader requestHeader = (GetMinOffsetRequestHeader) request.getHeader();
         TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
-        CompletableFuture<RpcResponse> rewriteResult = handleGetMinOffsetForStaticTopic(requestHeader, mappingContext);
+        CompletableFuture<RpcResponse> rewriteResult = handleGetMinOffsetForStaticTopic(request, mappingContext);
         if (rewriteResult != null) {
             return rewriteResult;
         }
@@ -851,7 +857,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         assert mappingItem != null;
         try {
             requestHeader.setBname(mappingItem.getBname());
-            requestHeader.setPhysical(true);
+            requestHeader.setLo(false);
             RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_EARLIEST_MSG_STORETIME, requestHeader, null);
             //TODO check if it is in current broker
             RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
@@ -1006,6 +1012,70 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         return response;
     }
 
+    private RpcResponse handleGetTopicStatsInfoForStaticTopic(RpcRequest request, TopicQueueMappingContext mappingContext) {
+        try {
+            assert request.getCode() == RequestCode.GET_TOPIC_STATS_INFO;
+            if (mappingContext.getMappingDetail() == null) {
+                return null;
+            }
+            final GetTopicStatsInfoRequestHeader requestHeader = (GetTopicStatsInfoRequestHeader) request.getHeader();
+            String topic = requestHeader.getTopic();
+            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
+            Map<Integer, LogicQueueMappingItem[]> qidItemMap = new HashMap<>();
+            Set<String> brokers = new HashSet<>();
+            mappingDetail.getHostedQueues().forEach((qid, items) -> {
+                if (TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
+                    LogicQueueMappingItem[] itemPair = new LogicQueueMappingItem[2];
+                    itemPair[0] = TopicQueueMappingUtils.findLogicQueueMappingItem(items, 0, true);
+                    itemPair[1] = TopicQueueMappingUtils.findLogicQueueMappingItem(items, Long.MAX_VALUE, true);
+                    assert itemPair[0] != null && itemPair[1] != null;
+                    qidItemMap.put(qid, itemPair);
+                    brokers.add(itemPair[0].getBname());
+                    brokers.add(itemPair[1].getBname());
+                }
+            });
+            Map<String, TopicStatsTable> statsTable = new HashMap<>();
+            for (String broker: brokers) {
+                GetTopicStatsInfoRequestHeader header = new GetTopicStatsInfoRequestHeader();
+                header.setTopic(topic);
+                header.setBname(broker);
+                header.setLo(false);
+                RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_TOPIC_STATS_INFO, header, null);
+                RpcResponse rpcResponse = rpcClient.invoke(rpcRequest, brokerConfig.getForwardTimeout()).get();
+                if (rpcResponse.getException() != null) {
+                    throw rpcResponse.getException();
+                }
+                statsTable.put(broker, (TopicStatsTable) rpcResponse.getBody());
+            }
+            TopicStatsTable topicStatsTable = new TopicStatsTable();
+            qidItemMap.forEach( (qid, itemPair) -> {
+                LogicQueueMappingItem minItem = itemPair[0];
+                LogicQueueMappingItem maxItem = itemPair[1];
+                TopicOffset minTopicOffset = statsTable.get(minItem.getBname()).getOffsetTable().get(new MessageQueue(topic, minItem.getBname(), minItem.getQueueId()));
+                TopicOffset maxTopicOffset = statsTable.get(maxItem.getBname()).getOffsetTable().get(new MessageQueue(topic, maxItem.getBname(), maxItem.getQueueId()));
+
+                assert  minTopicOffset != null && maxTopicOffset != null;
+
+                long min = minItem.computeStaticQueueOffsetLoosely(minTopicOffset.getMinOffset());
+                if (min < 0)
+                    min = 0;
+                long max = maxItem.computeStaticQueueOffsetStrictly(maxTopicOffset.getMaxOffset());
+                if (max < 0)
+                    max = 0;
+                long timestamp = maxTopicOffset.getLastUpdateTimestamp();
+
+                TopicOffset topicOffset = new TopicOffset();
+                topicOffset.setMinOffset(min);
+                topicOffset.setMaxOffset(max);
+                topicOffset.setLastUpdateTimestamp(timestamp);
+                topicStatsTable.getOffsetTable().put(new MessageQueue(topic, MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, qid), topicOffset);
+            });
+            return new RpcResponse(ResponseCode.SUCCESS, null, topicStatsTable);
+        } catch (Throwable t) {
+            return new RpcResponse(new RpcException(ResponseCode.SYSTEM_ERROR, t.getMessage(), t));
+        }
+    }
+
     private RemotingCommand getTopicStatsInfo(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -1019,8 +1089,17 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             response.setRemark("topic[" + topic + "] not exist");
             return response;
         }
-
         TopicStatsTable topicStatsTable = new TopicStatsTable();
+        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
+        RpcResponse rpcResponse = handleGetTopicStatsInfoForStaticTopic(new RpcRequest(RequestCode.GET_TOPIC_STATS_INFO, requestHeader, null), mappingContext);
+        if (rpcResponse != null) {
+            if (rpcResponse.getException() != null) {
+                return RpcClientUtils.createCommandForRpcResponse(rpcResponse);
+            } else {
+                topicStatsTable.getOffsetTable().putAll(((TopicStatsTable)rpcResponse.getBody()).getOffsetTable());
+            }
+        }
+
         for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
             MessageQueue mq = new MessageQueue();
             mq.setTopic(topic);

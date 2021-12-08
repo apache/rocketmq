@@ -153,11 +153,8 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             //by default, it is -1
             long offset = -1;
             //double read, first from leader, then from second leader
-            for (int i = 1; i <= 2; i++) {
-                if (itemList.size() - i < 0) {
-                    break;
-                }
-                LogicQueueMappingItem mappingItem = itemList.get(itemList.size() - i);
+            for (int i = itemList.size() - 1; i >= 0; i--) {
+                LogicQueueMappingItem mappingItem = itemList.get(i);
                 if (mappingItem.getBname().equals(mappingDetail.getBname())) {
                     offset = this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(), requestHeader.getTopic(), mappingItem.getQueueId());
                     if (offset >= 0) {
@@ -170,7 +167,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                     //maybe we need to reconstruct an object
                     requestHeader.setBname(mappingItem.getBname());
                     requestHeader.setQueueId(mappingItem.getQueueId());
-                    requestHeader.setPhysical(true);
+                    requestHeader.setLo(false);
                     requestHeader.setSetZeroIfNotFound(false);
                     RpcRequest rpcRequest = new RpcRequest(RequestCode.QUERY_CONSUMER_OFFSET, requestHeader, null);
                     RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
@@ -179,7 +176,8 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                     }
                     if (rpcResponse.getCode() == ResponseCode.SUCCESS) {
                         offset = ((QueryConsumerOffsetResponseHeader) rpcResponse.getHeader()).getOffset();
-                    } else if (rpcResponse.getCode() == ResponseCode.PULL_NOT_FOUND){
+                        break;
+                    } else if (rpcResponse.getCode() == ResponseCode.QUERY_NOT_FOUND){
                         continue;
                     } else {
                         //this should not happen

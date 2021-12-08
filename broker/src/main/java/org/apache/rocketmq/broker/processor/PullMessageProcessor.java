@@ -134,18 +134,14 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                     && requestHeader.getMaxMsgNums() != null) {
                 requestHeader.setMaxMsgNums((int) Math.min(mappingItem.getEndOffset() - mappingItem.getStartOffset(), requestHeader.getMaxMsgNums()));
             }
-            int sysFlag = requestHeader.getSysFlag();
-            if (!mappingContext.isLeader()) {
-                sysFlag = PullSysFlag.clearCommitOffsetFlag(sysFlag);
-                requestHeader.setSysFlag(sysFlag);
-            }
 
             if (mappingDetail.getBname().equals(bname)) {
                 //just let it go, do the local pull process
                 return null;
             }
 
-            requestHeader.setPhysical(true);
+            int sysFlag = requestHeader.getSysFlag();
+            requestHeader.setLo(false);
             requestHeader.setBname(bname);
             sysFlag = PullSysFlag.clearSuspendFlag(sysFlag);
             sysFlag = PullSysFlag.clearCommitOffsetFlag(sysFlag);
@@ -189,11 +185,13 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             long minOffset = responseHeader.getMinOffset();
             long maxOffset = responseHeader.getMaxOffset();
             int responseCode = code;
+
             //consider the following situations
             // 1. read from slave, currently not supported
             // 2. the middle queue is truncated because of deleting commitlog
             if (code != ResponseCode.SUCCESS) {
                 //note the currentItem maybe both the leader and  the earliest
+                boolean isRevised = false;
                 if (leaderItem.getGen() == currentItem.getGen()) {
                     //read the leader
                     if (requestOffset > maxOffset) {
@@ -228,6 +226,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                         //just move to another item
                         LogicQueueMappingItem nextItem = TopicQueueMappingUtils.findNext(mappingContext.getMappingItemList(), currentItem, true);
                         if (nextItem != null) {
+                            isRevised = true;
                             currentItem = nextItem;
                             nextBeginOffset = currentItem.getStartOffset();
                             minOffset = currentItem.getStartOffset();
@@ -244,7 +243,8 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 }
 
                 //read from the middle item, ignore the PULL_OFFSET_MOVED
-                if (leaderItem.getGen() != currentItem.getGen()
+                if (!isRevised
+                    && leaderItem.getGen() != currentItem.getGen()
                     && earlistItem.getGen() != currentItem.getGen()) {
                     if (requestOffset < minOffset) {
                         nextBeginOffset = minOffset;
@@ -289,7 +289,6 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                 return null;
             }
         } catch (Throwable t) {
-            t.printStackTrace();
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
     }
@@ -442,6 +441,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
             response.setRemark("The broker does not support consumer to filter message by " + subscriptionData.getExpressionType());
             return response;
         }
+
 
         MessageFilter messageFilter;
         if (this.brokerController.getBrokerConfig().isFilterSupportRetry()) {

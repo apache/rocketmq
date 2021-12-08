@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.common.rpc.RpcRequest;
 import org.apache.rocketmq.common.rpc.RpcResponse;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
+import org.apache.rocketmq.common.rpc.TopicRequestHeader;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
@@ -190,28 +191,37 @@ public class TopicQueueMappingManager extends ConfigManager {
         return dataVersion;
     }
 
-    public TopicQueueMappingContext buildTopicQueueMappingContext(TopicQueueRequestHeader requestHeader) {
+    public TopicQueueMappingContext buildTopicQueueMappingContext(TopicRequestHeader requestHeader) {
         return buildTopicQueueMappingContext(requestHeader, false);
     }
 
     //Do not return a null context
-    public TopicQueueMappingContext buildTopicQueueMappingContext(TopicQueueRequestHeader requestHeader, boolean selectOneWhenMiss) {
-        if (requestHeader.getPhysical() != null
-                && Boolean.TRUE.equals(requestHeader.getPhysical())) {
-            return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, null, null);
+    public TopicQueueMappingContext buildTopicQueueMappingContext(TopicRequestHeader requestHeader, boolean selectOneWhenMiss) {
+        //should disable logic queue explicitly, otherwise the old client may cause dirty data to newly created static topic
+        if (requestHeader.getLo() != null
+                && Boolean.FALSE.equals(requestHeader.getLo())) {
+            return new TopicQueueMappingContext(requestHeader.getTopic(), null, null, null, null);
         }
-        TopicQueueMappingDetail mappingDetail = getTopicQueueMapping(requestHeader.getTopic());
+        String topic = requestHeader.getTopic();
+        Integer globalId = null;
+        if (requestHeader instanceof  TopicQueueRequestHeader) {
+            globalId = ((TopicQueueRequestHeader) requestHeader).getQueueId();
+        }
+
+        TopicQueueMappingDetail mappingDetail = getTopicQueueMapping(topic);
         if (mappingDetail == null) {
             //it is not static topic
-            return new TopicQueueMappingContext(requestHeader.getTopic(), requestHeader.getQueueId(), null, null, null);
+            return new TopicQueueMappingContext(topic, null, null, null, null);
         }
-
         assert mappingDetail.getBname().equals(this.brokerController.getBrokerConfig().getBrokerName());
 
+        if (globalId == null) {
+            return new TopicQueueMappingContext(topic, null, mappingDetail, null, null);
+        }
+
         //If not find mappingItem, it encounters some errors
-        Integer globalId = requestHeader.getQueueId();
         if (globalId < 0 && !selectOneWhenMiss) {
-            return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, mappingDetail, null, null);
+            return new TopicQueueMappingContext(topic, globalId, mappingDetail, null, null);
         }
 
         if (globalId < 0) {
@@ -224,7 +234,7 @@ public class TopicQueueMappingManager extends ConfigManager {
             }
         }
         if (globalId < 0) {
-            return new TopicQueueMappingContext(requestHeader.getTopic(), globalId,  mappingDetail, null, null);
+            return new TopicQueueMappingContext(topic, globalId,  mappingDetail, null, null);
         }
 
         List<LogicQueueMappingItem> mappingItemList = TopicQueueMappingDetail.getMappingInfo(mappingDetail, globalId);
@@ -233,7 +243,7 @@ public class TopicQueueMappingManager extends ConfigManager {
                 && mappingItemList.size() > 0) {
             leaderItem = mappingItemList.get(mappingItemList.size() - 1);
         }
-        return new TopicQueueMappingContext(requestHeader.getTopic(), globalId, mappingDetail, mappingItemList, leaderItem);
+        return new TopicQueueMappingContext(topic, globalId, mappingDetail, mappingItemList, leaderItem);
     }
 
 
