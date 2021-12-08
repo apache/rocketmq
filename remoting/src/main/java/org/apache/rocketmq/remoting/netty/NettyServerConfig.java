@@ -27,6 +27,7 @@ public class NettyServerConfig implements Cloneable {
 
     private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;
     private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
+    private int serverSocketBacklog = NettySystemConfig.socketBacklog;
     private boolean serverPooledByteBufAllocatorEnable = true;
 
     /**
@@ -108,6 +109,14 @@ public class NettyServerConfig implements Cloneable {
 
     public void setServerSocketRcvBufSize(int serverSocketRcvBufSize) {
         this.serverSocketRcvBufSize = serverSocketRcvBufSize;
+    }
+
+    public int getServerSocketBacklog() {
+        return serverSocketBacklog;
+    }
+
+    public void setServerSocketBacklog(int serverSocketBacklog) {
+        this.serverSocketBacklog = serverSocketBacklog;
     }
 
     public boolean isServerPooledByteBufAllocatorEnable() {

@@ -33,6 +33,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.Optional;
+import java.util.Objects;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
@@ -650,10 +652,13 @@ public class BrokerController {
 
     public long headSlowTimeMills(BlockingQueue<Runnable> q) {
         long slowTimeMills = 0;
-        final Runnable peek = q.peek();
-        if (peek != null) {
-            RequestTask rt = BrokerFastFailure.castRunnable(peek);
-            slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
+        Optional<RequestTask> op = q.stream()
+                .map(BrokerFastFailure::castRunnable)
+                .filter(Objects::nonNull)
+                .findFirst();
+        if (op.isPresent()) {
+            RequestTask rt = op.get();
+            slowTimeMills = this.messageStore.now() - rt.getCreateTimestamp();
         }
 
         if (slowTimeMills < 0) {
@@ -1182,7 +1187,7 @@ public class BrokerController {
         handleSlaveSynchronize(BrokerRole.SLAVE);
 
         try {
-            this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
+            this.registerBrokerAll(true, true, true);
         } catch (Throwable ignored) {
 
         }
@@ -1219,7 +1224,7 @@ public class BrokerController {
         messageStoreConfig.setBrokerRole(role);
 
         try {
-            this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
+            this.registerBrokerAll(true, true, true);
         } catch (Throwable ignored) {
 
         }

@@ -24,6 +24,8 @@ public class NettySystemConfig {
         "com.rocketmq.remoting.socket.sndbuf.size";
     public static final String COM_ROCKETMQ_REMOTING_SOCKET_RCVBUF_SIZE =
         "com.rocketmq.remoting.socket.rcvbuf.size";
+    public static final String COM_ROCKETMQ_REMOTING_SOCKET_BACKLOG =
+        "com.rocketmq.remoting.socket.backlog";
     public static final String COM_ROCKETMQ_REMOTING_CLIENT_ASYNC_SEMAPHORE_VALUE =
         "com.rocketmq.remoting.clientAsyncSemaphoreValue";
     public static final String COM_ROCKETMQ_REMOTING_CLIENT_ONEWAY_SEMAPHORE_VALUE =
@@ -47,6 +49,8 @@ public class NettySystemConfig {
         Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_SOCKET_SNDBUF_SIZE, "65535"));
     public static int socketRcvbufSize =
         Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_SOCKET_RCVBUF_SIZE, "65535"));
+    public static int socketBacklog =
+        Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_SOCKET_BACKLOG, "1024"));
     public static int clientWorkerSize =
         Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_CLIENT_WORKER_SIZE, "4"));
     public static int connectTimeoutMillis =
@@ -55,4 +59,5 @@ public class NettySystemConfig {
         Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_CLIENT_CHANNEL_MAX_IDLE_SECONDS, "120"));
     public static boolean clientCloseSocketIfTimeout =
         Boolean.parseBoolean(System.getProperty(COM_ROCKETMQ_REMOTING_CLIENT_CLOSE_SOCKET_IF_TIMEOUT, "true"));
+
 }
