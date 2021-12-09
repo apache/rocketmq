@@ -18,7 +18,6 @@
 package org.apache.rocketmq.broker.filter;
 
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
