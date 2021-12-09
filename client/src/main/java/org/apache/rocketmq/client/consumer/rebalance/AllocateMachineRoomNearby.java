@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.consumer.rebalance;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
@@ -115,9 +116,9 @@ public class AllocateMachineRoomNearby implements AllocateMessageQueueStrategy {
         }
 
         //2.allocate the rest mq to each machine room if there are no consumer alive in that machine room
-        for (String machineRoom : mr2Mq.keySet()) {
-            if (!mr2c.containsKey(machineRoom)) { // no alive consumer in the corresponding machine room, so all consumers share these queues
-                allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mr2Mq.get(machineRoom), cidAll));
+        for (Entry<String, List<MessageQueue>> machineRoomEntry : mr2Mq.entrySet()) {
+            if (!mr2c.containsKey(machineRoomEntry.getKey())) { // no alive consumer in the corresponding machine room, so all consumers share these queues
+                allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, machineRoomEntry.getValue(), cidAll));
             }
         }
 
