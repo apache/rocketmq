@@ -68,6 +68,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -530,6 +531,15 @@ public class MQClientInstance {
                 }
             }
         }
+    }
+
+    public boolean updateTopicRouteInfoByResponse(Throwable t, final String topic) {
+        if (t instanceof MQBrokerException) {
+            if (((MQBrokerException) t).getResponseCode() == ResponseCode.NOT_LEADER_FOR_QUEUE) {
+                return updateTopicRouteInfoFromNameServer(topic);
+            }
+        }
+        return true;
     }
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {

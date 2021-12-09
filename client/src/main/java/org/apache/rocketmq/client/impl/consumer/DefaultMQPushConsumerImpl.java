@@ -427,6 +427,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     log.warn("execute the pull request exception", e);
                 }
 
+                mQClientFactory.updateTopicRouteInfoByResponse(e, pullRequest.getMessageQueue().getTopic());
+
                 DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
             }
         };

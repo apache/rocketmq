@@ -73,7 +73,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             ResponseCode.SYSTEM_ERROR,
             ResponseCode.NO_PERMISSION,
             ResponseCode.NO_BUYER_ID,
-            ResponseCode.NOT_IN_CURRENT_UNIT
+            ResponseCode.NOT_IN_CURRENT_UNIT,
+            ResponseCode.NOT_LEADER_FOR_QUEUE
     ));
 
     /**

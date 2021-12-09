@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -207,14 +206,19 @@ public class PullAPIWrapper {
             }
 
 
-            PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(
-                brokerAddr,
-                requestHeader,
-                timeoutMillis,
-                communicationMode,
-                pullCallback);
+            try {
+                PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(
+                    brokerAddr,
+                    requestHeader,
+                    timeoutMillis,
+                    communicationMode,
+                    pullCallback);
 
-            return pullResult;
+                return pullResult;
+            } catch (MQBrokerException e) {
+                this.mQClientFactory.updateTopicRouteInfoByResponse(e, mq.getTopic());
+                throw e;
+            }
         }
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);

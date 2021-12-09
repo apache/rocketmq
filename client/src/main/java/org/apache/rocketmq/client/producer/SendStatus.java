@@ -21,4 +21,5 @@ public enum SendStatus {
     FLUSH_DISK_TIMEOUT,
     FLUSH_SLAVE_TIMEOUT,
     SLAVE_NOT_AVAILABLE,
+    NOT_LEADER_FOR_QUEUE,
 }
