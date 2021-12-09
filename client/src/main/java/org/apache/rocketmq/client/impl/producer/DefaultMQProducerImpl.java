@@ -277,9 +277,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
-                if (RequestFutureTable.getProducerNum().decrementAndGet() == 0) {
-                    scheduledExecutorService.shutdown();
-                }
+                scheduledExecutorService.shutdown();
+                
                 log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 break;
