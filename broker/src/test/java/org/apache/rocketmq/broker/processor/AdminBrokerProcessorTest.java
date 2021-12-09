@@ -276,7 +276,6 @@ public class AdminBrokerProcessorTest {
     @Test
     public void testGetEarliestMsgStoretime() throws Exception {
         messageStore = mock(MessageStore.class);
-        when(messageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(Long.MIN_VALUE);
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         GetEarliestMsgStoretimeRequestHeader getEarliestMsgStoretimeRequestHeader = new GetEarliestMsgStoretimeRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_EARLIEST_MSG_STORETIME, getEarliestMsgStoretimeRequestHeader);
