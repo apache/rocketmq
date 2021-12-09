@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.client;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import static org.apache.rocketmq.common.topic.TopicValidator.isTopicOrGroupIllegal;
+
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.UtilAll;
@@ -30,22 +30,8 @@ import org.apache.rocketmq.common.topic.TopicValidator;
  * Common Validator
  */
 public class Validators {
-    public static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
-    public static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
     public static final int CHARACTER_MAX_LENGTH = 255;
     public static final int TOPIC_MAX_LENGTH = 127;
-
-    /**
-     * @return The resulting {@code String}
-     */
-    public static String getGroupWithRegularExpression(String origin, String patternStr) {
-        Pattern pattern = Pattern.compile(patternStr);
-        Matcher matcher = pattern.matcher(origin);
-        while (matcher.find()) {
-            return matcher.group(0);
-        }
-        return null;
-    }
 
     /**
      * Validate group
@@ -59,27 +45,15 @@ public class Validators {
             throw new MQClientException("the specified group is longer than group max length 255.", null);
         }
 
-        if (!regularExpressionMatcher(group, PATTERN)) {
+
+        if (isTopicOrGroupIllegal(group)) {
             throw new MQClientException(String.format(
-                "the specified group[%s] contains illegal characters, allowing only %s", group,
-                VALID_PATTERN_STR), null);
+                    "the specified group[%s] contains illegal characters, allowing only %s", group,
+                    "^[%|a-zA-Z0-9_-]+$"), null);
         }
-
     }
 
-    /**
-     * @return <tt>true</tt> if, and only if, the entire origin sequence matches this matcher's pattern
-     */
-    public static boolean regularExpressionMatcher(String origin, Pattern pattern) {
-        if (pattern == null) {
-            return true;
-        }
-        Matcher matcher = pattern.matcher(origin);
-        return matcher.matches();
-    }
-
-    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
-        throws MQClientException {
+    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer) throws MQClientException {
         if (null == msg) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
@@ -107,15 +81,15 @@ public class Validators {
             throw new MQClientException("The specified topic is blank", null);
         }
 
-        if (!regularExpressionMatcher(topic, PATTERN)) {
-            throw new MQClientException(String.format(
-                "The specified topic[%s] contains illegal characters, allowing only %s", topic,
-                VALID_PATTERN_STR), null);
-        }
-
         if (topic.length() > TOPIC_MAX_LENGTH) {
             throw new MQClientException(
                 String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
+        }
+
+        if (isTopicOrGroupIllegal(topic)) {
+            throw new MQClientException(String.format(
+                    "The specified topic[%s] contains illegal characters, allowing only %s", topic,
+                    "^[%|a-zA-Z0-9_-]+$"), null);
         }
     }
 
