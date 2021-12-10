@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -40,6 +41,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
@@ -47,6 +50,7 @@ import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -948,24 +952,12 @@ public class DefaultMessageStore implements MessageStore {
                 long offset = queryOffsetResult.getPhyOffsets().get(m);
 
                 try {
-
-                    boolean match = true;
                     MessageExt msg = this.lookMessageByOffset(offset);
                     if (0 == m) {
                         lastQueryMsgTime = msg.getStoreTimestamp();
                     }
 
-//                    String[] keyArray = msg.getKeys().split(MessageConst.KEY_SEPARATOR);
-//                    if (topic.equals(msg.getTopic())) {
-//                        for (String k : keyArray) {
-//                            if (k.equals(key)) {
-//                                match = true;
-//                                break;
-//                            }
-//                        }
-//                    }
-
-                    if (match) {
+                    if (isMessageMatch(msg, topic, key)) {
                         SelectMappedBufferResult result = this.commitLog.getData(offset, false);
                         if (result != null) {
                             int size = result.getByteBuffer().getInt(0);
@@ -991,6 +983,29 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return queryMessageResult;
+    }
+
+    /**
+     * check target msg match
+     *
+     * @param msg   message
+     * @param topic topic
+     * @param key   message key
+     * @return  is match
+     */
+    private boolean isMessageMatch(MessageExt msg, String topic, String key) {
+        String keys = msg.getKeys();
+        if (Objects.equals(topic, msg.getTopic()) && StringUtils.isNotEmpty(keys)) {
+            String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
+            if (keyArray.length > 0) {
+                for (String k : keyArray) {
+                    if (Objects.equals(k, key)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override
@@ -1085,7 +1100,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset,
-        SocketAddress storeHost) {
+                                           SocketAddress storeHost) {
         Map<String, Long> messageIds = new HashMap<String, Long>();
         if (this.shutdown) {
             return messageIds;
