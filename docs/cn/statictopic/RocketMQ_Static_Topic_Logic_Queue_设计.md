@@ -5,7 +5,7 @@
 | 2021-11-15 | 修改 LogicQueue 的定义，不要引入新字段，完全复用旧的MessageQueue; RemappingStaticTopic时，不要迁移『位点』『幂等数据』等，而是采用Double-Check-Read 的机制| dongforever |
 | 2021-12-01 | 更新问题与风险，增加关于一致性、OutOfRange、拉取中断的详细说明| dongforever |
 | 2021-12-03 | 增加代码走读的说明| dongforever |
-
+| 2021-12-10 | 引入Scope概念，保留『多集群动态零耦合』的集群设计模型 | dongforever |
 
 
 中文文档在描述特定专业术语时，仍然使用英文。
@@ -49,6 +49,9 @@ LogicQueue的思路就是为了解决这一问题。
 引入以下非核心概念，对用户无感知，但对于讨论问题非常重要：
 - Leader Queue， 某个『Logic Queue』最新映射的『Physical Queue』，也即可写的那个Queue
 - Second Leader Queue，某个『Logic Queue』次新映射的『Physical Queue』，也即最新一次切换之前的『Leader Queue』
+
+#### Scope 目标
+单集群固定 和 全网固定, 参考 [The_Scope_Of_Static_Topic](The_Scope_Of_Static_Topic.md)。
 
 
 #### LogicQueue 目标
@@ -110,6 +113,7 @@ private final ConcurrentMap<String/* Topic */, ConcurrentMap<MessageQueue, Strin
 
 
 基本目标与定义清楚了，接下来的设计，从 Source of Truth 开始。
+
 ### SOT 定义和持久化
 LogicQueue 的 Source of Truth 就是 LogicQueue 到 Physical Queue 的映射关系。
 只要这个映射关系不丢失，则整个系统的状态都是可以恢复的。
