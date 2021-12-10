@@ -52,23 +52,28 @@ __logic__global
 主要原因是，不想完全放弃 RocketMQ 『多集群、动态、零耦合』的设计优势。
 而全网固定，则意味着彻底失去了这个优势。
 
-举1个多活保序的场景。
+举1个『多活保序』的场景。
 ClusterA 部署在 SiteA 内，创建 Static Topic 『TopicTest』，有50个队列。
 ClusterB 部署在 SiteB 内，创建 Static Topic 『TopicTest』，有50个队列。
 
 对Nameserver稍作修改，支持传入 Cluster 标识符，来获取Topic Route。
 
 正常情况下：
-- SiteA 的Producer和Consumer 都只能访问到 ClusterA 的 MessageQueue。
-- SiteB 的Producer和Consumer 都只能访问到 ClusterB 的 MessageQueue。
-— 机房内就近访问，且机房内严格保序。
+- SiteA 的Producer和Consumer 都只能访问到 ClusterA 的 MessageQueue, brokerName为 "__logic__clusterA"。
+- SiteB 的Producer和Consumer 都只能访问到 ClusterB 的 MessageQueue, brokerName为 "__logic__clusterB"。
+- 机房内就近访问，且机房内严格保序。
 
-假设 SiteA 宕机，此时对Nameserver发指令允许全网读：
-- SiteB 的 Producer 仍然写入 ClusterB 的 MessageQueue。
-- SiteB 的 Consumer 可以同时读到 ClusterA 的Topic 和 ClusterB MessageQueue。
-- 在这种场景下，读取端可以读到所有队列，相当于『Static Topic』 + 『Dynamic Cluster』的融合设计。
+假设 SiteA 宕机，此时对Nameserver发指令允许全网读，也即忽略客户端传入的 Cluster 标识符：
+- SiteB 的 Producer 仍然写入 ClusterB 的 MessageQueue, brokerName为 "__logic__clusterB"
+- SiteB 的 Consumer 可以同时读到 ClusterA 的Topic 和 ClusterB MessageQueue, brokerName为 "__logic__clusterB" 和 "__logic__clusterA
+- 在这种场景下，Consumer 可以读到所有队列
 
 Static 的 Scope 限定在 Cluster 内，而 Dynamic 允许在不同 Cluster之间。
+
+#### 全球容灾实例
+RocketMQ 多个集群的元数据可以无缝在Nameserver处汇聚，同时又可以无缝地根据标识符拆分给不同地域的Producer和Consumer。
+这样一个灵活的设计优势，是其它消息中间件所不具备的，应该值得挖掘一下。  
+把上述『多活保序』的场景，稍微延展一下，就可以实现全球容灾实例。  
 
 
 ### 设计目标
