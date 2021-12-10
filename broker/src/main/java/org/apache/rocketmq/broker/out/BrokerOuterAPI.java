@@ -164,6 +164,7 @@ public class BrokerOuterAPI {
             try {
                 countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
+                log.error("registerBrokerAll exception", e);
             }
         }
 

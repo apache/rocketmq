@@ -1672,7 +1672,7 @@ public class DefaultMessageStore implements MessageStore {
             cleanImmediately = false;
 
             {
-                String commitLogStorePath = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
+                String commitLogStorePath = DefaultMessageStore.this.getStorePathPhysic();
                 String[] storePaths = commitLogStorePath.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
                 Set<String> fullStorePath = new HashSet<>();
                 double minPhysicRatio = 100;
@@ -1714,8 +1714,7 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             {
-                String storePathLogics = StorePathConfigHelper
-                    .getStorePathConsumeQueue(DefaultMessageStore.this.getMessageStoreConfig().getStorePathRootDir());
+                String storePathLogics = DefaultMessageStore.this.getStorePathLogic();
                 double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
                 if (logicsRatio > diskSpaceWarningLevelRatio) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();

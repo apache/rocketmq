@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.common.protocol.header.namesrv;
 
-package org.apache.rocketmq.example.benchmark;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-import org.apache.rocketmq.acl.common.AclClientRPCHook;
-import org.apache.rocketmq.acl.common.SessionCredentials;
-import org.apache.rocketmq.remoting.RPCHook;
+public class DeleteTopicFromNamesrvRequestHeader implements CommandCustomHeader {
+    @CFNotNull
+    private String topic;
 
-public class AclClient {
-
-    public static final String ACL_ACCESS_KEY = "rocketmq2";
-
-    public static final String ACL_SECRET_KEY = "12345678";
-
-    public static RPCHook getAclRPCHook() {
-        return getAclRPCHook(ACL_ACCESS_KEY, ACL_SECRET_KEY);
+    @Override
+    public void checkFields() throws RemotingCommandException {
     }
 
-    public static RPCHook getAclRPCHook(String ak, String sk) {
-        return new AclClientRPCHook(new SessionCredentials(ak, sk));
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 }
