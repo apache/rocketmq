@@ -1,7 +1,7 @@
 ### Version 记录
 | 时间 | 主要内容 | 作者 |
 | --- | --- | --- |
-| 2021-11-01 | 初稿，探讨Static Topic的视线范围 | dongeforever |
+| 2021-11-01 | 初稿，探讨Static Topic的Scope视线范围 | dongeforever |
 
 
 中文文档在描述特定专业术语时，仍然使用英文。
@@ -52,42 +52,42 @@ __logic__global
 主要原因是，不想完全放弃 RocketMQ 『多集群、动态、零耦合』的设计优势。
 而全网固定，则意味着彻底失去了这个优势。
 
-举1个『多活保序』的场景。
-ClusterA 部署在 SiteA 内，创建 Static Topic 『TopicTest』，有50个队列。
-ClusterB 部署在 SiteB 内，创建 Static Topic 『TopicTest』，有50个队列。
+举1个『多活保序』的场景:
+- ClusterA 部署在 SiteA 内，创建 Static Topic 『TopicTest』，有50个队列。
+- ClusterB 部署在 SiteB 内，创建 Static Topic 『TopicTest』，有50个队列。
 
-对Nameserver稍作修改，支持传入 Cluster 标识符，来获取Topic Route。
+对Nameserver稍作修改，支持传入标识符(比如为scope或者unitName)，来获取特定范围内的 Topic Route。
 
 正常情况下：
-- SiteA 的Producer和Consumer 都只能访问到 ClusterA 的 MessageQueue, brokerName为 "__logic__clusterA"。
-- SiteB 的Producer和Consumer 都只能访问到 ClusterB 的 MessageQueue, brokerName为 "__logic__clusterB"。
+- SiteA 的Producer和Consumer 只能看见 ClusterA 的 MessageQueue, brokerName为 "__logic__clusterA"。
+- SiteB 的Producer和Consumer 只能看见 ClusterB 的 MessageQueue, brokerName为 "__logic__clusterB"。
 - 机房内就近访问，且机房内严格保序。
 
-假设 SiteA 宕机，此时对Nameserver发指令允许全网读，也即忽略客户端传入的 Cluster 标识符：
-- SiteB 的 Producer 仍然写入 ClusterB 的 MessageQueue, brokerName为 "__logic__clusterB"
-- SiteB 的 Consumer 可以同时读到 ClusterA 的Topic 和 ClusterB MessageQueue, brokerName为 "__logic__clusterB" 和 "__logic__clusterA
-- 在这种场景下，Consumer 可以读到所有队列
+假设 SiteA 宕机，此时对Nameserver发指令允许全网读，也即忽略客户端传入的 Scope或者unitName 标识符：
+- SiteB 的 Producer 仍然看见并写入 ClusterB 的 MessageQueue, brokerName为 "__logic__clusterB"
+- SiteB 的 Consumer 可以同时看见并读取 ClusterA 的 MessageQueue 和 ClusterB MessageQueue, brokerName为 "__logic__clusterB" 和 "__logic__clusterA
+- 在这种场景下，Consumer 在消费 ClusterB 数据的同时，同时去消费 ClusterA 未消费完的数据
 
-Static 的 Scope 限定在 Cluster 内，而 Dynamic 允许在不同 Cluster之间。
+不同地域的客户端，看见不同Scope的元数据，从而访问不同Scope的节点。
 
 #### 全球容灾集群
 RocketMQ 多个集群的元数据可以无缝在Nameserver处汇聚，同时又可以无缝地根据标识符拆分给不同地域的Producer和Consumer。
-这样一个灵活的设计优势，是其它消息中间件所不具备的，应该值得挖掘一下。  
+这样一个『元数据可分可合』的设计优势，是其它消息中间件所不具备的，应该值得挖掘一下。  
 引入以下概念：
 - 融合集群，共享同一个Nameserver的集群之和
 - 单元集群，clusterName名字一样的集群，不同单元集群之间，物理隔离
 - namespace，租户，逻辑隔离，只是命名的区别
 
 如果单元集群部署在异地，所形成的『融合集群』，就是全球容灾集群：
-- 客户端引入 unitName 字段，默认情况，不同unitName获取的都是单元集群的元数据
-- 灾难发生时，允许读其它 单元集群 未消费完的数据
-- 顺序性的关键在于 固定Producer端可见的队列
+- 客户端引入 scope 或者 unitName 字段，默认情况，不同 scope或者unitName 获取的都是单元集群的元数据
+- 顺序性，关键在于 固定Producer端可见的队列，单元内的队列是固定的，因此可以保证单元内是顺序的
 - Consumer 端按照队列消费，天然是顺序的
-- 单元内读写，跨单元可读，就可以实现『单元内保序且具备容灾能力』
+- 正常情况下，单元内封闭，也即单元产生的数据在同单元内消费掉
+- 灾难发生时，改变元数据的可见性，允许读其它 单元集群 未消费完的数据，也即跨单元读
 - 跨单元读，是指读『其它clusterName』的队列，不一定是远程读，如果本单元有相应的Slave节点，则直接本地读
 
 ### 设计目标
-实现 单集群固定 和 全网固定 两种Scope。
+Static Topic 实现 单集群固定 和 全网固定 两种Scope，以适配『全球容灾集群』。
 多集群，暂时没有必要。
 
 一期只实现 单集群固定 这个Scope。
