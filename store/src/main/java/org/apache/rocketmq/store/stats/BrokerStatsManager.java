@@ -156,24 +156,24 @@ public class BrokerStatsManager {
     }
 
     public void incQueuePutNums(final String topic, final Integer queueId) {
-        this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, String.valueOf(queueId)), 1, 1);
+        this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, queueId), 1, 1);
     }
 
     public void incQueuePutNums(final String topic, final Integer queueId, int num, int times) {
-        this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, String.valueOf(queueId)), num, times);
+        this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, queueId), num, times);
     }
 
     public void incQueuePutSize(final String topic, final Integer queueId, final int size) {
-        this.statsTable.get(QUEUE_PUT_SIZE).addValue(buildStatsKey(topic, String.valueOf(queueId)), size, 1);
+        this.statsTable.get(QUEUE_PUT_SIZE).addValue(buildStatsKey(topic, queueId), size, 1);
     }
 
     public void incQueueGetNums(final String group, final String topic, final Integer queueId, final int incValue) {
-        final String statsKey = buildStatsKey(buildStatsKey(topic, String.valueOf(queueId)), group);
+        final String statsKey = buildStatsKey(topic, queueId, group);
         this.statsTable.get(QUEUE_GET_NUMS).addValue(statsKey, incValue, 1);
     }
 
     public void incQueueGetSize(final String group, final String topic, final Integer queueId, final int incValue) {
-        final String statsKey = buildStatsKey(buildStatsKey(topic, String.valueOf(queueId)), group);
+        final String statsKey = buildStatsKey(topic, queueId, group);
         this.statsTable.get(QUEUE_GET_SIZE).addValue(statsKey, incValue, 1);
     }
 
@@ -194,11 +194,27 @@ public class BrokerStatsManager {
         this.statsTable.get(GROUP_GET_NUMS).addValue(statsKey, incValue, 1);
     }
 
-    public String buildStatsKey(String prefix, String suffix) {
-        StringBuffer strBuilder = new StringBuffer();
-        strBuilder.append(prefix);
-        strBuilder.append("@");
-        strBuilder.append(suffix);
+    public String buildStatsKey(String topic, String group) {
+        StringBuilder strBuilder = new StringBuilder(topic.length() + group.length() + 1);
+        strBuilder.append(topic).append("@").append(group);
+        return strBuilder.toString();
+    }
+
+    public String buildStatsKey(String topic, int queueId) {
+        StringBuilder strBuilder = new StringBuilder(topic.length() + 5);
+        strBuilder.append(topic).append("@").append(queueId);
+        return strBuilder.toString();
+    }
+
+    public String buildStatsKey(String topic, int queueId, String group) {
+        StringBuilder strBuilder = new StringBuilder(topic.length() + group.length() + 6);
+        strBuilder.append(topic).append("@").append(queueId).append("@").append(group);
+        return strBuilder.toString();
+    }
+
+    public String buildStatsKey(int queueId, String topic, String group) {
+        StringBuilder strBuilder = new StringBuilder(topic.length() + group.length() + 6);
+        strBuilder.append(queueId).append("@").append(topic).append("@").append(group);
         return strBuilder.toString();
     }
 
@@ -208,7 +224,7 @@ public class BrokerStatsManager {
     }
 
     public void incGroupGetLatency(final String group, final String topic, final int queueId, final int incValue) {
-        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        final String statsKey = buildStatsKey(queueId, topic, group);
         this.statsTable.get(GROUP_GET_LATENCY).addValue(statsKey, incValue, 1);
     }
 
@@ -236,13 +252,13 @@ public class BrokerStatsManager {
 
     public void recordDiskFallBehindTime(final String group, final String topic, final int queueId,
         final long fallBehind) {
-        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        final String statsKey = buildStatsKey(queueId, topic, group);
         this.momentStatsItemSetFallTime.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
 
     public void recordDiskFallBehindSize(final String group, final String topic, final int queueId,
         final long fallBehind) {
-        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        final String statsKey = buildStatsKey(queueId, topic, group);
         this.momentStatsItemSetFallSize.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
 
