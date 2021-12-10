@@ -56,7 +56,7 @@ public class PullConsumer {
             executors.execute(new Runnable() {
 
                 public void doSomething(List<MessageExt> msgs) {
-                    //do you business
+                    //do your business
 
                 }
 
@@ -136,7 +136,7 @@ public class PullConsumer {
                 }
 
                 public void incPullTPS(String topic, int pullSize) {
-                    consumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory()
+                    consumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getMqClientFactory()
                             .getConsumerStatsManager().incPullTPS(consumer.getConsumerGroup(), topic, pullSize);
                 }
             });

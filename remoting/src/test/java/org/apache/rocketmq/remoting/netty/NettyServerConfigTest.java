@@ -14,25 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common.protocol.header.namesrv;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+package org.apache.rocketmq.remoting.netty;
 
-public class DeleteTopicInNamesrvRequestHeader implements CommandCustomHeader {
-    @CFNotNull
-    private String topic;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
-    @Override
-    public void checkFields() throws RemotingCommandException {
-    }
+import static org.assertj.core.api.Assertions.assertThat;
 
-    public String getTopic() {
-        return topic;
-    }
+@RunWith(MockitoJUnitRunner.class)
+public class NettyServerConfigTest {
 
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
+  @Test
+  public void testChangeConfigBySystemProperty() {
+    System.setProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_BACKLOG, "65535");
+    NettySystemConfig.socketBacklog =
+            Integer.parseInt(System.getProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_BACKLOG, "1024"));
+    NettyServerConfig changedConfig = new NettyServerConfig();
+    assertThat(changedConfig.getServerSocketBacklog()).isEqualTo(65535);
+  }
 }

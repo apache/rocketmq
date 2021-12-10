@@ -967,36 +967,6 @@ public class MQClientInstance {
         return this.consumerTable.get(group);
     }
 
-    public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
-        String brokerAddr = null;
-        boolean slave = false;
-        boolean found = false;
-
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
-        if (map != null && !map.isEmpty()) {
-            for (Map.Entry<Long, String> entry : map.entrySet()) {
-                Long id = entry.getKey();
-                brokerAddr = entry.getValue();
-                if (brokerAddr != null) {
-                    found = true;
-                    if (MixAll.MASTER_ID == id) {
-                        slave = false;
-                    } else {
-                        slave = true;
-                    }
-                    break;
-
-                }
-            } // end of for
-        }
-
-        if (found) {
-            return new FindBrokerResult(brokerAddr, slave, findBrokerVersion(brokerName, brokerAddr));
-        }
-
-        return null;
-    }
-
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {

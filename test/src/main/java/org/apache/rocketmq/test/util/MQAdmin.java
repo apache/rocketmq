@@ -18,6 +18,7 @@
 package org.apache.rocketmq.test.util;
 
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.log4j.Logger;
@@ -123,10 +124,10 @@ public class MQAdmin {
             return false;
         } else {
             HashMap<String, BrokerData> brokers = clusterInfo.getBrokerAddrTable();
-            for (String brokerName : brokers.keySet()) {
-                HashMap<Long, String> brokerIps = brokers.get(brokerName).getBrokerAddrs();
-                for (long brokerId : brokerIps.keySet()) {
-                    if (brokerIps.get(brokerId).contains(ip))
+            for (Entry<String, BrokerData> brokerEntry : brokers.entrySet()) {
+                HashMap<Long, String> brokerIps = brokerEntry.getValue().getBrokerAddrs();
+                for (Entry<Long, String> brokerIdEntry : brokerIps.entrySet()) {
+                    if (brokerIdEntry.getValue().contains(ip))
                         return true;
                 }
             }

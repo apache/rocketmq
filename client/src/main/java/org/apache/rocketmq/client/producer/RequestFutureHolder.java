@@ -22,6 +22,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -29,16 +32,24 @@ import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 
-public class RequestFutureTable {
+public class RequestFutureHolder {
     private static InternalLogger log = ClientLogger.getLog();
-    private static ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
-    private static final AtomicInteger PRODUCER_NUM = new AtomicInteger(0);
+    private static final RequestFutureHolder INSTANCE = new RequestFutureHolder();
+    private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
+    private final AtomicInteger producerNum = new AtomicInteger(0);
+    private final ScheduledExecutorService scheduledExecutorService = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "RequestHouseKeepingService");
+            }
+        });
 
-    public static ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
+    public ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
         return requestFutureTable;
     }
 
-    public static void scanExpiredRequest() {
+    public void scanExpiredRequest() {
         final List<RequestResponseFuture> rfList = new LinkedList<RequestResponseFuture>();
         Iterator<Map.Entry<String, RequestResponseFuture>> it = requestFutureTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -63,7 +74,18 @@ public class RequestFutureTable {
         }
     }
 
-    public static AtomicInteger getProducerNum() {
-        return PRODUCER_NUM;
+    private RequestFutureHolder() {
+    }
+
+    public AtomicInteger getProducerNum() {
+        return producerNum;
+    }
+
+    public ScheduledExecutorService getScheduledExecutorService() {
+        return scheduledExecutorService;
+    }
+
+    public static RequestFutureHolder getInstance() {
+        return INSTANCE;
     }
 }
