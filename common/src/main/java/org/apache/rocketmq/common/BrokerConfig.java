@@ -60,6 +60,7 @@ public class BrokerConfig {
      * thread numbers for send message thread pool.
      */
     private int sendMessageThreadPoolNums = Math.min(Runtime.getRuntime().availableProcessors(), 4);
+    private int putMessageFutureThreadPoolNums = Math.min(Runtime.getRuntime().availableProcessors(), 4);
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
@@ -84,6 +85,7 @@ public class BrokerConfig {
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
+    private int putThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
     private int replyThreadPoolQueueCapacity = 10000;
     private int queryThreadPoolQueueCapacity = 20000;
@@ -373,6 +375,14 @@ public class BrokerConfig {
         this.sendMessageThreadPoolNums = sendMessageThreadPoolNums;
     }
 
+    public int getPutMessageFutureThreadPoolNums() {
+        return putMessageFutureThreadPoolNums;
+    }
+
+    public void setPutMessageFutureThreadPoolNums(int putMessageFutureThreadPoolNums) {
+        this.putMessageFutureThreadPoolNums = putMessageFutureThreadPoolNums;
+    }
+
     public int getPullMessageThreadPoolNums() {
         return pullMessageThreadPoolNums;
     }
@@ -475,6 +485,14 @@ public class BrokerConfig {
 
     public void setSendThreadPoolQueueCapacity(int sendThreadPoolQueueCapacity) {
         this.sendThreadPoolQueueCapacity = sendThreadPoolQueueCapacity;
+    }
+
+    public int getPutThreadPoolQueueCapacity() {
+        return putThreadPoolQueueCapacity;
+    }
+
+    public void setPutThreadPoolQueueCapacity(int putThreadPoolQueueCapacity) {
+        this.putThreadPoolQueueCapacity = putThreadPoolQueueCapacity;
     }
 
     public int getPullThreadPoolQueueCapacity() {

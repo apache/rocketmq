@@ -71,7 +71,6 @@ public class BrokerControllerTest {
 
             }
         };
-        queue.add(runnable);
 
         RequestTask requestTask = new RequestTask(runnable, null, null);
         // the requestTask is not the head of queue;
@@ -80,6 +79,5 @@ public class BrokerControllerTest {
         long headSlowTimeMills = 100;
         TimeUnit.MILLISECONDS.sleep(headSlowTimeMills);
         assertThat(brokerController.headSlowTimeMills(queue)).isGreaterThanOrEqualTo(headSlowTimeMills);
-        //Attention: if we use the previous version method BrokerController#headSlowTimeMills, it will return 0;
     }
 }
