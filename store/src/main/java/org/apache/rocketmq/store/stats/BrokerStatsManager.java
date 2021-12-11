@@ -195,25 +195,45 @@ public class BrokerStatsManager {
     }
 
     public String buildStatsKey(String topic, String group) {
-        StringBuilder strBuilder = new StringBuilder(topic.length() + group.length() + 1);
+        StringBuilder strBuilder;
+        if (topic != null && group != null) {
+            strBuilder = new StringBuilder(topic.length() + group.length() + 1);
+        } else {
+            strBuilder = new StringBuilder();
+        }
         strBuilder.append(topic).append("@").append(group);
         return strBuilder.toString();
     }
 
     public String buildStatsKey(String topic, int queueId) {
-        StringBuilder strBuilder = new StringBuilder(topic.length() + 5);
+        StringBuilder strBuilder;
+        if (topic != null) {
+            strBuilder = new StringBuilder(topic.length() + 5);
+        } else {
+            strBuilder = new StringBuilder();
+        }
         strBuilder.append(topic).append("@").append(queueId);
         return strBuilder.toString();
     }
 
     public String buildStatsKey(String topic, int queueId, String group) {
-        StringBuilder strBuilder = new StringBuilder(topic.length() + group.length() + 6);
+        StringBuilder strBuilder;
+        if (topic != null && group != null) {
+            strBuilder = new StringBuilder(topic.length() + group.length() + 6);
+        } else {
+            strBuilder = new StringBuilder();
+        }
         strBuilder.append(topic).append("@").append(queueId).append("@").append(group);
         return strBuilder.toString();
     }
 
     public String buildStatsKey(int queueId, String topic, String group) {
-        StringBuilder strBuilder = new StringBuilder(topic.length() + group.length() + 6);
+        StringBuilder strBuilder;
+        if (topic != null && group != null) {
+            strBuilder = new StringBuilder(topic.length() + group.length() + 6);
+        } else {
+            strBuilder = new StringBuilder();
+        }
         strBuilder.append(queueId).append("@").append(topic).append("@").append(group);
         return strBuilder.toString();
     }
