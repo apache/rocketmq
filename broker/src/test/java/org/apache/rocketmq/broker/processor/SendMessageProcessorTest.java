@@ -88,7 +88,9 @@ public class SendMessageProcessorTest {
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(mockChannel);
-        when(messageStore.lookMessageByOffset(anyLong())).thenReturn(new MessageExt());
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic(topic);
+        when(messageStore.lookMessageByOffset(anyLong())).thenReturn(messageExt);
         sendMessageProcessor = new SendMessageProcessor(brokerController);
     }
 
