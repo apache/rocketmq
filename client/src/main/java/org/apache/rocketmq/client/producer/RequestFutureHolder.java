@@ -69,7 +69,7 @@ public class RequestFutureHolder {
         }
     }
 
-    public void startScheduledTask() {
+    public synchronized void startScheduledTask() {
         if (this.producerNum.incrementAndGet() == 1) {
             this.getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -84,7 +84,7 @@ public class RequestFutureHolder {
         }
     }
 
-    public void shutdown() {
+    public synchronized void shutdown() {
         if (this.producerNum.decrementAndGet() == 0) {
             this.getScheduledExecutorService().shutdown();
         }
@@ -93,7 +93,7 @@ public class RequestFutureHolder {
     private RequestFutureHolder() {
     }
 
-    private synchronized ScheduledExecutorService getScheduledExecutorService() {
+    private ScheduledExecutorService getScheduledExecutorService() {
         if (null == scheduledExecutorService || scheduledExecutorService.isShutdown()) {
             scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
                 @Override
