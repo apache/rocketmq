@@ -56,7 +56,7 @@ public class MessageStoreTestBase extends StoreTestBase {
         storeConfig.setdLegerGroup(group);
         storeConfig.setdLegerPeers(peers);
         storeConfig.setdLegerSelfId(selfId);
-        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest"), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
         }, new BrokerConfig());
         DLedgerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer();
@@ -106,7 +106,7 @@ public class MessageStoreTestBase extends StoreTestBase {
         storeConfig.setStorePathRootDir(base);
         storeConfig.setStorePathCommitLog(base + File.separator + "commitlog");
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
-        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("CommitlogTest"), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("CommitlogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
         }, new BrokerConfig());
 
