@@ -37,13 +37,7 @@ public class RequestFutureHolder {
     private static final RequestFutureHolder INSTANCE = new RequestFutureHolder();
     private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
     private final AtomicInteger producerNum = new AtomicInteger(0);
-    private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "RequestHouseKeepingService");
-            }
-        });
+    private ScheduledExecutorService scheduledExecutorService = null;
 
     public ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
         return requestFutureTable;
@@ -81,7 +75,15 @@ public class RequestFutureHolder {
         return producerNum;
     }
 
-    public ScheduledExecutorService getScheduledExecutorService() {
+    public synchronized ScheduledExecutorService getScheduledExecutorService() {
+        if (null == scheduledExecutorService || scheduledExecutorService.isShutdown()) {
+            scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "RequestHouseKeepingService");
+                }
+            });
+        }
         return scheduledExecutorService;
     }
 
