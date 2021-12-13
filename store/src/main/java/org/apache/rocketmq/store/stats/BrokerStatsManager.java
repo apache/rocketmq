@@ -262,8 +262,13 @@ public class BrokerStatsManager {
     }
 
     public void incGroupGetLatency(final String group, final String topic, final int queueId, final int incValue) {
-        final String statsKey = buildStatsKey(queueId, topic, group);
-        this.statsTable.get(GROUP_GET_LATENCY).addValue(statsKey, incValue, 1);
+        String statsKey;
+        if (enableQueueStat) {
+            statsKey = buildStatsKey(queueId, topic, group);
+        } else {
+            statsKey = buildStatsKey(topic, group);
+        }
+        this.statsTable.get(GROUP_GET_LATENCY).addRTValue(statsKey, incValue, 1);
     }
 
     public void incBrokerPutNums() {
