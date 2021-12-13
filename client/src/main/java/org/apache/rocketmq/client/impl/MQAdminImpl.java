@@ -88,11 +88,8 @@ public class MQAdminImpl {
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
                 Collections.sort(brokerDataList);
 
-                boolean createOKAtLeastOnce = false;
-                MQClientException exception = null;
-
-                StringBuilder orderTopicString = new StringBuilder();
-
+                StringBuilder successBrokers = new StringBuilder();
+                StringBuilder failedBrokers = new StringBuilder();
                 for (BrokerData brokerData : brokerDataList) {
                     String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (addr != null) {
@@ -106,32 +103,32 @@ public class MQAdminImpl {
                             try {
                                 this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig, timeoutMillis);
                                 createOK = true;
-                                createOKAtLeastOnce = true;
                                 break;
                             } catch (Exception e) {
                                 if (4 == i) {
-                                    exception = new MQClientException("create topic to broker exception", e);
+                                    failedBrokers.append(brokerData.getBrokerName()).append(":").append(e).append(";");
                                 }
                             }
                         }
 
                         if (createOK) {
-                            orderTopicString.append(brokerData.getBrokerName());
-                            orderTopicString.append(":");
-                            orderTopicString.append(queueNum);
-                            orderTopicString.append(";");
+                            successBrokers.append(brokerData.getBrokerName()).append(":").append(queueNum).append(";");
                         }
+                    } else {
+                        failedBrokers.append(brokerData.getBrokerName()).append(":").append("Have not master id").append(";");
                     }
                 }
 
-                if (exception != null && !createOKAtLeastOnce) {
-                    throw exception;
+                if (failedBrokers.length() == 0) {
+                    log.info("Create new topic success: {}", successBrokers);
+                } else {
+                    throw new MQClientException("Create topic success on " + successBrokers + ", failed on " + failedBrokers, null);
                 }
             } else {
                 throw new MQClientException("Not found broker, maybe key is wrong", null);
             }
         } catch (Exception e) {
-            throw new MQClientException("create new topic failed", e);
+            throw new MQClientException("Create new topic failed", e);
         }
     }
 
@@ -148,7 +145,7 @@ public class MQAdminImpl {
             throw new MQClientException("Can not find Message Queue for this topic, " + topic, e);
         }
 
-        throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
+        throw new MQClientException("Unknown why, Can not find Message Queue for this topic, " + topic, null);
     }
 
     public List<MessageQueue> parsePublishMessageQueues(List<MessageQueue> messageQueueList) {
@@ -178,7 +175,7 @@ public class MQAdminImpl {
                 e);
         }
 
-        throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
+        throw new MQClientException("Unknown why, Can not find Message Queue for this topic, " + topic, null);
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
