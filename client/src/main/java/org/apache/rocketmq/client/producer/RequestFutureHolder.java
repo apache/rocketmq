@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -43,7 +44,7 @@ public class RequestFutureHolder {
         return requestFutureTable;
     }
 
-    public void scanExpiredRequest() {
+    private void scanExpiredRequest() {
         final List<RequestResponseFuture> rfList = new LinkedList<RequestResponseFuture>();
         Iterator<Map.Entry<String, RequestResponseFuture>> it = requestFutureTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -68,14 +69,31 @@ public class RequestFutureHolder {
         }
     }
 
+    public void startScheduledTask() {
+        if (this.producerNum.incrementAndGet() == 1) {
+            this.getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        RequestFutureHolder.getInstance().scanExpiredRequest();
+                    } catch (Throwable e) {
+                        log.error("scan RequestFutureTable exception", e);
+                    }
+                }
+            }, 1000 * 3, 1000, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    public void shutdown() {
+        if (this.producerNum.decrementAndGet() == 0) {
+            this.getScheduledExecutorService().shutdown();
+        }
+    }
+
     private RequestFutureHolder() {
     }
 
-    public AtomicInteger getProducerNum() {
-        return producerNum;
-    }
-
-    public synchronized ScheduledExecutorService getScheduledExecutorService() {
+    private synchronized ScheduledExecutorService getScheduledExecutorService() {
         if (null == scheduledExecutorService || scheduledExecutorService.isShutdown()) {
             scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
                 @Override

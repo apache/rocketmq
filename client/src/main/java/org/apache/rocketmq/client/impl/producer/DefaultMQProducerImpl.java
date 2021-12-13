@@ -223,23 +223,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
 
-        this.startScheduledTask();
+        RequestFutureHolder.getInstance().startScheduledTask();
 
-    }
-
-    private void startScheduledTask() {
-        if (RequestFutureHolder.getInstance().getProducerNum().incrementAndGet() == 1) {
-            RequestFutureHolder.getInstance().getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        RequestFutureHolder.getInstance().scanExpiredRequest();
-                    } catch (Throwable e) {
-                        log.error("scan RequestFutureTable exception", e);
-                    }
-                }
-            }, 1000 * 3, 1000, TimeUnit.MILLISECONDS);
-        }
     }
 
     private void checkConfig() throws MQClientException {
@@ -269,9 +254,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
-                if (RequestFutureHolder.getInstance().getProducerNum().decrementAndGet() == 0) {
-                    RequestFutureHolder.getInstance().getScheduledExecutorService().shutdown();
-                }
+                RequestFutureHolder.getInstance().shutdown();
                 log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 break;
