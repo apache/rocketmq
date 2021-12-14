@@ -4,8 +4,10 @@ notifications:
   email:
     recipients:
       - dev@rocketmq.apache.org
+    if: branch = develop OR branch = master
   on_success: change
   on_failure: always
+  
 
 language: java
 
