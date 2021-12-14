@@ -90,7 +90,7 @@ RocketMQ 多个集群的元数据可以无缝在Nameserver处汇聚，同时又�
 Static Topic 实现 单集群固定 和 全网固定 两种Scope，以适配『全球容灾集群』。
 多集群，暂时没有必要。
 
-一期只实现 单集群固定 这个Scope。
+一期只实现 全网固定 这个Scope，但在格式上注意兼容
 
 #### SOT 增加 Scope 字段
 ```

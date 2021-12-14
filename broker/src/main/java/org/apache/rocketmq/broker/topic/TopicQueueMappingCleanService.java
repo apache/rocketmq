@@ -249,13 +249,13 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                     Map<Integer, String> qid2RealLeaderBroker = new HashMap<>();
                     //fine the real leader
                     for (Map.Entry<Integer, String> entry : qid2CurrLeaderBroker.entrySet()) {
-                        qid2RealLeaderBroker.put(entry.getKey(), clientMetadata.getBrokerNameFromMessageQueue(new MessageQueue(topic, MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, entry.getKey())));
+                        qid2RealLeaderBroker.put(entry.getKey(), clientMetadata.getBrokerNameFromMessageQueue(new MessageQueue(topic, TopicQueueMappingUtils.getMockBrokerName(mappingDetail.getScope()), entry.getKey())));
                     }
 
                     //find the mapping detail of real leader
                     Map<String, TopicQueueMappingDetail> mappingDetailMap = new HashMap<>();
                     for (Map.Entry<Integer, String> entry : qid2RealLeaderBroker.entrySet()) {
-                        if (MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME.equals(entry.getValue())) {
+                        if (entry.getValue().startsWith(MixAll.LOGICAL_QUEUE_MOCK_BROKER_PREFIX)) {
                             continue;
                         }
                         String broker = entry.getValue();

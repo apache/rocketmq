@@ -1078,7 +1078,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 topicOffset.setMinOffset(min);
                 topicOffset.setMaxOffset(max);
                 topicOffset.setLastUpdateTimestamp(timestamp);
-                topicStatsTable.getOffsetTable().put(new MessageQueue(topic, MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, qid), topicOffset);
+                topicStatsTable.getOffsetTable().put(new MessageQueue(topic, TopicQueueMappingUtils.getMockBrokerName(mappingDetail.getScope()), qid), topicOffset);
             });
             return new RpcResponse(ResponseCode.SUCCESS, null, topicStatsTable);
         } catch (Throwable t) {

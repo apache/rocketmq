@@ -109,6 +109,9 @@ public class TopicQueueMappingManager extends ConfigManager {
             if (newDetail.getEpoch() < oldDetail.getEpoch()) {
                 throw new RuntimeException(String.format("Can't accept data with small epoch %d < %d", newDetail.getEpoch(), oldDetail.getEpoch()));
             }
+            if (!newDetail.getScope().equals(oldDetail.getScope())) {
+                throw new RuntimeException(String.format("Can't accept data with unmatched scope %s != %s", newDetail.getScope(), oldDetail.getScope()));
+            }
             boolean epochEqual = newDetail.getEpoch() == oldDetail.getEpoch();
             for (Integer globalId : oldDetail.getHostedQueues().keySet()) {
                 List<LogicQueueMappingItem> oldItems = oldDetail.getHostedQueues().get(globalId);

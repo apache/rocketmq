@@ -43,7 +43,7 @@ public class TopicQueueMappingTest {
         {
             Map  mappingDetailMap = JSON.parseObject(mappingDetailJson);
             Assert.assertTrue(mappingDetailMap.containsKey("currIdMap"));
-            Assert.assertEquals(7, mappingDetailMap.size());
+            Assert.assertEquals(8, mappingDetailMap.size());
             Assert.assertEquals(1, ((JSONObject) mappingDetailMap.get("hostedQueues")).size());
             Assert.assertEquals(1, ((JSONArray)((JSONObject) mappingDetailMap.get("hostedQueues")).get("0")).size());
         }

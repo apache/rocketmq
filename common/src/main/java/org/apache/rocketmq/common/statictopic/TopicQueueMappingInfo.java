@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.statictopic;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +28,7 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
     public static final int LEVEL_0 = 0;
 
     String topic; // redundant field
+    String scope = MixAll.METADATA_SCOPE_GLOBAL;
     int totalQueues;
     String bname;  //identify the hosted broker name
     long epoch; //important to fence the old dirty data
@@ -95,40 +97,47 @@ public class TopicQueueMappingInfo extends RemotingSerializable {
         this.currIdMap = currIdMap;
     }
 
+    public String getScope() {
+        return scope;
+    }
+
+    public void setScope(String scope) {
+        this.scope = scope;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-
         if (!(o instanceof TopicQueueMappingInfo)) return false;
 
         TopicQueueMappingInfo info = (TopicQueueMappingInfo) o;
 
-        return new EqualsBuilder()
-                .append(totalQueues, info.totalQueues)
-                .append(epoch, info.epoch)
-                .append(dirty, info.dirty)
-                .append(topic, info.topic)
-                .append(bname, info.bname)
-                .append(currIdMap, info.currIdMap)
-                .isEquals();
+        if (totalQueues != info.totalQueues) return false;
+        if (epoch != info.epoch) return false;
+        if (dirty != info.dirty) return false;
+        if (topic != null ? !topic.equals(info.topic) : info.topic != null) return false;
+        if (scope != null ? !scope.equals(info.scope) : info.scope != null) return false;
+        if (bname != null ? !bname.equals(info.bname) : info.bname != null) return false;
+        return currIdMap != null ? currIdMap.equals(info.currIdMap) : info.currIdMap == null;
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(topic)
-                .append(totalQueues)
-                .append(bname)
-                .append(epoch)
-                .append(dirty)
-                .append(currIdMap)
-                .toHashCode();
+        int result = topic != null ? topic.hashCode() : 0;
+        result = 31 * result + (scope != null ? scope.hashCode() : 0);
+        result = 31 * result + totalQueues;
+        result = 31 * result + (bname != null ? bname.hashCode() : 0);
+        result = 31 * result + (int) (epoch ^ (epoch >>> 32));
+        result = 31 * result + (dirty ? 1 : 0);
+        result = 31 * result + (currIdMap != null ? currIdMap.hashCode() : 0);
+        return result;
     }
 
     @Override
     public String toString() {
         return "TopicQueueMappingInfo{" +
                 "topic='" + topic + '\'' +
+                ", scope='" + scope + '\'' +
                 ", totalQueues=" + totalQueues +
                 ", bname='" + bname + '\'' +
                 ", epoch=" + epoch +

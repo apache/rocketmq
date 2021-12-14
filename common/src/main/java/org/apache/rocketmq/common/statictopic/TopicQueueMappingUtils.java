@@ -155,6 +155,7 @@ public class TopicQueueMappingUtils {
         //make sure it it not null
         long maxEpoch = -1;
         int maxNum = -1;
+        String scope = null;
         for (Map.Entry<String, TopicConfigAndQueueMapping> entry : brokerConfigMap.entrySet()) {
             String broker = entry.getKey();
             TopicConfigAndQueueMapping configMapping = entry.getValue();
@@ -176,6 +177,13 @@ public class TopicQueueMappingUtils {
                 throw new RuntimeException("The topic name is not match for broker  " + broker);
             }
 
+            if (scope != null
+                && !scope.equals(mappingDetail.getScope())) {
+                throw new RuntimeException(String.format("scope dose not match %s != %s in %s", mappingDetail.getScope(), scope, broker));
+            } else {
+                scope = mappingDetail.getScope();
+            }
+
             if (maxEpoch != -1
                 && maxEpoch != mappingDetail.getEpoch()) {
                 throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", maxEpoch, mappingDetail.getEpoch(), mappingDetail.getBname()));
@@ -191,6 +199,15 @@ public class TopicQueueMappingUtils {
             }
         }
         return new AbstractMap.SimpleEntry<Long, Integer>(maxEpoch, maxNum);
+    }
+
+    public static String getMockBrokerName(String scope) {
+        assert scope != null;
+        if (scope.equals(MixAll.METADATA_SCOPE_GLOBAL)) {
+            return MixAll.LOGICAL_QUEUE_MOCK_BROKER_PREFIX + scope.substring(2);
+        } else {
+            return MixAll.LOGICAL_QUEUE_MOCK_BROKER_PREFIX + scope;
+        }
     }
 
     public static void makeSureLogicQueueMappingItemImmutable(List<LogicQueueMappingItem> oldItems, List<LogicQueueMappingItem> newItems, boolean epochEqual, boolean isCLean) {

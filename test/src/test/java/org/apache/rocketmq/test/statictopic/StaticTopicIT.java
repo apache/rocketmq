@@ -148,7 +148,7 @@ public class StaticTopicIT extends BaseConf {
         for (int i = 0; i < queueNum; i++) {
             MessageQueue messageQueue = messageQueueList.get(i);
             Assert.assertEquals(topic, messageQueue.getTopic());
-            Assert.assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, messageQueue.getBrokerName());
+            Assert.assertEquals(TopicQueueMappingUtils.getMockBrokerName(MixAll.METADATA_SCOPE_GLOBAL), messageQueue.getBrokerName());
             Assert.assertEquals(i, messageQueue.getQueueId());
             String destBrokerName = clientMetadata.getBrokerNameFromMessageQueue(messageQueue);
             Assert.assertTrue(targetBrokers.contains(destBrokerName));
@@ -211,7 +211,7 @@ public class StaticTopicIT extends BaseConf {
                 MessageExt messageExt = messageExts.get(j);
                 int currGen = startGen + j / msgEachQueue;
                 Assert.assertEquals(topic, messageExt.getTopic());
-                Assert.assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME, messageExt.getBrokerName());
+                Assert.assertEquals(TopicQueueMappingUtils.getMockBrokerName(MixAll.METADATA_SCOPE_GLOBAL), messageExt.getBrokerName());
                 Assert.assertEquals(i, messageExt.getQueueId());
                 Assert.assertEquals((j % msgEachQueue) + currGen * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, messageExt.getQueueOffset());
             }
