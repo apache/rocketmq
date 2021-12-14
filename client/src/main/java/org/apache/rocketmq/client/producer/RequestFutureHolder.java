@@ -86,7 +86,7 @@ public class RequestFutureHolder {
 
     public synchronized void shutdown() {
         if (this.producerNum.decrementAndGet() == 0) {
-            this.getScheduledExecutorService().shutdown();
+            this.scheduledExecutorService = null;
         }
     }
 
