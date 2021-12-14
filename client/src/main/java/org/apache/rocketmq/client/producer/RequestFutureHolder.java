@@ -17,28 +17,32 @@
 
 package org.apache.rocketmq.client.producer;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
+import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.logging.InternalLogger;
 
 public class RequestFutureHolder {
     private static InternalLogger log = ClientLogger.getLog();
     private static final RequestFutureHolder INSTANCE = new RequestFutureHolder();
     private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
-    private final AtomicInteger producerNum = new AtomicInteger(0);
+    private final Set<DefaultMQProducerImpl> producerSet = new HashSet<>();
     private ScheduledExecutorService scheduledExecutorService = null;
+    private ServiceState serviceState = ServiceState.CREATE_JUST;
 
     public ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
         return requestFutureTable;
@@ -69,8 +73,11 @@ public class RequestFutureHolder {
         }
     }
 
-    public synchronized void startScheduledTask() {
-        if (this.producerNum.incrementAndGet() == 1) {
+    public synchronized void startScheduledTask(DefaultMQProducerImpl producer) {
+        this.producerSet.add(producer);
+        if (this.producerSet.size() >= 1 && this.serviceState != ServiceState.RUNNING) {
+            this.serviceState = ServiceState.START_FAILED;
+
             this.getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -81,13 +88,17 @@ public class RequestFutureHolder {
                     }
                 }
             }, 1000 * 3, 1000, TimeUnit.MILLISECONDS);
+
+            this.serviceState = ServiceState.RUNNING;
         }
     }
 
-    public synchronized void shutdown() {
-        if (this.producerNum.decrementAndGet() == 0 && this.scheduledExecutorService != null) {
+    public synchronized void shutdown(DefaultMQProducerImpl producer) {
+        this.producerSet.remove(producer);
+        if (this.producerSet.size() <= 0 && null != this.scheduledExecutorService && this.serviceState != ServiceState.SHUTDOWN_ALREADY) {
             this.scheduledExecutorService.shutdown();
             this.scheduledExecutorService = null;
+            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
         }
     }
 

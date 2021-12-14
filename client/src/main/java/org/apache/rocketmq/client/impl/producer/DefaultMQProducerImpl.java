@@ -223,7 +223,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
 
-        RequestFutureHolder.getInstance().startScheduledTask();
+        RequestFutureHolder.getInstance().startScheduledTask(this);
 
     }
 
@@ -254,7 +254,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
-                RequestFutureHolder.getInstance().shutdown();
+                RequestFutureHolder.getInstance().shutdown(this);
                 log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 break;
