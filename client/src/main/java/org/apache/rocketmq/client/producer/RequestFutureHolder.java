@@ -85,7 +85,7 @@ public class RequestFutureHolder {
     }
 
     public synchronized void shutdown() {
-        if (this.producerNum.decrementAndGet() == 0) {
+        if (this.producerNum.decrementAndGet() == 0 && this.scheduledExecutorService != null) {
             this.scheduledExecutorService.shutdown();
             this.scheduledExecutorService = null;
         }
@@ -95,7 +95,7 @@ public class RequestFutureHolder {
     }
 
     private ScheduledExecutorService getScheduledExecutorService() {
-        if (null == scheduledExecutorService || scheduledExecutorService.isShutdown()) {
+        if (null == scheduledExecutorService) {
             scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
                 @Override
                 public Thread newThread(Runnable r) {
