@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -34,6 +33,7 @@ import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceState;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.InternalLogger;
 
 public class RequestFutureHolder {
@@ -107,12 +107,7 @@ public class RequestFutureHolder {
 
     private ScheduledExecutorService getScheduledExecutorService() {
         if (null == scheduledExecutorService) {
-            scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "RequestHouseKeepingService");
-                }
-            });
+            scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RequestHouseKeepingService"));
         }
         return scheduledExecutorService;
     }
