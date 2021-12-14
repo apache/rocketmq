@@ -182,8 +182,8 @@ public class BrokerStatsManager {
     }
 
     public void incQueueGetNums(final String group, final String topic, final Integer queueId, final int incValue) {
-        final String statsKey = buildStatsKey(topic, queueId, group);
         if (enableQueueStat) {
+            final String statsKey = buildStatsKey(topic, queueId, group);
             this.statsTable.get(QUEUE_GET_NUMS).addValue(statsKey, incValue, 1);
         }
     }
