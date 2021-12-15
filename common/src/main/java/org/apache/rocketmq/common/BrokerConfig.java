@@ -185,6 +185,8 @@ public class BrokerConfig {
 
     private boolean storeReplyMessageEnable = true;
 
+    private boolean enableDetailStat = true;
+
     private boolean autoDeleteUnusedStats = false;
 
     public static String localHostName() {
@@ -795,6 +797,14 @@ public class BrokerConfig {
 
     public void setStoreReplyMessageEnable(boolean storeReplyMessageEnable) {
         this.storeReplyMessageEnable = storeReplyMessageEnable;
+    }
+
+    public boolean isEnableDetailStat() {
+        return enableDetailStat;
+    }
+
+    public void setEnableDetailStat(boolean enableDetailStat) {
+        this.enableDetailStat = enableDetailStat;
     }
 
     public boolean isAutoDeleteUnusedStats() {

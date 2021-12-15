@@ -103,7 +103,7 @@ public class ScheduleMessageServiceTest {
         messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
 
         brokerConfig = new BrokerConfig();
-        BrokerStatsManager manager = new BrokerStatsManager(brokerConfig.getBrokerClusterName());
+        BrokerStatsManager manager = new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat());
         messageStore = new DefaultMessageStore(messageStoreConfig, manager, new MyMessageArrivingListener(), new BrokerConfig());
 
         assertThat(messageStore.load()).isTrue();
