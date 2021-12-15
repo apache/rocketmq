@@ -101,7 +101,7 @@ public class AdminBrokerProcessorTest {
     public void init() throws Exception {
         brokerController.setMessageStore(messageStore);
 
-        doReturn(sendMessageProcessor).when(brokerController).getSendMessageProcessor();
+        //doReturn(sendMessageProcessor).when(brokerController).getSendMessageProcessor();
 
         adminBrokerProcessor = new AdminBrokerProcessor(brokerController);
 
@@ -203,7 +203,7 @@ public class AdminBrokerProcessorTest {
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_CONFIG, requestHeader);
             request.makeCustomHeaderToNet();
             RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-            assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+            assertThat(response.getCode()).isEqualTo(ResponseCode.TOPIC_NOT_EXIST);
             assertThat(response.getRemark()).contains("No topic in this broker.");
         }
     }

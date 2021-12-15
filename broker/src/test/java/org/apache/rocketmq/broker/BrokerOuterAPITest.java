@@ -84,7 +84,7 @@ public class BrokerOuterAPITest {
     private BrokerOuterAPI brokerOuterAPI;
 
     public void init() throws Exception {
-        brokerOuterAPI = new BrokerOuterAPI(new NettyClientConfig(), null);
+        brokerOuterAPI = new BrokerOuterAPI(new NettyClientConfig(), brokerController);
         Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
         field.setAccessible(true);
         field.set(brokerOuterAPI, nettyRemotingClient);

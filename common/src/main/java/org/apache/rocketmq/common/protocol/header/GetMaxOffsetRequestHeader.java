@@ -29,7 +29,6 @@ public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
     private String topic;
     @CFNotNull
     private Integer queueId;
-    private boolean committed;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -55,11 +54,4 @@ public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
         this.queueId = queueId;
     }
 
-    public void setCommitted(boolean committed) {
-        this.committed = committed;
-    }
-
-    public boolean isCommitted() {
-        return committed;
-    }
 }

@@ -1109,26 +1109,14 @@ public class MQClientAPIImpl {
 
     public long getMaxOffset(final String addr, final String topic, final int queueId, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
-        return getMaxOffset(addr, topic, queueId, true, false, timeoutMillis);
-    }
-
-    public long getMaxOffset(final String addr, final String topic, final int queueId, boolean committed,
-        boolean fromLogicalQueue,
-        final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException {
         GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
-        requestHeader.setCommitted(committed);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         assert response != null;
-        HashMap<String, String> extFields = response.getExtFields();
-        if (extFields != null && extFields.containsKey(MessageConst.PROPERTY_REDIRECT)) {
-            throw new MQRedirectException(response.getBody());
-        }
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 GetMaxOffsetResponseHeader responseHeader =

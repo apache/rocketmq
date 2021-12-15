@@ -1020,7 +1020,8 @@ public class MQClientInstance {
 
 
     public String getBrokerNameFromMessageQueue(final MessageQueue mq) {
-        if (topicEndPointsTable.get(mq.getTopic()) != null
+        if (topicEndPointsTable != null
+            && topicEndPointsTable.get(mq.getTopic()) != null
             && !topicEndPointsTable.get(mq.getTopic()).isEmpty()) {
             return topicEndPointsTable.get(mq.getTopic()).get(mq);
         }

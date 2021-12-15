@@ -209,7 +209,11 @@ public class RemotingCommandTest {
         SubExtFieldsHeader subExtFieldsHeader = new SubExtFieldsHeader();
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(1, subExtFieldsHeader);
         Field[] fields  = remotingCommand.getClazzFields(subExtFieldsHeader.getClass());
-        Assert.assertEquals(7, fields.length);
+        Set<String> fieldNames = new HashSet<>();
+        for (Field field: fields) {
+            fieldNames.add(field.getName());
+        }
+        Assert.assertTrue(fields.length >= 7);
         Set<String> names = new HashSet<>();
         names.add("stringValue");
         names.add("intValue");
@@ -218,8 +222,8 @@ public class RemotingCommandTest {
         names.add("doubleValue");
         names.add("name");
         names.add("value");
-        for (Field field : fields) {
-            Assert.assertTrue(names.contains(field.getName()));
+        for (String name: names) {
+            Assert.assertTrue(fieldNames.contains(name));
         }
         remotingCommand.makeCustomHeaderToNet();
         SubExtFieldsHeader other = (SubExtFieldsHeader) remotingCommand.decodeCommandCustomHeader(subExtFieldsHeader.getClass());
