@@ -84,7 +84,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
     @Override
     public void asyncProcessRequest(ChannelHandlerContext ctx, RemotingCommand request, RemotingResponseCallback responseCallback) throws Exception {
-        asyncProcessRequest(ctx, request).thenAcceptAsync(responseCallback::callback, this.brokerController.getSendMessageExecutor());
+        asyncProcessRequest(ctx, request).thenAcceptAsync(responseCallback::callback, this.brokerController.getPutMessageFutureExecutor());
     }
 
     public CompletableFuture<RemotingCommand> asyncProcessRequest(ChannelHandlerContext ctx,
