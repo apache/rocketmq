@@ -25,6 +25,9 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TraceDataEncoderTest {
 
@@ -129,7 +132,7 @@ public class TraceDataEncoderTest {
         Assert.assertEquals(before.getTransactionState(), after.getTransactionState());
         Assert.assertEquals(before.isFromTransactionCheck(), after.isFromTransactionCheck());
     }
-    
+
     @Test
     public void testPubTraceDataFormatTest() {
         TraceContext pubContext = new TraceContext();
@@ -189,6 +192,8 @@ public class TraceDataEncoderTest {
         subAfterContext.setRequestId("3455848576927");
         subAfterContext.setCostTime(20);
         subAfterContext.setSuccess(true);
+        subAfterContext.setTimeStamp(1625883640000L);
+        subAfterContext.setGroupName("GroupName-test");
         subAfterContext.setContextCode(98623046);
         TraceBean bean = new TraceBean();
         bean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
@@ -200,7 +205,7 @@ public class TraceDataEncoderTest {
         String transData = traceTransferBean.getTransData();
         Assert.assertNotNull(transData);
         String[] items = transData.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
-        Assert.assertEquals(7, items.length);
+        Assert.assertEquals(9, items.length);
 
     }
 
@@ -231,5 +236,33 @@ public class TraceDataEncoderTest {
         String[] items = transData.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
         Assert.assertEquals(13, items.length);
 
+    }
+
+    @Test
+    public void testTraceKeys() {
+        TraceContext endTrxContext = new TraceContext();
+        endTrxContext.setTraceType(TraceType.EndTransaction);
+        endTrxContext.setGroupName("PID-test");
+        endTrxContext.setRegionId("DefaultRegion");
+        endTrxContext.setTimeStamp(time);
+        TraceBean endTrxTraceBean = new TraceBean();
+        endTrxTraceBean.setTopic("topic-test");
+        endTrxTraceBean.setKeys("Keys Keys2");
+        endTrxTraceBean.setTags("Tags");
+        endTrxTraceBean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
+        endTrxTraceBean.setStoreHost("127.0.0.1:10911");
+        endTrxTraceBean.setMsgType(MessageType.Trans_msg_Commit);
+        endTrxTraceBean.setTransactionId("transactionId");
+        endTrxTraceBean.setTransactionState(LocalTransactionState.COMMIT_MESSAGE);
+        endTrxTraceBean.setFromTransactionCheck(false);
+        List<TraceBean> traceBeans = new ArrayList<TraceBean>();
+        traceBeans.add(endTrxTraceBean);
+        endTrxContext.setTraceBeans(traceBeans);
+
+        TraceTransferBean traceTransferBean = TraceDataEncoder.encoderFromContextBean(endTrxContext);
+
+        Set<String> keys = traceTransferBean.getTransKey();
+        assertThat(keys).contains("Keys");
+        assertThat(keys).contains("Keys2");
     }
 }

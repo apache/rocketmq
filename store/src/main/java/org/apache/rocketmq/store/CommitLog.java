@@ -22,10 +22,12 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -43,6 +45,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
@@ -71,9 +74,20 @@ public class CommitLog {
 
     protected final PutMessageLock putMessageLock;
 
+    private volatile Set<String> fullStorePaths = Collections.emptySet();
+
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
-        this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
-            defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
+        String storePath = defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog();
+        if (storePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
+            this.mappedFileQueue = new MultiPathMappedFileQueue(defaultMessageStore.getMessageStoreConfig(),
+                    defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
+                    defaultMessageStore.getAllocateMappedFileService(), this::getFullStorePaths);
+        } else {
+            this.mappedFileQueue = new MappedFileQueue(storePath,
+                    defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
+                    defaultMessageStore.getAllocateMappedFileService());
+        }
+
         this.defaultMessageStore = defaultMessageStore;
 
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
@@ -93,6 +107,14 @@ public class CommitLog {
         };
         this.putMessageLock = defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
 
+    }
+
+    public void setFullStorePaths(Set<String> fullStorePaths) {
+        this.fullStorePaths = fullStorePaths;
+    }
+
+    public Set<String> getFullStorePaths() {
+        return fullStorePaths;
     }
 
     public boolean load() {
@@ -636,7 +658,6 @@ public class CommitLog {
             }
             if (null == mappedFile) {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                beginTimeInLock = 0;
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
             }
 
@@ -651,26 +672,22 @@ public class CommitLog {
                     if (null == mappedFile) {
                         // XXX: warn and notify me
                         log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                        beginTimeInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
                     }
                     result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
-                    beginTimeInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
                 case UNKNOWN_ERROR:
-                    beginTimeInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
                 default:
-                    beginTimeInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
             }
 
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-            beginTimeInLock = 0;
         } finally {
+            beginTimeInLock = 0;
             putMessageLock.unlock();
         }
 
@@ -685,8 +702,8 @@ public class CommitLog {
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
         // Statistics
-        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
-        storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
+        storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(1);
+        storeStatsService.getSinglePutMessageTopicSizeTotal(topic).add(result.getWroteBytes());
 
         CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
         CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
@@ -755,7 +772,6 @@ public class CommitLog {
             }
             if (null == mappedFile) {
                 log.error("Create mapped file1 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
-                beginTimeInLock = 0;
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
             }
 
@@ -770,24 +786,21 @@ public class CommitLog {
                     if (null == mappedFile) {
                         // XXX: warn and notify me
                         log.error("Create mapped file2 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
-                        beginTimeInLock = 0;
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
                     }
                     result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback, putMessageContext);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
-                    beginTimeInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
                 case UNKNOWN_ERROR:
                 default:
-                    beginTimeInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
             }
 
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-            beginTimeInLock = 0;
         } finally {
+            beginTimeInLock = 0;
             putMessageLock.unlock();
         }
 
@@ -802,8 +815,8 @@ public class CommitLog {
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
         // Statistics
-        storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).addAndGet(result.getMsgNum());
-        storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).addAndGet(result.getWroteBytes());
+        storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(result.getMsgNum());
+        storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).add(result.getWroteBytes());
 
         CompletableFuture<PutMessageStatus> flushOKFuture = submitFlushRequest(result, messageExtBatch);
         CompletableFuture<PutMessageStatus> replicaOKFuture = submitReplicaRequest(result, messageExtBatch);
@@ -1594,13 +1607,16 @@ public class CommitLog {
                 short propertiesLen = messagesByteBuff.getShort();
                 int propertiesPos = messagesByteBuff.position();
                 messagesByteBuff.position(propertiesPos + propertiesLen);
+                boolean needAppendLastPropertySeparator = propertiesLen > 0 && batchPropLen > 0
+                            && messagesByteBuff.get(messagesByteBuff.position() - 1) != MessageDecoder.PROPERTY_SEPARATOR;
 
                 final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
 
                 final int topicLength = topicData.length;
 
-                final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength,
-                        propertiesLen + batchPropLen);
+                int totalPropLen = needAppendLastPropertySeparator ? propertiesLen + batchPropLen + 1
+                                                                     : propertiesLen + batchPropLen;
+                final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, totalPropLen);
 
                 // Exceeds the maximum message
                 if (msgLen > this.maxMessageSize) {
@@ -1653,11 +1669,14 @@ public class CommitLog {
                 this.encoderBuffer.put((byte) topicLength);
                 this.encoderBuffer.put(topicData);
                 // 17 PROPERTIES
-                this.encoderBuffer.putShort((short) (propertiesLen + batchPropLen));
+                this.encoderBuffer.putShort((short) totalPropLen);
                 if (propertiesLen > 0) {
                     this.encoderBuffer.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
                 }
                 if (batchPropLen > 0) {
+                    if (needAppendLastPropertySeparator) {
+                        this.encoderBuffer.put((byte) MessageDecoder.PROPERTY_SEPARATOR);
+                    }
                     this.encoderBuffer.put(batchPropData, 0, batchPropLen);
                 }
             }

@@ -23,7 +23,6 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
@@ -164,7 +163,7 @@ public class AclUtils {
     }
 
     public static boolean isScope(String num) {
-        return isScope(Integer.valueOf(num.trim()));
+        return isScope(Integer.parseInt(num.trim()));
     }
 
     public static boolean isScope(int num) {
@@ -206,64 +205,35 @@ public class AclUtils {
     }
 
     public static String expandIP(String netaddress, int part) {
-        boolean compress = false;
-        int compressIndex = -1;
-        String[] strArray = StringUtils.split(netaddress, ":");
-        ArrayList<Integer> indexes = new ArrayList<>();
-        for (int i = 0; i < netaddress.length(); i++) {
-            if (netaddress.charAt(i) == ':') {
-                if (indexes.size() > 0 && i - indexes.get(indexes.size() - 1) == 1) {
-                    compressIndex = i;
-                    compress = true;
-                }
-                indexes.add(i);
+        netaddress = netaddress.toUpperCase();
+        // expand netaddress
+        int separatorCount = StringUtils.countMatches(netaddress, ":");
+        int padCount = part - separatorCount;
+        if (padCount > 0) {
+            StringBuilder padStr = new StringBuilder(":");
+            for (int i = 0; i < padCount; i++) {
+                padStr.append(":");
             }
+            netaddress = StringUtils.replace(netaddress, "::", padStr.toString());
         }
 
+        // pad netaddress
+        String[] strArray = StringUtils.splitPreserveAllTokens(netaddress, ":");
         for (int i = 0; i < strArray.length; i++) {
             if (strArray[i].length() < 4) {
-                strArray[i] = "0000".substring(0, 4 - strArray[i].length()) + strArray[i];
+                strArray[i] = StringUtils.leftPad(strArray[i], 4, '0');
             }
         }
 
+        // output
         StringBuilder sb = new StringBuilder();
-        if (compress) {
-            int pos = indexes.indexOf(compressIndex);
-            int index = 0;
-            if (!netaddress.startsWith(":")) {
-                for (int i = 0; i < pos; i++) {
-                    sb.append(strArray[index]).append(":");
-                    index += 1;
-                }
-            }
-            int zeroNum = part - strArray.length;
-            if (netaddress.endsWith(":")) {
-                for (int i = 0; i < zeroNum; i++) {
-                    sb.append("0000");
-                    if (i != zeroNum - 1) {
-                        sb.append(":");
-                    }
-                }
-            } else {
-                for (int i = 0; i < zeroNum; i++) {
-                    sb.append("0000").append(":");
-                }
-                for (int i = index; i < strArray.length; i++) {
-                    sb.append(strArray[i]);
-                    if (i != strArray.length - 1) {
-                        sb.append(":");
-                    }
-                }
-            }
-        } else {
-            for (int i = 0; i < strArray.length; i++) {
-                sb.append(strArray[i]);
-                if (i != strArray.length - 1) {
-                    sb.append(":");
-                }
+        for (int i = 0; i < strArray.length; i++) {
+            sb.append(strArray[i]);
+            if (i != strArray.length - 1) {
+                sb.append(":");
             }
         }
-        return sb.toString().toUpperCase();
+        return sb.toString();
     }
 
     public static <T> T getYamlDataObject(String path, Class<T> clazz) {
@@ -308,7 +278,7 @@ public class AclUtils {
         JSONObject yamlDataObject = null;
         try {
             yamlDataObject = AclUtils.getYamlDataObject(fileName,
-                JSONObject.class);
+                    JSONObject.class);
         } catch (Exception e) {
             log.error("Convert yaml file to data object error, ", e);
             return null;

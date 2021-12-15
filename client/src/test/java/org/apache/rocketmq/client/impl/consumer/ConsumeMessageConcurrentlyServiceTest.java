@@ -102,7 +102,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         pushConsumer.subscribe(topic, "*");
         pushConsumer.start();
 
-        mQClientFactory = spy(pushConsumerImpl.getmQClientFactory());
+        mQClientFactory = spy(pushConsumerImpl.getMqClientFactory());
         field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         field.set(pushConsumerImpl, mQClientFactory);
@@ -116,7 +116,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         field.setAccessible(true);
         field.set(pushConsumerImpl, pullAPIWrapper);
 
-        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setmQClientFactory(mQClientFactory);
+        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setMqClientFactory(mQClientFactory);
         mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
 
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
@@ -178,7 +178,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         StatsItemSet itemSet = (StatsItemSet)statItmeSetField.get(mgr);
         StatsItem item = itemSet.getAndCreateStatsItem(topic + "@" + pushConsumer.getDefaultMQPushConsumerImpl().groupName());
 
-        assertThat(item.getValue().get()).isGreaterThan(0L);
+        assertThat(item.getValue().sum()).isGreaterThan(0L);
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);

@@ -39,6 +39,7 @@ public class ClientConfig {
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     protected String namespace;
+    private boolean namespaceInitialized = false;
     protected AccessChannel accessChannel = AccessChannel.LOCAL;
 
     /**
@@ -59,6 +60,8 @@ public class ClientConfig {
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
+
+    private int mqClientApiTimeout = 3 * 1000;
 
     private LanguageCode language = LanguageCode.JAVA;
 
@@ -156,6 +159,7 @@ public class ClientConfig {
         this.useTLS = cc.useTLS;
         this.namespace = cc.namespace;
         this.language = cc.language;
+        this.mqClientApiTimeout = cc.mqClientApiTimeout;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -174,6 +178,7 @@ public class ClientConfig {
         cc.useTLS = useTLS;
         cc.namespace = namespace;
         cc.language = language;
+        cc.mqClientApiTimeout = mqClientApiTimeout;
         return cc;
     }
 
@@ -191,6 +196,7 @@ public class ClientConfig {
      */
     public void setNamesrvAddr(String namesrvAddr) {
         this.namesrvAddr = namesrvAddr;
+        this.namespaceInitialized = false;
     }
 
     public int getClientCallbackExecutorThreads() {
@@ -274,20 +280,26 @@ public class ClientConfig {
     }
 
     public String getNamespace() {
+        if (namespaceInitialized) {
+            return namespace;
+        }
+
         if (StringUtils.isNotEmpty(namespace)) {
             return namespace;
         }
 
         if (StringUtils.isNotEmpty(this.namesrvAddr)) {
             if (NameServerAddressUtils.validateInstanceEndpoint(namesrvAddr)) {
-                return NameServerAddressUtils.parseInstanceIdFromEndpoint(namesrvAddr);
+                namespace = NameServerAddressUtils.parseInstanceIdFromEndpoint(namesrvAddr);
             }
         }
+        namespaceInitialized = true;
         return namespace;
     }
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+        this.namespaceInitialized = true;
     }
 
     public AccessChannel getAccessChannel() {
@@ -298,6 +310,13 @@ public class ClientConfig {
         this.accessChannel = accessChannel;
     }
 
+    public int getMqClientApiTimeout() {
+        return mqClientApiTimeout;
+    }
+
+    public void setMqClientApiTimeout(int mqClientApiTimeout) {
+        this.mqClientApiTimeout = mqClientApiTimeout;
+    }
 
     @Override
     public String toString() {
@@ -305,6 +324,6 @@ public class ClientConfig {
             + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads + ", pollNameServerInterval=" + pollNameServerInterval
             + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
             + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
-            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + "]";
+            + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout + "]";
     }
 }

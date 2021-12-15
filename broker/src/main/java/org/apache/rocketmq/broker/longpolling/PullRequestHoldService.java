@@ -56,7 +56,7 @@ public class PullRequestHoldService extends ServiceThread {
     }
 
     private String buildKey(final String topic, final int queueId) {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(topic.length() + 5);
         sb.append(topic);
         sb.append(TOPIC_QUEUEID_SEPARATOR);
         sb.append(queueId);

@@ -16,8 +16,11 @@
  */
 package org.apache.rocketmq.client.producer;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -39,6 +42,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -63,6 +67,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
     private final InternalLogger log = ClientLogger.getLog();
+    private final Set<Integer> retryResponseCodes = new CopyOnWriteArraySet<Integer>(Arrays.asList(
+            ResponseCode.TOPIC_NOT_EXIST,
+            ResponseCode.SERVICE_NOT_AVAILABLE,
+            ResponseCode.SYSTEM_ERROR,
+            ResponseCode.NO_PERMISSION,
+            ResponseCode.NO_BUYER_ID,
+            ResponseCode.NOT_IN_CURRENT_UNIT
+    ));
+
     /**
      * Producer group conceptually aggregates all producer instances of exactly same role, which is particularly
      * important when transactional messages are involved. </p>
@@ -158,22 +171,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
         final String customizedTraceTopic) {
-        this.producerGroup = producerGroup;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
+        this(null, producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
     }
 
     /**
@@ -251,9 +249,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         if (enableMsgTrace) {
             try {
                 AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.getDefaultMQProducerImpl());
+                dispatcher.setHostProducer(this.defaultMQProducerImpl);
                 traceDispatcher = dispatcher;
-                this.getDefaultMQProducerImpl().registerSendMessageHook(
+                this.defaultMQProducerImpl.registerSendMessageHook(
                     new SendMessageTraceHookImpl(traceDispatcher));
                 this.defaultMQProducerImpl.registerEndTransactionHook(
                     new EndTransactionTraceHookImpl(traceDispatcher));
@@ -263,6 +261,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         }
     }
 
+    @Override
+    public void setUseTLS(boolean useTLS) {
+        super.setUseTLS(useTLS);
+        if (traceDispatcher != null && traceDispatcher instanceof AsyncTraceDispatcher) {
+            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
+        }
+    }
+    
     /**
      * Start this producer instance. </p>
      *
@@ -325,7 +331,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(
         Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        Validators.checkMessage(msg, this);
         msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg);
     }
@@ -965,6 +970,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.setAsyncSenderExecutor(asyncSenderExecutor);
     }
 
+    /**
+     * Add response code for retrying.
+     *
+     * @param responseCode response code, {@link ResponseCode}
+     */
+    public void addRetryResponseCode(int responseCode) {
+        this.retryResponseCodes.add(responseCode);
+    }
+
     private MessageBatch batch(Collection<Message> msgs) throws MQClientException {
         MessageBatch msgBatch;
         try {
@@ -1095,4 +1109,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return traceDispatcher;
     }
 
+    public Set<Integer> getRetryResponseCodes() {
+        return retryResponseCodes;
+    }
 }

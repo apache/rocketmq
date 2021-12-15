@@ -472,11 +472,11 @@ public abstract class RebalanceImpl {
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
     }
 
-    public MQClientInstance getmQClientFactory() {
+    public MQClientInstance getMqClientFactory() {
         return mQClientFactory;
     }
 
-    public void setmQClientFactory(MQClientInstance mQClientFactory) {
+    public void setMqClientFactory(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
     }
 
