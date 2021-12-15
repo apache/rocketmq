@@ -94,34 +94,22 @@ public class StatsAllSubCommand implements SubCommand {
                 if (!activeTopic || (inMsgCntToday > 0) ||
                     (outMsgCntToday > 0)) {
 
-                    if (topic.contains("%") || group.contains("%")) {
-                        System.out.printf("%-32s  %-32s %12d %11.2f %11.2f %14d %14d%n",
-                                UtilAll.split(topic, "%").get(1),
-                                UtilAll.split(group, "%").get(1),
-                                accumulate,
-                                inTPS,
-                                outTPS,
-                                inMsgCntToday,
-                                outMsgCntToday
-                        );
-                    } else {
-                        System.out.printf("%-32s  %-32s %12d %11.2f %11.2f %14d %14d%n",
-                                UtilAll.frontStringAtLeast(topic, 32),
-                                UtilAll.frontStringAtLeast(group, 32),
-                                accumulate,
-                                inTPS,
-                                outTPS,
-                                inMsgCntToday,
-                                outMsgCntToday
-                        );
-                    }
+                    System.out.printf("%-64s  %-64s %12d %11.2f %11.2f %14d %14d%n",
+                            UtilAll.frontStringAtLeast(topic, 64),
+                            UtilAll.frontStringAtLeast(group, 64),
+                            accumulate,
+                            inTPS,
+                            outTPS,
+                            inMsgCntToday,
+                            outMsgCntToday
+                    );
                 }
             }
         } else {
             if (!activeTopic || (inMsgCntToday > 0)) {
 
-                System.out.printf("%-32s  %-32s %12d %11.2f %11s %14d %14s%n",
-                    UtilAll.frontStringAtLeast(topic, 32),
+                System.out.printf("%-64s  %-32s %12d %11.2f %11s %14d %14s%n",
+                    UtilAll.frontStringAtLeast(topic, 64),
                     "",
                     0,
                     inTPS,
