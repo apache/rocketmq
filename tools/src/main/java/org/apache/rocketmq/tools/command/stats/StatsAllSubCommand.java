@@ -171,7 +171,7 @@ public class StatsAllSubCommand implements SubCommand {
 
             TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
 
-            System.out.printf("%-32s  %-32s %12s %11s %11s %14s %14s%n",
+            System.out.printf("%-64s  %-64s %12s %11s %11s %14s %14s%n",
                 "#Topic",
                 "#Consumer Group",
                 "#Accumulation",
