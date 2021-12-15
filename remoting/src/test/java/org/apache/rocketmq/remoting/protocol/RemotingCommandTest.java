@@ -130,7 +130,6 @@ public class RemotingCommandTest {
             Assert.fail("Should not throw IOException");
         }
 
-
     }
 
     @Test
