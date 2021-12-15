@@ -224,7 +224,7 @@ public class TopicQueueMappingUtils {
             if (newItem.getGen() < oldItem.getGen()) {
                 //the earliest item may have been deleted concurrently
                 inew++;
-            } else if (oldItem.getGen() < newItem.getGen()){
+            } else if (oldItem.getGen() < newItem.getGen()) {
                 //in the following cases, the new item-list has less items than old item-list
                 //1. the queue is mapped back to a broker which hold the logic queue before
                 //2. The earliest item is deleted by  TopicQueueMappingCleanService
@@ -260,7 +260,7 @@ public class TopicQueueMappingUtils {
         }
         int lastGen = -1;
         long lastOffset = -1;
-        for (int i = items.size() - 1; i >=0 ; i--) {
+        for (int i = items.size() - 1; i >= 0 ; i--) {
             LogicQueueMappingItem item = items.get(i);
             if (item.getStartOffset() < 0
                     || item.getGen() < 0
@@ -414,9 +414,9 @@ public class TopicQueueMappingUtils {
     }
 
     public static long blockSeqRoundUp(long offset, long blockSeqSize) {
-        long num = offset/blockSeqSize;
+        long num = offset / blockSeqSize;
         long left = offset % blockSeqSize;
-        if (left < blockSeqSize/2) {
+        if (left < blockSeqSize / 2) {
             return (num + 1) * blockSeqSize;
         } else {
             return (num + 2) * blockSeqSize;
@@ -535,7 +535,7 @@ public class TopicQueueMappingUtils {
         }
         Map<String, Integer> brokerNumMapBeforeRemapping = new HashMap<String, Integer>();
         for (TopicQueueMappingOne mappingOne: globalIdMap.values()) {
-            if(brokerNumMapBeforeRemapping.containsKey(mappingOne.bname)) {
+            if (brokerNumMapBeforeRemapping.containsKey(mappingOne.bname)) {
                 brokerNumMapBeforeRemapping.put(mappingOne.bname, brokerNumMapBeforeRemapping.get(mappingOne.bname) + 1);
             } else {
                 brokerNumMapBeforeRemapping.put(mappingOne.bname, 1);

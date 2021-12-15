@@ -107,7 +107,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
             }
             MQAdminUtils.remappingStaticTopic(topic, wrapper.getBrokerToMapIn(), wrapper.getBrokerToMapOut(), wrapper.getBrokerConfigMap(), 10000, force, defaultMQAdminExt);
             return;
-        }catch (Exception e) {
+        } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
@@ -138,7 +138,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
 
         try {
             defaultMQAdminExt.start();
-            if ((!commandLine.hasOption("b") && !commandLine.hasOption('c'))) {
+            if (!commandLine.hasOption("b") && !commandLine.hasOption('c')) {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
                 return;
             }
@@ -184,14 +184,14 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
             {
                 TopicRemappingDetailWrapper oldWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, maxEpochAndNum.getKey(), brokerConfigMap, new HashSet<String>(), new HashSet<String>());
                 String oldMappingDataFile = TopicQueueMappingUtils.writeToTemp(oldWrapper, false);
-                System.out.println("The old mapping data is written to file " + oldMappingDataFile);
+                System.out.printf("The old mapping data is written to file " + oldMappingDataFile + "\n");
             }
 
             TopicRemappingDetailWrapper newWrapper = TopicQueueMappingUtils.remappingStaticTopic(topic, brokerConfigMap, targetBrokers);
 
             {
                 String newMappingDataFile = TopicQueueMappingUtils.writeToTemp(newWrapper, true);
-                System.out.println("The old mapping data is written to file " + newMappingDataFile);
+                System.out.printf("The old mapping data is written to file " + newMappingDataFile + "\n");
             }
 
             MQAdminUtils.completeNoTargetBrokers(newWrapper.getBrokerConfigMap(), defaultMQAdminExt);

@@ -104,7 +104,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
         boolean changed = false;
         long start = System.currentTimeMillis();
         try {
-            for(String topic : this.topicQueueMappingManager.getTopicQueueMappingTable().keySet()) {
+            for (String topic : this.topicQueueMappingManager.getTopicQueueMappingTable().keySet()) {
                 try {
                     if (isStopped()) {
                         break;
@@ -123,7 +123,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                         if (items.size() <= 1) {
                             continue;
                         }
-                        if(!TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
+                        if (!TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
                             continue;
                         }
                         LogicQueueMappingItem earlistItem = items.get(0);
@@ -154,7 +154,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                         if (items.size() <= 1) {
                             continue;
                         }
-                        if(!TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
+                        if (!TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
                             continue;
                         }
                         LogicQueueMappingItem earlistItem = items.get(0);

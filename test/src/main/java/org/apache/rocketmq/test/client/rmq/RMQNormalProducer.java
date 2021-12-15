@@ -152,9 +152,6 @@ public class RMQNormalProducer extends AbstractMQProducer {
             sendResult.setSendResult(metaqResult.getSendStatus().equals(SendStatus.SEND_OK));
             sendResult.setBrokerIp(metaqResult.getMessageQueue().getBrokerName());
             msgBodys.addData(new String(msg.getBody()));
-            if (originMsgs.getAllData().contains(msg)) {
-                System.out.println("Hash collision");
-            }
             originMsgs.addData(msg);
             originMsgIndex.put(new String(msg.getBody()), metaqResult);
         } catch (Exception e) {

@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.concurrent.CompleteFuture;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.BrokerController;
@@ -154,8 +153,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -651,7 +648,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             if (!mappingContext.isLeader()) {
                 return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
             }
-            //TODO should make sure the timestampOfOffset is equal or bigger than the searched timestamp
+            //TO DO should make sure the timestampOfOffset is equal or bigger than the searched timestamp
             Long timestamp = requestHeader.getTimestamp();
             long offset = -1;
             for (int i = 0; i < mappingItems.size(); i++) {
@@ -795,7 +792,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             //this may not
             return CompletableFuture.completedFuture(new RpcResponse(new RpcException(ResponseCode.NOT_LEADER_FOR_QUEUE,
                     String.format("%s-%d is not leader in broker %s, request code %d", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname(), request.getCode()))));
-        };
+        }
         GetMinOffsetRequestHeader requestHeader = (GetMinOffsetRequestHeader) request.getHeader();
         LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), 0L, true);
         assert  mappingItem != null;
@@ -862,14 +859,14 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
         if (!mappingContext.isLeader()) {
             return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", mappingContext.getTopic(), mappingContext.getGlobalId(), mappingDetail.getBname()));
-        };
+        }
         LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), 0L, true);
         assert mappingItem != null;
         try {
             requestHeader.setBname(mappingItem.getBname());
             requestHeader.setLo(false);
             RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_EARLIEST_MSG_STORETIME, requestHeader, null);
-            //TODO check if it is in current broker
+            //TO DO check if it is in current broker
             RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
             if (rpcResponse.getException() != null) {
                 throw rpcResponse.getException();
@@ -882,7 +879,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
             return response;
-        }catch (Throwable t) {
+        } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
     }
@@ -1058,7 +1055,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 statsTable.put(broker, (TopicStatsTable) rpcResponse.getBody());
             }
             TopicStatsTable topicStatsTable = new TopicStatsTable();
-            qidItemMap.forEach( (qid, itemPair) -> {
+            qidItemMap.forEach((qid, itemPair) -> {
                 LogicQueueMappingItem minItem = itemPair[0];
                 LogicQueueMappingItem maxItem = itemPair[1];
                 TopicOffset minTopicOffset = statsTable.get(minItem.getBname()).getOffsetTable().get(new MessageQueue(topic, minItem.getBname(), minItem.getQueueId()));

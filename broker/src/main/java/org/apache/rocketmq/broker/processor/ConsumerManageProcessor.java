@@ -17,18 +17,9 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.rpc.RpcRequest;
-import org.apache.rocketmq.common.rpc.RpcResponse;
-import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
-import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
@@ -38,12 +29,20 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHead
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import org.apache.rocketmq.common.rpc.RpcRequest;
+import org.apache.rocketmq.common.rpc.RpcResponse;
+import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import java.util.List;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -177,7 +176,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                     if (rpcResponse.getCode() == ResponseCode.SUCCESS) {
                         offset = ((QueryConsumerOffsetResponseHeader) rpcResponse.getHeader()).getOffset();
                         break;
-                    } else if (rpcResponse.getCode() == ResponseCode.QUERY_NOT_FOUND){
+                    } else if (rpcResponse.getCode() == ResponseCode.QUERY_NOT_FOUND) {
                         continue;
                     } else {
                         //this should not happen
@@ -234,7 +233,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             if (requestHeader.getSetZeroIfNotFound() != null && Boolean.FALSE.equals(requestHeader.getSetZeroIfNotFound())) {
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, do not set to zero, maybe this group boot first");
-            }else if (minOffset <= 0
+            } else if (minOffset <= 0
                 && !this.brokerController.getMessageStore().checkInDiskByConsumeOffset(
                 requestHeader.getTopic(), requestHeader.getQueueId(), 0)) {
                 responseHeader.setOffset(0L);

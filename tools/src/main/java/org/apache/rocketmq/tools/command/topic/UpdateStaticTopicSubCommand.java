@@ -21,10 +21,9 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -110,7 +109,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             MQAdminUtils.completeNoTargetBrokers(wrapper.getBrokerConfigMap(), defaultMQAdminExt);
             MQAdminUtils.updateTopicConfigMappingAll(wrapper.getBrokerConfigMap(), defaultMQAdminExt, false);
             return;
-        }catch (Exception e) {
+        } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
             defaultMQAdminExt.shutdown();
@@ -185,7 +184,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
             {
                 TopicRemappingDetailWrapper oldWrapper = new TopicRemappingDetailWrapper(topic, TopicRemappingDetailWrapper.TYPE_CREATE_OR_UPDATE, maxEpochAndNum.getKey(), brokerConfigMap, new HashSet<String>(), new HashSet<String>());
                 String oldMappingDataFile = TopicQueueMappingUtils.writeToTemp(oldWrapper, false);
-                System.out.println("The old mapping data is written to file " + oldMappingDataFile);
+                System.out.printf("The old mapping data is written to file " + oldMappingDataFile + "\n");
             }
             //add the existed brokers to target brokers
             targetBrokers.addAll(brokerConfigMap.keySet());
@@ -195,7 +194,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
             {
                 String newMappingDataFile = TopicQueueMappingUtils.writeToTemp(newWrapper, true);
-                System.out.println("The new mapping data is written to file " + newMappingDataFile);
+                System.out.printf("The new mapping data is written to file " + newMappingDataFile + "\n");
             }
 
             MQAdminUtils.completeNoTargetBrokers(brokerConfigMap, defaultMQAdminExt);

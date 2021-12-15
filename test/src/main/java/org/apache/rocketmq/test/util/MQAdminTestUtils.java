@@ -17,18 +17,10 @@
 
 package org.apache.rocketmq.test.util;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ForkJoinPool;
-import java.util.stream.Collectors;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
@@ -42,27 +34,29 @@ import org.apache.rocketmq.common.statictopic.TopicRemappingDetailWrapper;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
-import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
-import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminUtils;
 import org.apache.rocketmq.tools.command.CommandUtil;
-import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.topic.RemappingStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ForkJoinPool;
 
 public class MQAdminTestUtils {
     private static Logger log = Logger.getLogger(MQAdminTestUtils.class);
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
-        int queueNum) {
+                                      int queueNum) {
         int defaultWaitTime = 5;
         return createTopic(nameSrvAddr, clusterName, topic, queueNum, defaultWaitTime);
     }
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
-        int queueNum, int waitTimeSec) {
+                                      int queueNum, int waitTimeSec) {
         boolean createResult = false;
         DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.setInstanceName(UUID.randomUUID().toString());
@@ -108,12 +102,12 @@ public class MQAdminTestUtils {
         try {
             mqAdminExt.start();
             Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt,
-                clusterName);
+                    clusterName);
             for (String addr : masterSet) {
                 try {
                     mqAdminExt.createAndUpdateSubscriptionGroupConfig(addr, config);
                     log.info(String.format("create subscription group %s to %s success.\n", consumerId,
-                        addr));
+                            addr));
                 } catch (Exception e) {
                     e.printStackTrace();
                     Thread.sleep(1000 * 1);
@@ -159,37 +153,10 @@ public class MQAdminTestUtils {
         return false;
     }
 
-    public void getSubConnection(String nameSrvAddr, String clusterName, String consumerId) {
-        boolean createResult = true;
-        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
-        mqAdminExt.setNamesrvAddr(nameSrvAddr);
-        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
-        config.setGroupName(consumerId);
-        try {
-            mqAdminExt.start();
-            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt,
-                clusterName);
-            for (String addr : masterSet) {
-                try {
-
-                    System.out.printf("create subscription group %s to %s success.\n", consumerId,
-                        addr);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Thread.sleep(1000 * 1);
-                }
-            }
-        } catch (Exception e) {
-            createResult = false;
-            e.printStackTrace();
-        }
-        ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
-    }
-
     //should only be test, if some middle operation failed, it dose not backup the brokerConfigMap
     public static Map<String, TopicConfigAndQueueMapping> createStaticTopic(String topic, int queueNum, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
-        assert  brokerConfigMap.isEmpty();
+        assert brokerConfigMap.isEmpty();
         TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, targetBrokers, brokerConfigMap);
         MQAdminUtils.completeNoTargetBrokers(brokerConfigMap, defaultMQAdminExt);
         MQAdminUtils.updateTopicConfigMappingAll(brokerConfigMap, defaultMQAdminExt, false);
@@ -221,20 +188,20 @@ public class MQAdminTestUtils {
         MQAdminUtils.checkIfMasterAlive(brokerConfigMap.keySet(), defaultMQAdminExt, clientMetadata);
         // now do the remapping
         //Step1: let the new leader can be write without the logicOffset
-        for (String broker: brokersToMapIn) {
+        for (String broker : brokersToMapIn) {
             String addr = clientMetadata.findMasterBrokerAddr(broker);
             TopicConfigAndQueueMapping configMapping = brokerConfigMap.get(broker);
             defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
         }
         //Step2: forbid the write of old leader
-        for (String broker: brokersToMapOut) {
+        for (String broker : brokersToMapOut) {
             String addr = clientMetadata.findMasterBrokerAddr(broker);
             TopicConfigAndQueueMapping configMapping = brokerConfigMap.get(broker);
             defaultMQAdminExt.createStaticTopic(addr, defaultMQAdminExt.getCreateTopicKey(), configMapping, configMapping.getMappingDetail(), force);
         }
 
         //Step5: write the non-target brokers
-        for (String broker: brokerConfigMap.keySet()) {
+        for (String broker : brokerConfigMap.keySet()) {
             if (brokersToMapIn.contains(broker) || brokersToMapOut.contains(broker)) {
                 continue;
             }
@@ -244,25 +211,24 @@ public class MQAdminTestUtils {
         }
     }
 
-
-    public static void createStaticTopicWithCommand(String topic, int queueNum, Set<String> brokers, String cluster,  String nameservers) throws Exception {
+    public static void createStaticTopicWithCommand(String topic, int queueNum, Set<String> brokers, String cluster, String nameservers) throws Exception {
         UpdateStaticTopicSubCommand cmd = new UpdateStaticTopicSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] args;
         if (cluster != null) {
-            args = new String[] {
-                    "-c", cluster,
-                    "-t", topic,
-                    "-qn", String.valueOf(queueNum),
-                    "-n", nameservers
+            args = new String[]{
+                "-c", cluster,
+                "-t", topic,
+                "-qn", String.valueOf(queueNum),
+                "-n", nameservers
             };
         } else {
             String brokerStr = String.join(",", brokers);
-            args = new String[] {
-                    "-b", brokerStr,
-                    "-t", topic,
-                    "-qn", String.valueOf(queueNum),
-                    "-n", nameservers
+            args = new String[]{
+                "-b", brokerStr,
+                "-t", topic,
+                "-qn", String.valueOf(queueNum),
+                "-n", nameservers
             };
         }
         final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), args, cmd.buildCommandlineOptions(options), new PosixParser());
@@ -276,23 +242,22 @@ public class MQAdminTestUtils {
         cmd.execute(commandLine, options, null);
     }
 
-
     public static void remappingStaticTopicWithCommand(String topic, Set<String> brokers, String cluster, String nameservers) throws Exception {
         RemappingStaticTopicSubCommand cmd = new RemappingStaticTopicSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] args;
         if (cluster != null) {
-            args = new String[] {
-                    "-c", cluster,
-                    "-t", topic,
-                    "-n", nameservers
+            args = new String[]{
+                "-c", cluster,
+                "-t", topic,
+                "-n", nameservers
             };
         } else {
             String brokerStr = String.join(",", brokers);
-            args = new String[] {
-                    "-b", brokerStr,
-                    "-t", topic,
-                    "-n", nameservers
+            args = new String[]{
+                "-b", brokerStr,
+                "-t", topic,
+                "-n", nameservers
             };
         }
         final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), args, cmd.buildCommandlineOptions(options), new PosixParser());
