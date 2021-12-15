@@ -185,7 +185,7 @@ public class BrokerConfig {
 
     private boolean storeReplyMessageEnable = true;
 
-    private boolean enableQueueStat = true;
+    private boolean enableDetailStat = true;
 
     private boolean autoDeleteUnusedStats = false;
 
@@ -799,12 +799,12 @@ public class BrokerConfig {
         this.storeReplyMessageEnable = storeReplyMessageEnable;
     }
 
-    public boolean isEnableQueueStat() {
-        return enableQueueStat;
+    public boolean isEnableDetailStat() {
+        return enableDetailStat;
     }
 
-    public void setEnableQueueStat(boolean enableQueueStat) {
-        this.enableQueueStat = enableQueueStat;
+    public void setEnableDetailStat(boolean enableDetailStat) {
+        this.enableDetailStat = enableDetailStat;
     }
 
     public boolean isAutoDeleteUnusedStats() {
