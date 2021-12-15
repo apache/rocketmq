@@ -17,7 +17,6 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import java.util.HashMap;
-
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.junit.Assert;
 import org.junit.Test;

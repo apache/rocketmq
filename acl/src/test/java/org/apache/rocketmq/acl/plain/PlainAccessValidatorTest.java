@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.acl.plain;
 
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -34,7 +32,14 @@ import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.header.*;
+import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
+import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -497,7 +502,6 @@ public class PlainAccessValidatorTest {
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
-
     @Test
     public void createAndUpdateAccessAclYamlConfigNormalTest() {
         System.setProperty("rocketmq.home.dir", "src/test/resources");
@@ -570,7 +574,6 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(2, dataVersions2.get(0).get(AclConstants.CONFIG_COUNTER));
         Assert.assertEquals(verifyMap2.get(AclConstants.CONFIG_SECRET_KEY), "1234567890123");
 
-
         // Restore the backup file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
@@ -596,7 +599,6 @@ public class PlainAccessValidatorTest {
 
         String targetFileName = "src/test/resources/conf/plain_acl_delete.yml";
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-
 
         String accessKey = "rocketmq2";
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -709,7 +711,6 @@ public class PlainAccessValidatorTest {
         Assert.assertEquals(aclConfig.getPlainAccessConfigs().size(), 2);
     }
 
-
     @Test
     public void updateAccessConfigEmptyPermListTest() {
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
@@ -724,7 +725,7 @@ public class PlainAccessValidatorTest {
         plainAccessValidator.updateAccessConfig(plainAccessConfig);
 
         PlainAccessConfig result = plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()
-                .stream().filter(c -> c.getAccessKey().equals(accessKey)).findFirst().orElse(null);
+            .stream().filter(c -> c.getAccessKey().equals(accessKey)).findFirst().orElse(null);
         Assert.assertEquals(0, result.getTopicPerms().size());
 
         plainAccessValidator.deleteAccessConfig(accessKey);
@@ -744,7 +745,7 @@ public class PlainAccessValidatorTest {
         plainAccessValidator.updateAccessConfig(plainAccessConfig);
 
         PlainAccessConfig result = plainAccessValidator.getAllAclConfig().getPlainAccessConfigs()
-                .stream().filter(c -> c.getAccessKey().equals(accessKey)).findFirst().orElse(null);
+            .stream().filter(c -> c.getAccessKey().equals(accessKey)).findFirst().orElse(null);
         Assert.assertEquals("", result.getWhiteRemoteAddress());
 
         plainAccessValidator.deleteAccessConfig(accessKey);
