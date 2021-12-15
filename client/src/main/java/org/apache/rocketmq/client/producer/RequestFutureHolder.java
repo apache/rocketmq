@@ -32,7 +32,6 @@ import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.InternalLogger;
 
@@ -42,7 +41,6 @@ public class RequestFutureHolder {
     private ConcurrentHashMap<String, RequestResponseFuture> requestFutureTable = new ConcurrentHashMap<String, RequestResponseFuture>();
     private final Set<DefaultMQProducerImpl> producerSet = new HashSet<>();
     private ScheduledExecutorService scheduledExecutorService = null;
-    private ServiceState serviceState = ServiceState.CREATE_JUST;
 
     public ConcurrentHashMap<String, RequestResponseFuture> getRequestFutureTable() {
         return requestFutureTable;
@@ -75,10 +73,10 @@ public class RequestFutureHolder {
 
     public synchronized void startScheduledTask(DefaultMQProducerImpl producer) {
         this.producerSet.add(producer);
-        if (this.producerSet.size() >= 1 && this.serviceState != ServiceState.RUNNING) {
-            this.serviceState = ServiceState.START_FAILED;
+        if (null == scheduledExecutorService) {
+            this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RequestHouseKeepingService"));
 
-            this.getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -89,28 +87,19 @@ public class RequestFutureHolder {
                 }
             }, 1000 * 3, 1000, TimeUnit.MILLISECONDS);
 
-            this.serviceState = ServiceState.RUNNING;
         }
     }
 
     public synchronized void shutdown(DefaultMQProducerImpl producer) {
         this.producerSet.remove(producer);
-        if (this.producerSet.size() <= 0 && null != this.scheduledExecutorService && this.serviceState != ServiceState.SHUTDOWN_ALREADY) {
-            this.scheduledExecutorService.shutdown();
+        if (this.producerSet.size() <= 0 && null != this.scheduledExecutorService) {
+            ScheduledExecutorService executorService = this.scheduledExecutorService;
             this.scheduledExecutorService = null;
-            this.serviceState = ServiceState.SHUTDOWN_ALREADY;
+            executorService.shutdown();
         }
     }
 
-    private RequestFutureHolder() {
-    }
-
-    private ScheduledExecutorService getScheduledExecutorService() {
-        if (null == scheduledExecutorService) {
-            scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RequestHouseKeepingService"));
-        }
-        return scheduledExecutorService;
-    }
+    private RequestFutureHolder() {}
 
     public static RequestFutureHolder getInstance() {
         return INSTANCE;
