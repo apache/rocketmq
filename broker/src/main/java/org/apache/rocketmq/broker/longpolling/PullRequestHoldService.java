@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -37,8 +39,17 @@ public class PullRequestHoldService extends ServiceThread {
     protected ConcurrentMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
         new ConcurrentHashMap<String, ManyPullRequest>(1024);
 
+    private LinkedBlockingQueue<Runnable> notifyList = new LinkedBlockingQueue<>(100000);
+    private long lastCheckHoldRequestNanoTime = System.nanoTime();
+    private long checkInterval;
+
     public PullRequestHoldService(final BrokerController brokerController) {
         this.brokerController = brokerController;
+        if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
+            this.checkInterval = 5 * 1000 * 1000 * 1000;
+        } else {
+            this.checkInterval = this.brokerController.getBrokerConfig().getShortPollingTimeMills() * 1000 * 1000;
+        }
     }
 
     public void suspendPullRequest(final String topic, final int queueId, final PullRequest pullRequest) {
@@ -68,18 +79,7 @@ public class PullRequestHoldService extends ServiceThread {
         log.info("{} service started", this.getServiceName());
         while (!this.isStopped()) {
             try {
-                if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
-                    this.waitForRunning(5 * 1000);
-                } else {
-                    this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());
-                }
-
-                long beginLockTimestamp = this.systemClock.now();
-                this.checkHoldRequest();
-                long costTime = this.systemClock.now() - beginLockTimestamp;
-                if (costTime > 5 * 1000) {
-                    log.info("[NOTIFYME] check hold request cost {} ms.", costTime);
-                }
+                this.waitForRunning(100);
             } catch (Throwable e) {
                 log.warn(this.getServiceName() + " service has exception. ", e);
             }
@@ -109,11 +109,48 @@ public class PullRequestHoldService extends ServiceThread {
         }
     }
 
+    @Override
+    protected void onWaitEnd() {
+        final int batch = 1000;
+        for (int i = 0; i < batch; i++) {
+            Runnable runnable = notifyList.poll();
+            if (runnable != null) {
+                runnable.run();
+            } else {
+                break;
+            }
+        }
+
+        long beginTime = System.nanoTime();
+        if (beginTime - this.lastCheckHoldRequestNanoTime > this.checkInterval) {
+            this.checkHoldRequest();
+            this.lastCheckHoldRequestNanoTime = System.nanoTime();
+
+            long costMillis = (this.lastCheckHoldRequestNanoTime - beginTime) / 1000 / 1000;
+            if (costMillis > 1000) {
+                log.info("[NOTIFYME] check hold request cost {} ms.", costMillis);
+            }
+        }
+    }
+
+
+
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset) {
-        notifyMessageArriving(topic, queueId, maxOffset, null, 0, null, null);
+        notifyMessageArriving0(topic, queueId, maxOffset, null, 0, null, null);
     }
 
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode,
+            long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+        try {
+            notifyList.put(() -> notifyMessageArriving0(topic, queueId, maxOffset, tagsCode, msgStoreTime, filterBitMap,
+                    properties));
+            this.wakeup();
+        } catch (InterruptedException e) {
+            log.error("PullRequestHoldService get InterruptedException");
+        }
+    }
+
+    private void notifyMessageArriving0(final String topic, final int queueId, final long maxOffset, final Long tagsCode,
         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String key = this.buildKey(topic, queueId);
         ManyPullRequest mpr = this.pullRequestTable.get(key);
