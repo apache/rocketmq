@@ -95,13 +95,13 @@ public class StatsAllSubCommand implements SubCommand {
                     (outMsgCntToday > 0)) {
 
                     System.out.printf("%-64s  %-64s %12d %11.2f %11.2f %14d %14d%n",
-                            UtilAll.frontStringAtLeast(topic, 64),
-                            UtilAll.frontStringAtLeast(group, 64),
-                            accumulate,
-                            inTPS,
-                            outTPS,
-                            inMsgCntToday,
-                            outMsgCntToday
+                        UtilAll.frontStringAtLeast(topic, 64),
+                        UtilAll.frontStringAtLeast(group, 64),
+                        accumulate,
+                        inTPS,
+                        outTPS,
+                        inMsgCntToday,
+                        outMsgCntToday
                     );
                 }
             }
