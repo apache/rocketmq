@@ -100,6 +100,11 @@ public class BrokerConfig {
 
     private long shortPollingTimeMills = 1000;
 
+    private int pullNotifyTpsThreshold = 100_000;
+    private int pullNotifyMaxBatchSize = 20_000;
+    private int pullNotifyMaxLatencyMs = 100;
+    private int pullNotifySuggestAvgBatchEachQueue = 10;
+
     private boolean notifyConsumerIdsChangedEnable = true;
 
     private boolean highSpeedMode = false;
@@ -564,6 +569,38 @@ public class BrokerConfig {
 
     public void setShortPollingTimeMills(long shortPollingTimeMills) {
         this.shortPollingTimeMills = shortPollingTimeMills;
+    }
+
+    public int getPullNotifyTpsThreshold() {
+        return pullNotifyTpsThreshold;
+    }
+
+    public void setPullNotifyTpsThreshold(int pullNotifyTpsThreshold) {
+        this.pullNotifyTpsThreshold = pullNotifyTpsThreshold;
+    }
+
+    public int getPullNotifyMaxBatchSize() {
+        return pullNotifyMaxBatchSize;
+    }
+
+    public void setPullNotifyMaxBatchSize(int pullNotifyMaxBatchSize) {
+        this.pullNotifyMaxBatchSize = pullNotifyMaxBatchSize;
+    }
+
+    public int getPullNotifyMaxLatencyMs() {
+        return pullNotifyMaxLatencyMs;
+    }
+
+    public void setPullNotifyMaxLatencyMs(int pullNotifyMaxLatencyMs) {
+        this.pullNotifyMaxLatencyMs = pullNotifyMaxLatencyMs;
+    }
+
+    public int getPullNotifySuggestAvgBatchEachQueue() {
+        return pullNotifySuggestAvgBatchEachQueue;
+    }
+
+    public void setPullNotifySuggestAvgBatchEachQueue(int pullNotifySuggestAvgBatchEachQueue) {
+        this.pullNotifySuggestAvgBatchEachQueue = pullNotifySuggestAvgBatchEachQueue;
     }
 
     public int getClientManageThreadPoolNums() {

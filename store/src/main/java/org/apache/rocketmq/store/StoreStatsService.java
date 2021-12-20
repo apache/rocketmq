@@ -314,7 +314,7 @@ public class StoreStatsService extends ServiceThread {
         return sb.toString();
     }
 
-    private String getPutTps(int time) {
+    public String getPutTps(int time) {
         String result = "";
         this.samplingLock.lock();
         try {
