@@ -40,6 +40,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
@@ -47,6 +49,7 @@ import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -1497,7 +1500,23 @@ public class DefaultMessageStore implements MessageStore {
 
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
         ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
-        cq.putMessagePositionInfoWrapper(dispatchRequest);
+        cq.putMessagePositionInfoWrapper(dispatchRequest, checkMultiDispatchQueue(dispatchRequest));
+    }
+
+    private boolean checkMultiDispatchQueue(DispatchRequest dispatchRequest) {
+        if (!this.messageStoreConfig.isEnableMultiDispatch()) {
+            return false;
+        }
+        Map<String, String> prop = dispatchRequest.getPropertiesMap();
+        if (prop == null && prop.isEmpty()) {
+            return false;
+        }
+        String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+        if (StringUtils.isBlank(multiDispatchQueue) || StringUtils.isBlank(multiQueueOffset)) {
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -1974,6 +1993,7 @@ public class DefaultMessageStore implements MessageStore {
                                             dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
                                             dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
                                             dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
+                                        notifyMessageArrive4MultiQueue(dispatchRequest);
                                     }
 
                                     this.reputFromOffset += size;
@@ -2013,6 +2033,34 @@ public class DefaultMessageStore implements MessageStore {
                 } else {
                     doNext = false;
                 }
+            }
+        }
+
+        private void notifyMessageArrive4MultiQueue(DispatchRequest dispatchRequest) {
+            Map<String, String> prop = dispatchRequest.getPropertiesMap();
+            if (prop == null) {
+                return;
+            }
+            String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+            String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+            if (StringUtils.isBlank(multiDispatchQueue) || StringUtils.isBlank(multiQueueOffset)) {
+                return;
+            }
+            String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+            String[] queueOffsets = multiQueueOffset.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+            if (queues.length != queueOffsets.length) {
+                return;
+            }
+            for (int i = 0; i < queues.length; i++) {
+                String queueName = queues[i];
+                long queueOffset = Long.parseLong(queueOffsets[i]);
+                int queueId = dispatchRequest.getQueueId();
+                if (DefaultMessageStore.this.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
+                    queueId = 0;
+                }
+                DefaultMessageStore.this.messageArrivingListener.arriving(
+                    queueName, queueId, queueOffset + 1, dispatchRequest.getTagsCode(),
+                    dispatchRequest.getStoreTimestamp(), dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
             }
         }
 
