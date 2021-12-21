@@ -18,7 +18,9 @@
 package org.apache.rocketmq.test.client.producer.querymsg;
 
 import java.util.List;
+
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -100,5 +102,60 @@ public class QueryMsgByKeyIT extends BaseConf {
 
         assertThat(queryMsgs).isNotNull();
         assertThat(queryMsgs.size()).isEqualTo(max);
+    }
+
+
+    @Test(expected = MQClientException.class)
+    public void testQueryMsgWithSameHash1() throws Exception {
+        int msgSize = 1;
+        String topicA = "AaTopic";
+        String keyA = "Aa";
+        String topicB = "BBTopic";
+        String keyB = "BB";
+
+        initTopicWithName(topicA);
+        initTopicWithName(topicB);
+
+        RMQNormalProducer producerA = getProducer(nsAddr, topicA);
+        RMQNormalProducer producerB = getProducer(nsAddr, topicB);
+
+        List<Object> msgA = MQMessageFactory.getKeyMsg(topicA, keyA, msgSize);
+        List<Object> msgB = MQMessageFactory.getKeyMsg(topicB, keyB, msgSize);
+
+        producerA.send(msgA);
+        producerB.send(msgB);
+
+        long begin = System.currentTimeMillis() - 500000;
+        long end = System.currentTimeMillis() + 500000;
+        producerA.getProducer().queryMessage(topicA, keyB, msgSize * 10, begin, end).getMessageList();
+    }
+
+
+    @Test
+    public void testQueryMsgWithSameHash2() throws Exception {
+        int msgSize = 1;
+        String topicA = "AaAaTopic";
+        String keyA = "Aa";
+        String topicB = "BBBBTopic";
+        String keyB = "Aa";
+
+        initTopicWithName(topicA);
+        initTopicWithName(topicB);
+
+        RMQNormalProducer producerA = getProducer(nsAddr, topicA);
+        RMQNormalProducer producerB = getProducer(nsAddr, topicB);
+
+        List<Object> msgA = MQMessageFactory.getKeyMsg(topicA, keyA, msgSize);
+        List<Object> msgB = MQMessageFactory.getKeyMsg(topicB, keyB, msgSize);
+
+        producerA.send(msgA);
+        producerB.send(msgB);
+
+        long begin = System.currentTimeMillis() - 500000;
+        long end = System.currentTimeMillis() + 500000;
+        List<MessageExt> list = producerA.getProducer().queryMessage(topicA, keyA, msgSize * 10, begin, end).getMessageList();
+
+        assertThat(list).isNotNull();
+        assertThat(list.size()).isEqualTo(1);
     }
 }
