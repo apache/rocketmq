@@ -10,8 +10,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.CommitLog.MessageExtEncoder;
 
-import java.nio.ByteBuffer;
-
 /**
  * not-thread-safe
  */
@@ -38,7 +36,7 @@ public class MultiDispatch {
         return keyBuilder.toString();
     }
 
-    public boolean wrapMultiDispatch(final long fileFromOffset, final ByteBuffer byteBuffer, final MessageExtBrokerInner msgInner) {
+    public boolean wrapMultiDispatch(final MessageExtBrokerInner msgInner) {
         if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch()) {
             return true;
         }
@@ -46,8 +44,6 @@ public class MultiDispatch {
         if (StringUtils.isBlank(multiDispatchQueue)) {
             return true;
         }
-        // PHY OFFSET
-        long wroteOffset = fileFromOffset + byteBuffer.position();
         String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
         Long[] queueOffsets = new Long[queues.length];
         for (int i = 0; i < queues.length; i++) {
@@ -70,13 +66,25 @@ public class MultiDispatch {
         }
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
                 StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
-        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+        removeWaitStorePropertyString(msgInner);
         return rebuildMsgInner(msgInner);
+    }
 
+    private void removeWaitStorePropertyString(MessageExtBrokerInner msgInner) {
+        if (msgInner.getProperties().containsKey(MessageConst.PROPERTY_WAIT_STORE_MSG_OK)) {
+            // There is no need to store "WAIT=true", remove it from propertiesString to save 9 bytes for each message.
+            // It works for most case. In some cases msgInner.setPropertiesString invoked later and replace it.
+            String waitStoreMsgOKValue = msgInner.getProperties().remove(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
+            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+            // Reput to properties, since msgInner.isWaitStoreMsgOK() will be invoked later
+            msgInner.getProperties().put(MessageConst.PROPERTY_WAIT_STORE_MSG_OK, waitStoreMsgOKValue);
+        } else {
+            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+        }
     }
 
     private boolean rebuildMsgInner(MessageExtBrokerInner msgInner) {
-        MessageExtEncoder encoder = new MessageExtEncoder(messageStore.getMessageStoreConfig().getMaxMessageSize());
+        MessageExtEncoder encoder = this.commitLog.getPutMessageThreadLocal().get().getEncoder();
         PutMessageResult encodeResult = encoder.encode(msgInner);
         if(encodeResult != null) {
            log.error("rebuild msgInner for multiDispatch", encodeResult);

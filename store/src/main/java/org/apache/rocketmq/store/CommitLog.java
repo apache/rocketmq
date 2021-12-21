@@ -49,7 +49,6 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -80,7 +79,6 @@ public class CommitLog {
     private volatile Set<String> fullStorePaths = Collections.emptySet();
 
     private final MultiDispatch multiDispatch;
-    private BrokerStatsManager brokerStatsManager;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         String storePath = defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog();
@@ -123,6 +121,10 @@ public class CommitLog {
 
     public Set<String> getFullStorePaths() {
         return fullStorePaths;
+    }
+
+    public ThreadLocal<PutMessageThreadLocal> getPutMessageThreadLocal() {
+        return putMessageThreadLocal;
     }
 
     public boolean load() {
@@ -1311,7 +1313,7 @@ public class CommitLog {
                 CommitLog.this.topicQueueTable.put(key, queueOffset);
             }
 
-            boolean multiDispatchWrapResult = CommitLog.this.multiDispatch.wrapMultiDispatch(fileFromOffset, byteBuffer, msgInner);
+            boolean multiDispatchWrapResult = CommitLog.this.multiDispatch.wrapMultiDispatch(msgInner);
             if (!multiDispatchWrapResult) {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
@@ -1713,9 +1715,6 @@ public class CommitLog {
         public ByteBuffer getEncoderBuffer() {
             return encoderBuffer;
         }
-    }
-    public void setBrokerStatsManager(BrokerStatsManager brokerStatsManager) {
-        this.brokerStatsManager = brokerStatsManager;
     }
 
     static class PutMessageThreadLocal {
