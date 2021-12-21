@@ -13,9 +13,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-
-    private volatile Map<String, Long> lmqOffsetMap = new ConcurrentHashMap<>(512);
+    private ConcurrentHashMap<String, Long> lmqOffsetTable = new ConcurrentHashMap<>(512);
 
     public LmqConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
@@ -28,7 +26,7 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
         }
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        Long offset = lmqOffsetMap.get(key);
+        Long offset = lmqOffsetTable.get(key);
         if (offset != null) {
             return offset;
         }
@@ -43,7 +41,7 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
         Map<Integer, Long> map = new HashMap<>();
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        Long offset = lmqOffsetMap.get(key);
+        Long offset = lmqOffsetTable.get(key);
         if (offset != null) {
             map.put(0, offset);
         }
@@ -59,7 +57,7 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
         }
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        lmqOffsetMap.put(key, offset);
+        lmqOffsetTable.put(key, offset);
     }
 
     @Override
@@ -78,7 +76,7 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
             LmqConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, LmqConsumerOffsetManager.class);
             if (obj != null) {
                 super.offsetTable = obj.offsetTable;
-                this.lmqOffsetMap = obj.lmqOffsetMap;
+                this.lmqOffsetTable = obj.lmqOffsetTable;
             }
         }
     }
@@ -88,4 +86,11 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
         return RemotingSerializable.toJson(this, prettyFormat);
     }
 
+    public ConcurrentHashMap<String, Long> getLmqOffsetTable() {
+        return lmqOffsetTable;
+    }
+
+    public void setLmqOffsetTable(ConcurrentHashMap<String, Long> lmqOffsetTable) {
+        this.lmqOffsetTable = lmqOffsetTable;
+    }
 }
