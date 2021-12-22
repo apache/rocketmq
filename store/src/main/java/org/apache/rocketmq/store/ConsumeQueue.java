@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -449,7 +448,7 @@ public class ConsumeQueue {
             }
             ConsumeQueue cq = this.defaultMessageStore.findConsumeQueue(queueName, queueId);
             boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
-            for (int j=0; j < maxRetries && canWrite; j++) {
+            for (int j = 0; j < maxRetries && canWrite; j++) {
                 boolean result = cq.putMessagePositionInfo(request.getCommitLogOffset(), request.getMsgSize(),
                     request.getTagsCode(),
                     queueOffset);

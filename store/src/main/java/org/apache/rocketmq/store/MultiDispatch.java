@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.store;
 
 import org.apache.commons.lang3.StringUtils;
@@ -14,7 +30,7 @@ import org.apache.rocketmq.store.CommitLog.MessageExtEncoder;
  * not-thread-safe
  */
 public class MultiDispatch {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final StringBuilder keyBuilder = new StringBuilder();
     private final DefaultMessageStore messageStore;
     private final CommitLog commitLog;
@@ -65,7 +81,7 @@ public class MultiDispatch {
             queueOffsets[i] = queueOffset;
         }
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
-                StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
+            StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
         removeWaitStorePropertyString(msgInner);
         return rebuildMsgInner(msgInner);
     }
@@ -86,9 +102,9 @@ public class MultiDispatch {
     private boolean rebuildMsgInner(MessageExtBrokerInner msgInner) {
         MessageExtEncoder encoder = this.commitLog.getPutMessageThreadLocal().get().getEncoder();
         PutMessageResult encodeResult = encoder.encode(msgInner);
-        if(encodeResult != null) {
-           log.error("rebuild msgInner for multiDispatch", encodeResult);
-           return false;
+        if (encodeResult != null) {
+            LOGGER.error("rebuild msgInner for multiDispatch", encodeResult);
+            return false;
         }
         msgInner.setEncodedBuff(encoder.getEncoderBuffer());
         return true;
@@ -105,13 +121,13 @@ public class MultiDispatch {
         }
         String multiQueueOffset = msgInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
         if (StringUtils.isBlank(multiQueueOffset)) {
-            log.error("[bug] no multiQueueOffset when updating {}", msgInner.getTopic());
+            LOGGER.error("[bug] no multiQueueOffset when updating {}", msgInner.getTopic());
             return;
         }
         String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
         String[] queueOffsets = multiQueueOffset.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
         if (queues.length != queueOffsets.length) {
-            log.error("[bug] num is not equal when updateMultiQueueOffset {}", msgInner.getTopic());
+            LOGGER.error("[bug] num is not equal when updateMultiQueueOffset {}", msgInner.getTopic());
             return;
         }
         for (int i = 0; i < queues.length; i++) {

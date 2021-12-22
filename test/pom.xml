@@ -58,14 +58,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.rocketmq</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.rocketmq</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-tools</artifactId>
         </dependency>
-
 
     </dependencies>
 
