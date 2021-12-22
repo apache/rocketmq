@@ -32,7 +32,7 @@ public class ManyPullRequest {
 
     public synchronized List<PullRequest> cloneListAndClear() {
         if (!this.pullRequestList.isEmpty()) {
-            List<PullRequest> result = (ArrayList<PullRequest>)this.pullRequestList.clone();
+            List<PullRequest> result = (ArrayList<PullRequest>) this.pullRequestList.clone();
             this.pullRequestList.clear();
             return result;
         }
