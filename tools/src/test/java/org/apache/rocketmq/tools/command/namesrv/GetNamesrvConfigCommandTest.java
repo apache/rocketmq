@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.tools.command.namesrv;
 
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,24 +27,18 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
-import org.apache.rocketmq.tools.command.SubCommandException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,24 +49,26 @@ public class GetNamesrvConfigCommandTest {
     private static MQClientAPIImpl mQClientAPIImpl;
 
     @BeforeClass
-    public static void init() throws NoSuchFieldException, IllegalAccessException, InterruptedException, RemotingTimeoutException, MQClientException, RemotingSendRequestException, RemotingConnectException, MQBrokerException, UnsupportedEncodingException {
+    public static void init() throws Exception {
         mQClientAPIImpl = mock(MQClientAPIImpl.class);
         defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
 
-        Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
-        field.setAccessible(true);
-        field.set(defaultMQAdminExtImpl, mqClientInstance);
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        Field field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
         field.setAccessible(true);
         field.set(mqClientInstance, mQClientAPIImpl);
+
+        field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
+        field.setAccessible(true);
+        field.set(defaultMQAdminExtImpl, mqClientInstance);
+
         field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
         field.setAccessible(true);
         field.set(defaultMQAdminExt, defaultMQAdminExtImpl);
 
         Map<String, Properties> propertiesMap = new HashMap<>();
         List<String> nameServers = new ArrayList<>();
-        when(mQClientAPIImpl.getNameServerConfig(ArgumentMatchers.<String>anyList(), anyLong())).thenReturn(propertiesMap);
+        when(mQClientAPIImpl.getNameServerConfig(anyList(), anyLong())).thenReturn(propertiesMap);
     }
 
     @AfterClass
@@ -82,12 +78,16 @@ public class GetNamesrvConfigCommandTest {
 
     //    @Ignore
     @Test
-    public void testExecute() throws SubCommandException {
+    public void testExecute() throws Exception {
         GetNamesrvConfigCommand cmd = new GetNamesrvConfigCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
-        cmd.execute(commandLine, options, null);
+
+        Method method = cmd.getClass().getDeclaredMethod("doExecute", CommandLine.class, Options.class,
+                RPCHook.class, DefaultMQAdminExt.class, boolean.class);
+        method.setAccessible(true);
+        method.invoke(cmd, commandLine, options, null, defaultMQAdminExt, false);
     }
 }
