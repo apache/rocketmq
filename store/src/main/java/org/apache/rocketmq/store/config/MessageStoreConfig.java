@@ -159,6 +159,8 @@ public class MessageStoreConfig {
 
     private boolean enableScheduleMessageStats = true;
 
+    private boolean haSynchronizeMinPhyOffset = false;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -743,5 +745,13 @@ public class MessageStoreConfig {
 
     public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
         this.enableScheduleMessageStats = enableScheduleMessageStats;
+    }
+
+    public boolean isHaSynchronizeMinPhyOffset() {
+        return haSynchronizeMinPhyOffset;
+    }
+
+    public void setHaSynchronizeMinPhyOffset(boolean haSynchronizeMinPhyOffset) {
+        this.haSynchronizeMinPhyOffset = haSynchronizeMinPhyOffset;
     }
 }
