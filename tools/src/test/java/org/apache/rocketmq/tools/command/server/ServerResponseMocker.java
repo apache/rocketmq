@@ -129,21 +129,7 @@ public abstract class ServerResponseMocker {
     }
 
     public static ServerResponseMocker startServer(int port, byte[] body) {
-        ServerResponseMocker mocker = new ServerResponseMocker() {
-            @Override
-            protected int getPort() {
-                return port;
-            }
-
-            @Override
-            protected byte[] getBody() {
-                return body;
-            }
-        };
-        mocker.start(null);
-        // add jvm hook, close connection when jvm down
-        Runtime.getRuntime().addShutdownHook(new Thread(mocker::shutdown));
-        return mocker;
+        return startServer(port, body, null);
     }
 
 
