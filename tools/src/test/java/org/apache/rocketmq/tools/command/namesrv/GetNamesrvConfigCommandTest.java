@@ -16,67 +16,44 @@
  */
 package org.apache.rocketmq.tools.command.namesrv;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.impl.MQClientAPIImpl;
-import org.apache.rocketmq.client.impl.MQClientManager;
-import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class GetNamesrvConfigCommandTest {
-    private static DefaultMQAdminExt defaultMQAdminExt;
-    private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
-    private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-    private static MQClientAPIImpl mQClientAPIImpl;
 
-    @BeforeClass
-    public static void init() throws Exception {
-        mQClientAPIImpl = mock(MQClientAPIImpl.class);
-        defaultMQAdminExt = new DefaultMQAdminExt();
-        defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
+    private static final int NAME_SERVER_PORT = 45677;
 
-        Field field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        field.setAccessible(true);
-        field.set(mqClientInstance, mQClientAPIImpl);
+    private static final int BROKER_PORT = 45676;
 
-        field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
-        field.setAccessible(true);
-        field.set(defaultMQAdminExtImpl, mqClientInstance);
+    private ServerResponseMocker brokerMocker;
 
-        field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
-        field.setAccessible(true);
-        field.set(defaultMQAdminExt, defaultMQAdminExtImpl);
+    private ServerResponseMocker nameServerMocker;
 
-        Map<String, Properties> propertiesMap = new HashMap<>();
-        List<String> nameServers = new ArrayList<>();
-        when(mQClientAPIImpl.getNameServerConfig(anyList(), anyLong())).thenReturn(propertiesMap);
+    @Before
+    public void before() {
+        brokerMocker = startOneBroker();
+        nameServerMocker = startNameServer();
     }
 
-    @AfterClass
-    public static void terminate() {
-        defaultMQAdminExt.shutdown();
+    @After
+    public void after() {
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
-    //    @Ignore
     @Test
     public void testExecute() throws Exception {
         GetNamesrvConfigCommand cmd = new GetNamesrvConfigCommand();
@@ -85,9 +62,25 @@ public class GetNamesrvConfigCommandTest {
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
 
-        Method method = cmd.getClass().getDeclaredMethod("doExecute", CommandLine.class, Options.class,
-                RPCHook.class, DefaultMQAdminExt.class, boolean.class);
-        method.setAccessible(true);
-        method.invoke(cmd, commandLine, options, null, defaultMQAdminExt, false);
+        cmd.execute(commandLine, options, null);
+    }
+
+    private ServerResponseMocker startNameServer() {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + NAME_SERVER_PORT);
+        TopicRouteData topicRouteData = new TopicRouteData();
+        List<BrokerData> dataList = new ArrayList<>();
+        HashMap<Long, String> brokerAddress = new HashMap<>();
+        brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
+        BrokerData brokerData = new BrokerData("mockCluster", "mockBrokerName", brokerAddress);
+        brokerData.setBrokerName("mockBrokerName");
+        dataList.add(brokerData);
+        topicRouteData.setBrokerDatas(dataList);
+        // start name server
+        return ServerResponseMocker.startServer(NAME_SERVER_PORT, topicRouteData.encode());
+    }
+
+    private ServerResponseMocker startOneBroker() {
+        // start broker
+        return ServerResponseMocker.startServer(BROKER_PORT, null);
     }
 }

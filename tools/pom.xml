@@ -27,10 +27,6 @@
     <artifactId>rocketmq-tools</artifactId>
     <name>rocketmq-tools ${project.version}</name>
 
-    <properties>
-        <maven.test.skip>true</maven.test.skip>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

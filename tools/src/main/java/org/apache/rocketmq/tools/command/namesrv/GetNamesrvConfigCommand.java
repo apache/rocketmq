@@ -50,14 +50,7 @@ public class GetNamesrvConfigCommand implements SubCommand {
     @Override
     public void execute(final CommandLine commandLine, final Options options,
         final RPCHook rpcHook) throws SubCommandException {
-        doExecute(commandLine, options, rpcHook, new DefaultMQAdminExt(rpcHook), true);
-    }
-
-    /**
-     * Expose the parameters DefaultMQAdminExt
-     */
-    private void doExecute(final CommandLine commandLine, final Options options, final RPCHook rpcHook,
-                           DefaultMQAdminExt defaultMQAdminExt, boolean normalStart) throws SubCommandException {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             // servers
@@ -71,9 +64,7 @@ public class GetNamesrvConfigCommand implements SubCommand {
                 }
             }
 
-            if (normalStart) {
-                defaultMQAdminExt.start();
-            }
+            defaultMQAdminExt.start();
 
             Map<String, Properties> nameServerConfigs = defaultMQAdminExt.getNameServerConfig(serverList);
 

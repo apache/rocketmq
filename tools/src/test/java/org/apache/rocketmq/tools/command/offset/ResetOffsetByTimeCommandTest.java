@@ -30,7 +30,10 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.body.GetConsumerStatusBody;
+import org.apache.rocketmq.common.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -39,7 +42,10 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -51,51 +57,28 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ResetOffsetByTimeCommandTest {
-    private static DefaultMQAdminExt defaultMQAdminExt;
-    private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
-    private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-    private static MQClientAPIImpl mQClientAPIImpl;
 
-    @BeforeClass
-    public static void init() throws NoSuchFieldException, IllegalAccessException, InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        mQClientAPIImpl = mock(MQClientAPIImpl.class);
-        defaultMQAdminExt = new DefaultMQAdminExt();
-        defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
+    private static final int NAME_SERVER_PORT = 45677;
 
-        Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
-        field.setAccessible(true);
-        field.set(defaultMQAdminExtImpl, mqClientInstance);
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        field.setAccessible(true);
-        field.set(mqClientInstance, mQClientAPIImpl);
-        field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
-        field.setAccessible(true);
-        field.set(defaultMQAdminExt, defaultMQAdminExtImpl);
+    private static final int BROKER_PORT = 45676;
 
-        TopicRouteData topicRouteData = new TopicRouteData();
-        List<BrokerData> brokerDatas = new ArrayList<>();
-        HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(1234l, "127.0.0.1:10911");
-        BrokerData brokerData = new BrokerData();
-        brokerData.setCluster("default-cluster");
-        brokerData.setBrokerName("default-broker");
-        brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDatas.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDatas);
-        topicRouteData.setQueueDatas(new ArrayList<QueueData>());
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
+    private ServerResponseMocker brokerMocker;
 
-        Map<MessageQueue, Long> messageQueueLongMap = new HashMap<>();
-        when(mQClientAPIImpl.invokeBrokerToResetOffset(anyString(), anyString(), anyString(), anyLong(), anyBoolean(), anyLong())).thenReturn(messageQueueLongMap);
+    private ServerResponseMocker nameServerMocker;
+
+    @Before
+    public void before() {
+        brokerMocker = startOneBroker();
+        nameServerMocker = startNameServer();
     }
 
-    @AfterClass
-    public static void terminate() {
-        defaultMQAdminExt.shutdown();
+    @After
+    public void after() {
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
-    @Ignore
+
     @Test
     public void testExecute() throws SubCommandException {
         ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand();
@@ -104,5 +87,25 @@ public class ResetOffsetByTimeCommandTest {
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
+    }
+
+    private ServerResponseMocker startNameServer() {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + NAME_SERVER_PORT);
+        TopicRouteData topicRouteData = new TopicRouteData();
+        List<BrokerData> dataList = new ArrayList<>();
+        HashMap<Long, String> brokerAddress = new HashMap<>();
+        brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
+        BrokerData brokerData = new BrokerData("mockCluster", "mockBrokerName", brokerAddress);
+        brokerData.setBrokerName("mockBrokerName");
+        dataList.add(brokerData);
+        topicRouteData.setBrokerDatas(dataList);
+        // start name server
+        return ServerResponseMocker.startServer(NAME_SERVER_PORT, topicRouteData.encode());
+    }
+
+    private ServerResponseMocker startOneBroker() {
+        ResetOffsetBody resetOffsetBody = new ResetOffsetBody();
+        // start broker
+        return ServerResponseMocker.startServer(BROKER_PORT, resetOffsetBody.encode());
     }
 }
