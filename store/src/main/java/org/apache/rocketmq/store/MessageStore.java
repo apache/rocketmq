@@ -20,11 +20,18 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+
+import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.ha.HAService;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.util.PerfCounter;
 
 /**
  * This class defines contracting interfaces to implement, allowing third-party vendor to use customized message store.
@@ -107,6 +114,22 @@ public interface MessageStore {
         final long offset, final int maxMsgNums, final MessageFilter messageFilter);
 
     /**
+     * Query at most <code>maxMsgNums</code> messages belonging to <code>topic</code> at <code>queueId</code> starting
+     * from given <code>offset</code>. Resulting messages will further be screened using provided message filter.
+     *
+     * @param group Consumer group that launches this query.
+     * @param topic Topic to query.
+     * @param queueId Queue ID to query.
+     * @param offset Logical offset to start from.
+     * @param maxMsgNums Maximum count of messages to query.
+     * @param maxTotalMsgSize Maxisum total msg size of the messages
+     * @param messageFilter Message filter used to screen desired messages.
+     * @return Matched messages.
+     */
+    GetMessageResult getMessage(final String group, final String topic, final int queueId,
+        final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
+
+    /**
      * Get maximum offset of the topic queue.
      *
      * @param topic Topic name.
@@ -161,6 +184,15 @@ public interface MessageStore {
      * @return Message whose physical offset is as specified.
      */
     MessageExt lookMessageByOffset(final long commitLogOffset);
+
+    /**
+     * Look up the message by given commit log offset and size.
+     *
+     * @param commitLogOffset physical offset.
+     * @param size message size
+     * @return Message whose physical offset is as specified.
+     */
+    MessageExt lookMessageByOffset(long commitLogOffset, int size);
 
     /**
      * Get one message from the specified commit log offset.
@@ -393,7 +425,7 @@ public interface MessageStore {
      * @param queueId Queue ID.
      * @return Consume queue.
      */
-    ConsumeQueue getConsumeQueue(String topic, int queueId);
+    ConsumeQueueInterface getConsumeQueue(String topic, int queueId);
 
     ScheduleMessageService getScheduleMessageService();
 
@@ -409,4 +441,137 @@ public interface MessageStore {
      * @param brokerRole
      */
     void handleScheduleMessageService(BrokerRole brokerRole);
+
+    /**
+     * Will be triggered when a new message is appended to commit log.
+     * @param msg the msg that is appended to commit log
+     * @param result append message result
+     * @param commitLogFile commit log file
+     */
+    void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile);
+
+    /**
+     * Will be triggered when a new dispatch request is sent to message store.
+     * @param dispatchRequest dispatch request
+     * @param doDispatch do dispatch if true
+     * @param commitLogFile commit log file
+     * @param isRecover is from recover process
+     * @param isFileEnd if the dispatch request represents 'file end'
+     */
+    void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile, boolean isRecover, boolean isFileEnd);
+
+    /**
+     * Get the message store config
+     * @return the message store config
+     */
+    MessageStoreConfig getMessageStoreConfig();
+
+    /**
+     * Get the statistics service
+     * @return the statistics service
+     */
+    StoreStatsService getStoreStatsService();
+
+    /**
+     * Get the store checkpoint component
+     * @return the checkpoint component
+     */
+    StoreCheckpoint getStoreCheckpoint();
+
+    /**
+     * Get the system clock
+     * @return the system clock
+     */
+    SystemClock getSystemClock();
+
+    /**
+     * Get the commit log
+     * @return the commit log
+     */
+    CommitLog getCommitLog();
+
+    /**
+     * Get running flags
+     * @return running flags
+     */
+    RunningFlags getRunningFlags();
+
+    /**
+     * Get the transient store pool
+     * @return the transient store pool
+     */
+    TransientStorePool getTransientStorePool();
+
+    /**
+     * Get the HA service
+     * @return the HA service
+     */
+    HAService getHaService();
+
+    /**
+     * Register clean file hook
+     * @param logicalQueueCleanHook logical queue clean hook
+     */
+    void registerCleanFileHook(CleanFilesHook logicalQueueCleanHook);
+
+    /**
+     * Get the allocate-mappedFile service
+     * @return the allocate-mappedFile service
+     */
+    AllocateMappedFileService getAllocateMappedFileService();
+
+    /**
+     * Truncate dirty logic files
+     * @param phyOffset physical offset
+     */
+    void truncateDirtyLogicFiles(long phyOffset);
+
+    /**
+     * Destroy logics files
+     */
+    void destroyLogics();
+
+    /**
+     * Unlock mappedFile
+     * @param unlockMappedFile the file that needs to be unlocked
+     */
+    void unlockMappedFile(MappedFile unlockMappedFile);
+
+    /**
+     * Get the perf counter component
+     * @return the perf counter component
+     */
+    PerfCounter.Ticks getPerfCounter();
+
+    /**
+     * Get the queue store
+     * @return the queue store
+     */
+    ConsumeQueueStore getQueueStore();
+
+    /**
+     * If 'sync disk flush' is configured in this message store
+     * @return yes if true, no if false
+     */
+    boolean isSyncDiskFlush();
+
+    /**
+     * If this message store is sync master role
+     * @return yes if true, no if false
+     */
+    boolean isSyncMaster();
+
+    /**
+     * assign an queue offset and increase it.
+     * @param topicQueueKey topic-queue key
+     * @param msg message
+     * @param batchNum batch num
+     */
+    void assignOffset(String topicQueueKey, MessageExtBrokerInner msg, short batchNum);
+
+    /**
+     * remove offset table
+     * @param topicQueueKey topic-queue key
+     */
+    void removeOffsetTable(String topicQueueKey);
 }

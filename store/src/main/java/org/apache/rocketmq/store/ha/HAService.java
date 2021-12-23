@@ -37,7 +37,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.CommitLog;
-import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageSpinLock;
 import org.apache.rocketmq.store.PutMessageStatus;
 
@@ -50,7 +50,7 @@ public class HAService {
 
     private final AcceptSocketService acceptSocketService;
 
-    private final DefaultMessageStore defaultMessageStore;
+    private final MessageStore defaultMessageStore;
 
     private final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
     private final AtomicLong push2SlaveMaxOffset = new AtomicLong(0);
@@ -59,7 +59,7 @@ public class HAService {
 
     private final HAClient haClient;
 
-    public HAService(final DefaultMessageStore defaultMessageStore) throws IOException {
+    public HAService(final MessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService =
             new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
@@ -142,7 +142,7 @@ public class HAService {
         }
     }
 
-    public DefaultMessageStore getDefaultMessageStore() {
+    public MessageStore getDefaultMessageStore() {
         return defaultMessageStore;
     }
 

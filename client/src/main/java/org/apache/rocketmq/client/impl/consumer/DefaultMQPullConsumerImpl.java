@@ -447,6 +447,13 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, false, timeout);
     }
 
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, int maxSize, PullCallback pullCallback,
+        long timeout)
+        throws MQClientException, RemotingException, InterruptedException {
+        SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
+        this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, maxSize, pullCallback, false, timeout);
+    }
+
     public void pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums,
         PullCallback pullCallback)
         throws MQClientException, RemotingException, InterruptedException {
@@ -466,6 +473,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         final SubscriptionData subscriptionData,
         final long offset,
         final int maxNums,
+        final int maxSizeInBytes,
         final PullCallback pullCallback,
         final boolean block,
         final long timeout) throws MQClientException, RemotingException, InterruptedException {
@@ -482,6 +490,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         if (maxNums <= 0) {
             throw new MQClientException("maxNums <= 0", null);
         }
+
+        if (maxSizeInBytes <= 0) {
+            throw new MQClientException("maxSizeInBytes <= 0", null);
+        }
+
 
         if (null == pullCallback) {
             throw new MQClientException("pullCallback is null", null);
@@ -502,6 +515,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                 isTagType ? 0L : subscriptionData.getSubVersion(),
                 offset,
                 maxNums,
+                maxSizeInBytes,
                 sysFlag,
                 0,
                 this.defaultMQPullConsumer.getBrokerSuspendMaxTimeMillis(),
@@ -524,6 +538,26 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         } catch (MQBrokerException e) {
             throw new MQClientException("pullAsync unknow exception", e);
         }
+    }
+
+    private void pullAsyncImpl(
+            final MessageQueue mq,
+            final SubscriptionData subscriptionData,
+            final long offset,
+            final int maxNums,
+            final PullCallback pullCallback,
+            final boolean block,
+            final long timeout) throws MQClientException, RemotingException, InterruptedException {
+        pullAsyncImpl(
+                mq,
+                subscriptionData,
+                offset,
+                maxNums,
+                Integer.MAX_VALUE,
+                pullCallback,
+                block,
+                timeout
+        );
     }
 
     public PullResult pullBlockIfNotFound(MessageQueue mq, String subExpression, long offset, int maxNums)

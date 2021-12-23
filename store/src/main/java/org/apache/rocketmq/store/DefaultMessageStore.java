@@ -51,30 +51,45 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.running.RunningStats;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStore;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.util.PerfCounter;
+
+import static java.lang.String.format;
 
 public class DefaultMessageStore implements MessageStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
+    public final PerfCounter.Ticks perfs = new PerfCounter.Ticks(log);
 
     private final MessageStoreConfig messageStoreConfig;
     // CommitLog
     private final CommitLog commitLog;
 
-    private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
+    private final ConsumeQueueStore consumeQueueStore;
+
+    private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
+
+    protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<>(1024);
 
     private final FlushConsumeQueueService flushConsumeQueueService;
 
@@ -124,6 +139,9 @@ public class DefaultMessageStore implements MessageStore {
 
     private final List<CleanFilesHook> cleanFilesHooks = new CopyOnWriteArrayList<>();
 
+    // Max pull msg size
+    private final static int MAX_PULL_MSG_SIZE = 128 * 1024 * 1024;
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
@@ -137,6 +155,7 @@ public class DefaultMessageStore implements MessageStore {
             this.commitLog = new CommitLog(this);
         }
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
+        this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig, this.consumeQueueTable);
 
         this.flushConsumeQueueService = new FlushConsumeQueueService();
         this.cleanCommitLogService = new CleanCommitLogService();
@@ -167,18 +186,19 @@ public class DefaultMessageStore implements MessageStore {
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
 
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
-        MappedFile.ensureDirOK(file.getParent());
-        MappedFile.ensureDirOK(getStorePathPhysic());
-        MappedFile.ensureDirOK(getStorePathLogic());
+        DefaultMappedFile.ensureDirOK(file.getParent());
+        DefaultMappedFile.ensureDirOK(getStorePathPhysic());
+        DefaultMappedFile.ensureDirOK(getStorePathLogic());
         lockFile = new RandomAccessFile(file, "rw");
     }
 
+    @Override
     public void truncateDirtyLogicFiles(long phyOffset) {
-        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> tables = DefaultMessageStore.this.consumeQueueTable;
 
-        for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
-            for (ConsumeQueue logic : maps.values()) {
-                logic.truncateDirtyLogicFiles(phyOffset);
+        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : tables.values()) {
+            for (ConsumeQueueInterface logic : maps.values()) {
+                this.consumeQueueStore.truncateDirtyLogicFiles(logic, phyOffset);
             }
         }
     }
@@ -186,12 +206,14 @@ public class DefaultMessageStore implements MessageStore {
     /**
      * @throws IOException
      */
+    @Override
     public boolean load() {
         boolean result = true;
 
         try {
+            long start = System.currentTimeMillis();
             boolean lastExitOK = !this.isTempFileExist();
-            log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
+            log.info("last shutdown {}, root dir: {}", lastExitOK ? "normally" : "abnormally", messageStoreConfig.getStorePathRootDir());
 
             // load Commit Log
             result = result && this.commitLog.load();
@@ -229,6 +251,7 @@ public class DefaultMessageStore implements MessageStore {
     /**
      * @throws Exception
      */
+    @Override
     public void start() throws Exception {
 
         lock = lockFile.getChannel().tryLock(0, 1, false);
@@ -246,8 +269,8 @@ public class DefaultMessageStore implements MessageStore {
              * 4. Make sure the fall-behind messages to be dispatched before starting the commitlog, especially when the broker role are automatically changed.
              */
             long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
-            for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
-                for (ConsumeQueue logic : maps.values()) {
+            for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
+                for (ConsumeQueueInterface logic : maps.values()) {
                     if (logic.getMaxPhysicOffset() > maxPhysicalPosInLogicQueue) {
                         maxPhysicalPosInLogicQueue = logic.getMaxPhysicOffset();
                     }
@@ -298,9 +321,11 @@ public class DefaultMessageStore implements MessageStore {
 
         this.createTempFile();
         this.addScheduleTask();
+        this.perfs.start();
         this.shutdown = false;
     }
 
+    @Override
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
@@ -330,6 +355,8 @@ public class DefaultMessageStore implements MessageStore {
             this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
 
+            this.perfs.shutdown();
+
             if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
                 this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
                 shutDownNormal = true;
@@ -349,6 +376,7 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    @Override
     public void destroy() {
         this.destroyLogics();
         this.commitLog.destroy();
@@ -357,10 +385,11 @@ public class DefaultMessageStore implements MessageStore {
         this.deleteFile(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
     }
 
+    @Override
     public void destroyLogics() {
-        for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
-            for (ConsumeQueue logic : maps.values()) {
-                logic.destroy();
+        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
+            for (ConsumeQueueInterface logic : maps.values()) {
+                this.consumeQueueStore.destroy(logic);
             }
         }
     }
@@ -453,6 +482,7 @@ public class DefaultMessageStore implements MessageStore {
         return putResultFuture;
     }
 
+    @Override
     public CompletableFuture<PutMessageResult> asyncPutMessages(MessageExtBatch messageExtBatch) {
         PutMessageStatus checkStoreStatus = this.checkStoreStatus();
         if (checkStoreStatus != PutMessageStatus.PUT_OK) {
@@ -515,16 +545,27 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.lockTimeMills();
     }
 
+    @Override
     public SystemClock getSystemClock() {
         return systemClock;
     }
 
+    @Override
     public CommitLog getCommitLog() {
         return commitLog;
     }
 
+    @Override
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums,
+        final MessageFilter messageFilter) {
+        return getMessage(group, topic, queueId, offset, maxMsgNums, MAX_PULL_MSG_SIZE, messageFilter);
+    }
+
+    @Override
+    public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
+        final int maxMsgNums,
+        final int maxTotalMsgSize,
         final MessageFilter messageFilter) {
         if (this.shutdown) {
             log.warn("message store has shutdown, so getMessage is forbidden");
@@ -543,12 +584,11 @@ public class DefaultMessageStore implements MessageStore {
         long minOffset = 0;
         long maxOffset = 0;
 
-        // lazy init when find msg.
-        GetMessageResult getResult = null;
+        GetMessageResult getResult = new GetMessageResult();
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
-        ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             minOffset = consumeQueue.getMinOffsetInQueue();
             maxOffset = consumeQueue.getMaxOffsetInQueue();
@@ -570,55 +610,67 @@ public class DefaultMessageStore implements MessageStore {
                     nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
                 }
             } else {
-                SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
-                if (bufferConsumeQueue != null) {
+                final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
+
+                long maxPullSize = Math.max(maxTotalMsgSize, 100);
+                if (maxPullSize > MAX_PULL_MSG_SIZE) {
+                    log.warn("The max pull size is too large maxPullSize={} topic={} queueId={}", maxPullSize, topic, queueId);
+                    maxPullSize = MAX_PULL_MSG_SIZE;
+                }
+                status = GetMessageStatus.NO_MATCHED_MESSAGE;
+                long maxPhyOffsetPulling = 0;
+                int cqFileNum = 0;
+
+                while (getResult.getBufferTotalSize() <= 0
+                        && nextBeginOffset < maxOffset
+                        && cqFileNum++ < this.messageStoreConfig.getTravelCqFileNumWhenGetMessage()) {
+                    ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(nextBeginOffset);
+
+                    if (bufferConsumeQueue == null) {
+                        status = GetMessageStatus.OFFSET_FOUND_NULL;
+                        nextBeginOffset = nextOffsetCorrection(nextBeginOffset, this.consumeQueueStore.rollNextFile(consumeQueue, nextBeginOffset));
+                        log.warn("consumer request topic: " + topic + "offset: " + offset + " minOffset: " + minOffset + " maxOffset: "
+                                + maxOffset + ", but access logic queue failed. Correct nextBeginOffset to " + nextBeginOffset);
+                        break;
+                    }
+
                     try {
-                        status = GetMessageStatus.NO_MATCHED_MESSAGE;
-
                         long nextPhyFileStartOffset = Long.MIN_VALUE;
-                        long maxPhyOffsetPulling = 0;
-
-                        int i = 0;
-                        final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE);
-                        final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
-
-                        getResult = new GetMessageResult(maxMsgNums);
-
-                        ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                        for (; i < bufferConsumeQueue.getSize() && i < maxFilterMessageCount; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                            long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                            int sizePy = bufferConsumeQueue.getByteBuffer().getInt();
-                            long tagsCode = bufferConsumeQueue.getByteBuffer().getLong();
-
-                            maxPhyOffsetPulling = offsetPy;
-
-                            if (nextPhyFileStartOffset != Long.MIN_VALUE) {
-                                if (offsetPy < nextPhyFileStartOffset)
-                                    continue;
-                            }
+                        while (bufferConsumeQueue.hasNext()
+                                && nextBeginOffset < maxOffset) {
+                            CqUnit cqUnit = bufferConsumeQueue.next();
+                            long offsetPy = cqUnit.getPos();
+                            int sizePy = cqUnit.getSize();
 
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
-                            if (this.isTheBatchFull(sizePy, maxMsgNums, getResult.getBufferTotalSize(), getResult.getMessageCount(),
-                                isInDisk)) {
+                            if (cqUnit.getQueueOffset() - offset > maxFilterMessageCount) {
                                 break;
                             }
 
-                            boolean extRet = false, isTagsCodeLegal = true;
-                            if (consumeQueue.isExtAddr(tagsCode)) {
-                                extRet = consumeQueue.getExt(tagsCode, cqExtUnit);
-                                if (extRet) {
-                                    tagsCode = cqExtUnit.getTagsCode();
-                                } else {
-                                    // can't find ext content.Client will filter messages by tag also.
-                                    log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}, topic={}, group={}",
-                                        tagsCode, offsetPy, sizePy, topic, group);
-                                    isTagsCodeLegal = false;
+                            if (this.isTheBatchFull(sizePy, maxMsgNums, maxPullSize, getResult.getBufferTotalSize(), getResult.getMessageCount(),
+                                    isInDisk)) {
+                                break;
+                            }
+
+                            if (getResult.getBufferTotalSize() >= maxPullSize) {
+                                break;
+                            }
+
+                            maxPhyOffsetPulling = offsetPy;
+
+                            //Be careful, here should before the isTheBatchFull
+                            nextBeginOffset = cqUnit.getQueueOffset() + cqUnit.getBatchNum();
+
+                            if (nextPhyFileStartOffset != Long.MIN_VALUE) {
+                                if (offsetPy < nextPhyFileStartOffset) {
+                                    continue;
                                 }
                             }
 
                             if (messageFilter != null
-                                && !messageFilter.isMatchedByConsumeQueue(isTagsCodeLegal ? tagsCode : null, extRet ? cqExtUnit : null)) {
+                                    && !messageFilter.isMatchedByConsumeQueue(cqUnit.getValidTagsCodeAsLong(), cqUnit.getCqExtUnit())) {
                                 if (getResult.getBufferTotalSize() == 0) {
                                     status = GetMessageStatus.NO_MATCHED_MESSAGE;
                                 }
@@ -637,7 +689,7 @@ public class DefaultMessageStore implements MessageStore {
                             }
 
                             if (messageFilter != null
-                                && !messageFilter.isMatchedByCommitLog(selectResult.getByteBuffer().slice(), null)) {
+                                    && !messageFilter.isMatchedByCommitLog(selectResult.getByteBuffer().slice(), null)) {
                                 if (getResult.getBufferTotalSize() == 0) {
                                     status = GetMessageStatus.NO_MATCHED_MESSAGE;
                                 }
@@ -647,32 +699,24 @@ public class DefaultMessageStore implements MessageStore {
                             }
 
                             this.storeStatsService.getGetMessageTransferedMsgCount().add(1);
-                            getResult.addMessage(selectResult, offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE));
+                            getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
                             status = GetMessageStatus.FOUND;
                             nextPhyFileStartOffset = Long.MIN_VALUE;
                         }
-
-                        if (diskFallRecorded) {
-                            long fallBehind = maxOffsetPy - maxPhyOffsetPulling;
-                            brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, fallBehind);
-                        }
-
-                        nextBeginOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-
-                        long diff = maxOffsetPy - maxPhyOffsetPulling;
-                        long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
-                            * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
-                        getResult.setSuggestPullingFromSlave(diff > memory);
                     } finally {
-
                         bufferConsumeQueue.release();
                     }
-                } else {
-                    status = GetMessageStatus.OFFSET_FOUND_NULL;
-                    nextBeginOffset = nextOffsetCorrection(offset, consumeQueue.rollNextFile(offset));
-                    log.warn("consumer request topic: " + topic + "offset: " + offset + " minOffset: " + minOffset + " maxOffset: "
-                        + maxOffset + ", but access logic queue failed.");
                 }
+
+                if (diskFallRecorded) {
+                    long fallBehind = maxOffsetPy - maxPhyOffsetPulling;
+                    brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, fallBehind);
+                }
+
+                long diff = maxOffsetPy - maxPhyOffsetPulling;
+                long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
+                        * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
+                getResult.setSuggestPullingFromSlave(diff > memory);
             }
         } else {
             status = GetMessageStatus.NO_MATCHED_LOGIC_QUEUE;
@@ -699,18 +743,20 @@ public class DefaultMessageStore implements MessageStore {
         return getResult;
     }
 
+    @Override
     public long getMaxOffsetInQueue(String topic, int queueId) {
         return getMaxOffsetInQueue(topic, queueId, true);
     }
 
+    @Override
     public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) {
         if (committed) {
-            ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
+            ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
             if (logic != null) {
                 return logic.getMaxOffsetInQueue();
             }
         } else {
-            Long offset = this.commitLog.getTopicQueueTable().get(topic + "-" + queueId);
+            Long offset = this.topicQueueTable.get(topic + "-" + queueId);
             if (offset != null) {
                 return offset;
             }
@@ -719,8 +765,9 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    @Override
     public long getMinOffsetInQueue(String topic, int queueId) {
-        ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
             return logic.getMinOffsetInQueue();
         }
@@ -730,13 +777,16 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getCommitLogOffsetInQueue(String topic, int queueId, long consumeQueueOffset) {
-        ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
-            SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeQueueOffset);
+
+            ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(consumeQueueOffset);
             if (bufferConsumeQueue != null) {
                 try {
-                    long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                    return offsetPy;
+                    if (bufferConsumeQueue.hasNext()) {
+                        long offsetPy = bufferConsumeQueue.next().getPos();
+                        return offsetPy;
+                    }
                 } finally {
                     bufferConsumeQueue.release();
                 }
@@ -746,8 +796,9 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
-        ConsumeQueue logic = this.findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
             return logic.getOffsetInQueueByTime(timestamp);
         }
@@ -755,6 +806,7 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    @Override
     public MessageExt lookMessageByOffset(long commitLogOffset) {
         SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, 4);
         if (null != sbr) {
@@ -791,6 +843,7 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.getMessage(commitLogOffset, msgSize);
     }
 
+    @Override
     public String getRunningDataInfo() {
         return this.storeStatsService.toString();
     }
@@ -855,27 +908,22 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getEarliestMessageTime(String topic, int queueId) {
-        ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
-            long minLogicOffset = logicQueue.getMinLogicOffset();
-
-            SelectMappedBufferResult result = logicQueue.getIndexBuffer(minLogicOffset / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-            return getStoreTime(result);
+            return getStoreTime(logicQueue.getEarliestUnit());
         }
 
         return -1;
     }
 
-    private long getStoreTime(SelectMappedBufferResult result) {
+    protected long getStoreTime(CqUnit result) {
         if (result != null) {
             try {
-                final long phyOffset = result.getByteBuffer().getLong();
-                final int size = result.getByteBuffer().getInt();
+                final long phyOffset = result.getPos();
+                final int size = result.getSize();
                 long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                 return storeTime;
             } catch (Exception e) {
-            } finally {
-                result.release();
             }
         }
         return -1;
@@ -890,10 +938,9 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
-        ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
-            SelectMappedBufferResult result = logicQueue.getIndexBuffer(consumeQueueOffset);
-            return getStoreTime(result);
+            return getStoreTime(logicQueue.get(consumeQueueOffset));
         }
 
         return -1;
@@ -901,7 +948,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMessageTotalInQueue(String topic, int queueId) {
-        ConsumeQueue logicQueue = this.findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
             return logicQueue.getMessageTotalInQueue();
         }
@@ -1024,16 +1071,16 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public int cleanUnusedTopic(Set<String> topics) {
-        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
+        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>>> it = this.consumeQueueTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
+            Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> next = it.next();
             String topic = next.getKey();
 
             if (!topics.contains(topic) && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)
                     && !topic.equals(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC)) {
-                ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
-                for (ConsumeQueue cq : queueTable.values()) {
-                    cq.destroy();
+                ConcurrentMap<Integer, ConsumeQueueInterface> queueTable = next.getValue();
+                for (ConsumeQueueInterface cq : queueTable.values()) {
+                    this.consumeQueueStore.destroy(cq);
                     log.info("cleanUnusedTopic: {} {} ConsumeQueue cleaned",
                         cq.getTopic(),
                         cq.getQueueId()
@@ -1054,18 +1101,19 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    @Override
     public void cleanExpiredConsumerQueue() {
         long minCommitLogOffset = this.commitLog.getMinOffset();
 
-        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
+        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>>> it = this.consumeQueueTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
+            Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> next = it.next();
             String topic = next.getKey();
             if (!topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
-                ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
-                Iterator<Entry<Integer, ConsumeQueue>> itQT = queueTable.entrySet().iterator();
+                ConcurrentMap<Integer, ConsumeQueueInterface> queueTable = next.getValue();
+                Iterator<Entry<Integer, ConsumeQueueInterface>> itQT = queueTable.entrySet().iterator();
                 while (itQT.hasNext()) {
-                    Entry<Integer, ConsumeQueue> nextQT = itQT.next();
+                    Entry<Integer, ConsumeQueueInterface> nextQT = itQT.next();
                     long maxCLOffsetInConsumeQueue = nextQT.getValue().getLastOffset();
 
                     if (maxCLOffsetInConsumeQueue == -1) {
@@ -1085,7 +1133,7 @@ public class DefaultMessageStore implements MessageStore {
                         DefaultMessageStore.this.commitLog.removeQueueFromTopicQueueTable(nextQT.getValue().getTopic(),
                             nextQT.getValue().getQueueId());
 
-                        nextQT.getValue().destroy();
+                        this.consumeQueueStore.destroy(nextQT.getValue());
                         itQT.remove();
                     }
                 }
@@ -1105,7 +1153,7 @@ public class DefaultMessageStore implements MessageStore {
             return messageIds;
         }
 
-        ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             minOffset = Math.max(minOffset, consumeQueue.getMinOffsetInQueue());
             maxOffset = Math.min(maxOffset, consumeQueue.getMaxOffsetInQueue());
@@ -1116,28 +1164,30 @@ public class DefaultMessageStore implements MessageStore {
 
             long nextOffset = minOffset;
             while (nextOffset < maxOffset) {
-                SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(nextOffset);
-                if (bufferConsumeQueue != null) {
-                    try {
-                        int i = 0;
-                        for (; i < bufferConsumeQueue.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                            long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
+                ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(nextOffset);
+                try {
+                    if (bufferConsumeQueue != null && bufferConsumeQueue.hasNext()) {
+                        while (bufferConsumeQueue.hasNext()) {
+                            CqUnit cqUnit = bufferConsumeQueue.next();
+                            long offsetPy = cqUnit.getPos();
                             InetSocketAddress inetSocketAddress = (InetSocketAddress) storeHost;
                             int msgIdLength = (inetSocketAddress.getAddress() instanceof Inet6Address) ? 16 + 4 + 8 : 4 + 4 + 8;
                             final ByteBuffer msgIdMemory = ByteBuffer.allocate(msgIdLength);
                             String msgId =
-                                MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
-                            messageIds.put(msgId, nextOffset++);
-                            if (nextOffset > maxOffset) {
+                                    MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
+                            messageIds.put(msgId, cqUnit.getQueueOffset());
+                            nextOffset = cqUnit.getQueueOffset() + cqUnit.getBatchNum();
+                            if (nextOffset >= maxOffset) {
                                 return messageIds;
                             }
                         }
-                    } finally {
-
+                    } else {
+                        return messageIds;
+                    }
+                } finally {
+                    if (bufferConsumeQueue != null) {
                         bufferConsumeQueue.release();
                     }
-                } else {
-                    return messageIds;
                 }
             }
         }
@@ -1149,20 +1199,13 @@ public class DefaultMessageStore implements MessageStore {
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
-        ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
-            SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeOffset);
-            if (bufferConsumeQueue != null) {
-                try {
-                    for (int i = 0; i < bufferConsumeQueue.getSize(); ) {
-                        i += ConsumeQueue.CQ_STORE_UNIT_SIZE;
-                        long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                        return checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
-                    }
-                } finally {
+            CqUnit cqUnit = consumeQueue.get(consumeOffset);
 
-                    bufferConsumeQueue.release();
-                }
+            if (cqUnit != null) {
+                long offsetPy = cqUnit.getPos();
+                return checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
             } else {
                 return false;
             }
@@ -1195,6 +1238,7 @@ public class DefaultMessageStore implements MessageStore {
         this.commitLog.setConfirmOffset(phyOffset);
     }
 
+    @Override
     public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
         SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
         if (null != sbr) {
@@ -1208,35 +1252,8 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
-    public ConsumeQueue findConsumeQueue(String topic, int queueId) {
-        ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
-        if (null == map) {
-            ConcurrentMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);
-            ConcurrentMap<Integer, ConsumeQueue> oldMap = consumeQueueTable.putIfAbsent(topic, newMap);
-            if (oldMap != null) {
-                map = oldMap;
-            } else {
-                map = newMap;
-            }
-        }
-
-        ConsumeQueue logic = map.get(queueId);
-        if (null == logic) {
-            ConsumeQueue newLogic = new ConsumeQueue(
-                topic,
-                queueId,
-                StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
-                this);
-            ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
-            if (oldLogic != null) {
-                logic = oldLogic;
-            } else {
-                logic = newLogic;
-            }
-        }
-
-        return logic;
+    public ConsumeQueueInterface findConsumeQueue(String topic, int queueId) {
+        return this.consumeQueueStore.findOrCreateConsumeQueue(topic, queueId);
     }
 
     private long nextOffsetCorrection(long oldOffset, long newOffset) {
@@ -1252,13 +1269,17 @@ public class DefaultMessageStore implements MessageStore {
         return (maxOffsetPy - offsetPy) > memory;
     }
 
-    private boolean isTheBatchFull(int sizePy, int maxMsgNums, int bufferTotal, int messageTotal, boolean isInDisk) {
+    private boolean isTheBatchFull(int sizePy, int maxMsgNums, long maxMsgSize, int bufferTotal, int messageTotal, boolean isInDisk) {
 
         if (0 == bufferTotal || 0 == messageTotal) {
             return false;
         }
 
         if (maxMsgNums <= messageTotal) {
+            return true;
+        }
+
+        if (bufferTotal + sizePy > maxMsgSize) {
             return true;
         }
 
@@ -1295,11 +1316,12 @@ public class DefaultMessageStore implements MessageStore {
     private void createTempFile() throws IOException {
         String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
         File file = new File(fileName);
-        MappedFile.ensureDirOK(file.getParent());
+        DefaultMappedFile.ensureDirOK(file.getParent());
         boolean result = file.createNewFile();
         log.info(fileName + (result ? " create OK" : " already exists"));
     }
 
+    @Override
     public void registerCleanFileHook(CleanFilesHook hook) {
         this.cleanFilesHooks.add(hook);
     }
@@ -1371,13 +1393,13 @@ public class DefaultMessageStore implements MessageStore {
     private void checkSelf() {
         this.commitLog.checkSelf();
 
-        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueue>>> it = this.consumeQueueTable.entrySet().iterator();
+        Iterator<Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>>> it = this.consumeQueueTable.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
-            Iterator<Entry<Integer, ConsumeQueue>> itNext = next.getValue().entrySet().iterator();
+            Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> next = it.next();
+            Iterator<Entry<Integer, ConsumeQueueInterface>> itNext = next.getValue().entrySet().iterator();
             while (itNext.hasNext()) {
-                Entry<Integer, ConsumeQueue> cq = itNext.next();
-                cq.getValue().checkSelf();
+                Entry<Integer, ConsumeQueueInterface> cq = itNext.next();
+                this.consumeQueueStore.checkSelf(cq.getValue());
             }
         }
     }
@@ -1389,6 +1411,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private boolean loadConsumeQueue() {
+        checkOtherConsumeQueue();
+
         File dirLogic = new File(StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()));
         File[] fileTopicList = dirLogic.listFiles();
         if (fileTopicList != null) {
@@ -1405,14 +1429,14 @@ public class DefaultMessageStore implements MessageStore {
                         } catch (NumberFormatException e) {
                             continue;
                         }
-                        ConsumeQueue logic = new ConsumeQueue(
+                        ConsumeQueueInterface logic = new ConsumeQueue(
                             topic,
                             queueId,
                             StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
                             this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                             this);
                         this.putConsumeQueue(topic, queueId, logic);
-                        if (!logic.load()) {
+                        if (!this.consumeQueueStore.load(logic)) {
                             return false;
                         }
                     }
@@ -1425,30 +1449,46 @@ public class DefaultMessageStore implements MessageStore {
         return true;
     }
 
+    private void checkOtherConsumeQueue() {
+        File dirLogic = new File(StorePathConfigHelper.getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()));
+        if (dirLogic.exists()) {
+            throw new RuntimeException(format("Batch consume queue directory: [%s] exist. Can not load consume queue while batch consume queue exists.",
+                    StorePathConfigHelper.getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir())));
+        }
+    }
+
     private void recover(final boolean lastExitOK) {
+        long recoverCqStart = System.currentTimeMillis();
         long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
+        long recoverCqEnd = System.currentTimeMillis();
 
         if (lastExitOK) {
             this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
         } else {
             this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
-
+        long recoverClogEnd = System.currentTimeMillis();
         this.recoverTopicQueueTable();
+        long recoverOffsetEnd = System.currentTimeMillis();
+
+        log.info("Recover end total:{} recoverCq:{} recoverClog:{} recoverOffset:{}",
+                recoverOffsetEnd - recoverCqStart, recoverCqEnd - recoverCqStart, recoverClogEnd - recoverCqEnd, recoverOffsetEnd - recoverClogEnd);
     }
 
+    @Override
     public MessageStoreConfig getMessageStoreConfig() {
         return messageStoreConfig;
     }
 
+    @Override
     public TransientStorePool getTransientStorePool() {
         return transientStorePool;
     }
 
-    private void putConsumeQueue(final String topic, final int queueId, final ConsumeQueue consumeQueue) {
-        ConcurrentMap<Integer/* queueId */, ConsumeQueue> map = this.consumeQueueTable.get(topic);
+    private void putConsumeQueue(final String topic, final int queueId, final ConsumeQueueInterface consumeQueue) {
+        ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface> map = this.consumeQueueTable.get(topic);
         if (null == map) {
-            map = new ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>();
+            map = new ConcurrentHashMap<Integer/* queueId */, ConsumeQueueInterface>();
             map.put(queueId, consumeQueue);
             this.consumeQueueTable.put(topic, map);
         } else {
@@ -1458,9 +1498,9 @@ public class DefaultMessageStore implements MessageStore {
 
     private long recoverConsumeQueue() {
         long maxPhysicOffset = -1;
-        for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
-            for (ConsumeQueue logic : maps.values()) {
-                logic.recover();
+        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
+            for (ConsumeQueueInterface logic : maps.values()) {
+                this.consumeQueueStore.recover(logic);
                 if (logic.getMaxPhysicOffset() > maxPhysicOffset) {
                     maxPhysicOffset = logic.getMaxPhysicOffset();
                 }
@@ -1473,21 +1513,23 @@ public class DefaultMessageStore implements MessageStore {
     public void recoverTopicQueueTable() {
         HashMap<String/* topic-queueid */, Long/* offset */> table = new HashMap<String, Long>(1024);
         long minPhyOffset = this.commitLog.getMinOffset();
-        for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
-            for (ConsumeQueue logic : maps.values()) {
+        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
+            for (ConsumeQueueInterface logic : maps.values()) {
                 String key = logic.getTopic() + "-" + logic.getQueueId();
                 table.put(key, logic.getMaxOffsetInQueue());
-                logic.correctMinOffset(minPhyOffset);
+                this.consumeQueueStore.correctMinOffset(logic, minPhyOffset);
             }
         }
 
-        this.commitLog.setTopicQueueTable(table);
+        this.topicQueueTable = table;
     }
 
+    @Override
     public AllocateMappedFileService getAllocateMappedFileService() {
         return allocateMappedFileService;
     }
 
+    @Override
     public StoreStatsService getStoreStatsService() {
         return storeStatsService;
     }
@@ -1496,14 +1538,16 @@ public class DefaultMessageStore implements MessageStore {
         return runningFlags;
     }
 
-    public ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> getConsumeQueueTable() {
+    public ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> getConsumeQueueTable() {
         return consumeQueueTable;
     }
 
+    @Override
     public StoreCheckpoint getStoreCheckpoint() {
         return storeCheckpoint;
     }
 
+    @Override
     public HAService getHaService() {
         return haService;
     }
@@ -1513,6 +1557,7 @@ public class DefaultMessageStore implements MessageStore {
         return scheduleMessageService;
     }
 
+    @Override
     public RunningFlags getRunningFlags() {
         return runningFlags;
     }
@@ -1524,8 +1569,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
-        ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
-        cq.putMessagePositionInfoWrapper(dispatchRequest);
+        ConsumeQueueInterface cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
+        this.consumeQueueStore.putMessagePositionInfoWrapper(cq, dispatchRequest);
     }
 
     @Override
@@ -1560,14 +1605,15 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public ConsumeQueue getConsumeQueue(String topic, int queueId) {
-        ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
+    public ConsumeQueueInterface getConsumeQueue(String topic, int queueId) {
+        ConcurrentMap<Integer, ConsumeQueueInterface> map = consumeQueueTable.get(topic);
         if (map == null) {
             return null;
         }
         return map.get(queueId);
     }
 
+    @Override
     public void unlockMappedFile(final MappedFile mappedFile) {
         this.scheduledExecutorService.schedule(new Runnable() {
             @Override
@@ -1575,6 +1621,54 @@ public class DefaultMessageStore implements MessageStore {
                 mappedFile.munlock();
             }
         }, 6, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public PerfCounter.Ticks getPerfCounter() {
+        return perfs;
+    }
+
+    @Override
+    public ConsumeQueueStore getQueueStore() {
+        return consumeQueueStore;
+    }
+
+    @Override
+    public void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile) {
+        // empty
+    }
+
+    @Override
+    public void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile, boolean isRecover, boolean isFileEnd) {
+        if (doDispatch && !isFileEnd) {
+            this.doDispatch(dispatchRequest);
+        }
+    }
+
+    @Override
+    public boolean isSyncDiskFlush() {
+        return FlushDiskType.SYNC_FLUSH == this.getMessageStoreConfig().getFlushDiskType();
+    }
+
+    @Override
+    public boolean isSyncMaster() {
+        return BrokerRole.SYNC_MASTER == this.getMessageStoreConfig().getBrokerRole();
+    }
+
+    @Override
+    public void assignOffset(String topicQueueKey, MessageExtBrokerInner msg, short batchNum) {
+        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            long topicOffset = this.topicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+            msg.setQueueOffset(topicOffset);
+            this.topicQueueTable.put(topicQueueKey, topicOffset + batchNum);
+        }
+    }
+
+    @Override
+    public void removeOffsetTable(String topicQueueKey) {
+        this.topicQueueTable.remove(topicQueueKey);
     }
 
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
@@ -1607,16 +1701,52 @@ public class DefaultMessageStore implements MessageStore {
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
-        private final double diskSpaceWarningLevelRatio =
-            Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.90"));
+        private final String diskSpaceWarningLevelRatio =
+                System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "");
 
-        private final double diskSpaceCleanForciblyRatio =
-            Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
+        private final String diskSpaceCleanForciblyRatio =
+                System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "");
         private long lastRedeleteTimestamp = 0;
 
         private volatile int manualDeleteFileSeveralTimes = 0;
 
         private volatile boolean cleanImmediately = false;
+
+        double getDiskSpaceWarningLevelRatio() {
+            double finalDiskSpaceWarningLevelRatio;
+            if ("".equals(diskSpaceWarningLevelRatio)) {
+                finalDiskSpaceWarningLevelRatio = DefaultMessageStore.this.getMessageStoreConfig().getDiskSpaceWarningLevelRatio() / 100.0;
+            } else {
+                finalDiskSpaceWarningLevelRatio = Double.parseDouble(diskSpaceWarningLevelRatio);
+            }
+
+            if (finalDiskSpaceWarningLevelRatio > 0.90) {
+                finalDiskSpaceWarningLevelRatio = 0.90;
+            }
+            if (finalDiskSpaceWarningLevelRatio < 0.35) {
+                finalDiskSpaceWarningLevelRatio = 0.35;
+            }
+
+            return finalDiskSpaceWarningLevelRatio;
+        }
+
+        double getDiskSpaceCleanForciblyRatio() {
+            double finalDiskSpaceCleanForciblyRatio;
+            if ("".equals(diskSpaceCleanForciblyRatio)) {
+                finalDiskSpaceCleanForciblyRatio = DefaultMessageStore.this.getMessageStoreConfig().getDiskSpaceCleanForciblyRatio() / 100.0;
+            } else {
+                finalDiskSpaceCleanForciblyRatio = Double.parseDouble(diskSpaceCleanForciblyRatio);
+            }
+
+            if (finalDiskSpaceCleanForciblyRatio > 0.85) {
+                finalDiskSpaceCleanForciblyRatio = 0.85;
+            }
+            if (finalDiskSpaceCleanForciblyRatio < 0.30) {
+                finalDiskSpaceCleanForciblyRatio = 0.30;
+            }
+
+            return finalDiskSpaceCleanForciblyRatio;
+        }
 
         public void excuteDeleteFilesManualy() {
             this.manualDeleteFileSeveralTimes = MAX_MANUAL_DELETE_FILE_TIMES;
@@ -1714,12 +1844,12 @@ public class DefaultMessageStore implements MessageStore {
                         minPhysicRatio =  physicRatio;
                         minStorePath = storePathPhysic;
                     }
-                    if (physicRatio > diskSpaceCleanForciblyRatio) {
+                    if (physicRatio > getDiskSpaceCleanForciblyRatio()) {
                         fullStorePath.add(storePathPhysic);
                     }
                 }
                 DefaultMessageStore.this.commitLog.setFullStorePaths(fullStorePath);
-                if (minPhysicRatio > diskSpaceWarningLevelRatio) {
+                if (minPhysicRatio > getDiskSpaceWarningLevelRatio()) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
                         DefaultMessageStore.log.error("physic disk maybe full soon " + minPhysicRatio +
@@ -1727,7 +1857,7 @@ public class DefaultMessageStore implements MessageStore {
                     }
 
                     cleanImmediately = true;
-                } else if (minPhysicRatio > diskSpaceCleanForciblyRatio) {
+                } else if (minPhysicRatio > getDiskSpaceCleanForciblyRatio()) {
                     cleanImmediately = true;
                 } else {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
@@ -1748,14 +1878,14 @@ public class DefaultMessageStore implements MessageStore {
                 String storePathLogics = StorePathConfigHelper
                     .getStorePathConsumeQueue(DefaultMessageStore.this.getMessageStoreConfig().getStorePathRootDir());
                 double logicsRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogics);
-                if (logicsRatio > diskSpaceWarningLevelRatio) {
+                if (logicsRatio > getDiskSpaceWarningLevelRatio()) {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
                         DefaultMessageStore.log.error("logics disk maybe full soon " + logicsRatio + ", so mark disk full");
                     }
 
                     cleanImmediately = true;
-                } else if (logicsRatio > diskSpaceCleanForciblyRatio) {
+                } else if (logicsRatio > getDiskSpaceCleanForciblyRatio()) {
                     cleanImmediately = true;
                 } else {
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
@@ -1790,7 +1920,7 @@ public class DefaultMessageStore implements MessageStore {
                 double physicRatio = UtilAll.isPathExists(path) ?
                         UtilAll.getDiskPartitionSpaceUsedPercent(path) : -1;
                 minPhysicRatio = Math.min(minPhysicRatio, physicRatio);
-                if (physicRatio > diskSpaceCleanForciblyRatio) {
+                if (physicRatio > getDiskSpaceCleanForciblyRatio()) {
                     fullStorePath.add(path);
                 }
             }
@@ -1805,7 +1935,7 @@ public class DefaultMessageStore implements MessageStore {
             if (physicRatio > ratio) {
                 DefaultMessageStore.log.info("physic disk of commitLog used: " + physicRatio);
             }
-            if (physicRatio > this.diskSpaceWarningLevelRatio) {
+            if (physicRatio > this.getDiskSpaceWarningLevelRatio()) {
                 boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                 if (diskok) {
                     DefaultMessageStore.log.error("physic disk of commitLog maybe full soon, used " + physicRatio + ", so mark disk full");
@@ -1845,11 +1975,11 @@ public class DefaultMessageStore implements MessageStore {
             if (minOffset > this.lastPhysicalMinOffset) {
                 this.lastPhysicalMinOffset = minOffset;
 
-                ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
+                ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> tables = DefaultMessageStore.this.consumeQueueTable;
 
-                for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
-                    for (ConsumeQueue logic : maps.values()) {
-                        int deleteCount = logic.deleteExpiredFile(minOffset);
+                for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : tables.values()) {
+                    for (ConsumeQueueInterface logic : maps.values()) {
+                        int deleteCount = DefaultMessageStore.this.consumeQueueStore.deleteExpiredFile(logic, minOffset);
                         deleteCountSum += deleteCount;
                         if (deleteCount > 0 && deleteLogicsFilesInterval > 0) {
                             try {
@@ -1891,13 +2021,13 @@ public class DefaultMessageStore implements MessageStore {
                 logicsMsgTimestamp = DefaultMessageStore.this.getStoreCheckpoint().getLogicsMsgTimestamp();
             }
 
-            ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
+            ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> tables = DefaultMessageStore.this.consumeQueueTable;
 
-            for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
-                for (ConsumeQueue cq : maps.values()) {
+            for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : tables.values()) {
+                for (ConsumeQueueInterface cq : maps.values()) {
                     boolean result = false;
                     for (int i = 0; i < retryTimes && !result; i++) {
-                        result = cq.flush(flushConsumeQueueLeastPages);
+                        result = DefaultMessageStore.this.consumeQueueStore.flush(cq, flushConsumeQueueLeastPages);
                     }
                 }
             }
@@ -1910,6 +2040,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        @Override
         public void run() {
             DefaultMessageStore.log.info(this.getServiceName() + " service started");
 
