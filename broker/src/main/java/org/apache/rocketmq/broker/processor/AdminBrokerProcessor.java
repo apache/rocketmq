@@ -131,7 +131,6 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
-import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
@@ -140,6 +139,9 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
 
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
@@ -1799,7 +1801,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        ConsumeQueue consumeQueue = this.brokerController.getMessageStore().getConsumeQueue(requestHeader.getTopic(),
+        ConsumeQueueInterface consumeQueue = this.brokerController.getMessageStore().getConsumeQueue(requestHeader.getTopic(),
             requestHeader.getQueueId());
         if (consumeQueue == null) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -1830,26 +1832,31 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             }
         }
 
-        SelectMappedBufferResult result = consumeQueue.getIndexBuffer(requestHeader.getIndex());
+        ReferredIterator<CqUnit> result = consumeQueue.iterateFrom(requestHeader.getIndex());
         if (result == null) {
             response.setRemark(String.format("Index %d of %d@%s is not exist!", requestHeader.getIndex(), requestHeader.getQueueId(), requestHeader.getTopic()));
             return response;
         }
         try {
             List<ConsumeQueueData> queues = new ArrayList<>();
-            for (int i = 0; i < result.getSize() && i < requestHeader.getCount() * ConsumeQueue.CQ_STORE_UNIT_SIZE; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                ConsumeQueueData one = new ConsumeQueueData();
-                one.setPhysicOffset(result.getByteBuffer().getLong());
-                one.setPhysicSize(result.getByteBuffer().getInt());
-                one.setTagsCode(result.getByteBuffer().getLong());
+            while (result.hasNext()) {
+                CqUnit cqUnit = result.next();
+                if (cqUnit.getQueueOffset() - requestHeader.getIndex() >=  requestHeader.getCount()) {
+                    break;
+                }
 
-                if (!consumeQueue.isExtAddr(one.getTagsCode())) {
+                ConsumeQueueData one = new ConsumeQueueData();
+                one.setPhysicOffset(cqUnit.getPos());
+                one.setPhysicSize(cqUnit.getSize());
+                one.setTagsCode(cqUnit.getTagsCode());
+
+                if (cqUnit.getCqExtUnit() == null && cqUnit.isTagsCodeValid()) {
                     queues.add(one);
                     continue;
                 }
 
-                ConsumeQueueExt.CqExtUnit cqExtUnit = consumeQueue.getExt(one.getTagsCode());
-                if (cqExtUnit != null) {
+                if (cqUnit.getCqExtUnit() != null) {
+                    ConsumeQueueExt.CqExtUnit cqExtUnit = cqUnit.getCqExtUnit();
                     one.setExtendDataJson(JSON.toJSONString(cqExtUnit));
                     if (cqExtUnit.getFilterBitMap() != null) {
                         one.setBitMap(BitsArray.create(cqExtUnit.getFilterBitMap()).toString());

@@ -727,7 +727,8 @@ public class MQClientAPIImpl {
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, responseHeader.getQueueId());
 
         String uniqMsgId = MessageClientIDSetter.getUniqID(msg);
-        if (msg instanceof MessageBatch) {
+        if (msg instanceof MessageBatch && responseHeader.getBatchUniqId() == null) {
+            // This means it is not an inner batch
             StringBuilder sb = new StringBuilder();
             for (Message message : (MessageBatch) msg) {
                 sb.append(sb.length() == 0 ? "" : ",").append(MessageClientIDSetter.getUniqID(message));

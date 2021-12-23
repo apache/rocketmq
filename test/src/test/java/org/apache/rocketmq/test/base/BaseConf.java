@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.store.queue.CQType;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -49,6 +50,7 @@ import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
+import org.junit.Assert;
 
 import static org.awaitility.Awaitility.await;
 
@@ -59,14 +61,18 @@ public class BaseConf {
     //the logic queue test need at least three brokers
     protected final static String broker3Name;
     protected final static String clusterName;
+    protected final static String steamClusterName = "steam-cluster";
     protected final static int brokerNum;
     protected final static int waitTime = 5;
     protected final static int consumeTime = 2 * 60 * 1000;
     protected final static int QUEUE_NUMBERS = 8;
     protected final static NamesrvController namesrvController;
-    protected final static BrokerController brokerController1;
-    protected final static BrokerController brokerController2;
-    protected final static BrokerController brokerController3;
+    protected static BrokerController brokerController1;
+    protected static BrokerController brokerController2;
+    protected static BrokerController brokerController3;
+    protected static BrokerController streamBrokerController1;
+    protected static BrokerController streamBrokerController2;
+    protected static BrokerController streamBrokerController3;
     protected final static List<BrokerController> brokerControllerList;
     protected final static Map<String, BrokerController> brokerControllerMap;
     protected final static List<Object> mqClients = new ArrayList<Object>();
@@ -85,6 +91,9 @@ public class BaseConf {
         broker2Name = brokerController2.getBrokerConfig().getBrokerName();
         broker3Name = brokerController3.getBrokerConfig().getBrokerName();
         brokerNum = 3;
+        streamBrokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr, CQType.BatchCQ.toString(), steamClusterName);
+        streamBrokerController2 = IntegrationTestBase.createAndStartBroker(nsAddr, CQType.BatchCQ.toString(), steamClusterName);
+        streamBrokerController3 = IntegrationTestBase.createAndStartBroker(nsAddr, CQType.BatchCQ.toString(), steamClusterName);
         brokerControllerList = ImmutableList.of(brokerController1, brokerController2, brokerController3);
         brokerControllerMap = brokerControllerList.stream().collect(Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
     }
@@ -94,20 +103,21 @@ public class BaseConf {
     }
 
     // This method can't be placed in the static block of BaseConf, which seems to lead to a strange dead lock.
-    public static void waitBrokerRegistered(final String nsAddr, final String clusterName) {
+    public static void waitBrokerRegistered(final String nsAddr, final String clusterName, final int expectedBrokerNum) {
         final DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(500);
         mqAdminExt.setNamesrvAddr(nsAddr);
         try {
             mqAdminExt.start();
             await().atMost(30, TimeUnit.SECONDS).until(() -> {
                 List<BrokerData> brokerDatas = mqAdminExt.examineTopicRouteInfo(clusterName).getBrokerDatas();
-                return brokerDatas.size() == brokerNum;
+                return brokerDatas.size() == expectedBrokerNum;
             });
             for (BrokerController brokerController: brokerControllerList) {
                 brokerController.getBrokerOuterAPI().refreshMetadata();
             }
         } catch (Exception e) {
-            log.error("init failed, please check BaseConf");
+            log.error("init failed, please check BaseConf", e);
+            Assert.fail(e.getMessage());
         }
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
     }

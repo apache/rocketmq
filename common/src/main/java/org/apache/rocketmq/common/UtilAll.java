@@ -196,6 +196,19 @@ public class UtilAll {
             cal.get(Calendar.SECOND));
     }
 
+    public static long getTotalSpace(final String path) {
+        if (null == path || path.isEmpty())
+            return -1;
+        try {
+            File file = new File(path);
+            if (!file.exists())
+                return -1;
+            return  file.getTotalSpace();
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
     public static boolean isPathExists(final String path) {
         File file = new File(path);
         return file.exists();

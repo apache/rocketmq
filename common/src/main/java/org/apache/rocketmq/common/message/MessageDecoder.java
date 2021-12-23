@@ -395,6 +395,22 @@ public class MessageDecoder {
         return decodes(byteBuffer, true);
     }
 
+    public static List<MessageExt> decodesBatch(ByteBuffer byteBuffer,
+                                                final boolean readBody,
+                                                final boolean decompressBody,
+                                                final boolean isClient) {
+        List<MessageExt> msgExts = new ArrayList<MessageExt>();
+        while (byteBuffer.hasRemaining()) {
+            MessageExt msgExt = decode(byteBuffer, readBody, decompressBody, isClient);
+            if (null != msgExt) {
+                msgExts.add(msgExt);
+            } else {
+                break;
+            }
+        }
+        return msgExts;
+    }
+
     public static List<MessageExt> decodes(ByteBuffer byteBuffer, final boolean readBody) {
         List<MessageExt> msgExts = new ArrayList<MessageExt>();
         while (byteBuffer.hasRemaining()) {
@@ -568,5 +584,38 @@ public class MessageDecoder {
             msgs.add(msg);
         }
         return msgs;
+    }
+
+    public static void decodeMessage(MessageExt messageExt, List<MessageExt> list) throws Exception {
+        List<Message> messages = MessageDecoder.decodeMessages(ByteBuffer.wrap(messageExt.getBody()));
+        for (int i = 0; i < messages.size(); i++) {
+            Message message = messages.get(i);
+            MessageClientExt messageClientExt = new MessageClientExt();
+            messageClientExt.setTopic(messageExt.getTopic());
+            messageClientExt.setQueueOffset(messageExt.getQueueOffset() + i);
+            messageClientExt.setQueueId(messageExt.getQueueId());
+            messageClientExt.setFlag(message.getFlag());
+            MessageAccessor.setProperties(messageClientExt, message.getProperties());
+            messageClientExt.setBody(message.getBody());
+            messageClientExt.setStoreHost(messageExt.getStoreHost());
+            messageClientExt.setBornHost(messageExt.getBornHost());
+            messageClientExt.setBornTimestamp(messageExt.getBornTimestamp());
+            messageClientExt.setStoreTimestamp(messageExt.getStoreTimestamp());
+            messageClientExt.setSysFlag(messageExt.getSysFlag());
+            messageClientExt.setCommitLogOffset(messageExt.getCommitLogOffset());
+            messageClientExt.setWaitStoreMsgOK(messageExt.isWaitStoreMsgOK());
+            list.add(messageClientExt);
+        }
+    }
+
+    public static int countInnerMsgNum(ByteBuffer buffer) {
+        int count = 0;
+        while (buffer.hasRemaining()) {
+            count++;
+            int currPos = buffer.position();
+            int size = buffer.getInt();
+            buffer.position(currPos + size);
+        }
+        return count;
     }
 }

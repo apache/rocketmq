@@ -231,6 +231,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private int pullBatchSize = 32;
 
+
+    private int pullBatchSizeInBytes = 256 * 1024;
+
     /**
      * Whether update subscription relationship when every pull
      */
@@ -940,6 +943,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setAwaitTerminationMillisWhenShutdown(long awaitTerminationMillisWhenShutdown) {
         this.awaitTerminationMillisWhenShutdown = awaitTerminationMillisWhenShutdown;
+    }
+
+    public int getPullBatchSizeInBytes() {
+        return pullBatchSizeInBytes;
+    }
+
+    public void setPullBatchSizeInBytes(int pullBatchSizeInBytes) {
+        this.pullBatchSizeInBytes = pullBatchSizeInBytes;
     }
 
     public TraceDispatcher getTraceDispatcher() {

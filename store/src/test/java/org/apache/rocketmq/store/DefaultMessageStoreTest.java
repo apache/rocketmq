@@ -25,7 +25,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
@@ -38,6 +37,10 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.store.queue.CQType;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
@@ -47,7 +50,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMessageStoreTest {
@@ -112,6 +114,8 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        messageStoreConfig.setHaListenPort(StoreTestBase.nextPort());
+        messageStoreConfig.setDefaultCQType(CQType.SimpleCQ.name());
         return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
@@ -192,13 +196,12 @@ public class DefaultMessageStoreTest {
         //Thread.sleep(10);
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
-        ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp());
-            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
-            assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
-            assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
-            indexBuffer.release();
+            CqUnit cqUnit = consumeQueue.get(offset);
+            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
+            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
         }
     }
 
@@ -212,18 +215,16 @@ public class DefaultMessageStoreTest {
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
         int skewing = 2;
 
-        ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
             long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
-            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
-            SelectMappedBufferResult indexBuffer2 = consumeQueue.getIndexBuffer(offset2);
-            assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
-            assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
-            assertThat(indexBuffer2.getByteBuffer().getLong()).isEqualTo(appendMessageResult.getWroteOffset());
-            assertThat(indexBuffer2.getByteBuffer().getInt()).isEqualTo(appendMessageResult.getWroteBytes());
-            indexBuffer.release();
-            indexBuffer2.release();
+            CqUnit cqUnit = consumeQueue.get(offset);
+            CqUnit cqUnit2 = consumeQueue.get(offset2);
+            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
+            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
+            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
+            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
         }
     }
 
@@ -237,19 +238,16 @@ public class DefaultMessageStoreTest {
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
         int skewing = 20000;
 
-        ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
             long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
             long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
-            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(offset);
-            SelectMappedBufferResult indexBuffer2 = consumeQueue.getIndexBuffer(offset2);
-            assertThat(indexBuffer.getByteBuffer().getLong()).isEqualTo(appendMessageResults[totalCount - 1].getWroteOffset());
-            assertThat(indexBuffer.getByteBuffer().getInt()).isEqualTo(appendMessageResults[totalCount - 1].getWroteBytes());
-            assertThat(indexBuffer2.getByteBuffer().getLong()).isEqualTo(appendMessageResults[0].getWroteOffset());
-            assertThat(indexBuffer2.getByteBuffer().getInt()).isEqualTo(appendMessageResults[0].getWroteBytes());
-
-            indexBuffer.release();
-            indexBuffer2.release();
+            CqUnit cqUnit = consumeQueue.get(offset);
+            CqUnit cqUnit2 = consumeQueue.get(offset2);
+            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[totalCount - 1].getWroteOffset());
+            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[totalCount - 1].getWroteBytes());
+            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
+            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
         }
     }
 
@@ -309,7 +307,7 @@ public class DefaultMessageStoreTest {
         //Thread.sleep(10);
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
 
-        ConsumeQueue consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         int minOffsetInQueue = (int) consumeQueue.getMinOffsetInQueue();
         for (int i = minOffsetInQueue; i < consumeQueue.getMaxOffsetInQueue(); i++) {
             long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, queueId, i);
@@ -332,13 +330,12 @@ public class DefaultMessageStoreTest {
         AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, false);
         //Thread.sleep(10);
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
-        ConsumeQueue consumeQueue = messageStore.getConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(topic, queueId);
 
         for (int i = 0; i < totalCount; i++) {
-            SelectMappedBufferResult indexBuffer = consumeQueue.getIndexBuffer(i);
-            long storeTime = getStoreTime(indexBuffer);
+            CqUnit cqUnit = consumeQueue.get(i);
+            long storeTime = getStoreTime(cqUnit);
             assertThat(storeTime).isEqualTo(appendMessageResults[i].getStoreTimestamp());
-            indexBuffer.release();
         }
     }
 
@@ -346,15 +343,8 @@ public class DefaultMessageStoreTest {
     public void testGetStoreTime_PhyOffsetIsLessThanCommitLogMinOffset() {
         long phyOffset = -10;
         int size = 138;
-        ByteBuffer byteBuffer = ByteBuffer.allocate(100);
-        byteBuffer.putLong(phyOffset);
-        byteBuffer.putInt(size);
-        byteBuffer.flip();
-        MappedFile mappedFile = mock(MappedFile.class);
-        SelectMappedBufferResult result = new SelectMappedBufferResult(0, byteBuffer, size, mappedFile);
-
-        long storeTime = getStoreTime(result);
-        result.release();
+        CqUnit cqUnit = new CqUnit(0, phyOffset, size, 0);
+        long storeTime = getStoreTime(cqUnit);
 
         assertThat(storeTime).isEqualTo(-1);
     }
@@ -401,11 +391,11 @@ public class DefaultMessageStoreTest {
         return String.format("%s offset %d", message, i);
     }
 
-    private long getStoreTime(SelectMappedBufferResult result) {
+    private long getStoreTime(CqUnit cqUnit) {
         try {
-            Method getStoreTime = getDefaultMessageStore().getClass().getDeclaredMethod("getStoreTime", SelectMappedBufferResult.class);
+            Method getStoreTime = getDefaultMessageStore().getClass().getDeclaredMethod("getStoreTime", CqUnit.class);
             getStoreTime.setAccessible(true);
-            return (long) getStoreTime.invoke(getDefaultMessageStore(), result);
+            return (long) getStoreTime.invoke(getDefaultMessageStore(), cqUnit);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
@@ -586,7 +576,7 @@ public class DefaultMessageStoreTest {
         //add abort file
         String fileName = StorePathConfigHelper.getAbortFile(((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir());
         File file = new File(fileName);
-        MappedFile.ensureDirOK(file.getParent());
+        DefaultMappedFile.ensureDirOK(file.getParent());
         file.createNewFile();
 
         messageStore = buildMessageStore();

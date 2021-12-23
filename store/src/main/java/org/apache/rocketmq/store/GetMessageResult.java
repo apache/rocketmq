@@ -34,6 +34,8 @@ public class GetMessageResult {
 
     private int bufferTotalSize = 0;
 
+    private int messageCount = 0;
+
     private boolean suggestPullingFromSlave = false;
 
     private int msgCount4Commercial = 0;
@@ -99,8 +101,18 @@ public class GetMessageResult {
     }
 
     public void addMessage(final SelectMappedBufferResult mapedBuffer, final long queueOffset) {
-        addMessage(mapedBuffer);
+        this.messageMapedList.add(mapedBuffer);
+        this.messageBufferList.add(mapedBuffer.getByteBuffer());
+        this.bufferTotalSize += mapedBuffer.getSize();
+        this.msgCount4Commercial += (int) Math.ceil(
+            mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
         this.messageQueueOffset.add(queueOffset);
+    }
+
+
+    public void addMessage(final SelectMappedBufferResult mapedBuffer, final long queueOffset, final int batchNum) {
+        addMessage(mapedBuffer, queueOffset);
+        messageCount += batchNum;
     }
 
     public void release() {
@@ -113,12 +125,8 @@ public class GetMessageResult {
         return bufferTotalSize;
     }
 
-    public void setBufferTotalSize(int bufferTotalSize) {
-        this.bufferTotalSize = bufferTotalSize;
-    }
-
     public int getMessageCount() {
-        return this.messageMapedList.size();
+        return messageCount;
     }
 
     public boolean isSuggestPullingFromSlave() {
@@ -144,8 +152,7 @@ public class GetMessageResult {
     @Override
     public String toString() {
         return "GetMessageResult [status=" + status + ", nextBeginOffset=" + nextBeginOffset + ", minOffset="
-            + minOffset + ", maxOffset=" + maxOffset + ", bufferTotalSize=" + bufferTotalSize
+            + minOffset + ", maxOffset=" + maxOffset + ", bufferTotalSize=" + bufferTotalSize + ", messageCount=" + messageCount
             + ", suggestPullingFromSlave=" + suggestPullingFromSlave + "]";
     }
-
 }

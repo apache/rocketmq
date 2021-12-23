@@ -24,8 +24,14 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.CQType;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
+import org.apache.rocketmq.store.queue.ReferredIterator;
 
-public class ConsumeQueue {
+public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     public static final int CQ_STORE_UNIT_SIZE = 20;
@@ -76,6 +82,7 @@ public class ConsumeQueue {
         }
     }
 
+    @Override
     public boolean load() {
         boolean result = this.mappedFileQueue.load();
         log.info("load consume queue " + this.topic + "-" + this.queueId + " " + (result ? "OK" : "Failed"));
@@ -85,6 +92,7 @@ public class ConsumeQueue {
         return result;
     }
 
+    @Override
     public void recover() {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
@@ -152,6 +160,7 @@ public class ConsumeQueue {
         }
     }
 
+    @Override
     public long getOffsetInQueueByTime(final long timestamp) {
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
@@ -221,6 +230,7 @@ public class ConsumeQueue {
         return 0;
     }
 
+    @Override
     public void truncateDirtyLogicFiles(long phyOffet) {
 
         int logicFileSize = this.mappedFileSize;
@@ -291,6 +301,7 @@ public class ConsumeQueue {
         }
     }
 
+    @Override
     public long getLastOffset() {
         long lastOffset = -1;
 
@@ -321,6 +332,7 @@ public class ConsumeQueue {
         return lastOffset;
     }
 
+    @Override
     public boolean flush(final int flushLeastPages) {
         boolean result = this.mappedFileQueue.flush(flushLeastPages);
         if (isExtReadEnable()) {
@@ -330,12 +342,14 @@ public class ConsumeQueue {
         return result;
     }
 
+    @Override
     public int deleteExpiredFile(long offset) {
         int cnt = this.mappedFileQueue.deleteExpiredFileByOffset(offset, CQ_STORE_UNIT_SIZE);
         this.correctMinOffset(offset);
         return cnt;
     }
 
+    @Override
     public void correctMinOffset(long phyMinOffset) {
         MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         long minExtAddr = 1;
@@ -372,10 +386,12 @@ public class ConsumeQueue {
         }
     }
 
+    @Override
     public long getMinOffsetInQueue() {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
+    @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
         final int maxRetries = 30;
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
@@ -488,7 +504,7 @@ public class ConsumeQueue {
         }
     }
 
-    public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
+    private SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
         if (offset >= this.getMinLogicOffset()) {
@@ -499,6 +515,124 @@ public class ConsumeQueue {
             }
         }
         return null;
+    }
+
+    @Override
+    public ReferredIterator<CqUnit> iterateFrom(long startOffset) {
+        SelectMappedBufferResult sbr = getIndexBuffer(startOffset);
+        if (sbr == null) {
+            return null;
+        }
+        return new ConsumeQueueIterator(sbr);
+    }
+
+    @Override
+    public CqUnit get(long offset) {
+        ReferredIterator<CqUnit> it = iterateFrom(offset);
+        if (it == null) {
+            return null;
+        }
+        return it.nextAndRelease();
+    }
+
+    @Override
+    public CqUnit getEarliestUnit() {
+        /**
+         * here maybe should not return null
+         */
+        ReferredIterator<CqUnit> it = iterateFrom(minLogicOffset / CQ_STORE_UNIT_SIZE);
+        if (it == null) {
+            return null;
+        }
+        return it.nextAndRelease();
+    }
+
+    @Override
+    public CqUnit getLatestUnit() {
+        ReferredIterator<CqUnit> it = iterateFrom((mappedFileQueue.getMaxOffset() / CQ_STORE_UNIT_SIZE) - 1);
+        if (it == null) {
+            return null;
+        }
+        return it.nextAndRelease();
+    }
+
+    @Override
+    public boolean isFirstFileAvailable() {
+        return false;
+    }
+
+    @Override
+    public boolean isFirstFileExist() {
+        return false;
+    }
+
+    private class ConsumeQueueIterator implements ReferredIterator<CqUnit> {
+        private SelectMappedBufferResult sbr;
+        private int relativePos = 0;
+
+        public ConsumeQueueIterator(SelectMappedBufferResult sbr) {
+            this.sbr =  sbr;
+            if (sbr != null && sbr.getByteBuffer() != null) {
+                relativePos = sbr.getByteBuffer().position();
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (sbr == null || sbr.getByteBuffer() == null) {
+                return false;
+            }
+
+            return sbr.getByteBuffer().hasRemaining();
+        }
+
+        @Override
+        public CqUnit next() {
+            if (!hasNext()) {
+                return null;
+            }
+            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() -  relativePos) / CQ_STORE_UNIT_SIZE;
+            CqUnit cqUnit = new CqUnit(queueOffset,
+                    sbr.getByteBuffer().getLong(),
+                    sbr.getByteBuffer().getInt(),
+                    sbr.getByteBuffer().getLong());
+
+            if (isExtAddr(cqUnit.getTagsCode())) {
+                ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
+                boolean extRet = getExt(cqUnit.getTagsCode(), cqExtUnit);
+                if (extRet) {
+                    cqUnit.setTagsCode(cqExtUnit.getTagsCode());
+                    cqUnit.setCqExtUnit(cqExtUnit);
+                } else {
+                    // can't find ext content.Client will filter messages by tag also.
+                    log.error("[BUG] can't find consume queue extend file content! addr={}, offsetPy={}, sizePy={}, topic={}",
+                            cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
+                }
+            }
+            return cqUnit;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove");
+        }
+
+        @Override
+        public void release() {
+            if (sbr != null) {
+                sbr.release();
+                sbr = null;
+            }
+        }
+
+        @Override
+        public CqUnit nextAndRelease() {
+            try {
+                return next();
+            } finally {
+                release();
+            }
+        }
     }
 
     public ConsumeQueueExt.CqExtUnit getExt(final long offset) {
@@ -515,6 +649,7 @@ public class ConsumeQueue {
         return false;
     }
 
+    @Override
     public long getMinLogicOffset() {
         return minLogicOffset;
     }
@@ -523,20 +658,29 @@ public class ConsumeQueue {
         this.minLogicOffset = minLogicOffset;
     }
 
+    @Override
     public long rollNextFile(final long index) {
         int mappedFileSize = this.mappedFileSize;
         int totalUnitsInFile = mappedFileSize / CQ_STORE_UNIT_SIZE;
         return index + totalUnitsInFile - index % totalUnitsInFile;
     }
 
+    @Override
     public String getTopic() {
         return topic;
     }
 
+    @Override
     public int getQueueId() {
         return queueId;
     }
 
+    @Override
+    public CQType getCQType() {
+        return CQType.SimpleCQ;
+    }
+
+    @Override
     public long getMaxPhysicOffset() {
         return maxPhysicOffset;
     }
@@ -545,6 +689,7 @@ public class ConsumeQueue {
         this.maxPhysicOffset = maxPhysicOffset;
     }
 
+    @Override
     public void destroy() {
         this.maxPhysicOffset = -1;
         this.minLogicOffset = 0;
@@ -554,14 +699,17 @@ public class ConsumeQueue {
         }
     }
 
+    @Override
     public long getMessageTotalInQueue() {
         return this.getMaxOffsetInQueue() - this.getMinOffsetInQueue();
     }
 
+    @Override
     public long getMaxOffsetInQueue() {
         return this.mappedFileQueue.getMaxOffset() / CQ_STORE_UNIT_SIZE;
     }
 
+    @Override
     public void checkSelf() {
         mappedFileQueue.checkSelf();
         if (isExtReadEnable()) {
@@ -583,5 +731,15 @@ public class ConsumeQueue {
      */
     public boolean isExtAddr(long tagsCode) {
         return ConsumeQueueExt.isExtAddr(tagsCode);
+    }
+
+    @Override
+    public void swapMap(int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs) {
+        mappedFileQueue.swapMap(reserveNum, forceSwapIntervalMs, normalSwapIntervalMs);
+    }
+
+    @Override
+    public void cleanSwappedMap(long forceCleanSwapIntervalMs) {
+        mappedFileQueue.cleanSwappedMap(forceCleanSwapIntervalMs);
     }
 }

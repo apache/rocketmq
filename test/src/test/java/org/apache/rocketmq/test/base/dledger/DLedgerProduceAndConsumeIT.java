@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.CQType;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
@@ -62,6 +63,7 @@ public class DLedgerProduceAndConsumeIT {
         storeConfig.setdLegerGroup(brokerName);
         storeConfig.setdLegerSelfId(selfId);
         storeConfig.setdLegerPeers(peers);
+        storeConfig.setDefaultCQType(CQType.SimpleCQ.toString());
         return storeConfig;
     }
 

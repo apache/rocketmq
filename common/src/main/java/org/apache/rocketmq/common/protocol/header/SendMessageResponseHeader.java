@@ -32,6 +32,7 @@ public class SendMessageResponseHeader implements CommandCustomHeader {
     @CFNotNull
     private Long queueOffset;
     private String transactionId;
+    private String batchUniqId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -67,5 +68,13 @@ public class SendMessageResponseHeader implements CommandCustomHeader {
 
     public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public String getBatchUniqId() {
+        return batchUniqId;
+    }
+
+    public void setBatchUniqId(String batchUniqId) {
+        this.batchUniqId = batchUniqId;
     }
 }
