@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.logfile;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
@@ -36,22 +36,28 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageExtBatch;
-import org.apache.rocketmq.store.CommitLog.PutMessageContext;
+import org.apache.rocketmq.store.AppendMessageCallback;
+import org.apache.rocketmq.store.AppendMessageResult;
+import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.MessageExtBatch;
+import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.store.PutMessageContext;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
-public class MappedFile extends ReferenceResource {
+public class DefaultMappedFile extends AbstractMappedFile {
     public static final int OS_PAGE_SIZE = 1024 * 4;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
+    protected static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
 
-    private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
+    protected static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
-    private final AtomicInteger flushedPosition = new AtomicInteger(0);
+    protected final AtomicInteger flushedPosition = new AtomicInteger(0);
     protected int fileSize;
     protected FileChannel fileChannel;
     /**
@@ -59,21 +65,26 @@ public class MappedFile extends ReferenceResource {
      */
     protected ByteBuffer writeBuffer = null;
     protected TransientStorePool transientStorePool = null;
-    private String fileName;
-    private long fileFromOffset;
-    private File file;
-    private MappedByteBuffer mappedByteBuffer;
-    private volatile long storeTimestamp = 0;
-    private boolean firstCreateInQueue = false;
+    protected String fileName;
+    protected long fileFromOffset;
+    protected File file;
+    protected MappedByteBuffer mappedByteBuffer;
+    protected volatile long storeTimestamp = 0;
+    protected boolean firstCreateInQueue = false;
+    private long lastFlushTime = -1L;
 
-    public MappedFile() {
+    protected MappedByteBuffer mappedByteBufferWaitToClean = null;
+    protected long swapMapTime = 0L;
+    protected long mappedByteBufferAccessCountSinceLastSwap = 0L;
+
+    public DefaultMappedFile() {
     }
 
-    public MappedFile(final String fileName, final int fileSize) throws IOException {
+    public DefaultMappedFile(final String fileName, final int fileSize) throws IOException {
         init(fileName, fileSize);
     }
 
-    public MappedFile(final String fileName, final int fileSize,
+    public DefaultMappedFile(final String fileName, final int fileSize,
         final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize, transientStorePool);
     }
@@ -96,6 +107,7 @@ public class MappedFile extends ReferenceResource {
 
     private static Object invoke(final Object target, final String methodName, final Class<?>... args) {
         return AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
             public Object run() {
                 try {
                     Method method = method(target, methodName, args);
@@ -142,8 +154,9 @@ public class MappedFile extends ReferenceResource {
         return TOTAL_MAPPED_VIRTUAL_MEMORY.get();
     }
 
+    @Override
     public void init(final String fileName, final int fileSize,
-        final TransientStorePool transientStorePool) throws IOException {
+                     final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
@@ -177,23 +190,28 @@ public class MappedFile extends ReferenceResource {
         }
     }
 
+    @Override
     public long getLastModifiedTimestamp() {
         return this.file.lastModified();
     }
 
+    @Override
     public int getFileSize() {
         return fileSize;
     }
 
+    @Override
     public FileChannel getFileChannel() {
         return fileChannel;
     }
 
+    @Override
     public AppendMessageResult appendMessage(final MessageExtBrokerInner msg, final AppendMessageCallback cb,
             PutMessageContext putMessageContext) {
         return appendMessagesInner(msg, cb, putMessageContext);
     }
 
+    @Override
     public AppendMessageResult appendMessages(final MessageExtBatch messageExtBatch, final AppendMessageCallback cb,
             PutMessageContext putMessageContext) {
         return appendMessagesInner(messageExtBatch, cb, putMessageContext);
@@ -207,15 +225,17 @@ public class MappedFile extends ReferenceResource {
         int currentPos = this.wrotePosition.get();
 
         if (currentPos < this.fileSize) {
-            ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
+            ByteBuffer byteBuffer = appendMessageBuffer().slice();
             byteBuffer.position(currentPos);
             AppendMessageResult result;
-            if (messageExt instanceof MessageExtBrokerInner) {
-                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
-                        (MessageExtBrokerInner) messageExt, putMessageContext);
-            } else if (messageExt instanceof MessageExtBatch) {
+            if (messageExt instanceof MessageExtBatch && !((MessageExtBatch) messageExt).isInnerBatch()) {
+                // traditional batch message
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
                         (MessageExtBatch) messageExt, putMessageContext);
+            } else if (messageExt instanceof MessageExtBrokerInner) {
+                // traditional single message or newly introduced inner-batch message
+                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
+                        (MessageExtBrokerInner) messageExt, putMessageContext);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
@@ -227,24 +247,38 @@ public class MappedFile extends ReferenceResource {
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
 
+    protected ByteBuffer appendMessageBuffer() {
+        this.mappedByteBufferAccessCountSinceLastSwap++;
+        return writeBuffer != null ? writeBuffer : this.mappedByteBuffer;
+    }
+
+    @Override
     public long getFileFromOffset() {
         return this.fileFromOffset;
     }
 
+    @Override
     public boolean appendMessage(final byte[] data) {
-        int currentPos = this.wrotePosition.get();
+        return appendMessage(data, 0, data.length);
+    }
 
-        if ((currentPos + data.length) <= this.fileSize) {
+    @Override
+    public boolean appendMessage(ByteBuffer data) {
+        int currentPos = this.wrotePosition.get();
+        int remaining = data.remaining();
+
+        if ((currentPos + remaining) <= this.fileSize) {
             try {
                 this.fileChannel.position(currentPos);
-                this.fileChannel.write(ByteBuffer.wrap(data));
+                while (data.hasRemaining()) {
+                    this.fileChannel.write(data);
+                }
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
-            this.wrotePosition.addAndGet(data.length);
+            this.wrotePosition.addAndGet(remaining);
             return true;
         }
-
         return false;
     }
 
@@ -254,13 +288,17 @@ public class MappedFile extends ReferenceResource {
      * @param offset The offset of the subarray to be used.
      * @param length The length of the subarray to be used.
      */
+    @Override
     public boolean appendMessage(final byte[] data, final int offset, final int length) {
         int currentPos = this.wrotePosition.get();
 
         if ((currentPos + length) <= this.fileSize) {
             try {
                 this.fileChannel.position(currentPos);
-                this.fileChannel.write(ByteBuffer.wrap(data, offset, length));
+                ByteBuffer buffer = ByteBuffer.wrap(data, offset, length);
+                while (buffer.hasRemaining()) {
+                    this.fileChannel.write(buffer);
+                }
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
@@ -274,18 +312,22 @@ public class MappedFile extends ReferenceResource {
     /**
      * @return The current flushed position
      */
+    @Override
     public int flush(final int flushLeastPages) {
         if (this.isAbleToFlush(flushLeastPages)) {
             if (this.hold()) {
                 int value = getReadPosition();
 
                 try {
+                    this.mappedByteBufferAccessCountSinceLastSwap++;
+
                     //We only append data to fileChannel or mappedByteBuffer, never both.
                     if (writeBuffer != null || this.fileChannel.position() != 0) {
                         this.fileChannel.force(false);
                     } else {
                         this.mappedByteBuffer.force();
                     }
+                    this.lastFlushTime = System.currentTimeMillis();
                 } catch (Throwable e) {
                     log.error("Error occurred when force data to disk.", e);
                 }
@@ -300,6 +342,7 @@ public class MappedFile extends ReferenceResource {
         return this.getFlushedPosition();
     }
 
+    @Override
     public int commit(final int commitLeastPages) {
         if (writeBuffer == null) {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
@@ -371,22 +414,28 @@ public class MappedFile extends ReferenceResource {
         return write > flush;
     }
 
+    @Override
     public int getFlushedPosition() {
         return flushedPosition.get();
     }
 
+    @Override
     public void setFlushedPosition(int pos) {
         this.flushedPosition.set(pos);
     }
 
+    @Override
     public boolean isFull() {
         return this.fileSize == this.wrotePosition.get();
     }
 
+    @Override
     public SelectMappedBufferResult selectMappedBuffer(int pos, int size) {
         int readPosition = getReadPosition();
         if ((pos + size) <= readPosition) {
             if (this.hold()) {
+                this.mappedByteBufferAccessCountSinceLastSwap++;
+
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
                 byteBuffer.position(pos);
                 ByteBuffer byteBufferNew = byteBuffer.slice();
@@ -404,10 +453,12 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
+    @Override
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {
             if (this.hold()) {
+                this.mappedByteBufferAccessCountSinceLastSwap++;
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
                 byteBuffer.position(pos);
                 int size = readPosition - pos;
@@ -435,26 +486,31 @@ public class MappedFile extends ReferenceResource {
         }
 
         clean(this.mappedByteBuffer);
+        clean(this.mappedByteBufferWaitToClean);
+        this.mappedByteBufferWaitToClean = null;
         TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(this.fileSize * (-1));
         TOTAL_MAPPED_FILES.decrementAndGet();
         log.info("unmap file[REF:" + currentRef + "] " + this.fileName + " OK");
         return true;
     }
 
+    @Override
     public boolean destroy(final long intervalForcibly) {
         this.shutdown(intervalForcibly);
 
         if (this.isCleanupOver()) {
             try {
+                long lastModified = getLastModifiedTimestamp();
                 this.fileChannel.close();
                 log.info("close file channel " + this.fileName + " OK");
 
                 long beginTime = System.currentTimeMillis();
                 boolean result = this.file.delete();
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
-                    + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"
-                    + this.getFlushedPosition() + ", "
-                    + UtilAll.computeElapsedTimeMilliseconds(beginTime));
+                        + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"
+                        + this.getFlushedPosition() + ", "
+                        + UtilAll.computeElapsedTimeMilliseconds(beginTime)
+                        + "," + (System.currentTimeMillis() - lastModified));
             } catch (Exception e) {
                 log.warn("close file channel " + this.fileName + " Failed. ", e);
             }
@@ -462,16 +518,18 @@ public class MappedFile extends ReferenceResource {
             return true;
         } else {
             log.warn("destroy mapped file[REF:" + this.getRefCount() + "] " + this.fileName
-                + " Failed. cleanupOver: " + this.cleanupOver);
+                    + " Failed. cleanupOver: " + this.cleanupOver);
         }
 
         return false;
     }
 
+    @Override
     public int getWrotePosition() {
         return wrotePosition.get();
     }
 
+    @Override
     public void setWrotePosition(int pos) {
         this.wrotePosition.set(pos);
     }
@@ -479,20 +537,25 @@ public class MappedFile extends ReferenceResource {
     /**
      * @return The max position which have valid data
      */
+    @Override
     public int getReadPosition() {
         return this.writeBuffer == null ? this.wrotePosition.get() : this.committedPosition.get();
     }
 
+    @Override
     public void setCommittedPosition(int pos) {
         this.committedPosition.set(pos);
     }
 
+    @Override
     public void warmMappedFile(FlushDiskType type, int pages) {
+        this.mappedByteBufferAccessCountSinceLastSwap++;
+
         long beginTime = System.currentTimeMillis();
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
         int flush = 0;
         long time = System.currentTimeMillis();
-        for (int i = 0, j = 0; i < this.fileSize; i += MappedFile.OS_PAGE_SIZE, j++) {
+        for (int i = 0, j = 0; i < this.fileSize; i += DefaultMappedFile.OS_PAGE_SIZE, j++) {
             byteBuffer.put(i, (byte) 0);
             // force flush when flush disk type is sync
             if (type == FlushDiskType.SYNC_FLUSH) {
@@ -526,30 +589,99 @@ public class MappedFile extends ReferenceResource {
         this.mlock();
     }
 
+    @Override
+    public boolean swapMap() {
+        if (getRefCount() == 1 && this.mappedByteBufferWaitToClean == null) {
+
+            if (!hold()) {
+                log.warn("in swapMap, hold failed, fileName: " + this.fileName);
+                return false;
+            }
+            try {
+                this.mappedByteBufferWaitToClean = this.mappedByteBuffer;
+                this.mappedByteBuffer = this.fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, fileSize);
+                this.mappedByteBufferAccessCountSinceLastSwap = 0L;
+                this.swapMapTime = System.currentTimeMillis();
+                log.info("swap file " + this.fileName + " success.");
+                return true;
+            } catch (Exception e) {
+                log.error("swapMap file " + this.fileName + " Failed. ", e);
+            } finally {
+                this.release();
+            }
+        } else {
+            log.info("Will not swap file: " + this.fileName + ", ref=" + getRefCount());
+        }
+        return false;
+    }
+
+    @Override
+    public void cleanSwapedMap(boolean force) {
+        try {
+            if (this.mappedByteBufferWaitToClean == null) {
+                return;
+            }
+            long minGapTime = 120 * 1000L;
+            long gapTime = System.currentTimeMillis() - this.swapMapTime;
+            if (!force && gapTime < minGapTime) {
+                Thread.sleep(minGapTime - gapTime);
+            }
+            clean(this.mappedByteBufferWaitToClean);
+            mappedByteBufferWaitToClean = null;
+            log.info("cleanSwapedMap file " + this.fileName + " success.");
+        } catch (Exception e) {
+            log.error("cleanSwapedMap file " + this.fileName + " Failed. ", e);
+        }
+    }
+
+    @Override
+    public long getRecentSwapMapTime() {
+        return 0;
+    }
+
+    @Override
+    public long getMappedByteBufferAccessCountSinceLastSwap() {
+        return this.mappedByteBufferAccessCountSinceLastSwap;
+    }
+
+    @Override
+    public long getLastFlushTime() {
+        return this.lastFlushTime;
+    }
+
+    @Override
     public String getFileName() {
         return fileName;
     }
 
+    @Override
     public MappedByteBuffer getMappedByteBuffer() {
+        this.mappedByteBufferAccessCountSinceLastSwap++;
         return mappedByteBuffer;
     }
 
+    @Override
     public ByteBuffer sliceByteBuffer() {
+        this.mappedByteBufferAccessCountSinceLastSwap++;
         return this.mappedByteBuffer.slice();
     }
 
+    @Override
     public long getStoreTimestamp() {
         return storeTimestamp;
     }
 
+    @Override
     public boolean isFirstCreateInQueue() {
         return firstCreateInQueue;
     }
 
+    @Override
     public void setFirstCreateInQueue(boolean firstCreateInQueue) {
         this.firstCreateInQueue = firstCreateInQueue;
     }
 
+    @Override
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
@@ -565,6 +697,7 @@ public class MappedFile extends ReferenceResource {
         }
     }
 
+    @Override
     public void munlock() {
         final long beginTime = System.currentTimeMillis();
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
@@ -573,8 +706,8 @@ public class MappedFile extends ReferenceResource {
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
     }
 
-    //testable
-    File getFile() {
+    @Override
+    public File getFile() {
         return this.file;
     }
 
@@ -582,4 +715,5 @@ public class MappedFile extends ReferenceResource {
     public String toString() {
         return this.fileName;
     }
+
 }

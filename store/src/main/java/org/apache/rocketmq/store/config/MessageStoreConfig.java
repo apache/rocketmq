@@ -16,10 +16,12 @@
  */
 package org.apache.rocketmq.store.config;
 
-import java.io.File;
-
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.queue.BatchConsumeQueue;
+import org.apache.rocketmq.store.queue.CQType;
+
+import java.io.File;
 
 public class MessageStoreConfig {
 
@@ -44,6 +46,7 @@ public class MessageStoreConfig {
     private boolean enableConsumeQueueExt = false;
     // ConsumeQueue extend file size, 48M
     private int mappedFileSizeConsumeQueueExt = 48 * 1024 * 1024;
+    private int mapperFileSizeBatchConsumeQueue = 300000 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
     // Bit count of filter bit map.
     // this will be set by pipe of calculate filter bit map.
     private int bitMapLengthConsumeQueueExt = 64;
@@ -57,6 +60,12 @@ public class MessageStoreConfig {
     // flush data to FileChannel
     @ImportantField
     private int commitIntervalCommitLog = 200;
+
+    private int maxRecoveryCommitlogFiles = 30;
+
+    private int diskSpaceWarningLevelRatio = 90;
+
+    private int diskSpaceCleanForciblyRatio = 85;
 
     /**
      * introduced since 4.0.x. Determine whether to use mutex reentrantLock when putting message.<br/>
@@ -158,6 +167,51 @@ public class MessageStoreConfig {
     private boolean isEnableBatchPush = false;
 
     private boolean enableScheduleMessageStats = true;
+
+    private int maxBatchDeleteFilesNum = 50;
+    //Polish dispatch
+    private int dispatchCqThreads = 10;
+    private int dispatchCqCacheNum = 1024 * 4;
+    private boolean enableAsyncReput = true;
+    //For recheck the reput
+    private boolean recheckReputOffsetFromCq = false;
+
+    // Maximum length of topic
+    private int maxTopicLength = 1000;
+    private int travelCqFileNumWhenGetMessage = 1;
+    // Sleep interval between to corrections
+    private int correctLogicMinOffsetSleepInterval = 1;
+    // Force correct min offset interval
+    private int correctLogicMinOffsetForceInterval = 5 * 60 * 1000;
+    // swap
+    private boolean mappedFileSwapEnable = true;
+    private long commitLogForceSwapMapInterval = 12L * 60 * 60 * 1000;
+    private long commitLogSwapMapInterval = 1L * 60 * 60 * 1000;
+    private int commitLogSwapMapReserveFileNum = 100;
+    private long logicQueueForceSwapMapInterval = 12L * 60 * 60 * 1000;
+    private long logicQueueSwapMapInterval = 1L * 60 * 60 * 1000;
+    private long cleanSwapedMapInterval = 5L * 60 * 1000;
+    private int logicQueueSwapMapReserveFileNum = 20;
+
+    private boolean searchBcqByCacheEnable = true;
+
+    @ImportantField
+    private boolean dispatchFromSenderThread = false;
+
+    @ImportantField
+    private boolean wakeCommitWhenPutMessage = true;
+    @ImportantField
+    private boolean wakeFlushWhenPutMessage = false;
+
+    @ImportantField
+    private boolean enableCleanExpiredOffset = false;
+
+    @ImportantField
+    private String defaultCQType = CQType.SimpleCQ.toString();
+
+    private int maxAsyncPutMessageRequests = 5000;
+
+    private int pullBatchMaxMessageCount = 160;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -279,6 +333,38 @@ public class MessageStoreConfig {
 
     public void setMaxMessageSize(int maxMessageSize) {
         this.maxMessageSize = maxMessageSize;
+    }
+
+    public int getMaxTopicLength() {
+        return maxTopicLength;
+    }
+
+    public void setMaxTopicLength(int maxTopicLength) {
+        this.maxTopicLength = maxTopicLength;
+    }
+
+    public int getTravelCqFileNumWhenGetMessage() {
+        return travelCqFileNumWhenGetMessage;
+    }
+
+    public void setTravelCqFileNumWhenGetMessage(int travelCqFileNumWhenGetMessage) {
+        this.travelCqFileNumWhenGetMessage = travelCqFileNumWhenGetMessage;
+    }
+
+    public int getCorrectLogicMinOffsetSleepInterval() {
+        return correctLogicMinOffsetSleepInterval;
+    }
+
+    public void setCorrectLogicMinOffsetSleepInterval(int correctLogicMinOffsetSleepInterval) {
+        this.correctLogicMinOffsetSleepInterval = correctLogicMinOffsetSleepInterval;
+    }
+
+    public int getCorrectLogicMinOffsetForceInterval() {
+        return correctLogicMinOffsetForceInterval;
+    }
+
+    public void setCorrectLogicMinOffsetForceInterval(int correctLogicMinOffsetForceInterval) {
+        this.correctLogicMinOffsetForceInterval = correctLogicMinOffsetForceInterval;
     }
 
     public boolean isCheckCRCOnRecover() {
@@ -626,8 +712,7 @@ public class MessageStoreConfig {
      * @return <tt>true</tt> or <tt>false</tt>
      */
     public boolean isTransientStorePoolEnable() {
-        return transientStorePoolEnable && FlushDiskType.ASYNC_FLUSH == getFlushDiskType()
-            && BrokerRole.SLAVE != getBrokerRole();
+        return transientStorePoolEnable && BrokerRole.SLAVE != getBrokerRole();
     }
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
@@ -682,6 +767,45 @@ public class MessageStoreConfig {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
 
+    public boolean isWakeCommitWhenPutMessage() {
+        return wakeCommitWhenPutMessage;
+    }
+
+    public void setWakeCommitWhenPutMessage(boolean wakeCommitWhenPutMessage) {
+        this.wakeCommitWhenPutMessage = wakeCommitWhenPutMessage;
+    }
+
+    public boolean isWakeFlushWhenPutMessage() {
+        return wakeFlushWhenPutMessage;
+    }
+
+    public void setWakeFlushWhenPutMessage(boolean wakeFlushWhenPutMessage) {
+        this.wakeFlushWhenPutMessage = wakeFlushWhenPutMessage;
+    }
+
+    public int getMapperFileSizeBatchConsumeQueue() {
+        return mapperFileSizeBatchConsumeQueue;
+    }
+
+    public void setMapperFileSizeBatchConsumeQueue(int mapperFileSizeBatchConsumeQueue) {
+        this.mapperFileSizeBatchConsumeQueue = mapperFileSizeBatchConsumeQueue;
+    }
+
+    public boolean isEnableCleanExpiredOffset() {
+        return enableCleanExpiredOffset;
+    }
+
+    public void setEnableCleanExpiredOffset(boolean enableCleanExpiredOffset) {
+        this.enableCleanExpiredOffset = enableCleanExpiredOffset;
+    }
+
+    public String getDefaultCQType() {
+        return defaultCQType;
+    }
+
+    public void setDefaultCQType(String defaultCQType) {
+        this.defaultCQType = defaultCQType;
+    }
     public String getReadOnlyCommitLogStorePaths() {
         return readOnlyCommitLogStorePaths;
     }
@@ -743,5 +867,165 @@ public class MessageStoreConfig {
 
     public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
         this.enableScheduleMessageStats = enableScheduleMessageStats;
+    }
+
+    public int getMaxAsyncPutMessageRequests() {
+        return maxAsyncPutMessageRequests;
+    }
+
+    public void setMaxAsyncPutMessageRequests(int maxAsyncPutMessageRequests) {
+        this.maxAsyncPutMessageRequests = maxAsyncPutMessageRequests;
+    }
+
+    public int getMaxRecoveryCommitlogFiles() {
+        return maxRecoveryCommitlogFiles;
+    }
+
+    public void setMaxRecoveryCommitlogFiles(final int maxRecoveryCommitlogFiles) {
+        this.maxRecoveryCommitlogFiles = maxRecoveryCommitlogFiles;
+    }
+
+    public boolean isDispatchFromSenderThread() {
+        return dispatchFromSenderThread;
+    }
+
+    public void setDispatchFromSenderThread(boolean dispatchFromSenderThread) {
+        this.dispatchFromSenderThread = dispatchFromSenderThread;
+    }
+
+    public int getDispatchCqThreads() {
+        return dispatchCqThreads;
+    }
+
+    public void setDispatchCqThreads(final int dispatchCqThreads) {
+        this.dispatchCqThreads = dispatchCqThreads;
+    }
+
+    public int getDispatchCqCacheNum() {
+        return dispatchCqCacheNum;
+    }
+
+    public void setDispatchCqCacheNum(final int dispatchCqCacheNum) {
+        this.dispatchCqCacheNum = dispatchCqCacheNum;
+    }
+
+    public boolean isEnableAsyncReput() {
+        return enableAsyncReput;
+    }
+
+    public void setEnableAsyncReput(final boolean enableAsyncReput) {
+        this.enableAsyncReput = enableAsyncReput;
+    }
+
+    public boolean isRecheckReputOffsetFromCq() {
+        return recheckReputOffsetFromCq;
+    }
+
+    public void setRecheckReputOffsetFromCq(final boolean recheckReputOffsetFromCq) {
+        this.recheckReputOffsetFromCq = recheckReputOffsetFromCq;
+    }
+
+    public long getCommitLogForceSwapMapInterval() {
+        return commitLogForceSwapMapInterval;
+    }
+
+    public void setCommitLogForceSwapMapInterval(long commitLogForceSwapMapInterval) {
+        this.commitLogForceSwapMapInterval = commitLogForceSwapMapInterval;
+    }
+
+    public int getCommitLogSwapMapReserveFileNum() {
+        return commitLogSwapMapReserveFileNum;
+    }
+
+    public void setCommitLogSwapMapReserveFileNum(int commitLogSwapMapReserveFileNum) {
+        this.commitLogSwapMapReserveFileNum = commitLogSwapMapReserveFileNum;
+    }
+
+    public long getLogicQueueForceSwapMapInterval() {
+        return logicQueueForceSwapMapInterval;
+    }
+
+    public void setLogicQueueForceSwapMapInterval(long logicQueueForceSwapMapInterval) {
+        this.logicQueueForceSwapMapInterval = logicQueueForceSwapMapInterval;
+    }
+
+    public int getLogicQueueSwapMapReserveFileNum() {
+        return logicQueueSwapMapReserveFileNum;
+    }
+
+    public void setLogicQueueSwapMapReserveFileNum(int logicQueueSwapMapReserveFileNum) {
+        this.logicQueueSwapMapReserveFileNum = logicQueueSwapMapReserveFileNum;
+    }
+
+    public long getCleanSwapedMapInterval() {
+        return cleanSwapedMapInterval;
+    }
+
+    public void setCleanSwapedMapInterval(long cleanSwapedMapInterval) {
+        this.cleanSwapedMapInterval = cleanSwapedMapInterval;
+    }
+
+    public long getCommitLogSwapMapInterval() {
+        return commitLogSwapMapInterval;
+    }
+
+    public void setCommitLogSwapMapInterval(long commitLogSwapMapInterval) {
+        this.commitLogSwapMapInterval = commitLogSwapMapInterval;
+    }
+
+    public long getLogicQueueSwapMapInterval() {
+        return logicQueueSwapMapInterval;
+    }
+
+    public void setLogicQueueSwapMapInterval(long logicQueueSwapMapInterval) {
+        this.logicQueueSwapMapInterval = logicQueueSwapMapInterval;
+    }
+
+    public int getMaxBatchDeleteFilesNum() {
+        return maxBatchDeleteFilesNum;
+    }
+
+    public void setMaxBatchDeleteFilesNum(int maxBatchDeleteFilesNum) {
+        this.maxBatchDeleteFilesNum = maxBatchDeleteFilesNum;
+    }
+
+    public boolean isSearchBcqByCacheEnable() {
+        return searchBcqByCacheEnable;
+    }
+
+    public void setSearchBcqByCacheEnable(boolean searchBcqByCacheEnable) {
+        this.searchBcqByCacheEnable = searchBcqByCacheEnable;
+    }
+
+    public int getDiskSpaceWarningLevelRatio() {
+        return diskSpaceWarningLevelRatio;
+    }
+
+    public void setDiskSpaceWarningLevelRatio(int diskSpaceWarningLevelRatio) {
+        this.diskSpaceWarningLevelRatio = diskSpaceWarningLevelRatio;
+    }
+
+    public int getDiskSpaceCleanForciblyRatio() {
+        return diskSpaceCleanForciblyRatio;
+    }
+
+    public void setDiskSpaceCleanForciblyRatio(int diskSpaceCleanForciblyRatio) {
+        this.diskSpaceCleanForciblyRatio = diskSpaceCleanForciblyRatio;
+    }
+
+    public boolean isMappedFileSwapEnable() {
+        return mappedFileSwapEnable;
+    }
+
+    public void setMappedFileSwapEnable(boolean mappedFileSwapEnable) {
+        this.mappedFileSwapEnable = mappedFileSwapEnable;
+    }
+
+    public int getPullBatchMaxMessageCount() {
+        return pullBatchMaxMessageCount;
+    }
+
+    public void setPullBatchMaxMessageCount(int pullBatchMaxMessageCount) {
+        this.pullBatchMaxMessageCount = pullBatchMaxMessageCount;
     }
 }

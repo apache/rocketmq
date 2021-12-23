@@ -39,11 +39,11 @@ import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.junit.Before;
 import org.junit.Test;
@@ -184,7 +184,7 @@ public class PopMessageProcessorTest {
         for (int i = 0; i < msgCnt; i++) {
             ByteBuffer bb = ByteBuffer.allocate(64);
             bb.putLong(MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION, System.currentTimeMillis());
-            getMessageResult.addMessage(new SelectMappedBufferResult(200, bb, 64, new MappedFile()));
+            getMessageResult.addMessage(new SelectMappedBufferResult(200, bb, 64, new DefaultMappedFile()));
         }
         return getMessageResult;
     }

@@ -34,8 +34,10 @@ import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.CQType;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.test.util.TestUtils;
+import org.assertj.core.util.Strings;
 
 public class IntegrationTestBase {
     public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
@@ -140,8 +142,37 @@ public class IntegrationTestBase {
         storeConfig.setMaxIndexNum(INDEX_NUM);
         storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
         storeConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
+        storeConfig.setDefaultCQType(CQType.SimpleCQ.toString());
+        storeConfig.setMaxTransferCountOnMessageInMemory(1024);
+        storeConfig.setMaxTransferCountOnMessageInDisk(1024);
         return createAndStartBroker(storeConfig, brokerConfig);
+    }
 
+    public static BrokerController createAndStartBroker(String nsAddr, String cqType, String cluster) {
+        String baseDir = createBaseDir();
+        BrokerConfig brokerConfig = new BrokerConfig();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.incrementAndGet());
+        brokerConfig.setBrokerIP1("127.0.0.1");
+        brokerConfig.setNamesrvAddr(nsAddr);
+        brokerConfig.setEnablePropertyFilter(true);
+        brokerConfig.setLoadBalancePollNameServerInterval(500);
+        brokerConfig.setBrokerClusterName(cluster);
+        storeConfig.setStorePathRootDir(baseDir);
+        storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
+        storeConfig.setMappedFileSizeCommitLog(COMMIT_LOG_SIZE);
+        storeConfig.setMaxIndexNum(INDEX_NUM);
+        storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
+        storeConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
+
+        if (!Strings.isNullOrEmpty(cqType)) {
+            storeConfig.setDefaultCQType(cqType);
+        } else {
+            storeConfig.setDefaultCQType(CQType.SimpleCQ.toString());
+        }
+        storeConfig.setMaxTransferCountOnMessageInMemory(1024);
+        storeConfig.setMaxTransferCountOnMessageInDisk(1024);
+        return createAndStartBroker(storeConfig, brokerConfig);
     }
 
     public static BrokerController createAndStartBroker(MessageStoreConfig storeConfig, BrokerConfig brokerConfig) {
