@@ -16,17 +16,17 @@
  */
 package org.apache.rocketmq.acl.common;
 
-import java.lang.reflect.Field;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import static org.apache.rocketmq.acl.common.SessionCredentials.ACCESS_KEY;
-import static org.apache.rocketmq.acl.common.SessionCredentials.SECURITY_TOKEN;
-import static org.apache.rocketmq.acl.common.SessionCredentials.SIGNATURE;
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.apache.rocketmq.acl.common.SessionCredentials.*;
 
 public class AclClientRPCHook implements RPCHook {
     private final SessionCredentials sessionCredentials;
@@ -40,11 +40,11 @@ public class AclClientRPCHook implements RPCHook {
     @Override
     public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
         byte[] total = AclUtils.combineRequestContent(request,
-            parseRequestContent(request, sessionCredentials.getAccessKey(), sessionCredentials.getSecurityToken()));
+                Collections.unmodifiableSortedMap(parseRequestContent(request, sessionCredentials.getAccessKey(), sessionCredentials.getSecurityToken())));
         String signature = AclUtils.calSignature(total, sessionCredentials.getSecretKey());
         request.addExtField(SIGNATURE, signature);
         request.addExtField(ACCESS_KEY, sessionCredentials.getAccessKey());
-        
+
         // The SecurityToken value is unneccessary,user can choose this one.
         if (sessionCredentials.getSecurityToken() != null) {
             request.addExtField(SECURITY_TOKEN, sessionCredentials.getSecurityToken());

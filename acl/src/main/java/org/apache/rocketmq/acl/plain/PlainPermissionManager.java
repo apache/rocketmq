@@ -33,12 +33,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.srvutil.FileWatchService;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class PlainPermissionManager {
 
@@ -133,11 +128,11 @@ public class PlainPermissionManager {
         }
         checkPlainAccessConfig(plainAccessConfig);
 
-        Permission.checkResourcePerms(plainAccessConfig.getTopicPerms());
-        Permission.checkResourcePerms(plainAccessConfig.getGroupPerms());
+        Permission.checkResourcePerms(Collections.unmodifiableList(plainAccessConfig.getTopicPerms()));
+        Permission.checkResourcePerms(Collections.unmodifiableList(plainAccessConfig.getGroupPerms()));
 
         Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(fileHome + File.separator + fileName,
-            Map.class);
+                Map.class);
         if (aclAccessConfigMap == null || aclAccessConfigMap.isEmpty()) {
             throw new AclException(String.format("the %s file is not found or empty", fileHome + File.separator + fileName));
         }
