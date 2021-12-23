@@ -1228,7 +1228,7 @@ public class CommitLog {
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
-                CommitLog.log.warn("GroupCommitService Exception, ", e);
+                CommitLog.log.warn(this.getServiceName() + " Exception, ", e);
             }
 
             synchronized (this) {
