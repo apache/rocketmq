@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -72,6 +73,8 @@ public class QueryMsgTraceByIdSubCommandTest {
 
     private ServerResponseMocker nameServerMocker;
 
+    private static final String MSG_ID = "AC1FF54E81C418B4AAC24F92E1E00000";
+
     @Before
     public void before() {
         brokerMocker = startOneBroker();
@@ -88,7 +91,7 @@ public class QueryMsgTraceByIdSubCommandTest {
     public void testExecute() throws SubCommandException {
         QueryMsgTraceByIdSubCommand cmd = new QueryMsgTraceByIdSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-i AC1FF54E81C418B4AAC24F92E1E00000"};
+        String[] subargs = new String[] {"-i " + MSG_ID};
         final CommandLine commandLine =
                 ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
@@ -122,8 +125,10 @@ public class QueryMsgTraceByIdSubCommandTest {
     private ServerResponseMocker startOneBroker() {
         try {
             MessageExt messageExt = new MessageExt();
-            messageExt.setTopic("mockTopic");
+            messageExt.setTopic(TopicValidator.RMQ_SYS_TRACE_TOPIC);
             messageExt.setBody(new byte[100]);
+            // topic RMQ_SYS_TRACE_TOPIC which built-in rocketMQ, set msg id as msg key
+            messageExt.setKeys(MSG_ID);
             messageExt.setBornHost(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0));
             messageExt.setStoreHost(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0));
             byte[] body = MessageDecoder.encode(messageExt, false);
