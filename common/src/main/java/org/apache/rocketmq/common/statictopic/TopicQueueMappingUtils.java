@@ -384,8 +384,8 @@ public class TopicQueueMappingUtils {
                     throw new RuntimeException(String.format("The queue number %s is not in globalIdMap", i));
                 }
             }
+            checkIfReusePhysicalQueue(globalIdMap.values());
         }
-        checkIfReusePhysicalQueue(globalIdMap.values());
         return globalIdMap;
     }
 
