@@ -1166,6 +1166,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 continue;
             }
 
+            TopicQueueMappingDetail mappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(topic);
+
             {
                 SubscriptionData findSubscriptionData =
                     this.brokerController.getConsumerManager().findSubscriptionData(requestHeader.getConsumerGroup(), topic);
@@ -1193,17 +1195,26 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                     requestHeader.getConsumerGroup(),
                     topic,
                     i);
-                if (consumerOffset < 0)
-                    consumerOffset = 0;
+                // the consumerOffset cannot be zero for static topic because of the "double read check" strategy
+                // just remain the logic for dynamic topic
+                // maybe we should remove it in the future
+                if (mappingDetail == null) {
+                    if (consumerOffset < 0)
+                        consumerOffset = 0;
+                }
 
                 offsetWrapper.setBrokerOffset(brokerOffset);
                 offsetWrapper.setConsumerOffset(consumerOffset);
 
-                long timeOffset = consumerOffset - 1;
-                if (timeOffset >= 0) {
-                    long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);
-                    if (lastTimestamp > 0) {
-                        offsetWrapper.setLastTimestamp(lastTimestamp);
+                // the consumeOffset is not in this broker for static topic
+                // and may get the wrong result
+                if (mappingDetail == null) {
+                    long timeOffset = consumerOffset - 1;
+                    if (timeOffset >= 0) {
+                        long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);
+                        if (lastTimestamp > 0) {
+                            offsetWrapper.setLastTimestamp(lastTimestamp);
+                        }
                     }
                 }
 

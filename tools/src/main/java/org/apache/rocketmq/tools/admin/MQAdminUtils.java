@@ -315,6 +315,7 @@ public class MQAdminUtils {
                 if (phyOffsetWrapper == null) {
                     continue;
                 }
+
                 if (consumerOffset == -1
                     && phyOffsetWrapper.getConsumerOffset() >= 0) {
                     consumerOffset = phyOffsetWrapper.getConsumerOffset();
@@ -322,7 +323,7 @@ public class MQAdminUtils {
                 }
                 if (brokerOffset == -1
                     && item.getLogicOffset() >= 0) {
-                    brokerOffset = item.computeStaticQueueOffsetStrictly(offsetWrapper.getBrokerOffset());
+                    brokerOffset = item.computeStaticQueueOffsetStrictly(phyOffsetWrapper.getBrokerOffset());
                 }
                 if (consumerOffset >= 0
                     && brokerOffset >= 0) {

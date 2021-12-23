@@ -10,6 +10,7 @@ import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
+import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -306,6 +307,15 @@ public class StaticTopicIT extends BaseConf {
         //use a new producer
         producer = getProducer(nsAddr, topic);
 
+        ConsumeStats consumeStats = defaultMQAdminExt.examineConsumeStats(group);
+        List<MessageQueue> messageQueues = producer.getMessageQueue();
+        for (MessageQueue queue: messageQueues) {
+            OffsetWrapper wrapper = consumeStats.getOffsetTable().get(queue);
+            Assert.assertNotNull(wrapper);
+            Assert.assertEquals(msgEachQueue, wrapper.getBrokerOffset());
+            Assert.assertEquals(msgEachQueue, wrapper.getConsumerOffset());
+        }
+
         List<String> brokers = ImmutableList.of(broker2Name, broker3Name, broker1Name);
         for (int i = 0; i < brokers.size(); i++) {
             Set<String> targetBrokers = ImmutableSet.of(brokers.get(i));
@@ -313,6 +323,15 @@ public class StaticTopicIT extends BaseConf {
             //make the metadata
             Thread.sleep(500);
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, (i + 1) * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
+        }
+        consumeStats = defaultMQAdminExt.examineConsumeStats(group);
+
+        messageQueues = producer.getMessageQueue();
+        for (MessageQueue queue: messageQueues) {
+            OffsetWrapper wrapper = consumeStats.getOffsetTable().get(queue);
+            Assert.assertNotNull(wrapper);
+            Assert.assertEquals(msgEachQueue + brokers.size() * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, wrapper.getBrokerOffset());
+            Assert.assertEquals(msgEachQueue, wrapper.getConsumerOffset());
         }
         consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
         consumeMessagesAndCheck(producer, consumer, topic, queueNum, msgEachQueue, 1, brokers.size());
