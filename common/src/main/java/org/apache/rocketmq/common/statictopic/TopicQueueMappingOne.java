@@ -28,8 +28,10 @@ public class TopicQueueMappingOne extends RemotingSerializable {
     String bname;  //identify the hosted broker name
     Integer globalId;
     List<LogicQueueMappingItem> items;
+    TopicQueueMappingDetail mappingDetail;
 
-    public TopicQueueMappingOne(String topic, String bname, Integer globalId, List<LogicQueueMappingItem> items) {
+    public TopicQueueMappingOne(TopicQueueMappingDetail mappingDetail, String topic, String bname, Integer globalId, List<LogicQueueMappingItem> items) {
+        this.mappingDetail =  mappingDetail;
         this.topic = topic;
         this.bname = bname;
         this.globalId = globalId;
@@ -52,29 +54,35 @@ public class TopicQueueMappingOne extends RemotingSerializable {
         return items;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
+    public TopicQueueMappingDetail getMappingDetail() {
+        return mappingDetail;
+    }
 
-        if (!(o instanceof TopicQueueMappingOne)) return false;
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof TopicQueueMappingOne))
+            return false;
 
         TopicQueueMappingOne that = (TopicQueueMappingOne) o;
 
-        return new EqualsBuilder()
-                .append(topic, that.topic)
-                .append(bname, that.bname)
-                .append(globalId, that.globalId)
-                .append(items, that.items)
-                .isEquals();
+        if (topic != null ? !topic.equals(that.topic) : that.topic != null)
+            return false;
+        if (bname != null ? !bname.equals(that.bname) : that.bname != null)
+            return false;
+        if (globalId != null ? !globalId.equals(that.globalId) : that.globalId != null)
+            return false;
+        if (items != null ? !items.equals(that.items) : that.items != null)
+            return false;
+        return mappingDetail != null ? mappingDetail.equals(that.mappingDetail) : that.mappingDetail == null;
     }
 
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(topic)
-                .append(bname)
-                .append(globalId)
-                .append(items)
-                .toHashCode();
+    @Override public int hashCode() {
+        int result = topic != null ? topic.hashCode() : 0;
+        result = 31 * result + (bname != null ? bname.hashCode() : 0);
+        result = 31 * result + (globalId != null ? globalId.hashCode() : 0);
+        result = 31 * result + (items != null ? items.hashCode() : 0);
+        result = 31 * result + (mappingDetail != null ? mappingDetail.hashCode() : 0);
+        return result;
     }
 }

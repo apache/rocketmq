@@ -371,7 +371,7 @@ public class TopicQueueMappingUtils {
                         throw new RuntimeException(String.format("The queue id is duplicated in broker %s %s", leaderBrokerName, mappingDetail.getBname()));
                     }
                 } else {
-                    globalIdMap.put(globalid, new TopicQueueMappingOne(mappingDetail.topic, mappingDetail.bname, globalid, entry.getValue()));
+                    globalIdMap.put(globalid, new TopicQueueMappingOne(mappingDetail, mappingDetail.topic, mappingDetail.bname, globalid, entry.getValue()));
                 }
             }
         }
@@ -384,8 +384,8 @@ public class TopicQueueMappingUtils {
                     throw new RuntimeException(String.format("The queue number %s is not in globalIdMap", i));
                 }
             }
-            checkIfReusePhysicalQueue(globalIdMap.values());
         }
+        checkIfReusePhysicalQueue(globalIdMap.values());
         return globalIdMap;
     }
 

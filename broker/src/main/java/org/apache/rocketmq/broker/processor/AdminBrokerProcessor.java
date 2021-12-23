@@ -1019,69 +1019,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         return response;
     }
 
-    private RpcResponse handleGetTopicStatsInfoForStaticTopic(RpcRequest request, TopicQueueMappingContext mappingContext) {
-        try {
-            assert request.getCode() == RequestCode.GET_TOPIC_STATS_INFO;
-            if (mappingContext.getMappingDetail() == null) {
-                return null;
-            }
-            final GetTopicStatsInfoRequestHeader requestHeader = (GetTopicStatsInfoRequestHeader) request.getHeader();
-            String topic = requestHeader.getTopic();
-            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
-            Map<Integer, LogicQueueMappingItem[]> qidItemMap = new HashMap<>();
-            Set<String> brokers = new HashSet<>();
-            mappingDetail.getHostedQueues().forEach((qid, items) -> {
-                if (TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
-                    LogicQueueMappingItem[] itemPair = new LogicQueueMappingItem[2];
-                    itemPair[0] = TopicQueueMappingUtils.findLogicQueueMappingItem(items, 0, true);
-                    itemPair[1] = TopicQueueMappingUtils.findLogicQueueMappingItem(items, Long.MAX_VALUE, true);
-                    assert itemPair[0] != null && itemPair[1] != null;
-                    qidItemMap.put(qid, itemPair);
-                    brokers.add(itemPair[0].getBname());
-                    brokers.add(itemPair[1].getBname());
-                }
-            });
-            Map<String, TopicStatsTable> statsTable = new HashMap<>();
-            for (String broker: brokers) {
-                GetTopicStatsInfoRequestHeader header = new GetTopicStatsInfoRequestHeader();
-                header.setTopic(topic);
-                header.setBname(broker);
-                header.setLo(false);
-                RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_TOPIC_STATS_INFO, header, null);
-                RpcResponse rpcResponse = rpcClient.invoke(rpcRequest, brokerConfig.getForwardTimeout()).get();
-                if (rpcResponse.getException() != null) {
-                    throw rpcResponse.getException();
-                }
-                statsTable.put(broker, (TopicStatsTable) rpcResponse.getBody());
-            }
-            TopicStatsTable topicStatsTable = new TopicStatsTable();
-            qidItemMap.forEach((qid, itemPair) -> {
-                LogicQueueMappingItem minItem = itemPair[0];
-                LogicQueueMappingItem maxItem = itemPair[1];
-                TopicOffset minTopicOffset = statsTable.get(minItem.getBname()).getOffsetTable().get(new MessageQueue(topic, minItem.getBname(), minItem.getQueueId()));
-                TopicOffset maxTopicOffset = statsTable.get(maxItem.getBname()).getOffsetTable().get(new MessageQueue(topic, maxItem.getBname(), maxItem.getQueueId()));
 
-                assert  minTopicOffset != null && maxTopicOffset != null;
-
-                long min = minItem.computeStaticQueueOffsetLoosely(minTopicOffset.getMinOffset());
-                if (min < 0)
-                    min = 0;
-                long max = maxItem.computeStaticQueueOffsetStrictly(maxTopicOffset.getMaxOffset());
-                if (max < 0)
-                    max = 0;
-                long timestamp = maxTopicOffset.getLastUpdateTimestamp();
-
-                TopicOffset topicOffset = new TopicOffset();
-                topicOffset.setMinOffset(min);
-                topicOffset.setMaxOffset(max);
-                topicOffset.setLastUpdateTimestamp(timestamp);
-                topicStatsTable.getOffsetTable().put(new MessageQueue(topic, TopicQueueMappingUtils.getMockBrokerName(mappingDetail.getScope()), qid), topicOffset);
-            });
-            return new RpcResponse(ResponseCode.SUCCESS, null, topicStatsTable);
-        } catch (Throwable t) {
-            return new RpcResponse(new RpcException(ResponseCode.SYSTEM_ERROR, t.getMessage(), t));
-        }
-    }
 
     private RemotingCommand getTopicStatsInfo(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
@@ -1097,15 +1035,6 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
         TopicStatsTable topicStatsTable = new TopicStatsTable();
-        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
-        RpcResponse rpcResponse = handleGetTopicStatsInfoForStaticTopic(new RpcRequest(RequestCode.GET_TOPIC_STATS_INFO, requestHeader, null), mappingContext);
-        if (rpcResponse != null) {
-            if (rpcResponse.getException() != null) {
-                return RpcClientUtils.createCommandForRpcResponse(rpcResponse);
-            } else {
-                topicStatsTable.getOffsetTable().putAll(((TopicStatsTable)rpcResponse.getBody()).getOffsetTable());
-            }
-        }
 
         for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
             MessageQueue mq = new MessageQueue();

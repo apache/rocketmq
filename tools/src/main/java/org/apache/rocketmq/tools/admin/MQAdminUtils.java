@@ -19,16 +19,20 @@ package org.apache.rocketmq.tools.admin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.admin.ConsumeStats;
+import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.rpc.ClientMetadata;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -41,6 +45,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils.checkAndBuildMappingItems;
+import static org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
 
 public class MQAdminUtils {
 
@@ -228,5 +235,108 @@ public class MQAdminUtils {
             }
         }
         return brokerConfigMap;
+    }
+
+
+    public static Map<String, TopicConfigAndQueueMapping> examineTopicConfigFromRoute(String topic, TopicRouteData topicRouteData, DefaultMQAdminExt defaultMQAdminExt) throws RemotingException,  InterruptedException, MQBrokerException {
+        Map<String, TopicConfigAndQueueMapping> brokerConfigMap = new HashMap<>();
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String broker = bd.getBrokerName();
+            String addr = bd.selectBrokerAddr();
+            if (addr == null) {
+                continue;
+            }
+            try {
+                TopicConfigAndQueueMapping mapping = (TopicConfigAndQueueMapping) defaultMQAdminExt.examineTopicConfig(addr, topic);
+                //allow the config is null
+                if (mapping != null) {
+                    if (mapping.getMappingDetail() != null) {
+                        assert mapping.getMappingDetail().getBname().equals(broker);
+                    }
+                    brokerConfigMap.put(broker, mapping);
+                }
+            } catch (MQBrokerException exception) {
+                if (exception.getResponseCode() != ResponseCode.TOPIC_NOT_EXIST) {
+                    throw exception;
+                }
+            }
+        }
+        return brokerConfigMap;
+    }
+
+    public static void convertPhysicalTopicStats(String topic, Map<String, TopicConfigAndQueueMapping> brokerConfigMap, TopicStatsTable topicStatsTable) {
+        Map<Integer, TopicQueueMappingOne> globalIdMap = checkAndBuildMappingItems(getMappingDetailFromConfig(brokerConfigMap.values()), true, false);
+        for (Map.Entry<Integer, TopicQueueMappingOne> entry: globalIdMap.entrySet()) {
+            Integer qid = entry.getKey();
+            TopicQueueMappingOne mappingOne =  entry.getValue();
+            LogicQueueMappingItem minItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingOne.getItems(), 0, true);
+            LogicQueueMappingItem maxItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingOne.getItems(), Long.MAX_VALUE, true);
+            assert  minItem != null && maxItem != null;
+            TopicOffset minTopicOffset = topicStatsTable.getOffsetTable().get(new MessageQueue(topic, minItem.getBname(), minItem.getQueueId()));
+            TopicOffset maxTopicOffset = topicStatsTable.getOffsetTable().get(new MessageQueue(topic, maxItem.getBname(), maxItem.getQueueId()));
+
+            if (minTopicOffset == null
+                || maxTopicOffset == null) {
+                continue;
+            }
+            long min = minItem.computeStaticQueueOffsetLoosely(minTopicOffset.getMinOffset());
+            if (min < 0)
+                min = 0;
+            long max = maxItem.computeStaticQueueOffsetStrictly(maxTopicOffset.getMaxOffset());
+            if (max < 0)
+                max = 0;
+            long timestamp = maxTopicOffset.getLastUpdateTimestamp();
+
+            TopicOffset topicOffset = new TopicOffset();
+            topicOffset.setMinOffset(min);
+            topicOffset.setMaxOffset(max);
+            topicOffset.setLastUpdateTimestamp(timestamp);
+            topicStatsTable.getOffsetTable().put(new MessageQueue(topic, TopicQueueMappingUtils.getMockBrokerName(mappingOne.getMappingDetail().getScope()), qid), topicOffset);
+        }
+    }
+
+
+    public static ConsumeStats convertPhysicalConsumeStats(Map<String, TopicConfigAndQueueMapping> brokerConfigMap, ConsumeStats physicalResult) {
+        Map<Integer, TopicQueueMappingOne> globalIdMap = checkAndBuildMappingItems(getMappingDetailFromConfig(brokerConfigMap.values()), true, false);
+        ConsumeStats result = new ConsumeStats();
+        result.setConsumeTps(physicalResult.getConsumeTps());
+        for (Map.Entry<Integer, TopicQueueMappingOne> entry : globalIdMap.entrySet()) {
+            Integer qid = entry.getKey();
+            TopicQueueMappingOne mappingOne = entry.getValue();
+            MessageQueue messageQueue = new MessageQueue(mappingOne.getTopic(), TopicQueueMappingUtils.getMockBrokerName(mappingOne.getMappingDetail().getScope()), qid);
+            OffsetWrapper offsetWrapper = new OffsetWrapper();
+            long brokerOffset = -1;
+            long consumerOffset = -1;
+            long lastTimestamp = -1; //maybe need to be polished
+            for (int i = mappingOne.getItems().size() - 1; i >= 0; i--) {
+                LogicQueueMappingItem item = mappingOne.getItems().get(i);
+                MessageQueue phyQueue = new MessageQueue(mappingOne.getTopic(), item.getBname(), item.getQueueId());
+                OffsetWrapper phyOffsetWrapper = physicalResult.getOffsetTable().get(phyQueue);
+                if (phyOffsetWrapper == null) {
+                    continue;
+                }
+                if (consumerOffset == -1
+                    && phyOffsetWrapper.getConsumerOffset() >= 0) {
+                    consumerOffset = phyOffsetWrapper.getConsumerOffset();
+                    lastTimestamp = phyOffsetWrapper.getLastTimestamp();
+                }
+                if (brokerOffset == -1
+                    && item.getLogicOffset() >= 0) {
+                    brokerOffset = item.computeStaticQueueOffsetStrictly(offsetWrapper.getBrokerOffset());
+                }
+                if (consumerOffset >= 0
+                    && brokerOffset >= 0) {
+                    break;
+                }
+            }
+            if (brokerOffset >= 0
+                && consumerOffset >= 0) {
+                offsetWrapper.setBrokerOffset(brokerOffset);
+                offsetWrapper.setConsumerOffset(consumerOffset);
+                offsetWrapper.setLastTimestamp(lastTimestamp);
+                result.getOffsetTable().put(messageQueue, offsetWrapper);
+            }
+        }
+        return result;
     }
 }
