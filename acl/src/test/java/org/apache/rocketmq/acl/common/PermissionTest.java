@@ -16,11 +16,15 @@
  */
 package org.apache.rocketmq.acl.common;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.*;
 
 public class PermissionTest {
 
@@ -166,23 +170,23 @@ public class PermissionTest {
     @Test
     public void checkResourcePermsNormalTest() {
         Permission.checkResourcePerms(null);
-        Permission.checkResourcePerms(Collections.unmodifiableList(new ArrayList<>()));
-        Permission.checkResourcePerms(Collections.unmodifiableList(Arrays.asList("topicA=PUB")));
-        Permission.checkResourcePerms(Collections.unmodifiableList(Arrays.asList("topicA=PUB", "topicB=SUB", "topicC=PUB|SUB")));
+        Permission.checkResourcePerms(new ArrayList<>());
+        Permission.checkResourcePerms(Arrays.asList("topicA=PUB"));
+        Permission.checkResourcePerms(Arrays.asList("topicA=PUB", "topicB=SUB", "topicC=PUB|SUB"));
     }
 
     @Test(expected = AclException.class)
     public void checkResourcePermsExceptionTest1() {
-        Permission.checkResourcePerms(Collections.unmodifiableList(Arrays.asList("topicA")));
+        Permission.checkResourcePerms(Arrays.asList("topicA"));
     }
 
     @Test(expected = AclException.class)
     public void checkResourcePermsExceptionTest2() {
-        Permission.checkResourcePerms(Collections.unmodifiableList(Arrays.asList("topicA=")));
+        Permission.checkResourcePerms(Arrays.asList("topicA="));
     }
 
     @Test(expected = AclException.class)
     public void checkResourcePermsExceptionTest3() {
-        Permission.checkResourcePerms(Collections.unmodifiableList(Arrays.asList("topicA=DENY1")));
+        Permission.checkResourcePerms(Arrays.asList("topicA=DENY1"));
     }
 }
