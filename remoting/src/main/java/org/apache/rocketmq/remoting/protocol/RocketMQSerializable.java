@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RocketMQSerializable {
     private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
@@ -133,7 +134,7 @@ public class RocketMQSerializable {
         return length;
     }
 
-    public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) {
+    public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) throws RemotingCommandException {
         RemotingCommand cmd = new RemotingCommand();
         ByteBuffer headerBuffer = ByteBuffer.wrap(headerArray);
         // int code(~32767)
@@ -149,6 +150,9 @@ public class RocketMQSerializable {
         // String remark
         int remarkLength = headerBuffer.getInt();
         if (remarkLength > 0) {
+            if (remarkLength > headerArray.length) {
+                throw new RemotingCommandException("RocketMQ protocol decoding failed, remark length: " + remarkLength + ", but header length: " + headerArray.length);
+            }
             byte[] remarkContent = new byte[remarkLength];
             headerBuffer.get(remarkContent);
             cmd.setRemark(new String(remarkContent, CHARSET_UTF8));
@@ -157,6 +161,9 @@ public class RocketMQSerializable {
         // HashMap<String, String> extFields
         int extFieldsLength = headerBuffer.getInt();
         if (extFieldsLength > 0) {
+            if (extFieldsLength > headerArray.length) {
+                throw new RemotingCommandException("RocketMQ protocol decoding failed, extFields length: " + extFieldsLength + ", but header length: " + headerArray.length);
+            }
             byte[] extFieldsBytes = new byte[extFieldsLength];
             headerBuffer.get(extFieldsBytes);
             cmd.setExtFields(mapDeserialize(extFieldsBytes));

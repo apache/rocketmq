@@ -369,7 +369,7 @@ public class DefaultMQProducerTest {
         final AtomicBoolean finish = new AtomicBoolean(false);
         new Thread(new Runnable() {
             @Override public void run() {
-                ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureTable.getRequestFutureTable();
+                ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
                 assertThat(responseMap).isNotNull();
                 while (!finish.get()) {
                     try {
@@ -411,7 +411,7 @@ public class DefaultMQProducerTest {
             }
         };
         producer.request(message, requestCallback, 3 * 1000L);
-        ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureTable.getRequestFutureTable();
+        ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
         assertThat(responseMap).isNotNull();
         for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
             RequestResponseFuture future = entry.getValue();
@@ -447,7 +447,7 @@ public class DefaultMQProducerTest {
             producer.request(message, requestCallback, 3 * 1000L);
             failBecauseExceptionWasNotThrown(Exception.class);
         } catch (Exception e) {
-            ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureTable.getRequestFutureTable();
+            ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
             assertThat(responseMap).isNotNull();
             for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
                 RequestResponseFuture future = entry.getValue();

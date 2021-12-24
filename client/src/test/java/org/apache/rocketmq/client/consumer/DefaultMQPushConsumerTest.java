@@ -57,7 +57,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,7 +75,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -90,7 +89,7 @@ public class DefaultMQPushConsumerTest {
     private MQClientAPIImpl mQClientAPIImpl;
     private RebalanceImpl rebalanceImpl;
     private RebalancePushImpl rebalancePushImpl;
-    private DefaultMQPushConsumer pushConsumer;
+    private static DefaultMQPushConsumer pushConsumer;
 
     @Before
     public void init() throws Exception {
@@ -157,8 +156,8 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.start();
     }
 
-    @After
-    public void terminate() {
+    @AfterClass
+    public static void terminate() {
         pushConsumer.shutdown();
     }
 

@@ -47,7 +47,7 @@ public class BrokerStatsManagerTest {
 
     @Before
     public void init() {
-        brokerStatsManager = new BrokerStatsManager("DefaultCluster");
+        brokerStatsManager = new BrokerStatsManager("DefaultCluster", true);
         brokerStatsManager.start();
     }
 

@@ -17,6 +17,8 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import java.util.HashMap;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,15 +44,22 @@ public class RocketMQSerializableTest {
         assertThat(parseToInt(result, 13)).isEqualTo(0); //empty remark
         assertThat(parseToInt(result, 17)).isEqualTo(0); //empty extFields
 
-        RemotingCommand decodedCommand = RocketMQSerializable.rocketMQProtocolDecode(result);
+        RemotingCommand decodedCommand = null;
+        try {
+            decodedCommand = RocketMQSerializable.rocketMQProtocolDecode(result);
 
-        assertThat(decodedCommand.getCode()).isEqualTo(code);
-        assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
-        assertThat(decodedCommand.getVersion()).isEqualTo(2333);
-        assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
-        assertThat(decodedCommand.getFlag()).isEqualTo(0);
-        assertThat(decodedCommand.getRemark()).isNull();
-        assertThat(decodedCommand.getExtFields()).isNull();
+            assertThat(decodedCommand.getCode()).isEqualTo(code);
+            assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
+            assertThat(decodedCommand.getVersion()).isEqualTo(2333);
+            assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
+            assertThat(decodedCommand.getFlag()).isEqualTo(0);
+            assertThat(decodedCommand.getRemark()).isNull();
+            assertThat(decodedCommand.getExtFields()).isNull();
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+
+            Assert.fail("Should not throw IOException");
+        }
     }
 
     @Test
@@ -80,15 +89,21 @@ public class RocketMQSerializableTest {
 
         assertThat(parseToInt(result, 30)).isEqualTo(0); //empty extFields
 
-        RemotingCommand decodedCommand = RocketMQSerializable.rocketMQProtocolDecode(result);
+        try {
+            RemotingCommand decodedCommand = RocketMQSerializable.rocketMQProtocolDecode(result);
 
-        assertThat(decodedCommand.getCode()).isEqualTo(code);
-        assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
-        assertThat(decodedCommand.getVersion()).isEqualTo(2333);
-        assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
-        assertThat(decodedCommand.getFlag()).isEqualTo(0);
-        assertThat(decodedCommand.getRemark()).contains("Sample Remark");
-        assertThat(decodedCommand.getExtFields()).isNull();
+            assertThat(decodedCommand.getCode()).isEqualTo(code);
+            assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
+            assertThat(decodedCommand.getVersion()).isEqualTo(2333);
+            assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
+            assertThat(decodedCommand.getFlag()).isEqualTo(0);
+            assertThat(decodedCommand.getRemark()).contains("Sample Remark");
+            assertThat(decodedCommand.getExtFields()).isNull();
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+
+            Assert.fail("Should not throw IOException");
+        }
     }
 
     @Test
@@ -118,15 +133,20 @@ public class RocketMQSerializableTest {
         HashMap<String, String> extFields = RocketMQSerializable.mapDeserialize(extFieldsArray);
         assertThat(extFields).contains(new HashMap.SimpleEntry("key", "value"));
 
-        RemotingCommand decodedCommand = RocketMQSerializable.rocketMQProtocolDecode(result);
+        try {
+            RemotingCommand decodedCommand = RocketMQSerializable.rocketMQProtocolDecode(result);
+            assertThat(decodedCommand.getCode()).isEqualTo(code);
+            assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
+            assertThat(decodedCommand.getVersion()).isEqualTo(2333);
+            assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
+            assertThat(decodedCommand.getFlag()).isEqualTo(0);
+            assertThat(decodedCommand.getRemark()).isNull();
+            assertThat(decodedCommand.getExtFields()).contains(new HashMap.SimpleEntry("key", "value"));
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
 
-        assertThat(decodedCommand.getCode()).isEqualTo(code);
-        assertThat(decodedCommand.getLanguage()).isEqualTo(LanguageCode.JAVA);
-        assertThat(decodedCommand.getVersion()).isEqualTo(2333);
-        assertThat(decodedCommand.getOpaque()).isEqualTo(opaque);
-        assertThat(decodedCommand.getFlag()).isEqualTo(0);
-        assertThat(decodedCommand.getRemark()).isNull();
-        assertThat(decodedCommand.getExtFields()).contains(new HashMap.SimpleEntry("key", "value"));
+            Assert.fail("Should not throw IOException");
+        }
     }
 
     @Test
