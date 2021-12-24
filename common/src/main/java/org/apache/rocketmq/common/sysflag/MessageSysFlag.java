@@ -25,6 +25,8 @@ public class MessageSysFlag {
     public final static int TRANSACTION_ROLLBACK_TYPE = 0x3 << 2;
     public final static int BORNHOST_V6_FLAG = 0x1 << 4;
     public final static int STOREHOSTADDRESS_V6_FLAG = 0x1 << 5;
+    public final static int NEED_UNWRAP_FLAG = 0x1 << 6;
+    public final static int INNER_BATCH_FLAG = 0x1 << 7;
 
     public static int getTransactionValue(final int flag) {
         return flag & TRANSACTION_ROLLBACK_TYPE;
@@ -38,4 +40,7 @@ public class MessageSysFlag {
         return flag & (~COMPRESSED_FLAG);
     }
 
+    public static boolean check(int flag, int expectedFlag) {
+        return (flag & expectedFlag) != 0;
+    }
 }

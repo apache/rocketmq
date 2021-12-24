@@ -59,7 +59,7 @@ public class StaticTopicIT extends BaseConf {
     public void setUp() throws Exception {
         System.setProperty("rocketmq.client.rebalance.waitInterval", "500");
         defaultMQAdminExt = getAdmin(nsAddr);
-        waitBrokerRegistered(nsAddr, clusterName);
+        waitBrokerRegistered(nsAddr, clusterName, brokerNum);
         defaultMQAdminExt.start();
     }
 

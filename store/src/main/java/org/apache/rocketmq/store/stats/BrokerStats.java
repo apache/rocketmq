@@ -19,12 +19,12 @@ package org.apache.rocketmq.store.stats;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MessageStore;
 
 public class BrokerStats {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final DefaultMessageStore defaultMessageStore;
+    private final MessageStore defaultMessageStore;
 
     private volatile long msgPutTotalYesterdayMorning;
 
@@ -34,7 +34,7 @@ public class BrokerStats {
 
     private volatile long msgGetTotalTodayMorning;
 
-    public BrokerStats(DefaultMessageStore defaultMessageStore) {
+    public BrokerStats(MessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
     }
 

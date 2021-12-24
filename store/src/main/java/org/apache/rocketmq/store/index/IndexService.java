@@ -29,8 +29,8 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 public class IndexService {
@@ -39,14 +39,14 @@ public class IndexService {
      * Maximum times to attempt index file creation.
      */
     private static final int MAX_TRY_IDX_CREATE = 3;
-    private final DefaultMessageStore defaultMessageStore;
+    private final MessageStore defaultMessageStore;
     private final int hashSlotNum;
     private final int indexNum;
     private final String storePath;
     private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
-    public IndexService(final DefaultMessageStore store) {
+    public IndexService(final MessageStore store) {
         this.defaultMessageStore = store;
         this.hashSlotNum = store.getMessageStoreConfig().getMaxHashSlotNum();
         this.indexNum = store.getMessageStoreConfig().getMaxIndexNum();
@@ -282,7 +282,7 @@ public class IndexService {
         }
 
         if (null == indexFile) {
-            this.defaultMessageStore.getAccessRights().makeIndexFileError();
+            this.defaultMessageStore.getRunningFlags().makeIndexFileError();
             log.error("Mark index file cannot build flag");
         }
 

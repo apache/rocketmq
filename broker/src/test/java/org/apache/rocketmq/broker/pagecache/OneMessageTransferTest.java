@@ -18,8 +18,8 @@
 package org.apache.rocketmq.broker.pagecache;
 
 import java.nio.ByteBuffer;
-import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,7 +29,7 @@ public class OneMessageTransferTest {
     public void OneMessageTransferTest(){
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
-        SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new MappedFile());
+        SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new DefaultMappedFile());
         OneMessageTransfer manyMessageTransfer = new OneMessageTransfer(byteBuffer,selectMappedBufferResult);
     }
 
@@ -37,7 +37,7 @@ public class OneMessageTransferTest {
     public void OneMessageTransferCountTest(){
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
-        SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new MappedFile());
+        SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new DefaultMappedFile());
         OneMessageTransfer manyMessageTransfer = new OneMessageTransfer(byteBuffer,selectMappedBufferResult);
         Assert.assertEquals(manyMessageTransfer.count(),40);
     }
@@ -46,7 +46,7 @@ public class OneMessageTransferTest {
     public void OneMessageTransferPosTest(){
         ByteBuffer byteBuffer = ByteBuffer.allocate(20);
         byteBuffer.putInt(20);
-        SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new MappedFile());
+        SelectMappedBufferResult selectMappedBufferResult = new SelectMappedBufferResult(0,byteBuffer,20,new DefaultMappedFile());
         OneMessageTransfer manyMessageTransfer = new OneMessageTransfer(byteBuffer,selectMappedBufferResult);
         Assert.assertEquals(manyMessageTransfer.position(),8);
     }
