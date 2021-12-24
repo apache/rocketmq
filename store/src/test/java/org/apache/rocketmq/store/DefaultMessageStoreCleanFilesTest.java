@@ -25,6 +25,8 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.index.IndexFile;
 import org.apache.rocketmq.store.index.IndexService;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
@@ -342,12 +344,12 @@ public class DefaultMessageStoreCleanFilesTest {
 
         Field warningLevelRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceWarningLevelRatio");
         warningLevelRatioField.setAccessible(true);
-        warningLevelRatioField.set(cleanCommitLogService, diskSpaceCleanForciblyRatio);
+        warningLevelRatioField.set(cleanCommitLogService, String.valueOf(diskSpaceCleanForciblyRatio));
         warningLevelRatioField.setAccessible(false);
 
         Field cleanForciblyRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceCleanForciblyRatio");
         cleanForciblyRatioField.setAccessible(true);
-        cleanForciblyRatioField.set(cleanCommitLogService, diskSpaceCleanForciblyRatio);
+        cleanForciblyRatioField.set(cleanCommitLogService, String.valueOf(diskSpaceCleanForciblyRatio));
         cleanForciblyRatioField.setAccessible(false);
         return cleanCommitLogService;
     }
@@ -364,7 +366,7 @@ public class DefaultMessageStoreCleanFilesTest {
 
     private MappedFileQueue getMappedFileQueueConsumeQueue()
             throws Exception {
-        ConsumeQueue consumeQueue = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+        ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueueTable().get(topic).get(queueId);
         Field queueField = consumeQueue.getClass().getDeclaredField("mappedFileQueue");
         queueField.setAccessible(true);
         MappedFileQueue fileQueue = (MappedFileQueue) queueField.get(consumeQueue);

@@ -29,10 +29,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MessageExtBatch;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -330,7 +330,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
 
         DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group, "n1", peers, "n0", false, 0);
-        Thread.sleep(2000);
+        Thread.sleep(10000);
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(1, followerStore.getMaxOffsetInQueue(topic, 0));
@@ -364,7 +364,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
 
         DefaultMessageStore followerStore = createDledgerMessageStore(createBaseDir(), group, "n1", peers, "n0", false, 0);
-        Thread.sleep(2000);
+        Thread.sleep(10000);
 
         Assert.assertEquals(1, leaderStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(1, followerStore.getMaxOffsetInQueue(topic, 0));

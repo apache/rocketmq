@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.junit.Test;
 
 

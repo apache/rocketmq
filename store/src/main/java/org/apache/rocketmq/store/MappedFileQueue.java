@@ -25,29 +25,34 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
+
+import com.google.common.collect.Lists;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.store.logfile.MappedFile;
 
-public class MappedFileQueue {
+public class MappedFileQueue implements Swappable {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
-    private final String storePath;
+    protected final String storePath;
 
     protected final int mappedFileSize;
 
     protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
-    private final AllocateMappedFileService allocateMappedFileService;
+    protected final AllocateMappedFileService allocateMappedFileService;
 
     protected long flushedWhere = 0;
-    private long committedWhere = 0;
+    protected long committedWhere = 0;
 
-    private volatile long storeTimestamp = 0;
+    protected volatile long storeTimestamp = 0;
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
         AllocateMappedFileService allocateMappedFileService) {
@@ -91,7 +96,7 @@ public class MappedFileQueue {
         return (MappedFile) mfs[mfs.length - 1];
     }
 
-    private Object[] copyMappedFiles(final int reservedMappedFiles) {
+    protected Object[] copyMappedFiles(final int reservedMappedFiles) {
         Object[] mfs;
 
         if (this.mappedFiles.size() <= reservedMappedFiles) {
@@ -166,8 +171,8 @@ public class MappedFileQueue {
                 return true;
             }
 
-            try {
-                MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
+                try {
+                    MappedFile mappedFile = new DefaultMappedFile(file.getPath(), mappedFileSize);
 
                 mappedFile.setWrotePosition(this.mappedFileSize);
                 mappedFile.setFlushedPosition(this.mappedFileSize);
@@ -229,13 +234,13 @@ public class MappedFileQueue {
         if (this.allocateMappedFileService != null) {
             mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
-        } else {
-            try {
-                mappedFile = new MappedFile(nextFilePath, this.mappedFileSize);
-            } catch (IOException e) {
-                log.error("create mappedFile exception", e);
+            } else {
+                try {
+                    mappedFile = new DefaultMappedFile(nextFilePath, this.mappedFileSize);
+                } catch (IOException e) {
+                    log.error("create mappedFile exception", e);
+                }
             }
-        }
 
         if (mappedFile != null) {
             if (this.mappedFiles.isEmpty()) {
@@ -583,6 +588,70 @@ public class MappedFileQueue {
         if (file.isDirectory()) {
             file.delete();
         }
+    }
+
+    @Override
+    public void swapMap(int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs) {
+
+        if (mappedFiles.isEmpty()) {
+            return;
+        }
+
+        if (reserveNum < 3) {
+            reserveNum = 3;
+        }
+
+        Object[] mfs = this.copyMappedFiles(0);
+        if (null == mfs) {
+            return;
+        }
+
+        for (int i = mfs.length - reserveNum - 1; i >= 0; i--) {
+            MappedFile mappedFile = (MappedFile) mfs[i];
+            if (System.currentTimeMillis() - mappedFile.getRecentSwapMapTime() > forceSwapIntervalMs) {
+                mappedFile.swapMap();
+                continue;
+            }
+            if (System.currentTimeMillis() - mappedFile.getRecentSwapMapTime() > normalSwapIntervalMs
+                    && mappedFile.getMappedByteBufferAccessCountSinceLastSwap() > 0) {
+                mappedFile.swapMap();
+                continue;
+            }
+        }
+    }
+
+    @Override
+    public void cleanSwappedMap(long forceCleanSwapIntervalMs) {
+
+        if (mappedFiles.isEmpty()) {
+            return;
+        }
+
+        int reserveNum = 3;
+        Object[] mfs = this.copyMappedFiles(0);
+        if (null == mfs) {
+            return;
+        }
+
+        for (int i = mfs.length - reserveNum - 1; i >= 0; i--) {
+            MappedFile mappedFile = (MappedFile) mfs[i];
+            if (System.currentTimeMillis() - mappedFile.getRecentSwapMapTime() > forceCleanSwapIntervalMs) {
+                mappedFile.cleanSwapedMap(false);
+            }
+        }
+    }
+
+    public Object[] snapshot() {
+        // return a safe copy
+        return this.mappedFiles.toArray();
+    }
+
+    public Stream<MappedFile> stream() {
+        return this.mappedFiles.stream();
+    }
+
+    public Stream<MappedFile> reversedStream() {
+        return Lists.reverse(this.mappedFiles).stream();
     }
 
     public long getFlushedWhere() {

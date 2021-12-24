@@ -35,6 +35,8 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private Long queueOffset;
     @CFNotNull
+    private Integer maxMsgBytes;
+    @CFNotNull
     private Integer maxMsgNums;
     @CFNotNull
     private Integer sysFlag;
@@ -142,5 +144,13 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader {
 
     public void setExpressionType(String expressionType) {
         this.expressionType = expressionType;
+    }
+
+    public Integer getMaxMsgBytes() {
+        return maxMsgBytes;
+    }
+
+    public void setMaxMsgBytes(Integer maxMsgBytes) {
+        this.maxMsgBytes = maxMsgBytes;
     }
 }
