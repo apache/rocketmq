@@ -66,7 +66,7 @@ public class ScheduleMessageServiceTest {
         offsetTable = (ConcurrentMap<Integer, Long>) field.get(scheduleMessageService);
 
         for (long offset : offsetTable.values()) {
-            assertEquals(offset, 0);
+            assertEquals(0, offset);
         }
 
     }
@@ -79,6 +79,6 @@ public class ScheduleMessageServiceTest {
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), null, new BrokerConfig());
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), null, new BrokerConfig());
     }
 }

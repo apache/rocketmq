@@ -130,7 +130,7 @@ public class ConsumeQueueTest {
 
         DefaultMessageStore master = new DefaultMessageStore(
             messageStoreConfig,
-            new BrokerStatsManager(brokerConfig.getBrokerClusterName()),
+            new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat()),
             new MessageArrivingListener() {
                 @Override
                 public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
