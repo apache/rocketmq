@@ -19,19 +19,15 @@ package org.apache.rocketmq.tools.command.namesrv;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public class AddWritePermSubCommandTest {
 
@@ -66,19 +62,10 @@ public class AddWritePermSubCommandTest {
     }
 
     private ServerResponseMocker startNameServer() {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + NAME_SERVER_PORT);
-        TopicRouteData topicRouteData = new TopicRouteData();
-        List<BrokerData> dataList = new ArrayList<>();
-        HashMap<Long, String> brokerAddress = new HashMap<>();
-        brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
-        BrokerData brokerData = new BrokerData("mockCluster", "mockBrokerName", brokerAddress);
-        brokerData.setBrokerName("mockBrokerName");
-        dataList.add(brokerData);
-        topicRouteData.setBrokerDatas(dataList);
-        // start name server
         HashMap<String, String> extMap = new HashMap<>();
         extMap.put("addTopicCount", "1");
-        return ServerResponseMocker.startServer(NAME_SERVER_PORT, topicRouteData.encode(), extMap);
+        // start name server
+        return NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT, extMap);
     }
 
     private ServerResponseMocker startOneBroker() {

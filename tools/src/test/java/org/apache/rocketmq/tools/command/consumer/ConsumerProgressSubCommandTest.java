@@ -19,22 +19,18 @@ package org.apache.rocketmq.tools.command.consumer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public class ConsumerProgressSubCommandTest {
 
@@ -49,7 +45,7 @@ public class ConsumerProgressSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = startNameServer();
+        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
     }
 
     @After
@@ -66,20 +62,6 @@ public class ConsumerProgressSubCommandTest {
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
-    }
-
-    private ServerResponseMocker startNameServer() {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + NAME_SERVER_PORT);
-        TopicRouteData topicRouteData = new TopicRouteData();
-        List<BrokerData> dataList = new ArrayList<>();
-        HashMap<Long, String> brokerAddress = new HashMap<>();
-        brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
-        BrokerData brokerData = new BrokerData("mockCluster", "mockBrokerName", brokerAddress);
-        brokerData.setBrokerName("mockBrokerName");
-        dataList.add(brokerData);
-        topicRouteData.setBrokerDatas(dataList);
-        // start name server
-        return ServerResponseMocker.startServer(NAME_SERVER_PORT, topicRouteData.encode());
     }
 
     private ServerResponseMocker startOneBroker() {

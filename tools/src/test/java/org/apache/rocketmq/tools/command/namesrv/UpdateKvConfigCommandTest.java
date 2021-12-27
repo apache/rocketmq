@@ -19,34 +19,13 @@ package org.apache.rocketmq.tools.command.namesrv;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.impl.MQClientAPIImpl;
-import org.apache.rocketmq.client.impl.MQClientManager;
-import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.body.Connection;
-import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-
-import static org.mockito.Mockito.mock;
 
 public class UpdateKvConfigCommandTest {
     private static final int NAME_SERVER_PORT = 45677;
@@ -60,7 +39,7 @@ public class UpdateKvConfigCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = startNameServer();
+        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
     }
 
     @After
@@ -77,20 +56,6 @@ public class UpdateKvConfigCommandTest {
         final CommandLine commandLine =
                 ServerUtil.parseCmdLine("mqadmin " + cmd.commandName() + cmd.commandDesc(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
-    }
-
-    private ServerResponseMocker startNameServer() {
-        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + NAME_SERVER_PORT);
-        TopicRouteData topicRouteData = new TopicRouteData();
-        List<BrokerData> dataList = new ArrayList<>();
-        HashMap<Long, String> brokerAddress = new HashMap<>();
-        brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
-        BrokerData brokerData = new BrokerData("mockCluster", "mockBrokerName", brokerAddress);
-        brokerData.setBrokerName("mockBrokerName");
-        dataList.add(brokerData);
-        topicRouteData.setBrokerDatas(dataList);
-        // start name server
-        return ServerResponseMocker.startServer(NAME_SERVER_PORT, topicRouteData.encode());
     }
 
     private ServerResponseMocker startOneBroker() {
