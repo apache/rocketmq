@@ -1530,7 +1530,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         RequestResponseFuture responseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         if (responseFuture != null) {
             responseFuture.setSendRequestOk(isSuccess);
-            responseFuture.putResponseMessage(null);
             try {
                 responseFuture.executeRequestCallback();
             } catch (Exception e) {
