@@ -585,6 +585,7 @@ public class MQClientAPIImpl {
             });
         } catch (RemotingConnectException ex) {
             long cost = System.currentTimeMillis() - beginStartTime;
+            producer.updateFaultItem(brokerName, cost, true);
             onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                     retryTimesWhenSendFailed, times, ex, context, true, producer);
         }
