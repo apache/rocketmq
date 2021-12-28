@@ -29,7 +29,7 @@ public class RequestResponseFuture {
     private long timeoutMillis;
     private CountDownLatch countDownLatch = new CountDownLatch(1);
     private volatile Message responseMsg = null;
-    private volatile boolean sendRequestOk = true;
+    private volatile boolean sendRequestOk = false;
     private volatile Throwable cause = null;
 
     public RequestResponseFuture(String correlationId, long timeoutMillis, RequestCallback requestCallback) {
@@ -53,9 +53,8 @@ public class RequestResponseFuture {
         return diff > this.timeoutMillis;
     }
 
-    public Message waitResponseMessage(final long timeout) throws InterruptedException {
-        this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
-        return this.responseMsg;
+    public boolean waitResponseMessage(final long timeout) throws InterruptedException {
+        return this.countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
     }
 
     public void putResponseMessage(final Message responseMsg) {
@@ -105,6 +104,7 @@ public class RequestResponseFuture {
 
     public void setSendRequestOk(boolean sendRequestOk) {
         this.sendRequestOk = sendRequestOk;
+        this.countDownLatch.countDown();
     }
 
     public Message getRequestMsg() {
