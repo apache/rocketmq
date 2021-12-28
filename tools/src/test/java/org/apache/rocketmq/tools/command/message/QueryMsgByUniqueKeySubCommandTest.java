@@ -20,6 +20,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
@@ -44,6 +45,7 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -113,6 +115,9 @@ public class QueryMsgByUniqueKeySubCommandTest {
         when(mQAdminImpl.viewMessage(anyString())).thenReturn(retMsgExt);
 
         when(mQAdminImpl.queryMessageByUniqKey(anyString(), anyString())).thenReturn(retMsgExt);
+
+        QueryResult queryResult = new QueryResult(0, Lists.newArrayList(retMsgExt));
+        when(defaultMQAdminExtImpl.queryMessageByUniqKey(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(queryResult);
 
         TopicRouteData topicRouteData = new TopicRouteData();
         List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
@@ -231,7 +236,6 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         System.setProperty("rocketmq.namesrv.addr", "127.0.0.1:9876");
 
-        QueryMsgByUniqueKeySubCommand cmd = new QueryMsgByUniqueKeySubCommand();
         String[] args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000"};
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options), new PosixParser());
