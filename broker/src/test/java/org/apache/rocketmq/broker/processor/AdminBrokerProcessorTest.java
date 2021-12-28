@@ -16,21 +16,39 @@
  */
 package org.apache.rocketmq.broker.processor;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Sets;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
+import org.apache.rocketmq.broker.client.ConsumerManager;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
+import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.common.protocol.header.DeleteTopicRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetAllTopicConfigResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetEarliestMsgStoretimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ResumeCheckHalfMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -38,6 +56,7 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
@@ -45,6 +64,8 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.schedule.ScheduleMessageService;
+import org.apache.rocketmq.store.stats.BrokerStats;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,12 +73,19 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -77,6 +105,23 @@ public class AdminBrokerProcessorTest {
     private MessageStore messageStore;
 
     private Set<String> systemTopicSet;
+
+    @Mock
+    private Channel channel;
+    @Mock
+    private SocketAddress socketAddress;
+    @Mock
+    private BrokerStats brokerStats;
+    @Mock
+    private TopicConfigManager topicConfigManager;
+    @Mock
+    private ConsumerManager consumerManager;
+    @Mock
+    private ConsumerOffsetManager consumerOffsetManager;
+    @Mock
+    private DefaultMessageStore defaultMessageStore;
+    @Mock
+    private ScheduleMessageService scheduleMessageService;
 
     @Before
     public void init() {
@@ -151,6 +196,225 @@ public class AdminBrokerProcessorTest {
 
         String topic = "TEST_DELETE_TOPIC";
         RemotingCommand request = buildDeleteTopicRequest(topic);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetAllTopicConfig() throws Exception {
+        GetAllTopicConfigResponseHeader getAllTopicConfigResponseHeader = new GetAllTopicConfigResponseHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, getAllTopicConfigResponseHeader);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testUpdateBrokerConfig() throws Exception {
+        handlerContext = mock(ChannelHandlerContext.class);
+        channel = mock(Channel.class);
+        when(handlerContext.channel()).thenReturn(channel);
+        socketAddress = mock(SocketAddress.class);
+        when(channel.remoteAddress()).thenReturn(socketAddress);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_BROKER_CONFIG, null);
+        Map<String, String> bodyMap = new HashMap<>();
+        bodyMap.put("key", "value");
+        request.setBody(bodyMap.toString().getBytes());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetBrokerConfig() throws Exception {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CONFIG, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testSearchOffsetByTimestamp() throws Exception {
+        messageStore = mock(MessageStore.class);
+        when(messageStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong())).thenReturn(Long.MIN_VALUE);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        SearchOffsetRequestHeader searchOffsetRequestHeader = new SearchOffsetRequestHeader();
+        searchOffsetRequestHeader.setTopic("topic");
+        searchOffsetRequestHeader.setQueueId(0);
+        searchOffsetRequestHeader.setTimestamp(System.currentTimeMillis());
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, searchOffsetRequestHeader);
+        request.addExtField("topic", "topic");
+        request.addExtField("queueId", "0");
+        request.addExtField("timestamp", System.currentTimeMillis() + "");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetMaxOffset() throws Exception {
+        messageStore = mock(MessageStore.class);
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(Long.MIN_VALUE);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        GetMaxOffsetRequestHeader getMaxOffsetRequestHeader = new GetMaxOffsetRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, getMaxOffsetRequestHeader);
+        request.addExtField("topic", "topic");
+        request.addExtField("queueId", "0");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetMinOffset() throws Exception {
+        messageStore = mock(MessageStore.class);
+        when(messageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(Long.MIN_VALUE);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        GetMinOffsetRequestHeader getMinOffsetRequestHeader = new GetMinOffsetRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MIN_OFFSET, getMinOffsetRequestHeader);
+        request.addExtField("topic", "topic");
+        request.addExtField("queueId", "0");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetEarliestMsgStoretime() throws Exception {
+        messageStore = mock(MessageStore.class);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        GetEarliestMsgStoretimeRequestHeader getEarliestMsgStoretimeRequestHeader = new GetEarliestMsgStoretimeRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_EARLIEST_MSG_STORETIME, getEarliestMsgStoretimeRequestHeader);
+        request.addExtField("topic", "topic");
+        request.addExtField("queueId", "0");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetBrokerRuntimeInfo() throws Exception {
+        brokerStats = mock(BrokerStats.class);
+        when(brokerController.getBrokerStats()).thenReturn(brokerStats);
+        when(brokerStats.getMsgPutTotalYesterdayMorning()).thenReturn(Long.MIN_VALUE);
+        when(brokerStats.getMsgPutTotalTodayMorning()).thenReturn(Long.MIN_VALUE);
+        when(brokerStats.getMsgPutTotalTodayNow()).thenReturn(Long.MIN_VALUE);
+        when(brokerStats.getMsgGetTotalTodayMorning()).thenReturn(Long.MIN_VALUE);
+        when(brokerStats.getMsgGetTotalTodayNow()).thenReturn(Long.MIN_VALUE);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_RUNTIME_INFO, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testLockBatchMQ() throws Exception {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
+        LockBatchRequestBody lockBatchRequestBody = new LockBatchRequestBody();
+        lockBatchRequestBody.setClientId("1111");
+        lockBatchRequestBody.setConsumerGroup("group");
+        request.setBody(JSON.toJSON(lockBatchRequestBody).toString().getBytes());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testUnlockBatchMQ() throws Exception {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
+        UnlockBatchRequestBody unlockBatchRequestBody = new UnlockBatchRequestBody();
+        unlockBatchRequestBody.setClientId("11111");
+        unlockBatchRequestBody.setConsumerGroup("group");
+        request.setBody(JSON.toJSON(unlockBatchRequestBody).toString().getBytes());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroup() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setBrokerId(1);
+        subscriptionGroupConfig.setGroupName("groupId");
+        subscriptionGroupConfig.setConsumeEnable(Boolean.TRUE);
+        subscriptionGroupConfig.setConsumeBroadcastEnable(Boolean.TRUE);
+        subscriptionGroupConfig.setRetryMaxTimes(111);
+        subscriptionGroupConfig.setConsumeFromMinEnable(Boolean.TRUE);
+        request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetAllSubscriptionGroup() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroup() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, null);
+        request.addExtField("groupName", "GID-Group-Name");
+        request.addExtField("removeOffset", "true");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetTopicStatsInfo() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_STATS_INFO, null);
+        request.addExtField("topic", "topicTest");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.TOPIC_NOT_EXIST);
+        topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setTopicName("topicTest");
+        when(topicConfigManager.selectTopicConfig(anyString())).thenReturn(topicConfig);
+        RemotingCommand responseSuccess = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(responseSuccess.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetConsumerConnectionList() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_CONNECTION_LIST, null);
+        request.addExtField("consumerGroup", "GID-group-test");
+        consumerManager = mock(ConsumerManager.class);
+        when(brokerController.getConsumerManager()).thenReturn(consumerManager);
+        ConsumerGroupInfo consumerGroupInfo = new ConsumerGroupInfo("GID-group-test", ConsumeType.CONSUME_ACTIVELY, MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        when(consumerManager.getConsumerGroupInfo(anyString())).thenReturn(consumerGroupInfo);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetProducerConnectionList() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_PRODUCER_CONNECTION_LIST, null);
+        request.addExtField("producerGroup", "ProducerGroupId");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testGetConsumeStats() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUME_STATS, null);
+        request.addExtField("topic", "topicTest");
+        request.addExtField("consumerGroup", "GID-test");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetAllConsumerOffset() throws RemotingCommandException {
+        consumerOffsetManager = mock(ConsumerOffsetManager.class);
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        ConsumerOffsetManager consumerOffset = new ConsumerOffsetManager();
+        when(consumerOffsetManager.encode()).thenReturn(JSON.toJSONString(consumerOffset, false));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetAllDelayOffset() throws Exception {
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        scheduleMessageService = mock(ScheduleMessageService.class);
+        when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
+        when(defaultMessageStore.getScheduleMessageService()).thenReturn(scheduleMessageService);
+        when(scheduleMessageService.encode()).thenReturn("content");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }

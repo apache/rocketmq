@@ -70,9 +70,12 @@ public class BaseConf {
 
     public static String initTopic() {
         String topic = MQRandomUtils.getRandomTopic();
-        IntegrationTestBase.initTopic(topic, nsAddr, clusterName);
+        return initTopicWithName(topic);
+    }
 
-        return topic;
+    public static String initTopicWithName(String topicName) {
+        IntegrationTestBase.initTopic(topicName, nsAddr, clusterName);
+        return topicName;
     }
 
     public static String initConsumerGroup() {

@@ -20,6 +20,7 @@ package org.apache.rocketmq.test.util;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 public class FileUtil {
@@ -68,9 +69,9 @@ public class FileUtil {
 
     private String getPropertiesAsString(Properties properties) {
         StringBuilder sb = new StringBuilder();
-        for (Object key : properties.keySet()) {
-            sb.append(key).append("=").append(properties.getProperty((String) key))
-                .append(lineSeperator);
+        for (Entry<Object, Object> keyEnty : properties.entrySet()) {
+            sb.append(keyEnty.getKey()).append("=").append((String) keyEnty.getValue())
+                    .append(lineSeperator);
         }
         return sb.toString();
     }

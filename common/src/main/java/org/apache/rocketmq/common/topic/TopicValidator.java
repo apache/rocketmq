@@ -22,8 +22,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class TopicValidator {
 
@@ -38,9 +36,7 @@ public class TopicValidator {
     public static final String RMQ_SYS_OFFSET_MOVED_EVENT = "OFFSET_MOVED_EVENT";
 
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
-
-    private static final String VALID_PATTERN_STR = "^[%|a-zA-Z0-9_-]+$";
-    private static final Pattern PATTERN = Pattern.compile(VALID_PATTERN_STR);
+    public static final boolean[] VALID_CHAR_BIT_MAP = new boolean[128];
     private static final int TOPIC_MAX_LENGTH = 127;
 
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<String>();
@@ -62,14 +58,41 @@ public class TopicValidator {
         SYSTEM_TOPIC_SET.add(RMQ_SYS_OFFSET_MOVED_EVENT);
 
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_SCHEDULE_TOPIC);
+
+        // regex: ^[%|a-zA-Z0-9_-]+$
+        // %
+        VALID_CHAR_BIT_MAP['%'] = true;
+        // -
+        VALID_CHAR_BIT_MAP['-'] = true;
+        // _
+        VALID_CHAR_BIT_MAP['_'] = true;
+        // |
+        VALID_CHAR_BIT_MAP['|'] = true;
+        for (int i = 0; i < VALID_CHAR_BIT_MAP.length; i++) {
+            if (i >= '0' && i <= '9') {
+                // 0-9
+                VALID_CHAR_BIT_MAP[i] = true;
+            } else if (i >= 'A' && i <= 'Z') {
+                // A-Z
+                VALID_CHAR_BIT_MAP[i] = true;
+            } else if (i >= 'a' && i <= 'z') {
+                // a-z
+                VALID_CHAR_BIT_MAP[i] = true;
+            }
+        }
     }
 
-    private static boolean regularExpressionMatcher(String origin, Pattern pattern) {
-        if (pattern == null) {
-            return true;
+    public static boolean isTopicOrGroupIllegal(String str) {
+        int strLen = str.length();
+        int len = VALID_CHAR_BIT_MAP.length;
+        boolean[] bitMap = VALID_CHAR_BIT_MAP;
+        for (int i = 0; i < strLen; i++) {
+            char ch = str.charAt(i);
+            if (ch >= len || !bitMap[ch]) {
+                return true;
+            }
         }
-        Matcher matcher = pattern.matcher(origin);
-        return matcher.matches();
+        return false;
     }
 
     public static boolean validateTopic(String topic, RemotingCommand response) {
@@ -80,9 +103,9 @@ public class TopicValidator {
             return false;
         }
 
-        if (!regularExpressionMatcher(topic, PATTERN)) {
+        if (isTopicOrGroupIllegal(topic)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The specified topic contains illegal characters, allowing only " + VALID_PATTERN_STR);
+            response.setRemark("The specified topic contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$");
             return false;
         }
 
