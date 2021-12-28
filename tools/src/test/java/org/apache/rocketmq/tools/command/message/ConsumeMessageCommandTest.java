@@ -51,18 +51,24 @@ import static org.mockito.Mockito.when;
 public class ConsumeMessageCommandTest {
     private static ConsumeMessageCommand consumeMessageCommand;
 
+    private static PullResult PULL_RESULT = mockPullResult();
+
+    private static PullResult mockPullResult() {
+        MessageExt msg = new MessageExt();
+        msg.setBody(new byte[] {'a'});
+        List<MessageExt> msgFoundList = new ArrayList<>();
+        msgFoundList.add(msg);
+        return new PullResult(PullStatus.FOUND, 2, 0, 1, msgFoundList);
+    }
+
+
     @BeforeClass
     public static void init() throws MQClientException, RemotingException, MQBrokerException, InterruptedException,
         NoSuchFieldException, IllegalAccessException {
         consumeMessageCommand = new ConsumeMessageCommand();
         DefaultMQPullConsumer defaultMQPullConsumer = mock(DefaultMQPullConsumer.class);
-        MessageExt msg = new MessageExt();
-        msg.setBody(new byte[] {'a'});
-        List<MessageExt> msgFoundList = new ArrayList<>();
-        msgFoundList.add(msg);
-        final PullResult pullResult = new PullResult(PullStatus.FOUND, 2, 0, 1, msgFoundList);
 
-        when(defaultMQPullConsumer.pull(any(MessageQueue.class), anyString(), anyLong(), anyInt())).thenReturn(pullResult);
+        assignPullResult(defaultMQPullConsumer);
         when(defaultMQPullConsumer.minOffset(any(MessageQueue.class))).thenReturn(Long.valueOf(0));
         when(defaultMQPullConsumer.maxOffset(any(MessageQueue.class))).thenReturn(Long.valueOf(1));
 
@@ -79,6 +85,25 @@ public class ConsumeMessageCommandTest {
     public static void terminate() {
     }
 
+    private static void assignPullResult() {
+        assignPullResult(null);
+    }
+
+    private static void assignPullResult(DefaultMQPullConsumer defaultMQPullConsumer) {
+        try {
+            if (defaultMQPullConsumer == null) {
+                Field producerField = ConsumeMessageCommand.class.getDeclaredField("defaultMQPullConsumer");
+                producerField.setAccessible(true);
+                defaultMQPullConsumer = (DefaultMQPullConsumer) producerField.get(consumeMessageCommand);
+            }
+            when(defaultMQPullConsumer.pull(any(MessageQueue.class), anyString(), anyLong(), anyInt()))
+                    .thenReturn(PULL_RESULT);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test
     public void testExecuteDefault() throws SubCommandException {
         PrintStream out = System.out;
@@ -86,6 +111,7 @@ public class ConsumeMessageCommandTest {
         System.setOut(new PrintStream(bos));
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-t mytopic", "-n localhost:9876"};
+        assignPullResult();
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + consumeMessageCommand.commandName(),
             subargs, consumeMessageCommand.buildCommandlineOptions(options), new PosixParser());
         consumeMessageCommand.execute(commandLine, options, null);
@@ -104,6 +130,7 @@ public class ConsumeMessageCommandTest {
 
         String[] subargs = new String[] {"-t mytopic", "-b localhost", "-i 0", "-n localhost:9876"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + consumeMessageCommand.commandName(), subargs, consumeMessageCommand.buildCommandlineOptions(options), new PosixParser());
+        assignPullResult();
         consumeMessageCommand.execute(commandLine, options, null);
         System.setOut(out);
         String s = new String(bos.toByteArray());
@@ -113,7 +140,7 @@ public class ConsumeMessageCommandTest {
     @Test
     public void testExecuteDefaultWhenPullMessageByQueueGotException() throws SubCommandException, InterruptedException, RemotingException, MQClientException, MQBrokerException, NoSuchFieldException, IllegalAccessException {
         DefaultMQPullConsumer defaultMQPullConsumer = mock(DefaultMQPullConsumer.class);
-        when(defaultMQPullConsumer.pull(any(MessageQueue.class), anyString(), anyLong(), anyInt())).thenThrow(Exception.class);
+        when(defaultMQPullConsumer.pull(any(MessageQueue.class), anyString(), anyLong(), anyInt())).thenThrow(MQClientException.class);
         Field producerField = ConsumeMessageCommand.class.getDeclaredField("defaultMQPullConsumer");
         producerField.setAccessible(true);
         producerField.set(consumeMessageCommand, defaultMQPullConsumer);
@@ -135,7 +162,7 @@ public class ConsumeMessageCommandTest {
     @Test
     public void testExecuteByConditionWhenPullMessageByQueueGotException() throws IllegalAccessException, InterruptedException, RemotingException, MQClientException, MQBrokerException, NoSuchFieldException, SubCommandException {
         DefaultMQPullConsumer defaultMQPullConsumer = mock(DefaultMQPullConsumer.class);
-        when(defaultMQPullConsumer.pull(any(MessageQueue.class), anyString(), anyLong(), anyInt())).thenThrow(Exception.class);
+        when(defaultMQPullConsumer.pull(any(MessageQueue.class), anyString(), anyLong(), anyInt())).thenThrow(MQClientException.class);
         Field producerField = ConsumeMessageCommand.class.getDeclaredField("defaultMQPullConsumer");
         producerField.setAccessible(true);
         producerField.set(consumeMessageCommand, defaultMQPullConsumer);
