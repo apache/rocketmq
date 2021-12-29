@@ -58,6 +58,8 @@ public class MixAll {
     public static final String DEFAULT_PRODUCER_GROUP = "DEFAULT_PRODUCER";
     public static final String DEFAULT_CONSUMER_GROUP = "DEFAULT_CONSUMER";
     public static final String TOOLS_CONSUMER_GROUP = "TOOLS_CONSUMER";
+    public static final String TOOLS_ADMIN_EXT_GROUP = "TOOLS_ADMIN_EXT";
+    public static final String TOOLS_INSTANCE = "TOOLS_INSTANCE";
     public static final String SCHEDULE_CONSUMER_GROUP = "SCHEDULE_CONSUMER";
     public static final String FILTERSRV_CONSUMER_GROUP = "FILTERSRV_CONSUMER";
     public static final String MONITOR_CONSUMER_GROUP = "__MONITOR_CONSUMER";

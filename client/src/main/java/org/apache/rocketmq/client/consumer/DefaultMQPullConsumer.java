@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
+import org.apache.rocketmq.client.common.ClientType;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -433,10 +434,12 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         return defaultMQPullConsumerImpl;
     }
 
+    @Override
     public boolean isUnitMode() {
         return unitMode;
     }
 
+    @Override
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
@@ -447,5 +450,15 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
         this.maxReconsumeTimes = maxReconsumeTimes;
+    }
+
+    @Override
+    public String groupName() {
+        return this.consumerGroup;
+    }
+
+    @Override
+    public ClientType clientType() {
+        return ClientType.DEFAULT_PULL_CONSUMER;
     }
 }

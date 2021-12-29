@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
+import org.apache.rocketmq.client.common.ClientType;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
@@ -1111,5 +1112,15 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public Set<Integer> getRetryResponseCodes() {
         return retryResponseCodes;
+    }
+
+    @Override
+    public String groupName() {
+        return this.producerGroup;
+    }
+
+    @Override
+    public ClientType clientType() {
+        return ClientType.DEFAULT_PRODUCER;
     }
 }

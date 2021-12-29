@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.common.ClientType;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
@@ -37,6 +38,9 @@ public class ClientConfig {
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = RemotingUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
+    private String factoryIndex = "";
+    private int nameSrvCode = -1;
+    private int groupCode = -1;
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     protected String namespace;
     private boolean namespaceInitialized = false;
@@ -67,13 +71,15 @@ public class ClientConfig {
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
-        sb.append(this.getClientIP());
+        sb.append(this.clientIP);
 
-        sb.append("@");
-        sb.append(this.getInstanceName());
+        sb.append("@").append(this.factoryIndex);
+        sb.append("@").append(this.instanceName);
+        sb.append("@").append(this.nameSrvCode);
+        sb.append("@").append(this.groupCode);
+
         if (!UtilAll.isBlank(this.unitName)) {
-            sb.append("@");
-            sb.append(this.unitName);
+            sb.append("@").append(this.unitName);
         }
 
         return sb.toString();
@@ -95,9 +101,33 @@ public class ClientConfig {
         this.instanceName = instanceName;
     }
 
+    public String getFactoryIndex() {
+        return factoryIndex;
+    }
+
+    public void setFactoryIndex(String factoryIndex) {
+        this.factoryIndex = factoryIndex;
+    }
+
+    public int getNameSrvCode() {
+        return nameSrvCode;
+    }
+
+    public void setNameSrvCode(int nameSrvCode) {
+        this.nameSrvCode = nameSrvCode;
+    }
+
+    public int getGroupCode() {
+        return groupCode;
+    }
+
+    public void setGroupCode(int groupCode) {
+        this.groupCode = groupCode;
+    }
+
     public void changeInstanceNameToPID() {
         if (this.instanceName.equals("DEFAULT")) {
-            this.instanceName = UtilAll.getPid() + "#" + System.nanoTime();
+            this.instanceName = String.valueOf(UtilAll.getPid());
         }
     }
 
@@ -167,6 +197,9 @@ public class ClientConfig {
         cc.namesrvAddr = namesrvAddr;
         cc.clientIP = clientIP;
         cc.instanceName = instanceName;
+        cc.factoryIndex = factoryIndex;
+        cc.nameSrvCode = nameSrvCode;
+        cc.groupCode = groupCode;
         cc.clientCallbackExecutorThreads = clientCallbackExecutorThreads;
         cc.pollNameServerInterval = pollNameServerInterval;
         cc.heartbeatBrokerInterval = heartbeatBrokerInterval;
@@ -316,6 +349,14 @@ public class ClientConfig {
 
     public void setMqClientApiTimeout(int mqClientApiTimeout) {
         this.mqClientApiTimeout = mqClientApiTimeout;
+    }
+
+    public String groupName() {
+        return String.valueOf(System.nanoTime());
+    }
+
+    public ClientType clientType() {
+        return null;
     }
 
     @Override

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.producer;
 
 import java.util.concurrent.ExecutorService;
+import org.apache.rocketmq.client.common.ClientType;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
@@ -156,5 +157,15 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     public void setTransactionListener(TransactionListener transactionListener) {
         this.transactionListener = transactionListener;
+    }
+
+    @Override
+    public String groupName() {
+        return super.groupName();
+    }
+
+    @Override
+    public ClientType clientType() {
+        return ClientType.TRANSACTION_MQ_PRODUCER;
     }
 }

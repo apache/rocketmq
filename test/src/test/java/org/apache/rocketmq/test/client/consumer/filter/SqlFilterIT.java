@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.base.BaseConf;
@@ -89,6 +90,8 @@ public class SqlFilterIT extends BaseConf {
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(group);
         consumer.setNamesrvAddr(nsAddr);
         consumer.start();
+        MQClientManager.getInstance().getMQClientInstance(consumer).updateTopicRouteInfoFromNameServer(topic);
+        MQClientManager.getInstance().getMQClientInstance(consumer).sendHeartbeatToAllBrokerWithLock();
         Thread.sleep(3000);
         producer.send("TagA", msgSize);
         producer.send("TagB", msgSize);

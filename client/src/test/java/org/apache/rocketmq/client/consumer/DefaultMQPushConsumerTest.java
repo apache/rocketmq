@@ -57,7 +57,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,6 +77,7 @@ import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQPushConsumerTest {
@@ -156,8 +157,8 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.start();
     }
 
-    @AfterClass
-    public static void terminate() {
+    @After
+    public void terminate() {
         pushConsumer.shutdown();
     }
 
@@ -325,8 +326,8 @@ public class DefaultMQPushConsumerTest {
     }
 
     @Test
-    public void testPullMessage_ExceptionOccursWhenComputePullFromWhere() throws MQClientException {
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
+    public void testPullMessage_ExceptionOccursWhenComputePullFromWhere() throws Exception {
+        doThrow(MQClientException.class).when(rebalanceImpl).computePullFromWhereWithException(any(MessageQueue.class));
         final MessageExt[] messageExts = new MessageExt[1];
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(
                 new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(),
@@ -338,6 +339,7 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeOrderly(true);
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
+        Thread.sleep(500);
         assertThat(messageExts[0]).isNull();
     }
 }

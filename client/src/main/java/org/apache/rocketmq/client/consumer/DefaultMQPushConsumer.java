@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
+import org.apache.rocketmq.client.common.ClientType;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
@@ -910,5 +911,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public TraceDispatcher getTraceDispatcher() {
         return traceDispatcher;
+    }
+
+    @Override
+    public String groupName() {
+        return this.consumerGroup;
+    }
+
+    @Override
+    public ClientType clientType() {
+        return ClientType.DEFAULT_PUSH_CONSUMER;
     }
 }

@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.consumer;
 import java.util.Collection;
 import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.common.ClientType;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -556,5 +557,15 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setEnableMsgTrace(boolean enableMsgTrace) {
         this.enableMsgTrace = enableMsgTrace;
+    }
+
+    @Override
+    public String groupName() {
+        return this.consumerGroup;
+    }
+
+    @Override
+    public ClientType clientType() {
+        return ClientType.DEFAULT_LITE_PULL_CONSUMER;
     }
 }

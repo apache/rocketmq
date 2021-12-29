@@ -23,9 +23,11 @@ import java.util.Properties;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
+import org.apache.rocketmq.client.common.ClientType;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.admin.ConsumeStats;
@@ -61,7 +63,7 @@ import org.apache.rocketmq.tools.admin.api.MessageTrack;
 
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
-    private String adminExtGroup = "admin_ext_group";
+    private String adminExtGroup = MixAll.TOOLS_ADMIN_EXT_GROUP;
     private String createTopicKey = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
     private long timeoutMillis = 5000;
 
@@ -588,5 +590,15 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             String msgId)
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(topic, msgId);
+    }
+
+    @Override
+    public String groupName() {
+        return this.adminExtGroup;
+    }
+
+    @Override
+    public ClientType clientType() {
+        return ClientType.DEFAULT_MQ_ADMIN_EXT;
     }
 }
