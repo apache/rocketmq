@@ -20,10 +20,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -77,7 +74,7 @@ public class FastCodesHeaderTest {
 
     private void check(RemotingCommand command, List<Field> fields,
             Class<? extends CommandCustomHeader> classHeader) throws Exception {
-        CommandCustomHeader o1 = command.decodeCommandCustomHeader(classHeader);
+        CommandCustomHeader o1 = command.decodeCommandCustomHeader(classHeader, false);
         CommandCustomHeader o2 = classHeader.newInstance();
         ((FastCodesHeader)o2).decode(command.getExtFields());
         for (Field f : fields) {

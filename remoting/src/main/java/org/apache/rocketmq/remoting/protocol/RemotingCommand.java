@@ -235,7 +235,12 @@ public class RemotingCommand {
     }
 
     public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+            Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+        return decodeCommandCustomHeader(classHeader, true);
+    }
+
+    public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader,
+            boolean useFastEncode) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
             objectHeader = classHeader.newInstance();
@@ -246,7 +251,7 @@ public class RemotingCommand {
         }
 
         if (this.extFields != null) {
-            if (objectHeader instanceof FastCodesHeader) {
+            if (objectHeader instanceof FastCodesHeader && useFastEncode) {
                 ((FastCodesHeader) objectHeader).decode(this.extFields);
                 objectHeader.checkFields();
                 return objectHeader;
