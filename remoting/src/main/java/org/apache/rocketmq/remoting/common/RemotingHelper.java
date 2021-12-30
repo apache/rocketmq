@@ -42,9 +42,9 @@ public class RemotingHelper {
 
             StackTraceElement[] stackTrace = e.getStackTrace();
             if (stackTrace != null && stackTrace.length > 0) {
-                StackTraceElement elment = stackTrace[0];
+                StackTraceElement element = stackTrace[0];
                 sb.append(", ");
-                sb.append(elment.toString());
+                sb.append(element.toString());
             }
         }
 
