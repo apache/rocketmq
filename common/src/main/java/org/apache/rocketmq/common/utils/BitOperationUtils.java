@@ -90,7 +90,7 @@ public class BitOperationUtils {
     }
 
     public static int getSign(int i) {
-        return (i >> 31);
+        return i >> 31;
     }
 
     public static int getNegative(int i) {
@@ -103,15 +103,5 @@ public class BitOperationUtils {
         } else {
             return i;
         }
-    }
-
-    public static void main(String[] args) {
-        System.out.println(add(9, 4));
-        System.out.println(subtract(11, 4));
-        System.out.println(multiply(11, 4));
-        System.out.println(divide(11, 3));
-
-        System.out.println(1 << 31);
-        System.out.println(add(1 >> 31, 1 >> 31));
     }
 }

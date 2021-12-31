@@ -64,7 +64,7 @@ public class DefaultOrderedExecutor extends AbstractExecutorService implements O
         int result = 1;
         for (Object element : a) {
             result = BitOperationUtils.add(BitOperationUtils.multiply(31, result),
-                (element == null ? 0 : element.hashCode()));
+                element == null ? 0 : element.hashCode());
         }
 
         return result < 0 ? Math.abs(result) : result;
@@ -128,16 +128,5 @@ public class DefaultOrderedExecutor extends AbstractExecutorService implements O
     @Override
     public void execute(Runnable command) {
         choose().execute(command);
-    }
-
-    public static void main(String[] args) {
-        DefaultOrderedExecutor executor = new DefaultOrderedExecutorService("test", 10);
-        for (int i = 0; i < 100; i++) {
-            System.out.println(executor.computeCode());
-        }
-        System.out.println();
-        for (int i = 0; i < 100; i++) {
-            System.out.println(executor.computeCode((Object[]) null));
-        }
     }
 }
