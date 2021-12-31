@@ -147,7 +147,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
 
-    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
 
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
