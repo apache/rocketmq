@@ -50,7 +50,8 @@ public class DefaultOrderedExecutor extends AbstractExecutorService implements O
         }
     }
 
-    protected int computeCode(Object... a) {
+    @Override
+    public int computeCode(Object... a) {
         if (a == null || a.length == 0) {
             AtomicInteger atomicInteger = countThreadLocal.get();
             int index = atomicInteger.getAndIncrement();

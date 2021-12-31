@@ -47,7 +47,7 @@ public class BitOperationUtils {
         boolean flag = getSign(x) == getSign(y);
         int ans = 0;
         if (x == Integer.MIN_VALUE && y == Integer.MIN_VALUE) {
-            return 1;
+            return 0;
         }
         if (y == Integer.MIN_VALUE) {
             return 0;

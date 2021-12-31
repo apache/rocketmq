@@ -33,4 +33,9 @@ public interface OrderedExecutor extends Executor {
      * @throws NullPointerException       if command is null
      */
     void execute(Runnable command, Object... keys);
+
+    /**
+     * only for test
+     */
+    int computeCode(Object... a);
 }
