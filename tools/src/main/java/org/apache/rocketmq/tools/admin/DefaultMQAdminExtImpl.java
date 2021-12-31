@@ -484,7 +484,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         Map<String, Integer> topicRouteMap = new HashMap<String, Integer>();
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
             for (QueueData queueData : topicRouteData.getQueueDatas()) {
-                topicRouteMap.put(bd.selectBrokerAddr(), queueData.getReadQueueNums());
+                if (StringUtils.equals(queueData.getBrokerName(), bd.getBrokerName())) {
+                    topicRouteMap.put(bd.selectBrokerAddr(), queueData.getReadQueueNums());
+                }
             }
         }
         for (BrokerData bd : topicRouteData.getBrokerDatas()) {
