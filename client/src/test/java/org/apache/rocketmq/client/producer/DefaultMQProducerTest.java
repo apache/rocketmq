@@ -41,6 +41,7 @@ import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
@@ -192,10 +193,10 @@ public class DefaultMQProducerTest {
     @Test
     public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
         final AtomicInteger cc = new AtomicInteger(0);
-        final CountDownLatch countDownLatch = new CountDownLatch(6);
+        final CountDownLatch countDownLatch = new CountDownLatch(9);
 
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        SendCallback sendCallback = new SendCallback() {
+        ProcessableCallback sendCallback = new ProcessableCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
                 countDownLatch.countDown();
@@ -206,6 +207,11 @@ public class DefaultMQProducerTest {
                 e.printStackTrace();
                 cc.incrementAndGet();
                 countDownLatch.countDown();
+            }
+
+            @Override
+            public boolean retry(int times) {
+                return times < 1;
             }
         };
         MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
@@ -223,13 +229,16 @@ public class DefaultMQProducerTest {
         producer.send(new Message(), new MessageQueue(), sendCallback, 1000);
         producer.send(new Message(), messageQueueSelector, null, sendCallback);
         producer.send(message, messageQueueSelector, null, sendCallback, 1000);
-        //this message is send success
+        producer.sendOrderly(new Message(), messageQueueSelector, null, sendCallback);
+        producer.sendOrderly(message, messageQueueSelector, null, sendCallback, 1000);
+        //send success below
         producer.send(message, sendCallback, 1000);
+        producer.sendOrderly(message, new SelectMessageQueueByHash(), 0, sendCallback, 1000);
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        assertThat(cc.get()).isEqualTo(5);
+        assertThat(cc.get()).isEqualTo(7);
     }
-    
+
     @Test
     public void testBatchSendMessageAsync()
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException {

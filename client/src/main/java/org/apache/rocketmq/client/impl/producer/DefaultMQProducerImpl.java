@@ -55,6 +55,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
+import org.apache.rocketmq.client.producer.ProcessableCallback;
 import org.apache.rocketmq.client.producer.RequestCallback;
 import org.apache.rocketmq.client.producer.RequestFutureHolder;
 import org.apache.rocketmq.client.producer.RequestResponseFuture;
@@ -68,6 +69,8 @@ import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.concurrent.DefaultOrderedExecutorService;
+import org.apache.rocketmq.common.concurrent.OrderedExecutorService;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -104,6 +107,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final RPCHook rpcHook;
     private final BlockingQueue<Runnable> asyncSenderThreadPoolQueue;
     private final ExecutorService defaultAsyncSenderExecutor;
+    private OrderedExecutorService defaultAsyncOrderlySenderExecutor;
     protected BlockingQueue<Runnable> checkRequestQueue;
     protected ExecutorService checkExecutor;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
@@ -112,6 +116,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
     private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
     private ExecutorService asyncSenderExecutor;
+    private OrderedExecutorService asyncOrderlySenderExecutor;
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
         this(defaultMQProducer, null);
@@ -1166,27 +1171,84 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    long costTime = System.currentTimeMillis() - beginStartTime;
-                    if (timeout > costTime) {
-                        try {
-                            try {
-                                sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback,
-                                    timeout - costTime);
-                            } catch (MQBrokerException e) {
-                                throw new MQClientException("unknownn exception", e);
-                            }
-                        } catch (Exception e) {
-                            sendCallback.onException(e);
-                        }
-                    } else {
-                        sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
-                    }
+                    doSend(beginStartTime, timeout, msg, selector, arg, sendCallback);
                 }
 
             });
         } catch (RejectedExecutionException e) {
-            throw new MQClientException("exector rejected ", e);
+            throw new MQClientException("executor rejected ", e);
         }
+    }
+
+    /**
+     * SELECT ASYNC BUT ORDERLY -------------------------------------------------------
+     */
+    public void sendOrderly(Message msg, MessageQueueSelector selector, Object arg, ProcessableCallback sendCallback)
+        throws MQClientException, RemotingException, InterruptedException {
+        sendOrderly(msg, selector, arg, sendCallback, this.defaultMQProducer.getSendMsgTimeout());
+    }
+
+    public void sendOrderly(final Message msg, final MessageQueueSelector selector, final Object arg,
+        final ProcessableCallback sendCallback, final long timeout)
+        throws MQClientException, RemotingException, InterruptedException {
+        final long beginStartTime = System.currentTimeMillis();
+        OrderedExecutorService executor = this.getAsyncOrderlySenderExecutor();
+        try {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    int times = 0;
+                    Throwable t = doSend(beginStartTime, timeout, msg, selector, arg, sendCallback);
+                    if (t != null) {
+                        while (sendCallback.retry(times++)) {
+                            t = doSend(System.currentTimeMillis(), timeout, msg, selector, arg, sendCallback);
+                            if (t == null) {
+                                //send successfully
+                                return;
+                            }
+                        }
+                    }
+                }
+
+            }, new Object[] {msg == null ? null : msg.getTopic(), arg});
+        } catch (RejectedExecutionException e) {
+            throw new MQClientException("executor rejected ", e);
+        }
+    }
+
+    private Throwable doSend(long beginStartTime, long timeout, Message msg, MessageQueueSelector selector,
+        Object arg, SendCallback sendCallback) {
+        Throwable t = null;
+        long costTime = System.currentTimeMillis() - beginStartTime;
+        if (timeout > costTime) {
+            try {
+                try {
+                    sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, sendCallback,
+                        timeout - costTime);
+                } catch (MQBrokerException e) {
+                    throw new MQClientException("unknownn exception", e);
+                }
+            } catch (Exception e) {
+                sendCallback.onException(e);
+                t = e;
+            }
+        } else {
+            t = new RemotingTooMuchRequestException("call timeout");
+            sendCallback.onException(t);
+        }
+        return t;
+    }
+
+    public OrderedExecutorService getAsyncOrderlySenderExecutor() {
+        return null == asyncOrderlySenderExecutor ?
+            (defaultAsyncOrderlySenderExecutor == null ?
+                defaultAsyncOrderlySenderExecutor = new DefaultOrderedExecutorService("AsyncOrderlySenderExecutor_", 1)
+                : defaultAsyncOrderlySenderExecutor)
+            : asyncOrderlySenderExecutor;
+    }
+
+    public void setAsyncOrderlySenderExecutor(OrderedExecutorService asyncSenderExecutor) {
+        this.asyncOrderlySenderExecutor = asyncSenderExecutor;
     }
 
     /**

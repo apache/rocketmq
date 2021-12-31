@@ -35,6 +35,7 @@ import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.concurrent.OrderedExecutorService;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -576,6 +577,20 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback, timeout);
     }
 
+    @Override
+    public void sendOrderly(Message msg, MessageQueueSelector selector, Object arg, ProcessableCallback sendCallback)
+        throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
+        this.defaultMQProducerImpl.sendOrderly(msg, selector, arg, sendCallback);
+    }
+
+    @Override
+    public void sendOrderly(Message msg, MessageQueueSelector selector, Object arg, ProcessableCallback sendCallback, long timeout)
+        throws MQClientException, RemotingException, InterruptedException {
+        msg.setTopic(withNamespace(msg.getTopic()));
+        this.defaultMQProducerImpl.sendOrderly(msg, selector, arg, sendCallback, timeout);
+    }
+
     /**
      * Send request message in synchronous mode. This method returns only when the consumer consume the request message and reply a message. </p>
      *
@@ -968,6 +983,16 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public void setAsyncSenderExecutor(final ExecutorService asyncSenderExecutor) {
         this.defaultMQProducerImpl.setAsyncSenderExecutor(asyncSenderExecutor);
+    }
+
+    /**
+     * Sets an Executor to be used for executing asynchronous orderly send. If the Executor is not set,
+     * {@link DefaultMQProducerImpl#defaultAsyncOrderlySenderExecutor} will be used.
+     *
+     * @param asyncOrderlySenderExecutor the instance of Executor
+     */
+    public void setAsyncOrderlySenderExecutor(OrderedExecutorService asyncOrderlySenderExecutor) {
+        this.defaultMQProducerImpl.setAsyncOrderlySenderExecutor(asyncOrderlySenderExecutor);
     }
 
     /**
