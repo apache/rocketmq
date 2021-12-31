@@ -211,7 +211,7 @@ public class DefaultMQProducerTest {
 
             @Override
             public boolean retry(int times) {
-                return times < 1;
+                return false;
             }
         };
         MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
