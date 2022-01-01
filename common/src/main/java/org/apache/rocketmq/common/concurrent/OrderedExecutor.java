@@ -35,7 +35,18 @@ public interface OrderedExecutor extends Executor {
     void execute(Runnable command, Object... keys);
 
     /**
+     * get core pool size
+     */
+    int getCorePoolSize();
+
+    /**
      * only for test
      */
     int computeCode(Object... a);
+
+    /**
+     * only for test
+     */
+    void setCode(int value);
+
 }

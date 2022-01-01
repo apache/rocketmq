@@ -42,12 +42,20 @@ public class DefaultOrderedExecutor extends AbstractExecutorService implements O
 
     public DefaultOrderedExecutor(String processName, int size) {
         if (size <= 0) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("size must be greater than 0");
         }
         this.executors = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             this.executors.add(Executors.newSingleThreadExecutor(ThreadUtils.newGenericThreadFactory(processName)));
         }
+    }
+
+    protected ExecutorService choose(Object... args) {
+        final int size = this.executors.size();
+        if (size == 1) {
+            return this.executors.get(0);
+        }
+        return this.executors.get(computeCode(args) % size);
     }
 
     @Override
@@ -71,12 +79,14 @@ public class DefaultOrderedExecutor extends AbstractExecutorService implements O
         return result < 0 ? Math.abs(result) : result;
     }
 
-    protected ExecutorService choose(Object... args) {
-        final int size = this.executors.size();
-        if (size == 1) {
-            return this.executors.get(0);
-        }
-        return this.executors.get(computeCode(args) % size);
+    @Override
+    public void setCode(int value) {
+        countThreadLocal.get().set(value);
+    }
+
+    @Override
+    public int getCorePoolSize() {
+        return this.executors.size();
     }
 
     @Override
