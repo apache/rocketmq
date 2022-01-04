@@ -26,9 +26,16 @@ public abstract class ConfigManager {
 
     public abstract String encode();
 
+    /**
+     * 模版模式
+     * @author ouyangzhaobing
+     * @date 2021/10/9 上午10:45
+     * @return boolean
+     */
     public boolean load() {
         String fileName = null;
         try {
+            //  继承类自己指定文件
             fileName = this.configFilePath();
             String jsonString = MixAll.file2String(fileName);
 
