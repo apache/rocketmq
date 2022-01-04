@@ -33,12 +33,14 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
+import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -294,12 +296,18 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         topicConfig.setTopicFilterType(requestHeader.getTopicFilterTypeEnum());
         topicConfig.setPerm(requestHeader.getPerm());
         topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
+        String attributesModification = requestHeader.getAttributes();
+        topicConfig.setAttributes(AttributeParser.parseToMap(attributesModification));
 
-        this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
-
-        this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
-
-        response.setCode(ResponseCode.SUCCESS);
+        try {
+            this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
+            this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
+            response.setCode(ResponseCode.SUCCESS);
+        }  catch (Exception e) {
+            log.error("Update / create topic failed for [{}]", request, e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
         return response;
     }
 

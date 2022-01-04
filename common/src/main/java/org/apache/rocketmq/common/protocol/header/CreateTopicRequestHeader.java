@@ -26,6 +26,8 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+import java.util.Map;
+
 public class CreateTopicRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String topic;
@@ -42,6 +44,7 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
     private Integer topicSysFlag;
     @CFNotNull
     private Boolean order = false;
+    private String attributes;
 
     @CFNullable
     private Boolean force = false;
@@ -129,5 +132,13 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
 
     public void setForce(Boolean force) {
         this.force = force;
+    }
+
+    public String getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(String attributes) {
+        this.attributes = attributes;
     }
 }
