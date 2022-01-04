@@ -50,20 +50,20 @@ public class MQAdminTestUtils {
     private static Logger log = Logger.getLogger(MQAdminTestUtils.class);
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
-                                      int queueNum) {
+                                      int queueNum, Map<String, String> attributes) {
         int defaultWaitTime = 5;
-        return createTopic(nameSrvAddr, clusterName, topic, queueNum, defaultWaitTime);
+        return createTopic(nameSrvAddr, clusterName, topic, queueNum, attributes, defaultWaitTime);
     }
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
-                                      int queueNum, int waitTimeSec) {
+                                      int queueNum, Map<String, String> attributes, int waitTimeSec) {
         boolean createResult = false;
         DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.setInstanceName(UUID.randomUUID().toString());
         mqAdminExt.setNamesrvAddr(nameSrvAddr);
         try {
             mqAdminExt.start();
-            mqAdminExt.createTopic(clusterName, topic, queueNum);
+            mqAdminExt.createTopic(clusterName, topic, queueNum, attributes);
         } catch (Exception e) {
         }
 
