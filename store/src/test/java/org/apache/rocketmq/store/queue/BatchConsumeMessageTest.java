@@ -50,8 +50,12 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 
 public class BatchConsumeMessageTest extends QueueTestBase {
     private MessageStore messageStore;
@@ -120,7 +124,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testConsumeBatchMessage() throws InterruptedException {
+    public void testConsumeBatchMessage() {
         String topic = UUID.randomUUID().toString();
         createTopic(topic, CQType.BatchCQ, messageStore);
         int batchNum = 10;
@@ -129,7 +133,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
         Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
 
-        Thread.sleep(2 * 1000);
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
         List<GetMessageResult> results = new ArrayList<>();
         for (int i = 0; i < batchNum; i++) {
@@ -150,7 +154,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testNextBeginOffsetConsumeBatchMessage() throws InterruptedException {
+    public void testNextBeginOffsetConsumeBatchMessage() {
         String topic = UUID.randomUUID().toString();
         createTopic(topic, CQType.BatchCQ, messageStore);
         Random random = new Random();
@@ -165,7 +169,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             queue.add(batchNum);
         }
 
-        Thread.sleep(2 * 1000);
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
         long pullOffset = 0L;
         int getMessageCount = 0;
@@ -206,7 +210,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
                 timeMid = System.currentTimeMillis();
         }
 
-        Thread.sleep(2 * 1000);
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
         Assert.assertEquals(80, messageStore.getOffsetInQueueByTime(topic, 0, timeMid));
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
@@ -238,7 +242,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
                 timeMid = System.currentTimeMillis();
         }
 
-        Thread.sleep(2 * 1000);
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
         ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(topic, 0);
         Assert.assertEquals(CQType.SimpleCQ, consumeQueue.getCQType());
@@ -287,7 +291,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
                 timeMid = System.currentTimeMillis();
         }
 
-        Thread.sleep(2 * 1000);
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
         ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(topic, 0);
         Assert.assertEquals(CQType.BatchCQ, consumeQueue.getCQType());
@@ -329,7 +333,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testGetBatchMessageWithinNumber() throws Exception {
+    public void testGetBatchMessageWithinNumber() {
         String topic = UUID.randomUUID().toString();
 
         createTopic(topic, CQType.BatchCQ, messageStore);
@@ -342,7 +346,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             Assert.assertEquals(batchNum, putMessageResult.getAppendMessageResult().getMsgNum());
         }
 
-        Thread.sleep(2 * 1000);
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
         ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(topic, 0);
         Assert.assertEquals(CQType.BatchCQ, consumeQueue.getCQType());
@@ -390,7 +394,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @Test
-    public void testGetBatchMessageWithinSize() throws Exception {
+    public void testGetBatchMessageWithinSize() {
         String topic = UUID.randomUUID().toString();
         createTopic(topic, CQType.BatchCQ, messageStore);
 
@@ -402,7 +406,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             Assert.assertEquals(batchNum, putMessageResult.getAppendMessageResult().getMsgNum());
         }
 
-        Thread.sleep(2 * 1000);
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
 
         ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(topic, 0);
         Assert.assertEquals(CQType.BatchCQ, consumeQueue.getCQType());
@@ -416,7 +420,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             Assert.assertEquals(1, getMessageResult.getMessageMapedList().size());
             SelectMappedBufferResult sbr = getMessageResult.getMessageMapedList().get(0);
             MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer());
-            short tmpBatchNum = Short.valueOf(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
+            short tmpBatchNum = Short.parseShort(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
             Assert.assertEquals(0, messageExt.getQueueOffset());
             Assert.assertEquals(batchNum, tmpBatchNum);
         }
@@ -437,7 +441,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
                 Assert.assertFalse(getMessageResult.getMessageMapedList().get(i).hasReleased());
                 SelectMappedBufferResult sbr = getMessageResult.getMessageMapedList().get(i);
                 MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer());
-                short tmpBatchNum = Short.valueOf(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
+                short tmpBatchNum = Short.parseShort(messageExt.getProperty(MessageConst.PROPERTY_INNER_NUM));
                 Assert.assertEquals(i * batchNum, Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_INNER_BASE)));
                 Assert.assertEquals(batchNum, tmpBatchNum);
 
@@ -456,6 +460,10 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
         topicConfigTable.put(topic, topicConfigToBeAdded);
         ((DefaultMessageStore)messageStore).setTopicConfigTable(topicConfigTable);
+    }
+
+    private Callable<Boolean> fullyDispatched(MessageStore messageStore) {
+        return () -> messageStore.dispatchBehindBytes() == 0;
     }
 
 }
