@@ -16,11 +16,8 @@
  */
 package org.apache.rocketmq.common.statictopic;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
 import java.util.List;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicQueueMappingOne extends RemotingSerializable {
 
