@@ -261,12 +261,13 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         }
 
         //check the message time
+        long latencyAllowed = 20;
         long earlistMessageTime = messageStore.getEarliestMessageTime(topic, 0);
-        Assert.assertTrue(earlistMessageTime > timeStart - 10);
-        Assert.assertTrue(earlistMessageTime < timeStart + 10);
+        Assert.assertTrue(earlistMessageTime > timeStart - latencyAllowed);
+        Assert.assertTrue(earlistMessageTime < timeStart + latencyAllowed);
         long messageStoreTime = messageStore.getMessageStoreTimeStamp(topic, 0, 50);
-        Assert.assertTrue(messageStoreTime > timeMid - 10);
-        Assert.assertTrue(messageStoreTime < timeMid + 10);
+        Assert.assertTrue(messageStoreTime > timeMid - latencyAllowed);
+        Assert.assertTrue(messageStoreTime < timeMid + latencyAllowed);
         long commitLogOffset = messageStore.getCommitLogOffsetInQueue(topic, 0, 50);
         Assert.assertTrue(commitLogOffset >= messageStore.getMinPhyOffset());
         Assert.assertTrue(commitLogOffset <= messageStore.getMaxPhyOffset());
