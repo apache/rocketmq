@@ -189,7 +189,7 @@ public class TopicQueueMappingManager extends ConfigManager {
 
     //Do not return a null context
     public TopicQueueMappingContext buildTopicQueueMappingContext(TopicRequestHeader requestHeader, boolean selectOneWhenMiss) {
-        //should disable logic queue explicitly, otherwise the old client may cause dirty data to newly created static topic
+        // if lo is set to false explicitly, it maybe the forwarded request
         if (requestHeader.getLo() != null
                 && Boolean.FALSE.equals(requestHeader.getLo())) {
             return new TopicQueueMappingContext(requestHeader.getTopic(), null, null, null, null);
