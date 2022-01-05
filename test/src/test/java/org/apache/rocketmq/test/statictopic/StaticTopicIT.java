@@ -292,6 +292,7 @@ public class StaticTopicIT extends BaseConf {
         String group = initConsumerGroup();
         RMQNormalProducer producer = getProducer(nsAddr, topic);
         RMQNormalConsumer consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
+        long start = System.currentTimeMillis();
 
         int queueNum = 10;
         int msgEachQueue = 100;
@@ -314,6 +315,7 @@ public class StaticTopicIT extends BaseConf {
             Assert.assertNotNull(wrapper);
             Assert.assertEquals(msgEachQueue, wrapper.getBrokerOffset());
             Assert.assertEquals(msgEachQueue, wrapper.getConsumerOffset());
+            Assert.assertTrue(wrapper.getLastTimestamp() > start);
         }
 
         List<String> brokers = ImmutableList.of(broker2Name, broker3Name, broker1Name);
@@ -332,6 +334,7 @@ public class StaticTopicIT extends BaseConf {
             Assert.assertNotNull(wrapper);
             Assert.assertEquals(msgEachQueue + brokers.size() * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, wrapper.getBrokerOffset());
             Assert.assertEquals(msgEachQueue, wrapper.getConsumerOffset());
+            Assert.assertTrue(wrapper.getLastTimestamp() > start);
         }
         consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
         consumeMessagesAndCheck(producer, consumer, topic, queueNum, msgEachQueue, 1, brokers.size());
