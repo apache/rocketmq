@@ -1,5 +1,6 @@
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageStore;
@@ -14,7 +15,7 @@ public class ConsumeQueueTest extends QueueTestBase {
     public void testIterator() throws Exception {
         final int msgNum = 100;
         final int msgSize = 1000;
-        MessageStore messageStore =  createMessageStore(null, true, CQType.SimpleCQ);
+        MessageStore messageStore =  createMessageStore(null, true);
         messageStore.load();
         String topic = UUID.randomUUID().toString();
         //The initial min max offset, before and after the creation of consume queue

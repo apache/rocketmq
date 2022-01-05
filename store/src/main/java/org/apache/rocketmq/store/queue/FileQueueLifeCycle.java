@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.queue;
 
 import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.Swappable;
 
 public interface FileQueueLifeCycle extends Swappable {
@@ -32,4 +33,5 @@ public interface FileQueueLifeCycle extends Swappable {
     boolean isFirstFileExist();
     void correctMinOffset(long minCommitLogOffset);
     void putMessagePositionInfoWrapper(DispatchRequest request);
+    void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum);
 }

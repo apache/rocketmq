@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -76,10 +77,10 @@ public class MQAdminImpl {
     }
 
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        createTopic(key, newTopic, queueNum, 0);
+        createTopic(key, newTopic, queueNum, 0, null);
     }
 
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag, Map<String, String> attributes) throws MQClientException {
         try {
             Validators.checkTopic(newTopic);
             Validators.isSystemTopic(newTopic);
@@ -100,6 +101,7 @@ public class MQAdminImpl {
                         topicConfig.setReadQueueNums(queueNum);
                         topicConfig.setWriteQueueNums(queueNum);
                         topicConfig.setTopicSysFlag(topicSysFlag);
+                        topicConfig.setAttributes(attributes);
 
                         boolean createOK = false;
                         for (int i = 0; i < 5; i++) {

@@ -24,9 +24,9 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
 import org.apache.rocketmq.common.attribute.EnumAttribute;
 import org.apache.rocketmq.common.attribute.LongRangeAttribute;
+import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.queue.CQType;
-import org.apache.rocketmq.store.util.QueueTypeUtils;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
@@ -123,7 +124,7 @@ public class TopicConfigManagerTest {
     @Test
     public void testAddWrongValueOnCreating() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("+" + TopicAttributes.queueType.getName(), "wrong-value");
+        attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), "wrong-value");
 
         TopicConfig topicConfig = new TopicConfig();
         topicConfig.setTopicName("new-topic");
@@ -300,7 +301,7 @@ public class TopicConfigManagerTest {
         topicConfigManager.updateTopicConfig(topicConfig);
 
         TopicConfig topicConfigUpdated = topicConfigManager.getTopicConfigTable().get(topic);
-        Assert.assertEquals(CQType.SimpleCQ, QueueTypeUtils.getCQType(topicConfigUpdated));
+        Assert.assertEquals(CQType.SimpleCQ, QueueTypeUtils.getCQType(Optional.of(topicConfigUpdated)));
 
         Assert.assertEquals("true", topicConfigUpdated.getAttributes().get(unchangeable));
     }
