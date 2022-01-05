@@ -7,7 +7,6 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.StreamMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
@@ -17,11 +16,10 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 import java.io.File;
 import java.util.Map;
-import java.util.Objects;
 
 public class QueueTestBase extends StoreTestBase {
 
-    protected MessageStore createMessageStore(String baseDir, boolean extent, CQType cqType) throws Exception {
+    protected MessageStore createMessageStore(String baseDir, boolean extent) throws Exception {
         if (baseDir == null) {
             baseDir = createBaseDir();
         }
@@ -40,28 +38,18 @@ public class QueueTestBase extends StoreTestBase {
         messageStoreConfig.setMaxTransferBytesOnMessageInMemory(1024 * 1024);
         messageStoreConfig.setMaxTransferCountOnMessageInDisk(1024);
         messageStoreConfig.setMaxTransferCountOnMessageInMemory(1024);
-        messageStoreConfig.setDefaultCQType(cqType.name());
 
         messageStoreConfig.setFlushIntervalCommitLog(1);
         messageStoreConfig.setFlushCommitLogThoroughInterval(2);
 
-        if (Objects.equals(CQType.BatchCQ, cqType)) {
-            return new StreamMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MessageArrivingListener() {
-                @Override
-                public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                                     byte[] filterBitMap, Map<String, String> properties) {
+        DefaultMessageStore messageStore = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MessageArrivingListener() {
+            @Override
+            public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
+                                 byte[] filterBitMap, Map<String, String> properties) {
 
-                }
-            }, new BrokerConfig());
-        } else {
-            return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MessageArrivingListener() {
-                @Override
-                public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                                     byte[] filterBitMap, Map<String, String> properties) {
-
-                }
-            }, new BrokerConfig());
-        }
+            }
+        }, new BrokerConfig());
+        return messageStore;
     }
 
     public MessageExtBrokerInner buildMessage(String topic, int batchNum) {

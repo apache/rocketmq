@@ -23,7 +23,6 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -38,8 +37,6 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.StreamMessageStore;
-import org.apache.rocketmq.store.queue.CQType;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
