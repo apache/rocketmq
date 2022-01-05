@@ -18,6 +18,8 @@ package org.apache.rocketmq.common;
 
 import org.apache.rocketmq.common.constant.PermName;
 
+import java.util.Map;
+
 public class TopicConfig {
     private static final String SEPARATOR = " ";
     public static int defaultReadQueueNums = 16;
@@ -29,6 +31,7 @@ public class TopicConfig {
     private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
     private int topicSysFlag = 0;
     private boolean order = false;
+    private Map<String, String> attributes;
 
     public TopicConfig() {
     }
@@ -71,6 +74,8 @@ public class TopicConfig {
         sb.append(this.perm);
         sb.append(SEPARATOR);
         sb.append(this.topicFilterType);
+
+        // Leave the encode/decode [attributes] out for now
 
         return sb.toString();
     }
@@ -150,29 +155,29 @@ public class TopicConfig {
         this.order = isOrder;
     }
 
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, String> attributes) {
+        this.attributes = attributes;
+    }
+
     @Override
-    public boolean equals(final Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-        final TopicConfig that = (TopicConfig) o;
+        TopicConfig that = (TopicConfig) o;
 
-        if (readQueueNums != that.readQueueNums)
-            return false;
-        if (writeQueueNums != that.writeQueueNums)
-            return false;
-        if (perm != that.perm)
-            return false;
-        if (topicSysFlag != that.topicSysFlag)
-            return false;
-        if (order != that.order)
-            return false;
-        if (topicName != null ? !topicName.equals(that.topicName) : that.topicName != null)
-            return false;
-        return topicFilterType == that.topicFilterType;
-
+        if (readQueueNums != that.readQueueNums) return false;
+        if (writeQueueNums != that.writeQueueNums) return false;
+        if (perm != that.perm) return false;
+        if (topicSysFlag != that.topicSysFlag) return false;
+        if (order != that.order) return false;
+        if (topicName != null ? !topicName.equals(that.topicName) : that.topicName != null) return false;
+        if (topicFilterType != that.topicFilterType) return false;
+        return attributes != null ? attributes.equals(that.attributes) : that.attributes == null;
     }
 
     @Override
@@ -184,6 +189,7 @@ public class TopicConfig {
         result = 31 * result + (topicFilterType != null ? topicFilterType.hashCode() : 0);
         result = 31 * result + topicSysFlag;
         result = 31 * result + (order ? 1 : 0);
+        result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
         return result;
     }
 
@@ -191,7 +197,7 @@ public class TopicConfig {
     public String toString() {
         return "TopicConfig [topicName=" + topicName + ", readQueueNums=" + readQueueNums
             + ", writeQueueNums=" + writeQueueNums + ", perm=" + PermName.perm2String(perm)
-            + ", topicFilterType=" + topicFilterType + ", topicSysFlag=" + topicSysFlag + ", order="
-            + order + "]";
+            + ", topicFilterType=" + topicFilterType + ", topicSysFlag=" + topicSysFlag + ", order=" + order
+            + ", attributes=" + attributes + "]";
     }
 }
