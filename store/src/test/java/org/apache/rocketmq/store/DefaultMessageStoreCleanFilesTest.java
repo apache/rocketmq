@@ -78,16 +78,17 @@ public class DefaultMessageStoreCleanFilesTest {
         // the min value of diskMaxUsedSpaceRatio.
         int diskMaxUsedSpaceRatio = 1;
         // used to  set disk-full flag
-        double diskSpaceCleanForciblyRatio = 0.01D;
+        double usedSpaceRatio = UtilAll.getDiskPartitionSpaceUsedPercent(System.getProperty("user.home"));
+        double diskSpaceCleanForciblyRatio = usedSpaceRatio - 0.01D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
-        // build and put 55 messages, exactly one message per CommitLog file.
+        // build and put messages, some messages failed to write because the disk is full.
         buildAndPutMessagesToMessageStore(msgCount);
         MappedFileQueue commitLogQueue = getMappedFileQueueCommitLog();
-        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
+        assertTrue(fileCountCommitLog >= commitLogQueue.getMappedFiles().size());
         int fileCountConsumeQueue = getFileCountConsumeQueue();
         MappedFileQueue consumeQueue = getMappedFileQueueConsumeQueue();
-        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
-        cleanCommitLogService.isSpaceFull();
+        assertTrue(fileCountConsumeQueue >= consumeQueue.getMappedFiles().size());
+        assertTrue(cleanCommitLogService.isSpaceFull());
         assertEquals(1 << 4, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
         messageStore.shutdown();
         messageStore.destroy();
@@ -100,7 +101,9 @@ public class DefaultMessageStoreCleanFilesTest {
         // the min value of diskMaxUsedSpaceRatio.
         int diskMaxUsedSpaceRatio = 1;
         // used to  set disk-full flag
-        double diskSpaceCleanForciblyRatio = 0.01D;
+        double usedSpaceRatio = UtilAll.getDiskPartitionSpaceUsedPercent(System.getProperty("user.home"));
+        double diskSpaceWarningLevelRatio = usedSpaceRatio - 0.01;
+        double diskSpaceCleanForciblyRatio = usedSpaceRatio - 0.01;
         MessageStoreConfig config = genMessageStoreConfig(deleteWhen, diskMaxUsedSpaceRatio);
         String storePath = config.getStorePathCommitLog();
         StringBuilder storePathBuilder = new StringBuilder();
@@ -110,19 +113,18 @@ public class DefaultMessageStoreCleanFilesTest {
         config.setStorePathCommitLog(storePathBuilder.toString());
         String[] paths = config.getStorePathCommitLog().trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
         assertEquals(3, paths.length);
-        initMessageStore(config, diskSpaceCleanForciblyRatio);
+        initMessageStore(config, diskSpaceCleanForciblyRatio, diskSpaceWarningLevelRatio);
 
 
 
-        // build and put 55 messages, exactly one message per CommitLog file.
+        // build and put messages, some messages failed to write because the disk is full.
         buildAndPutMessagesToMessageStore(msgCount);
         MappedFileQueue commitLogQueue = getMappedFileQueueCommitLog();
-        assertEquals(fileCountCommitLog, commitLogQueue.getMappedFiles().size());
+        assertTrue(fileCountCommitLog >= commitLogQueue.getMappedFiles().size());
         int fileCountConsumeQueue = getFileCountConsumeQueue();
         MappedFileQueue consumeQueue = getMappedFileQueueConsumeQueue();
-        assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
-        cleanCommitLogService.isSpaceFull();
-
+        assertTrue(fileCountConsumeQueue >= consumeQueue.getMappedFiles().size());
+        assertTrue(cleanCommitLogService.isSpaceFull());
         assertEquals(1 << 4, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
         messageStore.shutdown();
         messageStore.destroy();
@@ -148,7 +150,7 @@ public class DefaultMessageStoreCleanFilesTest {
     public void testDeleteExpiredFilesByTimeUp() throws Exception {
         String deleteWhen = Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + "";
         // the max value of diskMaxUsedSpaceRatio
-        int diskMaxUsedSpaceRatio = 99;
+        int diskMaxUsedSpaceRatio = 1;
         // used to ensure that automatic file deletion is not triggered
         double diskSpaceCleanForciblyRatio = 0.999D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
@@ -243,7 +245,9 @@ public class DefaultMessageStoreCleanFilesTest {
         int diskMaxUsedSpaceRatio = 1;
         // make sure to trigger the automatic file deletion feature
         double diskSpaceCleanForciblyRatio = 0.01D;
-        initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
+        double diskSpaceWarningLevelRatio = 0.99D;
+        MessageStoreConfig messageStoreConfig = genMessageStoreConfig(deleteWhen, diskMaxUsedSpaceRatio);
+        initMessageStore(messageStoreConfig, diskSpaceCleanForciblyRatio, diskSpaceWarningLevelRatio);
 
         // build and put 55 messages, exactly one message per CommitLog file.
         buildAndPutMessagesToMessageStore(msgCount);
@@ -332,8 +336,8 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService(double diskSpaceCleanForciblyRatio)
-            throws Exception {
+    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService(double diskSpaceCleanForciblyRatio,
+        double diskSpaceWarningLevelRatio) throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
         serviceField.setAccessible(true);
         DefaultMessageStore.CleanCommitLogService cleanCommitLogService =
@@ -342,7 +346,7 @@ public class DefaultMessageStoreCleanFilesTest {
 
         Field warningLevelRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceWarningLevelRatio");
         warningLevelRatioField.setAccessible(true);
-        warningLevelRatioField.set(cleanCommitLogService, diskSpaceCleanForciblyRatio);
+        warningLevelRatioField.set(cleanCommitLogService, diskSpaceWarningLevelRatio);
         warningLevelRatioField.setAccessible(false);
 
         Field cleanForciblyRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceCleanForciblyRatio");
@@ -352,8 +356,7 @@ public class DefaultMessageStoreCleanFilesTest {
         return cleanCommitLogService;
     }
 
-    private DefaultMessageStore.CleanConsumeQueueService getCleanConsumeQueueService()
-            throws Exception {
+    private DefaultMessageStore.CleanConsumeQueueService getCleanConsumeQueueService() throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanConsumeQueueService");
         serviceField.setAccessible(true);
         DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService =
@@ -362,8 +365,10 @@ public class DefaultMessageStoreCleanFilesTest {
         return cleanConsumeQueueService;
     }
 
-    private MappedFileQueue getMappedFileQueueConsumeQueue()
-            throws Exception {
+    private MappedFileQueue getMappedFileQueueConsumeQueue() throws Exception {
+        if (!messageStore.getConsumeQueueTable().containsKey(topic)) {
+            return new MappedFileQueue(null, mappedFileSize, null);
+        }
         ConsumeQueue consumeQueue = messageStore.getConsumeQueueTable().get(topic).get(queueId);
         Field queueField = consumeQueue.getClass().getDeclaredField("mappedFileQueue");
         queueField.setAccessible(true);
@@ -435,8 +440,7 @@ public class DefaultMessageStoreCleanFilesTest {
             msg.setStoreHost(storeHost);
             msg.setBornHost(bornHost);
             msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
-            PutMessageResult result = messageStore.putMessage(msg);
-            assertTrue(result != null && result.isOk());
+            messageStore.putMessage(msg);
         }
 
         StoreTestUtil.waitCommitLogReput(messageStore);
@@ -455,8 +459,8 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio, double diskSpaceCleanForciblyRatio) throws Exception {
-        initMessageStore(genMessageStoreConfig(deleteWhen,diskMaxUsedSpaceRatio), diskSpaceCleanForciblyRatio);
+    private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio, double diskSpaceCleanRatio) throws Exception {
+        initMessageStore(genMessageStoreConfig(deleteWhen, diskMaxUsedSpaceRatio), diskSpaceCleanRatio, diskSpaceCleanRatio);
     }
 
     private MessageStoreConfig genMessageStoreConfig(String deleteWhen, int diskMaxUsedSpaceRatio) {
@@ -484,11 +488,12 @@ public class DefaultMessageStoreCleanFilesTest {
         return messageStoreConfig;
     }
 
-    private void initMessageStore(MessageStoreConfig messageStoreConfig, double diskSpaceCleanForciblyRatio) throws Exception {
+    private void initMessageStore(MessageStoreConfig messageStoreConfig, double diskSpaceCleanForciblyRatio,
+        double diskSpaceWarningLevelRatio) throws Exception {
         messageStore = new DefaultMessageStore(messageStoreConfig,
                 new BrokerStatsManager("test", true), new MyMessageArrivingListener(), new BrokerConfig());
 
-        cleanCommitLogService = getCleanCommitLogService(diskSpaceCleanForciblyRatio);
+        cleanCommitLogService = getCleanCommitLogService(diskSpaceCleanForciblyRatio, diskSpaceWarningLevelRatio);
         cleanConsumeQueueService = getCleanConsumeQueueService();
 
         assertTrue(messageStore.load());
