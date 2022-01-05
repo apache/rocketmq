@@ -1215,18 +1215,13 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 offsetWrapper.setBrokerOffset(brokerOffset);
                 offsetWrapper.setConsumerOffset(consumerOffset);
 
-                // the consumeOffset is not in this broker for static topic
-                // and may get the wrong result
-                if (mappingDetail == null) {
-                    long timeOffset = consumerOffset - 1;
-                    if (timeOffset >= 0) {
-                        long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);
-                        if (lastTimestamp > 0) {
-                            offsetWrapper.setLastTimestamp(lastTimestamp);
-                        }
+                long timeOffset = consumerOffset - 1;
+                if (timeOffset >= 0) {
+                    long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);
+                    if (lastTimestamp > 0) {
+                        offsetWrapper.setLastTimestamp(lastTimestamp);
                     }
                 }
-
                 consumeStats.getOffsetTable().put(mq, offsetWrapper);
             }
 
