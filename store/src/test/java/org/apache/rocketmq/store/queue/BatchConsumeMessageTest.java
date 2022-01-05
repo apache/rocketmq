@@ -21,9 +21,11 @@ import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -40,7 +42,9 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -66,6 +70,83 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
         File file = new File(messageStore.getMessageStoreConfig().getStorePathRootDir());
         UtilAll.deleteFile(file);
+    }
+
+    @Test
+    public void testSendMessagesToCqTopic() {
+        String topic = UUID.randomUUID().toString();
+        createTopic(topic, CQType.SimpleCQ, messageStore);
+
+        int batchNum = 10;
+
+        // case 1 has PROPERTY_INNER_NUM but has no INNER_BATCH_FLAG
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, batchNum);
+        messageExtBrokerInner.setSysFlag(0);
+        PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        Assert.assertEquals(PutMessageStatus.MESSAGE_ILLEGAL, putMessageResult.getPutMessageStatus());
+
+        // case 2 has PROPERTY_INNER_NUM and has INNER_BATCH_FLAG, but is not a batchCq
+        messageExtBrokerInner = buildMessage(topic, 1);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        Assert.assertEquals(PutMessageStatus.MESSAGE_ILLEGAL, putMessageResult.getPutMessageStatus());
+
+        // case 3 has neither PROPERTY_INNER_NUM nor INNER_BATCH_FLAG.
+        messageExtBrokerInner = buildMessage(topic, -1);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+    }
+
+    @Test
+    public void testSendMessagesToBcqTopic() {
+        String topic = UUID.randomUUID().toString();
+        createTopic(topic, CQType.BatchCQ, messageStore);
+
+        // case 1 has PROPERTY_INNER_NUM but has no INNER_BATCH_FLAG
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, 1);
+        PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        Assert.assertEquals(PutMessageStatus.MESSAGE_ILLEGAL, putMessageResult.getPutMessageStatus());
+
+        // case 2 has neither PROPERTY_INNER_NUM nor INNER_BATCH_FLAG.
+        messageExtBrokerInner = buildMessage(topic, -1);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+
+        // case 3 has INNER_BATCH_FLAG but has no PROPERTY_INNER_NUM.
+        messageExtBrokerInner = buildMessage(topic, 1);
+        MessageAccessor.clearProperty(messageExtBrokerInner, MessageConst.PROPERTY_INNER_NUM);
+        messageExtBrokerInner.setSysFlag(MessageSysFlag.INNER_BATCH_FLAG);
+        putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+    }
+
+    @Test
+    public void testConsumeBatchMessage() throws InterruptedException {
+        String topic = UUID.randomUUID().toString();
+        createTopic(topic, CQType.BatchCQ, messageStore);
+        int batchNum = 10;
+
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, batchNum);
+        PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
+        Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+
+        Thread.sleep(2 * 1000);
+
+        List<GetMessageResult> results = new ArrayList<>();
+        for (int i = 0; i < batchNum; i++) {
+            GetMessageResult result = messageStore.getMessage("whatever", topic, 0, i, Integer.MAX_VALUE, Integer.MAX_VALUE, null);
+            try {
+                Assert.assertEquals(GetMessageStatus.FOUND, result.getStatus());
+                results.add(result);
+            } finally {
+                result.release();
+            }
+        }
+
+        for (GetMessageResult result : results) {
+            Assert.assertEquals(0, result.getMinOffset());
+            Assert.assertEquals(batchNum, result.getMaxOffset());
+        }
+
     }
 
     @Test
