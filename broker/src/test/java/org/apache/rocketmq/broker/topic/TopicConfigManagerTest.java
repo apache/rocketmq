@@ -124,7 +124,7 @@ public class TopicConfigManagerTest {
     @Test
     public void testAddWrongValueOnCreating() {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("+" + TopicAttributes.queueType.getName(), "wrong-value");
+        attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), "wrong-value");
 
         TopicConfig topicConfig = new TopicConfig();
         topicConfig.setTopicName("new-topic");

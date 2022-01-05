@@ -454,7 +454,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         TopicConfig topicConfigToBeAdded = new TopicConfig();
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(TopicAttributes.queueType.getName(), cqType.toString());
+        attributes.put(TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), cqType.toString());
         topicConfigToBeAdded.setTopicName(topic);
         topicConfigToBeAdded.setAttributes(attributes);
 

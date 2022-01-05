@@ -175,7 +175,7 @@ public class IntegrationTestBase {
         while (true) {
             Map<String, String> attributes = new HashMap<>();
             if (!Objects.equals(CQType.SimpleCQ, cqType)) {
-                attributes.put("+" + TopicAttributes.queueType.getName(), cqType.toString());
+                attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), cqType.toString());
             }
             createResult = MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, queueNumbers, attributes);
             if (createResult) {
