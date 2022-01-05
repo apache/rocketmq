@@ -39,17 +39,17 @@ public class QueueTypeUtils {
     }
 
     public static CQType getCQType(TopicConfig topicConfig) {
-        String attributeName = TopicAttributes.queueType.getName();
+        String attributeName = TopicAttributes.QUEUE_TYPE.getName();
 
         Map<String, String> attributes = topicConfig.getAttributes();
         if (attributes == null || attributes.size() == 0) {
-            return CQType.valueOf(TopicAttributes.queueType.getDefaultValue());
+            return CQType.valueOf(TopicAttributes.QUEUE_TYPE.getDefaultValue());
         }
 
         if (attributes.containsKey(attributeName)) {
             return CQType.valueOf(attributes.get(attributeName));
         } else {
-            return CQType.valueOf(TopicAttributes.queueType.getDefaultValue());
+            return CQType.valueOf(TopicAttributes.QUEUE_TYPE.getDefaultValue());
         }
     }
 }
