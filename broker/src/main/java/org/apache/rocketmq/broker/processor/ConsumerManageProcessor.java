@@ -29,11 +29,15 @@ import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHead
 import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetResponseHeader;
+import org.apache.rocketmq.common.rpc.RpcClientUtils;
 import org.apache.rocketmq.common.rpc.RpcRequest;
 import org.apache.rocketmq.common.rpc.RpcResponse;
+import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.common.statictopic.LogicQueueMappingItem;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingContext;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils;
+import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -110,6 +114,37 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
         return response;
     }
 
+    public  RemotingCommand rewriteRequestForStaticTopic(final UpdateConsumerOffsetRequestHeader requestHeader, final TopicQueueMappingContext mappingContext) {
+        try {
+            if (mappingContext.getMappingDetail() == null) {
+                return null;
+            }
+            TopicQueueMappingDetail mappingDetail = mappingContext.getMappingDetail();
+            if (!mappingContext.isLeader()) {
+                return buildErrorResponse(ResponseCode.NOT_LEADER_FOR_QUEUE, String.format("%s-%d does not exit in request process of current broker %s", requestHeader.getTopic(), requestHeader.getQueueId(), mappingDetail.getBname()));
+            }
+            Long globalOffset = requestHeader.getCommitOffset();
+            LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), globalOffset, true);
+            requestHeader.setQueueId(mappingItem.getQueueId());
+            requestHeader.setLo(false);
+            requestHeader.setBname(mappingItem.getBname());
+            requestHeader.setCommitOffset(mappingItem.computePhysicalQueueOffset(globalOffset));
+            //leader, let it go, do not need to rewrite the response
+            if (mappingDetail.getBname().equals(mappingItem.getBname())) {
+                return null;
+            }
+            RpcRequest rpcRequest = new RpcRequest(RequestCode.UPDATE_CONSUMER_OFFSET, requestHeader, null);
+            RpcResponse rpcResponse = this.brokerController.getBrokerOuterAPI().getRpcClient().invoke(rpcRequest, this.brokerController.getBrokerConfig().getForwardTimeout()).get();
+            if (rpcResponse.getException() != null) {
+                throw rpcResponse.getException();
+            }
+            return RpcClientUtils.createCommandForRpcResponse(rpcResponse);
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
+    }
+
+
     private RemotingCommand updateConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
@@ -119,7 +154,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                 .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
         TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
 
-        RemotingCommand rewriteResult  = this.brokerController.getTopicQueueMappingManager().rewriteRequestForStaticTopic(requestHeader, mappingContext);
+        RemotingCommand rewriteResult  =  rewriteRequestForStaticTopic(requestHeader, mappingContext);
         if (rewriteResult != null) {
             return rewriteResult;
         }
@@ -144,6 +179,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             if (mappingItemList.size() == 1
                     &&  mappingItemList.get(0).getLogicOffset() == 0) {
                 //as physical, just let it go
+                mappingContext.setCurrentItem(mappingItemList.get(0));
                 requestHeader.setQueueId(mappingContext.getLeaderItem().getQueueId());
                 return null;
             }
@@ -154,6 +190,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             //double read, first from leader, then from second leader
             for (int i = itemList.size() - 1; i >= 0; i--) {
                 LogicQueueMappingItem mappingItem = itemList.get(i);
+                mappingContext.setCurrentItem(mappingItem);
                 if (mappingItem.getBname().equals(mappingDetail.getBname())) {
                     offset = this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(), requestHeader.getTopic(), mappingItem.getQueueId());
                     if (offset >= 0) {
@@ -194,9 +231,31 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, maybe this group consumer boot first");
             }
+            RemotingCommand rewriteResponseResult = rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext, response.getCode());
+            if (rewriteResponseResult != null) {
+                return rewriteResponseResult;
+            }
             return response;
         } catch (Throwable t) {
-            t.printStackTrace();
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
+    }
+
+
+    public  RemotingCommand rewriteResponseForStaticTopic(final QueryConsumerOffsetRequestHeader requestHeader, final QueryConsumerOffsetResponseHeader responseHeader,
+        final TopicQueueMappingContext mappingContext, final int code) {
+        try {
+            if (mappingContext.getMappingDetail() == null) {
+                return null;
+            }
+            if (code != ResponseCode.SUCCESS) {
+                return null;
+            }
+            LogicQueueMappingItem item = mappingContext.getCurrentItem();
+            responseHeader.setOffset(item.computeStaticQueueOffsetStrictly(responseHeader.getOffset()));
+            //no need to construct new object
+            return null;
+        } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
     }
@@ -243,6 +302,11 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
             }
+        }
+
+        RemotingCommand rewriteResponseResult = rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext, response.getCode());
+        if (rewriteResponseResult != null) {
+            return rewriteResponseResult;
         }
 
         return response;

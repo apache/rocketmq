@@ -7,6 +7,8 @@
 | 2021-12-03 | 增加代码走读的说明| dongforever |
 | 2021-12-10 | 引入Scope概念，保留『多集群动态零耦合』的集群设计模型 | dongforever |
 | 2021-12-23 | 梳理待完成事项；讨论Admin接口的适配方式 | dongforever |
+| 2021-01-05 | Offset存储改成『转换制』，以更好适配原有逻辑 | dongforever |
+
 
 
 
@@ -342,8 +344,9 @@ UpdateStaticTopic 命令会自动计算预期的分布情况，包括但不限�
 
 
 #### consumerOffsets 系列
-Offset的存储，无需转换，直接存储在 LogicQueue 所对应的最新 PhysicalQueue 中。
-读取时，采取『Double-Read-Check』机制。
+Offset的存储，进行转换，存储在对应PhysicalQueue 所在的 Broker上面。  
+读取时，采取『Double-Read-Check』机制，并进行转换。  
+这样可以最大程度与 PhysicalQueue 的相关逻辑进行适配，比如 ConsumerProgress 可以看到『最近拉取时间』。 
 
 #### Client
 
@@ -454,6 +457,8 @@ User 接口，使用范围广泛如多语言等，应该尽可能简单，把适
 #### 阻止Pop模式、事务消息、定时消息使用 LogicQueue
 不兼容 事务消息和定时消息。  
 LogicQueue 当前不支持Pop模式消费。
+#### Nameserver 相关生命周期完善
+目前没有处理Nameserver中Mapping数据的生命周期
 #### ConsumeQueue 的 correctMinOffset 逻辑存在缺陷
 可能导致 LogicQueue 无法清除已经过期的 MappingItem。
 #### getOffsetInQueueByTime 语义有缺陷
