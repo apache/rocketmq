@@ -20,13 +20,18 @@ package org.apache.rocketmq.test.base;
 import com.google.common.truth.Truth;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -34,10 +39,8 @@ import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.test.util.TestUtils;
-import org.assertj.core.util.Strings;
 
 public class IntegrationTestBase {
     public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
@@ -142,34 +145,6 @@ public class IntegrationTestBase {
         storeConfig.setMaxIndexNum(INDEX_NUM);
         storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
         storeConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
-        storeConfig.setDefaultCQType(CQType.SimpleCQ.toString());
-        storeConfig.setMaxTransferCountOnMessageInMemory(1024);
-        storeConfig.setMaxTransferCountOnMessageInDisk(1024);
-        return createAndStartBroker(storeConfig, brokerConfig);
-    }
-
-    public static BrokerController createAndStartBroker(String nsAddr, String cqType, String cluster) {
-        String baseDir = createBaseDir();
-        BrokerConfig brokerConfig = new BrokerConfig();
-        MessageStoreConfig storeConfig = new MessageStoreConfig();
-        brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.incrementAndGet());
-        brokerConfig.setBrokerIP1("127.0.0.1");
-        brokerConfig.setNamesrvAddr(nsAddr);
-        brokerConfig.setEnablePropertyFilter(true);
-        brokerConfig.setLoadBalancePollNameServerInterval(500);
-        brokerConfig.setBrokerClusterName(cluster);
-        storeConfig.setStorePathRootDir(baseDir);
-        storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
-        storeConfig.setMappedFileSizeCommitLog(COMMIT_LOG_SIZE);
-        storeConfig.setMaxIndexNum(INDEX_NUM);
-        storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
-        storeConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
-
-        if (!Strings.isNullOrEmpty(cqType)) {
-            storeConfig.setDefaultCQType(cqType);
-        } else {
-            storeConfig.setDefaultCQType(CQType.SimpleCQ.toString());
-        }
         storeConfig.setMaxTransferCountOnMessageInMemory(1024);
         storeConfig.setMaxTransferCountOnMessageInDisk(1024);
         return createAndStartBroker(storeConfig, brokerConfig);
@@ -193,17 +168,21 @@ public class IntegrationTestBase {
         return brokerController;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers) {
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, CQType cqType) {
         long startTime = System.currentTimeMillis();
         boolean createResult;
 
         while (true) {
-            createResult = MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, queueNumbers);
+            Map<String, String> attributes = new HashMap<>();
+            if (!Objects.equals(CQType.SimpleCQ, cqType)) {
+                attributes.put("+" + TopicAttributes.queueType.getName(), cqType.toString());
+            }
+            createResult = MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, queueNumbers, attributes);
             if (createResult) {
                 break;
             } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
                 Truth.assertWithMessage(String.format("topic[%s] is created failed after:%d ms", topic,
-                    System.currentTimeMillis() - startTime)).fail();
+                        System.currentTimeMillis() - startTime)).fail();
                 break;
             } else {
                 TestUtils.waitForMoment(500);
@@ -214,8 +193,8 @@ public class IntegrationTestBase {
         return createResult;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
-        return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS);
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, CQType cqType) {
+        return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, cqType);
     }
 
     public static void deleteFile(File file) {
