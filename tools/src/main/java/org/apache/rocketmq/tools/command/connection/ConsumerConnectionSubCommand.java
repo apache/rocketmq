@@ -64,8 +64,7 @@ public class ConsumerConnectionSubCommand implements SubCommand {
 
             ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
 
-            System.out.printf("%-36s %-22s %-10s %s%n",
-               "#ClientId", "#ClientAddr", "#Language", "#Version");
+            System.out.printf("%-36s %-22s %-10s %s%n", "#ClientId", "#ClientAddr", "#Language", "#Version");
             for (Connection conn : cc.getConnectionSet()) {
                 System.out.printf("%-36s %-22s %-10s %s%n",
                     conn.getClientId(),
