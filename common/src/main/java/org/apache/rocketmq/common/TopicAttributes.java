@@ -25,7 +25,7 @@ import java.util.Map;
 import static com.google.common.collect.Sets.newHashSet;
 
 public class TopicAttributes {
-    public static final EnumAttribute queueType = new EnumAttribute(
+    public static final EnumAttribute QUEUE_TYPE = new EnumAttribute(
             "queue.type",
             false,
             newHashSet("BatchCQ", "SimpleCQ"),
@@ -35,6 +35,6 @@ public class TopicAttributes {
 
     static {
         ALL = new HashMap<>();
-        ALL.put(queueType.getName(), queueType);
+        ALL.put(QUEUE_TYPE.getName(), QUEUE_TYPE);
     }
 }
