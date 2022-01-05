@@ -16,13 +16,18 @@
  */
 package org.apache.rocketmq.store.util;
 
+import org.apache.rocketmq.common.TopicAttributes;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.StreamMessageStore;
 import org.apache.rocketmq.store.queue.CQType;
 
+import java.util.Map;
+
 public class QueueTypeUtils {
 
+    @Deprecated
     public static CQType getCQType(MessageStore messageStore) {
         if (messageStore instanceof DefaultMessageStore) {
             return CQType.SimpleCQ;
@@ -30,6 +35,21 @@ public class QueueTypeUtils {
             return CQType.BatchCQ;
         } else {
             throw new RuntimeException("new cq type is not supported now.");
+        }
+    }
+
+    public static CQType getCQType(TopicConfig topicConfig) {
+        String attributeName = TopicAttributes.queueType.getName();
+
+        Map<String, String> attributes = topicConfig.getAttributes();
+        if (attributes == null || attributes.size() == 0) {
+            return CQType.valueOf(TopicAttributes.queueType.getDefaultValue());
+        }
+
+        if (attributes.containsKey(attributeName)) {
+            return CQType.valueOf(attributes.get(attributeName));
+        } else {
+            return CQType.valueOf(TopicAttributes.queueType.getDefaultValue());
         }
     }
 }
