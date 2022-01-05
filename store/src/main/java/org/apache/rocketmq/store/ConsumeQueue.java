@@ -343,7 +343,8 @@ public class ConsumeQueue {
             SelectMappedBufferResult result = mappedFile.selectMappedBuffer(0);
             if (result != null) {
                 try {
-                    for (int i = 0; i < result.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                    int i = 0;
+                    for (; i < result.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                         long offsetPy = result.getByteBuffer().getLong();
                         result.getByteBuffer().getInt();
                         long tagsCode = result.getByteBuffer().getLong();
@@ -358,6 +359,11 @@ public class ConsumeQueue {
                             }
                             break;
                         }
+                    }
+                    if (i >= result.getSize()) {
+                        this.minLogicOffset = mappedFile.getFileFromOffset() + i;
+                        log.info("Compute logical min offset: {}, topic: {}, queueId: {}",
+                            this.getMinOffsetInQueue(), this.topic, this.queueId);
                     }
                 } catch (Exception e) {
                     log.error("Exception thrown when correctMinOffset", e);
