@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.store.queue;
 
-import org.apache.rocketmq.common.TopicAttributes;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -27,7 +25,6 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
-import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
@@ -43,16 +40,11 @@ import org.junit.Test;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
@@ -173,8 +165,9 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
         long pullOffset = 0L;
         int getMessageCount = 0;
+        int atMostMsgNum = 1;
         while (true) {
-            GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, pullOffset, 1, null);
+            GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, pullOffset, atMostMsgNum, null);
             if (Objects.equals(getMessageResult.getStatus(), GetMessageStatus.OFFSET_OVERFLOW_ONE)) {
                 break;
             }
@@ -448,23 +441,6 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
             }
         }
-    }
-
-    private void createTopic(String topic, CQType cqType, MessageStore messageStore) {
-        ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
-        TopicConfig topicConfigToBeAdded = new TopicConfig();
-
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put(TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), cqType.toString());
-        topicConfigToBeAdded.setTopicName(topic);
-        topicConfigToBeAdded.setAttributes(attributes);
-
-        topicConfigTable.put(topic, topicConfigToBeAdded);
-        ((DefaultMessageStore)messageStore).setTopicConfigTable(topicConfigTable);
-    }
-
-    private Callable<Boolean> fullyDispatched(MessageStore messageStore) {
-        return () -> messageStore.dispatchBehindBytes() == 0;
     }
 
 }

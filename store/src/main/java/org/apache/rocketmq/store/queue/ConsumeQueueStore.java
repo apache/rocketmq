@@ -28,7 +28,6 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 import java.io.File;
 import java.util.HashMap;
@@ -38,6 +37,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static java.lang.String.format;
+import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathBatchConsumeQueue;
+import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathConsumeQueue;
 
 public class ConsumeQueueStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -79,7 +82,8 @@ public class ConsumeQueueStore {
      * Apply the dispatched request and build the consume queue.
      * This function should be idempotent.
      *
-     * @param request
+     * @param consumeQueue consume queue
+     * @param request dispatch request
      */
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
         FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
@@ -97,11 +101,13 @@ public class ConsumeQueueStore {
     }
 
     public boolean load() {
-        return loadConsumeQueues() && loadBatchConsumeQueues();
+        boolean cqLoadResult = loadConsumeQueues(getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()), CQType.SimpleCQ);
+        boolean bcqLoadResult = loadConsumeQueues(getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()), CQType.BatchCQ);
+        return cqLoadResult && bcqLoadResult;
     }
 
-    private boolean loadBatchConsumeQueues() {
-        File dirLogic = new File(StorePathConfigHelper.getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()));
+    private boolean loadConsumeQueues(String storePath, CQType cqType) {
+        File dirLogic = new File(storePath);
         File[] fileTopicList = dirLogic.listFiles();
         if (fileTopicList != null) {
 
@@ -118,24 +124,9 @@ public class ConsumeQueueStore {
                             continue;
                         }
 
-                        TopicConfig topicConfig = this.topicConfigTable == null ? null : this.topicConfigTable.get(topic);
+                        queueTypeShouldBe(topic, cqType);
 
-                        // For batch consume queue, the topic config must exist
-                        if (topicConfig == null) {
-                            log.warn("topic: {} has no topic config.", topic);
-                            continue;
-                        }
-
-                        if (!Objects.equals(CQType.BatchCQ, QueueTypeUtils.getCQType(Optional.of(topicConfig)))) {
-                            log.error("[BUG]topic: {} should be BCQ.", topic);
-                        }
-
-                        ConsumeQueueInterface logic = new BatchConsumeQueue(
-                                topic,
-                                queueId,
-                                StorePathConfigHelper.getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                                this.messageStoreConfig.getMappedFileSizeConsumeQueue(),
-                                this.messageStore);
+                        ConsumeQueueInterface logic = createConsumeQueueByType(cqType, topic, queueId, storePath);
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!this.load(logic)) {
                             return false;
@@ -145,46 +136,39 @@ public class ConsumeQueueStore {
             }
         }
 
-        log.info("load batch consume queue all over, OK");
+        log.info("load {} all over, OK", cqType);
 
         return true;
     }
 
-    private boolean loadConsumeQueues() {
-        File dirLogic = new File(StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()));
-        File[] fileTopicList = dirLogic.listFiles();
-        if (fileTopicList != null) {
-
-            for (File fileTopic : fileTopicList) {
-                String topic = fileTopic.getName();
-
-                File[] fileQueueIdList = fileTopic.listFiles();
-                if (fileQueueIdList != null) {
-                    for (File fileQueueId : fileQueueIdList) {
-                        int queueId;
-                        try {
-                            queueId = Integer.parseInt(fileQueueId.getName());
-                        } catch (NumberFormatException e) {
-                            continue;
-                        }
-                        ConsumeQueueInterface logic = new ConsumeQueue(
-                                topic,
-                                queueId,
-                                StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                                this.messageStoreConfig.getMappedFileSizeConsumeQueue(),
-                                this.messageStore);
-                        this.putConsumeQueue(topic, queueId, logic);
-                        if (!this.load(logic)) {
-                            return false;
-                        }
-                    }
-                }
-            }
+    private ConsumeQueueInterface createConsumeQueueByType(CQType cqType, String topic, int queueId, String storePath) {
+        if (Objects.equals(CQType.SimpleCQ, cqType)) {
+            return new ConsumeQueue(
+                    topic,
+                    queueId,
+                    storePath,
+                    this.messageStoreConfig.getMappedFileSizeConsumeQueue(),
+                    this.messageStore);
+        } else if (Objects.equals(CQType.BatchCQ, cqType)) {
+            return new BatchConsumeQueue(
+                    topic,
+                    queueId,
+                    storePath,
+                    this.messageStoreConfig.getMapperFileSizeBatchConsumeQueue(),
+                    this.messageStore);
+        } else {
+            throw new RuntimeException(format("queue type %s is not supported.", cqType.toString()));
         }
+    }
 
-        log.info("load logics queue all over, OK");
+    private void queueTypeShouldBe(String topic, CQType cqTypeExpected) {
+        TopicConfig topicConfig = this.topicConfigTable == null ? null : this.topicConfigTable.get(topic);
 
-        return true;
+        CQType cqTypeActual = QueueTypeUtils.getCQType(Optional.ofNullable(topicConfig));
+
+        if (!Objects.equals(cqTypeExpected, cqTypeActual)) {
+            throw new RuntimeException(format("The queue type of topic: %s should be %s, but is %s", topic, cqTypeExpected, cqTypeActual));
+        }
     }
 
     public void recover(ConsumeQueueInterface consumeQueue) {
@@ -212,13 +196,9 @@ public class ConsumeQueueStore {
     }
 
     public void checkSelf() {
-        Iterator<Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>>> it = this.consumeQueueTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> next = it.next();
-            Iterator<Map.Entry<Integer, ConsumeQueueInterface>> itNext = next.getValue().entrySet().iterator();
-            while (itNext.hasNext()) {
-                Map.Entry<Integer, ConsumeQueueInterface> cq = itNext.next();
-                this.checkSelf(cq.getValue());
+        for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : this.consumeQueueTable.entrySet()) {
+            for (Map.Entry<Integer, ConsumeQueueInterface> cqEntry : topicEntry.getValue().entrySet()) {
+                this.checkSelf(cqEntry.getValue());
             }
         }
     }
@@ -292,28 +272,23 @@ public class ConsumeQueueStore {
             newLogic = new BatchConsumeQueue(
                     topic,
                     queueId,
-                    StorePathConfigHelper.getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
+                    getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
                     this.messageStoreConfig.getMapperFileSizeBatchConsumeQueue(),
                     this.messageStore);
-            ConsumeQueueInterface oldLogic = map.putIfAbsent(queueId, newLogic);
-            if (oldLogic != null) {
-                logic = oldLogic;
-            } else {
-                logic = newLogic;
-            }
         } else {
             newLogic = new ConsumeQueue(
                     topic,
                     queueId,
-                    StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
+                    getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
                     this.messageStoreConfig.getMappedFileSizeConsumeQueue(),
                     this.messageStore);
-            ConsumeQueueInterface oldLogic = map.putIfAbsent(queueId, newLogic);
-            if (oldLogic != null) {
-                logic = oldLogic;
-            } else {
-                logic = newLogic;
-            }
+        }
+
+        ConsumeQueueInterface oldLogic = map.putIfAbsent(queueId, newLogic);
+        if (oldLogic != null) {
+            logic = oldLogic;
+        } else {
+            logic = newLogic;
         }
 
         return logic;
