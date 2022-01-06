@@ -249,10 +249,6 @@ public class DefaultMessageStoreCleanFilesTest {
         double diskSpaceCleanForciblyRatio = 0.01D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
 
-        cleanCommitLogService = spy(cleanCommitLogService);
-        when(cleanCommitLogService.getDiskSpaceWarningLevelRatio()).thenReturn(diskSpaceCleanForciblyRatio);
-        when(cleanCommitLogService.getDiskSpaceCleanForciblyRatio()).thenReturn(diskSpaceCleanForciblyRatio);
-
         // build and put 55 messages, exactly one message per CommitLog file.
         buildAndPutMessagesToMessageStore(msgCount);
 
@@ -465,6 +461,10 @@ public class DefaultMessageStoreCleanFilesTest {
 
     private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio, double diskSpaceCleanForciblyRatio) throws Exception {
         initMessageStore(genMessageStoreConfig(deleteWhen,diskMaxUsedSpaceRatio), diskSpaceCleanForciblyRatio);
+
+        cleanCommitLogService = spy(cleanCommitLogService);
+        when(cleanCommitLogService.getDiskSpaceWarningLevelRatio()).thenReturn(diskSpaceCleanForciblyRatio);
+        when(cleanCommitLogService.getDiskSpaceCleanForciblyRatio()).thenReturn(diskSpaceCleanForciblyRatio);
     }
 
     private MessageStoreConfig genMessageStoreConfig(String deleteWhen, int diskMaxUsedSpaceRatio) {
