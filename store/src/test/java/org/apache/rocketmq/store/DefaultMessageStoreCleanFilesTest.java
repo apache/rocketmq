@@ -47,6 +47,8 @@ import static org.apache.rocketmq.common.message.MessageDecoder.CHARSET_UTF8;
 import static org.apache.rocketmq.store.ConsumeQueue.CQ_STORE_UNIT_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * Test case for DefaultMessageStore.CleanCommitLogService and DefaultMessageStore.CleanConsumeQueueService
@@ -246,6 +248,10 @@ public class DefaultMessageStoreCleanFilesTest {
         // make sure to trigger the automatic file deletion feature
         double diskSpaceCleanForciblyRatio = 0.01D;
         initMessageStore(deleteWhen, diskMaxUsedSpaceRatio, diskSpaceCleanForciblyRatio);
+
+        cleanCommitLogService = spy(cleanCommitLogService);
+        when(cleanCommitLogService.getDiskSpaceWarningLevelRatio()).thenReturn(diskSpaceCleanForciblyRatio);
+        when(cleanCommitLogService.getDiskSpaceCleanForciblyRatio()).thenReturn(diskSpaceCleanForciblyRatio);
 
         // build and put 55 messages, exactly one message per CommitLog file.
         buildAndPutMessagesToMessageStore(msgCount);
