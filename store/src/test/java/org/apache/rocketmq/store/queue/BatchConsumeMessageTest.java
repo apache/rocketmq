@@ -222,8 +222,9 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         String topic = "TestDispatchBuildConsumeQueue";
         createTopic(topic, CQType.SimpleCQ, messageStore);
 
-        long timeStart = System.currentTimeMillis();
-        long timeMid = -1;
+        long timeStart = 0;
+        long timeMid = 0;
+        long commitLogMid = 0;
 
         for (int i = 0; i < 100; i++) {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, -1);
@@ -231,8 +232,14 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
 
             Thread.sleep(2);
-            if (i == 49)
-                timeMid = System.currentTimeMillis();
+            if (i == 0) {
+                timeStart = putMessageResult.getAppendMessageResult().getStoreTimestamp();
+            }
+            if (i == 50) {
+                timeMid = putMessageResult.getAppendMessageResult().getStoreTimestamp();
+                commitLogMid = putMessageResult.getAppendMessageResult().getWroteOffset();
+            }
+
         }
 
         await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
@@ -254,16 +261,14 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         }
 
         //check the message time
-        long latencyAllowed = 20;
         long earlistMessageTime = messageStore.getEarliestMessageTime(topic, 0);
-        Assert.assertTrue(earlistMessageTime > timeStart - latencyAllowed);
-        Assert.assertTrue(earlistMessageTime < timeStart + latencyAllowed);
+        Assert.assertEquals(timeStart, earlistMessageTime);
         long messageStoreTime = messageStore.getMessageStoreTimeStamp(topic, 0, 50);
-        Assert.assertTrue(messageStoreTime > timeMid - latencyAllowed);
-        Assert.assertTrue(messageStoreTime < timeMid + latencyAllowed);
+        Assert.assertEquals(timeMid, messageStoreTime);
         long commitLogOffset = messageStore.getCommitLogOffsetInQueue(topic, 0, 50);
         Assert.assertTrue(commitLogOffset >= messageStore.getMinPhyOffset());
         Assert.assertTrue(commitLogOffset <= messageStore.getMaxPhyOffset());
+        Assert.assertEquals(commitLogMid, commitLogOffset);
 
         Assert.assertFalse(messageStore.checkInDiskByConsumeOffset(topic, 0, 50));
     }
