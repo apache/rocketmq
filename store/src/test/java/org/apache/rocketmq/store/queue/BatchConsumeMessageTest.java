@@ -222,9 +222,9 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         String topic = "TestDispatchBuildConsumeQueue";
         createTopic(topic, CQType.SimpleCQ, messageStore);
 
-        long timeStart = 0;
-        long timeMid = 0;
-        long commitLogMid = 0;
+        long timeStart = -1;
+        long timeMid = -1;
+        long commitLogMid = -1;
 
         for (int i = 0; i < 100; i++) {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, -1);
@@ -261,8 +261,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         }
 
         //check the message time
-        long earlistMessageTime = messageStore.getEarliestMessageTime(topic, 0);
-        Assert.assertEquals(timeStart, earlistMessageTime);
+        long earliestMessageTime = messageStore.getEarliestMessageTime(topic, 0);
+        Assert.assertEquals(timeStart, earliestMessageTime);
         long messageStoreTime = messageStore.getMessageStoreTimeStamp(topic, 0, 50);
         Assert.assertEquals(timeMid, messageStoreTime);
         long commitLogOffset = messageStore.getCommitLogOffsetInQueue(topic, 0, 50);
@@ -277,7 +277,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     public void testDispatchBuildBatchConsumeQueue() throws Exception {
         String topic = "testDispatchBuildBatchConsumeQueue";
         int batchNum = 10;
-        long timeStart = System.currentTimeMillis();
+        long timeStart = -1;
         long timeMid = -1;
 
         createTopic(topic, CQType.BatchCQ, messageStore);
@@ -286,8 +286,13 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             PutMessageResult putMessageResult = messageStore.putMessage(buildMessage(topic, batchNum));
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Thread.sleep(2);
-            if (i == 29)
-                timeMid = System.currentTimeMillis();
+            if (i == 0) {
+                timeStart = putMessageResult.getAppendMessageResult().getStoreTimestamp();
+            }
+            if (i == 30) {
+                timeMid = putMessageResult.getAppendMessageResult().getStoreTimestamp();;
+            }
+
         }
 
         await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
@@ -307,12 +312,10 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         }
 
         //check the message time
-        long earlistMessageTime = messageStore.getEarliestMessageTime(topic, 0);
-        Assert.assertTrue(earlistMessageTime > timeStart - 20);
-        Assert.assertTrue(earlistMessageTime < timeStart + 20);
+        long earliestMessageTime = messageStore.getEarliestMessageTime(topic, 0);
+        Assert.assertEquals(earliestMessageTime, timeStart);
         long messageStoreTime = messageStore.getMessageStoreTimeStamp(topic, 0, 300);
-        Assert.assertTrue(messageStoreTime > timeMid - 20);
-        Assert.assertTrue(messageStoreTime < timeMid + 20);
+        Assert.assertEquals(messageStoreTime, timeMid);
         long commitLogOffset = messageStore.getCommitLogOffsetInQueue(topic, 0, 300);
         Assert.assertTrue(commitLogOffset >= messageStore.getMinPhyOffset());
         Assert.assertTrue(commitLogOffset <= messageStore.getMaxPhyOffset());

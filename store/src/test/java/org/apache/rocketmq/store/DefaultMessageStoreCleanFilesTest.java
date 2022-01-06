@@ -336,26 +336,6 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService(double diskSpaceCleanForciblyRatio)
-            throws Exception {
-        Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
-        serviceField.setAccessible(true);
-        DefaultMessageStore.CleanCommitLogService cleanCommitLogService =
-                (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
-        serviceField.setAccessible(false);
-
-        Field warningLevelRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceWarningLevelRatio");
-        warningLevelRatioField.setAccessible(true);
-        warningLevelRatioField.set(cleanCommitLogService, String.valueOf(diskSpaceCleanForciblyRatio));
-        warningLevelRatioField.setAccessible(false);
-
-        Field cleanForciblyRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceCleanForciblyRatio");
-        cleanForciblyRatioField.setAccessible(true);
-        cleanForciblyRatioField.set(cleanCommitLogService, String.valueOf(diskSpaceCleanForciblyRatio));
-        cleanForciblyRatioField.setAccessible(false);
-        return cleanCommitLogService;
-    }
-
     private DefaultMessageStore.CleanConsumeQueueService getCleanConsumeQueueService()
             throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanConsumeQueueService");
@@ -461,10 +441,6 @@ public class DefaultMessageStoreCleanFilesTest {
 
     private void initMessageStore(String deleteWhen, int diskMaxUsedSpaceRatio, double diskSpaceCleanForciblyRatio) throws Exception {
         initMessageStore(genMessageStoreConfig(deleteWhen,diskMaxUsedSpaceRatio), diskSpaceCleanForciblyRatio);
-
-        cleanCommitLogService = spy(cleanCommitLogService);
-        when(cleanCommitLogService.getDiskSpaceWarningLevelRatio()).thenReturn(diskSpaceCleanForciblyRatio);
-        when(cleanCommitLogService.getDiskSpaceCleanForciblyRatio()).thenReturn(diskSpaceCleanForciblyRatio);
     }
 
     private MessageStoreConfig genMessageStoreConfig(String deleteWhen, int diskMaxUsedSpaceRatio) {
@@ -496,11 +472,15 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStore = new DefaultMessageStore(messageStoreConfig,
                 new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
 
-        cleanCommitLogService = getCleanCommitLogService(diskSpaceCleanForciblyRatio);
         cleanConsumeQueueService = getCleanConsumeQueueService();
 
         assertTrue(messageStore.load());
         messageStore.start();
+
+        // partially mock a real obj
+        cleanCommitLogService = spy(cleanCommitLogService);
+        when(cleanCommitLogService.getDiskSpaceWarningLevelRatio()).thenReturn(diskSpaceCleanForciblyRatio);
+        when(cleanCommitLogService.getDiskSpaceCleanForciblyRatio()).thenReturn(diskSpaceCleanForciblyRatio);
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {
