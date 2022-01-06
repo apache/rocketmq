@@ -44,10 +44,6 @@ public class StoreUtil {
         return physicalTotal;
     }
 
-    public static boolean isStreamMode(MessageStore messageStore) {
-        return messageStore instanceof StreamMessageStore;
-    }
-
     public static void fileAppend(MappedFile file, ByteBuffer data) {
         boolean success = file.appendMessage(data);
         if (!success) {

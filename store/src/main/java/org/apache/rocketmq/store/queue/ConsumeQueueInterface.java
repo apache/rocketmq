@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.attribute.CQType;
+
 public interface ConsumeQueueInterface {
     /**
      * Get the topic name

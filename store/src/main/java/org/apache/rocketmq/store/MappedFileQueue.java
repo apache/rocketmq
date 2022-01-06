@@ -171,8 +171,8 @@ public class MappedFileQueue implements Swappable {
                 return true;
             }
 
-                try {
-                    MappedFile mappedFile = new DefaultMappedFile(file.getPath(), mappedFileSize);
+            try {
+                MappedFile mappedFile = new DefaultMappedFile(file.getPath(), mappedFileSize);
 
                 mappedFile.setWrotePosition(this.mappedFileSize);
                 mappedFile.setFlushedPosition(this.mappedFileSize);
@@ -234,13 +234,13 @@ public class MappedFileQueue implements Swappable {
         if (this.allocateMappedFileService != null) {
             mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
-            } else {
-                try {
-                    mappedFile = new DefaultMappedFile(nextFilePath, this.mappedFileSize);
-                } catch (IOException e) {
-                    log.error("create mappedFile exception", e);
-                }
+        } else {
+            try {
+                mappedFile = new DefaultMappedFile(nextFilePath, this.mappedFileSize);
+            } catch (IOException e) {
+                log.error("create mappedFile exception", e);
             }
+        }
 
         if (mappedFile != null) {
             if (this.mappedFiles.isEmpty()) {

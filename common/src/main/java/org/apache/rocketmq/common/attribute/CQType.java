@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.store.queue;
+package org.apache.rocketmq.common.attribute;
 
 public enum CQType {
     SimpleCQ,

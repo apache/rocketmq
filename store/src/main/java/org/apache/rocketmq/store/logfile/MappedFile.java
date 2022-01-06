@@ -18,7 +18,6 @@ package org.apache.rocketmq.store.logfile;
 
 import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
-import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.MessageExtBatch;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageContext;

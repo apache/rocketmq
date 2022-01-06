@@ -19,7 +19,6 @@ package org.apache.rocketmq.store.config;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
-import org.apache.rocketmq.store.queue.CQType;
 
 import java.io.File;
 
@@ -205,9 +204,6 @@ public class MessageStoreConfig {
 
     @ImportantField
     private boolean enableCleanExpiredOffset = false;
-
-    @ImportantField
-    private String defaultCQType = CQType.SimpleCQ.toString();
 
     private int maxAsyncPutMessageRequests = 5000;
 
@@ -799,13 +795,6 @@ public class MessageStoreConfig {
         this.enableCleanExpiredOffset = enableCleanExpiredOffset;
     }
 
-    public String getDefaultCQType() {
-        return defaultCQType;
-    }
-
-    public void setDefaultCQType(String defaultCQType) {
-        this.defaultCQType = defaultCQType;
-    }
     public String getReadOnlyCommitLogStorePaths() {
         return readOnlyCommitLogStorePaths;
     }
