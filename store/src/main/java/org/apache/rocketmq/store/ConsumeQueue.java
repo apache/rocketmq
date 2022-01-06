@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -25,10 +26,11 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.store.queue.CQType;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
+import org.apache.rocketmq.store.queue.QueueOffsetAssigner;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 
 public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
@@ -37,7 +39,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     public static final int CQ_STORE_UNIT_SIZE = 20;
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
-    private final DefaultMessageStore defaultMessageStore;
+    private final MessageStore defaultMessageStore;
 
     private final MappedFileQueue mappedFileQueue;
     private final String topic;
@@ -55,7 +57,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         final int queueId,
         final String storePath,
         final int mappedFileSize,
-        final DefaultMessageStore defaultMessageStore) {
+        final MessageStore defaultMessageStore) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.defaultMessageStore = defaultMessageStore;
@@ -436,6 +438,17 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         // XXX: warn and notify me
         log.error("[BUG]consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
+    }
+
+    @Override
+    public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum) {
+        String topicQueueKey = getTopic() + "-" + getQueueId();
+        HashMap<String, Long> topicQueueTable = queueOffsetAssigner.getTopicQueueTable();
+
+        long topicOffset = topicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+        topicQueueTable.put(topicQueueKey, topicOffset + messageNum);
+
+        msg.setQueueOffset(topicOffset);
     }
 
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,

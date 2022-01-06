@@ -24,10 +24,10 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -36,6 +36,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -44,6 +45,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -51,9 +53,8 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.store.queue.CQType;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
-import org.apache.rocketmq.store.util.QueueTypeUtils;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -433,8 +434,8 @@ public class CommitLog implements Swappable {
 
     private void setBatchSizeIfNeeded(Map<String, String> propertiesMap, DispatchRequest dispatchRequest) {
         if (null != propertiesMap && propertiesMap.containsKey(MessageConst.PROPERTY_INNER_NUM) && propertiesMap.containsKey(MessageConst.PROPERTY_INNER_BASE)) {
-            dispatchRequest.setMsgBaseOffset(Long.valueOf(propertiesMap.get(MessageConst.PROPERTY_INNER_BASE)));
-            dispatchRequest.setBatchSize(Short.valueOf(propertiesMap.get(MessageConst.PROPERTY_INNER_NUM)));
+            dispatchRequest.setMsgBaseOffset(Long.parseLong(propertiesMap.get(MessageConst.PROPERTY_INNER_BASE)));
+            dispatchRequest.setBatchSize(Short.parseShort(propertiesMap.get(MessageConst.PROPERTY_INNER_NUM)));
         }
     }
 
@@ -672,7 +673,7 @@ public class CommitLog implements Swappable {
 
         topicQueueLock.lock(topicQueueKey);
         try {
-            defaultMessageStore.assignOffset(topicQueueKey, msg, getBatchNum(msg));
+            defaultMessageStore.assignOffset(topicQueueKey, msg, getMessageNum(msg));
 
             PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
             if (encodeResult != null) {
@@ -1031,15 +1032,6 @@ public class CommitLog implements Swappable {
         return this.mappedFileQueue.retryDeleteFirstFile(intervalForcibly);
     }
 
-    public void removeQueueFromTopicQueueTable(final String topic, final int queueId) {
-        String key = topic + "-" + queueId;
-        synchronized (this) {
-            this.defaultMessageStore.removeOffsetTable(key);
-        }
-
-        log.info("removeQueueFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
-    }
-
     public void checkSelf() {
         mappedFileQueue.checkSelf();
     }
@@ -1058,19 +1050,24 @@ public class CommitLog implements Swappable {
         return diff;
     }
 
-    protected short getBatchNum(MessageExtBrokerInner msgInner) {
-        short batchNum = 1;
+    protected short getMessageNum(MessageExtBrokerInner msgInner) {
+        short messageNum = 1;
         // IF inner batch, build batchQueueOffset and batchNum property.
-        CQType cqType = QueueTypeUtils.getCQType(defaultMessageStore);
-        if (MessageSysFlag.check(msgInner.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG) || CQType.BatchCQ.equals(cqType)) {
+        CQType cqType = getCqType(msgInner);
 
+        if (MessageSysFlag.check(msgInner.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG) || CQType.BatchCQ.equals(cqType)) {
             if (msgInner.getProperty(MessageConst.PROPERTY_INNER_NUM) != null) {
-                batchNum = Short.parseShort(msgInner.getProperty(MessageConst.PROPERTY_INNER_NUM));
-                batchNum = batchNum >= 1 ? batchNum : 1;
+                messageNum = Short.parseShort(msgInner.getProperty(MessageConst.PROPERTY_INNER_NUM));
+                messageNum = messageNum >= 1 ? messageNum : 1;
             }
         }
 
-        return batchNum;
+        return messageNum;
+    }
+
+    private CQType getCqType(MessageExtBrokerInner msgInner) {
+        Optional<TopicConfig> topicConfig = this.defaultMessageStore.getTopicConfig(msgInner.getTopic());
+        return QueueTypeUtils.getCQType(topicConfig);
     }
 
     abstract class FlushCommitLogService extends ServiceThread {
@@ -1488,7 +1485,7 @@ public class CommitLog implements Swappable {
             Long queueOffset = msgInner.getQueueOffset();
 
             // this msg maybe a inner-batch msg.
-            short batchNum = getBatchNum(msgInner);
+            short messageNum = getMessageNum(msgInner);
 
             // Transaction messages that require special handling
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
@@ -1545,7 +1542,7 @@ public class CommitLog implements Swappable {
             CommitLog.this.getMessageStore().getPerfCounter().endTick("WRITE_MEMORY_TIME_MS");
             msgInner.setEncodedBuff(null);
             return new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
-                msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills, batchNum);
+                msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills, messageNum);
         }
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
