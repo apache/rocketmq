@@ -187,6 +187,9 @@ public class BrokerConfig {
 
     private boolean autoDeleteUnusedStats = false;
 
+    /**
+     * Whether to distinguish log paths when multiple brokers are deployed on the same machine
+     */
     private boolean isolateLogEnable = false;
 
     public static String localHostName() {
