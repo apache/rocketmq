@@ -320,7 +320,7 @@ public class ConsumeQueueStore {
     }
 
     public Long getMaxOffset(String topic, int queueId) {
-        return this.queueOffsetAssigner.getTopicQueueTable().get(topic + "-" + queueId);
+        return this.queueOffsetAssigner.currentQueueOffset(topic + "-" + queueId);
     }
 
     public void setTopicQueueTable(HashMap<String, Long> topicQueueTable) {

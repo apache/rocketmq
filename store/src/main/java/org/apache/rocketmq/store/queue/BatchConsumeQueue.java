@@ -482,17 +482,15 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
     @Override
     public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum) {
-        HashMap<String, Long> batchTopicQueueTable = queueOffsetAssigner.getBatchTopicQueueTable();
         String topicQueueKey = getTopic() + "-" + getQueueId();
 
-        Long topicOffset = batchTopicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+        long queueOffset = queueOffsetAssigner.assignBatchQueueOffset(topicQueueKey, messageNum);
 
         if (MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
-            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_BASE, String.valueOf(topicOffset));
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_BASE, String.valueOf(queueOffset));
             msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         }
-        msg.setQueueOffset(topicOffset);
-        batchTopicQueueTable.put(topicQueueKey, topicOffset + messageNum);
+        msg.setQueueOffset(queueOffset);
     }
 
     boolean putBatchMessagePositionInfo(final long offset, final int size, final long tagsCode, final long storeTime,
