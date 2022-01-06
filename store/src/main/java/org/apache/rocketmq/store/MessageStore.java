@@ -18,10 +18,12 @@ package org.apache.rocketmq.store;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.rocketmq.common.SystemClock;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -562,16 +564,19 @@ public interface MessageStore {
     boolean isSyncMaster();
 
     /**
-     * assign an queue offset and increase it.
+     * Assign an queue offset and increase it.
+     * If there is a race condition, you need to lock/unlock this method yourself.
+     *
      * @param topicQueueKey topic-queue key
      * @param msg message
-     * @param batchNum batch num
+     * @param messageNum message num
      */
-    void assignOffset(String topicQueueKey, MessageExtBrokerInner msg, short batchNum);
+    void assignOffset(String topicQueueKey, MessageExtBrokerInner msg, short messageNum);
 
     /**
-     * remove offset table
-     * @param topicQueueKey topic-queue key
+     * get topic config
+     * @param topic topic name
+     * @return topic config info
      */
-    void removeOffsetTable(String topicQueueKey);
+    Optional<TopicConfig> getTopicConfig(String topic);
 }

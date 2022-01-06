@@ -95,13 +95,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        createTopic(key, newTopic, queueNum, 0);
+    public void createTopic(String key, String newTopic, int queueNum, Map<String, String> attributes) throws MQClientException {
+        createTopic(key, newTopic, queueNum, 0, attributes);
     }
 
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
-        defaultMQAdminExtImpl.createTopic(key, newTopic, queueNum, topicSysFlag);
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag, Map<String, String> attributes) throws MQClientException {
+        defaultMQAdminExtImpl.createTopic(key, newTopic, queueNum, topicSysFlag, attributes);
     }
 
     @Override

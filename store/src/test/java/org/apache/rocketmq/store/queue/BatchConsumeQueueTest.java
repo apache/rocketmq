@@ -19,8 +19,8 @@ package org.apache.rocketmq.store.queue;
 
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.ConsumeQueue;
-import org.apache.rocketmq.store.StreamMessageStore;
-import org.apache.rocketmq.store.MessageArrivingListener;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -32,7 +32,6 @@ import org.junit.Test;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import static java.lang.String.format;
@@ -45,13 +44,13 @@ public class BatchConsumeQueueTest extends StoreTestBase {
             path = createBaseDir();
         }
         baseDirs.add(path);
-        StreamMessageStore bcqMessageStore = null;
+        MessageStore messageStore = null;
         try {
-            bcqMessageStore = createBcqMessageStore(null);
+            messageStore = createMessageStore(null);
         } catch (Exception e) {
             Assert.fail();
         }
-        BatchConsumeQueue batchConsumeQueue = new BatchConsumeQueue("topic", 0, path,fileSize, bcqMessageStore);
+        BatchConsumeQueue batchConsumeQueue = new BatchConsumeQueue("topic", 0, path,fileSize, messageStore);
         batchConsumeQueues.add(batchConsumeQueue);
         return batchConsumeQueue;
     }
@@ -280,7 +279,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         }
     }
 
-    protected StreamMessageStore createBcqMessageStore(String baseDir) throws Exception {
+    protected MessageStore createMessageStore(String baseDir) throws Exception {
         if (baseDir == null) {
             baseDir = createBaseDir();
         }
@@ -299,17 +298,13 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         messageStoreConfig.setMaxTransferBytesOnMessageInMemory(1024 * 1024);
         messageStoreConfig.setMaxTransferCountOnMessageInDisk(1024);
         messageStoreConfig.setMaxTransferCountOnMessageInMemory(1024);
-        messageStoreConfig.setDefaultCQType(CQType.BatchCQ.name());
         messageStoreConfig.setSearchBcqByCacheEnable(true);
 
-        StreamMessageStore defaultMessageStore =  new StreamMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MessageArrivingListener() {
-            @Override
-            public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                                 byte[] filterBitMap, Map<String, String> properties) {
-
-            }
-        }, new BrokerConfig());
-        return defaultMessageStore;
+        return new DefaultMessageStore(
+                messageStoreConfig,
+                new BrokerStatsManager("simpleTest"),
+                (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {},
+                new BrokerConfig());
     }
 
 }

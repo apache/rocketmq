@@ -431,8 +431,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        createTopic(key, withNamespace(newTopic), queueNum, 0);
+    public void createTopic(String key, String newTopic, int queueNum, Map<String, String> attributes) throws MQClientException {
+        createTopic(key, withNamespace(newTopic), queueNum, 0, null);
     }
     
     @Override
@@ -448,7 +448,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag, Map<String, String> attributes) throws MQClientException {
         this.defaultMQPushConsumerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
     }
 

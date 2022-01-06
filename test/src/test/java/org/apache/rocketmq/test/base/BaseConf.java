@@ -37,7 +37,7 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.queue.CQType;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -61,18 +61,14 @@ public class BaseConf {
     //the logic queue test need at least three brokers
     protected final static String broker3Name;
     protected final static String clusterName;
-    protected final static String steamClusterName = "steam-cluster";
     protected final static int brokerNum;
     protected final static int waitTime = 5;
     protected final static int consumeTime = 2 * 60 * 1000;
     protected final static int QUEUE_NUMBERS = 8;
     protected final static NamesrvController namesrvController;
-    protected static BrokerController brokerController1;
-    protected static BrokerController brokerController2;
-    protected static BrokerController brokerController3;
-    protected static BrokerController streamBrokerController1;
-    protected static BrokerController streamBrokerController2;
-    protected static BrokerController streamBrokerController3;
+    protected final static BrokerController brokerController1;
+    protected final static BrokerController brokerController2;
+    protected final static BrokerController brokerController3;
     protected final static List<BrokerController> brokerControllerList;
     protected final static Map<String, BrokerController> brokerControllerMap;
     protected final static List<Object> mqClients = new ArrayList<Object>();
@@ -80,7 +76,7 @@ public class BaseConf {
     private final static Logger log = Logger.getLogger(BaseConf.class);
 
     static {
-    	System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
+        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         namesrvController = IntegrationTestBase.createAndStartNamesrv();
         nsAddr = "127.0.0.1:" + namesrvController.getNettyServerConfig().getListenPort();
         brokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr);
@@ -91,9 +87,6 @@ public class BaseConf {
         broker2Name = brokerController2.getBrokerConfig().getBrokerName();
         broker3Name = brokerController3.getBrokerConfig().getBrokerName();
         brokerNum = 3;
-        streamBrokerController1 = IntegrationTestBase.createAndStartBroker(nsAddr, CQType.BatchCQ.toString(), steamClusterName);
-        streamBrokerController2 = IntegrationTestBase.createAndStartBroker(nsAddr, CQType.BatchCQ.toString(), steamClusterName);
-        streamBrokerController3 = IntegrationTestBase.createAndStartBroker(nsAddr, CQType.BatchCQ.toString(), steamClusterName);
         brokerControllerList = ImmutableList.of(brokerController1, brokerController2, brokerController3);
         brokerControllerMap = brokerControllerList.stream().collect(Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
     }
@@ -124,7 +117,7 @@ public class BaseConf {
 
     public static String initTopic() {
         String topic = "tt-" + MQRandomUtils.getRandomTopic();
-        IntegrationTestBase.initTopic(topic, nsAddr, clusterName);
+        IntegrationTestBase.initTopic(topic, nsAddr, clusterName, CQType.SimpleCQ);
 
         return topic;
     }
@@ -171,9 +164,9 @@ public class BaseConf {
     }
 
     public static RMQNormalProducer getProducer(String nsAddr, String topic, String producerGoup,
-        String instanceName) {
+                                                String instanceName) {
         RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, producerGoup,
-            instanceName);
+                instanceName);
         if (debug) {
             producer.setDebug();
         }
@@ -191,31 +184,31 @@ public class BaseConf {
     }
 
     public static RMQNormalConsumer getConsumer(String nsAddr, String topic, String subExpression,
-        AbstractListener listener) {
+                                                AbstractListener listener) {
         return getConsumer(nsAddr, topic, subExpression, listener, false);
     }
 
     public static RMQNormalConsumer getConsumer(String nsAddr, String topic, String subExpression,
-        AbstractListener listener, boolean useTLS) {
+                                                AbstractListener listener, boolean useTLS) {
         String consumerGroup = initConsumerGroup();
         return getConsumer(nsAddr, consumerGroup, topic, subExpression, listener, useTLS);
     }
 
     public static RMQNormalConsumer getConsumer(String nsAddr, String consumerGroup, String topic,
-        String subExpression, AbstractListener listener) {
+                                                String subExpression, AbstractListener listener) {
         return getConsumer(nsAddr, consumerGroup, topic, subExpression, listener, false);
     }
 
     public static RMQNormalConsumer getConsumer(String nsAddr, String consumerGroup, String topic,
-        String subExpression, AbstractListener listener, boolean useTLS) {
+                                                String subExpression, AbstractListener listener, boolean useTLS) {
         RMQNormalConsumer consumer = ConsumerFactory.getRMQNormalConsumer(nsAddr, consumerGroup,
-            topic, subExpression, listener, useTLS);
+                topic, subExpression, listener, useTLS);
         if (debug) {
             consumer.setDebug();
         }
         mqClients.add(consumer);
         log.info(String.format("consumer[%s] start,topic[%s],subExpression[%s]", consumerGroup,
-            topic, subExpression));
+                topic, subExpression));
         return consumer;
     }
 

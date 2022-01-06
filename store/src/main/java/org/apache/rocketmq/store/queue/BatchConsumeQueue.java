@@ -17,11 +17,17 @@
 
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MappedFileQueue;
+import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -29,6 +35,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -386,9 +393,9 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     @Override
-    public int deleteExpiredFile(long offset) {
-        int cnt = this.mappedFileQueue.deleteExpiredFileByOffset(offset, CQ_STORE_UNIT_SIZE);
-        this.correctMinOffset(offset);
+    public int deleteExpiredFile(long minCommitLogPos) {
+        int cnt = this.mappedFileQueue.deleteExpiredFileByOffset(minCommitLogPos, CQ_STORE_UNIT_SIZE);
+        this.correctMinOffset(minCommitLogPos);
         return cnt;
     }
 
@@ -471,6 +478,21 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
         // XXX: warn and notify me
         log.error("[NOTIFYME]batch consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
+    }
+
+    @Override
+    public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum) {
+        HashMap<String, Long> batchTopicQueueTable = queueOffsetAssigner.getBatchTopicQueueTable();
+        String topicQueueKey = getTopic() + "-" + getQueueId();
+
+        Long topicOffset = batchTopicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+
+        if (MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_BASE, String.valueOf(topicOffset));
+            msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+        }
+        msg.setQueueOffset(topicOffset);
+        batchTopicQueueTable.put(topicQueueKey, topicOffset + messageNum);
     }
 
     boolean putBatchMessagePositionInfo(final long offset, final int size, final long tagsCode, final long storeTime,
