@@ -64,10 +64,9 @@ public class ConsumerConnectionSubCommand implements SubCommand {
 
             ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
 
-            int i = 1;
+            System.out.printf("%-36s %-22s %-10s %s%n", "#ClientId", "#ClientAddr", "#Language", "#Version");
             for (Connection conn : cc.getConnectionSet()) {
-                System.out.printf("%03d  %-32s %-22s %-8s %s%n",
-                    i++,
+                System.out.printf("%-36s %-22s %-10s %s%n",
                     conn.getClientId(),
                     conn.getClientAddr(),
                     conn.getLanguage(),
@@ -75,20 +74,19 @@ public class ConsumerConnectionSubCommand implements SubCommand {
                 );
             }
 
-            System.out.printf("%nBelow is subscription:");
+            System.out.printf("%nBelow is subscription:\n");
             Iterator<Entry<String, SubscriptionData>> it = cc.getSubscriptionTable().entrySet().iterator();
-            i = 1;
+            System.out.printf("%-20s %s%n", "#Topic", "#SubExpression");
             while (it.hasNext()) {
                 Entry<String, SubscriptionData> entry = it.next();
                 SubscriptionData sd = entry.getValue();
-                System.out.printf("%03d  Topic: %-40s SubExpression: %s%n",
-                    i++,
+                System.out.printf("%-20s %s%n",
                     sd.getTopic(),
                     sd.getSubString()
                 );
             }
 
-            System.out.printf("");
+            System.out.printf("\n");
             System.out.printf("ConsumeType: %s%n", cc.getConsumeType());
             System.out.printf("MessageModel: %s%n", cc.getMessageModel());
             System.out.printf("ConsumeFromWhere: %s%n", cc.getConsumeFromWhere());
