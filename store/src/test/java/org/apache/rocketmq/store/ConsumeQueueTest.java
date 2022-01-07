@@ -274,6 +274,54 @@ public class ConsumeQueueTest {
     }
 
     @Test
+    public void testPutMessagePositionInfoWrapper_MultiQueue() throws Exception {
+        DefaultMessageStore messageStore = null;
+        try {
+            messageStore = genForMultiQueue();
+
+
+            int totalMessages = 10;
+
+            for (int i = 0; i < totalMessages; i++) {
+                putMsgMultiQueue(messageStore);
+            }
+            Thread.sleep(5);
+
+            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class, boolean.class);
+
+            assertThat(method).isNotNull();
+
+            method.setAccessible(true);
+
+            SelectMappedBufferResult result = messageStore.getCommitLog().getData(0);
+            assertThat(result != null).isTrue();
+
+            DispatchRequest dispatchRequest = messageStore.getCommitLog().checkMessageAndReturnSize(result.getByteBuffer(), false, false);
+
+            assertThat(cq).isNotNull();
+
+            Object dispatchResult = method.invoke(cq,  dispatchRequest, true);
+
+            ConsumeQueue lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+
+            ConsumeQueue lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+
+            assertThat(lmqCq1).isNotNull();
+
+            assertThat(lmqCq2).isNotNull();
+
+        } finally {
+            if (messageStore != null) {
+                messageStore.shutdown();
+                messageStore.destroy();
+            }
+            deleteDirectory(storePath);
+        }
+
+    }
+
+    @Test
     public void testPutMessagePositionInfoMultiQueue() throws Exception {
         DefaultMessageStore messageStore = null;
         try {
