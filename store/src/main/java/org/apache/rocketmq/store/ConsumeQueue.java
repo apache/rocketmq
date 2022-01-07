@@ -408,7 +408,7 @@ public class ConsumeQueue {
                 }
                 this.defaultMessageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
                 if (multiQueue) {
-                    multiDispatchQueue(request, maxRetries);
+                    multiDispatchLmqQueue(request, maxRetries);
                 }
                 return;
             } else {
@@ -429,7 +429,7 @@ public class ConsumeQueue {
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
-    private void multiDispatchQueue(DispatchRequest request, int maxRetries) {
+    private void multiDispatchLmqQueue(DispatchRequest request, int maxRetries) {
         Map<String, String> prop = request.getPropertiesMap();
         String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
@@ -446,28 +446,33 @@ public class ConsumeQueue {
             if (this.defaultMessageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
                 queueId = 0;
             }
-            ConsumeQueue cq = this.defaultMessageStore.findConsumeQueue(queueName, queueId);
-            boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
-            for (int j = 0; j < maxRetries && canWrite; j++) {
-                boolean result = cq.putMessagePositionInfo(request.getCommitLogOffset(), request.getMsgSize(),
-                    request.getTagsCode(),
-                    queueOffset);
-                if (result) {
-                    break;
-                } else {
-                    log.warn("[BUG]put commit log position info to " + queueName + ":" + queueId + " " + request.getCommitLogOffset()
-                        + " failed, retry " + j + " times");
-
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        log.warn("", e);
-                    }
-                }
-            }
+            doDispatchLmqQueue(request, maxRetries, queueName, queueOffset, queueId);
 
         }
         return;
+    }
+
+    private void doDispatchLmqQueue(DispatchRequest request, int maxRetries, String queueName, long queueOffset,
+        int queueId) {
+        ConsumeQueue cq = this.defaultMessageStore.findConsumeQueue(queueName, queueId);
+        boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
+        for (int i = 0; i < maxRetries && canWrite; i++) {
+            boolean result = cq.putMessagePositionInfo(request.getCommitLogOffset(), request.getMsgSize(),
+                request.getTagsCode(),
+                queueOffset);
+            if (result) {
+                break;
+            } else {
+                log.warn("[BUG]put commit log position info to " + queueName + ":" + queueId + " " + request.getCommitLogOffset()
+                    + " failed, retry " + i + " times");
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    log.warn("", e);
+                }
+            }
+        }
     }
 
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,

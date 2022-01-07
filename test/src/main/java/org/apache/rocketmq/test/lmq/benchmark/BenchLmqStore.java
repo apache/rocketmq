@@ -115,11 +115,11 @@ public class BenchLmqStore {
                             }
                             doPull(map, entry.getKey(), entry.getValue());
                         } catch (Exception e) {
-                            logger.error(" ", e);
+                            logger.error("pull broker msg error", e);
                         }
                     }
                 } catch (Exception e) {
-                    logger.error("", e);
+                    logger.error("exec doPull task error", e);
                 }
             }, 1, 1, TimeUnit.MILLISECONDS);
         }
