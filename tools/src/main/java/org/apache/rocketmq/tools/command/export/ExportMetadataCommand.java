@@ -99,17 +99,18 @@ public class ExportMetadataCommand implements SubCommand {
                 final String brokerAddr = commandLine.getOptionValue('b').trim();
 
                 if (commandLine.hasOption('t')) {
-                    filePath = filePath + "/topic.json";
+                    String exportFilePath = filePath + "/topic.json";
                     TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
                         brokerAddr, specialTopic, 10000L);
-                    MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, true), filePath);
-                    System.out.printf("export %s success", filePath);
-                } else if (commandLine.hasOption('g')) {
-                    filePath = filePath + "/subscriptionGroup.json";
+                    MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, true), exportFilePath);
+                    System.out.printf("export %s success\n", exportFilePath);
+                }
+                if (commandLine.hasOption('g')) {
+                    String exportFilePath = filePath + "/subscriptionGroup.json";
                     SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
                         brokerAddr, 10000L);
-                    MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, true), filePath);
-                    System.out.printf("export %s success", filePath);
+                    MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, true), exportFilePath);
+                    System.out.printf("export %s success\n", exportFilePath);
                 }
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
@@ -126,18 +127,19 @@ public class ExportMetadataCommand implements SubCommand {
 
                     SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
                         addr, 10000);
+                    String brokerName = CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExt, addr);
 
                     if (commandLine.hasOption('t')) {
-                        filePath = filePath + "/topic.json";
-                        MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, true), filePath);
-                        System.out.printf("export %s success", filePath);
-                        return;
-                    } else if (commandLine.hasOption('g')) {
-                        filePath = filePath + "/subscriptionGroup.json";
-                        MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, true), filePath);
-                        System.out.printf("export %s success", filePath);
-                        return;
-                    } else {
+                        String exportFilePath = filePath + "/" + brokerName + "/topic.json";
+                        MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, true), exportFilePath);
+                        System.out.printf("export %s success\n", exportFilePath);
+                    }
+                    if (commandLine.hasOption('g')) {
+                        String exportFilePath = filePath + "/" + brokerName + "/subscriptionGroup.json";
+                        MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, true), exportFilePath);
+                        System.out.printf("export %s success\n", exportFilePath);
+                    }
+                    if (!commandLine.hasOption('t') && !commandLine.hasOption('g')) {
                         for (Map.Entry<String, TopicConfig> entry : topicConfigSerializeWrapper.getTopicConfigTable().entrySet()) {
                             TopicConfig topicConfig = topicConfigMap.get(entry.getKey());
                             if (null != topicConfig) {
@@ -165,11 +167,10 @@ public class ExportMetadataCommand implements SubCommand {
                         result.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
                         result.put("exportTime", System.currentTimeMillis());
 
-                        filePath = filePath + "/metadata.json";
-                        MixAll.string2FileNotSafe(JSON.toJSONString(result, true), filePath);
-                        System.out.printf("export %s success", filePath);
+                        String exportFilePath = filePath + "/" + brokerName + "/metadata.json";
+                        MixAll.string2FileNotSafe(JSON.toJSONString(result, true), exportFilePath);
+                        System.out.printf("export %s success\n", exportFilePath);
                     }
-
                 }
             } else {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);

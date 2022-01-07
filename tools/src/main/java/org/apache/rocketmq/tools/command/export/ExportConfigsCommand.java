@@ -98,7 +98,7 @@ public class ExportConfigsCommand implements SubCommand {
 
             String path = filePath + "/configs.json";
             MixAll.string2FileNotSafe(JSON.toJSONString(result, true), path);
-            System.out.printf("export %s success", path);
+            System.out.printf("export %s success\n", path);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
