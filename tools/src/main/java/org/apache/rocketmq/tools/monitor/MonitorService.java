@@ -18,7 +18,6 @@
 package org.apache.rocketmq.tools.monitor;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -292,10 +291,6 @@ public class MonitorService {
                                 if (delay > delayMax) {
                                     delayMax = delay;
                                 }
-                                break;
-                            case NO_MATCHED_MSG:
-                            case NO_NEW_MSG:
-                            case OFFSET_ILLEGAL:
                                 break;
                             default:
                                 break;

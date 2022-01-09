@@ -89,7 +89,7 @@ import org.slf4j.LoggerFactory;
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
 
-    private static final String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+    private static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     public static void main(String[] args) {
@@ -142,7 +142,7 @@ public class MQAdminStartup {
                             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
                         }
 
-                        cmd.execute(commandLine, options, AclUtils.getAclRPCHook(rocketmqHome + MixAll.ACL_CONF_TOOLS_FILE));
+                        cmd.execute(commandLine, options, AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE));
                     } else {
                         System.out.printf("The sub command %s not exist.%n", args[0]);
                     }
@@ -231,7 +231,7 @@ public class MQAdminStartup {
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
         lc.reset();
-        configurator.doConfigure(rocketmqHome + "/conf/logback_tools.xml");
+        configurator.doConfigure(ROCKETMQ_HOME + "/conf/logback_tools.xml");
     }
 
     private static void printHelp() {
