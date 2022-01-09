@@ -517,7 +517,7 @@ public class RemotingCommand {
 
     public void addExtField(String key, String value) {
         if (null == extFields) {
-            extFields = new HashMap<>();
+            extFields = new HashMap<String, String>();
         }
         extFields.put(key, value);
     }
