@@ -21,7 +21,7 @@ public enum SerializeType {
     JSON((byte) 0),
     ROCKETMQ((byte) 1);
 
-    private byte code;
+    private final byte code;
 
     SerializeType(byte code) {
         this.code = code;

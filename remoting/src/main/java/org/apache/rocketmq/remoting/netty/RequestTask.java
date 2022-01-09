@@ -20,6 +20,8 @@ package org.apache.rocketmq.remoting.netty;
 import io.netty.channel.Channel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.util.Objects;
+
 public class RequestTask implements Runnable {
     private final Runnable runnable;
     private final long createTimestamp = System.currentTimeMillis();
@@ -56,7 +58,7 @@ public class RequestTask implements Runnable {
             return false;
         if (isStopRun() != that.isStopRun())
             return false;
-        if (channel != null ? !channel.equals(that.channel) : that.channel != null)
+        if (!Objects.equals(channel, that.channel))
             return false;
         return request != null ? request.getOpaque() == that.request.getOpaque() : that.request == null;
 

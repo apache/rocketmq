@@ -122,9 +122,7 @@ public class RemotingCommand {
             try {
                 CommandCustomHeader objectHeader = classHeader.newInstance();
                 cmd.customHeader = objectHeader;
-            } catch (InstantiationException e) {
-                return null;
-            } catch (IllegalAccessException e) {
+            } catch (InstantiationException | IllegalAccessException e) {
                 return null;
             }
         }
@@ -236,9 +234,7 @@ public class RemotingCommand {
         CommandCustomHeader objectHeader;
         try {
             objectHeader = classHeader.newInstance();
-        } catch (InstantiationException e) {
-            return null;
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             return null;
         }
 
@@ -372,7 +368,7 @@ public class RemotingCommand {
         if (this.customHeader != null) {
             Field[] fields = getClazzFields(customHeader.getClass());
             if (null == this.extFields) {
-                this.extFields = new HashMap<String, String>();
+                this.extFields = new HashMap<>();
             }
 
             for (Field field : fields) {
@@ -521,7 +517,7 @@ public class RemotingCommand {
 
     public void addExtField(String key, String value) {
         if (null == extFields) {
-            extFields = new HashMap<String, String>();
+            extFields = new HashMap<>();
         }
         extFields.put(key, value);
     }

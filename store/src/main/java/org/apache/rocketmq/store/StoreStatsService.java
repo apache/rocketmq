@@ -58,13 +58,13 @@ public class StoreStatsService extends ServiceThread {
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
     private volatile LongAdder[] putMessageDistributeTime;
     private volatile LongAdder[] lastPutMessageDistributeTime;
-    private long messageStoreBootTimestamp = System.currentTimeMillis();
+    private final long messageStoreBootTimestamp = System.currentTimeMillis();
     private volatile long putMessageEntireTimeMax = 0;
     private volatile long getMessageEntireTimeMax = 0;
     // for putMessageEntireTimeMax
-    private ReentrantLock putLock = new ReentrantLock();
+    private final ReentrantLock putLock = new ReentrantLock();
     // for getMessageEntireTimeMax
-    private ReentrantLock getLock = new ReentrantLock();
+    private final ReentrantLock getLock = new ReentrantLock();
 
     private volatile long dispatchMaxBuffer = 0;
 
@@ -140,7 +140,7 @@ public class StoreStatsService extends ServiceThread {
         if (value > this.putMessageEntireTimeMax) {
             this.putLock.lock();
             this.putMessageEntireTimeMax =
-                value > this.putMessageEntireTimeMax ? value : this.putMessageEntireTimeMax;
+                    Math.max(value, this.putMessageEntireTimeMax);
             this.putLock.unlock();
         }
     }
@@ -153,7 +153,7 @@ public class StoreStatsService extends ServiceThread {
         if (value > this.getMessageEntireTimeMax) {
             this.getLock.lock();
             this.getMessageEntireTimeMax =
-                value > this.getMessageEntireTimeMax ? value : this.getMessageEntireTimeMax;
+                    Math.max(value, this.getMessageEntireTimeMax);
             this.getLock.unlock();
         }
     }
@@ -163,7 +163,7 @@ public class StoreStatsService extends ServiceThread {
     }
 
     public void setDispatchMaxBuffer(long value) {
-        this.dispatchMaxBuffer = value > this.dispatchMaxBuffer ? value : this.dispatchMaxBuffer;
+        this.dispatchMaxBuffer = Math.max(value, this.dispatchMaxBuffer);
     }
 
     @Override
@@ -438,11 +438,11 @@ public class StoreStatsService extends ServiceThread {
             String.valueOf(this.getPutMessageSizeTotal() / totalTimes.doubleValue()));
         result.put("dispatchMaxBuffer", String.valueOf(this.dispatchMaxBuffer));
         result.put("getMessageEntireTimeMax", String.valueOf(this.getMessageEntireTimeMax));
-        result.put("putTps", String.valueOf(this.getPutTps()));
-        result.put("getFoundTps", String.valueOf(this.getGetFoundTps()));
-        result.put("getMissTps", String.valueOf(this.getGetMissTps()));
-        result.put("getTotalTps", String.valueOf(this.getGetTotalTps()));
-        result.put("getTransferedTps", String.valueOf(this.getGetTransferedTps()));
+        result.put("putTps", this.getPutTps());
+        result.put("getFoundTps", this.getGetFoundTps());
+        result.put("getMissTps", this.getGetMissTps());
+        result.put("getTotalTps", this.getGetTotalTps());
+        result.put("getTransferedTps", this.getGetTransferedTps());
 
         return result;
     }
