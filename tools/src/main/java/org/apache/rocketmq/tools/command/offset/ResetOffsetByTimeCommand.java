@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.tools.command.offset;
 
-import java.util.Iterator;
 import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -88,13 +87,10 @@ public class ResetOffsetByTimeCommand implements SubCommand {
 
             boolean force = true;
             if (commandLine.hasOption('f')) {
-                force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+                force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
             }
 
-            boolean isC = false;
-            if (commandLine.hasOption('c')) {
-                isC = true;
-            }
+            boolean isC = commandLine.hasOption('c');
 
             defaultMQAdminExt.start();
             Map<MessageQueue, Long> offsetTable;
@@ -116,13 +112,11 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 "#queueId",
                 "#offset");
 
-            Iterator<Map.Entry<MessageQueue, Long>> iterator = offsetTable.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<MessageQueue, Long> entry = iterator.next();
+            for (Map.Entry<MessageQueue, Long> entry : offsetTable.entrySet()) {
                 System.out.printf("%-40s  %-40d  %-40d%n",
-                    UtilAll.frontStringAtLeast(entry.getKey().getBrokerName(), 32),
-                    entry.getKey().getQueueId(),
-                    entry.getValue());
+                        UtilAll.frontStringAtLeast(entry.getKey().getBrokerName(), 32),
+                        entry.getKey().getQueueId(),
+                        entry.getValue());
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

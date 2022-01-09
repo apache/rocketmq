@@ -212,9 +212,7 @@ public class MonitorService {
 
             HashMap<String/* Topic */, ConsumeStats> csByTopic = new HashMap<String, ConsumeStats>();
             {
-                Iterator<Entry<MessageQueue, OffsetWrapper>> it = cs.getOffsetTable().entrySet().iterator();
-                while (it.hasNext()) {
-                    Entry<MessageQueue, OffsetWrapper> next = it.next();
+                for (Entry<MessageQueue, OffsetWrapper> next : cs.getOffsetTable().entrySet()) {
                     MessageQueue mq = next.getKey();
                     OffsetWrapper ow = next.getValue();
                     ConsumeStats csTmp = csByTopic.get(mq.getTopic());
@@ -228,9 +226,7 @@ public class MonitorService {
             }
 
             {
-                Iterator<Entry<String, ConsumeStats>> it = csByTopic.entrySet().iterator();
-                while (it.hasNext()) {
-                    Entry<String, ConsumeStats> next = it.next();
+                for (Entry<String, ConsumeStats> next : csByTopic.entrySet()) {
                     UndoneMsgs undoneMsgs = new UndoneMsgs();
                     undoneMsgs.setConsumerGroup(consumerGroup);
                     undoneMsgs.setTopic(next.getKey());
@@ -270,9 +266,7 @@ public class MonitorService {
         long total = 0;
         long singleMax = 0;
         long delayMax = 0;
-        Iterator<Entry<MessageQueue, OffsetWrapper>> it = consumeStats.getOffsetTable().entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<MessageQueue, OffsetWrapper> next = it.next();
+        for (Entry<MessageQueue, OffsetWrapper> next : consumeStats.getOffsetTable().entrySet()) {
             MessageQueue mq = next.getKey();
             OffsetWrapper ow = next.getValue();
             long diff = ow.getBrokerOffset() - ow.getConsumerOffset();
@@ -294,7 +288,7 @@ public class MonitorService {
                         switch (pull.getPullStatus()) {
                             case FOUND:
                                 long delay =
-                                    pull.getMsgFoundList().get(0).getStoreTimestamp() - ow.getLastTimestamp();
+                                        pull.getMsgFoundList().get(0).getStoreTimestamp() - ow.getLastTimestamp();
                                 if (delay > delayMax) {
                                     delayMax = delay;
                                 }

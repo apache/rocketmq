@@ -160,7 +160,6 @@ public class ExportMetricsCommand implements SubCommand {
                     clientInfoSet.add(clientInfo);
                 }
             } catch (Exception e) {
-                continue;
             }
         }
         runtimeVersionMap.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));

@@ -89,7 +89,7 @@ import org.slf4j.LoggerFactory;
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
 
-    private static String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+    private static final String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     public static void main(String[] args) {
@@ -245,7 +245,7 @@ public class MQAdminStartup {
 
     private static SubCommand findSubCommand(final String name) {
         for (SubCommand cmd : subCommandList) {
-            if (cmd.commandName().toUpperCase().equals(name.toUpperCase())) {
+            if (cmd.commandName().equalsIgnoreCase(name)) {
                 return cmd;
             }
         }

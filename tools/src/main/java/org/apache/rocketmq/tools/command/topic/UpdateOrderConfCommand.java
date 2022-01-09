@@ -66,36 +66,39 @@ public class UpdateOrderConfCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t').trim();
             String type = commandLine.getOptionValue('m').trim();
 
-            if ("get".equals(type)) {
+            switch (type) {
+                case "get": {
 
-                defaultMQAdminExt.start();
-                String orderConf =
-                    defaultMQAdminExt.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
-                System.out.printf("get orderConf success. topic=[%s], orderConf=[%s] ", topic, orderConf);
+                    defaultMQAdminExt.start();
+                    String orderConf =
+                            defaultMQAdminExt.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
+                    System.out.printf("get orderConf success. topic=[%s], orderConf=[%s] ", topic, orderConf);
 
-                return;
-            } else if ("put".equals(type)) {
-
-                defaultMQAdminExt.start();
-                String orderConf = "";
-                if (commandLine.hasOption('v')) {
-                    orderConf = commandLine.getOptionValue('v').trim();
+                    return;
                 }
-                if (UtilAll.isBlank(orderConf)) {
-                    throw new Exception("please set orderConf with option -v.");
+                case "put": {
+
+                    defaultMQAdminExt.start();
+                    String orderConf = "";
+                    if (commandLine.hasOption('v')) {
+                        orderConf = commandLine.getOptionValue('v').trim();
+                    }
+                    if (UtilAll.isBlank(orderConf)) {
+                        throw new Exception("please set orderConf with option -v.");
+                    }
+
+                    defaultMQAdminExt.createOrUpdateOrderConf(topic, orderConf, true);
+                    System.out.printf("update orderConf success. topic=[%s], orderConf=[%s]", topic,
+                            orderConf.toString());
+                    return;
                 }
+                case "delete":
 
-                defaultMQAdminExt.createOrUpdateOrderConf(topic, orderConf, true);
-                System.out.printf("update orderConf success. topic=[%s], orderConf=[%s]", topic,
-                    orderConf.toString());
-                return;
-            } else if ("delete".equals(type)) {
+                    defaultMQAdminExt.start();
+                    defaultMQAdminExt.deleteKvConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
+                    System.out.printf("delete orderConf success. topic=[%s]", topic);
 
-                defaultMQAdminExt.start();
-                defaultMQAdminExt.deleteKvConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
-                System.out.printf("delete orderConf success. topic=[%s]", topic);
-
-                return;
+                    return;
             }
 
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);

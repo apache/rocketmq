@@ -95,9 +95,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private final DefaultMQAdminExt defaultMQAdminExt;
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mqClientInstance;
-    private RPCHook rpcHook;
+    private final RPCHook rpcHook;
     private long timeoutMillis = 20000;
-    private Random random = new Random();
+    private final Random random = new Random();
 
     private static final Set<String> SYSTEM_GROUP_SET = new HashSet<String>();
 
@@ -964,9 +964,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
         BrokerData brokerData = topicRouteData.getBrokerDatas().get(0);
         String brokerName = brokerData.getBrokerName();
-        Iterator<Map.Entry<String, Set<String>>> it = clusterInfo.getClusterAddrTable().entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Set<String>> next = it.next();
+        for (Entry<String, Set<String>> next : clusterInfo.getClusterAddrTable().entrySet()) {
             if (next.getValue().contains(brokerName)) {
                 clusterSet.add(next.getKey());
             }
@@ -988,14 +986,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         SubscriptionGroupWrapper subscriptionGroupWrapper = this.mqClientInstance.getMQClientAPIImpl()
             .getAllSubscriptionGroup(brokerAddr, timeoutMillis);
 
-        Iterator<Entry<String, SubscriptionGroupConfig>> iterator = subscriptionGroupWrapper.getSubscriptionGroupTable()
-            .entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, SubscriptionGroupConfig> configEntry = iterator.next();
-            if (MixAll.isSysConsumerGroup(configEntry.getKey()) || SYSTEM_GROUP_SET.contains(configEntry.getKey())) {
-                iterator.remove();
-            }
-        }
+        subscriptionGroupWrapper.getSubscriptionGroupTable()
+                .entrySet().removeIf(configEntry -> MixAll.isSysConsumerGroup(configEntry.getKey()) || SYSTEM_GROUP_SET.contains(configEntry.getKey()));
 
         return subscriptionGroupWrapper;
     }

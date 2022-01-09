@@ -71,7 +71,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
         String topic = commandLine.getOptionValue("t").trim();
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        defaultMQAdminExt.setInstanceName("admin-" + Long.toString(System.currentTimeMillis()));
+        defaultMQAdminExt.setInstanceName("admin-" + System.currentTimeMillis());
 
         try {
             defaultMQAdminExt.start();

@@ -115,7 +115,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
 
                 boolean force = true;
                 if (commandLine.hasOption('f')) {
-                    force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+                    force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
                 }
 
                 defaultMQAdminExt.start();

@@ -104,7 +104,7 @@ public class QueryConsumeQueueCommand implements SubCommand {
                 consumerGroup = commandLine.getOptionValue("g").trim();
             }
 
-            if (broker == null || broker == "") {
+            if (broker == null || broker.equals("")) {
                 TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
 
                 if (topicRouteData == null || topicRouteData.getBrokerDatas() == null

@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.tools.monitor;
 
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -65,16 +64,14 @@ public class DefaultMonitorListener implements MonitorListener {
         }
 
         {
-            Iterator<Entry<String, ConsumerRunningInfo>> it = criTable.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<String, ConsumerRunningInfo> next = it.next();
+            for (Entry<String, ConsumerRunningInfo> next : criTable.entrySet()) {
                 String result = ConsumerRunningInfo.analyzeProcessQueue(next.getKey(), next.getValue());
                 if (!result.isEmpty()) {
                     log.info(String.format(LOG_NOTIFY
-                            + "reportConsumerRunningInfo: ConsumerGroup: %s, ClientId: %s, %s",
-                        criTable.firstEntry().getValue().getProperties().getProperty("consumerGroup"),
-                        next.getKey(),
-                        result));
+                                    + "reportConsumerRunningInfo: ConsumerGroup: %s, ClientId: %s, %s",
+                            criTable.firstEntry().getValue().getProperties().getProperty("consumerGroup"),
+                            next.getKey(),
+                            result));
                 }
             }
         }

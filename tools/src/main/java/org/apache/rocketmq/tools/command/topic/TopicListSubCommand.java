@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
@@ -125,9 +124,7 @@ public class TopicListSubCommand implements SubCommand {
 
         String brokerName = brokerData.getBrokerName();
 
-        Iterator<Entry<String, Set<String>>> it = clusterInfo.getClusterAddrTable().entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, Set<String>> next = it.next();
+        for (Entry<String, Set<String>> next : clusterInfo.getClusterAddrTable().entrySet()) {
             if (next.getValue().contains(brokerName)) {
                 return next.getKey();
             }

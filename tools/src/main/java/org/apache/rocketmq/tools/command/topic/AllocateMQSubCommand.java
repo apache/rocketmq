@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tools.command.topic;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -68,9 +69,7 @@ public class AllocateMQSubCommand implements SubCommand {
             String ips = commandLine.getOptionValue('i').trim();
             final String[] split = ips.split(",");
             final List<String> ipList = new LinkedList<String>();
-            for (String ip : split) {
-                ipList.add(ip);
-            }
+            Collections.addAll(ipList, split);
 
             final TopicRouteData topicRouteData = adminExt.examineTopicRouteInfo(topic);
             final Set<MessageQueue> mqs = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
