@@ -397,4 +397,11 @@ public interface MessageStore {
      * @param brokerRole
      */
     void handleScheduleMessageService(BrokerRole brokerRole);
+
+    /**
+     * Clean unused lmq topic.
+     *
+     * @param topic valid topic
+     */
+    void cleanUnusedLmqTopic(String topic);
 }

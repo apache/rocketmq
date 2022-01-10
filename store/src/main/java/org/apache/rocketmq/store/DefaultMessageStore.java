@@ -39,6 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.StringUtils;
@@ -111,6 +112,8 @@ public class DefaultMessageStore implements MessageStore {
     private StoreCheckpoint storeCheckpoint;
 
     private AtomicLong printTimes = new AtomicLong(0);
+
+    private final AtomicInteger lmqConsumeQueueNum = new AtomicInteger(0);
 
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
@@ -422,6 +425,23 @@ public class DefaultMessageStore implements MessageStore {
         return PutMessageStatus.PUT_OK;
     }
 
+    private PutMessageStatus checkLmqMessage(MessageExtBrokerInner msg) {
+        if (msg.getProperties() != null
+            && StringUtils.isNotBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))
+            && this.isLmqConsumeQueueNumExceeded()) {
+            return PutMessageStatus.LMQ_CONSUME_QUEUE_NUM_EXCEEDED;
+        }
+        return PutMessageStatus.PUT_OK;
+    }
+
+    private boolean isLmqConsumeQueueNumExceeded() {
+        if (this.getMessageStoreConfig().isEnableLmq() && this.getMessageStoreConfig().isEnableMultiDispatch()
+            && this.lmqConsumeQueueNum.get() > this.messageStoreConfig.getMaxLmqConsumeQueueNum()) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
         PutMessageStatus checkStoreStatus = this.checkStoreStatus();
@@ -433,6 +453,12 @@ public class DefaultMessageStore implements MessageStore {
         if (msgCheckStatus == PutMessageStatus.MESSAGE_ILLEGAL) {
             return CompletableFuture.completedFuture(new PutMessageResult(msgCheckStatus, null));
         }
+
+        PutMessageStatus lmqMsgCheckStatus = this.checkLmqMessage(msg);
+        if (msgCheckStatus == PutMessageStatus.LMQ_CONSUME_QUEUE_NUM_EXCEEDED) {
+            return CompletableFuture.completedFuture(new PutMessageResult(lmqMsgCheckStatus, null));
+        }
+
 
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
@@ -451,7 +477,6 @@ public class DefaultMessageStore implements MessageStore {
 
         return putResultFuture;
     }
-
     public CompletableFuture<PutMessageResult> asyncPutMessages(MessageExtBatch messageExtBatch) {
         PutMessageStatus checkStoreStatus = this.checkStoreStatus();
         if (checkStoreStatus != PutMessageStatus.PUT_OK) {
@@ -532,6 +557,11 @@ public class DefaultMessageStore implements MessageStore {
 
         if (!this.runningFlags.isReadable()) {
             log.warn("message store is not readable, so getMessage is forbidden " + this.runningFlags.getFlagBits());
+            return null;
+        }
+
+        if (MixAll.isLmq(topic) && this.isLmqConsumeQueueNumExceeded()) {
+            log.warn("message store is not available, broker config enableLmq and enableMultiDispatch, lmq consumeQueue num exceed maxLmqConsumeQueueNum config num");
             return null;
         }
 
@@ -1019,7 +1049,8 @@ public class DefaultMessageStore implements MessageStore {
             String topic = next.getKey();
 
             if (!topics.contains(topic) && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)
-                    && !topic.equals(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC)) {
+                    && !topic.equals(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC)
+                    && !MixAll.isLmq(topic)) {
                 ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 for (ConsumeQueue cq : queueTable.values()) {
                     cq.destroy();
@@ -1221,6 +1252,9 @@ public class DefaultMessageStore implements MessageStore {
             if (oldLogic != null) {
                 logic = oldLogic;
             } else {
+                if (MixAll.isLmq(topic)) {
+                    lmqConsumeQueueNum.getAndIncrement();
+                }
                 logic = newLogic;
             }
         }
@@ -1427,6 +1461,9 @@ public class DefaultMessageStore implements MessageStore {
             map = new ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>();
             map.put(queueId, consumeQueue);
             this.consumeQueueTable.put(topic, map);
+            if (MixAll.isLmq(topic)) {
+                this.lmqConsumeQueueNum.getAndIncrement();
+            }
         } else {
             map.put(queueId, consumeQueue);
         }
@@ -1534,6 +1571,29 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+    }
+
+    @Override
+    public void cleanUnusedLmqTopic(String topic) {
+        if (this.consumeQueueTable.containsKey(topic)) {
+            ConcurrentMap<Integer, ConsumeQueue> map = this.consumeQueueTable.get(topic);
+            if (map != null) {
+                ConsumeQueue cq = map.get(0);
+                cq.destroy();
+                log.info("cleanUnusedLmqTopic: {} {} ConsumeQueue cleaned",
+                    cq.getTopic(),
+                    cq.getQueueId()
+                );
+
+                this.commitLog.removeQueueFromTopicQueueTable(cq.getTopic(), cq.getQueueId());
+                this.lmqConsumeQueueNum.getAndDecrement();
+            }
+            this.consumeQueueTable.remove(topic);
+            if (this.brokerConfig.isAutoDeleteUnusedStats()) {
+                this.brokerStatsManager.onTopicDeleted(topic);
+            }
+            log.info("cleanUnusedLmqTopic: {},topic destroyed", topic);
+        }
     }
 
     public int remainTransientStoreBufferNumbs() {
