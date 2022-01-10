@@ -158,6 +158,7 @@ public class ClientConfig {
         this.useTLS = cc.useTLS;
         this.namespace = cc.namespace;
         this.language = cc.language;
+        this.mqClientApiTimeout = cc.mqClientApiTimeout;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -176,6 +177,7 @@ public class ClientConfig {
         cc.useTLS = useTLS;
         cc.namespace = namespace;
         cc.language = language;
+        cc.mqClientApiTimeout = mqClientApiTimeout;
         return cc;
     }
 
