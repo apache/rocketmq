@@ -336,6 +336,17 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
+    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService()
+            throws Exception {
+        Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
+        serviceField.setAccessible(true);
+        DefaultMessageStore.CleanCommitLogService cleanCommitLogService =
+                (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
+        serviceField.setAccessible(false);
+
+        return cleanCommitLogService;
+    }
+
     private DefaultMessageStore.CleanConsumeQueueService getCleanConsumeQueueService()
             throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanConsumeQueueService");
@@ -472,6 +483,7 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStore = new DefaultMessageStore(messageStoreConfig,
                 new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
 
+        cleanCommitLogService = getCleanCommitLogService();
         cleanConsumeQueueService = getCleanConsumeQueueService();
 
         assertTrue(messageStore.load());
@@ -481,6 +493,15 @@ public class DefaultMessageStoreCleanFilesTest {
         cleanCommitLogService = spy(cleanCommitLogService);
         when(cleanCommitLogService.getDiskSpaceWarningLevelRatio()).thenReturn(diskSpaceCleanForciblyRatio);
         when(cleanCommitLogService.getDiskSpaceCleanForciblyRatio()).thenReturn(diskSpaceCleanForciblyRatio);
+
+        putFiledBackToMessageStore(cleanCommitLogService);
+    }
+
+    private void putFiledBackToMessageStore(DefaultMessageStore.CleanCommitLogService cleanCommitLogService) throws Exception {
+        Field cleanCommitLogServiceField = DefaultMessageStore.class.getDeclaredField("cleanCommitLogService");
+        cleanCommitLogServiceField.setAccessible(true);
+        cleanCommitLogServiceField.set(messageStore, cleanCommitLogService);
+        cleanCommitLogServiceField.setAccessible(false);
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

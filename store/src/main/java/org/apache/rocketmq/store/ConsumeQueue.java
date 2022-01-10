@@ -18,7 +18,6 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -443,12 +442,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     @Override
     public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum) {
         String topicQueueKey = getTopic() + "-" + getQueueId();
-        HashMap<String, Long> topicQueueTable = queueOffsetAssigner.getTopicQueueTable();
-
-        long topicOffset = topicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
-        topicQueueTable.put(topicQueueKey, topicOffset + messageNum);
-
-        msg.setQueueOffset(topicOffset);
+        long queueOffset = queueOffsetAssigner.assignQueueOffset(topicQueueKey, messageNum);
+        msg.setQueueOffset(queueOffset);
     }
 
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
