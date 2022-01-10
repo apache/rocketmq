@@ -234,6 +234,14 @@ public class HAConnection {
                             }
 
                             this.nextTransferFromWhere = masterOffset;
+                        } else if (-2 == HAConnection.this.slaveRequestOffset) {
+                            long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMinOffset();
+
+                            if (masterOffset < 0) {
+                                masterOffset = 0;
+                            }
+                            
+                            this.nextTransferFromWhere = masterOffset;
                         } else {
                             this.nextTransferFromWhere = HAConnection.this.slaveRequestOffset;
                         }

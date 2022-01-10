@@ -64,7 +64,7 @@ public class HAService {
         this.acceptSocketService =
             new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
         this.groupTransferService = new GroupTransferService();
-        this.haClient = new HAClient();
+        this.haClient = new HAClient(defaultMessageStore.getMessageStoreConfig().isHaSynchronizeMinPhyOffset());
     }
 
     public void updateMasterAddress(final String newAddr) {
@@ -339,12 +339,14 @@ public class HAService {
         private Selector selector;
         private long lastWriteTimestamp = System.currentTimeMillis();
 
+        private boolean haSynchronizeMinPhyOffset;
         private long currentReportedOffset = 0;
         private int dispatchPosition = 0;
         private ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
         private ByteBuffer byteBufferBackup = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
 
-        public HAClient() throws IOException {
+        public HAClient(boolean haSynchronizeMinPhyOffset) throws IOException {
+            this.haSynchronizeMinPhyOffset = haSynchronizeMinPhyOffset;
             this.selector = RemotingUtil.openSelector();
         }
 
@@ -487,7 +489,9 @@ public class HAService {
         private boolean reportSlaveMaxOffsetPlus() {
             boolean result = true;
             long currentPhyOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
-            if (currentPhyOffset > this.currentReportedOffset) {
+            if (currentPhyOffset == 0 && haSynchronizeMinPhyOffset) {
+                this.currentReportedOffset = -2;
+            } else if (currentPhyOffset > this.currentReportedOffset) {
                 this.currentReportedOffset = currentPhyOffset;
                 result = this.reportSlaveMaxOffset(this.currentReportedOffset);
                 if (!result) {
@@ -514,6 +518,9 @@ public class HAService {
                 }
 
                 this.currentReportedOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
+                if (this.currentReportedOffset == 0 && haSynchronizeMinPhyOffset) {
+                    this.currentReportedOffset = -2;
+                }
 
                 this.lastWriteTimestamp = System.currentTimeMillis();
             }
