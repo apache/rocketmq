@@ -138,7 +138,7 @@ public class MQClientManager {
         }
 
         AtomicInteger indexGenerator = null;
-        String key = buildGroupTableKey(clientConfig.getNameSrvCode(), clientConfig.groupName());
+        String key = String.format("%s@%s@%s", clientConfig.getInstanceName(), clientConfig.groupName(), clientConfig.getNamesrvAddr());
         switch (clientConfig.clientType()) {
             case DEFAULT_PRODUCER:
             case TRANSACTION_MQ_PRODUCER:
@@ -174,10 +174,6 @@ public class MQClientManager {
         }
 
         return indexGenerator;
-    }
-
-    public static String buildGroupTableKey(int nameSrvCode, String group) {
-        return String.format("%d@%s", nameSrvCode, group);
     }
 
     public void removeClientFactory(final String clientId) {

@@ -17,11 +17,15 @@
 
 package org.apache.rocketmq.test.client.producer.exception.producer;
 
+import java.lang.reflect.Field;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.util.RandomUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,24 +50,46 @@ public class ProducerGroupAndInstanceNameValidityIT extends BaseConf {
      * @since version3.4.6
      */
     @Test
-    public void testTwoProducerSameGroupAndInstanceName() {
+    public void testTwoProducerSameGroupAndInstanceName() throws Exception {
         RMQNormalProducer producer1 = getProducer(nsAddr, topic);
-        assertThat(producer1.isStartSuccess()).isEqualTo(true);
+        Assert.assertEquals(true, producer1.isStartSuccess());
         RMQNormalProducer producer2 = getProducer(nsAddr, topic,
             producer1.getProducerGroupName(), producer1.getProducerInstanceName());
-        assertThat(producer2.isStartSuccess()).isEqualTo(false);
+        Assert.assertEquals(true, producer2.isStartSuccess());
+
+        Field field = FieldUtils.getDeclaredField(MQClientInstance.class, "instanceIndex", true);
+        int instanceIndex1 = (int) field.get(producer1.getProducer().getDefaultMQProducerImpl().getMqClientFactory());
+        field = FieldUtils.getDeclaredField(MQClientInstance.class, "instanceIndex", true);
+        int instanceIndex2 = (int) field.get(producer2.getProducer().getDefaultMQProducerImpl().getMqClientFactory());
+        Assert.assertNotEquals(instanceIndex1, instanceIndex2);
+
+        Assert.assertEquals(producer1.getProducer().getFactoryIndex(), producer2.getProducer().getFactoryIndex());
+        Assert.assertEquals(producer1.getProducer().getNameSrvCode(), producer2.getProducer().getNameSrvCode());
+        Assert.assertNotEquals(producer1.getProducer().getGroupCode(), producer2.getProducer().getGroupCode());
+        Assert.assertEquals(producer1.getProducer().getInstanceName(), producer2.getProducer().getInstanceName());
     }
 
     /**
      * @since version3.4.6
      */
     @Test
-    public void testTwoProducerSameGroup() {
+    public void testTwoProducerSameGroup() throws Exception {
         RMQNormalProducer producer1 = getProducer(nsAddr, topic);
-        assertThat(producer1.isStartSuccess()).isEqualTo(true);
+        Assert.assertEquals(true, producer1.isStartSuccess());
         RMQNormalProducer producer2 = getProducer(nsAddr, topic,
             producer1.getProducerGroupName(), RandomUtils.getStringByUUID());
-        assertThat(producer2.isStartSuccess()).isEqualTo(true);
+        Assert.assertEquals(true, producer2.isStartSuccess());
+
+        Field field = FieldUtils.getDeclaredField(MQClientInstance.class, "instanceIndex", true);
+        int instanceIndex1 = (int) field.get(producer1.getProducer().getDefaultMQProducerImpl().getMqClientFactory());
+        field = FieldUtils.getDeclaredField(MQClientInstance.class, "instanceIndex", true);
+        int instanceIndex2 = (int) field.get(producer2.getProducer().getDefaultMQProducerImpl().getMqClientFactory());
+        Assert.assertNotEquals(instanceIndex1, instanceIndex2);
+
+        Assert.assertEquals(producer1.getProducer().getFactoryIndex(), producer2.getProducer().getFactoryIndex());
+        Assert.assertEquals(producer1.getProducer().getNameSrvCode(), producer2.getProducer().getNameSrvCode());
+        Assert.assertEquals(producer1.getProducer().getGroupCode(), producer2.getProducer().getGroupCode());
+        Assert.assertNotEquals(producer1.getProducer().getInstanceName(), producer2.getProducer().getInstanceName());
     }
 
 }
