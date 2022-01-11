@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -475,5 +476,22 @@ public class MQClientAPIImplTest {
 
         int topicCnt = mqClientAPI.addWritePermOfBroker("127.0.0.1", "default-broker", 1000);
         assertThat(topicCnt).isEqualTo(7);
+    }
+
+    @Test
+    public void testGetMasterSlaveDiff() throws Exception {
+        final long diff = 123L;
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                final RemotingCommand response = RemotingCommand.createResponseCommand(RequestCode.GET_MASTER_SLAVE_DIFF, null);
+                response.setBody(String.valueOf(diff).getBytes(MixAll.DEFAULT_CHARSET));
+                response.setCode(ResponseCode.SUCCESS);
+                return response;
+            }
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        long ret = mqClientAPI.getMasterSlaveDiff("127.0.0.1:10911", 1000);
+        assertThat(ret).isEqualTo(diff);
     }
 }

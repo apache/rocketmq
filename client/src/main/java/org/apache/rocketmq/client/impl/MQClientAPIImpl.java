@@ -2300,4 +2300,23 @@ public class MQClientAPIImpl {
                 return false;
         }
     }
+
+    public long getMasterSlaveDiff(final String brokerAddr, final long timeoutMillis) throws RemotingException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MASTER_SLAVE_DIFF, null);
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr),
+                request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                try {
+                    return Long.parseLong(new String(response.getBody(), MixAll.DEFAULT_CHARSET));
+                } catch (UnsupportedEncodingException ignore) {
+                    // All major JVM platforms support UTF-8
+                }
+            }
+            default:
+                log.error("Failed to get number of bytes that slave falls behind master.", response.getRemark());
+                return -1L;
+        }
+    }
 }

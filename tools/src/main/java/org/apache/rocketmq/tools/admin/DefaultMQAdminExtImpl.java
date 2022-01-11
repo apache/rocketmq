@@ -1130,4 +1130,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             return this.mqClientInstance.getMQClientAPIImpl().resumeCheckHalfMessage(RemotingUtil.socketAddress2String(msg.getStoreHost()), msgClient.getOffsetMsgId(), timeoutMillis);
         }
     }
+
+    @Override
+    public long getMasterSlaveDiff(final String brokerAddr) throws RemotingException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().getMasterSlaveDiff(brokerAddr, timeoutMillis);
+    }
 }

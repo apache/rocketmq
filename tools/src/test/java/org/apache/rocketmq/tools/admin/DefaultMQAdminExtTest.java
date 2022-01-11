@@ -236,6 +236,8 @@ public class DefaultMQAdminExtTest {
             }
         });
         when(mQClientAPIImpl.getAllTopicConfig(anyString(),anyLong())).thenReturn(topicConfigSerializeWrapper);
+
+        when(mQClientAPIImpl.getMasterSlaveDiff(anyString(), anyLong())).thenReturn(123L);
     }
 
     @AfterClass
@@ -428,5 +430,11 @@ public class DefaultMQAdminExtTest {
     public void testExamineTopicConfig() throws MQBrokerException, RemotingException, InterruptedException {
         TopicConfig topicConfig = defaultMQAdminExt.examineTopicConfig("127.0.0.1:10911", "topic_test_examine_topicConfig");
         assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig"));
+    }
+
+    @Test
+    public void testGetMasterSlaveDiff() throws Exception {
+        long diff = defaultMQAdminExt.getMasterSlaveDiff("127.0.0.1:10911");
+        assertThat(diff == 123L);
     }
 }

@@ -20,7 +20,7 @@ package org.apache.rocketmq.store.ha;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.concurrent.CountDownLatch;
 
 public class WaitNotifyObjectTest {
     @Test
@@ -38,6 +38,59 @@ public class WaitNotifyObjectTest {
             t.join();
         }
         Assert.assertEquals(0, waitNotifyObject.waitingThreadTable.size());
+    }
+
+    @Test
+    public void allWaitForRunning() throws Exception {
+
+        final int threadNum = 5;
+        final long waitIntervalMs = 100L;
+        final CountDownLatch latch = new CountDownLatch(threadNum);
+        final WaitNotifyObject waitNotifyObject = new WaitNotifyObject() {
+            @Override
+            protected void onWaitEnd() {
+                latch.countDown();
+            }
+        };
+        long start = System.nanoTime();
+        for (int i = 0; i < threadNum; i++) {
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    waitNotifyObject.allWaitForRunning(waitIntervalMs);
+                }
+            });
+            t.start();
+            t.join();
+        }
+
+        latch.await();
+        long elapsed = (System.nanoTime() - start) / 1000000;
+        Assert.assertEquals(threadNum, waitNotifyObject.waitingThreadTable.size());
+        Assert.assertTrue(elapsed >= threadNum * waitIntervalMs);
+    }
+
+    @Test
+    public void wakeup() throws Exception {
+        final long waitIntervalMs = 3000L;
+        final long sleepMs = 500L;
+        final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
+        long start = System.nanoTime();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.currentThread().sleep(sleepMs);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                waitNotifyObject.wakeup();
+            }
+        });
+        t.start();
+        waitNotifyObject.waitForRunning(waitIntervalMs);
+        long elapsed = (System.nanoTime() - start) / 1000000;
+        Assert.assertTrue(elapsed >= sleepMs && elapsed < waitIntervalMs);
     }
 
 }

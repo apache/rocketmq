@@ -589,4 +589,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(topic, msgId);
     }
+
+    @Override
+    public long getMasterSlaveDiff(final String brokerAddr) throws RemotingException, InterruptedException {
+        return this.defaultMQAdminExtImpl.getMasterSlaveDiff(brokerAddr);
+    }
 }

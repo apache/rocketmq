@@ -235,6 +235,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return resumeCheckHalfMessage(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG:
                 return getBrokerClusterAclConfig(ctx, request);
+            case RequestCode.GET_MASTER_SLAVE_DIFF:
+                return getMasterSlaveDiff(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -1635,5 +1637,18 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         inner.setMsgId(msgExt.getMsgId());
         inner.setWaitStoreMsgOK(false);
         return inner;
+    }
+
+    private RemotingCommand getMasterSlaveDiff(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(RequestCode.GET_MASTER_SLAVE_DIFF, null);
+        long diff = this.brokerController.getMessageStore().slaveFallBehindMuch();
+        try {
+            response.setBody(String.valueOf(diff).getBytes(MixAll.DEFAULT_CHARSET));
+        } catch (UnsupportedEncodingException ignore) {
+            // All major JVM platforms support UTF-8
+        }
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 }

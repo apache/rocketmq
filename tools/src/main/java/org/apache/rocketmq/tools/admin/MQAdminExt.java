@@ -296,4 +296,13 @@ public interface MQAdminExt extends MQAdmin {
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
 
     boolean resumeCheckHalfMessage(final String topic, final String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+
+    /**
+     * Return how much the slave falls behind.
+     * @param brokerAddr The address of broker.
+     * @return number of bytes that slave falls behind.
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    long getMasterSlaveDiff(final String brokerAddr) throws RemotingException, InterruptedException;
 }

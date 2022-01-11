@@ -73,6 +73,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.UnsupportedEncodingException;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -417,6 +418,18 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetMasterSlaveDiff() throws RemotingCommandException, UnsupportedEncodingException {
+        messageStore = mock(MessageStore.class);
+        brokerController.setMessageStore(messageStore);
+        when(messageStore.slaveFallBehindMuch()).thenReturn(1024L);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MASTER_SLAVE_DIFF, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        long diff = Long.parseLong(new String(response.getBody(), MixAll.DEFAULT_CHARSET));
+        assertThat(diff).isEqualTo(1024L);
     }
 
     private RemotingCommand buildCreateTopicRequest(String topic) {
