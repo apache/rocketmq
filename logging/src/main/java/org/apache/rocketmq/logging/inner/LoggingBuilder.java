@@ -167,12 +167,14 @@ public class LoggingBuilder {
             dispatcher.start();
         }
 
+        @Override
         public void addAppender(final Appender newAppender) {
             synchronized (appenderPipeline) {
                 appenderPipeline.addAppender(newAppender);
             }
         }
 
+        @Override
         public void append(final LoggingEvent event) {
             if ((dispatcher == null) || !dispatcher.isAlive() || (bufferSize <= 0)) {
                 synchronized (appenderPipeline) {
@@ -227,6 +229,7 @@ public class LoggingBuilder {
             }
         }
 
+        @Override
         public void close() {
 
             synchronized (buffer) {
@@ -256,36 +259,42 @@ public class LoggingBuilder {
             }
         }
 
+        @Override
         public Enumeration getAllAppenders() {
             synchronized (appenderPipeline) {
                 return appenderPipeline.getAllAppenders();
             }
         }
 
+        @Override
         public Appender getAppender(final String name) {
             synchronized (appenderPipeline) {
                 return appenderPipeline.getAppender(name);
             }
         }
 
+        @Override
         public boolean isAttached(final Appender appender) {
             synchronized (appenderPipeline) {
                 return appenderPipeline.isAttached(appender);
             }
         }
 
+        @Override
         public void removeAllAppenders() {
             synchronized (appenderPipeline) {
                 appenderPipeline.removeAllAppenders();
             }
         }
 
+        @Override
         public void removeAppender(final Appender appender) {
             synchronized (appenderPipeline) {
                 appenderPipeline.removeAppender(appender);
             }
         }
 
+        @Override
         public void removeAppender(final String name) {
             synchronized (appenderPipeline) {
                 appenderPipeline.removeAppender(name);
@@ -371,6 +380,7 @@ public class LoggingBuilder {
                 this.discardMap = discardMap;
             }
 
+            @Override
             public void run() {
                 boolean isActive = true;
 
@@ -428,6 +438,7 @@ public class LoggingBuilder {
             this.appender = appender;
         }
 
+        @Override
         public void write(String string) {
             if (string != null) {
                 try {
@@ -439,6 +450,7 @@ public class LoggingBuilder {
             }
         }
 
+        @Override
         public void flush() {
             try {
                 out.flush();
@@ -472,10 +484,12 @@ public class LoggingBuilder {
             return immediateFlush;
         }
 
+        @Override
         public void activateOptions() {
         }
 
 
+        @Override
         public void append(LoggingEvent event) {
             if (!checkEntryConditions()) {
                 return;
@@ -502,6 +516,7 @@ public class LoggingBuilder {
             return true;
         }
 
+        @Override
         public synchronized void close() {
             if (this.closed) {
                 return;
@@ -633,6 +648,7 @@ public class LoggingBuilder {
             return fileName;
         }
 
+        @Override
         public void activateOptions() {
             if (fileName != null) {
                 try {
@@ -725,6 +741,7 @@ public class LoggingBuilder {
             this.qw = new QuietWriter(writer, this);
         }
 
+        @Override
         protected void reset() {
             closeFile();
             this.fileName = null;
@@ -815,6 +832,7 @@ public class LoggingBuilder {
             }
         }
 
+        @Override
         public synchronized void setFile(String fileName, boolean append, boolean bufferedIO, int bufferSize)
             throws IOException {
             super.setFile(fileName, append, this.bufferedIO, this.bufferSize);
@@ -832,10 +850,12 @@ public class LoggingBuilder {
             this.maxFileSize = maxFileSize;
         }
 
+        @Override
         protected void setQWForFiles(Writer writer) {
             this.qw = new CountingQuietWriter(writer, this);
         }
 
+        @Override
         protected void subAppend(LoggingEvent event) {
             super.subAppend(event);
             if (fileName != null && qw != null) {
@@ -854,6 +874,7 @@ public class LoggingBuilder {
                 super(writer, appender);
             }
 
+            @Override
             public void write(String string) {
                 try {
                     out.write(string);
@@ -913,6 +934,7 @@ public class LoggingBuilder {
             return datePattern;
         }
 
+        @Override
         public void activateOptions() {
             super.activateOptions();
             if (datePattern != null && fileName != null) {
@@ -1009,6 +1031,7 @@ public class LoggingBuilder {
             scheduledFilename = datedFilename;
         }
 
+        @Override
         protected void subAppend(LoggingEvent event) {
             long n = System.currentTimeMillis();
             if (n >= nextCheck) {
@@ -1133,6 +1156,7 @@ public class LoggingBuilder {
             SysLogger.warn("Using previously set target, System.out by default.");
         }
 
+        @Override
         public void activateOptions() {
             if (target.equals(SYSTEM_ERR)) {
                 setWriter(createWriter(System.err));
@@ -1142,6 +1166,7 @@ public class LoggingBuilder {
             super.activateOptions();
         }
 
+        @Override
         protected final void closeWriter() {
 
         }

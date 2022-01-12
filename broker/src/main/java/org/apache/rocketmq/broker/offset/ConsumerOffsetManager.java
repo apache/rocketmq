@@ -152,6 +152,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         return -1;
     }
 
+    @Override
     public String encode() {
         return this.encode(false);
     }
@@ -171,6 +172,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
+    @Override
     public String encode(final boolean prettyFormat) {
         return RemotingSerializable.toJson(this, prettyFormat);
     }

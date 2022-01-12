@@ -58,6 +58,7 @@ public class Logger implements Appender.AppenderPipeline {
         return getRepository().getRootLogger();
     }
 
+    @Override
     synchronized public void addAppender(Appender newAppender) {
         if (appenderPipeline == null) {
             appenderPipeline = new Appender.AppenderPipelineImpl();
@@ -141,6 +142,7 @@ public class Logger implements Appender.AppenderPipeline {
     }
 
 
+    @Override
     synchronized public Enumeration getAllAppenders() {
         if (appenderPipeline == null) {
             return null;
@@ -149,6 +151,7 @@ public class Logger implements Appender.AppenderPipeline {
         }
     }
 
+    @Override
     synchronized public Appender getAppender(String name) {
         if (appenderPipeline == null || name == null) {
             return null;
@@ -193,10 +196,12 @@ public class Logger implements Appender.AppenderPipeline {
         }
     }
 
+    @Override
     public boolean isAttached(Appender appender) {
         return appender != null && appenderPipeline != null && appenderPipeline.isAttached(appender);
     }
 
+    @Override
     synchronized public void removeAllAppenders() {
         if (appenderPipeline != null) {
             appenderPipeline.removeAllAppenders();
@@ -204,6 +209,7 @@ public class Logger implements Appender.AppenderPipeline {
         }
     }
 
+    @Override
     synchronized public void removeAppender(Appender appender) {
         if (appender == null || appenderPipeline == null) {
             return;
@@ -211,6 +217,7 @@ public class Logger implements Appender.AppenderPipeline {
         appenderPipeline.removeAppender(appender);
     }
 
+    @Override
     synchronized public void removeAppender(String name) {
         if (name == null || appenderPipeline == null) {
             return;
@@ -289,6 +296,7 @@ public class Logger implements Appender.AppenderPipeline {
             setLogLevel(Level.ALL);
         }
 
+        @Override
         public void emitNoAppenderWarning(Logger cat) {
             if (!this.emittedNoAppenderWarning) {
                 SysLogger.warn("No appenders could be found for logger (" + cat.getName() + ").");
@@ -297,6 +305,7 @@ public class Logger implements Appender.AppenderPipeline {
             }
         }
 
+        @Override
         public Logger exists(String name) {
             Object o = ht.get(new CategoryKey(name));
             if (o instanceof Logger) {
@@ -306,6 +315,7 @@ public class Logger implements Appender.AppenderPipeline {
             }
         }
 
+        @Override
         public void setLogLevel(Level l) {
             if (l != null) {
                 logLevelInt = l.level;
@@ -313,11 +323,13 @@ public class Logger implements Appender.AppenderPipeline {
             }
         }
 
+        @Override
         public Level getLogLevel() {
             return logLevel;
         }
 
 
+        @Override
         public Logger getLogger(String name) {
             CategoryKey key = new CategoryKey(name);
             Logger logger;
@@ -347,6 +359,7 @@ public class Logger implements Appender.AppenderPipeline {
             return new Logger(name);
         }
 
+        @Override
         public Enumeration getCurrentLoggers() {
             Vector<Logger> loggers = new Vector<Logger>(ht.size());
 
@@ -362,15 +375,18 @@ public class Logger implements Appender.AppenderPipeline {
         }
 
 
+        @Override
         public Logger getRootLogger() {
             return root;
         }
 
+        @Override
         public boolean isDisabled(int level) {
             return logLevelInt > level;
         }
 
 
+        @Override
         public void shutdown() {
             Logger root = getRootLogger();
             root.closeNestedAppenders();
@@ -437,10 +453,12 @@ public class Logger implements Appender.AppenderPipeline {
                 hashCache = name.hashCode();
             }
 
+            @Override
             final public int hashCode() {
                 return hashCache;
             }
 
+            @Override
             final public boolean equals(Object o) {
                 if (this == o) {
                     return true;

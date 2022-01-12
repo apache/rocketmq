@@ -123,6 +123,7 @@ public class Level implements Serializable {
     }
 
 
+    @Override
     public boolean equals(Object o) {
         if (o instanceof Level) {
             Level r = (Level) o;
@@ -144,6 +145,7 @@ public class Level implements Serializable {
         return level >= r.level;
     }
 
+    @Override
     final public String toString() {
         return levelStr;
     }

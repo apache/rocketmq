@@ -219,6 +219,7 @@ public class BitsArray implements Cloneable {
         }
     }
 
+    @Override
     public BitsArray clone() {
         byte[] clone = new byte[this.byteLength()];
 

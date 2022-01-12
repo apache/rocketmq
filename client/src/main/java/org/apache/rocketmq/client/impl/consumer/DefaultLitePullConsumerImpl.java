@@ -35,6 +35,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
@@ -466,7 +468,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public synchronized void subscribe(String topic, String subExpression) throws MQClientException {
         try {
-            if (topic == null || "".equals(topic)) {
+            if (topic == null || StringUtils.EMPTY.equals(topic)) {
                 throw new IllegalArgumentException("Topic can not be null or empty.");
             }
             setSubscriptionType(SubscriptionType.SUBSCRIBE);
@@ -485,7 +487,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public synchronized void subscribe(String topic, MessageSelector messageSelector) throws MQClientException {
         try {
-            if (topic == null || "".equals(topic)) {
+            if (topic == null || StringUtils.EMPTY.equals(topic)) {
                 throw new IllegalArgumentException("Topic can not be null or empty.");
             }
             setSubscriptionType(SubscriptionType.SUBSCRIBE);

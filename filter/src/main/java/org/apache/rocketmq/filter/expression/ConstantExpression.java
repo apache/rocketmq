@@ -68,6 +68,7 @@ public class ConstantExpression implements Expression {
         return new NowExpression();
     }
 
+    @Override
     public Object evaluate(EvaluationContext context) throws Exception {
         return value;
     }
@@ -79,6 +80,7 @@ public class ConstantExpression implements Expression {
     /**
      * @see Object#toString()
      */
+    @Override
     public String toString() {
         Object value = getValue();
         if (value == null) {
@@ -96,6 +98,7 @@ public class ConstantExpression implements Expression {
     /**
      * @see Object#hashCode()
      */
+    @Override
     public int hashCode() {
         return toString().hashCode();
     }
@@ -103,6 +106,7 @@ public class ConstantExpression implements Expression {
     /**
      * @see Object#equals(Object)
      */
+    @Override
     public boolean equals(Object o) {
 
         if (o == null || !this.getClass().equals(o.getClass())) {

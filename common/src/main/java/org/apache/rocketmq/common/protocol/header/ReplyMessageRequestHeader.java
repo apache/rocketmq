@@ -53,6 +53,7 @@ public class ReplyMessageRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private long storeTimestamp;
 
+    @Override
     public void checkFields() throws RemotingCommandException {
     }
 

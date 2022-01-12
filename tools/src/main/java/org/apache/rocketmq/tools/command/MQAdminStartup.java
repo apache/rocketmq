@@ -111,7 +111,7 @@ public class MQAdminStartup {
                     printHelp();
                     break;
                 case 2:
-                    if (args[0].equals("help")) {
+                    if ("help".equals(args[0])) {
                         SubCommand cmd = findSubCommand(args[1]);
                         if (cmd != null) {
                             Options options = ServerUtil.buildCommandlineOptions(new Options());
