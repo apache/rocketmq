@@ -11,6 +11,7 @@ enableMultiDispatch = true
 ```
 ## 二、发送消息
 发送消息的时候通过设置 INNER_MULTI_DISPATCH 属性，LMQ queue使用逗号分割，queue前缀必须是 %LMQ%，这样broker就可以识别LMQ queue.
+以下代码只是demo伪代码 具体逻辑参照执行即可
 ```java
 DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
 producer.setNamesrvAddr("name-server1-ip:9876;name-server2-ip:9876");
@@ -36,6 +37,7 @@ SendResult sendResult = producer.send(msg);
 ```
 ## 三、拉取消息
 LMQ queue在每个broker上只有一个queue，也即queueId为0， 指明轻量级的MessageQueue，就可以拉取消息进行消费。
+以下代码只是demo伪代码 具体逻辑参照执行即可
 ```java
 DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer();
 defaultMQPullConsumer.setNamesrvAddr("name-server1-ip:9876;name-server2-ip:9876");
@@ -49,7 +51,9 @@ defaultMQPullConsumer.start();
 
 String brokerName = "set broker Name";
 MessageQueue mq = new MessageQueue("%LMQ%123", brokerName, 0);
+defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer("TopicTest");
 
+Thread.sleep(30000);
 Long offset = defaultMQPullConsumer.maxOffset(mq);
 
 defaultMQPullConsumer.pullBlockIfNotFound(
@@ -62,7 +66,7 @@ defaultMQPullConsumer.pullBlockIfNotFound(
                             return;
                         }
                         for (MessageExt messageExt : list) {
-                          
+                            System.out.println(messageExt);
                         }    
                     }
                     @Override
