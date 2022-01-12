@@ -194,26 +194,18 @@ public class MQClientAPIImplTest {
     }
 
     @Test
-    public void testSendMessageAsync_WithException() throws RemotingException, InterruptedException, MQBrokerException {
+    public void testSendMessageAsync_Success_WithException() throws RemotingException, InterruptedException, MQBrokerException {
         doThrow(new RemotingTimeoutException("Remoting Exception in Test")).when(remotingClient)
             .invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
-        try {
-            mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(),
-                3 * 1000, CommunicationMode.ASYNC, new SendMessageContext(), defaultMQProducerImpl);
-            failBecauseExceptionWasNotThrown(RemotingException.class);
-        } catch (RemotingException e) {
-            assertThat(e).hasMessage("Remoting Exception in Test");
-        }
+        SendMessageContext sendMessageContext = new SendMessageContext();
+        sendMessageContext.setProducer(new DefaultMQProducerImpl(new DefaultMQProducer()));
+        mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(),
+            3 * 1000, CommunicationMode.ASYNC, sendMessageContext, defaultMQProducerImpl);
 
         doThrow(new InterruptedException("Interrupted Exception in Test")).when(remotingClient)
             .invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
-        try {
             mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(),
-                3 * 1000, CommunicationMode.ASYNC, new SendMessageContext(), defaultMQProducerImpl);
-            failBecauseExceptionWasNotThrown(InterruptedException.class);
-        } catch (InterruptedException e) {
-            assertThat(e).hasMessage("Interrupted Exception in Test");
-        }
+                3 * 1000, CommunicationMode.ASYNC, sendMessageContext, defaultMQProducerImpl);
     }
 
     @Test
