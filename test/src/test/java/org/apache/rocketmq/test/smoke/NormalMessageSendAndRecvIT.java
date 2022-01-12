@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.smoke;
 
+import java.util.concurrent.CountDownLatch;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
@@ -35,13 +36,24 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
     private RMQNormalConsumer consumer = null;
     private RMQNormalProducer producer = null;
     private String topic = null;
+    private String group = null;
 
     @Before
     public void setUp() {
         topic = initTopic();
-        logger.info(String.format("use topic: %s;", topic));
+        group = initConsumerGroup();
+        logger.info(String.format("Use topic %s group %s", topic, group));
         producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        consumer = getConsumer(nsAddr,  group, topic, "*", new RMQNormalListener());
+    }
+
+    @Test
+    public void testHold() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        System.out.println("ns:" + nsAddr);
+        System.out.println("topic:" + topic);
+        System.out.println("group:" + group);
+        latch.await();
     }
 
     @After
