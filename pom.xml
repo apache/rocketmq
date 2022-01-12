@@ -540,6 +540,13 @@
                 <version>4.1.65.Final</version>
             </dependency>
             <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk15on</artifactId>
+                <scope>runtime</scope>
+                <type>jar</type>
+                <version>1.69</version>
+            </dependency>
+            <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>1.2.76</version>
