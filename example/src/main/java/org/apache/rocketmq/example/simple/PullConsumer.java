@@ -136,7 +136,7 @@ public class PullConsumer {
                 }
 
                 public void incPullTPS(String topic, int pullSize) {
-                    consumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getMqClientFactory()
+                    consumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory()
                             .getConsumerStatsManager().incPullTPS(consumer.getConsumerGroup(), topic, pullSize);
                 }
             });
