@@ -531,7 +531,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private void validateNameServerSetting() throws MQClientException {
-        List<String> nsList = this.getMqClientFactory().getMQClientAPIImpl().getNameServerAddressList();
+        List<String> nsList = this.getmQClientFactory().getMQClientAPIImpl().getNameServerAddressList();
         if (null == nsList || nsList.isEmpty()) {
             throw new MQClientException(
                 "No name server address, please set it." + FAQUrl.suggestTodo(FAQUrl.NAME_SERVER_ADDR_NOT_EXIST_URL), null).setResponseCode(ClientErrorCode.NO_NAME_SERVER_EXCEPTION);
@@ -871,7 +871,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-    public MQClientInstance getMqClientFactory() {
+    public MQClientInstance getmQClientFactory() {
         return mQClientFactory;
     }
 
@@ -1543,16 +1543,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private void prepareSendRequest(final Message msg, long timeout) {
         String correlationId = CorrelationIdUtil.createCorrelationId();
-        String requestClientId = this.getMqClientFactory().getClientId();
+        String requestClientId = this.getmQClientFactory().getClientId();
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CORRELATION_ID, correlationId);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, requestClientId);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MESSAGE_TTL, String.valueOf(timeout));
 
-        boolean hasRouteData = this.getMqClientFactory().getTopicRouteTable().containsKey(msg.getTopic());
+        boolean hasRouteData = this.getmQClientFactory().getTopicRouteTable().containsKey(msg.getTopic());
         if (!hasRouteData) {
             long beginTimestamp = System.currentTimeMillis();
             this.tryToFindTopicPublishInfo(msg.getTopic());
-            this.getMqClientFactory().sendHeartbeatToAllBrokerWithLock();
+            this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
             long cost = System.currentTimeMillis() - beginTimestamp;
             if (cost > 500) {
                 log.warn("prepare send request for <{}> cost {} ms", msg.getTopic(), cost);
