@@ -1,5 +1,11 @@
 # Light message queue (LMQ)
+LMQ采用的读放大的策略，写一份数据，多个LMQ队列分发，
+因为存储的成本和效率对用户的体感最明显。写多份不仅加大了存储成本，同时也对性能和数据准确一致性提出了挑战。
 
+![](image/LMQ_1.png)
+
+上图描述的是LMQ的队列存储模型，消息可以来自各个接入场景
+（如服务端的MQ/AMQP，客户端的MQTT），但只会写一份存到commitlog里面，然后分发出多个需求场景的队列索引（ConsumerQueue），如服务端场景（MQ/AMQP）可以按照一级Topic队列进行传统的服务端消费，客户端MQTT场景可以按照MQTT多级Topic(也即 LMQ)进行消费消息。
 
 ## 一、broker启动配置
 
