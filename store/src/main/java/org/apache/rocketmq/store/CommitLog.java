@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.apache.rocketmq.common.ServiceThread;
@@ -68,6 +69,7 @@ public class CommitLog {
     private final AppendMessageCallback appendMessageCallback;
     private final ThreadLocal<PutMessageThreadLocal> putMessageThreadLocal;
     protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
+    protected Map<String/* topic-queueid */, Long/* offset */> lmqTopicQueueTable = new ConcurrentHashMap<>(1024);
     protected volatile long confirmOffset = -1L;
 
     private volatile long beginTimeInLock = 0;
@@ -75,6 +77,8 @@ public class CommitLog {
     protected final PutMessageLock putMessageLock;
 
     private volatile Set<String> fullStorePaths = Collections.emptySet();
+
+    private final MultiDispatch multiDispatch;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         String storePath = defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog();
@@ -107,6 +111,8 @@ public class CommitLog {
         };
         this.putMessageLock = defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
 
+        this.multiDispatch = new MultiDispatch(defaultMessageStore, this);
+
     }
 
     public void setFullStorePaths(Set<String> fullStorePaths) {
@@ -115,6 +121,10 @@ public class CommitLog {
 
     public Set<String> getFullStorePaths() {
         return fullStorePaths;
+    }
+
+    public ThreadLocal<PutMessageThreadLocal> getPutMessageThreadLocal() {
+        return putMessageThreadLocal;
     }
 
     public boolean load() {
@@ -964,6 +974,7 @@ public class CommitLog {
         String key = topic + "-" + queueId;
         synchronized (this) {
             this.topicQueueTable.remove(key);
+            this.lmqTopicQueueTable.remove(key);
         }
 
         log.info("removeQueueFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
@@ -985,6 +996,10 @@ public class CommitLog {
         }
 
         return diff;
+    }
+
+    public Map<String, Long> getLmqTopicQueueTable() {
+        return this.lmqTopicQueueTable;
     }
 
     abstract class FlushCommitLogService extends ServiceThread {
@@ -1298,6 +1313,11 @@ public class CommitLog {
                 CommitLog.this.topicQueueTable.put(key, queueOffset);
             }
 
+            boolean multiDispatchWrapResult = CommitLog.this.multiDispatch.wrapMultiDispatch(msgInner);
+            if (!multiDispatchWrapResult) {
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+            }
+
             // Transaction messages that require special handling
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
@@ -1361,6 +1381,7 @@ public class CommitLog {
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
                     // The next update ConsumeQueue information
                     CommitLog.this.topicQueueTable.put(key, ++queueOffset);
+                    CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
                     break;
                 default:
                     break;
@@ -1691,6 +1712,9 @@ public class CommitLog {
             byteBuffer.limit(limit);
         }
 
+        public ByteBuffer getEncoderBuffer() {
+            return encoderBuffer;
+        }
     }
 
     static class PutMessageThreadLocal {

@@ -159,6 +159,10 @@ public class MessageStoreConfig {
 
     private boolean enableScheduleMessageStats = true;
 
+    private boolean enableLmq = false;
+    private boolean enableMultiDispatch = false;
+    private int maxLmqConsumeQueueNum = 20000;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -743,5 +747,29 @@ public class MessageStoreConfig {
 
     public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
         this.enableScheduleMessageStats = enableScheduleMessageStats;
+    }
+
+    public boolean isEnableLmq() {
+        return enableLmq;
+    }
+
+    public void setEnableLmq(boolean enableLmq) {
+        this.enableLmq = enableLmq;
+    }
+
+    public boolean isEnableMultiDispatch() {
+        return enableMultiDispatch;
+    }
+
+    public void setEnableMultiDispatch(boolean enableMultiDispatch) {
+        this.enableMultiDispatch = enableMultiDispatch;
+    }
+
+    public int getMaxLmqConsumeQueueNum() {
+        return maxLmqConsumeQueueNum;
+    }
+
+    public void setMaxLmqConsumeQueueNum(int maxLmqConsumeQueueNum) {
+        this.maxLmqConsumeQueueNum = maxLmqConsumeQueueNum;
     }
 }
