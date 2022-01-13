@@ -154,8 +154,8 @@ public class DefaultMQConsumerWithTraceTest {
 
         pushConsumer.start();
 
-        mQClientFactory = spy(pushConsumerImpl.getMqClientFactory());
-        mQClientTraceFactory = spy(pushConsumerImpl.getMqClientFactory());
+        mQClientFactory = spy(pushConsumerImpl.getmQClientFactory());
+        mQClientTraceFactory = spy(pushConsumerImpl.getmQClientFactory());
 
         field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
@@ -178,7 +178,7 @@ public class DefaultMQConsumerWithTraceTest {
         field.setAccessible(true);
         field.set(pushConsumerImpl, pullAPIWrapper);
 
-        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setMqClientFactory(mQClientFactory);
+        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setmQClientFactory(mQClientFactory);
         mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
 
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
@@ -214,7 +214,7 @@ public class DefaultMQConsumerWithTraceTest {
 
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
-        traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
+        traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
