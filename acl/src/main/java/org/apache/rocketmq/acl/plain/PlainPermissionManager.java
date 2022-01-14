@@ -48,15 +48,15 @@ public class PlainPermissionManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-            System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     private String defaultAclDir = fileHome + File.separator
-            + System.getProperty("rocketmq.acl.dir", "/conf/acl");
+        + System.getProperty("rocketmq.acl.dir", "/conf/acl");
 
     private String defaultAclFile = fileHome + File.separator
-            + System.getProperty("rocketmq.acl.dir", "/conf/acl") + File.separator + "plain_acl.yml";
+        + System.getProperty("rocketmq.acl.dir", "/conf/acl") + File.separator + "plain_acl.yml";
 
-    private  Map<String/** aclFileName **/, Map<String/** AccessKey **/, PlainAccessResource>> aclPlainAccessResourceMap = new HashMap<>();
+    private Map<String/** aclFileName **/, Map<String/** AccessKey **/, PlainAccessResource>> aclPlainAccessResourceMap = new HashMap<>();
 
     private Map<String/** AccessKey **/, String/** aclFileName **/> accessKeyTable = new HashMap<>();
 
@@ -86,7 +86,7 @@ public class PlainPermissionManager {
             accessKeyTable.clear();
         }
         List<String> fileList = new ArrayList<>();
-        for (File aclFile: aclFiles) {
+        for (File aclFile : aclFiles) {
             String aclFileAbsolutePath = aclFile.getAbsolutePath();
             load(aclFileAbsolutePath);
             fileList.add(aclFileAbsolutePath);
@@ -106,7 +106,7 @@ public class PlainPermissionManager {
         List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(aclFilePath,
-                JSONObject.class);
+            JSONObject.class);
         if (plainAclConfData == null || plainAclConfData.isEmpty()) {
             throw new AclException(String.format("%s file is not data", aclFilePath));
         }
@@ -153,8 +153,8 @@ public class PlainPermissionManager {
         DataVersion dataVersion = new DataVersion();
         List<Map<String, Object>> dataVersionList = new ArrayList<Map<String, Object>>();
         if (dataVersions != null) {
-            dataVersionList = (List<Map<String, Object>>)dataVersions;
-            dataVersion.setTimestamp((long)dataVersionList.get(0).get("timestamp"));
+            dataVersionList = (List<Map<String, Object>>) dataVersions;
+            dataVersion.setTimestamp((long) dataVersionList.get(0).get("timestamp"));
             dataVersion.setCounter(new AtomicLong(Long.parseLong(dataVersionList.get(0).get("counter").toString())));
         }
         dataVersion.nextVersion();
@@ -166,7 +166,7 @@ public class PlainPermissionManager {
         versionElement.add(accountsMap);
         updateAclConfigMap.put(AclConstants.CONFIG_DATA_VERSION, versionElement);
 
-        List<Map<String, Object>> accounts = (List<Map<String, Object>>)updateAclConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
+        List<Map<String, Object>> accounts = (List<Map<String, Object>>) updateAclConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
         String accessKey = (String) accounts.get(0).get(AclConstants.CONFIG_ACCESS_KEY);
         String aclFileName = accessKeyTable.get(accessKey);
         dataVersionMap.put(aclFileName, dataVersion);
@@ -205,7 +205,7 @@ public class PlainPermissionManager {
             if (aclPlainAccessResourceMap.get(defaultAclFile) == null || aclPlainAccessResourceMap.get(defaultAclFile).size() == 0) {
                 try {
                     File defaultAclFile = new File(fileHome + File.separator
-                            + System.getProperty("rocketmq.acl.dir", "/conf/acl") + File.separator + "plain_acl.yml");
+                        + System.getProperty("rocketmq.acl.dir", "/conf/acl") + File.separator + "plain_acl.yml");
                     defaultAclFile.createNewFile();
                 } catch (IOException e) {
                     log.warn("create default acl file has exception when update accessConfig. ", e);
@@ -280,7 +280,7 @@ public class PlainPermissionManager {
         if (accessKeyTable.containsKey(accesskey)) {
             String aclFileName = accessKeyTable.get(accesskey);
             Map<String, Object> aclAccessConfigMap = AclUtils.getYamlDataObject(aclFileName,
-                    Map.class);
+                Map.class);
             if (aclAccessConfigMap == null || aclAccessConfigMap.isEmpty()) {
                 throw new AclException(String.format("the %s file is not found or empty", aclFileName));
             }
@@ -335,7 +335,7 @@ public class PlainPermissionManager {
         for (File file : aclFileNames) {
             String path = file.getAbsolutePath();
             JSONObject plainAclConfData = AclUtils.getYamlDataObject(path,
-                    JSONObject.class);
+                JSONObject.class);
             if (plainAclConfData == null || plainAclConfData.isEmpty()) {
                 throw new AclException(String.format("%s file is not data", path));
             }
@@ -420,12 +420,12 @@ public class PlainPermissionManager {
 
     public void checkPlainAccessConfig(PlainAccessConfig plainAccessConfig) throws AclException {
         if (plainAccessConfig.getAccessKey() == null
-                || plainAccessConfig.getSecretKey() == null
-                || plainAccessConfig.getAccessKey().length() <= AclConstants.ACCESS_KEY_MIN_LENGTH
-                || plainAccessConfig.getSecretKey().length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
+            || plainAccessConfig.getSecretKey() == null
+            || plainAccessConfig.getAccessKey().length() <= AclConstants.ACCESS_KEY_MIN_LENGTH
+            || plainAccessConfig.getSecretKey().length() <= AclConstants.SECRET_KEY_MIN_LENGTH) {
             throw new AclException(String.format(
-                    "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
-                    plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
+                "The accessKey=%s and secretKey=%s cannot be null and length should longer than 6",
+                plainAccessConfig.getAccessKey(), plainAccessConfig.getSecretKey()));
         }
     }
 
@@ -462,7 +462,6 @@ public class PlainPermissionManager {
         if (plainAccessResource.getAccessKey() == null) {
             throw new AclException(String.format("No accessKey is configured"));
         }
-
 
         if (!accessKeyTable.containsKey(plainAccessResource.getAccessKey())) {
             throw new AclException(String.format("No acl config for %s", plainAccessResource.getAccessKey()));

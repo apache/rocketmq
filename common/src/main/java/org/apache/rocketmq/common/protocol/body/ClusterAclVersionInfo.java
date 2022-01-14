@@ -47,7 +47,6 @@ public class ClusterAclVersionInfo extends RemotingSerializable {
         this.brokerAddr = brokerAddr;
     }
 
-
     public String getClusterName() {
         return clusterName;
     }

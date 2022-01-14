@@ -67,12 +67,14 @@ public interface AccessValidator {
 
     /**
      * Update globalWhiteRemoteAddresses in acl yaml config file
+     *
      * @return
      */
     boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList);
 
     /**
      * get broker cluster acl config information
+     *
      * @return
      */
     AclConfig getAllAclConfig();

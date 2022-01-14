@@ -128,7 +128,7 @@ public class PlainAccessValidator implements AccessValidator {
         SortedMap<String, String> map = new TreeMap<String, String>();
         for (Map.Entry<String, String> entry : request.getExtFields().entrySet()) {
             if (!SessionCredentials.SIGNATURE.equals(entry.getKey())
-                    && !MixAll.UNIQUE_MSG_QUERY_FLAG.equals(entry.getKey())) {
+                && !MixAll.UNIQUE_MSG_QUERY_FLAG.equals(entry.getKey())) {
                 map.put(entry.getKey(), entry.getValue());
             }
         }
@@ -163,7 +163,8 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.getAllAclConfig();
     }
 
-    public Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccountMap, PlainAccessConfig plainAccessConfig) {
+    public Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccountMap,
+        PlainAccessConfig plainAccessConfig) {
         return aclPlugEngine.createAclAccessConfigMap(existedAccountMap, plainAccessConfig);
     }
 
