@@ -83,6 +83,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.client.impl.consumer.HeartbeatService;
 
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
@@ -113,6 +114,7 @@ public class MQClientInstance {
     private final ClientRemotingProcessor clientRemotingProcessor;
     private final PullMessageService pullMessageService;
     private final RebalanceService rebalanceService;
+    private final HeartbeatService heartbeatService;
     private final DefaultMQProducer defaultMQProducer;
     private final ConsumerStatsManager consumerStatsManager;
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
@@ -144,6 +146,8 @@ public class MQClientInstance {
         this.pullMessageService = new PullMessageService(this);
 
         this.rebalanceService = new RebalanceService(this);
+
+        this.heartbeatService = new HeartbeatService(clientConfig.getHeartbeatBrokerInterval());
 
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
@@ -239,6 +243,8 @@ public class MQClientInstance {
                     this.pullMessageService.start();
                     // Start rebalance service
                     this.rebalanceService.start();
+                    //Start heartbeat service
+                    this.heartbeatService.start();
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
@@ -465,17 +471,15 @@ public class MQClientInstance {
     }
 
     public void sendHeartbeatToAllBrokerWithLock() {
-        if (this.lockHeartbeat.tryLock()) {
-            try {
-                this.sendHeartbeatToAllBroker();
-                this.uploadFilterClassSource();
-            } catch (final Exception e) {
-                log.error("sendHeartbeatToAllBroker exception", e);
-            } finally {
-                this.lockHeartbeat.unlock();
-            }
-        } else {
-            log.warn("lock heartBeat, but failed. [{}]", this.clientId);
+        heartbeatService.addHeartbeatTask(this::sendHeartbeatToAllBrokerWithLockTask);
+    }
+
+    public void sendHeartbeatToAllBrokerWithLockTask() {
+        try {
+            this.sendHeartbeatToAllBroker();
+            this.uploadFilterClassSource();
+        } catch (final Exception e) {
+            log.error("sendHeartbeatToAllBroker exception", e);
         }
     }
 
