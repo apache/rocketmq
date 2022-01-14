@@ -206,10 +206,9 @@ public class MQClientAPIImplTest {
                     }
                     @Override
                     public void onException(Throwable e) {
-                    	assertThat(e).hasMessage("Remoting Exception in Test");
+                        assertThat(e).hasMessage("Remoting Exception in Test");
                     }
-                },
-                null, null, 0, sendMessageContext, defaultMQProducerImpl);
+                }, null, null, 0, sendMessageContext, defaultMQProducerImpl);
 
         doThrow(new InterruptedException("Interrupted Exception in Test")).when(remotingClient)
             .invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
@@ -220,10 +219,9 @@ public class MQClientAPIImplTest {
                     }
                     @Override
                     public void onException(Throwable e) {
-                    	assertThat(e).hasMessage("Interrupted Exception in Test");
+                        assertThat(e).hasMessage("Interrupted Exception in Test");
                     }
-                },
-                null, null, 0, sendMessageContext, defaultMQProducerImpl);
+                }, null, null, 0, sendMessageContext, defaultMQProducerImpl);
     }
 
     @Test
