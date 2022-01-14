@@ -396,7 +396,8 @@ public class MQClientAPIImpl {
 
     }
 
-    public AclConfig getBrokerClusterConfig(final String addr, final long timeoutMillis) throws RemotingCommandException, InterruptedException, RemotingTimeoutException,
+    public AclConfig getBrokerClusterConfig(final String addr,
+        final long timeoutMillis) throws RemotingCommandException, InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG, null);
 
@@ -406,7 +407,7 @@ public class MQClientAPIImpl {
             case ResponseCode.SUCCESS: {
                 if (response.getBody() != null) {
                     GetBrokerClusterAclConfigResponseBody body =
-                            GetBrokerClusterAclConfigResponseBody.decode(response.getBody(), GetBrokerClusterAclConfigResponseBody.class);
+                        GetBrokerClusterAclConfigResponseBody.decode(response.getBody(), GetBrokerClusterAclConfigResponseBody.class);
                     AclConfig aclConfig = new AclConfig();
                     aclConfig.setGlobalWhiteAddrs(body.getGlobalWhiteAddrs());
                     aclConfig.setPlainAccessConfigs(body.getPlainAccessConfigs());
@@ -504,7 +505,7 @@ public class MQClientAPIImpl {
     ) throws RemotingException, MQBrokerException, InterruptedException {
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
-        return this.processSendResponse(brokerName, msg, response,addr);
+        return this.processSendResponse(brokerName, msg, response, addr);
     }
 
     private void sendMessageAsync(
@@ -670,7 +671,7 @@ public class MQClientAPIImpl {
         }
 
         SendMessageResponseHeader responseHeader =
-                (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
+            (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
 
         //If namespace not null , reset Topic without namespace.
         String topic = msg.getTopic();
@@ -689,8 +690,8 @@ public class MQClientAPIImpl {
             uniqMsgId = sb.toString();
         }
         SendResult sendResult = new SendResult(sendStatus,
-                uniqMsgId,
-                responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+            uniqMsgId,
+            responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
         sendResult.setTransactionId(responseHeader.getTransactionId());
         String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
         String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
@@ -1431,8 +1432,8 @@ public class MQClientAPIImpl {
     }
 
     public int addWritePermOfBroker(final String nameSrvAddr, String brokerName, final long timeoutMillis)
-            throws RemotingCommandException,
-            RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQClientException {
+        throws RemotingCommandException,
+        RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQClientException {
         AddWritePermOfBrokerRequestHeader requestHeader = new AddWritePermOfBrokerRequestHeader();
         requestHeader.setBrokerName(brokerName);
 
@@ -1443,7 +1444,7 @@ public class MQClientAPIImpl {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 AddWritePermOfBrokerResponseHeader responseHeader =
-                        (AddWritePermOfBrokerResponseHeader) response.decodeCommandCustomHeader(AddWritePermOfBrokerResponseHeader.class);
+                    (AddWritePermOfBrokerResponseHeader) response.decodeCommandCustomHeader(AddWritePermOfBrokerResponseHeader.class);
                 return responseHeader.getAddTopicCount();
             }
             default:
@@ -1491,8 +1492,9 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public void deleteSubscriptionGroup(final String addr, final String groupName, final boolean removeOffset, final long timeoutMillis)
-        throws RemotingException, InterruptedException, MQClientException {
+    public void deleteSubscriptionGroup(final String addr, final String groupName, final boolean removeOffset,
+        final long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         DeleteSubscriptionGroupRequestHeader requestHeader = new DeleteSubscriptionGroupRequestHeader();
         requestHeader.setGroupName(groupName);
         requestHeader.setRemoveOffset(removeOffset);

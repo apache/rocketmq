@@ -58,7 +58,7 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
-        
+
         return options;
     }
 
@@ -112,21 +112,19 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
         final DefaultMQAdminExt defaultMQAdminExt, final String addr) throws
         InterruptedException, MQBrokerException, RemotingException, MQClientException {
 
-
         ClusterAclVersionInfo clusterAclVersionInfo = defaultMQAdminExt.examineBrokerClusterAclVersionInfo(addr);
         Map<String, DataVersion> aclDataVersion = clusterAclVersionInfo.getAclConfigDataVersion();
         DateFormat sdf = new SimpleDateFormat(UtilAll.YYYY_MM_DD_HH_MM_SS);
         for (Map.Entry<String, DataVersion> entry : aclDataVersion.entrySet()) {
             System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s  %-22s%n",
-                    clusterAclVersionInfo.getClusterName(),
-                    clusterAclVersionInfo.getBrokerName(),
-                    clusterAclVersionInfo.getBrokerAddr(),
-                    entry.getKey(),
-                    entry.getValue().getCounter(),
-                    entry.getValue().getTimestamp()
+                clusterAclVersionInfo.getClusterName(),
+                clusterAclVersionInfo.getBrokerName(),
+                clusterAclVersionInfo.getBrokerAddr(),
+                entry.getKey(),
+                entry.getValue().getCounter(),
+                entry.getValue().getTimestamp()
             );
         }
-
 
     }
 }

@@ -64,7 +64,7 @@ public class PlainPermissionManagerTest {
 
         File file = new File("src/test/resources");
         System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
-        
+
         plainPermissionManager = new PlainPermissionManager();
 
     }
@@ -117,7 +117,7 @@ public class PlainPermissionManagerTest {
         Assert.assertEquals(resourcePermMap.size(), 3);
 
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupA")).byteValue(), Permission.DENY);
-        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.PUB|Permission.SUB);
+        Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupB")).byteValue(), Permission.PUB | Permission.SUB);
         Assert.assertEquals(resourcePermMap.get(PlainAccessResource.getRetryTopic("groupC")).byteValue(), Permission.PUB);
 
         List<String> topics = new ArrayList<String>();
@@ -130,7 +130,7 @@ public class PlainPermissionManagerTest {
         Assert.assertEquals(resourcePermMap.size(), 6);
 
         Assert.assertEquals(resourcePermMap.get("topicA").byteValue(), Permission.DENY);
-        Assert.assertEquals(resourcePermMap.get("topicB").byteValue(), Permission.PUB|Permission.SUB);
+        Assert.assertEquals(resourcePermMap.get("topicB").byteValue(), Permission.PUB | Permission.SUB);
         Assert.assertEquals(resourcePermMap.get("topicC").byteValue(), Permission.PUB);
     }
 
@@ -218,7 +218,7 @@ public class PlainPermissionManagerTest {
     }
 
     @Test
-    public void testWatch() throws IOException, IllegalAccessException, InterruptedException{
+    public void testWatch() throws IOException, IllegalAccessException, InterruptedException {
         File file = new File("src/test/resources");
         System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
 
@@ -234,7 +234,6 @@ public class PlainPermissionManagerTest {
         writer.write("  admin: true\r\n");
         writer.flush();
         writer.close();
-
 
         PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
         Assert.assertTrue(plainPermissionManager.isWatchStart());

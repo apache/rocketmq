@@ -493,9 +493,9 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"12345678");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE),true);
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR),"192.168.1.*");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY), "12345678");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE), true);
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR), "192.168.1.*");
 
         String aclFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl.yml";
         Map<String, DataVersion> dataVersionMap = plainAccessValidator.getAclConfigVersion();
@@ -558,13 +558,13 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"1234567891");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_TOPIC_PERM),"SUB");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_GROUP_PERM),"PUB");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE),false);
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR),"192.168.0.*");
-        Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).size(),2);
-        Assert.assertEquals(((List)verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(),2);
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY), "1234567891");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_TOPIC_PERM), "SUB");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_DEFAULT_GROUP_PERM), "PUB");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE), false);
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR), "192.168.0.*");
+        Assert.assertEquals(((List) verifyMap.get(AclConstants.CONFIG_TOPIC_PERMS)).size(), 2);
+        Assert.assertEquals(((List) verifyMap.get(AclConstants.CONFIG_GROUP_PERMS)).size(), 2);
 
         String aclFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl.yml";
         Map<String, DataVersion> dataVersionMap = plainAccessValidator.getAclConfigVersion();
@@ -599,7 +599,7 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        Assert.assertEquals(verifyMap.size(),0);
+        Assert.assertEquals(verifyMap.size(), 0);
 
         String aclFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl.yml";
         Map<String, DataVersion> dataVersionMap = plainAccessValidator.getAclConfigVersion();
@@ -629,7 +629,7 @@ public class PlainAccessValidatorTest {
     }
 
     @Test
-    public void addYamlConfigTest() throws IOException, InterruptedException{
+    public void addYamlConfigTest() throws IOException, InterruptedException {
         String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl_test.yml";
         File transport = new File(fileName);
         transport.delete();
@@ -657,15 +657,14 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"12345678");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR),"127.0.0.1");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE),true);
-
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY), "12345678");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR), "127.0.0.1");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE), true);
 
         Map<String, DataVersion> dataVersionMap = plainAccessValidator.getAclConfigVersion();
         System.out.println("fileName: " + fileName);
         DataVersion dataVersion = dataVersionMap.get(fileName);
-        Assert.assertEquals(0,dataVersion.getCounter().get());
+        Assert.assertEquals(0, dataVersion.getCounter().get());
 
         transport.delete();
     }
@@ -710,15 +709,14 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"1234567890");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR),"127.0.0.1");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE),false);
-
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY), "1234567890");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR), "127.0.0.1");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE), false);
 
         Map<String, DataVersion> dataVersionMap = plainAccessValidator.getAclConfigVersion();
         System.out.println("fileName: " + fileName);
         DataVersion dataVersion = dataVersionMap.get(fileName);
-        Assert.assertEquals(1,dataVersion.getCounter().get());
+        Assert.assertEquals(1, dataVersion.getCounter().get());
 
         transport.delete();
 
@@ -740,7 +738,7 @@ public class PlainAccessValidatorTest {
     }
 
     @Test
-    public void addAccessDefaultAclYamlConfigTest() throws IOException, InterruptedException{
+    public void addAccessDefaultAclYamlConfigTest() throws IOException, InterruptedException {
         String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl_test.yml";
         File transport = new File(fileName);
         transport.delete();
@@ -781,21 +779,21 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY),"1234567890");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR),"127.0.0.1");
-        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE),false);
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_SECRET_KEY), "1234567890");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_WHITE_ADDR), "127.0.0.1");
+        Assert.assertEquals(verifyMap.get(AclConstants.CONFIG_ADMIN_ROLE), false);
 
         Map<String, DataVersion> dataVersionMap = plainAccessValidator.getAclConfigVersion();
         System.out.println("fileName: " + fileName);
         DataVersion dataVersion = dataVersionMap.get(fileName);
-        Assert.assertEquals(0,dataVersion.getCounter().get());
+        Assert.assertEquals(0, dataVersion.getCounter().get());
 
         transport.delete();
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
     @Test
-    public void deleteAccessAnotherAclYamlConfigTest() throws IOException, InterruptedException{
+    public void deleteAccessAnotherAclYamlConfigTest() throws IOException, InterruptedException {
         String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl.yml";
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
@@ -836,7 +834,7 @@ public class PlainAccessValidatorTest {
             }
         }
 
-        Assert.assertEquals(verifyMap.size(),0);
+        Assert.assertEquals(verifyMap.size(), 0);
 
         transport.delete();
 
@@ -844,7 +842,7 @@ public class PlainAccessValidatorTest {
     }
 
     @Test
-    public void getAllAclConfigTest(){
+    public void getAllAclConfigTest() {
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         AclConfig aclConfig = plainAccessValidator.getAllAclConfig();
         Assert.assertEquals(aclConfig.getGlobalWhiteAddrs().size(), 2);
@@ -852,7 +850,7 @@ public class PlainAccessValidatorTest {
     }
 
     @Test
-    public void updateAccessConfigEmptyPermListTest(){
+    public void updateAccessConfigEmptyPermListTest() {
         String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl.yml";
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
@@ -879,9 +877,8 @@ public class PlainAccessValidatorTest {
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
-
     @Test
-    public void updateAccessConfigEmptyWhiteRemoteAddressTest(){
+    public void updateAccessConfigEmptyWhiteRemoteAddressTest() {
         String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/acl/plain_acl.yml";
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 

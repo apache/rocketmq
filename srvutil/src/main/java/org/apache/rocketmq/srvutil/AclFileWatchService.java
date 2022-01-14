@@ -108,11 +108,14 @@ public class AclFileWatchService extends ServiceThread {
     public interface Listener {
         /**
          * Will be called when the target file is changed
+         *
          * @param aclFileName the changed file absolute path
          */
         void onFileChanged(String aclFileName);
+
         /**
          * Will be called when the number of the acl file is changed
+         *
          * @param path the path of the acl dir
          */
         void onFileNumChanged(String path);
