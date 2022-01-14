@@ -194,18 +194,36 @@ public class MQClientAPIImplTest {
     }
 
     @Test
-    public void testSendMessageAsync_Success_WithException() throws RemotingException, InterruptedException, MQBrokerException {
+    public void testSendMessageAsync_WithException() throws RemotingException, InterruptedException, MQBrokerException {
         doThrow(new RemotingTimeoutException("Remoting Exception in Test")).when(remotingClient)
             .invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
         SendMessageContext sendMessageContext = new SendMessageContext();
         sendMessageContext.setProducer(new DefaultMQProducerImpl(new DefaultMQProducer()));
-        mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(),
-            3 * 1000, CommunicationMode.ASYNC, sendMessageContext, defaultMQProducerImpl);
+        mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(), 3 * 1000, CommunicationMode.ASYNC,
+                new SendCallback() {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
+                    }
+                    @Override
+                    public void onException(Throwable e) {
+                    	assertThat(e).hasMessage("Remoting Exception in Test");
+                    }
+                },
+                null, null, 0, sendMessageContext, defaultMQProducerImpl);
 
         doThrow(new InterruptedException("Interrupted Exception in Test")).when(remotingClient)
             .invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
-            mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(),
-                3 * 1000, CommunicationMode.ASYNC, sendMessageContext, defaultMQProducerImpl);
+        mqClientAPI.sendMessage(brokerAddr, brokerName, msg, new SendMessageRequestHeader(), 3 * 1000, CommunicationMode.ASYNC,
+                new SendCallback() {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
+                    }
+                    @Override
+                    public void onException(Throwable e) {
+                    	assertThat(e).hasMessage("Interrupted Exception in Test");
+                    }
+                },
+                null, null, 0, sendMessageContext, defaultMQProducerImpl);
     }
 
     @Test
