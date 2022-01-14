@@ -639,7 +639,7 @@ public class MQClientInstance {
                             }
 
                             // Update Pub info
-                            {
+                            if (!producerTable.isEmpty()) {
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
                                 publishInfo.setHaveTopicRouterInfo(true);
                                 Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
@@ -653,7 +653,7 @@ public class MQClientInstance {
                             }
 
                             // Update sub info
-                            {
+                            if (!consumerTable.isEmpty()) {
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
                                 while (it.hasNext()) {
