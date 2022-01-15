@@ -527,7 +527,7 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.0.13</version>
+                <version>1.2.10</version>
             </dependency>
             <dependency>
                 <groupId>commons-cli</groupId>
