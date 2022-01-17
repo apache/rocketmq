@@ -412,7 +412,7 @@ public class ConsumeQueue {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    log.warn("", e);
+                    log.warn("putMessagePositionInfoWrapper exception", e);
                 }
             }
         }

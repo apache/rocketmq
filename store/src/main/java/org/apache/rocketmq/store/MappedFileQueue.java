@@ -376,6 +376,7 @@ public class MappedFileQueue {
                             try {
                                 Thread.sleep(deleteFilesInterval);
                             } catch (InterruptedException e) {
+                                log.error("deleteExpiredFileByTime exception", e);
                             }
                         }
                     } else {
