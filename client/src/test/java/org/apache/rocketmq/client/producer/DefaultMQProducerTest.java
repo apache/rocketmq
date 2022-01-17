@@ -257,7 +257,7 @@ public class DefaultMQProducerTest {
             }
         };
 
-        List<Message> msgs = new ArrayList<>();
+        List<Message> msgs = new ArrayList<Message>();
         for (int i = 0; i < 5; i++) {
             Message message = new Message();
             message.setTopic("test");
