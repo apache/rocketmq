@@ -292,6 +292,13 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
 
+        if (MixAll.isLmq(topic)) {
+            this.brokerController.getMessageStore().cleanUnusedLmqTopic(topic);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        }
+
         this.brokerController.getTopicConfigManager().deleteTopicConfig(topic);
         this.brokerController.getMessageStore()
             .cleanUnusedTopic(this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet());

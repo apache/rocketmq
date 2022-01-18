@@ -102,7 +102,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         pushConsumer.subscribe(topic, "*");
         pushConsumer.start();
 
-        mQClientFactory = spy(pushConsumerImpl.getMqClientFactory());
+        mQClientFactory = spy(pushConsumerImpl.getmQClientFactory());
         field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         field.set(pushConsumerImpl, mQClientFactory);
@@ -116,7 +116,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         field.setAccessible(true);
         field.set(pushConsumerImpl, pullAPIWrapper);
 
-        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setMqClientFactory(mQClientFactory);
+        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setmQClientFactory(mQClientFactory);
         mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
 
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
@@ -149,7 +149,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
     @Test
     public void testPullMessage_ConsumeSuccess() throws InterruptedException, RemotingException, MQBrokerException, NoSuchFieldException,Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
 
         ConsumeMessageConcurrentlyService  normalServie = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
