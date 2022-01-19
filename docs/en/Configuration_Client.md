@@ -32,7 +32,7 @@ After client started, it will access the http static server address, as: <http:/
 ```
 By default, the client accesses the HTTP server every 2 minutes, and update the local Name Server address.The URL is hardcoded in the code, you can change the target server by updating ```/etc/hosts``` file, such as add following configuration at the ```/etc/hosts```:
 ```text
-10.232.22.67    jmenv.taobao.net   
+10.232.22.67    jmenv.tbsite.net   
 ```
 HTTP static server addressing is recommended, because it is simple client deployment, and the Name Server cluster can be upgraded hot.
 
@@ -42,7 +42,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 
 #### 2.1 Client Common Configuration
 
-| Pamater Name                        | Default Value  | Description                                                         |
+| Parameter Name                        | Default Value  | Description                                                         |
 | ----------------------------- | ------- | ------------------------------------------------------------ |
 | namesrvAddr                   |         | Name Server address list, multiple NameServer addresses are separated by semicolons           |
 | clientIP                      | local IP  | Client local ip address, some machines will fail to recognize the client IP address, which needs to be enforced in the code |
@@ -54,7 +54,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 
 #### 2.2 Producer Configuration
 
-| Pamater Name                       | Default Value          | Description                                                        |
+| Parameter Name                       | Default Value          | Description                                                        |
 | -------------------------------- | ---------------- | ------------------------------------------------------------ |
 | producerGroup                    | DEFAULT_PRODUCER | The name of the Producer group. If multiple producers belong to one application and send the same message, they should be grouped into the same group |
 | createTopicKey                   | TBW102           | When a message is sent, topics that do not exist on the server are automatically created and a Key is specified that can be used to configure the default route to the topic where the message is sent.|
@@ -72,7 +72,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 
 #### 2.3 PushConsumer Configuration
 
-| Pamater Name                         | Default Value                      | Description                                                         |
+| Parameter Name                         | Default Value                      | Description                                                         |
 | ---------------------------- | ----------------------------- | ------------------------------------------------------------ |
 | consumerGroup                | DEFAULT_CONSUMER              | Consumer group name. If multi Consumer belong to an application, subscribe the same message and consume logic as the same, they should be gathered together |
 | messageModel                 | CLUSTERING                    | Message support two mode: cluster consumption and broadcast consumption                          |
@@ -93,13 +93,13 @@ HTTP static server addressing is recommended, because it is simple client deploy
 
 #### 2.4 PullConsumer Configuration
 
-| Pamater Name                     | Default Value                 | Description                                                         |
+| Parameter Name                     | Default Value                 | Description                                                         |
 | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
 | consumerGroup                    | DEFAULT_CONSUMER              | Consumer group name. If multi Consumer belong to an application, subscribe the same message and consume logic as the same, they should be gathered together |
 | brokerSuspendMaxTimeMillis       | 20000                         | Long polling, Consumer pull message request suspended for the longest time in the Broker in milliseconds     |
 | consumerTimeoutMillisWhenSuspend | 30000                         | Long polling, Consumer pull message request suspend in the Broker over this time value, client think timeout. Unit is milliseconds |
 | consumerPullTimeoutMillis        | 10000                         | Not long polling, timeout time of pull message in milliseconds                            |
-| messageModel                     | BROADCASTING                  | Message support two mode: cluster consumption and broadcast consumption           |
+| messageModel                     | CLUSTERING                    | Message support two mode: cluster consumption and broadcast consumption           |
 | messageQueueListener             |                               | Listening changing of queue                                                 |
 | offsetStore                      |                               | Consumption schedule store                                              |
 | registerTopics                   |                               | Collection of registered topics                                              |

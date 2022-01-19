@@ -527,7 +527,7 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.0.13</version>
+                <version>1.2.10</version>
             </dependency>
             <dependency>
                 <groupId>commons-cli</groupId>
@@ -538,6 +538,13 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
                 <version>4.1.65.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk15on</artifactId>
+                <scope>runtime</scope>
+                <type>jar</type>
+                <version>1.69</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
