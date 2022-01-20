@@ -168,7 +168,7 @@ public class HAConnection {
                             if (HAConnection.this.slaveRequestOffset < 0) {
                                 HAConnection.this.slaveRequestOffset = readOffset;
                                 log.info("slave[" + HAConnection.this.clientAddr + "] request offset " + readOffset);
-                            } else if (HAConnection.this.slaveAckOffset > HAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset()){
+                            } else if (HAConnection.this.slaveAckOffset > HAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset()) {
                                 log.warn("slave[{}] request offset={} greater than local commitLog offset={}. ",
                                         HAConnection.this.clientAddr,
                                         HAConnection.this.slaveAckOffset,
