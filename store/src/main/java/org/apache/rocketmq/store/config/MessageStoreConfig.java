@@ -163,6 +163,10 @@ public class MessageStoreConfig {
     private boolean enableMultiDispatch = false;
     private int maxLmqConsumeQueueNum = 20000;
 
+    private boolean enableScheduleAsyncDeliver = false;
+    private int scheduleAsyncDeliverMaxPendingLimit = 2000;
+    private int scheduleAsyncDeliverMaxResendNum2Blocked = 3;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -771,5 +775,29 @@ public class MessageStoreConfig {
 
     public void setMaxLmqConsumeQueueNum(int maxLmqConsumeQueueNum) {
         this.maxLmqConsumeQueueNum = maxLmqConsumeQueueNum;
+    }
+
+    public boolean isEnableScheduleAsyncDeliver() {
+        return enableScheduleAsyncDeliver;
+    }
+
+    public void setEnableScheduleAsyncDeliver(boolean enableScheduleAsyncDeliver) {
+        this.enableScheduleAsyncDeliver = enableScheduleAsyncDeliver;
+    }
+
+    public int getScheduleAsyncDeliverMaxPendingLimit() {
+        return scheduleAsyncDeliverMaxPendingLimit;
+    }
+
+    public void setScheduleAsyncDeliverMaxPendingLimit(int scheduleAsyncDeliverMaxPendingLimit) {
+        this.scheduleAsyncDeliverMaxPendingLimit = scheduleAsyncDeliverMaxPendingLimit;
+    }
+
+    public int getScheduleAsyncDeliverMaxResendNum2Blocked() {
+        return scheduleAsyncDeliverMaxResendNum2Blocked;
+    }
+
+    public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
+        this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
     }
 }
