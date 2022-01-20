@@ -69,7 +69,6 @@ public class ScheduleMessageService extends ConfigManager {
     private final DefaultMessageStore defaultMessageStore;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private ScheduledExecutorService deliverExecutorService;
-    private int deliverThreadPoolNums = Runtime.getRuntime().availableProcessors();
     private MessageStore writeMessageStore;
     private int maxDelayLevel;
     private boolean enableAsyncDeliver = false;
@@ -129,9 +128,9 @@ public class ScheduleMessageService extends ConfigManager {
     public void start() {
         if (started.compareAndSet(false, true)) {
             super.load();
-            this.deliverExecutorService = new ScheduledThreadPoolExecutor(deliverThreadPoolNums, new ThreadFactoryImpl("ScheduleMessageTimerThread_"));
+            this.deliverExecutorService = new ScheduledThreadPoolExecutor(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageTimerThread_"));
             if (this.enableAsyncDeliver) {
-                this.handleExecutorService = new ScheduledThreadPoolExecutor(deliverThreadPoolNums, new ThreadFactoryImpl("ScheduleMessageExecutorHandleThread_"));
+                this.handleExecutorService = new ScheduledThreadPoolExecutor(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageExecutorHandleThread_"));
             }
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
                 Integer level = entry.getKey();
