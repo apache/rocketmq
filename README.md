@@ -36,13 +36,13 @@ It offers a variety of features:
 
 ## Apache RocketMQ Community
 * [RocketMQ Streams](https://github.com/apache/rocketmq-streams)
-* [RocketMQ-Flink](https://github.com/apache/rocketmq-flink)
+* [RocketMQ Flink](https://github.com/apache/rocketmq-flink)
 * [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
 * [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
 * [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
 * [RocketMQ Client Nodejs](https://github.com/apache/rocketmq-client-nodejs)
 * [RocketMQ Spring](https://github.com/apache/rocketmq-spring)
-* [RocketMQ-Exporter](https://github.com/apache/rocketmq-exporter)
+* [RocketMQ Exporter](https://github.com/apache/rocketmq-exporter)
 * [RocketMQ Operator](https://github.com/apache/rocketmq-operator)
 * [RocketMQ-Docker](https://github.com/apache/rocketmq-docker)
 * [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals)
