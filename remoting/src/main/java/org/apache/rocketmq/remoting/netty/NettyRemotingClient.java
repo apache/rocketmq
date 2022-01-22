@@ -110,8 +110,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         this.publicThreadPoolQueue = new LinkedBlockingQueue<Runnable>(50000);
         this.publicExecutor = new ThreadPoolExecutor(
-                Runtime.getRuntime().availableProcessors(),
-                Runtime.getRuntime().availableProcessors(),
+                publicThreadNums,
+                publicThreadNums,
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.publicThreadPoolQueue,
