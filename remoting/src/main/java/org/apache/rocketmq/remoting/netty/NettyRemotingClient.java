@@ -122,7 +122,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     public Thread newThread(Runnable r) {
                         return new Thread(r, "NettyClientPublicExecutor_" + this.threadIndex.incrementAndGet());
                     }
-                });
+                },new ThreadPoolExecutor.CallerRunsPolicy());
 
         this.eventLoopGroupWorker = new NioEventLoopGroup(1, new ThreadFactory() {
             private AtomicInteger threadIndex = new AtomicInteger(0);
