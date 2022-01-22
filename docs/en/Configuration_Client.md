@@ -59,7 +59,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | producerGroup                    | DEFAULT_PRODUCER | The name of the Producer group. If multiple producers belong to one application and send the same message, they should be grouped into the same group |
 | createTopicKey                   | TBW102           | When a message is sent, topics that do not exist on the server are automatically created and a Key is specified that can be used to configure the default route to the topic where the message is sent.|
 | defaultTopicQueueNums            | 4                | The number of default queue when sending messages and auto created topic which not exists the server|
-| sendMsgTimeout                   | 10000            | Timeout time of sending message in milliseconds                           |
+| sendMsgTimeout                   | 3000             | Timeout time of sending message in milliseconds                           |
 | compressMsgBodyOverHowmuch       | 4096             | The message Body begins to compress beyond the size(the Consumer gets the message automatically unzipped.), unit of byte|
 | retryAnotherBrokerWhenNotStoreOK | FALSE            | If send message and return sendResult but sendStatus!=SEND_OK, Whether to resend |
 | retryTimesWhenSendFailed         | 2                | If send message failed, maximum number of retries, this parameter only works for synchronous send mode|
