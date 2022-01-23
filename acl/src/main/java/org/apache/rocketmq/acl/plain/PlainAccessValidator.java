@@ -151,7 +151,7 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.deleteAccessConfig(accesskey);
     }
 
-    @Override public Map<String, DataVersion> getAclConfigVersion() {
+    @Override public String  getAclConfigVersion() {
         return aclPlugEngine.getAclConfigDataVersion();
     }
 
@@ -162,7 +162,7 @@ public class PlainAccessValidator implements AccessValidator {
     @Override public AclConfig getAllAclConfig() {
         return aclPlugEngine.getAllAclConfig();
     }
-
+    
     public Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccountMap,
         PlainAccessConfig plainAccessConfig) {
         return aclPlugEngine.createAclAccessConfigMap(existedAccountMap, plainAccessConfig);
@@ -170,5 +170,10 @@ public class PlainAccessValidator implements AccessValidator {
 
     public Map<String, Object> updateAclConfigFileVersion(Map<String, Object> updateAclConfigMap) {
         return aclPlugEngine.updateAclConfigFileVersion(updateAclConfigMap);
+    }
+
+    @Override
+    public Map<String, DataVersion> getAllAclConfigVersion() {
+        return aclPlugEngine.getDataVersionMap();
     }
 }

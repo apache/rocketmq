@@ -26,7 +26,17 @@ import java.util.Map;
 public class GetBrokerAclConfigResponseHeader implements CommandCustomHeader {
 
     @CFNotNull
-    private Map<String, DataVersion> version;
+    private String version;
+
+    private Map<String, DataVersion> versions;
+
+    public Map<String, DataVersion> getVersions() {
+        return versions;
+    }
+
+    public void setVersions(Map<String, DataVersion> versions) {
+        this.versions = versions;
+    }
 
     @CFNotNull
     private String brokerName;
@@ -40,11 +50,11 @@ public class GetBrokerAclConfigResponseHeader implements CommandCustomHeader {
     @Override public void checkFields() throws RemotingCommandException {
     }
 
-    public Map<String, DataVersion> getVersion() {
+    public String getVersion() {
         return version;
     }
 
-    public void setVersion(Map<String, DataVersion> version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 

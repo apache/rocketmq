@@ -63,7 +63,8 @@ public interface AccessValidator {
      *
      * @return
      */
-    Map<String, DataVersion> getAclConfigVersion();
+    @Deprecated
+    String getAclConfigVersion();
 
     /**
      * Update globalWhiteRemoteAddresses in acl yaml config file
@@ -78,4 +79,11 @@ public interface AccessValidator {
      * @return
      */
     AclConfig getAllAclConfig();
+
+    /**
+     * get all access resource config version information
+     *
+     * @return
+     */
+    Map<String, DataVersion> getAllAclConfigVersion();
 }

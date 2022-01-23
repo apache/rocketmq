@@ -429,6 +429,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
 
+            responseHeader.setVersions(accessValidator.getAllAclConfigVersion());
             responseHeader.setVersion(accessValidator.getAclConfigVersion());
             responseHeader.setBrokerAddr(this.brokerController.getBrokerAddr());
             responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());

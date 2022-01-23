@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.srvutil;
 
-import org.apache.commons.lang3.StringUtils;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -37,26 +38,41 @@ public class AclFileWatchService extends ServiceThread {
 
     private final String aclPath;
     private int aclFilesNum;
+    @Deprecated
     private final Map<String, String> fileCurrentHash;
+    private final Map<String, Long> fileLastModifiedTime;
+    private List<String/**absolute pathname **/> fileList = new ArrayList<>();
     private final AclFileWatchService.Listener listener;
-    private static final int WATCH_INTERVAL = 500;
+    private static final int WATCH_INTERVAL = 5000;
     private MessageDigest md = MessageDigest.getInstance("MD5");
 
     public AclFileWatchService(String path, final AclFileWatchService.Listener listener) throws Exception {
         this.aclPath = path;
         this.fileCurrentHash = new HashMap<>();
+        this.fileLastModifiedTime = new HashMap<>();
         this.listener = listener;
 
-        File aclDir = new File(path);
-        String[] aclFileNames = aclDir.list();
-        this.aclFilesNum = aclFileNames.length;
+        getAllAclFiles(path);
+        this.aclFilesNum = fileList.size();
         for (int i = 0; i < aclFilesNum; i++) {
-            String aclFilePath = this.aclPath + aclFileNames[i];
-            if (StringUtils.isNotEmpty(aclFileNames[i]) && new File(aclFilePath).exists()) {
-                this.fileCurrentHash.put(aclFilePath, hash(aclFilePath));
-            }
+            String fileAbsolutePath = fileList.get(i);
+            this.fileLastModifiedTime.put(fileAbsolutePath, new File(fileAbsolutePath).lastModified());
         }
 
+    }
+
+    public void getAllAclFiles(String path) {
+        File file = new File(path);
+        File[] files = file.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            String fileName = files[i].getAbsolutePath();
+            File f = new File(fileName);
+            if (fileName.endsWith(".yml")) {
+                fileList.add(fileName);
+            } else if (!f.isFile()) {
+                getAllAclFiles(fileName);
+            }
+        }
     }
 
     @Override
@@ -72,9 +88,11 @@ public class AclFileWatchService extends ServiceThread {
             try {
                 this.waitForRunning(WATCH_INTERVAL);
 
-                File aclDir = new File(aclPath);
-                File[] aclFiles = aclDir.listFiles();
-                int realAclFilesNum = aclFiles.length;
+                if (fileList.size() > 0) {
+                    fileList.clear();
+                }
+                getAllAclFiles(aclPath);
+                int realAclFilesNum = fileList.size();
 
                 if (aclFilesNum != realAclFilesNum) {
                     log.info("aclFilesNum: " + aclFilesNum + "  realAclFilesNum: " + realAclFilesNum);
@@ -83,10 +101,10 @@ public class AclFileWatchService extends ServiceThread {
                     listener.onFileNumChanged(aclPath);
                 } else {
                     for (int i = 0; i < aclFilesNum; i++) {
-                        String fileName = aclFiles[i].getAbsolutePath();
-                        String newHash = hash(fileName);
-                        if (!newHash.equals(fileCurrentHash.get(i))) {
-                            fileCurrentHash.put(fileName, newHash);
+                        String fileName = fileList.get(i);
+                        Long newLastModifiedTime = new File(fileName).lastModified();
+                        if (!newLastModifiedTime.equals(fileLastModifiedTime.get(fileName))) {
+                            fileLastModifiedTime.put(fileName, newLastModifiedTime);
                             listener.onFileChanged(fileName);
                         }
                     }
@@ -98,6 +116,7 @@ public class AclFileWatchService extends ServiceThread {
         log.info(this.getServiceName() + " service end");
     }
 
+    @Deprecated
     private String hash(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         md.update(Files.readAllBytes(path));

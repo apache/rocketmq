@@ -190,11 +190,6 @@ public class PlainPermissionManagerTest {
         plainPermissionManager.buildPlainAccessResource(plainAccessConfig);
     }
 
-    @Test(expected = AclException.class)
-    public void testPlainAclPlugEngineInit() {
-        System.setProperty("rocketmq.home.dir", "");
-        new PlainPermissionManager().load();
-    }
 
     @SuppressWarnings("unchecked")
     @Test
@@ -270,12 +265,5 @@ public class PlainPermissionManagerTest {
         }
         transport.delete();
         System.setProperty("rocketmq.home.dir", "src/test/resources");
-    }
-
-    @Test(expected = AclException.class)
-    public void initializeTest() {
-        File file = new File("src/test/resources/conf/test");
-        System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
-        new PlainPermissionManager();
     }
 }

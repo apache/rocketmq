@@ -27,7 +27,10 @@ public class ClusterAclVersionInfo extends RemotingSerializable {
 
     private String brokerAddr;
 
-    private Map<String, DataVersion> aclConfigDataVersion;
+    @Deprecated
+    private DataVersion aclConfigDataVersion;
+
+    private Map<String, DataVersion> allAclConfigDataVersion;
 
     private String clusterName;
 
@@ -55,11 +58,20 @@ public class ClusterAclVersionInfo extends RemotingSerializable {
         this.clusterName = clusterName;
     }
 
-    public Map<String, DataVersion> getAclConfigDataVersion() {
+    public DataVersion getAclConfigDataVersion() {
         return aclConfigDataVersion;
     }
 
-    public void setAclConfigDataVersion(Map<String, DataVersion> aclConfigDataVersion) {
+    public void setAclConfigDataVersion(DataVersion aclConfigDataVersion) {
         this.aclConfigDataVersion = aclConfigDataVersion;
+    }
+
+    public Map<String, DataVersion> getAllAclConfigDataVersion() {
+        return allAclConfigDataVersion;
+    }
+
+    public void setAllAclConfigDataVersion(
+        Map<String, DataVersion> allAclConfigDataVersion) {
+        this.allAclConfigDataVersion = allAclConfigDataVersion;
     }
 }
