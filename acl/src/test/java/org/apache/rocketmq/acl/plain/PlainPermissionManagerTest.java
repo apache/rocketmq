@@ -223,21 +223,23 @@ public class PlainPermissionManagerTest {
         transport.createNewFile();
         FileWriter writer = new FileWriter(transport);
         writer.write("accounts:\r\n");
-        writer.write("- accessKey: watchrocketmq\r\n");
+        writer.write("- accessKey: watchrocketmqx\r\n");
         writer.write("  secretKey: 12345678\r\n");
         writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
         writer.write("  admin: true\r\n");
         writer.flush();
         writer.close();
 
+        Thread.sleep(1000);
+
         PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
         Assert.assertTrue(plainPermissionManager.isWatchStart());
 
         Map<String, String> accessKeyTable = (Map<String, String>) FieldUtils.readDeclaredField(plainPermissionManager, "accessKeyTable", true);
-        String aclFileName = accessKeyTable.get("watchrocketmq");
+        String aclFileName = accessKeyTable.get("watchrocketmqx");
         {
             Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionManager, "aclPlainAccessResourceMap", true);
-            PlainAccessResource accessResource = plainAccessResourceMap.get(aclFileName).get("watchrocketmq");
+            PlainAccessResource accessResource = plainAccessResourceMap.get(aclFileName).get("watchrocketmqx");
             Assert.assertNotNull(accessResource);
             Assert.assertEquals(accessResource.getSecretKey(), "12345678");
             Assert.assertTrue(accessResource.isAdmin());
@@ -248,16 +250,16 @@ public class PlainPermissionManagerTest {
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) updatedMap.get("accounts");
         accounts.get(0).remove("accessKey");
         accounts.get(0).remove("secretKey");
-        accounts.get(0).put("accessKey", "watchrocketmq1");
+        accounts.get(0).put("accessKey", "watchrocketmq1y");
         accounts.get(0).put("secretKey", "88888888");
         accounts.get(0).put("admin", "false");
         // Update file and flush to yaml file
         AclUtils.writeDataObject(fileName, updatedMap);
 
-        Thread.sleep(1000);
+        Thread.sleep(10000);
         {
             Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionManager, "aclPlainAccessResourceMap", true);
-            PlainAccessResource accessResource = plainAccessResourceMap.get(aclFileName).get("watchrocketmq1");
+            PlainAccessResource accessResource = plainAccessResourceMap.get(aclFileName).get("watchrocketmq1y");
             Assert.assertNotNull(accessResource);
             Assert.assertEquals(accessResource.getSecretKey(), "88888888");
             Assert.assertFalse(accessResource.isAdmin());
