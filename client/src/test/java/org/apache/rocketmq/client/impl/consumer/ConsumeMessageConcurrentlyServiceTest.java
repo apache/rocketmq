@@ -231,4 +231,36 @@ public class ConsumeMessageConcurrentlyServiceTest {
         }
         return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
     }
+
+    @Test
+    public void testConsumeThreadName() throws Exception {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final AtomicReference<String> consumeThreadName = new AtomicReference<String>();
+
+        StringBuilder consumeGroup2 = new StringBuilder();
+        for (int i = 0; i < 101; i++) {
+            consumeGroup2.append(i).append("#");
+        }
+        pushConsumer.setConsumerGroup(consumeGroup2.toString());
+        ConsumeMessageConcurrentlyService  normalServie = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                                                            ConsumeConcurrentlyContext context) {
+                consumeThreadName.set(Thread.currentThread().getName());
+                countDownLatch.countDown();
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(normalServie);
+
+        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        pullMessageService.executePullRequestImmediately(createPullRequest());
+        countDownLatch.await();
+        System.out.println(consumeThreadName.get());
+        if (consumeGroup2.length() <= 100) {
+            assertThat(consumeThreadName.get()).startsWith("ConsumeMessageThread_" + consumeGroup2 + "_");
+        } else {
+            assertThat(consumeThreadName.get()).startsWith("ConsumeMessageThread_" + consumeGroup2.substring(0, 100) + "_");
+        }
+    }
 }
