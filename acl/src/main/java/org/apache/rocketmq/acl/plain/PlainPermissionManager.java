@@ -52,25 +52,25 @@ public class PlainPermissionManager {
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-    private String defaultAclDir = fileHome + File.separator
-        + System.getProperty("rocketmq.acl.dir", "/conf");
+    private String defaultAclDir = fileHome + File.separator + "conf";
 
-    private String defaultAclFile = fileHome + File.separator
-        + System.getProperty("rocketmq.acl.dir", "/conf") + File.separator + "plain_acl.yml";
+    //private String defaultAclFile = fileHome + File.separator
+      //  + System.getProperty("rocketmq.acl.dir", "/conf") + File.separator + "plain_acl.yml";
+    private String defaultAclFile = fileHome + File.separator + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml");
 
-    private Map<String/** aclFileName **/, Map<String/** AccessKey **/, PlainAccessResource>> aclPlainAccessResourceMap = new HashMap<>();
+    private Map<String/** fileFullPath **/, Map<String/** AccessKey **/, PlainAccessResource>> aclPlainAccessResourceMap = new HashMap<>();
 
-    private Map<String/** AccessKey **/, String/** aclFileName **/> accessKeyTable = new HashMap<>();
+    private Map<String/** AccessKey **/, String/** fileFullPath **/> accessKeyTable = new HashMap<>();
 
     private List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
     private RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
-    private Map<String/** aclFileName **/, List<RemoteAddressStrategy>> globalWhiteRemoteAddressStrategyMap = new HashMap<>();
+    private Map<String/** fileFullPath **/, List<RemoteAddressStrategy>> globalWhiteRemoteAddressStrategyMap = new HashMap<>();
 
     private boolean isWatchStart;
 
-    private Map<String/** aclFileName **/, DataVersion> dataVersionMap = new HashMap<>();
+    private Map<String/** fileFullPath **/, DataVersion> dataVersionMap = new HashMap<>();
 
     @Deprecated
     private final DataVersion dataVersion = new DataVersion();
@@ -82,59 +82,96 @@ public class PlainPermissionManager {
         watch();
     }
 
-    public void getAllAclFiles(String path) {
+    public List<String> getAllAclFiles(String path) {
+        List<String>  allAclFileFullPath = new ArrayList<>();
         File file = new File(path);
         File[] files = file.listFiles();
         for (int i = 0; i < files.length; i++) {
             String fileName = files[i].getAbsolutePath();
             File f = new File(fileName);
-            if (fileName.endsWith(".yml")) {
-                fileList.add(fileName);
-            } else if (!f.isFile()) {
-                getAllAclFiles(fileName);
+            if (fileName.equals(fileHome + MixAll.ACL_CONF_TOOLS_FILE)) {
+                continue;
+            } else if (fileName.endsWith(".yml") || fileName.endsWith(".yaml")) {
+                allAclFileFullPath.add(fileName);
+            } else if (f.isDirectory()) {
+                allAclFileFullPath.addAll(getAllAclFiles(fileName));
             }
         }
+        return allAclFileFullPath;
     }
 
     public void load() {
         if (fileHome == null || fileHome.isEmpty()) {
-            //throw new AclException(String.format("%s file is empty", fileHome));
             return;
         }
-        if (fileList.size() > 0) {
-            fileList.clear();
-        }
-        getAllAclFiles(defaultAclDir);
-        if (fileList == null || fileList.size() == 0)
-            return;
 
-        if (aclPlainAccessResourceMap.size() != 0 && accessKeyTable.size() != 0) {
-            aclPlainAccessResourceMap.clear();
-            accessKeyTable.clear();
+        Map<String, Map<String, PlainAccessResource>> aclPlainAccessResourceMap = new HashMap<>();
+        Map<String, String> accessKeyTable = new HashMap<>();
+        List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
+        Map<String, List<RemoteAddressStrategy>> globalWhiteRemoteAddressStrategyMap = new HashMap<>();
+        Map<String, DataVersion> dataVersionMap = new HashMap<>();
+
+        fileList = getAllAclFiles(defaultAclDir);
+        if (new File(defaultAclFile).exists() && !fileList.contains(defaultAclFile)) {
+            fileList.add(defaultAclFile);
         }
-        if (globalWhiteRemoteAddressStrategy.size() != 0) {
-            globalWhiteRemoteAddressStrategy.clear();
-        }
-        if (globalWhiteRemoteAddressStrategyMap.size() != 0) {
-            globalWhiteRemoteAddressStrategyMap.clear();
-        }
+
         for (int i = 0; i < fileList.size(); i++) {
-            load(fileList.get(i));
+            JSONObject plainAclConfData = AclUtils.getYamlDataObject(fileList.get(i),
+                JSONObject.class);
+            if (plainAclConfData == null || plainAclConfData.isEmpty()) {
+                throw new AclException(String.format("%s file is not data", fileList.get(i)));
+            }
+            log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
+
+            List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategyList = new ArrayList<>();
+            JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
+            if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
+                for (int j = 0; j < globalWhiteRemoteAddressesList.size(); j++) {
+                    globalWhiteRemoteAddressStrategyList.add(remoteAddressStrategyFactory.
+                        getRemoteAddressStrategy(globalWhiteRemoteAddressesList.getString(j)));
+                }
+            }
+            if (globalWhiteRemoteAddressStrategyList.size() > 0) {
+                globalWhiteRemoteAddressStrategyMap.put(fileList.get(i), globalWhiteRemoteAddressStrategyList);
+                globalWhiteRemoteAddressStrategy.addAll(globalWhiteRemoteAddressStrategyList);
+            }
+
+            JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
+            Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
+            if (accounts != null && !accounts.isEmpty()) {
+                List<PlainAccessConfig> plainAccessConfigList = accounts.toJavaList(PlainAccessConfig.class);
+                for (PlainAccessConfig plainAccessConfig : plainAccessConfigList) {
+                    PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
+                    //AccessKey can not be defined in multiple ACL files
+                    if (accessKeyTable.get(plainAccessResource.getAccessKey()) == null) {
+                        plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
+                        accessKeyTable.put(plainAccessResource.getAccessKey(), fileList.get(i));
+                    }
+                }
+            }
+            if (plainAccessResourceMap.size() > 0) {
+                aclPlainAccessResourceMap.put(fileList.get(i), plainAccessResourceMap);
+            }
+
+            JSONArray tempDataVersion = plainAclConfData.getJSONArray(AclConstants.CONFIG_DATA_VERSION);
+            DataVersion dataVersion = new DataVersion();
+            if (tempDataVersion != null && !tempDataVersion.isEmpty()) {
+                List<DataVersion> dataVersions = tempDataVersion.toJavaList(DataVersion.class);
+                DataVersion firstElement = dataVersions.get(0);
+                dataVersion.assignNewOne(firstElement);
+            }
+            dataVersionMap.put(fileList.get(i), dataVersion);
         }
 
-        if (dataVersionMap.size() != fileList.size()) {
-            Iterator<Map.Entry<String, DataVersion>> it = dataVersionMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, DataVersion> entry = it.next();
-                if (!fileList.contains(entry.getKey()))
-                    it.remove();
-            }
+        if (dataVersionMap.containsKey(defaultAclFile)) {
+            this.dataVersion.assignNewOne(dataVersionMap.get(defaultAclFile));
         }
-        if (dataVersionMap.size() == 1) {
-            for (Map.Entry<String, DataVersion> entry : dataVersionMap.entrySet()) {
-                dataVersion.assignNewOne(entry.getValue());
-            }
-        }
+        this.dataVersionMap = dataVersionMap;
+        this.globalWhiteRemoteAddressStrategyMap = globalWhiteRemoteAddressStrategyMap;
+        this.globalWhiteRemoteAddressStrategy = globalWhiteRemoteAddressStrategy;
+        this.aclPlainAccessResourceMap = aclPlainAccessResourceMap;
+        this.accessKeyTable = accessKeyTable;
     }
 
     public void load(String aclFilePath) {
@@ -155,13 +192,15 @@ public class PlainPermissionManager {
             }
         }
 
+        this.globalWhiteRemoteAddressStrategy.addAll(globalWhiteRemoteAddressStrategy);
         if (this.globalWhiteRemoteAddressStrategyMap.get(aclFilePath) != null) {
             List<RemoteAddressStrategy> remoteAddressStrategyList = this.globalWhiteRemoteAddressStrategyMap.get(aclFilePath);
             for (int i = 0; i < remoteAddressStrategyList.size(); i++) {
                 this.globalWhiteRemoteAddressStrategy.remove(remoteAddressStrategyList.get(i));
             }
-            this.globalWhiteRemoteAddressStrategyMap.remove(aclFilePath);
+            this.globalWhiteRemoteAddressStrategyMap.put(aclFilePath, globalWhiteRemoteAddressStrategy);
         }
+
 
         JSONArray accounts = plainAclConfData.getJSONArray(AclConstants.CONFIG_ACCOUNTS);
         if (accounts != null && !accounts.isEmpty()) {
@@ -185,10 +224,11 @@ public class PlainPermissionManager {
             dataVersion.assignNewOne(firstElement);
         }
 
-        this.globalWhiteRemoteAddressStrategy.addAll(globalWhiteRemoteAddressStrategy);
-        this.globalWhiteRemoteAddressStrategyMap.put(aclFilePath, globalWhiteRemoteAddressStrategy);
         this.aclPlainAccessResourceMap.put(aclFilePath, plainAccessResourceMap);
         this.dataVersionMap.put(aclFilePath, dataVersion);
+        if (aclFilePath.equals(defaultAclFile)) {
+            this.dataVersion.assignNewOne(dataVersion);
+        }
     }
 
 
@@ -264,8 +304,7 @@ public class PlainPermissionManager {
             aclPlainAccessResourceMap.put(aclFileName, accountMap);
             return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclAccessConfigMap));
         } else {
-            String fileName = fileHome + File.separator
-                + System.getProperty("rocketmq.acl.dir", "/conf") + File.separator + "plain_acl.yml";
+            String fileName = defaultAclFile;
             //Create acl access config elements on the default acl file
             if (aclPlainAccessResourceMap.get(defaultAclFile) == null || aclPlainAccessResourceMap.get(defaultAclFile).size() == 0) {
                 try {

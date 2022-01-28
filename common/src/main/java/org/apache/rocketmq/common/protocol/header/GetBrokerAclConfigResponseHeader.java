@@ -28,15 +28,7 @@ public class GetBrokerAclConfigResponseHeader implements CommandCustomHeader {
     @CFNotNull
     private String version;
 
-    private Map<String, DataVersion> versions;
-
-    public Map<String, DataVersion> getVersions() {
-        return versions;
-    }
-
-    public void setVersions(Map<String, DataVersion> versions) {
-        this.versions = versions;
-    }
+    private Map<String, DataVersion> allAclFileVersion;
 
     @CFNotNull
     private String brokerName;
@@ -80,5 +72,13 @@ public class GetBrokerAclConfigResponseHeader implements CommandCustomHeader {
 
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
+    }
+
+    public Map<String, DataVersion> getAllAclFileVersion() {
+        return allAclFileVersion;
+    }
+
+    public void setAllAclFileVersion(Map<String, DataVersion> allAclFileVersion) {
+        this.allAclFileVersion = allAclFileVersion;
     }
 }

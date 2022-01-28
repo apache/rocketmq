@@ -40,19 +40,24 @@ public class AclFileWatchService extends ServiceThread {
     private int aclFilesNum;
     @Deprecated
     private final Map<String, String> fileCurrentHash;
-    private final Map<String, Long> fileLastModifiedTime;
+    private Map<String, Long> fileLastModifiedTime;
     private List<String/**absolute pathname **/> fileList = new ArrayList<>();
     private final AclFileWatchService.Listener listener;
     private static final int WATCH_INTERVAL = 5000;
     private MessageDigest md = MessageDigest.getInstance("MD5");
+    private String defaultAclFile;
 
     public AclFileWatchService(String path, final AclFileWatchService.Listener listener) throws Exception {
         this.aclPath = path;
+        this.defaultAclFile = path.substring(0, path.length() - 4) + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml");
         this.fileCurrentHash = new HashMap<>();
         this.fileLastModifiedTime = new HashMap<>();
         this.listener = listener;
 
         getAllAclFiles(path);
+        if (!fileList.contains(this.defaultAclFile)) {
+            fileList.add(this.defaultAclFile);
+        }
         this.aclFilesNum = fileList.size();
         for (int i = 0; i < aclFilesNum; i++) {
             String fileAbsolutePath = fileList.get(i);
@@ -67,9 +72,11 @@ public class AclFileWatchService extends ServiceThread {
         for (int i = 0; i < files.length; i++) {
             String fileName = files[i].getAbsolutePath();
             File f = new File(fileName);
-            if (fileName.endsWith(".yml")) {
+            if (fileName.equals(aclPath + File.separator + "tools.yml")) {
+                continue;
+            } else if (fileName.endsWith(".yml") || fileName.endsWith(".yaml")) {
                 fileList.add(fileName);
-            } else if (!f.isFile()) {
+            } else if (f.isDirectory()) {
                 getAllAclFiles(fileName);
             }
         }
@@ -92,12 +99,21 @@ public class AclFileWatchService extends ServiceThread {
                     fileList.clear();
                 }
                 getAllAclFiles(aclPath);
+                if (!fileList.contains(defaultAclFile)) {
+                    fileList.add(defaultAclFile);
+                }
                 int realAclFilesNum = fileList.size();
 
                 if (aclFilesNum != realAclFilesNum) {
                     log.info("aclFilesNum: " + aclFilesNum + "  realAclFilesNum: " + realAclFilesNum);
                     aclFilesNum = realAclFilesNum;
                     log.info("aclFilesNum: " + aclFilesNum + "  realAclFilesNum: " + realAclFilesNum);
+                    Map<String, Long> fileLastModifiedTime = new HashMap<>(realAclFilesNum);
+                    for (int i = 0; i < realAclFilesNum; i++) {
+                        String fileAbsolutePath = fileList.get(i);
+                        fileLastModifiedTime.put(fileAbsolutePath, new File(fileAbsolutePath).lastModified());
+                    }
+                    this.fileLastModifiedTime = fileLastModifiedTime;
                     listener.onFileNumChanged(aclPath);
                 } else {
                     for (int i = 0; i < aclFilesNum; i++) {
