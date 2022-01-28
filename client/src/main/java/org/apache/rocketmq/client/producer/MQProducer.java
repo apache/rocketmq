@@ -91,6 +91,10 @@ public interface MQProducer extends MQAdmin {
     SendResult send(final Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException,
         InterruptedException;
 
+    // for batch msgs with multi topics.
+    SendResult sendMultiTopicBatch(final Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException,
+            InterruptedException;
+
     SendResult send(final Collection<Message> msgs, final long timeout) throws MQClientException,
         RemotingException, MQBrokerException, InterruptedException;
 

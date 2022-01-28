@@ -169,6 +169,7 @@ public class MQClientInstance {
                 for (int i = 0; i < nums; i++) {
                     MessageQueue mq = new MessageQueue(topic, item[0], i);
                     info.getMessageQueueList().add(mq);
+                    info.getBrokers().add(mq.getBrokerName());
                 }
             }
 
@@ -197,6 +198,7 @@ public class MQClientInstance {
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                         info.getMessageQueueList().add(mq);
+                        info.getBrokers().add(mq.getBrokerName());
                     }
                 }
             }

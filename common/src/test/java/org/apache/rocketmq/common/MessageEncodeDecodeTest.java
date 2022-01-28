@@ -33,7 +33,7 @@ public class MessageEncodeDecodeTest {
         Message message = new Message("topic", "body".getBytes());
         message.setFlag(12);
         message.putUserProperty("key", "value");
-        byte[] bytes = MessageDecoder.encodeMessage(message);
+        byte[] bytes = MessageDecoder.encodeMessage(message, false, null);
         ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
         buffer.put(bytes);
         buffer.flip();

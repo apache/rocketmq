@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -910,6 +911,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     @Override
+    public SendResult sendMultiTopicBatch(Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return this.defaultMQProducerImpl.send(multiTopicBatch(msgs));
+    }
+
+    @Override
     public SendResult send(Collection<Message> msgs,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(batch(msgs), timeout);
@@ -980,9 +986,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     private MessageBatch batch(Collection<Message> msgs) throws MQClientException {
+        return batch(msgs, false);
+    }
+
+    private MessageBatch batch(Collection<Message> msgs, boolean allowMultiTopic) throws MQClientException {
         MessageBatch msgBatch;
         try {
-            msgBatch = MessageBatch.generateFromList(msgs);
+            msgBatch = MessageBatch.generateFromList(msgs, allowMultiTopic);
             for (Message message : msgBatch) {
                 Validators.checkMessage(message, this);
                 MessageClientIDSetter.setUniqID(message);
@@ -994,6 +1004,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         }
         msgBatch.setTopic(withNamespace(msgBatch.getTopic()));
         return msgBatch;
+    }
+
+    private MessageBatch multiTopicBatch(Collection<Message> msgs) throws MQClientException {
+        return batch(msgs, true);
     }
 
     public String getProducerGroup() {

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
@@ -471,7 +472,7 @@ public class MessageDecoder {
         return map;
     }
 
-    public static byte[] encodeMessage(Message message) {
+    public static byte[] encodeMessage(Message message, boolean multiTopic, Map<String, Integer> topicIndex) {
         //only need flag, body, properties
         byte[] body = message.getBody();
         int bodyLen = body.length;
@@ -484,8 +485,9 @@ public class MessageDecoder {
             + 4 // 2 MAGICCOD
             + 4 // 3 BODYCRC
             + 4 // 4 FLAG
-            + 4 + bodyLen // 4 BODY
-            + 2 + propertiesLength;
+            + 4 + bodyLen // 5 BODY
+            + 2 + propertiesLength // 6 PROPERTY
+            + (multiTopic ? 4 : 0); // 7 TOPIC_INDEX
         ByteBuffer byteBuffer = ByteBuffer.allocate(storeSize);
         // 1 TOTALSIZE
         byteBuffer.putInt(storeSize);
@@ -508,6 +510,10 @@ public class MessageDecoder {
         byteBuffer.putShort(propertiesLength);
         byteBuffer.put(propertiesBytes);
 
+        if (multiTopic) {
+            // 7. topic_index.
+            byteBuffer.putInt(topicIndex.get(message.getTopic()));
+        }
         return byteBuffer.array();
     }
 
@@ -542,12 +548,16 @@ public class MessageDecoder {
         return message;
     }
 
-    public static byte[] encodeMessages(List<Message> messages) {
+    public static byte[] encodeMultiTopicMessages(List<Message> messages, Map<String, Integer> map) {
+        return doEncodeMessages(messages, true, map);
+    }
+
+    private static byte[] doEncodeMessages(List<Message> messages, boolean multiTopic, Map<String, Integer> topicIndexMap) {
         //TO DO refactor, accumulate in one buffer, avoid copies
         List<byte[]> encodedMessages = new ArrayList<byte[]>(messages.size());
         int allSize = 0;
         for (Message message : messages) {
-            byte[] tmp = encodeMessage(message);
+            byte[] tmp = encodeMessage(message, multiTopic, topicIndexMap);
             encodedMessages.add(tmp);
             allSize += tmp.length;
         }
@@ -558,6 +568,10 @@ public class MessageDecoder {
             pos += bytes.length;
         }
         return allBytes;
+    }
+
+    public static byte[] encodeMessages(List<Message> messages) {
+        return doEncodeMessages(messages, false, null);
     }
 
     public static List<Message> decodeMessages(ByteBuffer byteBuffer) throws Exception {

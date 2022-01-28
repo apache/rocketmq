@@ -17,13 +17,13 @@
 package org.apache.rocketmq.broker.processor;
 
 import java.net.SocketAddress;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 
-import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -54,6 +54,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RemotingResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
@@ -61,6 +62,8 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
+import io.netty.channel.ChannelHandlerContext;
 
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
@@ -530,16 +533,28 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
         if (sendOK) {
-
+            BrokerStatsManager brokerStatsManager = this.brokerController.getBrokerStatsManager();
             if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(msg.getTopic())) {
-                this.brokerController.getBrokerStatsManager().incQueuePutNums(msg.getTopic(), msg.getQueueId(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
-                this.brokerController.getBrokerStatsManager().incQueuePutSize(msg.getTopic(), msg.getQueueId(), putMessageResult.getAppendMessageResult().getWroteBytes());
+                brokerStatsManager.incQueuePutNums(msg.getTopic(), msg.getQueueId(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+                brokerStatsManager.incQueuePutSize(msg.getTopic(), msg.getQueueId(), putMessageResult.getAppendMessageResult().getWroteBytes());
             }
 
-            this.brokerController.getBrokerStatsManager().incTopicPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
-            this.brokerController.getBrokerStatsManager().incTopicPutSize(msg.getTopic(),
-                putMessageResult.getAppendMessageResult().getWroteBytes());
-            this.brokerController.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+
+            if (msg instanceof MessageExtBatch && ((MessageExtBatch) msg).isMultiTopic()) {
+                AppendMessageResult result = putMessageResult.getAppendMessageResult();
+                MessageExtBatch messageExtBatch = (MessageExtBatch) msg;
+                for (int i = 0; i < result.getTopicNums().length; i++) {
+                    brokerStatsManager.incTopicPutNums(messageExtBatch.getTopics()[i], result.getTopicNums()[i], 1);
+                }
+                for (int i = 0; i < result.getTopicBytes().length; i++) {
+                    brokerStatsManager.incTopicPutSize(messageExtBatch.getTopics()[i], result.getTopicBytes()[i]);
+                }
+                brokerStatsManager.incBrokerPutNums(result.getMsgNum());
+            } else {
+                brokerStatsManager.incTopicPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+                brokerStatsManager.incTopicPutSize(msg.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
+                brokerStatsManager.incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+            }
 
             response.setRemark(null);
 
@@ -588,6 +603,27 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return CompletableFuture.completedFuture(response);
         }
 
+        String[] topics = null;
+        int[] queueIds = null;
+        if (requestHeader.isMultiTopic()) {
+            topics = requestHeader.getTopic().split(MixAll.BATCH_TOPIC_SPLITTER); // decode topics
+            if (requestHeader.getQueueIds() == null) {
+                queueIds = new int[topics.length];
+                for (int i = 0; i < topics.length; i++) {
+                    TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topics[i]);
+                    queueIds[i] = randomQueueId(topicConfig.getWriteQueueNums());
+                }
+            } else {
+                // decode queueIds
+                queueIds = Arrays.stream(requestHeader.getQueueIds().split(MixAll.BATCH_QUEUE_ID_SPLITTER)).mapToInt(Integer::parseInt).toArray();
+            }
+            msgCheck(ctx, response, topics, queueIds);
+            if (response.getCode() != -1) {
+                return CompletableFuture.completedFuture(response);
+            }
+            requestHeader.setTopic(topics[0]);
+        }
+
         int queueIdInt = requestHeader.getQueueId();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
@@ -604,6 +640,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         MessageExtBatch messageExtBatch = new MessageExtBatch();
         messageExtBatch.setTopic(requestHeader.getTopic());
         messageExtBatch.setQueueId(queueIdInt);
+        if (requestHeader.isMultiTopic()) {
+            messageExtBatch.setMultiTopic(true);
+            messageExtBatch.setTopics(topics);
+            messageExtBatch.setQueueIds(queueIds);
+        }
 
         int sysFlag = requestHeader.getSysFlag();
         if (TopicFilterType.MULTI_TAG == topicConfig.getTopicFilterType()) {
@@ -624,8 +665,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         CompletableFuture<PutMessageResult> putMessageResult = this.brokerController.getMessageStore().asyncPutMessages(messageExtBatch);
         return handlePutMessageResultFuture(putMessageResult, response, request, messageExtBatch, responseHeader, mqtraceContext, ctx, queueIdInt);
     }
-
-
 
     public boolean hasConsumeMessageHook() {
         return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();

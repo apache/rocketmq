@@ -23,6 +23,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
 
@@ -58,8 +59,12 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
         // topic
-        Validators.checkTopic(msg.getTopic());
-        Validators.isNotAllowedSendTopic(msg.getTopic());
+        if (msg instanceof MessageBatch && ((MessageBatch) msg).isMultiTopic()) {
+            // ignore check
+        } else {
+            Validators.checkTopic(msg.getTopic());
+            Validators.isNotAllowedSendTopic(msg.getTopic());
+        }
 
         // body
         if (null == msg.getBody()) {

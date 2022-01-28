@@ -381,9 +381,18 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private PutMessageStatus checkMessages(MessageExtBatch messageExtBatch) {
-        if (messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
-            log.warn("putMessage message topic length too long " + messageExtBatch.getTopic().length());
-            return PutMessageStatus.MESSAGE_ILLEGAL;
+        if (messageExtBatch.isMultiTopic()) {
+            for (String topic : messageExtBatch.getTopics()) {
+                if (topic.length() > Byte.MAX_VALUE) {
+                    log.warn("putMessage message topic length too long " + topic.length());
+                    return PutMessageStatus.MESSAGE_ILLEGAL;
+                }
+            }
+        } else {
+            if (messageExtBatch.getTopic().length() > Byte.MAX_VALUE) {
+                log.warn("putMessage message topic length too long " + messageExtBatch.getTopic().length());
+                return PutMessageStatus.MESSAGE_ILLEGAL;
+            }
         }
 
         if (messageExtBatch.getBody().length > messageStoreConfig.getMaxMessageSize()) {

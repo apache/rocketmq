@@ -87,7 +87,7 @@ public class AppendCallbackTest {
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
         PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext).getEncodeBuff());
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
         AppendMessageResult result =
@@ -126,7 +126,7 @@ public class AppendCallbackTest {
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
         PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext).getEncodeBuff());
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
         AppendMessageResult result =
@@ -161,7 +161,7 @@ public class AppendCallbackTest {
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
         PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext).getEncodeBuff());
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         AppendMessageResult allresult =
                 callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
@@ -223,7 +223,7 @@ public class AppendCallbackTest {
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
         PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext).getEncodeBuff());
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         AppendMessageResult allresult =
                 callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);

@@ -36,6 +36,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -56,6 +57,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
+
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -454,7 +456,7 @@ public class DLedgerCommitLog extends CommitLog {
 
             String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
-            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
+            appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock, null, null);
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
@@ -551,10 +553,18 @@ public class DLedgerCommitLog extends CommitLog {
         long elapsedTimeInLock;
         long queueOffset;
         int msgNum = 0;
+        Map<String, Long> queueOffsets = null;
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
-            queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
-            encodeResult.setQueueOffsetKey(queueOffset, true);
+
+            if (messageExtBatch.isMultiTopic()) {
+                queueOffsets = encodeResult.setQueueOffsetForMultiTopic(messageExtBatch);
+                queueOffset = 0;
+            } else {
+                queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
+                encodeResult.setQueueOffsetKey(queueOffset, true);
+            }
+
             BatchAppendEntryRequest request = new BatchAppendEntryRequest();
             request.setGroup(dLedgerConfig.getGroup());
             request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
@@ -590,9 +600,15 @@ public class DLedgerCommitLog extends CommitLog {
 
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
             appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, firstWroteOffset, encodeResult.totalMsgLen,
-                    msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
+                    msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock, encodeResult.topicNums , encodeResult.topicBytes);
             appendResult.setMsgNum(msgNum);
-            DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + msgNum);
+            if (messageExtBatch.isMultiTopic()) {
+                for (Map.Entry<String, Long> entry : queueOffsets.entrySet()) {
+                    DLedgerCommitLog.this.topicQueueTable.put(entry.getKey(), entry.getValue());
+                }
+            } else {
+                DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + msgNum);
+            }
         } catch (Exception e) {
             log.error("Put message error", e);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
@@ -629,8 +645,17 @@ public class DLedgerCommitLog extends CommitLog {
             PutMessageResult putMessageResult = new PutMessageResult(putMessageStatus, appendResult);
             if (putMessageStatus == PutMessageStatus.PUT_OK) {
                 // Statistics
-                storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(appendResult.getMsgNum());
-                storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).add(appendResult.getWroteBytes());
+                if (messageExtBatch.isMultiTopic()) {
+                    for (int i = 0; i < encodeResult.topicNums.length; i++) {
+                        storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopics()[i]).add(encodeResult.topicNums[i]);
+                    }
+                    for (int i = 0; i < encodeResult.topicBytes.length; i++) {
+                        storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopics()[i]).add(encodeResult.topicBytes[i]);
+                    }
+                } else {
+                    storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(appendResult.getMsgNum());
+                    storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).add(appendResult.getWroteBytes());
+                }
             }
             return putMessageResult;
         });
@@ -728,11 +753,45 @@ public class DLedgerCommitLog extends CommitLog {
         private List<byte[]> batchData;
         private AppendMessageStatus status;
         private int totalMsgLen;
+        private int[] topicNums;
+        private int[] topicBytes;
 
         public EncodeResult(AppendMessageStatus status, ByteBuffer data, String queueOffsetKey) {
             this.data = data;
             this.status = status;
             this.queueOffsetKey = queueOffsetKey;
+        }
+
+        private long getQueueOffset(String queueOffsetKey) {
+            Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(queueOffsetKey);
+            if (null == queueOffset) {
+                queueOffset = 0L;
+            }
+
+            return queueOffset;
+        }
+
+        public Map<String, Long> setQueueOffsetForMultiTopic(MessageExtBatch messageExtBatch) {
+            Map<String, Long> queueOffsets = new HashMap<>(128);
+            StringBuilder keyBuilder = new StringBuilder(64);
+            for (byte[] data : batchData) {
+                ByteBuffer buffer = ByteBuffer.wrap(data);
+                buffer.position(12); // move to queueId
+                int queueId = buffer.getInt();
+                buffer.position(20); // move to topicIndex
+                int topicIndex = (int) buffer.getLong();
+                String topic = messageExtBatch.getTopics()[topicIndex];
+                keyBuilder.setLength(0);
+                keyBuilder.append(topic);
+                keyBuilder.append('-');
+                keyBuilder.append(queueId);
+                String key = keyBuilder.toString();
+                Long queueOffset = queueOffsets.getOrDefault(key, getQueueOffset(key));
+                buffer.putLong(MessageDecoder.QUEUE_OFFSET_POSITION, queueOffset);
+                queueOffsets.put(key, queueOffset + 1);
+            }
+
+            return queueOffsets;
         }
 
         public void setQueueOffsetKey(long offset, boolean isBatch) {
@@ -750,11 +809,14 @@ public class DLedgerCommitLog extends CommitLog {
             return data.array();
         }
 
-        public EncodeResult(AppendMessageStatus status, String queueOffsetKey, List<byte[]> batchData, int totalMsgLen) {
+        public EncodeResult(AppendMessageStatus status, String queueOffsetKey, List<byte[]> batchData, int totalMsgLen,
+                            int[] topicNums, int[] topicBytes) {
             this.batchData = batchData;
             this.status = status;
             this.queueOffsetKey = queueOffsetKey;
             this.totalMsgLen = totalMsgLen;
+            this.topicNums = topicNums;
+            this.topicBytes = topicBytes;
         }
     }
 
@@ -874,6 +936,13 @@ public class DLedgerCommitLog extends CommitLog {
             ByteBuffer bornHostHolder = ByteBuffer.allocate(bornHostLength);
             ByteBuffer storeHostHolder = ByteBuffer.allocate(storeHostLength);
 
+            int[] topicNums = null;
+            int[] topicBytes = null;
+            if (messageExtBatch.isMultiTopic()) {
+                topicNums = new int[messageExtBatch.getTopics().length];
+                topicBytes = new int[messageExtBatch.getTopics().length];
+            }
+
             while (messagesByteBuff.hasRemaining()) {
                 // 1 TOTALSIZE
                 messagesByteBuff.getInt();
@@ -893,7 +962,21 @@ public class DLedgerCommitLog extends CommitLog {
                 int propertiesPos = messagesByteBuff.position();
                 messagesByteBuff.position(propertiesPos + propertiesLen);
 
-                final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+                int index = 0;
+                int queueId;
+                byte[] topicData;
+                String topic = null;
+                if (messageExtBatch.isMultiTopic()) {
+                    // 7 index
+                    index = messagesByteBuff.getInt();
+                    topic = messageExtBatch.getTopics()[index];
+                    topicData = topic.getBytes(MessageDecoder.CHARSET_UTF8);
+                    queueId = messageExtBatch.getQueueIds()[index];
+                    topicNums[index]++;
+                } else {
+                    topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+                    queueId = messageExtBatch.getQueueId();
+                }
 
                 final int topicLength = topicData.length;
 
@@ -914,6 +997,10 @@ public class DLedgerCommitLog extends CommitLog {
                     throw new RuntimeException("message size exceeded");
                 }
 
+                if (messageExtBatch.isMultiTopic()) {
+                    topicBytes[index] += msgLen;
+                }
+
                 // Initialization of storage space
                 this.resetByteBuffer(msgStoreItemMemory, msgLen);
                 // 1 TOTALSIZE
@@ -923,11 +1010,11 @@ public class DLedgerCommitLog extends CommitLog {
                 // 3 BODYCRC
                 msgStoreItemMemory.putInt(bodyCrc);
                 // 4 QUEUEID
-                msgStoreItemMemory.putInt(messageExtBatch.getQueueId());
+                msgStoreItemMemory.putInt(queueId);
                 // 5 FLAG
                 msgStoreItemMemory.putInt(flag);
                 // 6 QUEUEOFFSET
-                msgStoreItemMemory.putLong(0L);
+                msgStoreItemMemory.putLong(index);
                 // 7 PHYSICALOFFSET
                 msgStoreItemMemory.putLong(0);
                 // 8 SYSFLAG
@@ -965,7 +1052,7 @@ public class DLedgerCommitLog extends CommitLog {
                 batchBody.add(data);
             }
 
-            return new EncodeResult(AppendMessageStatus.PUT_OK, key, batchBody, totalMsgLen);
+            return new EncodeResult(AppendMessageStatus.PUT_OK, key, batchBody, totalMsgLen, topicNums, topicBytes);
         }
 
         private void resetByteBuffer(final ByteBuffer byteBuffer, final int limit) {

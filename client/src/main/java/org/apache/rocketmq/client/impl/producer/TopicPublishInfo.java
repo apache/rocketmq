@@ -17,7 +17,10 @@
 package org.apache.rocketmq.client.impl.producer;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.QueueData;
@@ -27,6 +30,7 @@ public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    private Set<String> brokers = new HashSet<String>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
 
@@ -40,6 +44,14 @@ public class TopicPublishInfo {
 
     public boolean ok() {
         return null != this.messageQueueList && !this.messageQueueList.isEmpty();
+    }
+
+    public Set<String> getBrokers() {
+        return brokers;
+    }
+
+    public void setBrokers(Set<String> brokers) {
+        this.brokers = brokers;
     }
 
     public List<MessageQueue> getMessageQueueList() {
@@ -84,6 +96,29 @@ public class TopicPublishInfo {
         }
     }
 
+    public MessageQueue selectOneMessageQueueByBrokerName(final String brokerName) {
+        if (this.messageQueueList == null) {
+            return null;
+        }
+
+        List<MessageQueue> messageQueues = new ArrayList<MessageQueue>();
+        for (int i = 0; i < this.messageQueueList.size(); i++) {
+            if (this.messageQueueList.get(i).getBrokerName().equals(brokerName)) {
+                messageQueues.add(this.messageQueueList.get(i));
+            }
+        }
+
+        if (messageQueues.isEmpty()) {
+            return null;
+        }
+
+        int index = this.sendWhichQueue.incrementAndGet();
+        int pos = Math.abs(index) % messageQueues.size();
+        if (pos < 0)
+            pos = 0;
+        return messageQueues.get(pos);
+    }
+
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.incrementAndGet();
         int pos = Math.abs(index) % this.messageQueueList.size();
@@ -106,7 +141,7 @@ public class TopicPublishInfo {
     @Override
     public String toString() {
         return "TopicPublishInfo [orderTopic=" + orderTopic + ", messageQueueList=" + messageQueueList
-            + ", sendWhichQueue=" + sendWhichQueue + ", haveTopicRouterInfo=" + haveTopicRouterInfo + "]";
+            + ", sendWhichQueue=" + sendWhichQueue + ", haveTopicRouterInfo=" + haveTopicRouterInfo + ", brokers=" +  brokers + "]";
     }
 
     public TopicRouteData getTopicRouteData() {

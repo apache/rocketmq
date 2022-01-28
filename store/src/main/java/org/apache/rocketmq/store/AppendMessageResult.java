@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 /**
@@ -36,15 +37,19 @@ public class AppendMessageResult {
     // Consume queue's offset(step by one)
     private long logicsOffset;
     private long pagecacheRT = 0;
+    // topic num stats for multi topic batch
+    private int[] topicNums;
+    // topic byte stats for multi topic batch
+    private int[] topicBytes;
 
     private int msgNum = 1;
 
     public AppendMessageResult(AppendMessageStatus status) {
-        this(status, 0, 0, "", 0, 0, 0);
+        this(status, 0, 0, "", 0, 0, 0, null, null);
     }
 
     public AppendMessageResult(AppendMessageStatus status, long wroteOffset, int wroteBytes, String msgId,
-        long storeTimestamp, long logicsOffset, long pagecacheRT) {
+        long storeTimestamp, long logicsOffset, long pagecacheRT, int[] topicNums, int[] topicBytes) {
         this.status = status;
         this.wroteOffset = wroteOffset;
         this.wroteBytes = wroteBytes;
@@ -52,6 +57,8 @@ public class AppendMessageResult {
         this.storeTimestamp = storeTimestamp;
         this.logicsOffset = logicsOffset;
         this.pagecacheRT = pagecacheRT;
+        this.topicNums = topicNums;
+        this.topicBytes = topicBytes;
     }
 
     public AppendMessageResult(AppendMessageStatus status, long wroteOffset, int wroteBytes, Supplier<String> msgIdSupplier,
@@ -128,6 +135,22 @@ public class AppendMessageResult {
         this.logicsOffset = logicsOffset;
     }
 
+    public int[] getTopicNums() {
+        return topicNums;
+    }
+
+    public void setTopicNums(int[] topicNums) {
+        this.topicNums = topicNums;
+    }
+
+    public int[] getTopicBytes() {
+        return topicBytes;
+    }
+
+    public void setTopicBytes(int[] topicBytes) {
+        this.topicBytes = topicBytes;
+    }
+
     public int getMsgNum() {
         return msgNum;
     }
@@ -147,6 +170,8 @@ public class AppendMessageResult {
             ", logicsOffset=" + logicsOffset +
             ", pagecacheRT=" + pagecacheRT +
             ", msgNum=" + msgNum +
+            ", topicNums=" + Arrays.toString(topicNums) +
+            ", topicBytes=" + Arrays.toString(topicBytes) +
             '}';
     }
 }

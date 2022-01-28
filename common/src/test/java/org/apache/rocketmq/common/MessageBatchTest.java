@@ -18,9 +18,11 @@
 package org.apache.rocketmq.common;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class MessageBatchTest {
@@ -38,34 +40,51 @@ public class MessageBatchTest {
     @Test
     public void testGenerate_OK() throws Exception {
         List<Message> messages = generateMessages();
-        MessageBatch.generateFromList(messages);
+        MessageBatch.generateFromList(messages, false);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testGenerate_DiffTopic() throws Exception {
         List<Message> messages = generateMessages();
         messages.get(1).setTopic("topic2");
-        MessageBatch.generateFromList(messages);
+        MessageBatch.generateFromList(messages, false);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testGenerate_DiffWaitOK() throws Exception {
         List<Message> messages = generateMessages();
         messages.get(1).setWaitStoreMsgOK(false);
-        MessageBatch.generateFromList(messages);
+        MessageBatch.generateFromList(messages, false);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testGenerate_Delay() throws Exception {
         List<Message> messages = generateMessages();
         messages.get(1).setDelayTimeLevel(1);
-        MessageBatch.generateFromList(messages);
+        MessageBatch.generateFromList(messages, false);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testGenerate_Retry() throws Exception {
         List<Message> messages = generateMessages();
         messages.get(1).setTopic(MixAll.RETRY_GROUP_TOPIC_PREFIX + "topic");
-        MessageBatch.generateFromList(messages);
+        MessageBatch.generateFromList(messages, false);
+    }
+
+    @Test
+    public void testGenerate_MultiTopic() {
+        List<Message> messages = Arrays.asList(
+                new Message("topicA", "bodyA1".getBytes()),
+                new Message("topicB", "bodyB1".getBytes()),
+                new Message("topicA", "bodyA2".getBytes()),
+                new Message("topicB", "bodyB2".getBytes())
+                );
+
+        MessageBatch messageBatch = MessageBatch.generateFromList(messages, true);
+        Assert.assertEquals(messageBatch.getTopic(), "topicA%%topicB");
+        String[] topics = messageBatch.getTopic().split(MixAll.BATCH_TOPIC_SPLITTER);
+        for (int i = 0; i < topics.length; i++) {
+            Assert.assertEquals((int)messageBatch.getTopicIndexMap().get(topics[i]), i);
+        }
     }
 }

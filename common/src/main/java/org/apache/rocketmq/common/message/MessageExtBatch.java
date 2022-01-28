@@ -30,11 +30,41 @@ public class MessageExtBatch extends MessageExt {
 
     private ByteBuffer encodedBuff;
 
+    private boolean multiTopic;
+
+    private String[] topics;
+
+    private int[] queueIds;
+
     public ByteBuffer getEncodedBuff() {
         return encodedBuff;
     }
 
     public void setEncodedBuff(ByteBuffer encodedBuff) {
         this.encodedBuff = encodedBuff;
+    }
+
+    public boolean isMultiTopic() {
+        return multiTopic;
+    }
+
+    public void setMultiTopic(boolean multiTopic) {
+        this.multiTopic = multiTopic;
+    }
+
+    public String[] getTopics() {
+        return topics;
+    }
+
+    public void setTopics(String[] topics) {
+        this.topics = topics;
+    }
+
+    public int[] getQueueIds() {
+        return queueIds;
+    }
+
+    public void setQueueIds(int[] queueIds) {
+        this.queueIds = queueIds;
     }
 }

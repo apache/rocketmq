@@ -50,6 +50,10 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
     private boolean unitMode = false;
     @CFNullable
     private boolean batch = false;
+    @CFNullable
+    private boolean multiTopic = false;
+    @CFNullable
+    private String queueIds;
     private Integer maxReconsumeTimes;
 
     @Override
@@ -158,5 +162,21 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
 
     public void setBatch(boolean batch) {
         this.batch = batch;
+    }
+
+    public boolean isMultiTopic() {
+        return multiTopic;
+    }
+
+    public void setMultiTopic(boolean multiTopic) {
+        this.multiTopic = multiTopic;
+    }
+
+    public String getQueueIds() {
+        return queueIds;
+    }
+
+    public void setQueueIds(String queueIds) {
+        this.queueIds = queueIds;
     }
 }

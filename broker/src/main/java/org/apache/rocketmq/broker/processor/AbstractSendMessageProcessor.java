@@ -27,7 +27,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -46,6 +45,7 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ChannelUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -163,8 +163,50 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         return response;
     }
 
+    protected RemotingCommand msgCheck(final ChannelHandlerContext ctx, RemotingCommand response, String[] topics, int[] queueIds) {
+        for (int i = 0; i < topics.length; i++) {
+            String topic = topics[i];
+            int queueId = queueIds[i];
+            if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
+                    && this.brokerController.getTopicConfigManager().isOrderTopic(topic)) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] sending message is forbidden");
+                return response;
+            }
+
+            TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
+
+            if (null == topicConfig) {
+                response.setCode(ResponseCode.TOPIC_NOT_EXIST);
+                response.setRemark("topic[" + topic + "] not exist, apply first please!"
+                        + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
+                return response;
+            }
+
+            int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
+            if (queueId >= idValid) {
+                String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
+                        queueId,
+                        topicConfig,
+                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+                log.warn(errorInfo);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark(errorInfo);
+
+                return response;
+            }
+        }
+
+        return response;
+    }
+
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        if (requestHeader.isMultiTopic()) {
+            return response;
+        }
+
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);

@@ -54,6 +54,12 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
     @CFNullable
     private boolean m; //batch
 
+    @CFNullable
+    private boolean n; //multi topic
+
+    @CFNullable
+    private String o; // queueIds
+
     public static SendMessageRequestHeader createSendMessageRequestHeaderV1(final SendMessageRequestHeaderV2 v2) {
         SendMessageRequestHeader v1 = new SendMessageRequestHeader();
         v1.setProducerGroup(v2.a);
@@ -69,6 +75,8 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v1.setUnitMode(v2.k);
         v1.setMaxReconsumeTimes(v2.l);
         v1.setBatch(v2.m);
+        v1.setMultiTopic(v2.n);
+        v1.setQueueIds(v2.o);
         return v1;
     }
 
@@ -87,6 +95,8 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
         v2.k = v1.isUnitMode();
         v2.l = v1.getMaxReconsumeTimes();
         v2.m = v1.isBatch();
+        v2.n = v1.isMultiTopic();
+        v2.o = v1.getQueueIds();
         return v2;
     }
 
@@ -196,5 +206,21 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader {
 
     public void setM(boolean m) {
         this.m = m;
+    }
+
+    public boolean isN() {
+        return n;
+    }
+
+    public void setN(boolean n) {
+        this.n = n;
+    }
+
+    public String getO() {
+        return o;
+    }
+
+    public void setO(String o) {
+        this.o = o;
     }
 }
