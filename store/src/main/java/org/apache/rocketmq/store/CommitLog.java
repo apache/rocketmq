@@ -1606,7 +1606,12 @@ public class CommitLog {
             // properties from MessageExtBatch
             String batchPropStr = MessageDecoder.messageProperties2String(messageExtBatch.getProperties());
             final byte[] batchPropData = batchPropStr.getBytes(MessageDecoder.CHARSET_UTF8);
-            final short batchPropLen = (short) batchPropData.length;
+            int batchPropDataLen = batchPropData.length;
+            if (batchPropDataLen > Short.MAX_VALUE) {
+                CommitLog.log.warn("Properties size of messageExtBatch exceeded, properties size: {}, maxSize: {}.", batchPropDataLen, Short.MAX_VALUE);
+                throw new RuntimeException("Properties size of messageExtBatch exceeded!");
+            }
+            final short batchPropLen = (short) batchPropDataLen;
 
             int batchSize = 0;
             while (messagesByteBuff.hasRemaining()) {
