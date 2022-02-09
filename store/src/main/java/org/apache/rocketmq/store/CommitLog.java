@@ -79,6 +79,7 @@ public class CommitLog {
     private volatile Set<String> fullStorePaths = Collections.emptySet();
 
     private final MultiDispatch multiDispatch;
+    private final FlushDiskWatcher flushDiskWatcher;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         String storePath = defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog();
@@ -113,6 +114,7 @@ public class CommitLog {
 
         this.multiDispatch = new MultiDispatch(defaultMessageStore, this);
 
+        flushDiskWatcher = new FlushDiskWatcher();
     }
 
     public void setFullStorePaths(Set<String> fullStorePaths) {
@@ -136,6 +138,10 @@ public class CommitLog {
     public void start() {
         this.flushCommitLogService.start();
 
+        flushDiskWatcher.setDaemon(true);
+        flushDiskWatcher.start();
+
+
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();
         }
@@ -147,6 +153,8 @@ public class CommitLog {
         }
 
         this.flushCommitLogService.shutdown();
+
+        flushDiskWatcher.shutdown(true);
     }
 
     public long flush() {
@@ -845,6 +853,7 @@ public class CommitLog {
             if (messageExt.isWaitStoreMsgOK()) {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
                         this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                flushDiskWatcher.add(request);
                 service.putRequest(request);
                 return request.future();
             } else {
@@ -1139,7 +1148,7 @@ public class CommitLog {
 
         public GroupCommitRequest(long nextOffset, long timeoutMillis) {
             this.nextOffset = nextOffset;
-            this.deadLine = System.nanoTime() + (timeoutMillis << 20);
+            this.deadLine = System.nanoTime() + (timeoutMillis * 1_000_000);
         }
 
         public long getDeadLine() {
