@@ -796,12 +796,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 @Override
                 public void onSuccess(AckResult ackResult) {
                     if (ackResult != null && !AckStatus.OK.equals(ackResult.getStatus())) {
-                        log.info("Ack message fail. ackResult: {}, extraInfo: {}", ackResult, extraInfo);
+                        log.warn("Ack message fail. ackResult: {}, extraInfo: {}", ackResult, extraInfo);
                     }
                 }
                 @Override
                 public void onException(Throwable e) {
-                    log.info("Ack message fail. extraInfo: {}  error message: {}", extraInfo, e.toString());
+                    log.warn("Ack message fail. extraInfo: {}  error message: {}", extraInfo, e.toString());
                 }
             }, requestHeader);
 

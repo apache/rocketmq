@@ -47,6 +47,8 @@ import static org.apache.rocketmq.common.message.MessageDecoder.CHARSET_UTF8;
 import static org.apache.rocketmq.store.ConsumeQueue.CQ_STORE_UNIT_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * Test case for DefaultMessageStore.CleanCommitLogService and DefaultMessageStore.CleanConsumeQueueService
@@ -334,7 +336,7 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService(double diskSpaceCleanForciblyRatio)
+    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService()
             throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
         serviceField.setAccessible(true);
@@ -342,15 +344,6 @@ public class DefaultMessageStoreCleanFilesTest {
                 (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
         serviceField.setAccessible(false);
 
-        Field warningLevelRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceWarningLevelRatio");
-        warningLevelRatioField.setAccessible(true);
-        warningLevelRatioField.set(cleanCommitLogService, String.valueOf(diskSpaceCleanForciblyRatio));
-        warningLevelRatioField.setAccessible(false);
-
-        Field cleanForciblyRatioField = cleanCommitLogService.getClass().getDeclaredField("diskSpaceCleanForciblyRatio");
-        cleanForciblyRatioField.setAccessible(true);
-        cleanForciblyRatioField.set(cleanCommitLogService, String.valueOf(diskSpaceCleanForciblyRatio));
-        cleanForciblyRatioField.setAccessible(false);
         return cleanCommitLogService;
     }
 
@@ -490,11 +483,25 @@ public class DefaultMessageStoreCleanFilesTest {
         messageStore = new DefaultMessageStore(messageStoreConfig,
                 new BrokerStatsManager("test"), new MyMessageArrivingListener(), new BrokerConfig());
 
-        cleanCommitLogService = getCleanCommitLogService(diskSpaceCleanForciblyRatio);
+        cleanCommitLogService = getCleanCommitLogService();
         cleanConsumeQueueService = getCleanConsumeQueueService();
 
         assertTrue(messageStore.load());
         messageStore.start();
+
+        // partially mock a real obj
+        cleanCommitLogService = spy(cleanCommitLogService);
+        when(cleanCommitLogService.getDiskSpaceWarningLevelRatio()).thenReturn(diskSpaceCleanForciblyRatio);
+        when(cleanCommitLogService.getDiskSpaceCleanForciblyRatio()).thenReturn(diskSpaceCleanForciblyRatio);
+
+        putFiledBackToMessageStore(cleanCommitLogService);
+    }
+
+    private void putFiledBackToMessageStore(DefaultMessageStore.CleanCommitLogService cleanCommitLogService) throws Exception {
+        Field cleanCommitLogServiceField = DefaultMessageStore.class.getDeclaredField("cleanCommitLogService");
+        cleanCommitLogServiceField.setAccessible(true);
+        cleanCommitLogServiceField.set(messageStore, cleanCommitLogService);
+        cleanCommitLogServiceField.setAccessible(false);
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

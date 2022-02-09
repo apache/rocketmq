@@ -92,6 +92,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     private PopLongPollingService popLongPollingService;
     private PopBufferMergeService popBufferMergeService;
     private QueueLockManager queueLockManager;
+    private AtomicLong ckMessageNumber;
 
     public PopMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -104,6 +105,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         this.popLongPollingService = new PopLongPollingService();
         this.queueLockManager = new QueueLockManager();
         this.popBufferMergeService = new PopBufferMergeService(this.brokerController, this);
+        this.ckMessageNumber = new AtomicLong();
     }
 
     public PopLongPollingService getPopLongPollingService() {
@@ -350,7 +352,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         if (requestHeader.isOrder()) {
             reviveQid = KeyBuilder.POP_ORDER_REVIVE_QUEUE;
         } else {
-            reviveQid = randomQ % this.brokerController.getBrokerConfig().getReviveQueueNum();
+            reviveQid = (int) Math.abs(ckMessageNumber.getAndIncrement() % this.brokerController.getBrokerConfig().getReviveQueueNum());
         }
 
         GetMessageResult getMessageResult = new GetMessageResult();

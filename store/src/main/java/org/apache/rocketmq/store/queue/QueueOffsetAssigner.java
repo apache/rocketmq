@@ -24,7 +24,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import java.util.HashMap;
 
 /**
- * QueueOffsetAssigner is a component for assigning queue.
+ * QueueOffsetAssigner is a component for assigning offsets for queues.
  *
  */
 public class QueueOffsetAssigner {
@@ -33,20 +33,24 @@ public class QueueOffsetAssigner {
     private HashMap<String, Long> topicQueueTable = new HashMap<>(1024);
     private HashMap<String, Long> batchTopicQueueTable = new HashMap<>(1024);
 
-    public HashMap<String, Long> getTopicQueueTable() {
-        return topicQueueTable;
+    public long assignQueueOffset(String topicQueueKey, short messageNum) {
+        long queueOffset = this.topicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+        this.topicQueueTable.put(topicQueueKey, queueOffset + messageNum);
+        return queueOffset;
     }
 
-    public void setTopicQueueTable(HashMap<String, Long> topicQueueTable) {
-        this.topicQueueTable = topicQueueTable;
+    public long assignBatchQueueOffset(String topicQueueKey, short messageNum) {
+        Long topicOffset = this.batchTopicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+        this.batchTopicQueueTable.put(topicQueueKey, topicOffset + messageNum);
+        return topicOffset;
     }
 
-    public HashMap<String, Long> getBatchTopicQueueTable() {
-        return batchTopicQueueTable;
+    public long currentQueueOffset(String topicQueueKey) {
+        return this.topicQueueTable.get(topicQueueKey);
     }
 
-    public void setBatchTopicQueueTable(HashMap<String, Long> batchTopicQueueTable) {
-        this.batchTopicQueueTable = batchTopicQueueTable;
+    public long currentBatchQueueOffset(String topicQueueKey) {
+        return this.batchTopicQueueTable.get(topicQueueKey);
     }
 
     public synchronized void remove(String topic, Integer queueId) {
@@ -56,5 +60,13 @@ public class QueueOffsetAssigner {
         this.batchTopicQueueTable.remove(topicQueueKey);
 
         log.info("removeQueueFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
+    }
+
+    public void setTopicQueueTable(HashMap<String, Long> topicQueueTable) {
+        this.topicQueueTable = topicQueueTable;
+    }
+
+    public void setBatchTopicQueueTable(HashMap<String, Long> batchTopicQueueTable) {
+        this.batchTopicQueueTable = batchTopicQueueTable;
     }
 }

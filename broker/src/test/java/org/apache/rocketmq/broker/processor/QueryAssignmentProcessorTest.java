@@ -19,9 +19,15 @@ package org.apache.rocketmq.broker.processor;
 import com.google.common.collect.ImmutableSet;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
+import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragelyByCircle;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueConsistentHash;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -40,6 +46,7 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,6 +74,7 @@ public class QueryAssignmentProcessorTest {
     @Mock
     private Channel channel;
 
+    private String broker = "defaultBroker";
     private String topic = "FooBar";
     private String group = "FooBarGroup";
     private String clientId = "127.0.0.1";
@@ -116,6 +124,73 @@ public class QueryAssignmentProcessorTest {
         final RemotingCommand request = createSetMessageRequestModeRequest(MixAll.RETRY_GROUP_TOPIC_PREFIX + topic);
         RemotingCommand responseToReturn = queryAssignmentProcessor.processRequest(handlerContext, request);
         assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+    }
+
+
+    @Test
+    public void testAllocate4Pop() {
+        testAllocate4Pop(new AllocateMessageQueueAveragely());
+        testAllocate4Pop(new AllocateMessageQueueAveragelyByCircle());
+        testAllocate4Pop(new AllocateMessageQueueConsistentHash());
+    }
+
+    private void testAllocate4Pop(AllocateMessageQueueStrategy strategy) {
+        int testNum = 16;
+        List<MessageQueue> mqAll = new ArrayList<>();
+        for (int mqSize = 0; mqSize < testNum; mqSize++) {
+            mqAll.add(new MessageQueue(topic, broker, mqSize));
+
+            List<String> cidAll = new ArrayList<>();
+            for (int cidSize = 0; cidSize < testNum; cidSize++) {
+                String clientId = String.valueOf(cidSize);
+                cidAll.add(clientId);
+
+                for (int popShareQueueNum = 0; popShareQueueNum < testNum; popShareQueueNum++) {
+                    List<MessageQueue> allocateResult =
+                        queryAssignmentProcessor.allocate4Pop(strategy, group, clientId, mqAll, cidAll, popShareQueueNum);
+                    Assert.assertTrue(checkAllocateResult(popShareQueueNum, mqAll.size(), cidAll.size(), allocateResult.size(), strategy));
+                }
+            }
+        }
+    }
+
+    private boolean checkAllocateResult(int popShareQueueNum, int mqSize, int cidSize, int allocateSize,
+        AllocateMessageQueueStrategy strategy) {
+
+        //The maximum size of allocations will not exceed mqSize.
+        if (allocateSize > mqSize) {
+            return false;
+        }
+
+        //It is not allowed that the client is not assigned to the consumeQueue.
+        if (allocateSize <= 0) {
+            return false;
+        }
+
+        if (popShareQueueNum <= 0 || popShareQueueNum >= cidSize - 1) {
+            return allocateSize == mqSize;
+        } else if (mqSize < cidSize) {
+            return allocateSize == 1;
+        }
+
+        if (strategy instanceof AllocateMessageQueueAveragely
+            || strategy instanceof AllocateMessageQueueAveragelyByCircle) {
+
+            if (mqSize % cidSize == 0) {
+                return allocateSize == (mqSize / cidSize) * (popShareQueueNum + 1);
+            } else {
+                int avgSize = mqSize / cidSize;
+                return allocateSize >= avgSize * (popShareQueueNum + 1)
+                    && allocateSize <= (avgSize + 1) * (popShareQueueNum + 1);
+            }
+        }
+
+        if (strategy instanceof AllocateMessageQueueConsistentHash) {
+            //Just skip
+            return true;
+        }
+
+        return false;
     }
 
     private RemotingCommand createQueryAssignmentRequest() {
