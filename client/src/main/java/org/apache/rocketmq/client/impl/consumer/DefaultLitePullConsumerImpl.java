@@ -649,7 +649,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             try {
                 commit(messageQueue);
             } catch (MQClientException e) {
-                log.error("commit messageQueue [" + messageQueue+ "] consume offset error.", e);
+                log.error("An error occurred when update consume offset Automatically.");
             }
         }
     }
@@ -677,7 +677,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 updateConsumeOffset(messageQueue, consumerOffset);
             }
         } else {
-            throw new MQClientException("messageQueue ["+ messageQueue +"] does not exist in assignedMessageQueue, please assign it first.", null);
+            log.error("consumerOffset is -1 in messageQueue [" + messageQueue + "].");
         }
     }
 
