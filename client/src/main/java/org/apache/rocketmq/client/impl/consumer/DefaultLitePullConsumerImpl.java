@@ -645,21 +645,39 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void commitAll() {
-        try {
-            for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
-                long consumerOffset = assignedMessageQueue.getConsumerOffset(messageQueue);
-                if (consumerOffset != -1) {
-                    ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
-                    if (processQueue != null && !processQueue.isDropped()) {
-                        updateConsumeOffset(messageQueue, consumerOffset);
-                    }
-                }
+        for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
+            try {
+                commit(messageQueue);
+            } catch (MQClientException e) {
+                log.error("commit messageQueue [" + messageQueue+ "] consume offset error.", e);
             }
-            if (defaultLitePullConsumer.getMessageModel() == MessageModel.BROADCASTING) {
-                offsetStore.persistAll(assignedMessageQueue.messageQueues());
+        }
+    }
+
+    public synchronized void commit(final HashSet<MessageQueue> messageQueues, boolean persist) throws MQClientException {
+        if (messageQueues == null || messageQueues.size() == 0) {
+            return;
+        }
+
+        for (MessageQueue messageQueue : messageQueues) {
+            commit(messageQueue);
+        }
+
+        if (persist) {
+            this.offsetStore.persistAll(messageQueues);
+        }
+    }
+
+    private synchronized void commit(MessageQueue messageQueue) throws MQClientException {
+        long consumerOffset = assignedMessageQueue.getConsumerOffset(messageQueue);
+
+        if (consumerOffset != -1) {
+            ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
+            if (processQueue != null && !processQueue.isDropped()) {
+                updateConsumeOffset(messageQueue, consumerOffset);
             }
-        } catch (Exception e) {
-            log.error("An error occurred when update consume offset Automatically.");
+        } else {
+            throw new MQClientException("messageQueue ["+ messageQueue +"] does not exist in assignedMessageQueue, please assign it first.", null);
         }
     }
 

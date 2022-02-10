@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -159,6 +160,9 @@ public interface LitePullConsumer {
      * Manually commit consume offset.
      */
     void commitSync();
+
+
+    void commit(final HashSet<MessageQueue> messageQueues, boolean persist) throws MQClientException ;
 
     /**
      * Get the last committed offset for the given message queue.
