@@ -648,13 +648,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         for (MessageQueue messageQueue : assignedMessageQueue.messageQueues()) {
             try {
                 commit(messageQueue);
-            } catch (MQClientException e) {
+            } catch (Exception e) {
                 log.error("An error occurred when update consume offset Automatically.");
             }
         }
     }
 
-    public synchronized void commit(final HashSet<MessageQueue> messageQueues, boolean persist) throws MQClientException {
+    public synchronized void commit(final Set<MessageQueue> messageQueues, boolean persist) {
         if (messageQueues == null || messageQueues.size() == 0) {
             return;
         }
@@ -668,7 +668,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private synchronized void commit(MessageQueue messageQueue) throws MQClientException {
+    private synchronized void commit(MessageQueue messageQueue) {
         long consumerOffset = assignedMessageQueue.getConsumerOffset(messageQueue);
 
         if (consumerOffset != -1) {

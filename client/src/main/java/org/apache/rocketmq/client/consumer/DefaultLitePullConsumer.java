@@ -17,8 +17,8 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -317,7 +317,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
-    public void commit(final HashSet<MessageQueue> messageQueues, boolean persist) throws MQClientException {
+    public void commit(final Set<MessageQueue> messageQueues, boolean persist) {
         this.defaultLitePullConsumerImpl.commit(messageQueues, persist);
     }
 

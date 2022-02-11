@@ -17,19 +17,11 @@
 
 package org.apache.rocketmq.client.consumer;
 
-import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -60,6 +52,16 @@ import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
@@ -117,7 +119,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.assign(Collections.singletonList(messageQueue));
             List<MessageExt> result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
-            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[]{'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -133,7 +135,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
             List<MessageExt> result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
-            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[]{'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -149,7 +151,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
             List<MessageExt> result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
-            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[]{'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -314,7 +316,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.resume(Collections.singletonList(messageQueue));
             result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
-            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[]{'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -374,7 +376,8 @@ public class DefaultLitePullConsumerTest {
         doReturn(Collections.emptySet()).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
         litePullConsumer.setTopicMetadataCheckIntervalMillis(10);
         litePullConsumer.registerTopicMessageQueueChangeListener(topic, new TopicMessageQueueChangeListener() {
-            @Override public void onChanged(String topic, Set<MessageQueue> messageQueues) {
+            @Override
+            public void onChanged(String topic, Set<MessageQueue> messageQueues) {
                 flag = true;
             }
         });
@@ -537,6 +540,33 @@ public class DefaultLitePullConsumerTest {
         assertThat(defaultLitePullConsumer.isRunning()).isFalse();
     }
 
+    @Test
+    public void testConsumerCommitWithMQ() throws Exception {
+        DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
+        RemoteBrokerOffsetStore store = new RemoteBrokerOffsetStore(mQClientFactory, consumerGroup);
+        litePullConsumer.setOffsetStore(store);
+        litePullConsumer.start();
+        initDefaultLitePullConsumer(litePullConsumer);
+
+        //replace with real offsetStore.
+        Field offsetStore = litePullConsumerImpl.getClass().getDeclaredField("offsetStore");
+        offsetStore.setAccessible(true);
+        offsetStore.set(litePullConsumerImpl, store);
+
+        MessageQueue messageQueue = createMessageQueue();
+        HashSet<MessageQueue> set = new HashSet<MessageQueue>();
+        set.add(messageQueue);
+
+        //mock assign and reset offset
+        litePullConsumer.assign(set);
+        litePullConsumer.seek(messageQueue, 0);
+
+        //commit
+        litePullConsumer.commit(set, true);
+
+        assertThat(litePullConsumer.committed(messageQueue)).isEqualTo(0);
+    }
+
     static class AsyncConsumer {
         public void executeAsync(final DefaultLitePullConsumer consumer) {
             new Thread(new Runnable() {
@@ -585,23 +615,23 @@ public class DefaultLitePullConsumerTest {
         field.set(litePullConsumerImpl, offsetStore);
 
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
-            anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
-            .thenAnswer(new Answer<PullResult>() {
-                @Override
-                public PullResult answer(InvocationOnMock mock) throws Throwable {
-                    PullMessageRequestHeader requestHeader = mock.getArgument(1);
-                    MessageClientExt messageClientExt = new MessageClientExt();
-                    messageClientExt.setTopic(topic);
-                    messageClientExt.setQueueId(0);
-                    messageClientExt.setMsgId("123");
-                    messageClientExt.setBody(new byte[] {'a'});
-                    messageClientExt.setOffsetMsgId("234");
-                    messageClientExt.setBornHost(new InetSocketAddress(8080));
-                    messageClientExt.setStoreHost(new InetSocketAddress(8080));
-                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
-                    return pullResult;
-                }
-            });
+                anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
+                .thenAnswer(new Answer<PullResult>() {
+                    @Override
+                    public PullResult answer(InvocationOnMock mock) throws Throwable {
+                        PullMessageRequestHeader requestHeader = mock.getArgument(1);
+                        MessageClientExt messageClientExt = new MessageClientExt();
+                        messageClientExt.setTopic(topic);
+                        messageClientExt.setQueueId(0);
+                        messageClientExt.setMsgId("123");
+                        messageClientExt.setBody(new byte[]{'a'});
+                        messageClientExt.setOffsetMsgId("234");
+                        messageClientExt.setBornHost(new InetSocketAddress(8080));
+                        messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                        PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                        return pullResult;
+                    }
+                });
 
         when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
 
@@ -654,7 +684,7 @@ public class DefaultLitePullConsumerTest {
     }
 
     private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
-        List<MessageExt> messageExtList) throws Exception {
+                                           List<MessageExt> messageExtList) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (MessageExt messageExt : messageExtList) {
             outputStream.write(MessageDecoder.encode(messageExt, false));
@@ -663,7 +693,7 @@ public class DefaultLitePullConsumerTest {
     }
 
     private static void suppressUpdateTopicRouteInfoFromNameServer(
-        DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
+            DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
         DefaultLitePullConsumerImpl defaultLitePullConsumerImpl = (DefaultLitePullConsumerImpl) FieldUtils.readDeclaredField(litePullConsumer, "defaultLitePullConsumerImpl", true);
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
             litePullConsumer.changeInstanceNameToPID();
