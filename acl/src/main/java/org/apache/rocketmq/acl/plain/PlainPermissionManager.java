@@ -147,6 +147,8 @@ public class PlainPermissionManager {
                     if (accessKeyTable.get(plainAccessResource.getAccessKey()) == null) {
                         plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
                         accessKeyTable.put(plainAccessResource.getAccessKey(), fileList.get(i));
+                    } else {
+                        log.warn("The accesssKey {} is repeated in multiple ACL files", plainAccessResource.getAccessKey());
                     }
                 }
             }
