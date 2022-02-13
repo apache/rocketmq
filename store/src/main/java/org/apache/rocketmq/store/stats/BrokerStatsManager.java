@@ -29,6 +29,10 @@ import org.apache.rocketmq.common.stats.StatsItemSet;
 
 public class BrokerStatsManager {
 
+    public static final String QUEUE_PUT_NUMS = "QUEUE_PUT_NUMS";
+    public static final String QUEUE_PUT_SIZE = "QUEUE_PUT_SIZE";
+    public static final String QUEUE_GET_NUMS = "QUEUE_GET_NUMS";
+    public static final String QUEUE_GET_SIZE = "QUEUE_GET_SIZE";
     public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
     public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
     public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";
@@ -74,6 +78,10 @@ public class BrokerStatsManager {
     public BrokerStatsManager(String clusterName) {
         this.clusterName = clusterName;
 
+        this.statsTable.put(QUEUE_PUT_NUMS, new StatsItemSet(QUEUE_PUT_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(QUEUE_PUT_SIZE, new StatsItemSet(QUEUE_PUT_SIZE, this.scheduledExecutorService, log));
+        this.statsTable.put(QUEUE_GET_NUMS, new StatsItemSet(QUEUE_GET_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(QUEUE_GET_SIZE, new StatsItemSet(QUEUE_GET_SIZE, this.scheduledExecutorService, log));
         this.statsTable.put(TOPIC_PUT_NUMS, new StatsItemSet(TOPIC_PUT_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(TOPIC_PUT_SIZE, new StatsItemSet(TOPIC_PUT_SIZE, this.scheduledExecutorService, log));
         this.statsTable.put(GROUP_GET_NUMS, new StatsItemSet(GROUP_GET_NUMS, this.scheduledExecutorService, log));
@@ -121,6 +129,54 @@ public class BrokerStatsManager {
         return null;
     }
 
+    public void onTopicDeleted(final String topic) {
+        this.statsTable.get(TOPIC_PUT_NUMS).delValue(topic);
+        this.statsTable.get(TOPIC_PUT_SIZE).delValue(topic);
+        this.statsTable.get(QUEUE_PUT_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(QUEUE_PUT_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(GROUP_GET_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(GROUP_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(QUEUE_GET_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(QUEUE_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(SNDBCK_PUT_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(GROUP_GET_LATENCY).delValueByInfixKey(topic, "@");
+        this.momentStatsItemSetFallSize.delValueByInfixKey(topic, "@");
+        this.momentStatsItemSetFallTime.delValueByInfixKey(topic, "@");
+    }
+
+    public void onGroupDeleted(final String group) {
+        this.statsTable.get(GROUP_GET_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(GROUP_GET_SIZE).delValueBySuffixKey(group, "@");
+        this.statsTable.get(QUEUE_GET_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(QUEUE_GET_SIZE).delValueBySuffixKey(group, "@");
+        this.statsTable.get(SNDBCK_PUT_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(GROUP_GET_LATENCY).delValueBySuffixKey(group, "@");
+        this.momentStatsItemSetFallSize.delValueBySuffixKey(group, "@");
+        this.momentStatsItemSetFallTime.delValueBySuffixKey(group, "@");
+    }
+
+    public void incQueuePutNums(final String topic, final Integer queueId) {
+        this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, String.valueOf(queueId)), 1, 1);
+    }
+
+    public void incQueuePutNums(final String topic, final Integer queueId, int num, int times) {
+        this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, String.valueOf(queueId)), num, times);
+    }
+
+    public void incQueuePutSize(final String topic, final Integer queueId, final int size) {
+        this.statsTable.get(QUEUE_PUT_SIZE).addValue(buildStatsKey(topic, String.valueOf(queueId)), size, 1);
+    }
+
+    public void incQueueGetNums(final String group, final String topic, final Integer queueId, final int incValue) {
+        final String statsKey = buildStatsKey(buildStatsKey(topic, String.valueOf(queueId)), group);
+        this.statsTable.get(QUEUE_GET_NUMS).addValue(statsKey, incValue, 1);
+    }
+
+    public void incQueueGetSize(final String group, final String topic, final Integer queueId, final int incValue) {
+        final String statsKey = buildStatsKey(buildStatsKey(topic, String.valueOf(queueId)), group);
+        this.statsTable.get(QUEUE_GET_SIZE).addValue(statsKey, incValue, 1);
+    }
+
     public void incTopicPutNums(final String topic) {
         this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, 1, 1);
     }
@@ -138,11 +194,11 @@ public class BrokerStatsManager {
         this.statsTable.get(GROUP_GET_NUMS).addValue(statsKey, incValue, 1);
     }
 
-    public String buildStatsKey(String topic, String group) {
+    public String buildStatsKey(String prefix, String suffix) {
         StringBuffer strBuilder = new StringBuffer();
-        strBuilder.append(topic);
+        strBuilder.append(prefix);
         strBuilder.append("@");
-        strBuilder.append(group);
+        strBuilder.append(suffix);
         return strBuilder.toString();
     }
 
@@ -157,15 +213,15 @@ public class BrokerStatsManager {
     }
 
     public void incBrokerPutNums() {
-        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().incrementAndGet();
+        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(1);
     }
 
     public void incBrokerPutNums(final int incValue) {
-        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().addAndGet(incValue);
+        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
     public void incBrokerGetNums(final int incValue) {
-        this.statsTable.get(BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().addAndGet(incValue);
+        this.statsTable.get(BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
     public void incSendBackNums(final String group, final String topic) {
@@ -197,7 +253,7 @@ public class BrokerStatsManager {
     }
 
     public String buildCommercialStatsKey(String owner, String topic, String group, String type) {
-        StringBuffer strBuilder = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
         strBuilder.append(owner);
         strBuilder.append("@");
         strBuilder.append(topic);

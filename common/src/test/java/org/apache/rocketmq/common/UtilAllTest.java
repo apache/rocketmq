@@ -17,11 +17,17 @@
 
 package org.apache.rocketmq.common;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.junit.Assert.assertEquals;
 
 public class UtilAllTest {
 
@@ -96,6 +102,24 @@ public class UtilAllTest {
         assertThat(UtilAll.isBlank("He llo")).isFalse();
         assertThat(UtilAll.isBlank("  ")).isTrue();
         assertThat(UtilAll.isBlank("Hello")).isFalse();
+    }
+
+    @Test
+    public void testIPv6Check() throws UnknownHostException {
+        InetAddress nonInternal = InetAddress.getByName("2408:4004:0180:8100:3FAA:1DDE:2B3F:898A");
+        InetAddress internal = InetAddress.getByName("FE80:0000:0000:0000:0000:0000:0000:FFFF");
+        assertThat(UtilAll.isInternalV6IP(nonInternal)).isFalse();
+        assertThat(UtilAll.isInternalV6IP(internal)).isTrue();
+        assertThat(UtilAll.ipToIPv6Str(nonInternal.getAddress()).toUpperCase()).isEqualTo("2408:4004:0180:8100:3FAA:1DDE:2B3F:898A");
+    }
+
+    @Test
+    public void testJoin() {
+        List<String> list = Arrays.asList("groupA=DENY", "groupB=PUB|SUB", "groupC=SUB");
+        String comma = ",";
+        assertEquals("groupA=DENY,groupB=PUB|SUB,groupC=SUB", UtilAll.join(list, comma));
+        assertEquals(null, UtilAll.join(null, comma));
+        assertEquals("", UtilAll.join(Collections.emptyList(), comma));
     }
 
     static class DemoConfig {

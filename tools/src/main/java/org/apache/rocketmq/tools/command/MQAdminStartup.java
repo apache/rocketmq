@@ -21,19 +21,20 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import java.util.ArrayList;
 import java.util.List;
-import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclUtils;
-import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.tools.command.acl.ClusterAclConfigVersionListSubCommand;
+import org.apache.rocketmq.tools.command.acl.GetAccessConfigSubCommand;
+import org.apache.rocketmq.tools.command.acl.DeleteAccessConfigSubCommand;
+import org.apache.rocketmq.tools.command.acl.UpdateAccessConfigSubCommand;
+import org.apache.rocketmq.tools.command.acl.UpdateGlobalWhiteAddrSubCommand;
 import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
 import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
@@ -48,8 +49,11 @@ import org.apache.rocketmq.tools.command.connection.ProducerConnectionSubCommand
 import org.apache.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
 import org.apache.rocketmq.tools.command.consumer.ConsumerStatusSubCommand;
 import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
+import org.apache.rocketmq.tools.command.consumer.GetConsumerConfigSubCommand;
 import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
+import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
+import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
@@ -58,7 +62,9 @@ import org.apache.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
+import org.apache.rocketmq.tools.command.message.QueryMsgTraceByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
+import org.apache.rocketmq.tools.command.namesrv.AddWritePermSubCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.UpdateKvConfigCommand;
@@ -70,6 +76,7 @@ import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
+import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.topic.TopicClusterSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicRouteSubCommand;
@@ -81,6 +88,9 @@ import org.slf4j.LoggerFactory;
 
 public class MQAdminStartup {
     protected static List<SubCommand> subCommandList = new ArrayList<SubCommand>();
+
+    private static String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
+        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     public static void main(String[] args) {
         main0(args, null);
@@ -132,7 +142,7 @@ public class MQAdminStartup {
                             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
                         }
 
-                        cmd.execute(commandLine, options, getAclRPCHook());
+                        cmd.execute(commandLine, options, AclUtils.getAclRPCHook(rocketmqHome + MixAll.ACL_CONF_TOOLS_FILE));
                     } else {
                         System.out.printf("The sub command %s not exist.%n", args[0]);
                     }
@@ -160,6 +170,7 @@ public class MQAdminStartup {
         initCommand(new QueryMsgByKeySubCommand());
         initCommand(new QueryMsgByUniqueKeySubCommand());
         initCommand(new QueryMsgByOffsetSubCommand());
+        initCommand(new QueryMsgTraceByIdSubCommand());
 
         initCommand(new PrintMessageSubCommand());
         initCommand(new PrintMessageByQueueCommand());
@@ -179,6 +190,7 @@ public class MQAdminStartup {
         initCommand(new DeleteKvConfigCommand());
 
         initCommand(new WipeWritePermSubCommand());
+        initCommand(new AddWritePermSubCommand());
         initCommand(new ResetOffsetByTimeCommand());
 
         initCommand(new UpdateOrderConfCommand());
@@ -196,15 +208,25 @@ public class MQAdminStartup {
         initCommand(new GetNamesrvConfigCommand());
         initCommand(new UpdateNamesrvConfigCommand());
         initCommand(new GetBrokerConfigCommand());
+        initCommand(new GetConsumerConfigSubCommand());
 
         initCommand(new QueryConsumeQueueCommand());
         initCommand(new SendMessageCommand());
         initCommand(new ConsumeMessageCommand());
+
+        //for acl command
+        initCommand(new UpdateAccessConfigSubCommand());
+        initCommand(new DeleteAccessConfigSubCommand());
+        initCommand(new ClusterAclConfigVersionListSubCommand());
+        initCommand(new UpdateGlobalWhiteAddrSubCommand());
+        initCommand(new GetAccessConfigSubCommand());
+
+        initCommand(new ExportMetadataCommand());
+        initCommand(new ExportConfigsCommand());
+        initCommand(new ExportMetricsCommand());
     }
 
     private static void initLogback() throws JoranException {
-        String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(lc);
@@ -244,26 +266,5 @@ public class MQAdminStartup {
 
     public static void initCommand(SubCommand command) {
         subCommandList.add(command);
-    }
-
-    public static RPCHook getAclRPCHook() {
-        String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
-        String fileName = "/conf/tools.yml";
-        JSONObject yamlDataObject = AclUtils.getYamlDataObject(fileHome + fileName ,
-                JSONObject.class);
-
-        if (yamlDataObject == null || yamlDataObject.isEmpty()) {
-            System.out.printf(" Cannot find conf file %s, acl is not be enabled.%n" ,fileHome + fileName);
-            return null;
-        }
-
-        String accessKey = yamlDataObject.getString("accessKey");
-        String secretKey = yamlDataObject.getString("secretKey");
-
-        if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
-            System.out.printf("AccessKey or secretKey is blank, the acl is not enabled.%n");
-            return null;
-        }
-        return new AclClientRPCHook(new SessionCredentials(accessKey,secretKey));
     }
 }

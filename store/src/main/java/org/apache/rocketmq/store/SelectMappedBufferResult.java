@@ -48,17 +48,6 @@ public class SelectMappedBufferResult {
         this.byteBuffer.limit(this.size);
     }
 
-    public MappedFile getMappedFile() {
-        return mappedFile;
-    }
-
-//    @Override
-//    protected void finalize() {
-//        if (this.mappedFile != null) {
-//            this.release();
-//        }
-//    }
-
     public synchronized void release() {
         if (this.mappedFile != null) {
             this.mappedFile.release();

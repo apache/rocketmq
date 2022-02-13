@@ -21,22 +21,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -49,12 +51,11 @@ public class UtilAll {
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYYMMDDHHMMSS = "yyyyMMddHHmmss";
     final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    final static String HOST_NAME = ManagementFactory.getRuntimeMXBean().getName(); // format: "pid@hostname"
 
     public static int getPid() {
-        RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
-        String name = runtime.getName(); // format: "pid@hostname"
         try {
-            return Integer.parseInt(name.substring(0, name.indexOf('@')));
+            return Integer.parseInt(HOST_NAME.substring(0, HOST_NAME.indexOf('@')));
         } catch (Exception e) {
             return -1;
         }
@@ -91,7 +92,7 @@ public class UtilAll {
         return nf.format(offset);
     }
 
-    public static long computeEclipseTimeMilliseconds(final long beginTime) {
+    public static long computeElapsedTimeMilliseconds(final long beginTime) {
         return System.currentTimeMillis() - beginTime;
     }
 
@@ -122,7 +123,7 @@ public class UtilAll {
             cal.get(Calendar.MILLISECOND));
     }
 
-    public static long computNextMorningTimeMillis() {
+    public static long computeNextMorningTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 1);
@@ -134,7 +135,7 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-    public static long computNextMinutesTimeMillis() {
+    public static long computeNextMinutesTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 0);
@@ -146,7 +147,7 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-    public static long computNextHourTimeMillis() {
+    public static long computeNextHourTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 0);
@@ -158,7 +159,7 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
-    public static long computNextHalfHourTimeMillis() {
+    public static long computeNextHalfHourTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
         cal.add(Calendar.DAY_OF_MONTH, 0);
@@ -195,25 +196,42 @@ public class UtilAll {
             cal.get(Calendar.SECOND));
     }
 
+    public static boolean isPathExists(final String path) {
+        File file = new File(path);
+        return file.exists();
+    }
+
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
-        if (null == path || path.isEmpty())
+        if (null == path || path.isEmpty()) {
+            log.error("Error when measuring disk space usage, path is null or empty, path : {}", path);
             return -1;
+        }
+
 
         try {
             File file = new File(path);
 
-            if (!file.exists())
+            if (!file.exists()) {
+                log.error("Error when measuring disk space usage, file doesn't exist on this path: {}", path);
                 return -1;
+            }
+
 
             long totalSpace = file.getTotalSpace();
 
             if (totalSpace > 0) {
-                long freeSpace = file.getFreeSpace();
-                long usedSpace = totalSpace - freeSpace;
-
-                return usedSpace / (double) totalSpace;
+                long usedSpace = totalSpace - file.getFreeSpace();
+                long usableSpace = file.getUsableSpace();
+                long entireSpace = usedSpace + usableSpace;
+                long roundNum = 0;
+                if (usedSpace * 100 % entireSpace != 0) {
+                    roundNum = 1;
+                }
+                long result = usedSpace * 100 / entireSpace + roundNum;
+                return result / 100.0;
             }
         } catch (Exception e) {
+            log.error("Error when measuring disk space usage, got exception: :", e);
             return -1;
         }
 
@@ -436,40 +454,32 @@ public class UtilAll {
         return false;
     }
 
+    public static boolean isInternalV6IP(InetAddress inetAddr) {
+        if (inetAddr.isAnyLocalAddress() // Wild card ipv6
+            || inetAddr.isLinkLocalAddress() // Single broadcast ipv6 address: fe80:xx:xx...
+            || inetAddr.isLoopbackAddress() //Loopback ipv6 address
+            || inetAddr.isSiteLocalAddress()) { // Site local ipv6 address: fec0:xx:xx...
+            return true;
+        }
+        return false;
+    }
+
     private static boolean ipCheck(byte[] ip) {
         if (ip.length != 4) {
             throw new RuntimeException("illegal ipv4 bytes");
         }
 
-//        if (ip[0] == (byte)30 && ip[1] == (byte)10 && ip[2] == (byte)163 && ip[3] == (byte)120) {
-//        }
+        InetAddressValidator validator = InetAddressValidator.getInstance();
+        return validator.isValidInet4Address(ipToIPv4Str(ip));
+    }
 
-        if (ip[0] >= (byte) 1 && ip[0] <= (byte) 126) {
-            if (ip[1] == (byte) 1 && ip[2] == (byte) 1 && ip[3] == (byte) 1) {
-                return false;
-            }
-            if (ip[1] == (byte) 0 && ip[2] == (byte) 0 && ip[3] == (byte) 0) {
-                return false;
-            }
-            return true;
-        } else if (ip[0] >= (byte) 128 && ip[0] <= (byte) 191) {
-            if (ip[2] == (byte) 1 && ip[3] == (byte) 1) {
-                return false;
-            }
-            if (ip[2] == (byte) 0 && ip[3] == (byte) 0) {
-                return false;
-            }
-            return true;
-        } else if (ip[0] >= (byte) 192 && ip[0] <= (byte) 223) {
-            if (ip[3] == (byte) 1) {
-                return false;
-            }
-            if (ip[3] == (byte) 0) {
-                return false;
-            }
-            return true;
+    private static boolean ipV6Check(byte[] ip) {
+        if (ip.length != 16) {
+            throw new RuntimeException("illegal ipv6 bytes");
         }
-        return false;
+
+        InetAddressValidator validator = InetAddressValidator.getInstance();
+        return validator.isValidInet6Address(ipToIPv6Str(ip));
     }
 
     public static String ipToIPv4Str(byte[] ip) {
@@ -479,6 +489,25 @@ public class UtilAll {
         return new StringBuilder().append(ip[0] & 0xFF).append(".").append(
             ip[1] & 0xFF).append(".").append(ip[2] & 0xFF)
             .append(".").append(ip[3] & 0xFF).toString();
+    }
+
+    public static String ipToIPv6Str(byte[] ip) {
+        if (ip.length != 16) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < ip.length; i++) {
+            String hex = Integer.toHexString(ip[i] & 0xFF);
+            if (hex.length() < 2) {
+                sb.append(0);
+            }
+            sb.append(hex);
+            if (i % 2 == 1 && i < ip.length - 1) {
+                sb.append(":");
+            }
+        }
+        return sb.toString();
     }
 
     public static byte[] getIP() {
@@ -499,6 +528,15 @@ public class UtilAll {
                                     return ipByte;
                                 } else if (internalIP == null) {
                                     internalIP = ipByte;
+                                }
+                            }
+                        }
+                    } else if (ip != null && ip instanceof Inet6Address) {
+                        byte[] ipByte = ip.getAddress();
+                        if (ipByte.length == 16) {
+                            if (ipV6Check(ipByte)) {
+                                if (!isInternalV6IP(ip)) {
+                                    return ipByte;
                                 }
                             }
                         }
@@ -528,5 +566,30 @@ public class UtilAll {
             }
             file.delete();
         }
+    }
+
+    public static String join(List<String> list, String splitter) {
+        if (list == null) {
+            return null;
+        }
+
+        StringBuilder str = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            str.append(list.get(i));
+            if (i == list.size() - 1) {
+                break;
+            }
+            str.append(splitter);
+        }
+        return str.toString();
+    }
+
+    public static List<String> split(String str, String splitter) {
+        if (str == null) {
+            return null;
+        }
+
+        String[] addrArray = str.split(splitter);
+        return Arrays.asList(addrArray);
     }
 }

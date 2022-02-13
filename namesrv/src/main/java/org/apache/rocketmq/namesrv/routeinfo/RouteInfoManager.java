@@ -33,6 +33,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -128,6 +129,17 @@ public class RouteInfoManager {
                     brokerData = new BrokerData(clusterName, brokerName, new HashMap<Long, String>());
                     this.brokerAddrTable.put(brokerName, brokerData);
                 }
+                Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
+                //Switch slave to master: first remove <1, IP:PORT> in namesrv, then add <0, IP:PORT>
+                //The same IP:PORT must only have one record in brokerAddrTable
+                Iterator<Entry<Long, String>> it = brokerAddrsMap.entrySet().iterator();
+                while (it.hasNext()) {
+                    Entry<Long, String> item = it.next();
+                    if (null != brokerAddr && brokerAddr.equals(item.getValue()) && brokerId != item.getKey()) {
+                        it.remove();
+                    }
+                }
+
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
                 registerFirst = registerFirst || (null == oldAddr);
 
@@ -209,7 +221,7 @@ public class RouteInfoManager {
         queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
         queueData.setReadQueueNums(topicConfig.getReadQueueNums());
         queueData.setPerm(topicConfig.getPerm());
-        queueData.setTopicSynFlag(topicConfig.getTopicSysFlag());
+        queueData.setTopicSysFlag(topicConfig.getTopicSysFlag());
 
         List<QueueData> queueDataList = this.topicQueueTable.get(topicConfig.getTopicName());
         if (null == queueDataList) {
@@ -241,40 +253,52 @@ public class RouteInfoManager {
     }
 
     public int wipeWritePermOfBrokerByLock(final String brokerName) {
+        return operateWritePermOfBrokerByLock(brokerName, RequestCode.WIPE_WRITE_PERM_OF_BROKER);
+    }
+
+    public int addWritePermOfBrokerByLock(final String brokerName) {
+        return operateWritePermOfBrokerByLock(brokerName, RequestCode.ADD_WRITE_PERM_OF_BROKER);
+    }
+
+    private int operateWritePermOfBrokerByLock(final String brokerName, final int requestCode) {
         try {
             try {
                 this.lock.writeLock().lockInterruptibly();
-                return wipeWritePermOfBroker(brokerName);
+                return operateWritePermOfBroker(brokerName, requestCode);
             } finally {
                 this.lock.writeLock().unlock();
             }
         } catch (Exception e) {
-            log.error("wipeWritePermOfBrokerByLock Exception", e);
+            log.error("operateWritePermOfBrokerByLock Exception", e);
         }
 
         return 0;
     }
 
-    private int wipeWritePermOfBroker(final String brokerName) {
-        int wipeTopicCnt = 0;
-        Iterator<Entry<String, List<QueueData>>> itTopic = this.topicQueueTable.entrySet().iterator();
-        while (itTopic.hasNext()) {
-            Entry<String, List<QueueData>> entry = itTopic.next();
+
+    private int operateWritePermOfBroker(final String brokerName, final int requestCode) {
+        int topicCnt = 0;
+        for (Entry<String, List<QueueData>> entry : this.topicQueueTable.entrySet()) {
             List<QueueData> qdList = entry.getValue();
 
-            Iterator<QueueData> it = qdList.iterator();
-            while (it.hasNext()) {
-                QueueData qd = it.next();
+            for (QueueData qd : qdList) {
                 if (qd.getBrokerName().equals(brokerName)) {
                     int perm = qd.getPerm();
-                    perm &= ~PermName.PERM_WRITE;
+                    switch (requestCode) {
+                        case RequestCode.WIPE_WRITE_PERM_OF_BROKER:
+                            perm &= ~PermName.PERM_WRITE;
+                            break;
+                        case RequestCode.ADD_WRITE_PERM_OF_BROKER:
+                            perm = PermName.PERM_READ | PermName.PERM_WRITE;
+                            break;
+                    }
                     qd.setPerm(perm);
-                    wipeTopicCnt++;
+                    topicCnt++;
                 }
             }
         }
 
-        return wipeTopicCnt;
+        return topicCnt;
     }
 
     public void unregisterBroker(
@@ -673,7 +697,7 @@ public class RouteInfoManager {
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
-                        && TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        && TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSysFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
@@ -699,7 +723,7 @@ public class RouteInfoManager {
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
-                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSysFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
@@ -725,8 +749,8 @@ public class RouteInfoManager {
                     String topic = topicEntry.getKey();
                     List<QueueData> queueDatas = topicEntry.getValue();
                     if (queueDatas != null && queueDatas.size() > 0
-                        && !TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSynFlag())
-                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSynFlag())) {
+                        && !TopicSysFlag.hasUnitFlag(queueDatas.get(0).getTopicSysFlag())
+                        && TopicSysFlag.hasUnitSubFlag(queueDatas.get(0).getTopicSysFlag())) {
                         topicList.getTopicList().add(topic);
                     }
                 }
