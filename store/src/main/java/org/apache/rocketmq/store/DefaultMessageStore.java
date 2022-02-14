@@ -1321,6 +1321,47 @@ public class DefaultMessageStore implements MessageStore {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                try {
+                    DefaultMessageStore.this.commitLog.swapMap(getMessageStoreConfig().getCommitLogSwapMapReserveFileNum(),
+                        getMessageStoreConfig().getCommitLogForceSwapMapInterval(), getMessageStoreConfig().getCommitLogSwapMapInterval());
+                    for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : getConsumeQueueTable().values()) {
+                        for (ConsumeQueueInterface logic : maps.values()) {
+                            consumeQueueStore.swapMap(
+                                logic,
+                                getMessageStoreConfig().getLogicQueueSwapMapReserveFileNum(),
+                                getMessageStoreConfig().getLogicQueueForceSwapMapInterval(),
+                                getMessageStoreConfig().getLogicQueueSwapMapInterval()
+                            );
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("swap map exception", e);
+                }
+            }
+        }, 1, 5, TimeUnit.MINUTES);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    DefaultMessageStore.this.commitLog.cleanSwappedMap(getMessageStoreConfig().getCleanSwapedMapInterval());
+                    for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : getConsumeQueueTable().values()) {
+                        for (ConsumeQueueInterface logic : maps.values()) {
+                            consumeQueueStore.cleanSwappedMap(
+                                logic,
+                                getMessageStoreConfig().getCleanSwapedMapInterval()
+                            );
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("clean swapped map exception", e);
+                }
+            }
+        }, 1, 5, TimeUnit.MINUTES);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
                 if (DefaultMessageStore.this.getMessageStoreConfig().isDebugLockEnable()) {
                     try {
                         if (DefaultMessageStore.this.commitLog.getBeginTimeInLock() != 0) {
