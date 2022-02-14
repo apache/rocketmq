@@ -455,6 +455,9 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
 
             if (ConsumeMessagePopConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, returnType.name());
+                consumeMessageContext.setStatus(status.toString());
+                consumeMessageContext.setSuccess(ConsumeConcurrentlyStatus.CONSUME_SUCCESS == status);
+                ConsumeMessagePopConcurrentlyService.this.defaultMQPushConsumerImpl.executeHookAfter(consumeMessageContext);
             }
 
             ConsumeMessagePopConcurrentlyService.this.getConsumerStatsManager()
