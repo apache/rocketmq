@@ -52,10 +52,8 @@ public class PlainPermissionManager {
     private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
-    private String defaultAclDir = fileHome + File.separator + "conf";
+    private String defaultAclDir = fileHome + File.separator + "conf" + File.separator + "acl";
 
-    //private String defaultAclFile = fileHome + File.separator
-      //  + System.getProperty("rocketmq.acl.dir", "/conf") + File.separator + "plain_acl.yml";
     private String defaultAclFile = fileHome + File.separator + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml");
 
     private Map<String/** fileFullPath **/, Map<String/** AccessKey **/, PlainAccessResource>> aclPlainAccessResourceMap = new HashMap<>();
@@ -83,6 +81,9 @@ public class PlainPermissionManager {
     }
 
     public List<String> getAllAclFiles(String path) {
+        if (!new File(path).isDirectory()) {
+            return new ArrayList<>();
+        }
         List<String>  allAclFileFullPath = new ArrayList<>();
         File file = new File(path);
         File[] files = file.listFiles();

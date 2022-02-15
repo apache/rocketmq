@@ -843,8 +843,8 @@ public class PlainAccessValidatorTest {
     public void getAllAclConfigTest() {
         PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
         AclConfig aclConfig = plainAccessValidator.getAllAclConfig();
-        Assert.assertEquals(aclConfig.getGlobalWhiteAddrs().size(), 14);
-        Assert.assertEquals(aclConfig.getPlainAccessConfigs().size(), 4);
+        Assert.assertEquals(aclConfig.getGlobalWhiteAddrs().size(), 4);
+        Assert.assertEquals(aclConfig.getPlainAccessConfigs().size(), 2);
     }
 
     @Test

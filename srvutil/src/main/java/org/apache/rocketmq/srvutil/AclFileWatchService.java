@@ -49,7 +49,7 @@ public class AclFileWatchService extends ServiceThread {
 
     public AclFileWatchService(String path, final AclFileWatchService.Listener listener) throws Exception {
         this.aclPath = path;
-        this.defaultAclFile = path.substring(0, path.length() - 4) + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml");
+        this.defaultAclFile = new File(path).getParentFile().getParent() + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml");
         this.fileCurrentHash = new HashMap<>();
         this.fileLastModifiedTime = new HashMap<>();
         this.listener = listener;
