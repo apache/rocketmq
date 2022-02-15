@@ -48,7 +48,7 @@ before_script:
   - ulimit -c unlimited
 
 script:
-  - mvn -B -ntp verify -DskipTests
+  - mvn -B verify -DskipTests
   - travis_retry mvn -B clean apache-rat:check
   - travis_retry mvn -B install jacoco:report coveralls:report
   - travis_retry mvn -B clean install -pl test -Pit-test
