@@ -81,7 +81,8 @@ public class PlainPermissionManager {
     }
 
     public List<String> getAllAclFiles(String path) {
-        if (!new File(path).isDirectory()) {
+        if (!new File(path).exists()) {
+            log.info("The default acl dir {} is not exist", path);
             return new ArrayList<>();
         }
         List<String>  allAclFileFullPath = new ArrayList<>();

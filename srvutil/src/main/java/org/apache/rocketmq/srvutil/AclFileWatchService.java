@@ -68,6 +68,10 @@ public class AclFileWatchService extends ServiceThread {
 
     public void getAllAclFiles(String path) {
         File file = new File(path);
+        if (!file.exists()) {
+            log.info("The default acl dir {} is not exist", path);
+            return;
+        }
         File[] files = file.listFiles();
         for (int i = 0; i < files.length; i++) {
             String fileName = files[i].getAbsolutePath();
