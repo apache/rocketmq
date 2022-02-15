@@ -519,7 +519,7 @@ public class PlainPermissionManager {
 
     private void watch() {
         try {
-            AclFileWatchService aclFileWatchService = new AclFileWatchService(defaultAclDir, new AclFileWatchService.Listener() {
+            AclFileWatchService aclFileWatchService = new AclFileWatchService(defaultAclDir, defaultAclFile, new AclFileWatchService.Listener() {
                 @Override
                 public void onFileChanged(String aclFileName) {
                     load(aclFileName);

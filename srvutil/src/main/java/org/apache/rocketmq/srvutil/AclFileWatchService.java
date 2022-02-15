@@ -47,15 +47,15 @@ public class AclFileWatchService extends ServiceThread {
     private MessageDigest md = MessageDigest.getInstance("MD5");
     private String defaultAclFile;
 
-    public AclFileWatchService(String path, final AclFileWatchService.Listener listener) throws Exception {
+    public AclFileWatchService(String path, String defaultAclFile, final AclFileWatchService.Listener listener) throws Exception {
         this.aclPath = path;
-        this.defaultAclFile = new File(path).getParentFile().getParent() + System.getProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml");
+        this.defaultAclFile = defaultAclFile;
         this.fileCurrentHash = new HashMap<>();
         this.fileLastModifiedTime = new HashMap<>();
         this.listener = listener;
 
         getAllAclFiles(path);
-        if (!fileList.contains(this.defaultAclFile)) {
+        if (new File(this.defaultAclFile).exists() && !fileList.contains(this.defaultAclFile)) {
             fileList.add(this.defaultAclFile);
         }
         this.aclFilesNum = fileList.size();
@@ -99,7 +99,7 @@ public class AclFileWatchService extends ServiceThread {
                     fileList.clear();
                 }
                 getAllAclFiles(aclPath);
-                if (!fileList.contains(defaultAclFile)) {
+                if (new File(defaultAclFile).exists() && !fileList.contains(defaultAclFile)) {
                     fileList.add(defaultAclFile);
                 }
                 int realAclFilesNum = fileList.size();
