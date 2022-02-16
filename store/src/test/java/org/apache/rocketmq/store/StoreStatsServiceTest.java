@@ -89,4 +89,17 @@ public class StoreStatsServiceTest {
         }
     }
 
+    @Test
+    public void findPutMessageEntireTimePXTest() {
+        final StoreStatsService storeStatsService = new StoreStatsService();
+        for (int i = 1; i <= 1000; i++) {
+            for (int j = 0; j < i; j++) {
+                storeStatsService.incPutMessageEntireTime(i);
+            }
+        }
+        storeStatsService.initPutMessageTimeBuckets();
+        System.out.println(storeStatsService.findPutMessageEntireTimePX(0.99));
+        System.out.println(storeStatsService.findPutMessageEntireTimePX(0.999));
+    }
+
 }
