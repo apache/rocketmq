@@ -292,12 +292,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     @Override
     public Set<String> getPublishTopicList() {
-        Set<String> topicList = new HashSet<String>();
-        for (String key : this.topicPublishInfoTable.keySet()) {
-            topicList.add(key);
-        }
-
-        return topicList;
+        return new HashSet<>(this.topicPublishInfoTable.keySet());
     }
 
     @Override
@@ -622,14 +617,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             default:
                                 break;
                         }
-                    } catch (RemotingException e) {
-                        endTimestamp = System.currentTimeMillis();
-                        this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
-                        log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
-                        log.warn(msg.toString());
-                        exception = e;
-                        continue;
-                    } catch (MQClientException e) {
+                    } catch (RemotingException | MQClientException e) {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn(String.format("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
