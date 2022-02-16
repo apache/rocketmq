@@ -113,7 +113,6 @@
         <module>store</module>
         <module>namesrv</module>
         <module>remoting</module>
-        <module>logappender</module>
         <module>srvutil</module>
         <module>filter</module>
         <module>test</module>
