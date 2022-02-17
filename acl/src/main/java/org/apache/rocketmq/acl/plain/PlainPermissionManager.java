@@ -299,11 +299,18 @@ public class PlainPermissionManager {
                 }
             }
             Map<String, PlainAccessResource> accountMap = aclPlainAccessResourceMap.get(aclFileName);
-            for (Map.Entry<String, PlainAccessResource> entry : accountMap.entrySet()) {
-                if (entry.getValue().equals(plainAccessConfig.getAccessKey())) {
-                    PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
-                    accountMap.put(entry.getKey(), plainAccessResource);
-                    break;
+            if (accountMap == null) {
+                accountMap = new HashMap<String, PlainAccessResource>(1);
+                accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
+            } else if (accountMap.size() == 0) {
+                accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
+            } else {
+                for (Map.Entry<String, PlainAccessResource> entry : accountMap.entrySet()) {
+                    if (entry.getValue().equals(plainAccessConfig.getAccessKey())) {
+                        PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
+                        accountMap.put(entry.getKey(), plainAccessResource);
+                        break;
+                    }
                 }
             }
             aclPlainAccessResourceMap.put(aclFileName, accountMap);
