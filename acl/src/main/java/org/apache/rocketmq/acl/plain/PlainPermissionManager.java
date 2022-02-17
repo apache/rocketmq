@@ -303,6 +303,7 @@ public class PlainPermissionManager {
                 if (entry.getValue().equals(plainAccessConfig.getAccessKey())) {
                     PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
                     accountMap.put(entry.getKey(), plainAccessResource);
+                    break;
                 }
             }
             aclPlainAccessResourceMap.put(aclFileName, accountMap);

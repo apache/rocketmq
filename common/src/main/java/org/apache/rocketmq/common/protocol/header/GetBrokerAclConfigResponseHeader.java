@@ -16,19 +16,16 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-import java.util.Map;
 
 public class GetBrokerAclConfigResponseHeader implements CommandCustomHeader {
 
     @CFNotNull
     private String version;
 
-    private Map<String, DataVersion> allAclFileVersion;
+    private String allAclFileVersion;
 
     @CFNotNull
     private String brokerName;
@@ -74,11 +71,11 @@ public class GetBrokerAclConfigResponseHeader implements CommandCustomHeader {
         this.clusterName = clusterName;
     }
 
-    public Map<String, DataVersion> getAllAclFileVersion() {
+    public String getAllAclFileVersion() {
         return allAclFileVersion;
     }
 
-    public void setAllAclFileVersion(Map<String, DataVersion> allAclFileVersion) {
+    public void setAllAclFileVersion(String allAclFileVersion) {
         this.allAclFileVersion = allAclFileVersion;
     }
 }

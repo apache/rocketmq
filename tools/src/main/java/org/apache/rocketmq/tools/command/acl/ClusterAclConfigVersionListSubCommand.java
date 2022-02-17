@@ -86,10 +86,11 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
 
                 Set<String> masterSet =
                     CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
-                System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s%n",
+                System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s  %-22s%n",
                     "#Cluster Name",
                     "#Broker Name",
                     "#Broker Addr",
+                    "#AclFilePath",
                     "#AclConfigVersionNum",
                     "#AclLastUpdateTime"
                 );
@@ -123,7 +124,7 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
                     clusterAclVersionInfo.getBrokerName(),
                     clusterAclVersionInfo.getBrokerAddr(),
                     entry.getKey(),
-                    entry.getValue().getCounter(),
+                    String.valueOf(entry.getValue().getCounter()),
                     sdf.format(new Timestamp(entry.getValue().getTimestamp()))
                 );
             }
