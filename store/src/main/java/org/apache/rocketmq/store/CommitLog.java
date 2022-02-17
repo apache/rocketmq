@@ -79,6 +79,7 @@ public class CommitLog {
     private volatile Set<String> fullStorePaths = Collections.emptySet();
 
     private final MultiDispatch multiDispatch;
+    private final FlushDiskWatcher flushDiskWatcher;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         String storePath = defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog();
@@ -113,6 +114,7 @@ public class CommitLog {
 
         this.multiDispatch = new MultiDispatch(defaultMessageStore, this);
 
+        flushDiskWatcher = new FlushDiskWatcher();
     }
 
     public void setFullStorePaths(Set<String> fullStorePaths) {
@@ -136,6 +138,10 @@ public class CommitLog {
     public void start() {
         this.flushCommitLogService.start();
 
+        flushDiskWatcher.setDaemon(true);
+        flushDiskWatcher.start();
+
+
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();
         }
@@ -147,6 +153,8 @@ public class CommitLog {
         }
 
         this.flushCommitLogService.shutdown();
+
+        flushDiskWatcher.shutdown(true);
     }
 
     public long flush() {
@@ -722,10 +730,6 @@ public class CommitLog {
             }
             if (replicaStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(replicaStatus);
-                if (replicaStatus == PutMessageStatus.FLUSH_SLAVE_TIMEOUT) {
-                    log.error("do sync transfer other node, wait return, but failed, topic: {} tags: {} client address: {}",
-                            msg.getTopic(), msg.getTags(), msg.getBornHostNameString());
-                }
             }
             return putMessageResult;
         });
@@ -835,10 +839,6 @@ public class CommitLog {
             }
             if (replicaStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(replicaStatus);
-                if (replicaStatus == PutMessageStatus.FLUSH_SLAVE_TIMEOUT) {
-                    log.error("do sync transfer other node, wait return, but failed, topic: {} client address: {}",
-                            messageExtBatch.getTopic(), messageExtBatch.getBornHostNameString());
-                }
             }
             return putMessageResult;
         });
@@ -852,6 +852,7 @@ public class CommitLog {
             if (messageExt.isWaitStoreMsgOK()) {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
                         this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                flushDiskWatcher.add(request);
                 service.putRequest(request);
                 return request.future();
             } else {
@@ -876,7 +877,7 @@ public class CommitLog {
             if (messageExt.isWaitStoreMsgOK()) {
                 if (service.isSlaveOK(result.getWroteBytes() + result.getWroteOffset())) {
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                            this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                            this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout());
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
                     return request.future();
@@ -1142,18 +1143,16 @@ public class CommitLog {
     public static class GroupCommitRequest {
         private final long nextOffset;
         private CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
-        private final long startTimestamp = System.currentTimeMillis();
-        private long timeoutMillis = Long.MAX_VALUE;
+        private final long deadLine;
 
         public GroupCommitRequest(long nextOffset, long timeoutMillis) {
             this.nextOffset = nextOffset;
-            this.timeoutMillis = timeoutMillis;
+            this.deadLine = System.nanoTime() + (timeoutMillis * 1_000_000);
         }
 
-        public GroupCommitRequest(long nextOffset) {
-            this.nextOffset = nextOffset;
+        public long getDeadLine() {
+            return deadLine;
         }
-
 
         public long getNextOffset() {
             return nextOffset;
