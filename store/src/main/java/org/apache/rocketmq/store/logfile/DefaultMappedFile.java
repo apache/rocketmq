@@ -616,27 +616,28 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     @Override
-    public void cleanSwapedMap(boolean force) {
+    public void cleanSwappedMap(boolean force) {
         try {
-            if (this.mappedByteBufferWaitToClean == null) {
+            // Set a [ref count > 1] fence here since the swapped buffer to be cleaned was probably being referred by reader at that time.
+            if (this.getRefCount() > 1 || this.mappedByteBufferWaitToClean == null) {
                 return;
             }
             long minGapTime = 120 * 1000L;
             long gapTime = System.currentTimeMillis() - this.swapMapTime;
             if (!force && gapTime < minGapTime) {
-                Thread.sleep(minGapTime - gapTime);
+                return;
             }
             clean(this.mappedByteBufferWaitToClean);
             mappedByteBufferWaitToClean = null;
-            log.info("cleanSwapedMap file " + this.fileName + " success.");
+            log.info("cleanSwappedMap file " + this.fileName + " success.");
         } catch (Exception e) {
-            log.error("cleanSwapedMap file " + this.fileName + " Failed. ", e);
+            log.error("cleanSwappedMap file " + this.fileName + " Failed. ", e);
         }
     }
 
     @Override
     public long getRecentSwapMapTime() {
-        return 0;
+        return this.swapMapTime;
     }
 
     @Override

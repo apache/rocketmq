@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -37,7 +38,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathBatchConsumeQueue;
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathConsumeQueue;
@@ -51,8 +56,11 @@ public class ConsumeQueueStore {
     protected final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
 
     // Should be careful, do not change the topic config
-    // TopicConfigManager is more suitable here.
+    // Put TopicConfigManager is more suitable here.
     private ConcurrentMap<String, TopicConfig> topicConfigTable;
+
+    private final ScheduledExecutorService scheduledExecutorService =
+            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("consumeQueueStoreScheduledThread"));
 
     public ConsumeQueueStore(MessageStore messageStore, MessageStoreConfig messageStoreConfig) {
         this.messageStore = messageStore;
@@ -95,6 +103,42 @@ public class ConsumeQueueStore {
         this.putMessagePositionInfoWrapper(cq, dispatchRequest);
     }
 
+    public void start() {
+        this.addScheduleTask();
+    }
+
+    private void addScheduleTask() {
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : getConsumeQueueTable().values()) {
+                    for (ConsumeQueueInterface logic : maps.values()) {
+                        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(logic.getTopic(), logic.getQueueId());
+                        fileQueueLifeCycle.swapMap(
+                            messageStoreConfig.getLogicQueueSwapMapReserveFileNum(),
+                            messageStoreConfig.getLogicQueueForceSwapMapInterval(),
+                            messageStoreConfig.getLogicQueueSwapMapInterval()
+                        );
+                    }
+                }
+            } catch (Exception e) {
+                log.error("swap queue map exception", e);
+            }
+        }, 1, 5, TimeUnit.MINUTES);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : getConsumeQueueTable().values()) {
+                    for (ConsumeQueueInterface logic : maps.values()) {
+                        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(logic.getTopic(), logic.getQueueId());
+                        fileQueueLifeCycle.cleanSwappedMap(messageStoreConfig.getCleanSwapedMapInterval());
+                    }
+                }
+            } catch (Exception e) {
+                log.error("clean swapped queue map exception", e);
+            }
+        }, 1, 5, TimeUnit.MINUTES);
+    }
+
     public boolean load(ConsumeQueueInterface consumeQueue) {
         FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
         return fileQueueLifeCycle.load();
@@ -107,6 +151,9 @@ public class ConsumeQueueStore {
     }
 
     private boolean loadConsumeQueues(String storePath, CQType cqType) {
+        checkNotNull(storePath);
+        checkNotNull(cqType);
+
         File dirLogic = new File(storePath);
         File[] fileTopicList = dirLogic.listFiles();
         if (fileTopicList != null) {
@@ -157,7 +204,7 @@ public class ConsumeQueueStore {
                     this.messageStoreConfig.getMapperFileSizeBatchConsumeQueue(),
                     this.messageStore);
         } else {
-            throw new RuntimeException(format("queue type %s is not supported.", cqType.toString()));
+            throw new RuntimeException(format("queue type %s is not supported.", cqType));
         }
     }
 
@@ -221,16 +268,6 @@ public class ConsumeQueueStore {
     public void truncateDirtyLogicFiles(ConsumeQueueInterface consumeQueue, long phyOffset) {
         FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
         fileQueueLifeCycle.truncateDirtyLogicFiles(phyOffset);
-    }
-
-    public void swapMap(ConsumeQueueInterface consumeQueue, int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
-        fileQueueLifeCycle.swapMap(reserveNum, forceSwapIntervalMs, normalSwapIntervalMs);
-    }
-
-    public void cleanSwappedMap(ConsumeQueueInterface consumeQueue, long forceCleanSwapIntervalMs) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
-        fileQueueLifeCycle.cleanSwappedMap(forceCleanSwapIntervalMs);
     }
 
     public boolean isFirstFileAvailable(ConsumeQueueInterface consumeQueue) {

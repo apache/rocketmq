@@ -636,7 +636,7 @@ public class MappedFileQueue implements Swappable {
         for (int i = mfs.length - reserveNum - 1; i >= 0; i--) {
             MappedFile mappedFile = (MappedFile) mfs[i];
             if (System.currentTimeMillis() - mappedFile.getRecentSwapMapTime() > forceCleanSwapIntervalMs) {
-                mappedFile.cleanSwapedMap(false);
+                mappedFile.cleanSwappedMap(false);
             }
         }
     }

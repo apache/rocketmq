@@ -311,6 +311,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
+        this.consumeQueueStore.start();
         this.storeStatsService.start();
 
         this.createTempFile();

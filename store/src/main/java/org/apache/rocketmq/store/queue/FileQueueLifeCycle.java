@@ -20,6 +20,9 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.Swappable;
 
+/**
+ * File-based implementation of Queue.
+ */
 public interface FileQueueLifeCycle extends Swappable {
     boolean load();
     void recover();

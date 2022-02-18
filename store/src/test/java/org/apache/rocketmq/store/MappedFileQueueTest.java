@@ -287,7 +287,7 @@ public class MappedFileQueueTest {
                             for (MappedFile mappedFile : mappedFileQueue.getMappedFiles()) {
                                 mappedFile.swapMap();
                                 Thread.sleep(10);
-                                mappedFile.cleanSwapedMap(true);
+                                mappedFile.cleanSwappedMap(true);
                             }
                         }
                     } catch (Throwable t) {
@@ -364,8 +364,8 @@ public class MappedFileQueueTest {
             executor.submit(() -> {
                 try {
                     for (MappedFile mappedFile : mappedFileQueue.getMappedFiles()) {
-                        mappedFile.cleanSwapedMap(true);
-                        mappedFile.cleanSwapedMap(true);
+                        mappedFile.cleanSwappedMap(true);
+                        mappedFile.cleanSwappedMap(true);
                     }
                 } catch (Exception e) {
                     hasException.set(true);
