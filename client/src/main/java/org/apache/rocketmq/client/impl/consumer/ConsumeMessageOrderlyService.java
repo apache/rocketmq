@@ -97,7 +97,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    ConsumeMessageOrderlyService.this.lockMQPeriodically();
+                    try {
+                        ConsumeMessageOrderlyService.this.lockMQPeriodically();
+                    } catch (Throwable e) {
+                        log.error("scheduleAtFixedRate lockMQPeriodically exception", e);
+                    }
                 }
             }, 1000 * 1, ProcessQueue.REBALANCE_LOCK_INTERVAL, TimeUnit.MILLISECONDS);
         }
