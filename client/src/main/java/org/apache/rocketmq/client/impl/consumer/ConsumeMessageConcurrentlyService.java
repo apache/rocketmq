@@ -93,7 +93,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
             @Override
             public void run() {
-                cleanExpireMsg();
+                try {
+                    cleanExpireMsg();
+                } catch (Throwable e) {
+                    log.error("scheduleAtFixedRate cleanExpireMsg exception", e);
+                }
             }
 
         }, this.defaultMQPushConsumer.getConsumeTimeout(), this.defaultMQPushConsumer.getConsumeTimeout(), TimeUnit.MINUTES);
