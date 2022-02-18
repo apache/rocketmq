@@ -293,9 +293,9 @@ public interface MappedFile {
     boolean swapMap();
 
     /**
-     * Clean pageTable
+     * Clean mapped buffer
      */
-    void cleanSwapedMap(boolean force);
+    void cleanSwappedMap(boolean force);
 
     /**
      * Get recent swap map time

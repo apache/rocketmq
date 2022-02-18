@@ -311,6 +311,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
+        this.consumeQueueStore.start();
         this.storeStatsService.start();
 
         this.createTempFile();
@@ -1317,47 +1318,6 @@ public class DefaultMessageStore implements MessageStore {
                 DefaultMessageStore.this.checkSelf();
             }
         }, 1, 10, TimeUnit.MINUTES);
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    DefaultMessageStore.this.commitLog.swapMap(getMessageStoreConfig().getCommitLogSwapMapReserveFileNum(),
-                        getMessageStoreConfig().getCommitLogForceSwapMapInterval(), getMessageStoreConfig().getCommitLogSwapMapInterval());
-                    for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : getConsumeQueueTable().values()) {
-                        for (ConsumeQueueInterface logic : maps.values()) {
-                            consumeQueueStore.swapMap(
-                                logic,
-                                getMessageStoreConfig().getLogicQueueSwapMapReserveFileNum(),
-                                getMessageStoreConfig().getLogicQueueForceSwapMapInterval(),
-                                getMessageStoreConfig().getLogicQueueSwapMapInterval()
-                            );
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("swap map exception", e);
-                }
-            }
-        }, 1, 5, TimeUnit.MINUTES);
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    DefaultMessageStore.this.commitLog.cleanSwappedMap(getMessageStoreConfig().getCleanSwapedMapInterval());
-                    for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : getConsumeQueueTable().values()) {
-                        for (ConsumeQueueInterface logic : maps.values()) {
-                            consumeQueueStore.cleanSwappedMap(
-                                logic,
-                                getMessageStoreConfig().getCleanSwapedMapInterval()
-                            );
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("clean swapped map exception", e);
-                }
-            }
-        }, 1, 5, TimeUnit.MINUTES);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override

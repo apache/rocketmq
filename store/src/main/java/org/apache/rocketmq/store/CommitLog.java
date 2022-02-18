@@ -31,11 +31,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -59,7 +62,7 @@ import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 /**
  * Store all metadata downtime for recovery, data protection reliability
  */
-public class CommitLog implements Swappable {
+public class CommitLog {
     // Message's MAGIC CODE daa320a7
     public final static int MESSAGE_MAGIC_CODE = -626843481;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -67,6 +70,9 @@ public class CommitLog implements Swappable {
     protected final static int BLANK_MAGIC_CODE = -875286124;
     protected final MappedFileQueue mappedFileQueue;
     protected final MessageStore defaultMessageStore;
+
+    private final ScheduledExecutorService scheduledExecutorService =
+            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CommitLogScheduledThread"));
 
     private final FlushManager flushManager;
 
@@ -132,7 +138,30 @@ public class CommitLog implements Swappable {
 
     public void start() {
         this.flushManager.start();
+        this.addScheduleTask();
         log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
+    }
+
+    private void addScheduleTask() {
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                CommitLog.this.mappedFileQueue.swapMap(
+                    defaultMessageStore.getMessageStoreConfig().getCommitLogSwapMapReserveFileNum(),
+                    defaultMessageStore.getMessageStoreConfig().getCommitLogForceSwapMapInterval(),
+                    defaultMessageStore.getMessageStoreConfig().getCommitLogSwapMapInterval()
+                );
+            } catch (Exception e) {
+                log.error("swap commit log map exception", e);
+            }
+        }, 1, 5, TimeUnit.MINUTES);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                CommitLog.this.mappedFileQueue.cleanSwappedMap(defaultMessageStore.getMessageStoreConfig().getCleanSwapedMapInterval());
+            } catch (Exception e) {
+                log.error("clean swapped commit log map exception", e);
+            }
+        }, 1, 5, TimeUnit.MINUTES);
     }
 
     public void shutdown() {
@@ -1981,16 +2010,6 @@ public class CommitLog implements Swappable {
 
     public MessageStore getMessageStore() {
         return defaultMessageStore;
-    }
-
-    @Override
-    public void swapMap(int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs) {
-        this.getMappedFileQueue().swapMap(reserveNum, forceSwapIntervalMs, normalSwapIntervalMs);
-    }
-
-    @Override
-    public void cleanSwappedMap(long forceCleanSwapIntervalMs) {
-        this.getMappedFileQueue().cleanSwappedMap(forceCleanSwapIntervalMs);
     }
 
     static class PutMessageThreadLocal {

@@ -19,6 +19,10 @@ package org.apache.rocketmq.store.queue;
 
 import org.apache.rocketmq.common.attribute.CQType;
 
+/**
+ * Defines what a ConsumeQueue is, regardless of how it is implemented.
+ *
+ */
 public interface ConsumeQueueInterface {
     /**
      * Get the topic name

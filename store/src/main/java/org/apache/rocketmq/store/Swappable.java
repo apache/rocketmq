@@ -17,9 +17,30 @@
 package org.apache.rocketmq.store;
 
 /**
- * Clean up page-table on super large disk
+ * Swapping mapped-byte-buffer to save memory on a system with extra-large disks.
+ *
+ * Reason:
+ * Mapping items between virtual memory and physical memory occupies memory space. If more mapped-memory is used and not
+ * freed, page table gets bigger and bigger, which can cause physical memory shortages.
+ *
+ * Solution:
+ * Memory in the page table can be partially freed if we periodically clean up the mmap of "cold data".
+ *
  */
 public interface Swappable {
+    /**
+     * Swap a mapped but un-referred mapped buffer.
+     *
+     * @param reserveNum keep the reserved number of files from being swapped.
+     * @param forceSwapIntervalMs the force interval of swapping buffer
+     * @param normalSwapIntervalMs  the normal interval of swapping buffer
+     */
     void swapMap(int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs);
+
+    /**
+     * Clean the swapped buffer.
+     *
+     * @param forceCleanSwapIntervalMs the force interval of cleaning swapped buffer
+     */
     void cleanSwappedMap(long forceCleanSwapIntervalMs);
 }
