@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
 
@@ -54,9 +56,9 @@ public class MessageQueueMsg {
     }
 
     private void init() {
-        for (MessageQueue mq : msgsWithMQ.keySet()) {
-            msgsWithMQId.put(mq.getQueueId(), msgsWithMQ.get(mq));
-            msgBodys.addAll(MQMessageFactory.getMessageBody(msgsWithMQ.get(mq)));
+        for (Entry<MessageQueue, List<Object>> mqEntry : msgsWithMQ.entrySet()) {
+            msgsWithMQId.put(mqEntry.getKey().getQueueId(), mqEntry.getValue());
+            msgBodys.addAll(MQMessageFactory.getMessageBody(mqEntry.getValue()));
         }
     }
 }

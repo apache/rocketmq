@@ -31,7 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class NormalMsgDelayIT extends DelayConf {
-    private static Logger logger = Logger.getLogger(NormalMsgStaticBalanceIT.class);
+    private static Logger logger = Logger.getLogger(NormalMsgDelayIT.class);
     protected int msgSize = 100;
     private RMQNormalProducer producer = null;
     private RMQNormalConsumer consumer = null;

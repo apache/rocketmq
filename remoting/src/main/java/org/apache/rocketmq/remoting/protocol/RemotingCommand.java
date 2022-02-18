@@ -24,12 +24,12 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
@@ -136,12 +136,12 @@ public class RemotingCommand {
         return createResponseCommand(code, remark, null);
     }
 
-    public static RemotingCommand decode(final byte[] array) {
+    public static RemotingCommand decode(final byte[] array) throws RemotingCommandException {
         ByteBuffer byteBuffer = ByteBuffer.wrap(array);
         return decode(byteBuffer);
     }
 
-    public static RemotingCommand decode(final ByteBuffer byteBuffer) {
+    public static RemotingCommand decode(final ByteBuffer byteBuffer) throws RemotingCommandException {
         int length = byteBuffer.limit();
         int oriHeaderLen = byteBuffer.getInt();
         int headerLength = getHeaderLength(oriHeaderLen);
@@ -166,7 +166,7 @@ public class RemotingCommand {
         return length & 0xFFFFFF;
     }
 
-    private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) {
+    private static RemotingCommand headerDecode(byte[] headerData, SerializeType type) throws RemotingCommandException {
         switch (type) {
             case JSON:
                 RemotingCommand resultJson = RemotingSerializable.decode(headerData, RemotingCommand.class);

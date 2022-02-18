@@ -83,6 +83,8 @@ public class MixAll {
     public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
     public static final String ACL_CONF_TOOLS_FILE = "/conf/tools.yml";
     public static final String REPLY_MESSAGE_FLAG = "reply";
+    public static final String LMQ_PREFIX = "%LMQ%";
+    public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static String getWSAddr() {
@@ -444,4 +446,7 @@ public class MixAll {
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
+    public static boolean isLmq(String lmqMetaData) {
+        return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);
+    }
 }
