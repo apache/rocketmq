@@ -31,7 +31,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,13 +86,17 @@ public class RouteInfoManagerTest {
 
     @Test
     public void testWipeWritePermOfBrokerByLock() throws Exception {
-        List<QueueData> qdList = new ArrayList<>();
+        String brokerName = "broker-a";
+
         QueueData qd = new QueueData();
-        qd.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
-        qd.setBrokerName("broker-a");
-        qdList.add(qd);
-        HashMap<String, List<QueueData>> topicQueueTable = new HashMap<>();
-        topicQueueTable.put("topic-a", qdList);
+        qd.setPerm(PermName.PERM_READ);
+        qd.setBrokerName(brokerName);
+
+        HashMap<String, Map<String, QueueData>> topicQueueTable = new HashMap<>();
+
+        Map<String, QueueData> queueDataMap = new HashMap<>();
+        queueDataMap.put(brokerName, qd);
+        topicQueueTable.put("topic-a", queueDataMap);
 
         Field filed = RouteInfoManager.class.getDeclaredField("topicQueueTable");
         filed.setAccessible(true);
@@ -142,13 +146,17 @@ public class RouteInfoManagerTest {
 
     @Test
     public void testAddWritePermOfBrokerByLock() throws Exception {
-        List<QueueData> qdList = new ArrayList<>();
+        String brokerName = "broker-a";
+
         QueueData qd = new QueueData();
         qd.setPerm(PermName.PERM_READ);
-        qd.setBrokerName("broker-a");
-        qdList.add(qd);
-        HashMap<String, List<QueueData>> topicQueueTable = new HashMap<>();
-        topicQueueTable.put("topic-a", qdList);
+        qd.setBrokerName(brokerName);
+
+        HashMap<String, Map<String, QueueData>> topicQueueTable = new HashMap<>();
+
+        Map<String, QueueData> queueDataMap = new HashMap<>();
+        queueDataMap.put(brokerName, qd);
+        topicQueueTable.put("topic-a", queueDataMap);
 
         Field filed = RouteInfoManager.class.getDeclaredField("topicQueueTable");
         filed.setAccessible(true);
