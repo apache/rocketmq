@@ -18,8 +18,15 @@ package org.apache.rocketmq.namesrv.routeinfo;
 
 import io.netty.channel.Channel;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -47,7 +54,7 @@ public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    private final HashMap<String/* topic */, Map<String /* brokerName */ ,QueueData>> topicQueueTable;
+    private final HashMap<String/* topic */, Map<String /* brokerName */ , QueueData>> topicQueueTable;
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
@@ -262,9 +269,9 @@ public class RouteInfoManager {
     private int operateWritePermOfBroker(final String brokerName, final int requestCode) {
         int topicCnt = 0;
 
-        for(Map.Entry<String,Map<String,QueueData>> entry :topicQueueTable.entrySet()) {
+        for (Map.Entry<String, Map<String, QueueData>> entry : topicQueueTable.entrySet()) {
             String topic = entry.getKey();
-            Map<String,QueueData> queueDataMap = entry.getValue();
+            Map<String, QueueData> queueDataMap = entry.getValue();
 
             if (queueDataMap != null) {
                 QueueData qd = queueDataMap.get(brokerName);
@@ -661,10 +668,8 @@ public class RouteInfoManager {
     }
 
     public byte[] getHasUnitSubUnUnitTopicList() {
-        TopicList topicList = topicQueueTableIter(
-                qd -> !TopicSysFlag.hasUnitFlag(qd.getTopicSysFlag())
-                        && TopicSysFlag.hasUnitSubFlag(qd.getTopicSysFlag())
-        );
+        TopicList topicList = topicQueueTableIter(qd -> !TopicSysFlag.hasUnitFlag(qd.getTopicSysFlag())
+                && TopicSysFlag.hasUnitSubFlag(qd.getTopicSysFlag()));
         return topicList.encode();
     }
 
