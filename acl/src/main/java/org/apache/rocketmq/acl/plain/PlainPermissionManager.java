@@ -245,7 +245,7 @@ public class PlainPermissionManager {
         return this.dataVersionMap;
     }
 
-    public Map<String, Object> updateAclConfigFileVersion(Map<String, Object> updateAclConfigMap) {
+    public Map<String, Object> updateAclConfigFileVersion(String aclFileName, Map<String, Object> updateAclConfigMap) {
 
         Object dataVersions = updateAclConfigMap.get(AclConstants.CONFIG_DATA_VERSION);
         DataVersion dataVersion = new DataVersion();
@@ -265,9 +265,6 @@ public class PlainPermissionManager {
         versionElement.add(accountsMap);
         updateAclConfigMap.put(AclConstants.CONFIG_DATA_VERSION, versionElement);
 
-        List<Map<String, Object>> accounts = (List<Map<String, Object>>) updateAclConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
-        String accessKey = (String) accounts.get(0).get(AclConstants.CONFIG_ACCESS_KEY);
-        String aclFileName = accessKeyTable.get(accessKey);
         dataVersionMap.put(aclFileName, dataVersion);
         return updateAclConfigMap;
     }
@@ -314,7 +311,7 @@ public class PlainPermissionManager {
                 }
             }
             aclPlainAccessResourceMap.put(aclFileName, accountMap);
-            return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclAccessConfigMap));
+            return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclFileName, aclAccessConfigMap));
         } else {
             String fileName = defaultAclFile;
             //Create acl access config elements on the default acl file
@@ -346,7 +343,7 @@ public class PlainPermissionManager {
                 plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
                 aclPlainAccessResourceMap.put(fileName, plainAccessResourceMap);
             }
-            return AclUtils.writeDataObject(defaultAclFile, updateAclConfigFileVersion(aclAccessConfigMap));
+            return AclUtils.writeDataObject(defaultAclFile, updateAclConfigFileVersion(defaultAclFile, aclAccessConfigMap));
         }
     }
 
@@ -418,7 +415,7 @@ public class PlainPermissionManager {
                     // Delete the related acl config element
                     itemIterator.remove();
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
-                    return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclAccessConfigMap));
+                    return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclFileName, aclAccessConfigMap));
                 }
             }
         }
@@ -445,7 +442,7 @@ public class PlainPermissionManager {
             }
             // Update globalWhiteRemoteAddr element in memory map firstly
             aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS, globalWhiteRemoteAddrList);
-            return AclUtils.writeDataObject(defaultAclFile, updateAclConfigFileVersion(aclAccessConfigMap));
+            return AclUtils.writeDataObject(defaultAclFile, updateAclConfigFileVersion(defaultAclFile, aclAccessConfigMap));
         }
 
         log.error("Users must ensure that the acl yaml config file has globalWhiteRemoteAddresses flag in the {} firstly", defaultAclFile);
@@ -476,7 +473,7 @@ public class PlainPermissionManager {
             }
             // Update globalWhiteRemoteAddr element in memory map firstly
             aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS, globalWhiteRemoteAddrList);
-            return AclUtils.writeDataObject(fileName, updateAclConfigFileVersion(aclAccessConfigMap));
+            return AclUtils.writeDataObject(fileName, updateAclConfigFileVersion(fileName, aclAccessConfigMap));
         }
 
         log.error("Users must ensure that the acl yaml config file has globalWhiteRemoteAddresses flag in the {} firstly", fileName);
