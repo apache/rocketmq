@@ -16,22 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
-
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -49,6 +33,22 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
+
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -79,6 +79,7 @@ public class CommitLog {
     private volatile Set<String> fullStorePaths = Collections.emptySet();
 
     private final MultiDispatch multiDispatch;
+    private final FlushDiskWatcher flushDiskWatcher;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         String storePath = defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog();
@@ -113,6 +114,7 @@ public class CommitLog {
 
         this.multiDispatch = new MultiDispatch(defaultMessageStore, this);
 
+        flushDiskWatcher = new FlushDiskWatcher();
     }
 
     public void setFullStorePaths(Set<String> fullStorePaths) {
@@ -136,6 +138,10 @@ public class CommitLog {
     public void start() {
         this.flushCommitLogService.start();
 
+        flushDiskWatcher.setDaemon(true);
+        flushDiskWatcher.start();
+
+
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();
         }
@@ -147,6 +153,8 @@ public class CommitLog {
         }
 
         this.flushCommitLogService.shutdown();
+
+        flushDiskWatcher.shutdown(true);
     }
 
     public long flush() {
@@ -608,8 +616,7 @@ public class CommitLog {
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
-        int queueId = msg.getQueueId();
-
+//        int queueId msg.getQueueId();
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
@@ -620,7 +627,7 @@ public class CommitLog {
                 }
 
                 topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-                queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+                int queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 
                 // Backup real topic, queueId
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
@@ -723,10 +730,6 @@ public class CommitLog {
             }
             if (replicaStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(replicaStatus);
-                if (replicaStatus == PutMessageStatus.FLUSH_SLAVE_TIMEOUT) {
-                    log.error("do sync transfer other node, wait return, but failed, topic: {} tags: {} client address: {}",
-                            msg.getTopic(), msg.getTags(), msg.getBornHostNameString());
-                }
             }
             return putMessageResult;
         });
@@ -836,10 +839,6 @@ public class CommitLog {
             }
             if (replicaStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(replicaStatus);
-                if (replicaStatus == PutMessageStatus.FLUSH_SLAVE_TIMEOUT) {
-                    log.error("do sync transfer other node, wait return, but failed, topic: {} client address: {}",
-                            messageExtBatch.getTopic(), messageExtBatch.getBornHostNameString());
-                }
             }
             return putMessageResult;
         });
@@ -853,6 +852,7 @@ public class CommitLog {
             if (messageExt.isWaitStoreMsgOK()) {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
                         this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                flushDiskWatcher.add(request);
                 service.putRequest(request);
                 return request.future();
             } else {
@@ -877,7 +877,7 @@ public class CommitLog {
             if (messageExt.isWaitStoreMsgOK()) {
                 if (service.isSlaveOK(result.getWroteBytes() + result.getWroteOffset())) {
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                            this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                            this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout());
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
                     return request.future();
@@ -1143,18 +1143,16 @@ public class CommitLog {
     public static class GroupCommitRequest {
         private final long nextOffset;
         private CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
-        private final long startTimestamp = System.currentTimeMillis();
-        private long timeoutMillis = Long.MAX_VALUE;
+        private final long deadLine;
 
         public GroupCommitRequest(long nextOffset, long timeoutMillis) {
             this.nextOffset = nextOffset;
-            this.timeoutMillis = timeoutMillis;
+            this.deadLine = System.nanoTime() + (timeoutMillis * 1_000_000);
         }
 
-        public GroupCommitRequest(long nextOffset) {
-            this.nextOffset = nextOffset;
+        public long getDeadLine() {
+            return deadLine;
         }
-
 
         public long getNextOffset() {
             return nextOffset;
@@ -1606,7 +1604,12 @@ public class CommitLog {
             // properties from MessageExtBatch
             String batchPropStr = MessageDecoder.messageProperties2String(messageExtBatch.getProperties());
             final byte[] batchPropData = batchPropStr.getBytes(MessageDecoder.CHARSET_UTF8);
-            final short batchPropLen = (short) batchPropData.length;
+            int batchPropDataLen = batchPropData.length;
+            if (batchPropDataLen > Short.MAX_VALUE) {
+                CommitLog.log.warn("Properties size of messageExtBatch exceeded, properties size: {}, maxSize: {}.", batchPropDataLen, Short.MAX_VALUE);
+                throw new RuntimeException("Properties size of messageExtBatch exceeded!");
+            }
+            final short batchPropLen = (short) batchPropDataLen;
 
             int batchSize = 0;
             while (messagesByteBuff.hasRemaining()) {
