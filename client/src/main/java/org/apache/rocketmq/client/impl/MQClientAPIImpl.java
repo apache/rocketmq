@@ -248,8 +248,7 @@ public class MQClientAPIImpl {
     }
 
     public void createSubscriptionGroup(final String addr, final SubscriptionGroupConfig config,
-        final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        final long timeoutMillis) throws RemotingException, InterruptedException, MQClientException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
 
         byte[] body = RemotingSerializable.encode(config);
