@@ -1131,7 +1131,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return resultQueues;
     }
 
-    public class ConsumeRequest {
+    public static class ConsumeRequest {
         private final List<MessageExt> messageExts;
         private final MessageQueue messageQueue;
         private final ProcessQueue processQueue;
