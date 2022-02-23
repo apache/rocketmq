@@ -46,8 +46,8 @@ public class StoreStatsService extends ServiceThread {
     //The rule to define buckets
     private static final Map<Integer, Integer> PUT_MESSAGE_ENTIRE_TIME_BUCKETS = new TreeMap<>();
     //buckets
-    private TreeMap<Long/*bucket*/, AtomicLong/*times*/> buckets = new TreeMap<>();
-    private Map<Long/*bucket*/, AtomicLong/*times*/> lastBuckets = new TreeMap<>();
+    private TreeMap<Long/*bucket*/, LongAdder/*times*/> buckets = new TreeMap<>();
+    private Map<Long/*bucket*/, LongAdder/*times*/> lastBuckets = new TreeMap<>();
 
     private static int printTPSInterval = 60 * 1;
 
@@ -95,36 +95,36 @@ public class StoreStatsService extends ServiceThread {
     }
 
     public void initPutMessageTimeBuckets() {
-        TreeMap<Long, AtomicLong> nextBuckets = new TreeMap<>();
+        TreeMap<Long, LongAdder> nextBuckets = new TreeMap<>();
         AtomicLong index = new AtomicLong(0);
         PUT_MESSAGE_ENTIRE_TIME_BUCKETS.forEach((interval, times) -> {
             for (int i = 0; i < times; i++) {
-                nextBuckets.put(index.addAndGet(interval), new AtomicLong(0));
+                nextBuckets.put(index.addAndGet(interval), new LongAdder());
             }
         });
-        nextBuckets.put(Long.MAX_VALUE, new AtomicLong(0));
+        nextBuckets.put(Long.MAX_VALUE, new LongAdder());
 
         this.lastBuckets = this.buckets;
         this.buckets = nextBuckets;
     }
 
     public void incPutMessageEntireTime(long value) {
-        Map.Entry<Long, AtomicLong> targetBucket = buckets.ceilingEntry(value);
+        Map.Entry<Long, LongAdder> targetBucket = buckets.ceilingEntry(value);
         if (targetBucket != null) {
-            targetBucket.getValue().incrementAndGet();
+            targetBucket.getValue().add(1);
         }
     }
 
     public double findPutMessageEntireTimePX(double px) {
-        Map<Long, AtomicLong> lastBuckets = this.lastBuckets;
+        Map<Long, LongAdder> lastBuckets = this.lastBuckets;
         long start = System.currentTimeMillis();
         double result = 0.0;
-        long totalRequest = lastBuckets.values().stream().mapToLong(AtomicLong::get).sum();
+        long totalRequest = lastBuckets.values().stream().mapToLong(LongAdder::longValue).sum();
         long pxIndex = (long) (totalRequest * px);
         long passCount = 0;
         List<Long> bucketValue = new ArrayList<>(lastBuckets.keySet());
         for (int i = 0; i < bucketValue.size(); i++) {
-            long count = lastBuckets.get(bucketValue.get(i)).get();
+            long count = lastBuckets.get(bucketValue.get(i)).longValue();
             if (pxIndex <= passCount + count) {
                 long relativeIndex = pxIndex - passCount;
                 if (i == 0) {
