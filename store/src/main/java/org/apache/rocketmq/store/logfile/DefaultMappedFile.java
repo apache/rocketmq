@@ -270,9 +270,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if ((currentPos + remaining) <= this.fileSize) {
             try {
                 this.fileChannel.position(currentPos);
-                while (data.hasRemaining()) {
-                    this.fileChannel.write(data);
-                }
+                this.fileChannel.write(ByteBuffer.wrap(data));
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
@@ -294,11 +292,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         if ((currentPos + length) <= this.fileSize) {
             try {
-                this.fileChannel.position(currentPos);
-                ByteBuffer buffer = ByteBuffer.wrap(data, offset, length);
-                while (buffer.hasRemaining()) {
-                    this.fileChannel.write(buffer);
-                }
+                ByteBuffer buf = this.mappedByteBuffer.slice();
+                buf.position(currentPos);
+                buf.put(data, offset, length);
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }

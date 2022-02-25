@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
@@ -98,13 +99,13 @@ public class DefaultMQConsumerWithOpenTracingTest {
     private PullAPIWrapper pullAPIWrapper;
     private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
-    private MockTracer tracer = new MockTracer();
+    private final MockTracer tracer = new MockTracer();
 
     @Before
     public void init() throws Exception {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        for (MQClientInstance instance : factoryTable.values()) {
-            instance.shutdown();
+        for (Map.Entry<String, MQClientInstance> entry : factoryTable.entrySet()) {
+            entry.getValue().shutdown();
         }
         factoryTable.clear();
 
@@ -118,7 +119,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
                     messageClientExt.setTopic(topic);
                     messageClientExt.setQueueId(0);
                     messageClientExt.setMsgId("123");
-                    messageClientExt.setBody(new byte[]{'a'});
+                    messageClientExt.setBody(new byte[] {'a'});
                     messageClientExt.setOffsetMsgId("234");
                     messageClientExt.setBornHost(new InetSocketAddress(8080));
                     messageClientExt.setStoreHost(new InetSocketAddress(8080));
@@ -128,11 +129,10 @@ public class DefaultMQConsumerWithOpenTracingTest {
                 }
             });
 
-
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
         pushConsumer = new DefaultMQPushConsumer(consumerGroup);
         pushConsumer.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
-                new ConsumeMessageOpenTracingHookImpl(tracer));
+            new ConsumeMessageOpenTracingHookImpl(tracer));
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
 
@@ -143,7 +143,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
         pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                            ConsumeConcurrentlyContext context) {
+                ConsumeConcurrentlyContext context) {
                 return null;
             }
         });
@@ -180,7 +180,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                                                            ConsumeConcurrentlyContext context) {
+                ConsumeConcurrentlyContext context) {
                 messageAtomic.set(msgs.get(0));
                 countDownLatch.countDown();
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -193,14 +193,15 @@ public class DefaultMQConsumerWithOpenTracingTest {
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);
-        assertThat(msg.getBody()).isEqualTo(new byte[]{'a'});
+        assertThat(msg.getBody()).isEqualTo(new byte[] {'a'});
 
         // wait until consumeMessageAfter hook of tracer is done surely.
-        waitAtMost(1, TimeUnit.SECONDS).until(new Callable<Boolean>() {
-            @Override public Boolean call() throws Exception {
+        waitAtMost(1, TimeUnit.SECONDS).until(new Callable() {
+            @Override public Object call() throws Exception {
                 return tracer.finishedSpans().size() == 1;
             }
         });
+
         MockSpan span = tracer.finishedSpans().get(0);
         assertThat(span.tags().get(Tags.MESSAGE_BUS_DESTINATION.getKey())).isEqualTo(topic);
         assertThat(span.tags().get(Tags.SPAN_KIND.getKey())).isEqualTo(Tags.SPAN_KIND_CONSUMER);
@@ -226,7 +227,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
     }
 
     private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
-                                           List<MessageExt> messageExtList) throws Exception {
+        List<MessageExt> messageExtList) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (MessageExt messageExt : messageExtList) {
             outputStream.write(MessageDecoder.encode(messageExt, false));

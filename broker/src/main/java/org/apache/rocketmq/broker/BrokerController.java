@@ -32,12 +32,14 @@ import org.apache.rocketmq.broker.filtersrv.FilterServerManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
+import org.apache.rocketmq.broker.longpolling.LmqPullRequestHoldService;
 import org.apache.rocketmq.broker.longpolling.NotifyMessageArrivingListener;
 import org.apache.rocketmq.broker.longpolling.PullRequestHoldService;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.MessageStoreFactory;
 import org.apache.rocketmq.broker.plugin.MessageStorePluginContext;
@@ -54,7 +56,9 @@ import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
 import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
+import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
@@ -125,6 +129,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
 
 public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -160,6 +165,7 @@ public class BrokerController {
         "BrokerControllerScheduledThread"));
     private final SlaveSynchronize slaveSynchronize;
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
+    private final BlockingQueue<Runnable> putThreadPoolQueue;
     private final BlockingQueue<Runnable> ackThreadPoolQueue;
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
     private final BlockingQueue<Runnable> replyThreadPoolQueue;
@@ -179,6 +185,7 @@ public class BrokerController {
     private TopicConfigManager topicConfigManager;
     private TopicQueueMappingManager topicQueueMappingManager;
     private ExecutorService sendMessageExecutor;
+    private ExecutorService putMessageFutureExecutor;
     private ExecutorService pullMessageExecutor;
     private ExecutorService ackMessageExecutor;
     private ExecutorService replyMessageExecutor;
@@ -213,11 +220,10 @@ public class BrokerController {
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.messageStoreConfig = messageStoreConfig;
-        this.consumerOffsetManager = new ConsumerOffsetManager(this);
-        this.topicConfigManager = new TopicConfigManager(this);
-        this.topicQueueMappingManager = new TopicQueueMappingManager(this);
+        this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
+        this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
-        this.pullRequestHoldService = new PullRequestHoldService(this);
+        this.pullRequestHoldService = messageStoreConfig.isEnableLmq() ? new LmqPullRequestHoldService(this) : new PullRequestHoldService(this);
         this.popMessageProcessor = new PopMessageProcessor(this);
         this.ackMessageProcessor = new AckMessageProcessor(this);
         this.changeInvisibleTimeProcessor = new ChangeInvisibleTimeProcessor(this);
@@ -231,7 +237,7 @@ public class BrokerController {
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
         this.broker2Client = new Broker2Client(this);
-        this.subscriptionGroupManager = new SubscriptionGroupManager(this);
+        this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig, this);
         this.filterServerManager = new FilterServerManager(this);
 
@@ -241,6 +247,7 @@ public class BrokerController {
         this.slaveSynchronize = new SlaveSynchronize(this);
 
         this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
+        this.putThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPutThreadPoolQueueCapacity());
         this.pullThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
         this.ackThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getAckThreadPoolQueueCapacity());
         this.replyThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getReplyThreadPoolQueueCapacity());
@@ -250,7 +257,8 @@ public class BrokerController {
         this.heartbeatThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getHeartbeatThreadPoolQueueCapacity());
         this.endTransactionThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getEndTransactionPoolQueueCapacity());
 
-        this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
+        this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
+
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
 
         this.brokerFastFailure = new BrokerFastFailure(this);
@@ -328,6 +336,14 @@ public class BrokerController {
                 TimeUnit.MILLISECONDS,
                 this.sendThreadPoolQueue,
                 new ThreadFactoryImpl("SendMessageThread_"));
+
+            this.putMessageFutureExecutor = new BrokerFixedThreadPoolExecutor(
+                this.brokerConfig.getPutMessageFutureThreadPoolNums(),
+                this.brokerConfig.getPutMessageFutureThreadPoolNums(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.putThreadPoolQueue,
+                new ThreadFactoryImpl("PutMessageThread_"));
 
             this.pullMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getPullMessageThreadPoolNums(),
@@ -897,6 +913,10 @@ public class BrokerController {
             this.sendMessageExecutor.shutdown();
         }
 
+        if (this.putMessageFutureExecutor != null) {
+            this.putMessageFutureExecutor.shutdown();
+        }
+
         if (this.pullMessageExecutor != null) {
             this.pullMessageExecutor.shutdown();
         }
@@ -1354,7 +1374,7 @@ public class BrokerController {
         handleSlaveSynchronize(BrokerRole.SLAVE);
 
         try {
-            this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
+            this.registerBrokerAll(true, true, true);
         } catch (Throwable ignored) {
 
         }
@@ -1389,7 +1409,7 @@ public class BrokerController {
         messageStoreConfig.setBrokerRole(role);
 
         try {
-            this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
+            this.registerBrokerAll(true, true, true);
         } catch (Throwable ignored) {
 
         }
@@ -1410,8 +1430,8 @@ public class BrokerController {
         }
     }
 
-    public ExecutorService getSendMessageExecutor() {
-        return sendMessageExecutor;
+    public ExecutorService getPutMessageFutureExecutor() {
+        return putMessageFutureExecutor;
     }
 
     public long getShouldStartTime() {

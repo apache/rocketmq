@@ -62,13 +62,13 @@ public class StoreStatsService extends ServiceThread {
     private volatile long putMessageEntireTimeMax = 0;
     private volatile long getMessageEntireTimeMax = 0;
     // for putMessageEntireTimeMax
-    private ReentrantLock lockPut = new ReentrantLock();
+    private ReentrantLock putLock = new ReentrantLock();
     // for getMessageEntireTimeMax
-    private ReentrantLock lockGet = new ReentrantLock();
+    private ReentrantLock getLock = new ReentrantLock();
 
     private volatile long dispatchMaxBuffer = 0;
 
-    private ReentrantLock lockSampling = new ReentrantLock();
+    private ReentrantLock samplingLock = new ReentrantLock();
     private long lastPrintTimestamp = System.currentTimeMillis();
 
     public StoreStatsService() {
@@ -138,10 +138,10 @@ public class StoreStatsService extends ServiceThread {
         }
 
         if (value > this.putMessageEntireTimeMax) {
-            this.lockPut.lock();
+            this.putLock.lock();
             this.putMessageEntireTimeMax =
                 value > this.putMessageEntireTimeMax ? value : this.putMessageEntireTimeMax;
-            this.lockPut.unlock();
+            this.putLock.unlock();
         }
     }
 
@@ -151,10 +151,10 @@ public class StoreStatsService extends ServiceThread {
 
     public void setGetMessageEntireTimeMax(long value) {
         if (value > this.getMessageEntireTimeMax) {
-            this.lockGet.lock();
+            this.getLock.lock();
             this.getMessageEntireTimeMax =
                 value > this.getMessageEntireTimeMax ? value : this.getMessageEntireTimeMax;
-            this.lockGet.unlock();
+            this.getLock.unlock();
         }
     }
 
@@ -177,6 +177,7 @@ public class StoreStatsService extends ServiceThread {
         sb.append("\truntime: " + this.getFormatRuntime() + "\r\n");
         sb.append("\tputMessageEntireTimeMax: " + this.putMessageEntireTimeMax + "\r\n");
         sb.append("\tputMessageTimesTotal: " + totalTimes + "\r\n");
+        sb.append("\tgetPutMessageFailedTimes: " + this.getPutMessageFailedTimes() + "\r\n");
         sb.append("\tputMessageSizeTotal: " + this.getPutMessageSizeTotal() + "\r\n");
         sb.append("\tputMessageDistributeTime: " + this.getPutMessageDistributeTimeStringInfo(totalTimes)
             + "\r\n");
@@ -193,11 +194,11 @@ public class StoreStatsService extends ServiceThread {
     }
 
     public long getPutMessageTimesTotal() {
-        long rs = 0;
-        for (LongAdder data : putMessageTopicTimesTotal.values()) {
-            rs += data.longValue();
-        }
-        return rs;
+        Map<String, LongAdder> map = putMessageTopicTimesTotal;
+        return map.values()
+                .parallelStream()
+                .mapToLong(LongAdder::longValue)
+                .sum();
     }
 
     private String getFormatRuntime() {
@@ -217,11 +218,11 @@ public class StoreStatsService extends ServiceThread {
     }
 
     public long getPutMessageSizeTotal() {
-        long rs = 0;
-        for (LongAdder data : putMessageTopicSizeTotal.values()) {
-            rs += data.longValue();
-        }
-        return rs;
+        Map<String, LongAdder> map = putMessageTopicSizeTotal;
+        return map.values()
+                .parallelStream()
+                .mapToLong(LongAdder::longValue)
+                .sum();
     }
 
     private String getPutMessageDistributeTimeStringInfo(Long total) {
@@ -315,7 +316,7 @@ public class StoreStatsService extends ServiceThread {
 
     private String getPutTps(int time) {
         String result = "";
-        this.lockSampling.lock();
+        this.samplingLock.lock();
         try {
             CallSnapshot last = this.putTimesList.getLast();
 
@@ -325,14 +326,14 @@ public class StoreStatsService extends ServiceThread {
             }
 
         } finally {
-            this.lockSampling.unlock();
+            this.samplingLock.unlock();
         }
         return result;
     }
 
     private String getGetFoundTps(int time) {
         String result = "";
-        this.lockSampling.lock();
+        this.samplingLock.lock();
         try {
             CallSnapshot last = this.getTimesFoundList.getLast();
 
@@ -342,7 +343,7 @@ public class StoreStatsService extends ServiceThread {
                 result += CallSnapshot.getTPS(lastBefore, last);
             }
         } finally {
-            this.lockSampling.unlock();
+            this.samplingLock.unlock();
         }
 
         return result;
@@ -350,7 +351,7 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetMissTps(int time) {
         String result = "";
-        this.lockSampling.lock();
+        this.samplingLock.lock();
         try {
             CallSnapshot last = this.getTimesMissList.getLast();
 
@@ -361,14 +362,14 @@ public class StoreStatsService extends ServiceThread {
             }
 
         } finally {
-            this.lockSampling.unlock();
+            this.samplingLock.unlock();
         }
 
         return result;
     }
 
     private String getGetTotalTps(int time) {
-        this.lockSampling.lock();
+        this.samplingLock.lock();
         double found = 0;
         double miss = 0;
         try {
@@ -392,7 +393,7 @@ public class StoreStatsService extends ServiceThread {
             }
 
         } finally {
-            this.lockSampling.unlock();
+            this.samplingLock.unlock();
         }
 
         return Double.toString(found + miss);
@@ -400,7 +401,7 @@ public class StoreStatsService extends ServiceThread {
 
     private String getGetTransferedTps(int time) {
         String result = "";
-        this.lockSampling.lock();
+        this.samplingLock.lock();
         try {
             CallSnapshot last = this.transferedMsgCountList.getLast();
 
@@ -411,7 +412,7 @@ public class StoreStatsService extends ServiceThread {
             }
 
         } finally {
-            this.lockSampling.unlock();
+            this.samplingLock.unlock();
         }
 
         return result;
@@ -429,6 +430,7 @@ public class StoreStatsService extends ServiceThread {
         result.put("runtime", this.getFormatRuntime());
         result.put("putMessageEntireTimeMax", String.valueOf(this.putMessageEntireTimeMax));
         result.put("putMessageTimesTotal", String.valueOf(totalTimes));
+        result.put("putMessageFailedTimes", String.valueOf(this.putMessageFailedTimes));
         result.put("putMessageSizeTotal", String.valueOf(this.getPutMessageSizeTotal()));
         result.put("putMessageDistributeTime",
             String.valueOf(this.getPutMessageDistributeTimeStringInfo(totalTimes)));
@@ -436,11 +438,11 @@ public class StoreStatsService extends ServiceThread {
             String.valueOf(this.getPutMessageSizeTotal() / totalTimes.doubleValue()));
         result.put("dispatchMaxBuffer", String.valueOf(this.dispatchMaxBuffer));
         result.put("getMessageEntireTimeMax", String.valueOf(this.getMessageEntireTimeMax));
-        result.put("putTps", String.valueOf(this.getPutTps()));
-        result.put("getFoundTps", String.valueOf(this.getGetFoundTps()));
-        result.put("getMissTps", String.valueOf(this.getGetMissTps()));
-        result.put("getTotalTps", String.valueOf(this.getGetTotalTps()));
-        result.put("getTransferedTps", String.valueOf(this.getGetTransferedTps()));
+        result.put("putTps", this.getPutTps());
+        result.put("getFoundTps", this.getGetFoundTps());
+        result.put("getMissTps", this.getGetMissTps());
+        result.put("getTotalTps", this.getGetTotalTps());
+        result.put("getTransferedTps", this.getGetTransferedTps());
 
         return result;
     }
@@ -469,7 +471,7 @@ public class StoreStatsService extends ServiceThread {
     }
 
     private void sampling() {
-        this.lockSampling.lock();
+        this.samplingLock.lock();
         try {
             this.putTimesList.add(new CallSnapshot(System.currentTimeMillis(), getPutMessageTimesTotal()));
             if (this.putTimesList.size() > (MAX_RECORDS_OF_SAMPLING + 1)) {
@@ -495,7 +497,7 @@ public class StoreStatsService extends ServiceThread {
             }
 
         } finally {
-            this.lockSampling.unlock();
+            this.samplingLock.unlock();
         }
     }
 

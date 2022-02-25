@@ -124,7 +124,12 @@ public class Consumer {
             }
         }, 10000, 10000, TimeUnit.MILLISECONDS);
 
-        RPCHook rpcHook = aclEnable ? AclClient.getAclRPCHook() : null;
+        RPCHook rpcHook = null;
+        if (aclEnable) {
+            String ak = commandLine.hasOption("ak") ? String.valueOf(commandLine.getOptionValue("ak")) : AclClient.ACL_ACCESS_KEY;
+            String sk = commandLine.hasOption("sk") ? String.valueOf(commandLine.getOptionValue("sk")) : AclClient.ACL_SECRET_KEY;
+            rpcHook = AclClient.getAclRPCHook(ak, sk);
+        }
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group, rpcHook, new AllocateMessageQueueAveragely(), msgTraceEnable, null);
         if (commandLine.hasOption('n')) {
             String ns = commandLine.getOptionValue('n');
@@ -220,7 +225,11 @@ public class Consumer {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "clientRebalanceEnable", true, "Client Rebalance Enable, Default: true");
+        opt = new Option("ak", "accessKey", true, "Acl access key, Default: 12345678");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("sk", "secretKey", true, "Acl secret key, Default: rocketmq2");
         opt.setRequired(false);
         options.addOption(opt);
 
