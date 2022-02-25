@@ -48,6 +48,10 @@ public class ConsumerConnectionSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("b", "brokerAddr", true, "broker address");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -62,7 +66,9 @@ public class ConsumerConnectionSubCommand implements SubCommand {
 
             String group = commandLine.getOptionValue('g').trim();
 
-            ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
+            ConsumerConnection cc = commandLine.hasOption('b')
+                ? defaultMQAdminExt.examineConsumerConnectionInfo(group, commandLine.getOptionValue('b').trim())
+                : defaultMQAdminExt.examineConsumerConnectionInfo(group);
 
             int i = 1;
             for (Connection conn : cc.getConnectionSet()) {
