@@ -96,10 +96,10 @@ public class TopicListSubCommand implements SubCommand {
                     }
 
                     for (String group : groupList.getGroupList()) {
-                        System.out.printf("%-20s  %-48s  %-48s%n",
+                        System.out.printf("%-20s  %-64s  %-64s%n",
                             UtilAll.frontStringAtLeast(clusterName, 20),
-                            UtilAll.frontStringAtLeast(topic, 48),
-                            UtilAll.frontStringAtLeast(group, 48)
+                            UtilAll.frontStringAtLeast(topic, 64),
+                            UtilAll.frontStringAtLeast(group, 64)
                         );
                     }
                 }

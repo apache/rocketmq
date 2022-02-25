@@ -19,6 +19,7 @@ package org.apache.rocketmq.tools.command.acl;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Map;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -58,7 +59,7 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
-        
+
         return options;
     }
 
@@ -85,10 +86,11 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
 
                 Set<String> masterSet =
                     CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
-                System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s%n",
+                System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s  %-22s%n",
                     "#Cluster Name",
                     "#Broker Name",
                     "#Broker Addr",
+                    "#AclFilePath",
                     "#AclConfigVersionNum",
                     "#AclLastUpdateTime"
                 );
@@ -112,20 +114,20 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
         final DefaultMQAdminExt defaultMQAdminExt, final String addr) throws
         InterruptedException, MQBrokerException, RemotingException, MQClientException {
 
-
         ClusterAclVersionInfo clusterAclVersionInfo = defaultMQAdminExt.examineBrokerClusterAclVersionInfo(addr);
-        DataVersion aclDataVersion = clusterAclVersionInfo.getAclConfigDataVersion();
-        String versionNum = String.valueOf(aclDataVersion.getCounter());
-
+        Map<String, DataVersion> aclDataVersion = clusterAclVersionInfo.getAllAclConfigDataVersion();
         DateFormat sdf = new SimpleDateFormat(UtilAll.YYYY_MM_DD_HH_MM_SS);
-        String timeStampStr = sdf.format(new Timestamp(aclDataVersion.getTimestamp()));
-
-        System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s%n",
-            clusterAclVersionInfo.getClusterName(),
-            clusterAclVersionInfo.getBrokerName(),
-            clusterAclVersionInfo.getBrokerAddr(),
-            versionNum,
-            timeStampStr
-        );
+        if (aclDataVersion.size() > 0) {
+            for (Map.Entry<String, DataVersion> entry : aclDataVersion.entrySet()) {
+                System.out.printf("%-16s  %-22s  %-22s  %-20s  %-22s  %-22s%n",
+                    clusterAclVersionInfo.getClusterName(),
+                    clusterAclVersionInfo.getBrokerName(),
+                    clusterAclVersionInfo.getBrokerAddr(),
+                    entry.getKey(),
+                    String.valueOf(entry.getValue().getCounter()),
+                    sdf.format(new Timestamp(entry.getValue().getTimestamp()))
+                );
+            }
+        }
     }
 }
