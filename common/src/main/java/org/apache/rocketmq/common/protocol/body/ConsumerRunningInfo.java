@@ -225,7 +225,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
         {
             sb.append("\n\n#Consumer Offset#\n");
-            sb.append(String.format("%-32s  %-32s  %-4s  %-20s%n",
+            sb.append(String.format("%-64s  %-32s  %-4s  %-20s%n",
                 "#Topic",
                 "#Broker Name",
                 "#QID",
@@ -247,7 +247,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
         {
             sb.append("\n\n#Consumer MQ Detail#\n");
-            sb.append(String.format("%-32s  %-32s  %-4s  %-20s%n",
+            sb.append(String.format("%-64s  %-32s  %-4s  %-20s%n",
                 "#Topic",
                 "#Broker Name",
                 "#QID",
@@ -257,7 +257,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
             Iterator<Entry<MessageQueue, ProcessQueueInfo>> it = this.mqTable.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<MessageQueue, ProcessQueueInfo> next = it.next();
-                String item = String.format("%-32s  %-32s  %-4d  %s%n",
+                String item = String.format("%-64s  %-32s  %-4d  %s%n",
                     next.getKey().getTopic(),
                     next.getKey().getBrokerName(),
                     next.getKey().getQueueId(),
@@ -291,7 +291,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
         {
             sb.append("\n\n#Consumer RT&TPS#\n");
-            sb.append(String.format("%-32s  %14s %14s %14s %14s %18s %25s%n",
+            sb.append(String.format("%-64s  %14s %14s %14s %14s %18s %25s%n",
                 "#Topic",
                 "#Pull RT",
                 "#Pull TPS",

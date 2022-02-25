@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -60,7 +61,7 @@ import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -94,16 +95,37 @@ public class DefaultMQPushConsumerTest {
     private MQClientAPIImpl mQClientAPIImpl;
     private PullAPIWrapper pullAPIWrapper;
     private RebalanceImpl rebalanceImpl;
-    private DefaultMQPushConsumer pushConsumer;
+    private static DefaultMQPushConsumer pushConsumer;
     private AtomicLong queueOffset = new AtomicLong(1024);;
 
     @Before
     public void init() throws Exception {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        for (MQClientInstance instance : factoryTable.values()) {
-            instance.shutdown();
+        for (Map.Entry<String, MQClientInstance> entry : factoryTable.entrySet()) {
+            entry.getValue().shutdown();
         }
         factoryTable.clear();
+
+        when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
+            anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
+            .thenAnswer(new Answer<PullResult>() {
+                @Override
+                public PullResult answer(InvocationOnMock mock) throws Throwable {
+                    PullMessageRequestHeader requestHeader = mock.getArgument(1);
+                    MessageClientExt messageClientExt = new MessageClientExt();
+                    messageClientExt.setTopic(topic);
+                    messageClientExt.setQueueId(0);
+                    messageClientExt.setMsgId("123");
+                    messageClientExt.setBody(new byte[] {'a'});
+                    messageClientExt.setOffsetMsgId("234");
+                    messageClientExt.setBornHost(new InetSocketAddress(8080));
+                    messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                    ((PullCallback) mock.getArgument(4)).onSuccess(pullResult);
+                    return pullResult;
+                }
+            });
+
 
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
         pushConsumer = new DefaultMQPushConsumer(consumerGroup);
@@ -177,8 +199,8 @@ public class DefaultMQPushConsumerTest {
         mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
     }
 
-    @After
-    public void terminate() {
+    @AfterClass
+    public static void terminate() {
         pushConsumer.shutdown();
     }
 

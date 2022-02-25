@@ -25,7 +25,7 @@ import org.apache.rocketmq.common.UtilAll;
 public class MessageClientIDSetter {
     private static final String TOPIC_KEY_SPLITTER = "#";
     private static final int LEN;
-    private static final String FIX_STRING;
+    private static final char[] FIX_STRING;
     private static final AtomicInteger COUNTER;
     private static long startTime;
     private static long nextStartTime;
@@ -42,7 +42,7 @@ public class MessageClientIDSetter {
         tempBuffer.put(ip);
         tempBuffer.putShort((short) UtilAll.getPid());
         tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
-        FIX_STRING = UtilAll.bytes2string(tempBuffer.array());
+        FIX_STRING = UtilAll.bytes2string(tempBuffer.array()).toCharArray();
         setStartTime(System.currentTimeMillis());
         COUNTER = new AtomicInteger(0);
     }
@@ -112,21 +112,22 @@ public class MessageClientIDSetter {
     }
 
     public static String createUniqID() {
-        StringBuilder sb = new StringBuilder(LEN * 2);
-        sb.append(FIX_STRING);
-        sb.append(UtilAll.bytes2string(createUniqIDBuffer()));
-        return sb.toString();
-    }
-
-    private static byte[] createUniqIDBuffer() {
-        ByteBuffer buffer = ByteBuffer.allocate(4 + 2);
+        char[] sb = new char[LEN * 2];
+        System.arraycopy(FIX_STRING, 0, sb, 0, FIX_STRING.length);
         long current = System.currentTimeMillis();
         if (current >= nextStartTime) {
             setStartTime(current);
         }
-        buffer.putInt((int) (System.currentTimeMillis() - startTime));
-        buffer.putShort((short) COUNTER.getAndIncrement());
-        return buffer.array();
+        int diff = (int)(current - startTime);
+        if (diff < 0 && diff > -1000_000) {
+            // may cause by NTP
+            diff = 0;
+        }
+        int pos = FIX_STRING.length;
+        UtilAll.writeInt(sb, pos, diff);
+        pos += 8;
+        UtilAll.writeShort(sb, pos, COUNTER.getAndIncrement());
+        return new String(sb);
     }
 
     public static void setUniqID(final Message msg) {

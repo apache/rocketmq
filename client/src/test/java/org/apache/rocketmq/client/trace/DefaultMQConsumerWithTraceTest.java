@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -116,8 +117,8 @@ public class DefaultMQConsumerWithTraceTest {
     @Before
     public void init() throws Exception {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        for (MQClientInstance instance : factoryTable.values()) {
-            instance.shutdown();
+        for (Map.Entry<String, MQClientInstance> entry : factoryTable.entrySet()) {
+            entry.getValue().shutdown();
         }
         factoryTable.clear();
 

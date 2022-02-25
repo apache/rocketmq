@@ -90,7 +90,9 @@ public class SendMessageProcessorTest {
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(mockChannel);
-        when(messageStore.lookMessageByOffset(anyLong())).thenReturn(new MessageExt());
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic(topic);
+        when(messageStore.lookMessageByOffset(anyLong())).thenReturn(messageExt);
         sendMessageProcessor = new SendMessageProcessor(brokerController);
 
         brokerController.getTopicConfigManager().updateTopicConfig(new TopicConfig(topic, 8, 8, PermName.PERM_WRITE|PermName.PERM_READ));

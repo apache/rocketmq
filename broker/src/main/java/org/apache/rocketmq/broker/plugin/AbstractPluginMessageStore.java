@@ -268,5 +268,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public BrokerStatsManager getBrokerStatsManager() {
         return next.getBrokerStatsManager();
-    };
+    }
+
+    @Override
+    public void cleanUnusedLmqTopic(String topic) {
+        next.cleanUnusedLmqTopic(topic);
+    }
 }

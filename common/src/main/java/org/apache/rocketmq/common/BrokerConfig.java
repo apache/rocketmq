@@ -61,6 +61,7 @@ public class BrokerConfig {
      * thread numbers for send message thread pool.
      */
     private int sendMessageThreadPoolNums = Math.min(Runtime.getRuntime().availableProcessors(), 4);
+    private int putMessageFutureThreadPoolNums = Math.min(Runtime.getRuntime().availableProcessors(), 4);
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int ackMessageThreadPoolNums = 3;
     private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
@@ -87,6 +88,7 @@ public class BrokerConfig {
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
     private int sendThreadPoolQueueCapacity = 10000;
+    private int putThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
     private int ackThreadPoolQueueCapacity = 100000;
     private int replyThreadPoolQueueCapacity = 10000;
@@ -220,9 +222,14 @@ public class BrokerConfig {
 
     private boolean storeReplyMessageEnable = true;
 
+    private boolean enableDetailStat = true;
+
     private boolean autoDeleteUnusedStats = false;
 
-    private long forwardTimeout = 3 * 1000;
+    /**
+     * Whether to distinguish log paths when multiple brokers are deployed on the same machine
+     */
+    private boolean isolateLogEnable = false;
 
     public static String localHostName() {
         try {
@@ -514,6 +521,14 @@ public class BrokerConfig {
         this.sendMessageThreadPoolNums = sendMessageThreadPoolNums;
     }
 
+    public int getPutMessageFutureThreadPoolNums() {
+        return putMessageFutureThreadPoolNums;
+    }
+
+    public void setPutMessageFutureThreadPoolNums(int putMessageFutureThreadPoolNums) {
+        this.putMessageFutureThreadPoolNums = putMessageFutureThreadPoolNums;
+    }
+
     public int getPullMessageThreadPoolNums() {
         return pullMessageThreadPoolNums;
     }
@@ -624,6 +639,14 @@ public class BrokerConfig {
 
     public void setSendThreadPoolQueueCapacity(int sendThreadPoolQueueCapacity) {
         this.sendThreadPoolQueueCapacity = sendThreadPoolQueueCapacity;
+    }
+
+    public int getPutThreadPoolQueueCapacity() {
+        return putThreadPoolQueueCapacity;
+    }
+
+    public void setPutThreadPoolQueueCapacity(int putThreadPoolQueueCapacity) {
+        this.putThreadPoolQueueCapacity = putThreadPoolQueueCapacity;
     }
 
     public int getPullThreadPoolQueueCapacity() {
@@ -954,6 +977,14 @@ public class BrokerConfig {
         this.storeReplyMessageEnable = storeReplyMessageEnable;
     }
 
+    public boolean isEnableDetailStat() {
+        return enableDetailStat;
+    }
+
+    public void setEnableDetailStat(boolean enableDetailStat) {
+        this.enableDetailStat = enableDetailStat;
+    }
+
     public boolean isAutoDeleteUnusedStats() {
         return autoDeleteUnusedStats;
     }
@@ -1016,5 +1047,13 @@ public class BrokerConfig {
 
     public void setForwardTimeout(long timeout) {
         this.forwardTimeout = timeout;
+    }
+
+    public boolean isIsolateLogEnable() {
+        return isolateLogEnable;
+    }
+
+    public void setIsolateLogEnable(boolean isolateLogEnable) {
+        this.isolateLogEnable = isolateLogEnable;
     }
 }

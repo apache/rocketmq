@@ -31,6 +31,7 @@ import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.io.UnsupportedEncodingException;
@@ -128,11 +129,17 @@ public class TransactionProducer {
             }
         }, 10000, 10000, TimeUnit.MILLISECONDS);
 
+        RPCHook rpcHook = null;
+        if (config.aclEnable) {
+            String ak = commandLine.hasOption("ak") ? String.valueOf(commandLine.getOptionValue("ak")) : AclClient.ACL_ACCESS_KEY;
+            String sk = commandLine.hasOption("sk") ? String.valueOf(commandLine.getOptionValue("sk")) : AclClient.ACL_SECRET_KEY;
+            rpcHook = AclClient.getAclRPCHook(ak, sk);
+        }
         final TransactionListener transactionCheckListener = new TransactionListenerImpl(statsBenchmark, config);
         final TransactionMQProducer producer = new TransactionMQProducer(
                 null,
                 "benchmark_transaction_producer",
-                config.aclEnable ? AclClient.getAclRPCHook() : null,
+                rpcHook,
                 config.msgTraceEnable,
                 null);
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
@@ -265,6 +272,14 @@ public class TransactionProducer {
         options.addOption(opt);
 
         opt = new Option("a", "aclEnable", true, "Acl Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ak", "accessKey", true, "Acl access key, Default: 12345678");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("sk", "secretKey", true, "Acl secret key, Default: rocketmq2");
         opt.setRequired(false);
         options.addOption(opt);
 

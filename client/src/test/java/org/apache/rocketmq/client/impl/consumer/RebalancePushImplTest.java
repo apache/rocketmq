@@ -19,20 +19,22 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.MQAdminImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.message.MessageQueueAssignment;
-import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -40,11 +42,12 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -53,15 +56,22 @@ public class RebalancePushImplTest {
     private DefaultMQPushConsumerImpl defaultMQPushConsumer = new DefaultMQPushConsumerImpl(new DefaultMQPushConsumer("RebalancePushImplTest"), null);
     @Mock
     private MQClientInstance mqClientInstance;
-    @Mock
-    private OffsetStore offsetStore;
+    private OffsetStore offsetStore = mock(OffsetStore.class);
     private String consumerGroup = "CID_RebalancePushImplTest";
     private String topic = "TopicA";
-    private final String brokerName = "BrokerA";
+    private MessageQueue mq = new MessageQueue("topic1", "broker1", 0);
+    private MessageQueue retryMq = new MessageQueue(MixAll.RETRY_GROUP_TOPIC_PREFIX + "group", "broker1", 0);
+    private DefaultMQPushConsumerImpl consumerImpl = mock(DefaultMQPushConsumerImpl.class);
+    private RebalancePushImpl rebalanceImpl = new RebalancePushImpl(consumerImpl);
+    private DefaultMQPushConsumer consumer = new DefaultMQPushConsumer();
+    private MQClientInstance client = mock(MQClientInstance.class);
+    private MQAdminImpl admin = mock(MQAdminImpl.class);
 
-    @Before
-    public void before() {
-        defaultMQPushConsumer.getDefaultMQPushConsumer().setClientRebalance(false);
+    public RebalancePushImplTest() {
+        when(consumerImpl.getDefaultMQPushConsumer()).thenReturn(consumer);
+        when(consumerImpl.getOffsetStore()).thenReturn(offsetStore);
+        rebalanceImpl.setmQClientFactory(client);
+        when(client.getMQAdminImpl()).thenReturn(admin);
     }
 
     @Test
@@ -145,8 +155,8 @@ public class RebalancePushImplTest {
         defaultMQPushConsumer.getDefaultMQPushConsumer().setPullThresholdSizeForQueue(1024);
         defaultMQPushConsumer.getDefaultMQPushConsumer().setPullThresholdForQueue(1024);
         Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
-        allocateResultSet.add(new MessageQueue(topic, brokerName, 0));
-        allocateResultSet.add(new MessageQueue(topic, brokerName, 1));
+        allocateResultSet.add(new MessageQueue(topic, "BrokerA", 0));
+        allocateResultSet.add(new MessageQueue(topic, "BrokerA", 1));
         doRebalanceForcibly(rebalancePush, allocateResultSet);
 
         defaultMQPushConsumer.setConsumeMessageService(new ConsumeMessageConcurrentlyService(defaultMQPushConsumer, null));
@@ -173,20 +183,49 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testDoRebalancePull() throws Exception {
-        RebalancePushImpl rebalancePush = new RebalancePushImpl(consumerGroup, MessageModel.CLUSTERING,
-            new AllocateMessageQueueAveragely(), mqClientInstance, defaultMQPushConsumer);
-        rebalancePush.getSubscriptionInner().putIfAbsent(topic, new SubscriptionData());
-        rebalancePush.subscriptionInner.putIfAbsent(topic, new SubscriptionData());
+    public void testComputePullFromWhereWithException_ne_minus1() throws MQClientException {
+        for (ConsumeFromWhere where : new ConsumeFromWhere[]{
+                ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+                ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET,
+                ConsumeFromWhere.CONSUME_FROM_TIMESTAMP}) {
+            consumer.setConsumeFromWhere(where);
 
-        when(mqClientInstance.getClientId()).thenReturn(consumerGroup);
-        when(defaultMQPushConsumer.getOffsetStore()).thenReturn(offsetStore);
-        doNothing().when(defaultMQPushConsumer).executePullRequestLater(any(PullRequest.class), anyLong());
-        MessageQueueAssignment queueAssignment = new MessageQueueAssignment();
-        queueAssignment.setMode(MessageRequestMode.PULL);
-        queueAssignment.setMessageQueue(new MessageQueue(topic, brokerName, 0));
-        when(mqClientInstance.queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt())).thenReturn(Collections.singleton(queueAssignment));
+            when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(0L);
+            assertEquals(0, rebalanceImpl.computePullFromWhereWithException(mq));
 
-        assertThat(rebalancePush.doRebalance(false)).isTrue();
+            when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-2L);
+            assertEquals(-1, rebalanceImpl.computePullFromWhereWithException(mq));
+        }
     }
+
+    @Test
+    public void testComputePullFromWhereWithException_eq_minus1_last() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(12345L);
+
+        assertEquals(12345L, rebalanceImpl.computePullFromWhereWithException(mq));
+
+        assertEquals(0L, rebalanceImpl.computePullFromWhereWithException(retryMq));
+    }
+
+    @Test
+    public void testComputePullFromWhereWithException_eq_minus1_first() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        assertEquals(0, rebalanceImpl.computePullFromWhereWithException(mq));
+    }
+
+    @Test
+    public void testComputePullFromWhereWithException_eq_minus1_timestamp() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
+        when(admin.searchOffset(any(MessageQueue.class), anyLong())).thenReturn(12345L);
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(23456L);
+
+        assertEquals(12345L, rebalanceImpl.computePullFromWhereWithException(mq));
+
+        assertEquals(23456L, rebalanceImpl.computePullFromWhereWithException(retryMq));
+    }
+
 }

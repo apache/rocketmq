@@ -84,6 +84,8 @@ public class MixAll {
     public static final String CID_SYS_RMQ_TRANS = "CID_RMQ_SYS_TRANS";
     public static final String ACL_CONF_TOOLS_FILE = "/conf/tools.yml";
     public static final String REPLY_MESSAGE_FLAG = "reply";
+    public static final String LMQ_PREFIX = "%LMQ%";
+    public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     public static final String LOGICAL_QUEUE_MOCK_BROKER_PREFIX = "__syslo__";
     public static final String METADATA_SCOPE_GLOBAL = "__global__";
@@ -454,5 +456,8 @@ public class MixAll {
 
     public static int compareLong(long x, long y) {
         return (x < y) ? -1 : ((x == y) ? 0 : 1);
+    }
+    public static boolean isLmq(String lmqMetaData) {
+        return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);
     }
 }

@@ -116,10 +116,13 @@ public class BaseConf {
     }
 
     public static String initTopic() {
-        String topic = "tt-" + MQRandomUtils.getRandomTopic();
-        IntegrationTestBase.initTopic(topic, nsAddr, clusterName, CQType.SimpleCQ);
+        String topic = MQRandomUtils.getRandomTopic();
+        return initTopicWithName(topic);
+    }
 
-        return topic;
+    public static String initTopicWithName(String topicName) {
+        IntegrationTestBase.initTopic(topicName, nsAddr, clusterName);
+        return topicName;
     }
 
     public static String initConsumerGroup() {

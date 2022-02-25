@@ -33,6 +33,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -115,7 +116,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
         messageStoreConfig.setHaListenPort(StoreTestBase.nextPort());
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
     @Test
@@ -628,6 +629,21 @@ public class DefaultMessageStoreTest {
         mappedByteBuffer.force();
         fileChannel.force(true);
         fileChannel.close();
+    }
+
+    @Test
+    public void testCleanUnusedLmqTopic() throws Exception {
+        String lmqTopic = "%LMQ%123";
+
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        messageExtBrokerInner.setTopic("test");
+        messageExtBrokerInner.setQueueId(0);
+        messageExtBrokerInner.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqTopic);
+        messageStore.putMessage(messageExtBrokerInner);
+
+        Thread.sleep(3000);
+        messageStore.cleanUnusedLmqTopic(lmqTopic);
+
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

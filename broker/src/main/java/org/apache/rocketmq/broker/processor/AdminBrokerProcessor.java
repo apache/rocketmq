@@ -371,6 +371,13 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
 
+        if (MixAll.isLmq(topic)) {
+            this.brokerController.getMessageStore().cleanUnusedLmqTopic(topic);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        }
+
         this.brokerController.getTopicConfigManager().deleteTopicConfig(topic);
         this.brokerController.getTopicQueueMappingManager().delete(topic);
 
@@ -504,6 +511,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
 
+            responseHeader.setAllAclFileVersion(JSON.toJSONString(accessValidator.getAllAclConfigVersion()));
             responseHeader.setVersion(accessValidator.getAclConfigVersion());
             responseHeader.setBrokerAddr(this.brokerController.getBrokerAddr());
             responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
