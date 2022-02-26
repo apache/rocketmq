@@ -140,11 +140,17 @@ public class RouteInfoManager {
                 while (it.hasNext()) {
                     Entry<Long, String> item = it.next();
                     if (null != brokerAddr && brokerAddr.equals(item.getValue()) && brokerId != item.getKey()) {
+                        log.debug("remove entry {} from brokerData ", item);
                         it.remove();
                     }
                 }
 
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
+                if (MixAll.MASTER_ID == brokerId) {
+                    log.info("cluster [{}] brokerName [{}] master address change from {} to {}",
+                            brokerData.getCluster(), brokerData.getBrokerName(), oldAddr, brokerAddr);
+                }
+
                 registerFirst = registerFirst || (null == oldAddr);
 
                 if (null != topicConfigWrapper

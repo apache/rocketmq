@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class RouteInfoManagerStaticRegisterTest extends RouteInfoManagerTestBase {
     private static RouteInfoManager routeInfoManager;
@@ -115,6 +115,14 @@ public class RouteInfoManagerStaticRegisterTest extends RouteInfoManagerTestBase
         }
 
         assertEquals(allBrokerNameInQueueData, new HashSet<>(cluster.getAllBrokerName()));
+    }
+
+    @Test
+    public void testDeleteTopic() {
+        String topic = getTopicName(topicPrefix, 0);
+        routeInfoManager.deleteTopic(topic);
+
+        assertNull(routeInfoManager.pickupTopicRouteData(topic));
     }
 
     @Test
