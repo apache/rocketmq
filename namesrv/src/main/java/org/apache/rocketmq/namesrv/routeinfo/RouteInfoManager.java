@@ -406,7 +406,11 @@ public class RouteInfoManager {
                             if (!filterServerTable.isEmpty()) {
                                 for (final String brokerAddr : brokerDataClone.getBrokerAddrs().values()) {
                                     List<String> filterServerList = this.filterServerTable.get(brokerAddr);
-                                    filterServerMap.put(brokerAddr, filterServerList);
+
+                                    // only add filter server list when not null
+                                    if (filterServerList != null) {
+                                        filterServerMap.put(brokerAddr, filterServerList);
+                                    }
                                 }
                             }
                         }
