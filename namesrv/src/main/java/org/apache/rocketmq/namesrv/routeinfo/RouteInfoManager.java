@@ -68,11 +68,11 @@ public class RouteInfoManager {
         this.filterServerTable = new HashMap<String, List<String>>(256);
     }
 
-    public byte[] getAllClusterInfo() {
+    public ClusterInfo getAllClusterInfo() {
         ClusterInfo clusterInfoSerializeWrapper = new ClusterInfo();
         clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
         clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
-        return clusterInfoSerializeWrapper.encode();
+        return clusterInfoSerializeWrapper;
     }
 
     public void deleteTopic(final String topic) {
@@ -88,7 +88,7 @@ public class RouteInfoManager {
         }
     }
 
-    public byte[] getAllTopicList() {
+    public TopicList getAllTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -101,7 +101,7 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
     public RegisterBrokerResult registerBroker(
@@ -212,10 +212,10 @@ public class RouteInfoManager {
         return null;
     }
 
-    public void updateBrokerInfoUpdateTimestamp(final String brokerAddr) {
+    public void updateBrokerInfoUpdateTimestamp(final String brokerAddr, long timeStamp) {
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
         if (prev != null) {
-            prev.setLastUpdateTimestamp(System.currentTimeMillis());
+            prev.setLastUpdateTimestamp(timeStamp);
         }
     }
 
@@ -424,7 +424,8 @@ public class RouteInfoManager {
         return null;
     }
 
-    public void scanNotActiveBroker() {
+    public int scanNotActiveBroker() {
+        int removeCount = 0;
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
@@ -434,8 +435,12 @@ public class RouteInfoManager {
                 it.remove();
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
                 this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
+
+                removeCount++;
             }
         }
+
+        return removeCount;
     }
 
     public void onChannelDestroy(String remoteAddr, Channel channel) {
@@ -600,7 +605,7 @@ public class RouteInfoManager {
         }
     }
 
-    public byte[] getSystemTopicList() {
+    public TopicList getSystemTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -629,10 +634,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getTopicsByCluster(String cluster) {
+    public TopicList getTopicsByCluster(String cluster) {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -654,23 +659,20 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getUnitTopics() {
-        TopicList topicList = topicQueueTableIter(qd -> TopicSysFlag.hasUnitFlag(qd.getTopicSysFlag()));
-        return topicList.encode();
+    public TopicList getUnitTopics() {
+        return topicQueueTableIter(qd -> TopicSysFlag.hasUnitFlag(qd.getTopicSysFlag()));
     }
 
-    public byte[] getHasUnitSubTopicList() {
-        TopicList topicList = topicQueueTableIter(qd -> TopicSysFlag.hasUnitSubFlag(qd.getTopicSysFlag()));
-        return topicList.encode();
+    public TopicList getHasUnitSubTopicList() {
+        return topicQueueTableIter(qd -> TopicSysFlag.hasUnitSubFlag(qd.getTopicSysFlag()));
     }
 
-    public byte[] getHasUnitSubUnUnitTopicList() {
-        TopicList topicList = topicQueueTableIter(qd -> !TopicSysFlag.hasUnitFlag(qd.getTopicSysFlag())
+    public TopicList getHasUnitSubUnUnitTopicList() {
+        return topicQueueTableIter(qd -> !TopicSysFlag.hasUnitFlag(qd.getTopicSysFlag())
                 && TopicSysFlag.hasUnitSubFlag(qd.getTopicSysFlag()));
-        return topicList.encode();
     }
 
     private TopicList topicQueueTableIter(Predicate<QueueData> pickCondition) {
