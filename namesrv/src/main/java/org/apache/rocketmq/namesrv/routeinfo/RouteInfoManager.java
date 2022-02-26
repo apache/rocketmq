@@ -64,11 +64,11 @@ public class RouteInfoManager {
         this.filterServerTable = new HashMap<String, List<String>>(256);
     }
 
-    public byte[] getAllClusterInfo() {
+    public ClusterInfo getAllClusterInfo() {
         ClusterInfo clusterInfoSerializeWrapper = new ClusterInfo();
         clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
         clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
-        return clusterInfoSerializeWrapper.encode();
+        return clusterInfoSerializeWrapper;
     }
 
     public void deleteTopic(final String topic) {
@@ -84,7 +84,7 @@ public class RouteInfoManager {
         }
     }
 
-    public byte[] getAllTopicList() {
+    public TopicList getAllTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -97,7 +97,7 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
     public RegisterBrokerResult registerBroker(
@@ -208,10 +208,10 @@ public class RouteInfoManager {
         return null;
     }
 
-    public void updateBrokerInfoUpdateTimestamp(final String brokerAddr) {
+    public void updateBrokerInfoUpdateTimestamp(final String brokerAddr, long timeStamp) {
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
         if (prev != null) {
-            prev.setLastUpdateTimestamp(System.currentTimeMillis());
+            prev.setLastUpdateTimestamp(timeStamp);
         }
     }
 
@@ -439,7 +439,8 @@ public class RouteInfoManager {
         return null;
     }
 
-    public void scanNotActiveBroker() {
+    public int scanNotActiveBroker() {
+        int removeCount = 0;
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
@@ -449,8 +450,12 @@ public class RouteInfoManager {
                 it.remove();
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
                 this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
+
+                removeCount++;
             }
         }
+
+        return removeCount;
     }
 
     public void onChannelDestroy(String remoteAddr, Channel channel) {
@@ -622,7 +627,7 @@ public class RouteInfoManager {
         }
     }
 
-    public byte[] getSystemTopicList() {
+    public TopicList getSystemTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -651,10 +656,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getTopicsByCluster(String cluster) {
+    public TopicList getTopicsByCluster(String cluster) {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -682,10 +687,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getUnitTopics() {
+    public TopicList getUnitTopics() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -708,10 +713,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getHasUnitSubTopicList() {
+    public TopicList getHasUnitSubTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -734,10 +739,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getHasUnitSubUnUnitTopicList() {
+    public TopicList getHasUnitSubUnUnitTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -761,7 +766,7 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 }
 
