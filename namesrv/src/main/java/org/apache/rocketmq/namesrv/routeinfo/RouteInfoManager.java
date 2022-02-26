@@ -401,9 +401,13 @@ public class RouteInfoManager {
                                     .getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
-                            for (final String brokerAddr : brokerDataClone.getBrokerAddrs().values()) {
-                                List<String> filterServerList = this.filterServerTable.get(brokerAddr);
-                                filterServerMap.put(brokerAddr, filterServerList);
+
+                            // skip if filter server table is empty
+                            if (!filterServerTable.isEmpty()) {
+                                for (final String brokerAddr : brokerDataClone.getBrokerAddrs().values()) {
+                                    List<String> filterServerList = this.filterServerTable.get(brokerAddr);
+                                    filterServerMap.put(brokerAddr, filterServerList);
+                                }
                             }
                         }
                     }
