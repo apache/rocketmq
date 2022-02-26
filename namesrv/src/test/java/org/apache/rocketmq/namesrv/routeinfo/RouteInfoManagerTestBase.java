@@ -70,9 +70,14 @@ public class RouteInfoManagerTestBase {
             String brokerName = getBrokerName(brokerNamePrefix, i);
 
             BrokerData brokerData = genBrokerData(cluster, brokerName, brokerPerName, true);
-            registerBrokerWithTopicConfig(routeInfoManager, brokerData, topicConfig, filterServerAddr);
 
-            brokerDataMap.put(brokerData.getBrokerName(), brokerData);
+            // avoid object reference copy
+            ConcurrentMap<String, TopicConfig> topicConfigForBroker = genTopicConfig(topicPrefix, topicNumber);
+
+            registerBrokerWithTopicConfig(routeInfoManager, brokerData, topicConfigForBroker, filterServerAddr);
+
+            // avoid object reference copy
+            brokerDataMap.put(brokerData.getBrokerName(), genBrokerData(cluster, brokerName, brokerPerName, true));
         }
 
         return new Cluster(topicConfig, brokerDataMap);
@@ -121,13 +126,13 @@ public class RouteInfoManagerTestBase {
 
     protected void unregisterBroker(RouteInfoManager routeInfoManager, BrokerData brokerData, long brokerId) {
         HashMap<Long, String> brokerAddrs = brokerData.getBrokerAddrs();
-        if (!brokerAddrs.containsKey(brokerId)) {
+        if (brokerAddrs.containsKey(brokerId)) {
             String address = brokerAddrs.remove(brokerId);
             routeInfoManager.unregisterBroker(brokerData.getCluster(), address, brokerData.getBrokerName(), brokerId);
         }
     }
 
-    protected void registerBrokerWithTopicConfig(RouteInfoManager routeInfoManager, String clusterName,
+    protected RegisterBrokerResult registerBrokerWithTopicConfig(RouteInfoManager routeInfoManager, String clusterName,
                                                  String brokerAddr,
                                                  String brokerName,
                                                  long brokerId,
@@ -139,7 +144,7 @@ public class RouteInfoManagerTestBase {
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
 
         Channel channel = new EmbeddedChannel();
-        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker(clusterName,
+        return routeInfoManager.registerBroker(clusterName,
                 brokerAddr,
                 brokerName,
                 brokerId,
@@ -176,5 +181,8 @@ public class RouteInfoManagerTestBase {
         return brokerNamePrefix + "-" + brokerNameNumber;
     }
 
+    protected BrokerData findBrokerDataByBrokerName(List<BrokerData> data, String brokerName) {
+        return data.stream().filter(bd -> bd.getBrokerName().equals(brokerName)).findFirst().orElse(null);
+    }
 
 }
