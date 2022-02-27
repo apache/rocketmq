@@ -212,7 +212,8 @@ public class PlainPermissionManager {
             for (PlainAccessConfig plainAccessConfig : plainAccessConfigList) {
                 PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
                 //AccessKey can not be defined in multiple ACL files
-                if (this.accessKeyTable.get(plainAccessResource.getAccessKey()) == null) {
+                String oldPath = this.accessKeyTable.get(plainAccessResource.getAccessKey());
+                if (oldPath == null || aclFilePath.equals(oldPath)) {
                     plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
                     this.accessKeyTable.put(plainAccessResource.getAccessKey(), aclFilePath);
                 }
