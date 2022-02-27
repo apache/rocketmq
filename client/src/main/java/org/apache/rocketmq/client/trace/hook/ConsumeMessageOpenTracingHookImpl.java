@@ -51,7 +51,7 @@ public class ConsumeMessageOpenTracingHookImpl implements ConsumeMessageHook {
         if (context == null || context.getMsgList() == null || context.getMsgList().isEmpty()) {
             return;
         }
-        List<Span> spanList = new ArrayList<>();
+        List<Span> spanList = new ArrayList<Span>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
                 continue;

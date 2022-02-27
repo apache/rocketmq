@@ -24,6 +24,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -276,26 +277,26 @@ public class Configuration {
     }
 
     private void merge(Properties from, Properties to) {
-        for (Object key : from.keySet()) {
-            Object fromObj = from.get(key), toObj = to.get(key);
+        for (Entry<Object, Object> next : from.entrySet()) {
+            Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", key, toObj, fromObj);
+                log.info("Replace, key: {}, value: {} -> {}", next.getKey(), toObj, fromObj);
             }
-            to.put(key, fromObj);
+            to.put(next.getKey(), fromObj);
         }
     }
 
     private void mergeIfExist(Properties from, Properties to) {
-        for (Object key : from.keySet()) {
-            if (!to.containsKey(key)) {
+        for (Entry<Object, Object> next : from.entrySet()) {
+            if (!to.containsKey(next.getKey())) {
                 continue;
             }
 
-            Object fromObj = from.get(key), toObj = to.get(key);
+            Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", key, toObj, fromObj);
+                log.info("Replace, key: {}, value: {} -> {}", next.getKey(), toObj, fromObj);
             }
-            to.put(key, fromObj);
+            to.put(next.getKey(), fromObj);
         }
     }
 

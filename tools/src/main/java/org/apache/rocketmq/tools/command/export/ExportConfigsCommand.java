@@ -19,6 +19,7 @@ package org.apache.rocketmq.tools.command.export;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import com.alibaba.fastjson.JSON;
@@ -79,10 +80,10 @@ public class ExportConfigsCommand implements SubCommand {
             Map<String, Properties> brokerConfigs = new HashMap<>();
             Map<String, List<String>> masterAndSlaveMap
                 = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
-            for (String masterAddr : masterAndSlaveMap.keySet()) {
-                Properties masterProperties = defaultMQAdminExt.getBrokerConfig(masterAddr);
+            for (Entry<String, List<String>> masterAndSlaveEntry : masterAndSlaveMap.entrySet()) {
+                Properties masterProperties = defaultMQAdminExt.getBrokerConfig(masterAndSlaveEntry.getKey());
                 masterBrokerSize++;
-                slaveBrokerSize += masterAndSlaveMap.get(masterAddr).size();
+                slaveBrokerSize += masterAndSlaveEntry.getValue().size();
 
                 brokerConfigs.put(masterProperties.getProperty("brokerName"), needBrokerProprties(masterProperties));
             }

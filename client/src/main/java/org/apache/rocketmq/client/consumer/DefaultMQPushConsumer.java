@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -640,8 +641,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     public void setSubscription(Map<String, String> subscription) {
         Map<String, String> subscriptionWithNamespace = new HashMap<String, String>();
-        for (String topic : subscription.keySet()) {
-            subscriptionWithNamespace.put(withNamespace(topic), subscription.get(topic));
+        for (Entry<String, String> topicEntry : subscription.entrySet()) {
+            subscriptionWithNamespace.put(withNamespace(topicEntry.getKey()), topicEntry.getValue());
         }
         this.subscription = subscriptionWithNamespace;
     }

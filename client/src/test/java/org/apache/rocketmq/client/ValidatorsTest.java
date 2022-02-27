@@ -44,7 +44,7 @@ public class ValidatorsTest {
             Validators.checkTopic(illegalTopic);
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
-            assertThat(e).hasMessageStartingWith(String.format("The specified topic[%s] contains illegal characters, allowing only %s", illegalTopic, Validators.VALID_PATTERN_STR));
+            assertThat(e).hasMessageStartingWith(String.format("The specified topic[%s] contains illegal characters, allowing only %s", illegalTopic, "^[%|a-zA-Z0-9_-]+$"));
         }
     }
 
