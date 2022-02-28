@@ -47,9 +47,9 @@ public class RemotingHelper {
 
             StackTraceElement[] stackTrace = e.getStackTrace();
             if (stackTrace != null && stackTrace.length > 0) {
-                StackTraceElement elment = stackTrace[0];
+                StackTraceElement element = stackTrace[0];
                 sb.append(", ");
-                sb.append(elment.toString());
+                sb.append(element.toString());
             }
         }
 
@@ -192,10 +192,8 @@ public class RemotingHelper {
     public static String parseSocketAddressAddr(SocketAddress socketAddress) {
         if (socketAddress != null) {
             final String addr = socketAddress.toString();
-
-            if (addr.length() > 0) {
-                return addr.substring(1);
-            }
+            int index = addr.lastIndexOf("/");
+            return (index != -1) ? addr.substring(index + 1) : addr;
         }
         return "";
     }

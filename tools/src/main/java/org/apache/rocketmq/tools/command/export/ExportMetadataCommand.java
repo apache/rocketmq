@@ -25,7 +25,6 @@ import com.alibaba.fastjson.JSON;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
@@ -119,6 +118,7 @@ public class ExportMetadataCommand implements SubCommand {
 
                 Map<String, TopicConfig> topicConfigMap = new HashMap<>();
                 Map<String, SubscriptionGroupConfig> subGroupConfigMap = new HashMap<>();
+                Map<String, Object> result = new HashMap<>();
 
                 for (String addr : masterSet) {
                     TopicConfigSerializeWrapper topicConfigSerializeWrapper = defaultMQAdminExt.getUserTopicConfig(
@@ -127,50 +127,47 @@ public class ExportMetadataCommand implements SubCommand {
                     SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getUserSubscriptionGroup(
                         addr, 10000);
 
-                    if (commandLine.hasOption('t')) {
-                        filePath = filePath + "/topic.json";
-                        MixAll.string2FileNotSafe(JSON.toJSONString(topicConfigSerializeWrapper, true), filePath);
-                        System.out.printf("export %s success", filePath);
-                        return;
-                    } else if (commandLine.hasOption('g')) {
-                        filePath = filePath + "/subscriptionGroup.json";
-                        MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, true), filePath);
-                        System.out.printf("export %s success", filePath);
-                        return;
-                    } else {
-                        for (Map.Entry<String, TopicConfig> entry : topicConfigSerializeWrapper.getTopicConfigTable().entrySet()) {
-                            TopicConfig topicConfig = topicConfigMap.get(entry.getKey());
-                            if (null != topicConfig) {
-                                entry.getValue().setWriteQueueNums(
-                                    topicConfig.getWriteQueueNums() + entry.getValue().getWriteQueueNums());
-                                entry.getValue().setReadQueueNums(
-                                    topicConfig.getReadQueueNums() + entry.getValue().getReadQueueNums());
-                            }
-                            topicConfigMap.put(entry.getKey(), entry.getValue());
+                    for (Map.Entry<String, TopicConfig> entry : topicConfigSerializeWrapper.getTopicConfigTable()
+                        .entrySet()) {
+                        TopicConfig topicConfig = topicConfigMap.get(entry.getKey());
+                        if (null != topicConfig) {
+                            entry.getValue().setWriteQueueNums(
+                                topicConfig.getWriteQueueNums() + entry.getValue().getWriteQueueNums());
+                            entry.getValue().setReadQueueNums(
+                                topicConfig.getReadQueueNums() + entry.getValue().getReadQueueNums());
                         }
+                        topicConfigMap.put(entry.getKey(), entry.getValue());
+                    }
 
-                        for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper.getSubscriptionGroupTable().entrySet()) {
+                    for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper.getSubscriptionGroupTable()
+                        .entrySet()) {
 
-                            SubscriptionGroupConfig subscriptionGroupConfig = subGroupConfigMap.get(entry.getKey());
-                            if (null != subscriptionGroupConfig) {
-                                entry.getValue().setRetryQueueNums(
-                                    subscriptionGroupConfig.getRetryQueueNums() + entry.getValue().getRetryQueueNums());
-                            }
-                            subGroupConfigMap.put(entry.getKey(), entry.getValue());
+                        SubscriptionGroupConfig subscriptionGroupConfig = subGroupConfigMap.get(entry.getKey());
+                        if (null != subscriptionGroupConfig) {
+                            entry.getValue().setRetryQueueNums(
+                                subscriptionGroupConfig.getRetryQueueNums() + entry.getValue().getRetryQueueNums());
                         }
-
-                        Map<String, Object> result = new HashMap<>();
-                        result.put("topicConfigTable", topicConfigMap);
-                        result.put("subscriptionGroupTable", subGroupConfigMap);
-                        result.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
-                        result.put("exportTime", System.currentTimeMillis());
-
-                        filePath = filePath + "/metadata.json";
-                        MixAll.string2FileNotSafe(JSON.toJSONString(result, true), filePath);
-                        System.out.printf("export %s success", filePath);
+                        subGroupConfigMap.put(entry.getKey(), entry.getValue());
                     }
 
                 }
+
+                String exportPath;
+                if (commandLine.hasOption('t')) {
+                    result.put("topicConfigTable", topicConfigMap);
+                    exportPath = filePath + "/topic.json";
+                } else if (commandLine.hasOption('g')) {
+                    result.put("subscriptionGroupTable", subGroupConfigMap);
+                    exportPath = filePath + "/subscriptionGroup.json";
+                } else {
+                    result.put("topicConfigTable", topicConfigMap);
+                    result.put("subscriptionGroupTable", subGroupConfigMap);
+                    exportPath = filePath + "/metadata.json";
+                }
+                result.put("exportTime", System.currentTimeMillis());
+                MixAll.string2FileNotSafe(JSON.toJSONString(result, true), exportPath);
+                System.out.printf("export %s success%n", exportPath);
+
             } else {
                 ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
             }

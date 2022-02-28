@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 
 public class MQHelper {
+    @Deprecated
     public static void resetOffsetByTimestamp(
         final MessageModel messageModel,
         final String consumerGroup,
