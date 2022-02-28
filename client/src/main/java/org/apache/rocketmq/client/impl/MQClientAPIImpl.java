@@ -621,7 +621,7 @@ public class MQClientAPIImpl {
                 retryBrokerName = mqChosen.getBrokerName();
             }
             String addr = instance.findBrokerAddressInPublish(retryBrokerName);
-            log.warn(String.format("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
+            log.warn(String.format("async send msg by retry %s times. topic=%s, brokerAddr=%s, brokerName=%s", tmp, msg.getTopic(), addr,
                 retryBrokerName), e);
             try {
                 request.setOpaque(RemotingCommand.createNewRequestId());
