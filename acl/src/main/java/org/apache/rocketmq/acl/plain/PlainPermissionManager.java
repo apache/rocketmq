@@ -418,6 +418,7 @@ public class PlainPermissionManager {
                 if (itemIterator.next().get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
                     // Delete the related acl config element
                     itemIterator.remove();
+                    accessKeyTable.remove(accesskey);
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
                     return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclAccessConfigMap));
                 }
