@@ -162,8 +162,8 @@ public class MappedFileQueue {
         for (File file : files) {
             if (file.length() != this.mappedFileSize) {
                 log.warn(file + "\t" + file.length()
-                        + " length not matched message store config value, ignore it");
-                return true;
+                        + " length not matched message store config value, please check it manually");
+                return false;
             }
 
             try {

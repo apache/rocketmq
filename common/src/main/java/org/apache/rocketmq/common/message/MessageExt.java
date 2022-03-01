@@ -153,6 +153,10 @@ public class MessageExt extends Message {
 
     public String getBornHostNameString() {
         if (null != this.bornHost) {
+            if (bornHost instanceof InetSocketAddress) {
+                // without reverse dns lookup
+                return ((InetSocketAddress) bornHost).getHostString();
+            }
             InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
 
             return null != inetAddress ? inetAddress.getHostName() : null;

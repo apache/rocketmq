@@ -65,6 +65,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -638,7 +639,7 @@ public class MQClientInstance {
                             }
 
                             // Update Pub info
-                            {
+                            if (!producerTable.isEmpty()) {
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
                                 publishInfo.setHaveTopicRouterInfo(true);
                                 Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
@@ -652,7 +653,7 @@ public class MQClientInstance {
                             }
 
                             // Update sub info
-                            {
+                            if (!consumerTable.isEmpty()) {
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
                                 while (it.hasNext()) {
@@ -671,7 +672,7 @@ public class MQClientInstance {
                         log.warn("updateTopicRouteInfoFromNameServer, getTopicRouteInfoFromNameServer return null, Topic: {}. [{}]", topic, this.clientId);
                     }
                 } catch (MQClientException e) {
-                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
                 } catch (RemotingException e) {
@@ -897,11 +898,11 @@ public class MQClientInstance {
                             this.mQClientAPIImpl.unregisterClient(addr, this.clientId, producerGroup, consumerGroup, clientConfig.getMqClientApiTimeout());
                             log.info("unregister client[Producer: {} Consumer: {}] from broker[{} {} {}] success", producerGroup, consumerGroup, brokerName, entry1.getKey(), addr);
                         } catch (RemotingException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
+                            log.warn("unregister client RemotingException from broker: {}, {}", addr, e.getMessage());
                         } catch (InterruptedException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
+                            log.warn("unregister client InterruptedException from broker: {}, {}", addr, e.getMessage());
                         } catch (MQBrokerException e) {
-                            log.error("unregister client exception from broker: " + addr, e);
+                            log.warn("unregister client MQBrokerException from broker: {}, {}", addr, e.getMessage());
                         }
                     }
                 }
@@ -969,36 +970,6 @@ public class MQClientInstance {
 
     public MQConsumerInner selectConsumer(final String group) {
         return this.consumerTable.get(group);
-    }
-
-    public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
-        String brokerAddr = null;
-        boolean slave = false;
-        boolean found = false;
-
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
-        if (map != null && !map.isEmpty()) {
-            for (Map.Entry<Long, String> entry : map.entrySet()) {
-                Long id = entry.getKey();
-                brokerAddr = entry.getValue();
-                if (brokerAddr != null) {
-                    found = true;
-                    if (MixAll.MASTER_ID == id) {
-                        slave = false;
-                    } else {
-                        slave = true;
-                    }
-                    break;
-
-                }
-            } // end of for
-        }
-
-        if (found) {
-            return new FindBrokerResult(brokerAddr, slave, findBrokerVersion(brokerName, brokerAddr));
-        }
-
-        return null;
     }
 
     public String findBrokerAddressInPublish(final String brokerName) {

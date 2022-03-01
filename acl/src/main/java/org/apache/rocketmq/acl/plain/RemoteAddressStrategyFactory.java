@@ -187,8 +187,8 @@ public class RemoteAddressStrategyFactory {
 
                 }
                 String[] valueArray = StringUtils.split(value, "-");
-                this.start = Integer.valueOf(valueArray[0]);
-                this.end = Integer.valueOf(valueArray[1]);
+                this.start = Integer.parseInt(valueArray[0]);
+                this.end = Integer.parseInt(valueArray[1]);
                 if (!(AclUtils.isScope(end) && AclUtils.isScope(start) && start <= end)) {
                     throw new AclException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
                 }

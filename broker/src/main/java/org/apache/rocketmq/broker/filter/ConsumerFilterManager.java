@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.filter;
 
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
@@ -158,8 +159,8 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public void unRegister(final String consumerGroup) {
-        for (String topic : filterDataByTopic.keySet()) {
-            this.filterDataByTopic.get(topic).unRegister(consumerGroup);
+        for (Entry<String, FilterDataMapByTopic> entry : filterDataByTopic.entrySet()) {
+            entry.getValue().unRegister(consumerGroup);
         }
     }
 
@@ -230,15 +231,15 @@ public class ConsumerFilterManager extends ConfigManager {
         ConsumerFilterManager load = RemotingSerializable.fromJson(jsonString, ConsumerFilterManager.class);
         if (load != null && load.filterDataByTopic != null) {
             boolean bloomChanged = false;
-            for (String topic : load.filterDataByTopic.keySet()) {
-                FilterDataMapByTopic dataMapByTopic = load.filterDataByTopic.get(topic);
+            for (Entry<String, FilterDataMapByTopic> entry : load.filterDataByTopic.entrySet()) {
+                FilterDataMapByTopic dataMapByTopic = entry.getValue();
                 if (dataMapByTopic == null) {
                     continue;
                 }
 
-                for (String group : dataMapByTopic.getGroupFilterData().keySet()) {
+                for (Entry<String, ConsumerFilterData> groupEntry : dataMapByTopic.getGroupFilterData().entrySet()) {
 
-                    ConsumerFilterData filterData = dataMapByTopic.getGroupFilterData().get(group);
+                    ConsumerFilterData filterData = groupEntry.getValue();
 
                     if (filterData == null) {
                         continue;
@@ -246,7 +247,7 @@ public class ConsumerFilterManager extends ConfigManager {
 
                     try {
                         filterData.setCompiledExpression(
-                            FilterFactory.INSTANCE.get(filterData.getExpressionType()).compile(filterData.getExpression())
+                                FilterFactory.INSTANCE.get(filterData.getExpressionType()).compile(filterData.getExpression())
                         );
                     } catch (Exception e) {
                         log.error("load filter data error, " + filterData, e);
@@ -266,7 +267,7 @@ public class ConsumerFilterManager extends ConfigManager {
                         // we think all consumers are dead when load
                         long deadTime = System.currentTimeMillis() - 30 * 1000;
                         filterData.setDeadTime(
-                            deadTime <= filterData.getBornTime() ? filterData.getBornTime() : deadTime
+                                deadTime <= filterData.getBornTime() ? filterData.getBornTime() : deadTime
                         );
                     }
                 }
