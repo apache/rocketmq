@@ -60,6 +60,7 @@ public class Validators {
         // topic
         Validators.checkTopic(msg.getTopic());
         Validators.isNotAllowedSendTopic(msg.getTopic());
+        Validators.isSystemTopic(msg.getTopic());
 
         // body
         if (null == msg.getBody()) {
