@@ -766,7 +766,7 @@ public class RouteInfoManager {
 }
 
 class BrokerLiveInfo {
-    private long lastUpdateTimestamp;
+    private volatile long lastUpdateTimestamp;
     private DataVersion dataVersion;
     private Channel channel;
     private String haServerAddr;
