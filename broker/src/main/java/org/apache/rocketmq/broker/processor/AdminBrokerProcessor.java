@@ -270,6 +270,30 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
+        if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            String groupName = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+            SubscriptionGroupConfig subscriptionGroupConfig =
+                    this.brokerController.getSubscriptionGroupManager().findSubGroupConfigWithoutCreate(groupName);
+            if (subscriptionGroupConfig != null) {
+                int retryQueueNum = Math.min(topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums());
+
+                final SubscriptionGroupConfig newSubGroupConfig = new SubscriptionGroupConfig();
+                newSubGroupConfig.setGroupName(subscriptionGroupConfig.getGroupName());
+                newSubGroupConfig.setRetryQueueNums(retryQueueNum);
+                newSubGroupConfig.setBrokerId(subscriptionGroupConfig.getBrokerId());
+                newSubGroupConfig.setConsumeBroadcastEnable(subscriptionGroupConfig.isConsumeBroadcastEnable());
+                newSubGroupConfig.setConsumeEnable(subscriptionGroupConfig.isConsumeEnable());
+                newSubGroupConfig.setConsumeFromMinEnable(subscriptionGroupConfig.isConsumeFromMinEnable());
+                newSubGroupConfig.setNotifyConsumerIdsChangedEnable(
+                        subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable());
+                newSubGroupConfig.setRetryMaxTimes(subscriptionGroupConfig.getRetryMaxTimes());
+                newSubGroupConfig.setWhichBrokerWhenConsumeSlowly(
+                        subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
+
+                this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(newSubGroupConfig);
+            }
+        }
+
         this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
 
         response.setCode(ResponseCode.SUCCESS);
@@ -684,6 +708,20 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         SubscriptionGroupConfig config = RemotingSerializable.decode(request.getBody(), SubscriptionGroupConfig.class);
         if (config != null) {
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(config);
+            String retryTopic = MixAll.getRetryTopic(config.getGroupName());
+            int retryQueueNum = config.getRetryQueueNums();
+            TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(retryTopic);
+            if (topicConfig != null && (topicConfig.getReadQueueNums() != retryQueueNum ||
+                    topicConfig.getWriteQueueNums() != retryQueueNum)) {
+                TopicConfig newTopicConfig = new TopicConfig(topicConfig.getTopicName());
+                newTopicConfig.setPerm(topicConfig.getPerm());
+                newTopicConfig.setTopicSysFlag(topicConfig.getTopicSysFlag());
+                newTopicConfig.setWriteQueueNums(retryQueueNum);
+                newTopicConfig.setReadQueueNums(retryQueueNum);
+                newTopicConfig.setOrder(topicConfig.isOrder());
+                newTopicConfig.setTopicFilterType(topicConfig.getTopicFilterType());
+                this.brokerController.getTopicConfigManager().updateTopicConfig(newTopicConfig);
+            }
         }
 
         response.setCode(ResponseCode.SUCCESS);

@@ -25,6 +25,7 @@ import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -123,6 +124,17 @@ public class SubscriptionGroupManager extends ConfigManager {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
                 subscriptionGroupConfig.setGroupName(group);
+
+                String retryTopic = MixAll.getRetryTopic(group);
+                final TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(retryTopic);
+                if (topicConfig != null) {
+                    // Generally, it will not come here. If a subscription group is not created,
+                    // the corresponding retry topic will not be created.
+                    subscriptionGroupConfig.setRetryQueueNums(Math.min(topicConfig.getReadQueueNums(),
+                            topicConfig.getWriteQueueNums()));
+                    log.warn("retry topic already exist while subscriptionGroupConfig not create. group: {}, retryTopic: {}",
+                            group, retryTopic);
+                }
                 SubscriptionGroupConfig preConfig = this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
                 if (null == preConfig) {
                     log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
@@ -133,6 +145,10 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
 
         return subscriptionGroupConfig;
+    }
+
+    public SubscriptionGroupConfig findSubGroupConfigWithoutCreate(final String group) {
+        return this.subscriptionGroupTable.get(group);
     }
 
     @Override
