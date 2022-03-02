@@ -29,11 +29,11 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 /**
  * <p>
- * This example shows RocketMq keep order message (local order not global order)
+ * This example shows RocketMQ keep order message (partially ordered not global order)
  * </p>
  * <p>
  * in the output below,you can see [i=23, orderId=3] consume fail(consumerResult=SUSPEND_CURRENT_QUEUE_A_MOMENT),
- * to keep order message consume,consumer will reconsume [i=23, orderId=3] and then consume [i=33, orderId=3]
+ * to keep ordered message consume,consumer will reconsume [i=23, orderId=3] and then consume [i=33, orderId=3]
  * <pre>
  *
  * Consumer Started.
