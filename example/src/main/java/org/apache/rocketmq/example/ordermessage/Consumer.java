@@ -26,6 +26,35 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
+
+/**
+ * <p>
+ * This example shows RocketMq keep order message (local order not global order)
+ * </p>
+ * <p>
+ * in the output below,you can see [i=23, orderId=3] consume fail(consumerResult=SUSPEND_CURRENT_QUEUE_A_MOMENT),
+ * to keep order message consume,consumer will reconsume [i=23, orderId=3] and then consume [i=33, orderId=3]
+ * <pre>
+ *
+ * Consumer Started.
+ * ConsumeMessageThread_please_rename_unique_group_name_3_1 Message body: Hello RocketMQ i=3, orderId=3 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_1 Message body: Hello RocketMQ i=7, orderId=7 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_1 Message body: Hello RocketMQ i=13, orderId=3 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_1 Message body: Hello RocketMQ i=17, orderId=7 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_1 Message body: Hello RocketMQ i=23, orderId=3 consumerResult SUSPEND_CURRENT_QUEUE_A_MOMENT
+ * ...omit
+ * ConsumeMessageThread_please_rename_unique_group_name_3_4 Message body: Hello RocketMQ i=23, orderId=3 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_5 Message body: Hello RocketMQ i=52, orderId=2 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_4 Message body: Hello RocketMQ i=27, orderId=7 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_5 Message body: Hello RocketMQ i=62, orderId=2 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_4 Message body: Hello RocketMQ i=33, orderId=3 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_5 Message body: Hello RocketMQ i=72, orderId=2 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_4 Message body: Hello RocketMQ i=37, orderId=7 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_5 Message body: Hello RocketMQ i=82, orderId=2 consumerResult SUCCESS
+ * ConsumeMessageThread_please_rename_unique_group_name_3_4 Message body: Hello RocketMQ i=43, orderId=3 consumerResult SUCCESS
+ * ...omit
+ * </pre>
+ */
 public class Consumer {
 
     public static void main(String[] args) throws MQClientException {
@@ -41,21 +70,35 @@ public class Consumer {
             @Override
             public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
                 context.setAutoCommit(true);
-                System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
-                this.consumeTimes.incrementAndGet();
-                if ((this.consumeTimes.get() % 2) == 0) {
-                    return ConsumeOrderlyStatus.SUCCESS;
-                } else if ((this.consumeTimes.get() % 5) == 0) {
-                    context.setSuspendCurrentQueueTimeMillis(3000);
-                    return ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
-                }
-
-                return ConsumeOrderlyStatus.SUCCESS;
+                ConsumeOrderlyStatus consumerResult = getConsumerResult(consumeTimes, context);
+                printMsg(msgs, consumerResult);
+                return consumerResult;
             }
         });
 
         consumer.start();
         System.out.printf("Consumer Started.%n");
+    }
+
+    private static ConsumeOrderlyStatus getConsumerResult(AtomicLong consumeTimes, ConsumeOrderlyContext context) {
+        consumeTimes.incrementAndGet();
+        if ((consumeTimes.get() % 2) == 0) {
+            return ConsumeOrderlyStatus.SUCCESS;
+        } else if ((consumeTimes.get() % 5) == 0) {
+            context.setSuspendCurrentQueueTimeMillis(3000);
+            return ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
+        }
+
+        return ConsumeOrderlyStatus.SUCCESS;
+    }
+
+    private static void printMsg(List<MessageExt> msgs, ConsumeOrderlyStatus consumerResult) {
+        if (null == msgs) {
+            return;
+        }
+        for (MessageExt msg : msgs) {
+            System.out.printf("%s Message body: %s consumerResult %s \n", Thread.currentThread().getName(), new String(msg.getBody()), consumerResult);
+        }
     }
 
 }
