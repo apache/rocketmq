@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -210,7 +211,8 @@ public class PlainPermissionManager {
         JSONObject plainAclConfData = AclUtils.getYamlDataObject(aclFilePath,
             JSONObject.class);
         if (plainAclConfData == null || plainAclConfData.isEmpty()) {
-            throw new AclException(String.format("%s file is not data", aclFilePath));
+            log.warn("No data in {}, skip it", aclFilePath);
+            return;
         }
         log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
         JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
@@ -338,6 +340,12 @@ public class PlainPermissionManager {
                         break;
                     }
                 }
+            } else {
+                // Maybe deleted in file, add it back
+                accounts = new LinkedList<>();
+                updateAccountMap = createAclAccessConfigMap(null, plainAccessConfig);
+                accounts.add(updateAccountMap);
+                aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
             }
             Map<String, PlainAccessResource> accountMap = aclPlainAccessResourceMap.get(aclFileName);
             if (accountMap == null) {
@@ -463,6 +471,7 @@ public class PlainPermissionManager {
                 if (itemIterator.next().get(AclConstants.CONFIG_ACCESS_KEY).equals(accesskey)) {
                     // Delete the related acl config element
                     itemIterator.remove();
+                    accessKeyTable.remove(accesskey);
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
                     return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclFileName, aclAccessConfigMap));
                 }
@@ -509,7 +518,7 @@ public class PlainPermissionManager {
             JSONObject plainAclConfData = AclUtils.getYamlDataObject(path,
                 JSONObject.class);
             if (plainAclConfData == null || plainAclConfData.isEmpty()) {
-                throw new AclException(String.format("%s file is not data", path));
+                continue;
             }
             JSONArray globalWhiteAddrs = plainAclConfData.getJSONArray(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS);
             if (globalWhiteAddrs != null && !globalWhiteAddrs.isEmpty()) {
