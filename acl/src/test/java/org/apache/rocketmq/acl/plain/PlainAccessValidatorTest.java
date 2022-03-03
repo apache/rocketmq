@@ -904,6 +904,19 @@ public class PlainAccessValidatorTest {
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
     }
 
+    @Test
+    public void deleteAccessAclToEmptyTest() {
+        System.setProperty("rocketmq.acl.plain.file", "/conf/empty.yml");
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("deleteAccessAclToEmpty");
+        plainAccessConfig.setSecretKey("12345678");
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+        boolean success = plainAccessValidator.deleteAccessConfig("deleteAccessAclToEmpty");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
+        Assert.assertTrue(success);
+    }
 
     @Test
     public void testValidateAfterUpdateAccessConfig() throws NoSuchFieldException, IllegalAccessException {

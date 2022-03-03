@@ -271,7 +271,7 @@ public class PlainPermissionManager {
         return this.dataVersionMap;
     }
 
-    public Map<String, Object> updateAclConfigFileVersion(Map<String, Object> updateAclConfigMap) {
+    public Map<String, Object> updateAclConfigFileVersion(String aclFileName, Map<String, Object> updateAclConfigMap) {
 
         Object dataVersions = updateAclConfigMap.get(AclConstants.CONFIG_DATA_VERSION);
         DataVersion dataVersion = new DataVersion();
@@ -355,7 +355,7 @@ public class PlainPermissionManager {
                 }
             }
             aclPlainAccessResourceMap.put(aclFileName, accountMap);
-            return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclAccessConfigMap));
+            return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclFileName, aclAccessConfigMap));
         } else {
             String fileName = defaultAclFile;
             //Create acl access config elements on the default acl file
@@ -391,7 +391,7 @@ public class PlainPermissionManager {
                 plainAccessResourceMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
                 aclPlainAccessResourceMap.put(fileName, plainAccessResourceMap);
             }
-            return AclUtils.writeDataObject(defaultAclFile, updateAclConfigFileVersion(aclAccessConfigMap));
+            return AclUtils.writeDataObject(defaultAclFile, updateAclConfigFileVersion(defaultAclFile, aclAccessConfigMap));
         }
     }
 
@@ -464,7 +464,7 @@ public class PlainPermissionManager {
                     // Delete the related acl config element
                     itemIterator.remove();
                     aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
-                    return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclAccessConfigMap));
+                    return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclFileName, aclAccessConfigMap));
                 }
             }
         }
