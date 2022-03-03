@@ -494,7 +494,7 @@ public class PlainPermissionManager {
         }
         // Update globalWhiteRemoteAddr element in memory map firstly
         aclAccessConfigMap.put(AclConstants.CONFIG_GLOBAL_WHITE_ADDRS, new ArrayList<>(globalWhiteAddrsList));
-        return AclUtils.writeDataObject(fileName, updateAclConfigFileVersion(aclAccessConfigMap));
+        return AclUtils.writeDataObject(fileName, updateAclConfigFileVersion(fileName, aclAccessConfigMap));
 
     }
 
