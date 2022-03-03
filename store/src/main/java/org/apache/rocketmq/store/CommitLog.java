@@ -722,8 +722,8 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(1);
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).add(result.getWroteBytes());
 
-        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
-        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
+        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg); // flush request to disk
+        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg); // 触发副本的同步
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(flushStatus);
@@ -853,7 +853,7 @@ public class CommitLog {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
                         this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                 flushDiskWatcher.add(request);
-                service.putRequest(request);
+                service.putRequest(request);//线程异步刷新磁盘
                 return request.future();
             } else {
                 service.wakeup();
@@ -1286,7 +1286,7 @@ public class CommitLog {
             this.maxMessageSize = size;
         }
 
-        public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
+        public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer/*队列里面的ByteBuffer*/, final int maxBlank,
             final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
@@ -1295,7 +1295,7 @@ public class CommitLog {
 
             Supplier<String> msgIdSupplier = () -> {
                 int sysflag = msgInner.getSysFlag();
-                int msgIdLen = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
+                int msgIdLen = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8; // ip+port+wroteOffset
                 ByteBuffer msgIdBuffer = ByteBuffer.allocate(msgIdLen);
                 MessageExt.socketAddress2ByteBuffer(msgInner.getStoreHost(), msgIdBuffer);
                 msgIdBuffer.clear();//because socketAddress2ByteBuffer flip the buffer
@@ -1345,7 +1345,7 @@ public class CommitLog {
                 // Here the length of the specially set maxBlank
                 final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
-                return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset,
+                return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, //空间不够,返回文件结尾：END_OF_FILE，进行创建新文件
                         maxBlank, /* only wrote 8 bytes, but declare wrote maxBlank for compute write position */
                         msgIdSupplier, msgInner.getStoreTimestamp(),
                         queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
