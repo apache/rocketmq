@@ -335,6 +335,10 @@ public class PlainPermissionManager {
                 aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, new ArrayList<>());
             }
             List<Map<String, Object>> accounts = (List<Map<String, Object>>) aclAccessConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
+            // When no accounts defined
+            if (null == accounts) {
+                accounts = new ArrayList<>();
+            }
             accounts.add(createAclAccessConfigMap(null, plainAccessConfig));
             aclAccessConfigMap.put(AclConstants.CONFIG_ACCOUNTS, accounts);
             accessKeyTable.put(plainAccessConfig.getAccessKey(), fileName);
