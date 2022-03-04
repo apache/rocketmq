@@ -595,7 +595,7 @@ public class MappedFileQueue {
     }
 
     public long getFlushedWhere() {
-        return flushedWhere;
+        return flushedWhere;//刷新到的位置
     }
 
     public void setFlushedWhere(long flushedWhere) {

@@ -167,7 +167,7 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import com.alibaba.fastjson.JSON;
-
+/**内部持有NettyRemotingClient实例 */
 public class MQClientAPIImpl {
 
     private final static InternalLogger log = ClientLogger.getLog();
@@ -189,7 +189,7 @@ public class MQClientAPIImpl {
         RPCHook rpcHook, final ClientConfig clientConfig) {
         this.clientConfig = clientConfig;
         topAddressing = new TopAddressing(MixAll.getWSAddr(), clientConfig.getUnitName());
-        this.remotingClient = new NettyRemotingClient(nettyClientConfig, null);
+        this.remotingClient = new NettyRemotingClient(nettyClientConfig, null); //创建NettyRemotingClient
         this.clientRemotingProcessor = clientRemotingProcessor;
 
         this.remotingClient.registerRPCHook(rpcHook);

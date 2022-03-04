@@ -314,7 +314,7 @@ public class MixAll {
         return properties;
     }
 
-    public static void properties2Object(final Properties p, final Object object) {
+    public static void properties2Object(final Properties p, final Object object) { //将Properties中的属性名字通过Setter设置到object中
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
             String mn = method.getName();

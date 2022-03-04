@@ -1337,7 +1337,7 @@ public class DefaultMessageStore implements MessageStore {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                DefaultMessageStore.this.cleanFilesPeriodically();
+                DefaultMessageStore.this.cleanFilesPeriodically(); // 定期清理过期文件
             }
         }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
 
