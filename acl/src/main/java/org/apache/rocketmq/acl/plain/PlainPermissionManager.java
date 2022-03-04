@@ -652,6 +652,9 @@ public class PlainPermissionManager {
         // Check the white addr for accesskey
         String aclFileName = accessKeyTable.get(plainAccessResource.getAccessKey());
         PlainAccessResource ownedAccess = aclPlainAccessResourceMap.get(aclFileName).get(plainAccessResource.getAccessKey());
+        if (null == ownedAccess) {
+            throw new AclException(String.format("No PlainAccessResource for accessKey=%s", plainAccessResource.getAccessKey()));
+        }
         if (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) {
             return;
         }
