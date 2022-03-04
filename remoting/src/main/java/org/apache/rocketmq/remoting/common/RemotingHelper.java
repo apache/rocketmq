@@ -38,6 +38,7 @@ public class RemotingHelper {
     public static final String DEFAULT_CHARSET = "UTF-8";
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
+    private static final AttributeKey<String> REMOTE_ADDR_KEY = AttributeKey.valueOf("RemoteAddr");
 
     public static String exceptionSimpleDesc(final Throwable e) {
         StringBuilder sb = new StringBuilder();

@@ -290,8 +290,8 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
-            Method method = cq.getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class, boolean.class);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            Method method = ((ConsumeQueue)cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
 
             assertThat(method).isNotNull();
 
@@ -304,11 +304,11 @@ public class ConsumeQueueTest {
 
             assertThat(cq).isNotNull();
 
-            Object dispatchResult = method.invoke(cq,  dispatchRequest, true);
+            Object dispatchResult = method.invoke(cq,  dispatchRequest);
 
-            ConsumeQueue lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
 
-            ConsumeQueue lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
 
             assertThat(lmqCq1).isNotNull();
 
@@ -338,11 +338,11 @@ public class ConsumeQueueTest {
             }
             Thread.sleep(5);
 
-            ConsumeQueue cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
+            ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
 
-            ConsumeQueue lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
+            ConsumeQueueInterface lmqCq1 = messageStore.getConsumeQueueTable().get("%LMQ%123").get(0);
 
-            ConsumeQueue lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
+            ConsumeQueueInterface lmqCq2 = messageStore.getConsumeQueueTable().get("%LMQ%456").get(0);
 
             assertThat(cq).isNotNull();
 

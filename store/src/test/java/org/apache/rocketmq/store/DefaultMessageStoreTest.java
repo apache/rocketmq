@@ -631,20 +631,6 @@ public class DefaultMessageStoreTest {
         fileChannel.close();
     }
 
-    @Test
-    public void testCleanUnusedLmqTopic() throws Exception {
-        String lmqTopic = "%LMQ%123";
-
-        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
-        messageExtBrokerInner.setTopic("test");
-        messageExtBrokerInner.setQueueId(0);
-        messageExtBrokerInner.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqTopic);
-        messageStore.putMessage(messageExtBrokerInner);
-
-        Thread.sleep(3000);
-        messageStore.cleanUnusedLmqTopic(lmqTopic);
-
-    }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override

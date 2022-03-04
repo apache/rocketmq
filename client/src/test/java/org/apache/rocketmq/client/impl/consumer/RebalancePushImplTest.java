@@ -110,12 +110,6 @@ public class RebalancePushImplTest {
 
         rebalancePush.subscriptionInner.putIfAbsent(topic, new SubscriptionData());
 
-        try {
-            when(mqClientInstance.queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt())).thenThrow(new RemotingTimeoutException("unsupported"));
-        } catch (RemotingException ignored) {
-        } catch (InterruptedException ignored) {
-        } catch (MQBrokerException ignored) {
-        }
         when(mqClientInstance.findConsumerIdList(anyString(), anyString())).thenReturn(Collections.singletonList(consumerGroup));
         when(mqClientInstance.getClientId()).thenReturn(consumerGroup);
         when(defaultMQPushConsumer.getOffsetStore()).thenReturn(offsetStore);
@@ -192,9 +186,6 @@ public class RebalancePushImplTest {
 
             when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(0L);
             assertEquals(0, rebalanceImpl.computePullFromWhereWithException(mq));
-
-            when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-2L);
-            assertEquals(-1, rebalanceImpl.computePullFromWhereWithException(mq));
         }
     }
 

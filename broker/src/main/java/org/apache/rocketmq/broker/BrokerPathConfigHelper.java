@@ -43,6 +43,14 @@ public class BrokerPathConfigHelper {
         return rootDir + File.separator + "config" + File.separator + "consumerOffset.json";
     }
 
+    public static String getLmqConsumerOffsetPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "lmqConsumerOffset.json";
+    }
+
+    public static String getConsumerOrderInfoPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "consumerOrderInfo.json";
+    }
+
     public static String getSubscriptionGroupPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "subscriptionGroup.json";
     }

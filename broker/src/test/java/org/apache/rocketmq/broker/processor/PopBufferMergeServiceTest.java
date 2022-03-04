@@ -63,10 +63,10 @@ public class PopBufferMergeServiceTest {
         FieldUtils.writeField(brokerController.getBrokerConfig(), "enablePopBufferMerge", true, true);
         brokerController.setMessageStore(messageStore);
         popMessageProcessor = new PopMessageProcessor(brokerController);
-        scheduleMessageService = new ScheduleMessageService(messageStore);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMessageDelayLevel("5s 10s");
         when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        scheduleMessageService = new ScheduleMessageService(messageStore);
         scheduleMessageService.parseDelayLevel();
         Channel mockChannel = mock(Channel.class);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());

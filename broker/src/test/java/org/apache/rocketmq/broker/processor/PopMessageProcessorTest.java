@@ -80,10 +80,10 @@ public class PopMessageProcessorTest {
     public void init() {
         brokerController.setMessageStore(messageStore);
         popMessageProcessor = new PopMessageProcessor(brokerController);
-        scheduleMessageService = new ScheduleMessageService(messageStore);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMessageDelayLevel("5s 10s");
         when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        scheduleMessageService = new ScheduleMessageService(messageStore);
         scheduleMessageService.parseDelayLevel();
         when(messageStore.getScheduleMessageService()).thenReturn(scheduleMessageService);
         when(messageStore.putMessage(any())).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));

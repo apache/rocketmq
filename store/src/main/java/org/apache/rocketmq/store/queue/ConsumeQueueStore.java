@@ -24,9 +24,9 @@ import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import java.io.File;
@@ -45,7 +45,7 @@ import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePat
 public class ConsumeQueueStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    protected final MessageStore messageStore;
+    protected final DefaultMessageStore messageStore;
     protected final MessageStoreConfig messageStoreConfig;
     protected final QueueOffsetAssigner queueOffsetAssigner = new QueueOffsetAssigner();
     protected final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
@@ -54,7 +54,7 @@ public class ConsumeQueueStore {
     // TopicConfigManager is more suitable here.
     private ConcurrentMap<String, TopicConfig> topicConfigTable;
 
-    public ConsumeQueueStore(MessageStore messageStore, MessageStoreConfig messageStoreConfig) {
+    public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig) {
         this.messageStore = messageStore;
         this.messageStoreConfig = messageStoreConfig;
         this.consumeQueueTable = new ConcurrentHashMap<>(32);

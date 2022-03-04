@@ -21,9 +21,12 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -42,7 +45,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     public static final int CQ_STORE_UNIT_SIZE = 20;
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
-    private final MessageStore defaultMessageStore;
+    private final DefaultMessageStore defaultMessageStore;
 
     private final MappedFileQueue mappedFileQueue;
     private final String topic;
@@ -60,7 +63,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         final int queueId,
         final String storePath,
         final int mappedFileSize,
-        final MessageStore defaultMessageStore) {
+        final DefaultMessageStore defaultMessageStore) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.defaultMessageStore = defaultMessageStore;
@@ -396,7 +399,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
-    public void putMessagePositionInfoWrapper(DispatchRequest request, boolean multiQueue) {
+    public void putMessagePositionInfoWrapper(DispatchRequest request) {
         final int maxRetries = 30;
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
@@ -423,7 +426,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
                 this.defaultMessageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
-                if (multiQueue) {
+                if (checkMultiDispatchQueue(request)) {
                     multiDispatchLmqQueue(request, maxRetries);
                 }
                 return;
@@ -443,6 +446,22 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         // XXX: warn and notify me
         log.error("[BUG]consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
+    }
+
+    private boolean checkMultiDispatchQueue(DispatchRequest dispatchRequest) {
+        if (!this.defaultMessageStore.getMessageStoreConfig().isEnableMultiDispatch()) {
+            return false;
+        }
+        Map<String, String> prop = dispatchRequest.getPropertiesMap();
+        if (prop == null && prop.isEmpty()) {
+            return false;
+        }
+        String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+        if (StringUtils.isBlank(multiDispatchQueue) || StringUtils.isBlank(multiQueueOffset)) {
+            return false;
+        }
+        return true;
     }
 
     private void multiDispatchLmqQueue(DispatchRequest request, int maxRetries) {
@@ -470,10 +489,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
     private void doDispatchLmqQueue(DispatchRequest request, int maxRetries, String queueName, long queueOffset,
         int queueId) {
-        ConsumeQueue cq = this.defaultMessageStore.findConsumeQueue(queueName, queueId);
+        ConsumeQueueInterface cq = this.defaultMessageStore.findConsumeQueue(queueName, queueId);
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
-            boolean result = cq.putMessagePositionInfo(request.getCommitLogOffset(), request.getMsgSize(),
+            boolean result = ((ConsumeQueue) cq).putMessagePositionInfo(request.getCommitLogOffset(), request.getMsgSize(),
                 request.getTagsCode(),
                 queueOffset);
             if (result) {
@@ -492,10 +511,55 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     @Override
-    public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum) {
+    public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg,
+        short messageNum) {
         String topicQueueKey = getTopic() + "-" + getQueueId();
         long queueOffset = queueOffsetAssigner.assignQueueOffset(topicQueueKey, messageNum);
         msg.setQueueOffset(queueOffset);
+        // For LMQ
+        if (!defaultMessageStore.getMessageStoreConfig().isEnableMultiDispatch()) {
+            return;
+        }
+        String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        if (StringUtils.isBlank(multiDispatchQueue)) {
+            return;
+        }
+        String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+        Long[] queueOffsets = new Long[queues.length];
+        for (int i = 0; i < queues.length; i++) {
+            String key = queueKey(queues[i], msg);
+            if (defaultMessageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
+                queueOffsets[i] = queueOffsetAssigner.assignLmqOffset(key, (short) 1);
+            }
+        }
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
+            StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
+        removeWaitStorePropertyString(msg);
+    }
+
+    public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
+        StringBuilder keyBuilder = new StringBuilder();
+        keyBuilder.append(queueName);
+        keyBuilder.append('-');
+        int queueId = msgInner.getQueueId();
+        if (defaultMessageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
+            queueId = 0;
+        }
+        keyBuilder.append(queueId);
+        return keyBuilder.toString();
+    }
+
+    private void removeWaitStorePropertyString(MessageExtBrokerInner msgInner) {
+        if (msgInner.getProperties().containsKey(MessageConst.PROPERTY_WAIT_STORE_MSG_OK)) {
+            // There is no need to store "WAIT=true", remove it from propertiesString to save 9 bytes for each message.
+            // It works for most case. In some cases msgInner.setPropertiesString invoked later and replace it.
+            String waitStoreMsgOKValue = msgInner.getProperties().remove(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
+            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+            // Reput to properties, since msgInner.isWaitStoreMsgOK() will be invoked later
+            msgInner.getProperties().put(MessageConst.PROPERTY_WAIT_STORE_MSG_OK, waitStoreMsgOKValue);
+        } else {
+            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+        }
     }
 
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
@@ -631,7 +695,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         private int relativePos = 0;
 
         public ConsumeQueueIterator(SelectMappedBufferResult sbr) {
-            this.sbr =  sbr;
+            this.sbr = sbr;
             if (sbr != null && sbr.getByteBuffer() != null) {
                 relativePos = sbr.getByteBuffer().position();
             }
@@ -651,11 +715,11 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             if (!hasNext()) {
                 return null;
             }
-            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() -  relativePos) / CQ_STORE_UNIT_SIZE;
+            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() - relativePos) / CQ_STORE_UNIT_SIZE;
             CqUnit cqUnit = new CqUnit(queueOffset,
-                    sbr.getByteBuffer().getLong(),
-                    sbr.getByteBuffer().getInt(),
-                    sbr.getByteBuffer().getLong());
+                sbr.getByteBuffer().getLong(),
+                sbr.getByteBuffer().getInt(),
+                sbr.getByteBuffer().getLong());
 
             if (isExtAddr(cqUnit.getTagsCode())) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
@@ -666,7 +730,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 } else {
                     // can't find ext content.Client will filter messages by tag also.
                     log.error("[BUG] can't find consume queue extend file content! addr={}, offsetPy={}, sizePy={}, topic={}",
-                            cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
+                        cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
                 }
             }
             return cqUnit;

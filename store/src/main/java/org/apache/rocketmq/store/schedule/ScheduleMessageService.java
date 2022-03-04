@@ -37,14 +37,14 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.running.RunningStats;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
@@ -220,8 +220,8 @@ public class ScheduleMessageService extends ConfigManager {
         try {
             for (int delayLevel : delayLevelTable.keySet()) {
                 ConsumeQueueInterface cq =
-                        ScheduleMessageService.this.defaultMessageStore.getQueueStore().findOrCreateConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
-                                delayLevel2QueueId(delayLevel));
+                    ScheduleMessageService.this.defaultMessageStore.getQueueStore().findOrCreateConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+                        delayLevel2QueueId(delayLevel));
                 Long currentDelayOffset = offsetTable.get(delayLevel);
                 if (currentDelayOffset == null || cq == null) {
                     continue;
@@ -341,6 +341,17 @@ public class ScheduleMessageService extends ConfigManager {
         return msgInner;
     }
 
+    public int computeDelayLevel(long timeMillis) {
+        long intervalMillis = timeMillis - System.currentTimeMillis();
+        List<Map.Entry<Integer, Long>> sortedLevels = delayLevelTable.entrySet().stream().sorted(Comparator.comparingLong(Map.Entry::getValue)).collect(Collectors.toList());
+        for (Map.Entry<Integer, Long> entry : sortedLevels) {
+            if (entry.getValue() > intervalMillis) {
+                return entry.getKey();
+            }
+        }
+        return sortedLevels.get(sortedLevels.size() - 1).getKey();
+    }
+
     class DeliverDelayedMessageTimerTask implements Runnable {
         private final int delayLevel;
         private final long offset;
@@ -388,35 +399,50 @@ public class ScheduleMessageService extends ConfigManager {
                 return;
             }
 
-            if (cq != null) {
-                ReferredIterator<CqUnit> bufferCQ = cq.iterateFrom(this.offset);
-                if (bufferCQ != null) {
-                    try {
-                        long nextOffset = offset;
-                        while (bufferCQ.hasNext()) {
-                            CqUnit cqUnit =  bufferCQ.next();
-                            long offsetPy = cqUnit.getPos();
-                            int sizePy = cqUnit.getSize();
-                            long tagsCode = cqUnit.getTagsCode();
+            ReferredIterator<CqUnit> bufferCQ = cq.iterateFrom(this.offset);
+            if (bufferCQ == null) {
+                long resetOffset;
+                if ((resetOffset = cq.getMinOffsetInQueue()) > this.offset) {
+                    log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, queueId={}",
+                        this.offset, resetOffset, cq.getQueueId());
+                } else if ((resetOffset = cq.getMaxOffsetInQueue()) < this.offset) {
+                    log.error("schedule CQ offset invalid. offset={}, cqMaxOffset={}, queueId={}",
+                        this.offset, resetOffset, cq.getQueueId());
+                } else {
+                    resetOffset = this.offset;
+                }
 
-                            if (!cqUnit.isTagsCodeValid()) {
-                                //can't find ext content.So re compute tags code.
-                                log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}",
-                                    tagsCode, offsetPy, sizePy);
-                                long msgStoreTime = defaultMessageStore.getCommitLog().pickupStoreTimestamp(offsetPy, sizePy);
-                                tagsCode = computeDeliverTimestamp(delayLevel, msgStoreTime);
-                            }
+                this.scheduleNextTimerTask(resetOffset, DELAY_FOR_A_WHILE);
+                return;
+            }
 
-                            long now = System.currentTimeMillis();
-                            long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
+            long nextOffset = this.offset;
+            try {
+                while (bufferCQ.hasNext() && isStarted()) {
+                    CqUnit cqUnit = bufferCQ.next();
+                    long offsetPy = cqUnit.getPos();
+                    int sizePy = cqUnit.getSize();
+                    long tagsCode = cqUnit.getTagsCode();
 
-                            long currOffset = cqUnit.getQueueOffset();
-                            assert cqUnit.getBatchNum() == 1;
-                            nextOffset = currOffset + cqUnit.getBatchNum();
+                    if (!cqUnit.isTagsCodeValid()) {
+                        //can't find ext content.So re compute tags code.
+                        log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}",
+                            tagsCode, offsetPy, sizePy);
+                        long msgStoreTime = defaultMessageStore.getCommitLog().pickupStoreTimestamp(offsetPy, sizePy);
+                        tagsCode = computeDeliverTimestamp(delayLevel, msgStoreTime);
+                    }
+
+                    long now = System.currentTimeMillis();
+                    long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
+
+                    long currOffset = cqUnit.getQueueOffset();
+                    assert cqUnit.getBatchNum() == 1;
+                    nextOffset = currOffset + cqUnit.getBatchNum();
 
                     long countdown = deliverTimestamp - now;
                     if (countdown > 0) {
-                        this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
+                        this.scheduleNextTimerTask(currOffset, DELAY_FOR_A_WHILE);
+                        ScheduleMessageService.this.updateOffset(this.delayLevel, currOffset);
                         return;
                     }
 
@@ -444,8 +470,6 @@ public class ScheduleMessageService extends ConfigManager {
                         return;
                     }
                 }
-
-                nextOffset = this.offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
             } catch (Exception e) {
                 log.error("ScheduleMessageService, messageTimeup execute error, offset = {}", nextOffset, e);
             } finally {
@@ -774,24 +798,22 @@ public class ScheduleMessageService extends ConfigManager {
     public enum ProcessStatus {
         /**
          * In process, the processing result has not yet been returned.
-         * */
+         */
         RUNNING,
 
         /**
          * Put message success.
-         * */
+         */
         SUCCESS,
 
         /**
-         * Put message exception.
-         * When autoResend is true, the message will be resend.
-         * */
+         * Put message exception. When autoResend is true, the message will be resend.
+         */
         EXCEPTION,
 
         /**
-         * Skip put message.
-         * When the message cannot be looked, the message will be skipped.
-         * */
+         * Skip put message. When the message cannot be looked, the message will be skipped.
+         */
         SKIP,
     }
 }

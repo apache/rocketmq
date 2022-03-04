@@ -34,12 +34,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
@@ -129,7 +123,8 @@ public class RemotingCommand {
         return createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
     }
 
-    public static RemotingCommand buildErrorResponse(int code, String remark, Class<? extends CommandCustomHeader> classHeader) {
+    public static RemotingCommand buildErrorResponse(int code, String remark,
+        Class<? extends CommandCustomHeader> classHeader) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(classHeader);
         response.setCode(code);
         response.setRemark(remark);
@@ -139,7 +134,6 @@ public class RemotingCommand {
     public static RemotingCommand buildErrorResponse(int code, String remark) {
         return buildErrorResponse(code, remark, null);
     }
-
 
     public static RemotingCommand createResponseCommand(int code, String remark,
         Class<? extends CommandCustomHeader> classHeader) {
