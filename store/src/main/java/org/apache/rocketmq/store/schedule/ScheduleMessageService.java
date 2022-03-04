@@ -132,7 +132,7 @@ public class ScheduleMessageService extends ConfigManager {
             if (this.enableAsyncDeliver) {
                 this.handleExecutorService = new ScheduledThreadPoolExecutor(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageExecutorHandleThread_"));
             }
-            for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
+            for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) { // 遍历延时级别 为每一个延迟级别启动一个定时任务进行消息的转投递
                 Integer level = entry.getKey();
                 Long timeDelay = entry.getValue();
                 Long offset = this.offsetTable.get(level);
@@ -208,7 +208,7 @@ public class ScheduleMessageService extends ConfigManager {
     @Override
     public boolean load() {
         boolean result = super.load();
-        result = result && this.parseDelayLevel();
+        result = result && this.parseDelayLevel(); //初始化延时级别到delayLevelTable属性
         result = result && this.correctDelayOffset();
         return result;
     }
@@ -273,14 +273,14 @@ public class ScheduleMessageService extends ConfigManager {
         return delayOffsetSerializeWrapper.toJson(prettyFormat);
     }
 
-    public boolean parseDelayLevel() {
+    public boolean parseDelayLevel() { // 解析延时消息的级别信息
         HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
         timeUnitTable.put("s", 1000L);
         timeUnitTable.put("m", 1000L * 60);
         timeUnitTable.put("h", 1000L * 60 * 60);
         timeUnitTable.put("d", 1000L * 60 * 60 * 24);
 
-        String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel();
+        String levelString = this.defaultMessageStore.getMessageStoreConfig().getMessageDelayLevel(); // 存储的延时级别信息
         try {
             String[] levelArray = levelString.split(" ");
             for (int i = 0; i < levelArray.length; i++) {
@@ -294,7 +294,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
                 long num = Long.parseLong(value.substring(0, value.length() - 1));
                 long delayTimeMillis = tu * num;
-                this.delayLevelTable.put(level, delayTimeMillis);
+                this.delayLevelTable.put(level, delayTimeMillis); //初始化延时表
                 if (this.enableAsyncDeliver) {
                     this.deliverPendingTable.put(level, new LinkedBlockingQueue<>());
                 }

@@ -213,7 +213,7 @@ public class DefaultMessageStore implements MessageStore {
                 log.info("load over, and the max phy offset = {}", this.getMaxPhyOffset());
 
                 if (null != scheduleMessageService) {
-                    result =  this.scheduleMessageService.load();
+                    result =  this.scheduleMessageService.load(); // 初始化延时消息时间级别的信息到
                 }
             }
 
