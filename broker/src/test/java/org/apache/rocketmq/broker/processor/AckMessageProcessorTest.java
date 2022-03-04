@@ -83,10 +83,10 @@ public class AckMessageProcessorTest {
         Field field = BrokerController.class.getDeclaredField("broker2Client");
         field.setAccessible(true);
         field.set(brokerController, broker2Client);
-        ScheduleMessageService scheduleMessageService = new ScheduleMessageService(messageStore);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMessageDelayLevel("5s 10s");
         when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        ScheduleMessageService scheduleMessageService = new ScheduleMessageService(messageStore);
         scheduleMessageService.parseDelayLevel();
         when(messageStore.getScheduleMessageService()).thenReturn(scheduleMessageService);
         Channel mockChannel = mock(Channel.class);

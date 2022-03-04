@@ -622,30 +622,6 @@ public class MQClientAPIImplTest {
     }
 
     @Test
-    public void testGetBrokerClusterAclInfo() throws Exception {
-        doAnswer(new Answer<RemotingCommand>() {
-            @Override
-            public RemotingCommand answer(InvocationOnMock mock) {
-                RemotingCommand request = mock.getArgument(1);
-
-                RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerAclConfigResponseHeader.class);
-                GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader) response.readCustomHeader();
-                responseHeader.setVersion(new DataVersion().toJson());
-                responseHeader.setBrokerAddr(brokerAddr);
-                responseHeader.setBrokerName(brokerName);
-                responseHeader.setClusterName(clusterName);
-                response.makeCustomHeaderToNet();
-                response.setCode(ResponseCode.SUCCESS);
-                response.setOpaque(request.getOpaque());
-                return response;
-            }
-        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
-
-        ClusterAclVersionInfo info = mqClientAPI.getBrokerClusterAclInfo(brokerAddr, 10000);
-        assertThat(info.getAclConfigDataVersion().getTimestamp()).isGreaterThan(0);
-    }
-
-    @Test
     public void testGetBrokerClusterConfig() throws Exception {
         doAnswer(new Answer<RemotingCommand>() {
             @Override

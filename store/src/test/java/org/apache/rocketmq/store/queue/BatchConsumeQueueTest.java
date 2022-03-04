@@ -39,6 +39,7 @@ import static java.lang.String.format;
 public class BatchConsumeQueueTest extends StoreTestBase {
 
     List<BatchConsumeQueue> batchConsumeQueues = new ArrayList<>();
+
     private BatchConsumeQueue createBatchConsume(String path) {
         if (path == null) {
             path = createBaseDir();
@@ -50,7 +51,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         } catch (Exception e) {
             Assert.fail();
         }
-        BatchConsumeQueue batchConsumeQueue = new BatchConsumeQueue("topic", 0, path,fileSize, messageStore);
+        BatchConsumeQueue batchConsumeQueue = new BatchConsumeQueue("topic", 0, path, fileSize, messageStore);
         batchConsumeQueues.add(batchConsumeQueue);
         return batchConsumeQueue;
     }
@@ -86,7 +87,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         }
 
         for (int i = 0; i < initialMsgOffset + batchNum * unitNum + 10; i++) {
-            ReferredIterator<CqUnit> it  = batchConsumeQueue.iterateFrom(i);
+            ReferredIterator<CqUnit> it = batchConsumeQueue.iterateFrom(i);
             if (i < initialMsgOffset || i >= initialMsgOffset + batchNum * unitNum) {
                 Assert.assertNull(it);
                 continue;
@@ -112,7 +113,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         // Preparing the data may take some time
         BatchConsumeQueue batchConsumeQueue = createBatchConsume(null);
         batchConsumeQueue.load();
-        short batchSize  = 10;
+        short batchSize = 10;
         int unitNum = 20000;
         for (int i = 0; i < unitNum; i++) {
             batchConsumeQueue.putBatchMessagePositionInfo(i, 100, 0, i * batchSize, i * batchSize + 1, batchSize);
@@ -153,7 +154,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         Assert.assertEquals(11, batchConsumeQueue.getOffsetInQueueByTime(1));
         start = System.currentTimeMillis();
         for (int i = 0; i < unitNum; i++) {
-            int storeTime =  i * batchSize;
+            int storeTime = i * batchSize;
             int expectedOffset = storeTime + 1;
             long offset = batchConsumeQueue.getOffsetInQueueByTime(storeTime);
             Assert.assertEquals(expectedOffset, offset);
@@ -166,7 +167,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
 
     @Test(timeout = 2000)
     public void testBuildAndRecoverBatchConsumeQueue() {
-        String tmpPath =  createBaseDir();
+        String tmpPath = createBaseDir();
         short batchSize = 10;
         {
             BatchConsumeQueue batchConsumeQueue = createBatchConsume(tmpPath);
@@ -200,10 +201,10 @@ public class BatchConsumeQueueTest extends StoreTestBase {
 
     @Test(timeout = 2000)
     public void testTruncateBatchConsumeQueue() {
-        String tmpPath =  createBaseDir();
+        String tmpPath = createBaseDir();
         BatchConsumeQueue batchConsumeQueue = createBatchConsume(tmpPath);
         batchConsumeQueue.load();
-        short batchSize  = 10;
+        short batchSize = 10;
         int unitNum = 20000;
         for (int i = 0; i < unitNum; i++) {
             batchConsumeQueue.putBatchMessagePositionInfo(i, 100, 0, i * batchSize, i * batchSize + 1, batchSize);
@@ -230,10 +231,10 @@ public class BatchConsumeQueueTest extends StoreTestBase {
 
     @Test
     public void testTruncateAndDeleteBatchConsumeQueue() {
-        String tmpPath =  createBaseDir();
+        String tmpPath = createBaseDir();
         BatchConsumeQueue batchConsumeQueue = createBatchConsume(tmpPath);
         batchConsumeQueue.load();
-        short batchSize  = 10;
+        short batchSize = 10;
         for (int i = 0; i < 100; i++) {
             batchConsumeQueue.putBatchMessagePositionInfo(i, 100, 0, i * batchSize, i * batchSize + 1, batchSize);
         }
@@ -259,7 +260,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
     @Override
     public void clear() {
         super.clear();
-        for (BatchConsumeQueue batchConsumeQueue: batchConsumeQueues) {
+        for (BatchConsumeQueue batchConsumeQueue : batchConsumeQueues) {
             batchConsumeQueue.destroy();
         }
     }
@@ -301,10 +302,11 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         messageStoreConfig.setSearchBcqByCacheEnable(true);
 
         return new DefaultMessageStore(
-                messageStoreConfig,
-                new BrokerStatsManager("simpleTest"),
-                (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {},
-                new BrokerConfig());
+            messageStoreConfig,
+            new BrokerStatsManager("simpleTest", true),
+            (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+            },
+            new BrokerConfig());
     }
 
 }

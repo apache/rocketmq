@@ -210,8 +210,8 @@ public class StaticTopicIT extends BaseConf {
 
     private void consumeMessagesAndCheck(RMQNormalProducer producer, RMQNormalConsumer consumer, String topic, int queueNum, int msgEachQueue, int startGen, int genNum) {
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 30000);
-        /*System.out.println("produce:" + producer.getAllMsgBody().size());
-        System.out.println("consume:" + consumer.getListener().getAllMsgBody().size());*/
+//        System.out.println("produce:" + producer.getAllMsgBody().size());
+//        System.out.println("consume:" + consumer.getListener().getAllMsgBody().size());
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                 consumer.getListener().getAllMsgBody()))
@@ -284,6 +284,7 @@ public class StaticTopicIT extends BaseConf {
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, 0);
             consumeMessagesAndCheck(producer, consumer, topic, queueNum, msgEachQueue, 0, 1);
         }
+
         //remapping the static topic
         {
             Set<String> targetBrokers = ImmutableSet.of(broker2Name);

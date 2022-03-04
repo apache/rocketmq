@@ -22,17 +22,17 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.apache.rocketmq.common.ServiceThread;
@@ -72,8 +72,7 @@ public class CommitLog implements Swappable {
 
     private final AppendMessageCallback appendMessageCallback;
     private final ThreadLocal<PutMessageThreadLocal> putMessageThreadLocal;
-    protected HashMap<String/* topic-queueid */, Long/* offset */> topicQueueTable = new HashMap<String, Long>(1024);
-    protected Map<String/* topic-queueid */, Long/* offset */> lmqTopicQueueTable = new ConcurrentHashMap<>(1024);
+
     protected volatile long confirmOffset = -1L;
 
     private volatile long beginTimeInLock = 0;
@@ -84,7 +83,6 @@ public class CommitLog implements Swappable {
 
     private volatile Set<String> fullStorePaths = Collections.emptySet();
 
-    private final MultiDispatch multiDispatch;
     private final FlushDiskWatcher flushDiskWatcher;
 
     protected int commitLogSize;
@@ -113,8 +111,6 @@ public class CommitLog implements Swappable {
             }
         };
         this.putMessageLock = defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
-
-        this.multiDispatch = new MultiDispatch(defaultMessageStore, this);
 
         flushDiskWatcher = new FlushDiskWatcher();
 
@@ -1077,10 +1073,6 @@ public class CommitLog implements Swappable {
         return QueueTypeUtils.getCQType(topicConfig);
     }
 
-    public Map<String, Long> getLmqTopicQueueTable() {
-        return this.lmqTopicQueueTable;
-    }
-
     abstract class FlushCommitLogService extends ServiceThread {
         protected static final int RETRY_TIMES_OVER = 10;
     }
@@ -1232,6 +1224,7 @@ public class CommitLog implements Swappable {
         public long getDeadLine() {
             return deadLine;
         }
+
         public long getNextOffset() {
             return nextOffset;
         }
@@ -1495,11 +1488,6 @@ public class CommitLog implements Swappable {
             // this msg maybe a inner-batch msg.
             short messageNum = getMessageNum(msgInner);
 
-            boolean multiDispatchWrapResult = CommitLog.this.multiDispatch.wrapMultiDispatch(msgInner);
-            if (!multiDispatchWrapResult) {
-                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-            }
-
             // Transaction messages that require special handling
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
@@ -1553,23 +1541,8 @@ public class CommitLog implements Swappable {
             byteBuffer.put(preEncodeBuffer);
             CommitLog.this.getMessageStore().getPerfCounter().endTick("WRITE_MEMORY_TIME_MS");
             msgInner.setEncodedBuff(null);
-            AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
-                msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
-
-            switch (tranType) {
-                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                    break;
-                case MessageSysFlag.TRANSACTION_NOT_TYPE:
-                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
-                    // The next update ConsumeQueue information
-                    CommitLog.this.topicQueueTable.put(key, ++queueOffset);
-                    CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
-                    break;
-                default:
-                    break;
-            }
-            return result;
+            return new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
+                msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills, messageNum);
         }
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
@@ -1813,14 +1786,14 @@ public class CommitLog implements Swappable {
                 int propertiesPos = messagesByteBuff.position();
                 messagesByteBuff.position(propertiesPos + propertiesLen);
                 boolean needAppendLastPropertySeparator = propertiesLen > 0 && batchPropLen > 0
-                            && messagesByteBuff.get(messagesByteBuff.position() - 1) != MessageDecoder.PROPERTY_SEPARATOR;
+                    && messagesByteBuff.get(messagesByteBuff.position() - 1) != MessageDecoder.PROPERTY_SEPARATOR;
 
                 final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
 
                 final int topicLength = topicData.length;
 
                 int totalPropLen = needAppendLastPropertySeparator ? propertiesLen + batchPropLen + 1
-                                                                     : propertiesLen + batchPropLen;
+                    : propertiesLen + batchPropLen;
                 final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, totalPropLen);
 
                 // Exceeds the maximum message
@@ -1945,7 +1918,8 @@ public class CommitLog implements Swappable {
             if (FlushDiskType.SYNC_FLUSH == CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
                 final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
                 if (messageExt.isWaitStoreMsgOK()) {
-                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
+                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
+                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                     service.putRequest(request);
                     CompletableFuture<PutMessageStatus> flushOkFuture = request.future();
                     PutMessageStatus flushStatus = null;

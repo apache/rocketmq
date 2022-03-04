@@ -52,7 +52,7 @@ public class QueueTestBase extends StoreTestBase {
         topicConfigToBeAdded.setAttributes(attributes);
 
         topicConfigTable.put(topic, topicConfigToBeAdded);
-        ((DefaultMessageStore)messageStore).setTopicConfigTable(topicConfigTable);
+        ((DefaultMessageStore) messageStore).setTopicConfigTable(topicConfigTable);
     }
 
     protected Callable<Boolean> fullyDispatched(MessageStore messageStore) {
@@ -83,10 +83,11 @@ public class QueueTestBase extends StoreTestBase {
         messageStoreConfig.setFlushCommitLogThoroughInterval(2);
 
         return new DefaultMessageStore(
-                messageStoreConfig,
-                new BrokerStatsManager("simpleTest"),
-                (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {},
-                new BrokerConfig());
+            messageStoreConfig,
+            new BrokerStatsManager("simpleTest", true),
+            (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+            },
+            new BrokerConfig());
     }
 
     public MessageExtBrokerInner buildMessage(String topic, int batchNum) {

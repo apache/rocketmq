@@ -77,7 +77,7 @@ public class BrokerConfig {
      * Thread numbers for EndTransactionProcessor
      */
     private int endTransactionThreadPoolNums = Math.max(8 + Runtime.getRuntime().availableProcessors() * 2,
-            sendMessageThreadPoolNums * 4);
+        sendMessageThreadPoolNums * 4);
 
     private int flushConsumerOffsetInterval = 1000 * 5;
 
@@ -230,6 +230,8 @@ public class BrokerConfig {
      * Whether to distinguish log paths when multiple brokers are deployed on the same machine
      */
     private boolean isolateLogEnable = false;
+
+    private long forwardTimeout = 3 * 1000;
 
     public static String localHostName() {
         try {
