@@ -293,24 +293,9 @@ public class PlainPermissionManager {
         versionElement.add(accountsMap);
         updateAclConfigMap.put(AclConstants.CONFIG_DATA_VERSION, versionElement);
 
-        updateDataVersionMap(updateAclConfigMap, dataVersion);
+        dataVersionMap.put(aclFileName, dataVersion);
 
         return updateAclConfigMap;
-    }
-
-    private void updateDataVersionMap(Map<String, Object> updateAclConfigMap, DataVersion dataVersion) {
-        final List<Map<String, Object>> accounts = (List<Map<String, Object>>) updateAclConfigMap.get(AclConstants.CONFIG_ACCOUNTS);
-        String aclFileName;
-        if (null != accounts && !accounts.isEmpty()) {
-            String accessKey = (String) accounts.get(0).get(AclConstants.CONFIG_ACCESS_KEY);
-            aclFileName = accessKeyTable.get(accessKey);
-        } else {
-            aclFileName = this.defaultAclFile;
-            dataVersionMap.put(aclFileName, dataVersion);
-        }
-        if (StringUtils.isNotEmpty(aclFileName)) {
-            dataVersionMap.put(aclFileName, dataVersion);
-        }
     }
 
     public boolean updateAccessConfig(PlainAccessConfig plainAccessConfig) {
