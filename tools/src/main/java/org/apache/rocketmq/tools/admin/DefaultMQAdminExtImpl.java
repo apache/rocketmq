@@ -913,7 +913,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         final String group) throws RemotingException, MQClientException, InterruptedException,
         MQBrokerException {
 
-        ConsumeStats cstats = this.examineConsumeStats(group);
+        ConsumeStats cstats = this.examineConsumeStats(group,msg.getTopic());
 
         ClusterInfo ci = this.examineBrokerClusterInfo();
 
