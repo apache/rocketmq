@@ -22,6 +22,10 @@ import com.sun.jna.NativeLong;
 import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 
+/**
+ * mlock()和 mlockall()系统调用将一块虚拟内存区域锁进物理内存，从而防止它被交换
+ * 出去。目的是提高性能！！！
+ */
 public interface LibC extends Library {
     LibC INSTANCE = (LibC) Native.loadLibrary(Platform.isWindows() ? "msvcrt" : "c", LibC.class);
 
