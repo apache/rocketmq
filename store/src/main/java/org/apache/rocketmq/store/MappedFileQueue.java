@@ -40,7 +40,7 @@ public class MappedFileQueue {
 
     protected final int mappedFileSize;
 
-    protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>(); //MappedFile列表
 
     private final AllocateMappedFileService allocateMappedFileService;
 
