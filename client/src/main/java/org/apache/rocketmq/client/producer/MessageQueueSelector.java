@@ -19,7 +19,7 @@ package org.apache.rocketmq.client.producer;
 import java.util.List;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-
+// Producer写消息时指定到那个MessageQueue的选择器
 public interface MessageQueueSelector {
     MessageQueue select(final List<MessageQueue> mqs, final Message msg, final Object arg);
 }
