@@ -33,7 +33,7 @@ As a result, it would be very helpful yet challenging if you could provide an is
 
 2. Please tell us about your environment:
 
-3. Other information (e.g. detailed explanation, logs, related issues, suggestions how to fix, etc):
+3. Other information (e.g. detailed explanation, logs, related issues, suggestions on how to fix, etc):
 
 **FEATURE REQUEST**
 
