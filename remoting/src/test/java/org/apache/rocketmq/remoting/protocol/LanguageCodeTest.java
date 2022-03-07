@@ -14,40 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.remoting.protocol;
 
-public enum LanguageCode {
-    JAVA((byte) 0),
-    CPP((byte) 1),
-    DOTNET((byte) 2),
-    PYTHON((byte) 3),
-    DELPHI((byte) 4),
-    ERLANG((byte) 5),
-    RUBY((byte) 6),
-    OTHER((byte) 7),
-    HTTP((byte) 8),
-    GO((byte) 9),
-    PHP((byte) 10),
-    OMS((byte) 11),
-    RUST((byte) 12);
+import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
-    private byte code;
+public class LanguageCodeTest {
 
-    LanguageCode(byte code) {
-        this.code = code;
+    @Test
+    public void testLanguageCodeRust() {
+        LanguageCode code = LanguageCode.valueOf((byte) 12);
+        assertThat(code).isEqualTo(LanguageCode.RUST);
+
+        code = LanguageCode.valueOf("RUST");
+        assertThat(code).isEqualTo(LanguageCode.RUST);
     }
-
-    public static LanguageCode valueOf(byte code) {
-        for (LanguageCode languageCode : LanguageCode.values()) {
-            if (languageCode.getCode() == code) {
-                return languageCode;
-            }
-        }
-        return null;
-    }
-
-    public byte getCode() {
-        return code;
-    }
+    
 }
