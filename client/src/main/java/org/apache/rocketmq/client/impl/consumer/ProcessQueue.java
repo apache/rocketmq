@@ -102,6 +102,8 @@ public class ProcessQueue {
                 }
             } catch (InterruptedException e) {
                 log.error("getExpiredMsg exception", e);
+            } catch (Throwable t) {
+                log.error("getExpiredMsg exception", t);
             }
 
             try {
