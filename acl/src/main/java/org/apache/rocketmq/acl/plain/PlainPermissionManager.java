@@ -666,7 +666,7 @@ public class PlainPermissionManager {
             throw new AclException(String.format("Check signature failed for accessKey=%s", plainAccessResource.getAccessKey()));
         }
 
-        //Skip the topic RMQ_SYS_TRACE_TOPIC permission check，if the topic RMQ_SYS_TRACE_TOPIC is used for message trace
+        //Skip the topic RMQ_SYS_TRACE_TOPIC permission check,if the topic RMQ_SYS_TRACE_TOPIC is used for message trace
         Map<String, Byte> resourcePermMap = plainAccessResource.getResourcePermMap();
         if (resourcePermMap != null) {
             Byte permission = resourcePermMap.get(TopicValidator.RMQ_SYS_TRACE_TOPIC);
