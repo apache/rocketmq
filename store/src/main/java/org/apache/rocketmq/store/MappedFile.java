@@ -207,8 +207,10 @@ public class MappedFile extends ReferenceResource {
         int currentPos = this.wrotePosition.get();// 记录当前的位置
 
         if (currentPos < this.fileSize) {
+            // 可能存在的困惑：无论是writeBuffer还是mappedByteBuffer的position永远都为0，limit=capacity；
+            //之后每次写操作都会基于当前buffer进行slice一个，slice出来的byteBuffer的position永远都为0，limit=capacity； 具体写入位置由position控制
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice(); //生成一个新的slice便于操作
-            byteBuffer.position(currentPos);
+            byteBuffer.position(currentPos); // 控制写入位置
             AppendMessageResult result;
             if (messageExt instanceof MessageExtBrokerInner) {
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, //将消息写到byteBuffer中完成消息写到内存
