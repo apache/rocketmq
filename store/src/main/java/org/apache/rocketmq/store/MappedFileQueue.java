@@ -38,7 +38,7 @@ public class MappedFileQueue {
 
     private final String storePath;
 
-    protected final int mappedFileSize;
+    protected final int mappedFileSize; // MappedFile文件大小，注意不是文件个数，不要理解错误了
 
     protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>(); //MappedFile列表
 
@@ -197,15 +197,15 @@ public class MappedFileQueue {
         return 0;
     }
 
-    public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
+    public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) { // startOffset文件的offset
         long createOffset = -1;
         MappedFile mappedFileLast = getLastMappedFile();
 
-        if (mappedFileLast == null) {
+        if (mappedFileLast == null) { //首次没有文件时，createOffset=0开始创建文件
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
 
-        if (mappedFileLast != null && mappedFileLast.isFull()) {
+        if (mappedFileLast != null && mappedFileLast.isFull()) { // 前面文件写满了，创建后面文件：offset为前面文件开始offset+filesize
             createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }
 

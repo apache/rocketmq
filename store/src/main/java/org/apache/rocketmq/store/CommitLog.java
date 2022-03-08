@@ -690,8 +690,8 @@ public class CommitLog {
                         // XXX: warn and notify me
                         log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
-                    }
-                    result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext); // 上一个文件写满了，进行创新文件之后进行重写
+                    } // 上一个文件写满了，进行创新文件之后进行重写
+                    result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:
