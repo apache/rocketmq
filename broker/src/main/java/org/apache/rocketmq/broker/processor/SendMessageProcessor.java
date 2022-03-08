@@ -323,7 +323,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 return CompletableFuture.completedFuture(response);
             }
             putMessageResult = this.brokerController.getTransactionalMessageService().asyncPrepareMessage(msgInner);
-        } else {
+        } else { // 通过MessageStore进行落盘消息，MessageStore是一个磁盘存储的服务类
             putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);// MessageStore save message
         }
         return handlePutMessageResultFuture(putMessageResult, response, request, msgInner, responseHeader, mqtraceContext, ctx, queueIdInt);

@@ -677,7 +677,7 @@ public class CommitLog {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
             }
-
+            // 完成消息的Buffer写
             result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext); // MappedFile append message
             switch (result.getStatus()) {
                 case PUT_OK:
@@ -691,7 +691,7 @@ public class CommitLog {
                         log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
                     }
-                    result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
+                    result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext); // 上一个文件写满了，进行创新文件之后进行重写
                     break;
                 case MESSAGE_SIZE_EXCEEDED:
                 case PROPERTIES_SIZE_EXCEEDED:

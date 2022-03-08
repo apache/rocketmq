@@ -462,7 +462,7 @@ public class DefaultMessageStore implements MessageStore {
 
 
         long beginTime = this.getSystemClock().now();
-        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg); // sync message
+        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg); // 通过CommitLog完成消息的落盘
 
         putResultFuture.thenAccept((result) -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
