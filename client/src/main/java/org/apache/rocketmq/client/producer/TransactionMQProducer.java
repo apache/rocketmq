@@ -19,7 +19,6 @@ package org.apache.rocketmq.client.producer;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class TransactionMQProducer extends DefaultMQProducer {
@@ -79,7 +78,6 @@ public class TransactionMQProducer extends DefaultMQProducer {
             throw new MQClientException("localTransactionBranchCheckListener is null", null);
         }
 
-        msg.setTopic(NamespaceUtil.wrapNamespace(this.getNamespace(), msg.getTopic()));
         return this.defaultMQProducerImpl.sendMessageInTransaction(msg, tranExecuter, arg);
     }
 
@@ -90,7 +88,6 @@ public class TransactionMQProducer extends DefaultMQProducer {
             throw new MQClientException("TransactionListener is null", null);
         }
 
-        msg.setTopic(NamespaceUtil.wrapNamespace(this.getNamespace(), msg.getTopic()));
         return this.defaultMQProducerImpl.sendMessageInTransaction(msg, null, arg);
     }
 

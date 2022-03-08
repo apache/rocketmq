@@ -331,7 +331,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(
         Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg);
     }
 
@@ -350,7 +349,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg, timeout);
     }
 
@@ -372,7 +370,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg,
         SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, sendCallback);
     }
 
@@ -389,7 +386,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, sendCallback, timeout);
     }
 
@@ -404,7 +400,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Override
     public void sendOneway(Message msg) throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.sendOneway(msg);
     }
 
@@ -423,7 +418,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg, MessageQueue mq)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg, queueWithNamespace(mq));
     }
 
@@ -443,7 +437,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg, MessageQueue mq, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg, queueWithNamespace(mq), timeout);
     }
 
@@ -460,7 +453,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback)
         throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, queueWithNamespace(mq), sendCallback);
     }
 
@@ -478,7 +470,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, queueWithNamespace(mq), sendCallback, timeout);
     }
 
@@ -494,7 +485,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void sendOneway(Message msg,
         MessageQueue mq) throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.sendOneway(msg, queueWithNamespace(mq));
     }
 
@@ -514,7 +504,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg, MessageQueueSelector selector, Object arg)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg, selector, arg);
     }
 
@@ -535,7 +524,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(Message msg, MessageQueueSelector selector, Object arg, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.send(msg, selector, arg, timeout);
     }
 
@@ -553,7 +541,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)
         throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback);
     }
 
@@ -572,7 +559,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.send(msg, selector, arg, sendCallback, timeout);
     }
 
@@ -595,7 +581,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
         RemotingException, MQBrokerException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.request(msg, timeout);
     }
 
@@ -618,7 +603,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void request(final Message msg, final RequestCallback requestCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, requestCallback, timeout);
     }
 
@@ -640,7 +624,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
         final long timeout) throws MQClientException, RemotingException, MQBrokerException,
         InterruptedException, RequestTimeoutException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.request(msg, selector, arg, timeout);
     }
 
@@ -661,7 +644,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void request(final Message msg, final MessageQueueSelector selector, final Object arg,
         final RequestCallback requestCallback, final long timeout) throws MQClientException, RemotingException,
         InterruptedException, MQBrokerException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, selector, arg, requestCallback, timeout);
     }
 
@@ -680,7 +662,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public Message request(final Message msg, final MessageQueue mq, final long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException, RequestTimeoutException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         return this.defaultMQProducerImpl.request(msg, mq, timeout);
     }
 
@@ -699,7 +680,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void request(final Message msg, final MessageQueue mq, final RequestCallback requestCallback, long timeout)
         throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.request(msg, mq, requestCallback, timeout);
     }
 
@@ -716,7 +696,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void sendOneway(Message msg, MessageQueueSelector selector, Object arg)
         throws MQClientException, RemotingException, InterruptedException {
-        msg.setTopic(withNamespace(msg.getTopic()));
         this.defaultMQProducerImpl.sendOneway(msg, selector, arg);
     }
 

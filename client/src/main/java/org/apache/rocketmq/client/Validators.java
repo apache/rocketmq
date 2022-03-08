@@ -74,6 +74,9 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
         }
+
+        // for support namespace
+        msg.setTopic(defaultMQProducer.withNamespace(msg.getTopic()));
     }
 
     public static void checkTopic(String topic) throws MQClientException {
