@@ -26,7 +26,10 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.MappedFile;
-
+/**
+ * store/messagequeue下面的文件，也就是所谓的索引文件。数据结构参见：
+ * https://www.cnblogs.com/leodaxin/p/15982502.html
+  */
 public class IndexFile {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static int hashSlotSize = 4;
@@ -89,18 +92,19 @@ public class IndexFile {
         return this.mappedFile.destroy(intervalForcibly);
     }
 
+    /**
+     *  详细结构参见：https://www.cnblogs.com/leodaxin/p/15982502.html
+     */
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             int keyHash = indexKeyHashMethod(key);
-            int slotPos = keyHash % this.hashSlotNum;
-            int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
+            int slotPos = keyHash % this.hashSlotNum; // 计算slot编号
+            int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize; // 计算slot的绝对位置，len(header) + slotPos * hashSlotSize
 
             FileLock fileLock = null;
 
             try {
-
-                // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize,
-                // false);
+                // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize, false);
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
                     slotValue = invalidIndex;
@@ -118,16 +122,16 @@ public class IndexFile {
                     timeDiff = 0;
                 }
 
-                int absIndexPos =
+                int absIndexPos = //索引的位置
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
 
-                this.mappedByteBuffer.putInt(absIndexPos, keyHash);
-                this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
-                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
-                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
+                this.mappedByteBuffer.putInt(absIndexPos, keyHash);// the hashkey of index unit
+                this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset); // the offset of index unit
+                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff); // the timeDiff of index unit
+                this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue); // the slot value(index unit sequence id) of index unit
 
-                this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
+                this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount()); // the hash key slot value in slot
 
                 if (this.indexHeader.getIndexCount() <= 1) {
                     this.indexHeader.setBeginPhyOffset(phyOffset);
@@ -198,8 +202,7 @@ public class IndexFile {
             FileLock fileLock = null;
             try {
                 if (lock) {
-                    // fileLock = this.fileChannel.lock(absSlotPos,
-                    // hashSlotSize, true);
+                    // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize, true);
                 }
 
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);

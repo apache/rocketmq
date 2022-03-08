@@ -151,7 +151,7 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.haService = null;
         }
-        this.reputMessageService = new ReputMessageService();
+        this.reputMessageService = new ReputMessageService();// 会进行构建Index
 
         this.scheduleMessageService = new ScheduleMessageService(this);
 
@@ -274,7 +274,7 @@ public class DefaultMessageStore implements MessageStore {
             log.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMinOffset={} clMaxOffset={} clConfirmedOffset={}",
                 maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
             this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
-            this.reputMessageService.start();
+            this.reputMessageService.start(); //启动ReputMessageService线程服务构建索引文件
 
             /**
              *  1. Finish dispatching the messages fall behind, then to start other services.
@@ -1538,7 +1538,7 @@ public class DefaultMessageStore implements MessageStore {
         return runningFlags;
     }
 
-    public void doDispatch(DispatchRequest req) {
+    public void doDispatch(DispatchRequest req) { //进行索引文件构建
         for (CommitLogDispatcher dispatcher : this.dispatcherList) {
             dispatcher.dispatch(req);
         }
@@ -2027,7 +2027,7 @@ public class DefaultMessageStore implements MessageStore {
         private boolean isCommitLogAvailable() {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
-
+        // 从CommitLog里面读取消息进行构建索引
         private void doReput() {
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 log.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
@@ -2053,11 +2053,11 @@ public class DefaultMessageStore implements MessageStore {
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
-                                    DefaultMessageStore.this.doDispatch(dispatchRequest);
+                                    DefaultMessageStore.this.doDispatch(dispatchRequest); // 分发处理请求
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
                                             && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                                            && DefaultMessageStore.this.messageArrivingListener != null) {
+                                            && DefaultMessageStore.this.messageArrivingListener != null) { //由于长轮训没有消息会阻塞，在进行构建索引时进行唤醒长轮训进行消费
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                                             dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
                                             dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
@@ -2068,7 +2068,7 @@ public class DefaultMessageStore implements MessageStore {
                                     this.reputFromOffset += size;
                                     readSize += size;
                                     if (DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
-                                        DefaultMessageStore.this.storeStatsService
+                                        DefaultMessageStore.this.storeStatsService //更新统计信息
                                             .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
                                         DefaultMessageStore.this.storeStatsService
                                             .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())

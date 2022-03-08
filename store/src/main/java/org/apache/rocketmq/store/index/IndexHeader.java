@@ -21,14 +21,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class IndexHeader {
+
+    //Header共计大小
     public static final int INDEX_HEADER_SIZE = 40;
+
+    //Header各个字段便宜
     private static int beginTimestampIndex = 0;
     private static int endTimestampIndex = 8;
     private static int beginPhyoffsetIndex = 16;
     private static int endPhyoffsetIndex = 24;
     private static int hashSlotcountIndex = 32;
     private static int indexCountIndex = 36;
+
+    // 存储数据的ByteBuffer
     private final ByteBuffer byteBuffer;
+
     private AtomicLong beginTimestamp = new AtomicLong(0);
     private AtomicLong endTimestamp = new AtomicLong(0);
     private AtomicLong beginPhyOffset = new AtomicLong(0);
@@ -41,7 +48,7 @@ public class IndexHeader {
         this.byteBuffer = byteBuffer;
     }
 
-    public void load() {
+    public void load() { // 初始化Header
         this.beginTimestamp.set(byteBuffer.getLong(beginTimestampIndex));
         this.endTimestamp.set(byteBuffer.getLong(endTimestampIndex));
         this.beginPhyOffset.set(byteBuffer.getLong(beginPhyoffsetIndex));
