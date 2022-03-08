@@ -49,7 +49,7 @@ public class MappedFile extends ReferenceResource {
     private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
 
     private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
-    protected final AtomicInteger wrotePosition = new AtomicInteger(0);
+    protected final AtomicInteger wrotePosition = new AtomicInteger(0); // 如下这些XXXPosition用于手动控制Buffer的位置没有使用JDK的flip等操作，应该是避免复杂出错
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
     protected int fileSize;
