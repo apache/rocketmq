@@ -70,4 +70,31 @@ public class IndexFileTest {
         File file = new File("200");
         UtilAll.deleteFile(file);
     }
+
+    /**
+     * 目的就是为了测试hash冲突的查询逻辑： --add-exports java.base/jdk.internal.ref=ALL-UNNAMED
+     */
+    @Test
+    public void testSelectPhyOffsetV2() throws Exception {
+        IndexFile indexFile = new IndexFile("200", HASH_SLOT_NUM, INDEX_NUM, 0, 0);
+        String key = "1";
+        int value = 1;
+        int maxNum = 10;
+        for (long i = 0; i < (INDEX_NUM - 1); i++) {
+            boolean putResult = indexFile.putKey(key, value, System.currentTimeMillis());
+            assertThat(putResult).isTrue();
+        }
+
+        // put over index file capacity.
+        boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
+        assertThat(putResult).isFalse();
+
+        final List<Long> phyOffsets = new ArrayList<Long>();
+        indexFile.selectPhyOffset(phyOffsets, "1", maxNum, 0, Long.MAX_VALUE, true);
+        assertThat(phyOffsets).isNotEmpty();
+        assertThat(phyOffsets.size()).isEqualTo(maxNum);
+        indexFile.destroy(0);
+        File file = new File("200");
+        UtilAll.deleteFile(file);
+    }
 }
