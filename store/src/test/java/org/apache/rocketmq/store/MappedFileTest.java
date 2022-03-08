@@ -32,10 +32,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class MappedFileTest {
     private final String storeMessage = "Once, there was a chance for me!";
 
+    /**
+     * 如果JDK8以上版本以报错添加参数： --add-exports java.base/jdk.internal.ref=ALL-UNNAMED
+     * @throws IOException
+     */
     @Test
     public void testSelectMappedBuffer() throws IOException {
         MappedFile mappedFile = new MappedFile("target/unit_test_store/MappedFileTest/000", 1024 * 64);
         boolean result = mappedFile.appendMessage(storeMessage.getBytes());
+        assertThat(result).isTrue();
+
+        result = mappedFile.appendMessage(storeMessage.getBytes());
         assertThat(result).isTrue();
 
         SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0);
