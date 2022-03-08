@@ -134,8 +134,8 @@ public class IndexFile {
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount()); // the hash key slot value in slot
 
                 if (this.indexHeader.getIndexCount() <= 1) {
-                    this.indexHeader.setBeginPhyOffset(phyOffset);
-                    this.indexHeader.setBeginTimestamp(storeTimestamp);
+                    this.indexHeader.setBeginPhyOffset(phyOffset); // BeginPhyOffset只会设置一次，首次添加index unit时候
+                    this.indexHeader.setBeginTimestamp(storeTimestamp); // BeginTimestamp只会设置一次，首次添加index unit时候
                 }
 
                 if (invalidIndex == slotValue) {
@@ -192,6 +192,15 @@ public class IndexFile {
         return result;
     }
 
+    /**
+     *
+     * @param phyOffsets 用于存储筛选出来的offset
+     * @param key 过滤指定的key
+     * @param maxNum 筛选元素的最大个数
+     * @param begin 是进行查询时指定的消息开始时间(变量名字感觉不规范)
+     * @param end 是进行查询时指定的消息结束时间(变量名字感觉不规范)
+     * @param lock 是否加锁
+     */
     public void selectPhyOffset(final List<Long> phyOffsets, final String key, final int maxNum,
         final long begin, final long end, boolean lock) {
         if (this.mappedFile.hold()) {

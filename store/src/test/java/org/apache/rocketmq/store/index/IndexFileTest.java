@@ -82,6 +82,9 @@ public class IndexFileTest {
         int maxNum = 10;
         for (long i = 0; i < (INDEX_NUM - 1); i++) {
             boolean putResult = indexFile.putKey(key, value, System.currentTimeMillis());
+            if (i==10) {
+                Thread.sleep(1000);
+            }
             assertThat(putResult).isTrue();
         }
 

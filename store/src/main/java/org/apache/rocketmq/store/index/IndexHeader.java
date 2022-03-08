@@ -35,7 +35,7 @@ public class IndexHeader {
 
     // 存储数据的ByteBuffer
     private final ByteBuffer byteBuffer;
-
+    // 是IndexFile第一次添加Index unit时候的消息storeTime，可以认为beginTimestamp是一个基值，时间偏移为timeDiff，之后计算消息时间就可以使用beginTimestamp+timeDiff
     private AtomicLong beginTimestamp = new AtomicLong(0);
     private AtomicLong endTimestamp = new AtomicLong(0);
     private AtomicLong beginPhyOffset = new AtomicLong(0);
