@@ -122,6 +122,7 @@
         <module>acl</module>
         <module>example</module>
         <module>container</module>
+        <module>grpc</module>
     </modules>
 
     <build>
