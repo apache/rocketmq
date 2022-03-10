@@ -625,8 +625,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return handlePutMessageResultFuture(putMessageResult, response, request, messageExtBatch, responseHeader, mqtraceContext, ctx, queueIdInt);
     }
 
-
-
     public boolean hasConsumeMessageHook() {
         return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
     }
@@ -715,9 +713,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
-        if (response.getCode() != -1) {
-            return response;
-        }
 
         return response;
     }
