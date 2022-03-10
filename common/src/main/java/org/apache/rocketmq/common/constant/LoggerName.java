@@ -44,4 +44,5 @@ public class LoggerName {
     public static final String ROCKETMQ_POP_LOGGER_NAME = "RocketmqPop";
     public static final String FAILOVER_LOGGER_NAME = "RocketmqFailover";
     public static final String STDOUT_LOGGER_NAME = "STDOUT";
+    public static final String GRPC_LOGGER_NAME = "RocketmqGrpc";
 }
