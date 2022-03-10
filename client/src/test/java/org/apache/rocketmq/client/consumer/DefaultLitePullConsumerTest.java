@@ -119,7 +119,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.assign(Collections.singletonList(messageQueue));
             List<MessageExt> result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
-            assertThat(result.get(0).getBody()).isEqualTo(new byte[]{'a'});
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -135,7 +135,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
             List<MessageExt> result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
-            assertThat(result.get(0).getBody()).isEqualTo(new byte[]{'a'});
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -151,7 +151,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.setPollTimeoutMillis(20 * 1000);
             List<MessageExt> result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
-            assertThat(result.get(0).getBody()).isEqualTo(new byte[]{'a'});
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -316,7 +316,7 @@ public class DefaultLitePullConsumerTest {
             litePullConsumer.resume(Collections.singletonList(messageQueue));
             result = litePullConsumer.poll();
             assertThat(result.get(0).getTopic()).isEqualTo(topic);
-            assertThat(result.get(0).getBody()).isEqualTo(new byte[]{'a'});
+            assertThat(result.get(0).getBody()).isEqualTo(new byte[] {'a'});
         } finally {
             litePullConsumer.shutdown();
         }
@@ -615,23 +615,23 @@ public class DefaultLitePullConsumerTest {
         field.set(litePullConsumerImpl, offsetStore);
 
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
-                anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
-                .thenAnswer(new Answer<PullResult>() {
-                    @Override
-                    public PullResult answer(InvocationOnMock mock) throws Throwable {
-                        PullMessageRequestHeader requestHeader = mock.getArgument(1);
-                        MessageClientExt messageClientExt = new MessageClientExt();
-                        messageClientExt.setTopic(topic);
-                        messageClientExt.setQueueId(0);
-                        messageClientExt.setMsgId("123");
-                        messageClientExt.setBody(new byte[]{'a'});
-                        messageClientExt.setOffsetMsgId("234");
-                        messageClientExt.setBornHost(new InetSocketAddress(8080));
-                        messageClientExt.setStoreHost(new InetSocketAddress(8080));
-                        PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
-                        return pullResult;
-                    }
-                });
+            anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
+            .thenAnswer(new Answer<PullResult>() {
+                @Override
+                public PullResult answer(InvocationOnMock mock) throws Throwable {
+                    PullMessageRequestHeader requestHeader = mock.getArgument(1);
+                    MessageClientExt messageClientExt = new MessageClientExt();
+                    messageClientExt.setTopic(topic);
+                    messageClientExt.setQueueId(0);
+                    messageClientExt.setMsgId("123");
+                    messageClientExt.setBody(new byte[] {'a'});
+                    messageClientExt.setOffsetMsgId("234");
+                    messageClientExt.setBornHost(new InetSocketAddress(8080));
+                    messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                    return pullResult;
+                }
+            });
 
         when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
 
@@ -684,7 +684,7 @@ public class DefaultLitePullConsumerTest {
     }
 
     private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
-                                           List<MessageExt> messageExtList) throws Exception {
+        List<MessageExt> messageExtList) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (MessageExt messageExt : messageExtList) {
             outputStream.write(MessageDecoder.encode(messageExt, false));
@@ -693,7 +693,7 @@ public class DefaultLitePullConsumerTest {
     }
 
     private static void suppressUpdateTopicRouteInfoFromNameServer(
-            DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
+        DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
         DefaultLitePullConsumerImpl defaultLitePullConsumerImpl = (DefaultLitePullConsumerImpl) FieldUtils.readDeclaredField(litePullConsumer, "defaultLitePullConsumerImpl", true);
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
             litePullConsumer.changeInstanceNameToPID();
