@@ -19,6 +19,5 @@ package org.apache.rocketmq.proxy.grpc.common;
 
 public interface StartAndShutdown {
     void start() throws Exception;
-
     void shutdown() throws Exception;
 }
