@@ -64,19 +64,23 @@ public class ClusterGrpcService implements GrpcService {
 
     }
 
-    @Override public CompleteFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
+    @Override
+    public CompleteFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+    @Override
+    public CompleteFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
+    @Override
+    public CompleteFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
+    @Override
+    public CompleteFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
         return null;
     }
 
@@ -137,5 +141,13 @@ public class ClusterGrpcService implements GrpcService {
     @Override public CompleteFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         return null;
+    }
+
+    @Override
+    public void start() throws Exception {
+    }
+
+    @Override
+    public void shutdown() throws Exception {
     }
 }

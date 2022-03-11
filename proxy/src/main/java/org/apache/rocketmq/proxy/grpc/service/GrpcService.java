@@ -53,8 +53,9 @@ import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import io.grpc.Context;
 import io.netty.util.concurrent.CompleteFuture;
+import org.apache.rocketmq.proxy.grpc.common.StartAndShutdown;
 
-public interface GrpcService {
+public interface GrpcService extends StartAndShutdown {
     CompleteFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request);
 
     CompleteFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request);

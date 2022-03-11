@@ -140,4 +140,12 @@ public class LocalGrpcService implements GrpcService {
         ChangeInvisibleDurationRequest request) {
         return null;
     }
+
+    @Override public void start() throws Exception {
+        this.brokerController.start();
+    }
+
+    @Override public void shutdown() throws Exception {
+        this.brokerController.shutdown();
+    }
 }
