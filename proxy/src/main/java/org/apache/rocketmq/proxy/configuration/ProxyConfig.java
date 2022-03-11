@@ -23,22 +23,67 @@ public class ProxyConfig {
     public final static String CONFIG_FILE_NAME = "rmq-proxy.json";
 
     /**
+     * Configuration for proxy
+     */
+    private Integer healthCheckPort = 8000;
+    private long waitAfterStopHealthCheckInSeconds = 40;
+
+    /**
+     * configuration for ThreadPoolMonitor
+     */
+    private boolean enablePrintJstack = true;
+    private long printJstackPeriodMillis = 60000;
+
+    /**
      * gRPC
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
     private Boolean startGrpcServer = true;
     private Integer grpcServerPort = 8081;
-    private String grpcTlsKeyPath = "/home/admin/rmq-gateway/conf/tls/gRPC.key.pem";
-    private String grpcTlsCertPath = "/home/admin/rmq-gateway/conf/tls/gRPC.chain.cert.pem";
+    private String grpcTlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/gRPC.key.pem";
+    private String grpcTlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/gRPC.chain.cert.pem";
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = Runtime.getRuntime().availableProcessors() * 2;
     private int grpcThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int grpcThreadPoolQueueCapacity = 100000;
+    private String brokerConfigPath = ConfigurationManager.getProxyHome() + "/conf/broker.conf";
     /**
      * gRPC max message size
      * 130M = 4M * 32 messages + 2M attributes
      */
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
+
+    public Integer getHealthCheckPort() {
+        return healthCheckPort;
+    }
+
+    public void setHealthCheckPort(Integer healthCheckPort) {
+        this.healthCheckPort = healthCheckPort;
+    }
+
+    public long getWaitAfterStopHealthCheckInSeconds() {
+        return waitAfterStopHealthCheckInSeconds;
+    }
+
+    public void setWaitAfterStopHealthCheckInSeconds(long waitAfterStopHealthCheckInSeconds) {
+        this.waitAfterStopHealthCheckInSeconds = waitAfterStopHealthCheckInSeconds;
+    }
+
+    public boolean isEnablePrintJstack() {
+        return enablePrintJstack;
+    }
+
+    public void setEnablePrintJstack(boolean enablePrintJstack) {
+        this.enablePrintJstack = enablePrintJstack;
+    }
+
+    public long getPrintJstackPeriodMillis() {
+        return printJstackPeriodMillis;
+    }
+
+    public void setPrintJstackPeriodMillis(long printJstackPeriodMillis) {
+        this.printJstackPeriodMillis = printJstackPeriodMillis;
+    }
 
     public String getProxyMode() {
         return proxyMode;
@@ -110,6 +155,14 @@ public class ProxyConfig {
 
     public void setGrpcThreadPoolQueueCapacity(int grpcThreadPoolQueueCapacity) {
         this.grpcThreadPoolQueueCapacity = grpcThreadPoolQueueCapacity;
+    }
+
+    public String getBrokerConfigPath() {
+        return brokerConfigPath;
+    }
+
+    public void setBrokerConfigPath(String brokerConfigPath) {
+        this.brokerConfigPath = brokerConfigPath;
     }
 
     public int getGrpcMaxInboundMessageSize() {

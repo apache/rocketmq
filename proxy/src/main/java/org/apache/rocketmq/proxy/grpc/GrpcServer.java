@@ -42,8 +42,10 @@ public class GrpcServer {
     private final io.grpc.Server server;
 
     private final ThreadPoolExecutor executor;
+    private final GrpcService grpcService;
 
     public GrpcServer(GrpcService grpcService) {
+        this.grpcService = grpcService;
         int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
         NettyServerBuilder serverBuilder = NettyServerBuilder.forPort(port);
 
@@ -98,7 +100,11 @@ public class GrpcServer {
             bossLoopNum, workerLoopNum, maxInboundMessageSize);
     }
 
+
     public void start() throws Exception {
+        // first to start grpc service.
+        this.grpcService.start();
+
         this.server.start();
         log.info("grpc server has started");
     }
@@ -108,8 +114,10 @@ public class GrpcServer {
             this.server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
             this.executor.shutdown();
 
+            this.grpcService.shutdown();
+
             log.info("grpc server has stopped");
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
