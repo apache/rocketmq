@@ -33,7 +33,7 @@ public class ThreadLocalIndexTest {
     public void testIncrementAndGet2() throws Exception {
         ThreadLocalIndex localIndex = new ThreadLocalIndex();
         int initialVal = localIndex.incrementAndGet();
-        assertThat(initialVal >= 0);
+        assertThat(initialVal >= 0).isTrue();
     }
 
 }

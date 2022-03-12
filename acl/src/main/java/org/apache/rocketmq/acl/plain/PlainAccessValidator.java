@@ -163,15 +163,6 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.getAllAclConfig();
     }
     
-    public Map<String, Object> createAclAccessConfigMap(Map<String, Object> existedAccountMap,
-        PlainAccessConfig plainAccessConfig) {
-        return aclPlugEngine.createAclAccessConfigMap(existedAccountMap, plainAccessConfig);
-    }
-
-    public Map<String, Object> updateAclConfigFileVersion(Map<String, Object> updateAclConfigMap) {
-        return aclPlugEngine.updateAclConfigFileVersion(updateAclConfigMap);
-    }
-
     @Override
     public Map<String, DataVersion> getAllAclConfigVersion() {
         return aclPlugEngine.getDataVersionMap();

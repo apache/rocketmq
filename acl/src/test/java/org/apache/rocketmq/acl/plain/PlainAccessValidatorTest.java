@@ -19,6 +19,7 @@ package org.apache.rocketmq.acl.plain;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -506,7 +507,7 @@ public class PlainAccessValidatorTest {
     }
 
     @Test
-    public void updateAccessAclYamlConfigTest() throws InterruptedException{
+    public void updateAccessAclYamlConfigTest() throws InterruptedException {
         String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";
         Map<String, Object> backUpAclConfigMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
 
@@ -901,5 +902,62 @@ public class PlainAccessValidatorTest {
 
         plainAccessValidator.deleteAccessConfig(accessKey);
         AclUtils.writeDataObject(targetFileName, backUpAclConfigMap);
+    }
+
+    @Test
+    public void deleteAccessAclToEmptyTest() {
+        System.setProperty("rocketmq.acl.plain.file", "/conf/empty.yml");
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey("deleteAccessAclToEmpty");
+        plainAccessConfig.setSecretKey("12345678");
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+        boolean success = plainAccessValidator.deleteAccessConfig("deleteAccessAclToEmpty");
+        System.setProperty("rocketmq.acl.plain.file", "/conf/plain_acl.yml");
+        Assert.assertTrue(success);
+    }
+
+    @Test
+    public void testValidateAfterUpdateAccessConfig() throws NoSuchFieldException, IllegalAccessException {
+        String targetFileName = System.getProperty("rocketmq.home.dir") + File.separator + "conf/update.yml";
+        System.setProperty("rocketmq.acl.plain.file", "conf/update.yml");
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        String accessKey = "updateAccessConfig";
+        String secretKey = "123456789111";
+        plainAccessConfig.setAccessKey(accessKey);
+        plainAccessConfig.setSecretKey(secretKey);
+        plainAccessConfig.setAdmin(true);
+        // update
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
+        // call load
+        Class clazz = PlainAccessValidator.class;
+        Field f = clazz.getDeclaredField("aclPlugEngine");
+        f.setAccessible(true);
+        PlainPermissionManager aclPlugEngine = (PlainPermissionManager) f.get(plainAccessValidator);
+        aclPlugEngine.load(targetFileName);
+
+        // call validate
+        PullMessageRequestHeader pullMessageRequestHeader = new PullMessageRequestHeader();
+        pullMessageRequestHeader.setTopic("topicC");
+        pullMessageRequestHeader.setConsumerGroup("consumerGroupA");
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, pullMessageRequestHeader);
+
+        AclClientRPCHook aclClient = new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
+        aclClient.doBeforeRequest("", remotingCommand);
+        ByteBuffer buf = remotingCommand.encodeHeader();
+        buf.getInt();
+        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
+        buf.position(0);
+        try {
+            PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "1.1.1.1:9876");
+            plainAccessValidator.validate(accessResource);
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+            Assert.fail("Should not throw IOException");
+        } finally {
+            System.setProperty("rocketmq.acl.plain.file", "conf/plain_acl.yml");
+        }
     }
 }

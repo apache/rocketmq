@@ -301,8 +301,7 @@ public class MQClientAPIImpl {
     }
 
     public void createSubscriptionGroup(final String addr, final SubscriptionGroupConfig config,
-        final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        final long timeoutMillis) throws RemotingException, InterruptedException, MQClientException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
 
         byte[] body = RemotingSerializable.encode(config);
@@ -675,8 +674,8 @@ public class MQClientAPIImpl {
                 retryBrokerName = instance.getBrokerNameFromMessageQueue(mqChosen);
             }
             String addr = instance.findBrokerAddressInPublish(retryBrokerName);
-            log.warn(String.format("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
-                retryBrokerName), e);
+            log.warn("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
+                retryBrokerName, e);
             try {
                 request.setOpaque(RemotingCommand.createNewRequestId());
                 sendMessageAsync(addr, retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,

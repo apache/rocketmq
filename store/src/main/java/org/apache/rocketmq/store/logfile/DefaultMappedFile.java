@@ -45,6 +45,7 @@ import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
@@ -91,11 +92,22 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     public static void ensureDirOK(final String dirName) {
         if (dirName != null) {
-            File f = new File(dirName);
-            if (!f.exists()) {
-                boolean result = f.mkdirs();
-                log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
+            if (dirName.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
+                String[] dirs = dirName.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
+                for (String dir : dirs) {
+                    createDirIfNotExist(dir);
+                }
+            } else {
+                createDirIfNotExist(dirName);
             }
+        }
+    }
+
+    private static void  createDirIfNotExist(String dirName) {
+        File f = new File(dirName);
+        if (!f.exists()) {
+            boolean result = f.mkdirs();
+            log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
         }
     }
 
