@@ -19,13 +19,19 @@ package org.apache.rocketmq.store.schedule;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.topic.TopicValidator;
@@ -52,6 +58,8 @@ public class ScheduleMessageService extends ConfigManager {
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
+    private static final long WAIT_FOR_SHUTDOWN = 5000L;
+    private static final long DELAY_FOR_A_SLEEP = 10L;
 
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
@@ -60,13 +68,20 @@ public class ScheduleMessageService extends ConfigManager {
         new ConcurrentHashMap<Integer, Long>(32);
     private final DefaultMessageStore defaultMessageStore;
     private final AtomicBoolean started = new AtomicBoolean(false);
-    private Timer timer;
+    private ScheduledExecutorService deliverExecutorService;
     private MessageStore writeMessageStore;
     private int maxDelayLevel;
+    private boolean enableAsyncDeliver = false;
+    private ScheduledExecutorService handleExecutorService;
+    private final Map<Integer /* level */, LinkedBlockingQueue<PutResultProcess>> deliverPendingTable =
+        new ConcurrentHashMap<>(32);
 
     public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
         this.writeMessageStore = defaultMessageStore;
+        if (defaultMessageStore != null) {
+            this.enableAsyncDeliver = defaultMessageStore.getMessageStoreConfig().isEnableScheduleAsyncDeliver();
+        }
     }
 
     public static int queueId2DelayLevel(final int queueId) {
@@ -113,7 +128,10 @@ public class ScheduleMessageService extends ConfigManager {
     public void start() {
         if (started.compareAndSet(false, true)) {
             super.load();
-            this.timer = new Timer("ScheduleMessageTimerThread", true);
+            this.deliverExecutorService = new ScheduledThreadPoolExecutor(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageTimerThread_"));
+            if (this.enableAsyncDeliver) {
+                this.handleExecutorService = new ScheduledThreadPoolExecutor(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageExecutorHandleThread_"));
+            }
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
                 Integer level = entry.getKey();
                 Long timeDelay = entry.getValue();
@@ -123,11 +141,14 @@ public class ScheduleMessageService extends ConfigManager {
                 }
 
                 if (timeDelay != null) {
-                    this.timer.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME);
+                    if (this.enableAsyncDeliver) {
+                        this.handleExecutorService.schedule(new HandlePutResultTask(level), FIRST_DELAY_TIME, TimeUnit.MILLISECONDS);
+                    }
+                    this.deliverExecutorService.schedule(new DeliverDelayedMessageTimerTask(level, offset), FIRST_DELAY_TIME, TimeUnit.MILLISECONDS);
                 }
             }
 
-            this.timer.scheduleAtFixedRate(new TimerTask() {
+            this.deliverExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override
                 public void run() {
@@ -139,16 +160,36 @@ public class ScheduleMessageService extends ConfigManager {
                         log.error("scheduleAtFixedRate flush exception", e);
                     }
                 }
-            }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval());
+            }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval(), TimeUnit.MILLISECONDS);
         }
     }
 
     public void shutdown() {
-        if (this.started.compareAndSet(true, false)) {
-            if (null != this.timer)
-                this.timer.cancel();
-        }
+        if (this.started.compareAndSet(true, false) && null != this.deliverExecutorService) {
+            this.deliverExecutorService.shutdown();
+            try {
+                this.deliverExecutorService.awaitTermination(WAIT_FOR_SHUTDOWN, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.error("deliverExecutorService awaitTermination error", e);
+            }
 
+            if (this.handleExecutorService != null) {
+                this.handleExecutorService.shutdown();
+                try {
+                    this.handleExecutorService.awaitTermination(WAIT_FOR_SHUTDOWN, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    log.error("handleExecutorService awaitTermination error", e);
+                }
+            }
+
+            if (this.deliverPendingTable != null) {
+                for (int i = 1; i <= this.deliverPendingTable.size(); i++) {
+                    log.warn("deliverPendingTable level: {}, size: {}", i, this.deliverPendingTable.get(i).size());
+                }
+            }
+
+            this.persist();
+        }
     }
 
     public boolean isStarted() {
@@ -159,10 +200,12 @@ public class ScheduleMessageService extends ConfigManager {
         return maxDelayLevel;
     }
 
+    @Override
     public String encode() {
         return this.encode(false);
     }
 
+    @Override
     public boolean load() {
         boolean result = super.load();
         result = result && this.parseDelayLevel();
@@ -223,6 +266,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
+    @Override
     public String encode(final boolean prettyFormat) {
         DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = new DelayOffsetSerializeWrapper();
         delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);
@@ -251,6 +295,9 @@ public class ScheduleMessageService extends ConfigManager {
                 long num = Long.parseLong(value.substring(0, value.length() - 1));
                 long delayTimeMillis = tu * num;
                 this.delayLevelTable.put(level, delayTimeMillis);
+                if (this.enableAsyncDeliver) {
+                    this.deliverPendingTable.put(level, new LinkedBlockingQueue<>());
+                }
             }
         } catch (Exception e) {
             log.error("parseDelayLevel exception", e);
@@ -261,7 +308,37 @@ public class ScheduleMessageService extends ConfigManager {
         return true;
     }
 
-    class DeliverDelayedMessageTimerTask extends TimerTask {
+    private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
+        MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        msgInner.setBody(msgExt.getBody());
+        msgInner.setFlag(msgExt.getFlag());
+        MessageAccessor.setProperties(msgInner, msgExt.getProperties());
+
+        TopicFilterType topicFilterType = MessageExt.parseTopicFilterType(msgInner.getSysFlag());
+        long tagsCodeValue =
+            MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
+        msgInner.setTagsCode(tagsCodeValue);
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+
+        msgInner.setSysFlag(msgExt.getSysFlag());
+        msgInner.setBornTimestamp(msgExt.getBornTimestamp());
+        msgInner.setBornHost(msgExt.getBornHost());
+        msgInner.setStoreHost(msgExt.getStoreHost());
+        msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
+
+        msgInner.setWaitStoreMsgOK(false);
+        MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
+
+        msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
+
+        String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
+        int queueId = Integer.parseInt(queueIdStr);
+        msgInner.setQueueId(queueId);
+
+        return msgInner;
+    }
+
+    class DeliverDelayedMessageTimerTask implements Runnable {
         private final int delayLevel;
         private final long offset;
 
@@ -279,8 +356,7 @@ public class ScheduleMessageService extends ConfigManager {
             } catch (Exception e) {
                 // XXX: warn and notify me
                 log.error("ScheduleMessageService, executeOnTimeup exception", e);
-                ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
-                    this.delayLevel, this.offset), DELAY_FOR_A_PERIOD);
+                this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_PERIOD);
             }
         }
 
@@ -304,158 +380,431 @@ public class ScheduleMessageService extends ConfigManager {
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));
 
-            long failScheduleOffset = offset;
+            if (cq == null) {
+                this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_WHILE);
+                return;
+            }
 
-            if (cq != null) {
-                SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
-                if (bufferCQ != null) {
-                    try {
-                        long nextOffset = offset;
-                        int i = 0;
-                        ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-                        for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                            long offsetPy = bufferCQ.getByteBuffer().getLong();
-                            int sizePy = bufferCQ.getByteBuffer().getInt();
-                            long tagsCode = bufferCQ.getByteBuffer().getLong();
+            SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
+            if (bufferCQ == null) {
+                long resetOffset;
+                if ((resetOffset = cq.getMinOffsetInQueue()) > this.offset) {
+                    log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, queueId={}",
+                        this.offset, resetOffset, cq.getQueueId());
+                } else if ((resetOffset = cq.getMaxOffsetInQueue()) < this.offset) {
+                    log.error("schedule CQ offset invalid. offset={}, cqMaxOffset={}, queueId={}",
+                        this.offset, resetOffset, cq.getQueueId());
+                } else {
+                    resetOffset = this.offset;
+                }
 
-                            if (cq.isExtAddr(tagsCode)) {
-                                if (cq.getExt(tagsCode, cqExtUnit)) {
-                                    tagsCode = cqExtUnit.getTagsCode();
-                                } else {
-                                    //can't find ext content.So re compute tags code.
-                                    log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}",
-                                        tagsCode, offsetPy, sizePy);
-                                    long msgStoreTime = defaultMessageStore.getCommitLog().pickupStoreTimestamp(offsetPy, sizePy);
-                                    tagsCode = computeDeliverTimestamp(delayLevel, msgStoreTime);
-                                }
-                            }
+                this.scheduleNextTimerTask(resetOffset, DELAY_FOR_A_WHILE);
+                return;
+            }
 
-                            long now = System.currentTimeMillis();
-                            long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
+            long nextOffset = this.offset;
+            try {
+                int i = 0;
+                ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
+                for (; i < bufferCQ.getSize() && isStarted(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                    long offsetPy = bufferCQ.getByteBuffer().getLong();
+                    int sizePy = bufferCQ.getByteBuffer().getInt();
+                    long tagsCode = bufferCQ.getByteBuffer().getLong();
 
-                            nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                    if (cq.isExtAddr(tagsCode)) {
+                        if (cq.getExt(tagsCode, cqExtUnit)) {
+                            tagsCode = cqExtUnit.getTagsCode();
+                        } else {
+                            //can't find ext content.So re compute tags code.
+                            log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}",
+                                tagsCode, offsetPy, sizePy);
+                            long msgStoreTime = defaultMessageStore.getCommitLog().pickupStoreTimestamp(offsetPy, sizePy);
+                            tagsCode = computeDeliverTimestamp(delayLevel, msgStoreTime);
+                        }
+                    }
 
-                            long countdown = deliverTimestamp - now;
+                    long now = System.currentTimeMillis();
+                    long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
+                    nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
-                            if (countdown <= 0) {
-                                MessageExt msgExt =
-                                    ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
-                                        offsetPy, sizePy);
-
-                                if (msgExt != null) {
-                                    try {
-                                        MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
-                                        if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
-                                            log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
-                                                msgInner.getTopic(), msgInner);
-                                            continue;
-                                        }
-                                        PutMessageResult putMessageResult =
-                                            ScheduleMessageService.this.writeMessageStore
-                                                .putMessage(msgInner);
-
-                                        if (putMessageResult != null
-                                            && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
-                                            if (ScheduleMessageService.this.defaultMessageStore.getMessageStoreConfig().isEnableScheduleMessageStats()) {
-                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incQueueGetNums(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, delayLevel - 1, putMessageResult.getAppendMessageResult().getMsgNum());
-                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incQueueGetSize(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, delayLevel - 1, putMessageResult.getAppendMessageResult().getWroteBytes());
-                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incGroupGetNums(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, putMessageResult.getAppendMessageResult().getMsgNum());
-                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incGroupGetSize(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, putMessageResult.getAppendMessageResult().getWroteBytes());
-                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
-                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
-                                                    putMessageResult.getAppendMessageResult().getWroteBytes());
-                                                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
-                                            }
-                                            continue;
-                                        } else {
-                                            // XXX: warn and notify me
-                                            log.error(
-                                                "ScheduleMessageService, a message time up, but reput it failed, topic: {} msgId {}",
-                                                msgExt.getTopic(), msgExt.getMsgId());
-                                            ScheduleMessageService.this.timer.schedule(
-                                                new DeliverDelayedMessageTimerTask(this.delayLevel,
-                                                    nextOffset), DELAY_FOR_A_PERIOD);
-                                            ScheduleMessageService.this.updateOffset(this.delayLevel,
-                                                nextOffset);
-                                            return;
-                                        }
-                                    } catch (Exception e) {
-                                        /*
-                                         * XXX: warn and notify me
-                                         */
-                                        log.error(
-                                            "ScheduleMessageService, messageTimeup execute error, drop it. msgExt={}, nextOffset={}, offsetPy={}, sizePy={}", msgExt, nextOffset, offsetPy, sizePy, e);
-                                    }
-                                }
-                            } else {
-                                ScheduleMessageService.this.timer.schedule(
-                                    new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
-                                    countdown);
-                                ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
-                                return;
-                            }
-                        } // end of for
-
-                        nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-                        ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
-                            this.delayLevel, nextOffset), DELAY_FOR_A_WHILE);
-                        ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
+                    long countdown = deliverTimestamp - now;
+                    if (countdown > 0) {
+                        this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
                         return;
-                    } finally {
-
-                        bufferCQ.release();
-                    }
-                } // end of if (bufferCQ != null)
-                else {
-
-                    long cqMinOffset = cq.getMinOffsetInQueue();
-                    long cqMaxOffset = cq.getMaxOffsetInQueue();
-                    if (offset < cqMinOffset) {
-                        failScheduleOffset = cqMinOffset;
-                        log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
-                            offset, cqMinOffset, cqMaxOffset, cq.getQueueId());
                     }
 
-                    if (offset > cqMaxOffset) {
-                        failScheduleOffset = cqMaxOffset;
-                        log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
-                            offset, cqMinOffset, cqMaxOffset, cq.getQueueId());
+                    MessageExt msgExt = ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(offsetPy, sizePy);
+                    if (msgExt == null) {
+                        continue;
+                    }
+
+                    MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeup(msgExt);
+                    if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
+                        log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
+                            msgInner.getTopic(), msgInner);
+                        continue;
+                    }
+
+                    boolean deliverSuc;
+                    if (ScheduleMessageService.this.enableAsyncDeliver) {
+                        deliverSuc = this.asyncDeliver(msgInner, msgExt.getMsgId(), offset, offsetPy, sizePy);
+                    } else {
+                        deliverSuc = this.syncDeliver(msgInner, msgExt.getMsgId(), offset, offsetPy, sizePy);
+                    }
+
+                    if (!deliverSuc) {
+                        this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
+                        return;
                     }
                 }
-            } // end of if (cq != null)
 
-            ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel,
-                failScheduleOffset), DELAY_FOR_A_WHILE);
+                nextOffset = this.offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            } catch (Exception e) {
+                log.error("ScheduleMessageService, messageTimeup execute error, offset = {}", nextOffset, e);
+            } finally {
+                bufferCQ.release();
+            }
+
+            this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
         }
 
-        private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
-            MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-            msgInner.setBody(msgExt.getBody());
-            msgInner.setFlag(msgExt.getFlag());
-            MessageAccessor.setProperties(msgInner, msgExt.getProperties());
-
-            TopicFilterType topicFilterType = MessageExt.parseTopicFilterType(msgInner.getSysFlag());
-            long tagsCodeValue =
-                MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
-            msgInner.setTagsCode(tagsCodeValue);
-            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
-
-            msgInner.setSysFlag(msgExt.getSysFlag());
-            msgInner.setBornTimestamp(msgExt.getBornTimestamp());
-            msgInner.setBornHost(msgExt.getBornHost());
-            msgInner.setStoreHost(msgExt.getStoreHost());
-            msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
-
-            msgInner.setWaitStoreMsgOK(false);
-            MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
-
-            msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
-
-            String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
-            int queueId = Integer.parseInt(queueIdStr);
-            msgInner.setQueueId(queueId);
-
-            return msgInner;
+        public void scheduleNextTimerTask(long offset, long delay) {
+            ScheduleMessageService.this.deliverExecutorService.schedule(new DeliverDelayedMessageTimerTask(
+                this.delayLevel, offset), delay, TimeUnit.MILLISECONDS);
         }
+
+        private boolean syncDeliver(MessageExtBrokerInner msgInner, String msgId, long offset, long offsetPy,
+            int sizePy) {
+            PutResultProcess resultProcess = deliverMessage(msgInner, msgId, offset, offsetPy, sizePy, false);
+            PutMessageResult result = resultProcess.get();
+            boolean sendStatus = result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK;
+            if (sendStatus) {
+                ScheduleMessageService.this.updateOffset(this.delayLevel, resultProcess.getNextOffset());
+            }
+            return sendStatus;
+        }
+
+        private boolean asyncDeliver(MessageExtBrokerInner msgInner, String msgId, long offset, long offsetPy,
+            int sizePy) {
+            Queue<PutResultProcess> processesQueue = ScheduleMessageService.this.deliverPendingTable.get(this.delayLevel);
+
+            //Flow Control
+            int currentPendingNum = processesQueue.size();
+            int maxPendingLimit = ScheduleMessageService.this.defaultMessageStore.getMessageStoreConfig()
+                .getScheduleAsyncDeliverMaxPendingLimit();
+            if (currentPendingNum > maxPendingLimit) {
+                log.warn("Asynchronous deliver triggers flow control, " +
+                    "currentPendingNum={}, maxPendingLimit={}", currentPendingNum, maxPendingLimit);
+                return false;
+            }
+
+            //Blocked
+            PutResultProcess firstProcess = processesQueue.peek();
+            if (firstProcess != null && firstProcess.need2Blocked()) {
+                log.warn("Asynchronous deliver block. info={}", firstProcess.toString());
+                return false;
+            }
+
+            PutResultProcess resultProcess = deliverMessage(msgInner, msgId, offset, offsetPy, sizePy, true);
+            processesQueue.add(resultProcess);
+            return true;
+        }
+
+        private PutResultProcess deliverMessage(MessageExtBrokerInner msgInner, String msgId, long offset,
+            long offsetPy, int sizePy, boolean autoResend) {
+            CompletableFuture<PutMessageResult> future =
+                ScheduleMessageService.this.writeMessageStore.asyncPutMessage(msgInner);
+            return new PutResultProcess()
+                .setTopic(msgInner.getTopic())
+                .setDelayLevel(this.delayLevel)
+                .setOffset(offset)
+                .setPhysicOffset(offsetPy)
+                .setPhysicSize(sizePy)
+                .setMsgId(msgId)
+                .setAutoResend(autoResend)
+                .setFuture(future)
+                .thenProcess();
+        }
+    }
+
+    public class HandlePutResultTask implements Runnable {
+        private final int delayLevel;
+
+        public HandlePutResultTask(int delayLevel) {
+            this.delayLevel = delayLevel;
+        }
+
+        @Override
+        public void run() {
+            LinkedBlockingQueue<PutResultProcess> pendingQueue =
+                ScheduleMessageService.this.deliverPendingTable.get(this.delayLevel);
+
+            PutResultProcess putResultProcess;
+            while ((putResultProcess = pendingQueue.peek()) != null) {
+                try {
+                    switch (putResultProcess.getStatus()) {
+                        case SUCCESS:
+                            ScheduleMessageService.this.updateOffset(this.delayLevel, putResultProcess.getNextOffset());
+                            pendingQueue.remove();
+                            break;
+                        case RUNNING:
+                            break;
+                        case EXCEPTION:
+                            if (!isStarted()) {
+                                log.warn("HandlePutResultTask shutdown, info={}", putResultProcess.toString());
+                                return;
+                            }
+                            log.warn("putResultProcess error, info={}", putResultProcess.toString());
+                            putResultProcess.onException();
+                            break;
+                        case SKIP:
+                            log.warn("putResultProcess skip, info={}", putResultProcess.toString());
+                            pendingQueue.remove();
+                            break;
+                    }
+                } catch (Exception e) {
+                    log.error("HandlePutResultTask exception. info={}", putResultProcess.toString(), e);
+                    putResultProcess.onException();
+                }
+            }
+
+            if (isStarted()) {
+                ScheduleMessageService.this.handleExecutorService
+                    .schedule(new HandlePutResultTask(this.delayLevel), DELAY_FOR_A_SLEEP, TimeUnit.MILLISECONDS);
+            }
+        }
+    }
+
+    public class PutResultProcess {
+        private String topic;
+        private long offset;
+        private long physicOffset;
+        private int physicSize;
+        private int delayLevel;
+        private String msgId;
+        private boolean autoResend = false;
+        private CompletableFuture<PutMessageResult> future;
+
+        private volatile int resendCount = 0;
+        private volatile ProcessStatus status = ProcessStatus.RUNNING;
+
+        public PutResultProcess setTopic(String topic) {
+            this.topic = topic;
+            return this;
+        }
+
+        public PutResultProcess setOffset(long offset) {
+            this.offset = offset;
+            return this;
+        }
+
+        public PutResultProcess setPhysicOffset(long physicOffset) {
+            this.physicOffset = physicOffset;
+            return this;
+        }
+
+        public PutResultProcess setPhysicSize(int physicSize) {
+            this.physicSize = physicSize;
+            return this;
+        }
+
+        public PutResultProcess setDelayLevel(int delayLevel) {
+            this.delayLevel = delayLevel;
+            return this;
+        }
+
+        public PutResultProcess setMsgId(String msgId) {
+            this.msgId = msgId;
+            return this;
+        }
+
+        public PutResultProcess setAutoResend(boolean autoResend) {
+            this.autoResend = autoResend;
+            return this;
+        }
+
+        public PutResultProcess setFuture(CompletableFuture<PutMessageResult> future) {
+            this.future = future;
+            return this;
+        }
+
+        public String getTopic() {
+            return topic;
+        }
+
+        public long getOffset() {
+            return offset;
+        }
+
+        public long getNextOffset() {
+            return offset + 1;
+        }
+
+        public long getPhysicOffset() {
+            return physicOffset;
+        }
+
+        public int getPhysicSize() {
+            return physicSize;
+        }
+
+        public Integer getDelayLevel() {
+            return delayLevel;
+        }
+
+        public String getMsgId() {
+            return msgId;
+        }
+
+        public boolean isAutoResend() {
+            return autoResend;
+        }
+
+        public CompletableFuture<PutMessageResult> getFuture() {
+            return future;
+        }
+
+        public int getResendCount() {
+            return resendCount;
+        }
+
+        public PutResultProcess thenProcess() {
+            this.future.thenAccept(result -> {
+                this.handleResult(result);
+            });
+
+            this.future.exceptionally(e -> {
+                log.error("ScheduleMessageService put message exceptionally, info: {}",
+                    PutResultProcess.this.toString(), e);
+
+                onException();
+                return null;
+            });
+            return this;
+        }
+
+        private void handleResult(PutMessageResult result) {
+            if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+                onSuccess(result);
+            } else {
+                log.warn("ScheduleMessageService put message failed. info: {}.", result);
+                onException();
+            }
+        }
+
+        public void onSuccess(PutMessageResult result) {
+            this.status = ProcessStatus.SUCCESS;
+            if (ScheduleMessageService.this.defaultMessageStore.getMessageStoreConfig().isEnableScheduleMessageStats()) {
+                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incQueueGetNums(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, delayLevel - 1, result.getAppendMessageResult().getMsgNum());
+                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incQueueGetSize(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, delayLevel - 1, result.getAppendMessageResult().getWroteBytes());
+                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incGroupGetNums(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, result.getAppendMessageResult().getMsgNum());
+                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incGroupGetSize(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, result.getAppendMessageResult().getWroteBytes());
+                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutNums(this.topic, result.getAppendMessageResult().getMsgNum(), 1);
+                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incTopicPutSize(this.topic, result.getAppendMessageResult().getWroteBytes());
+                ScheduleMessageService.this.defaultMessageStore.getBrokerStatsManager().incBrokerPutNums(result.getAppendMessageResult().getMsgNum());
+            }
+        }
+
+        public void onException() {
+            log.warn("ScheduleMessageService onException, info: {}", this.toString());
+            if (this.autoResend) {
+                this.resend();
+            } else {
+                this.status = ProcessStatus.SKIP;
+            }
+        }
+
+        public ProcessStatus getStatus() {
+            return this.status;
+        }
+
+        public PutMessageResult get() {
+            try {
+                return this.future.get();
+            } catch (InterruptedException | ExecutionException e) {
+                return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
+            }
+        }
+
+        private void resend() {
+            log.info("Resend message, info: {}", this.toString());
+
+            // Gradually increase the resend interval.
+            try {
+                Thread.sleep(Math.min(this.resendCount++ * 100, 60 * 1000));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                MessageExt msgExt = ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(this.physicOffset, this.physicSize);
+                if (msgExt == null) {
+                    log.warn("ScheduleMessageService resend not found message. info: {}", this.toString());
+                    this.status = need2Skip() ? ProcessStatus.SKIP : ProcessStatus.EXCEPTION;
+                    return;
+                }
+
+                MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeup(msgExt);
+                PutMessageResult result = ScheduleMessageService.this.writeMessageStore.putMessage(msgInner);
+                this.handleResult(result);
+                if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+                    log.info("Resend message success, info: {}", this.toString());
+                }
+            } catch (Exception e) {
+                this.status = ProcessStatus.EXCEPTION;
+                log.error("Resend message error, info: {}", this.toString(), e);
+            }
+        }
+
+        public boolean need2Blocked() {
+            int maxResendNum2Blocked = ScheduleMessageService.this.defaultMessageStore.getMessageStoreConfig()
+                .getScheduleAsyncDeliverMaxResendNum2Blocked();
+            return this.resendCount > maxResendNum2Blocked;
+        }
+
+        public boolean need2Skip() {
+            int maxResendNum2Blocked = ScheduleMessageService.this.defaultMessageStore.getMessageStoreConfig()
+                .getScheduleAsyncDeliverMaxResendNum2Blocked();
+            return this.resendCount > maxResendNum2Blocked * 2;
+        }
+
+        @Override
+        public String toString() {
+            return "PutResultProcess{" +
+                "topic='" + topic + '\'' +
+                ", offset=" + offset +
+                ", physicOffset=" + physicOffset +
+                ", physicSize=" + physicSize +
+                ", delayLevel=" + delayLevel +
+                ", msgId='" + msgId + '\'' +
+                ", autoResend=" + autoResend +
+                ", resendCount=" + resendCount +
+                ", status=" + status +
+                '}';
+        }
+    }
+
+    public enum ProcessStatus {
+        /**
+         * In process, the processing result has not yet been returned.
+         * */
+        RUNNING,
+
+        /**
+         * Put message success.
+         * */
+        SUCCESS,
+
+        /**
+         * Put message exception.
+         * When autoResend is true, the message will be resend.
+         * */
+        EXCEPTION,
+
+        /**
+         * Skip put message.
+         * When the message cannot be looked, the message will be skipped.
+         * */
+        SKIP,
     }
 }

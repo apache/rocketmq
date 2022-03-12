@@ -23,11 +23,15 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public class AclClient {
 
-    private static final String ACL_ACCESS_KEY = "rocketmq2";
+    public static final String ACL_ACCESS_KEY = "rocketmq2";
 
-    private static final String ACL_SECRET_KEY = "12345678";
+    public static final String ACL_SECRET_KEY = "12345678";
 
-    static RPCHook getAclRPCHook() {
-        return new AclClientRPCHook(new SessionCredentials(ACL_ACCESS_KEY,ACL_SECRET_KEY));
+    public static RPCHook getAclRPCHook() {
+        return getAclRPCHook(ACL_ACCESS_KEY, ACL_SECRET_KEY);
+    }
+
+    public static RPCHook getAclRPCHook(String ak, String sk) {
+        return new AclClientRPCHook(new SessionCredentials(ak, sk));
     }
 }

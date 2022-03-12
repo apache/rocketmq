@@ -209,7 +209,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public TopicConfig examineTopicConfig(String addr, String topic) {
+    public TopicConfig examineTopicConfig(String addr, String topic) throws RemotingException, InterruptedException, MQBrokerException {
         return defaultMQAdminExtImpl.examineTopicConfig(addr, topic);
     }
 
@@ -269,6 +269,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         String consumerGroup) throws InterruptedException, MQBrokerException,
         RemotingException, MQClientException {
         return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup);
+    }
+
+    @Override
+    public ConsumerConnection examineConsumerConnectionInfo(
+        String consumerGroup, String brokerAddr) throws InterruptedException, MQBrokerException,
+        RemotingException, MQClientException {
+        return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup, brokerAddr);
     }
 
     @Override
@@ -424,7 +431,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public boolean cleanUnusedTopic(String cluster) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, MQClientException, InterruptedException {
-        return defaultMQAdminExtImpl.cleanUnusedTopicByAddr(cluster);
+        return defaultMQAdminExtImpl.cleanUnusedTopic(cluster);
     }
 
     @Override
@@ -501,10 +508,24 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public TopicConfigSerializeWrapper getAllTopicGroup(final String brokerAddr,
+    public SubscriptionGroupWrapper getUserSubscriptionGroup(final String brokerAddr,
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException {
-        return this.defaultMQAdminExtImpl.getAllTopicGroup(brokerAddr, timeoutMillis);
+        return this.defaultMQAdminExtImpl.getUserSubscriptionGroup(brokerAddr, timeoutMillis);
+    }
+
+    @Override
+    public TopicConfigSerializeWrapper getAllTopicConfig(final String brokerAddr,
+        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQBrokerException {
+        return this.defaultMQAdminExtImpl.getAllTopicConfig(brokerAddr, timeoutMillis);
+    }
+
+    @Override
+    public TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr, final boolean specialTopic,
+        long timeoutMillis) throws InterruptedException, RemotingException,
+        MQBrokerException, MQClientException {
+        return this.defaultMQAdminExtImpl.getUserTopicConfig(brokerAddr, specialTopic, timeoutMillis);
     }
 
     /* (non-Javadoc)
