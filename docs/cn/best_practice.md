@@ -184,7 +184,7 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 | brokerIP1 | 网卡的 InetAddress                         | 当前 broker 监听的 IP  |
 | brokerIP2 | 跟 brokerIP1 一样                         | 存在主从 broker 时，如果在 broker 主节点上配置了 brokerIP2 属性，broker 从节点会连接主节点配置的 brokerIP2 进行同步  |
 | brokerName        | null                         | broker 的名称                           |
-| brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluser 名称           |
+| brokerClusterName                     | DefaultCluster                  | 本 broker 所属的 Cluster 名称           |
 | brokerId             | 0                              | broker id, 0 表示 master, 其他的正整数表示 slave                                                 |
 | storePathRootDir                         | $HOME/store/                   | 存储根路径                                            |
 | storePathCommitLog                      | $HOME/store/commitlog/                              | 存储 commit log 的路径                                                |
