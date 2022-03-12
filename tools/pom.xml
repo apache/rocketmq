@@ -19,17 +19,13 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.9.2-SNAPSHOT</version>
+        <version>4.9.4-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
     <artifactId>rocketmq-tools</artifactId>
     <name>rocketmq-tools ${project.version}</name>
-
-    <properties>
-        <maven.test.skip>true</maven.test.skip>
-    </properties>
 
     <dependencies>
         <dependency>

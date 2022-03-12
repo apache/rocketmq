@@ -29,7 +29,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>4.9.2-SNAPSHOT</version>
+    <version>4.9.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -113,7 +113,6 @@
         <module>store</module>
         <module>namesrv</module>
         <module>remoting</module>
-        <module>logappender</module>
         <module>srvutil</module>
         <module>filter</module>
         <module>test</module>
@@ -527,7 +526,7 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.0.13</version>
+                <version>1.2.10</version>
             </dependency>
             <dependency>
                 <groupId>commons-cli</groupId>
@@ -538,6 +537,13 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
                 <version>4.1.65.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk15on</artifactId>
+                <scope>runtime</scope>
+                <type>jar</type>
+                <version>1.69</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
@@ -562,7 +568,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>19.0</version>
+                <version>31.0.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>io.openmessaging</groupId>
@@ -577,7 +583,7 @@
             <dependency>
                 <groupId>org.yaml</groupId>
                 <artifactId>snakeyaml</artifactId>
-                <version>1.19</version>
+                <version>1.30</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
@@ -587,12 +593,12 @@
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-core</artifactId>
-                <version>2.7</version>
+                <version>2.17.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-slf4j-impl</artifactId>
-                <version>2.7</version>
+                <version>2.17.1</version>
             </dependency>
             <dependency>
                 <groupId>commons-validator</groupId>

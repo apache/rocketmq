@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.store;
 
+import io.openmessaging.storage.dledger.store.file.DefaultMmapFile;
+import io.openmessaging.storage.dledger.store.file.MmapFile;
+import java.io.IOException;
+import java.util.List;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.index.IndexFile;
@@ -84,6 +89,16 @@ public class StoreTestUtil {
 
         for (IndexFile f : indexFileList) {
             indexService.flush(f);
+        }
+    }
+
+    public static void releaseMmapFilesOnWindows(List<MmapFile> mappedFiles) throws IOException {
+        if (!SystemUtils.IS_OS_WINDOWS) {
+            return;
+        }
+        for (final MmapFile mappedFile : mappedFiles) {
+            DefaultMmapFile.clean(mappedFile.getMappedByteBuffer());
+            mappedFile.getFileChannel().close();
         }
     }
 }
