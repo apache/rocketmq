@@ -1,3 +1,4 @@
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -17,13 +18,16 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -38,21 +42,14 @@ public class RemotingCommand {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
     private static final int RPC_ONEWAY = 1; // 0, RPC
+
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
-        new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
-    private static final Map<Class, String> CANONICAL_NAME_CACHE = new HashMap<Class, String>();
+            new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
+
     // 1, Oneway
     // 1, RESPONSE_COMMAND
     private static final Map<Field, Boolean> NULLABLE_FIELD_CACHE = new HashMap<Field, Boolean>();
-    private static final String STRING_CANONICAL_NAME = String.class.getCanonicalName();
-    private static final String DOUBLE_CANONICAL_NAME_1 = Double.class.getCanonicalName();
-    private static final String DOUBLE_CANONICAL_NAME_2 = double.class.getCanonicalName();
-    private static final String INTEGER_CANONICAL_NAME_1 = Integer.class.getCanonicalName();
-    private static final String INTEGER_CANONICAL_NAME_2 = int.class.getCanonicalName();
-    private static final String LONG_CANONICAL_NAME_1 = Long.class.getCanonicalName();
-    private static final String LONG_CANONICAL_NAME_2 = long.class.getCanonicalName();
-    private static final String BOOLEAN_CANONICAL_NAME_1 = Boolean.class.getCanonicalName();
-    private static final String BOOLEAN_CANONICAL_NAME_2 = boolean.class.getCanonicalName();
+
     private static volatile int configVersion = -1;
     private static AtomicInteger requestId = new AtomicInteger(0);
 
@@ -66,6 +63,11 @@ public class RemotingCommand {
             } catch (IllegalArgumentException e) {
                 throw new RuntimeException("parser specified protocol error. protocol=" + protocol, e);
             }
+        }
+
+        String v = System.getProperty(REMOTING_VERSION_KEY);
+        if (v != null) {
+            configVersion = Integer.parseInt(v);
         }
     }
 
@@ -111,7 +113,7 @@ public class RemotingCommand {
     }
 
     public static RemotingCommand createResponseCommand(int code, String remark,
-        Class<? extends CommandCustomHeader> classHeader) {
+                                                        Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.markResponseType();
         cmd.setCode(code);
@@ -120,8 +122,7 @@ public class RemotingCommand {
 
         if (classHeader != null) {
             try {
-                CommandCustomHeader objectHeader = classHeader.newInstance();
-                cmd.customHeader = objectHeader;
+                cmd.customHeader = classHeader.newInstance();
             } catch (InstantiationException e) {
                 return null;
             } catch (IllegalAccessException e) {
@@ -232,13 +233,11 @@ public class RemotingCommand {
     }
 
     public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+            Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
             objectHeader = classHeader.newInstance();
-        } catch (InstantiationException e) {
-            return null;
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             return null;
         }
 
@@ -258,19 +257,18 @@ public class RemotingCommand {
                                 continue;
                             }
 
-                            field.setAccessible(true);
-                            String type = getCanonicalName(field.getType());
+                            Class<?> type = field.getType();
                             Object valueParsed;
 
-                            if (type.equals(STRING_CANONICAL_NAME)) {
+                            if (type.equals(String.class)) {
                                 valueParsed = value;
-                            } else if (type.equals(INTEGER_CANONICAL_NAME_1) || type.equals(INTEGER_CANONICAL_NAME_2)) {
+                            } else if (type.equals(Integer.class) || type.equals(int.class)) {
                                 valueParsed = Integer.parseInt(value);
-                            } else if (type.equals(LONG_CANONICAL_NAME_1) || type.equals(LONG_CANONICAL_NAME_2)) {
+                            } else if (type.equals(Long.class) || type.equals(long.class)) {
                                 valueParsed = Long.parseLong(value);
-                            } else if (type.equals(BOOLEAN_CANONICAL_NAME_1) || type.equals(BOOLEAN_CANONICAL_NAME_2)) {
+                            } else if (type.equals(Boolean.class) || type.equals(boolean.class)) {
                                 valueParsed = Boolean.parseBoolean(value);
-                            } else if (type.equals(DOUBLE_CANONICAL_NAME_1) || type.equals(DOUBLE_CANONICAL_NAME_2)) {
+                            } else if (type.equals(Double.class) || type.equals(double.class)) {
                                 valueParsed = Double.parseDouble(value);
                             } else {
                                 throw new RemotingCommandException("the custom field <" + fieldName + "> type is not supported");
@@ -292,15 +290,20 @@ public class RemotingCommand {
     }
 
     private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
-        Field[] field = CLASS_HASH_MAP.get(classHeader);
+        Field[] fields = CLASS_HASH_MAP.get(classHeader);
 
-        if (field == null) {
-            field = classHeader.getDeclaredFields();
+        if (fields == null) {
+            fields = classHeader.getDeclaredFields();
+
+            fields = Arrays.stream(fields)
+                    .peek(f -> f.setAccessible(true))
+                    .toArray(Field[]::new);
             synchronized (CLASS_HASH_MAP) {
-                CLASS_HASH_MAP.put(classHeader, field);
+                CLASS_HASH_MAP.put(classHeader, fields);
             }
         }
-        return field;
+
+        return fields;
     }
 
     private boolean isFieldNullable(Field field) {
@@ -311,18 +314,6 @@ public class RemotingCommand {
             }
         }
         return NULLABLE_FIELD_CACHE.get(field);
-    }
-
-    private String getCanonicalName(Class clazz) {
-        String name = CANONICAL_NAME_CACHE.get(clazz);
-
-        if (name == null) {
-            name = clazz.getCanonicalName();
-            synchronized (CANONICAL_NAME_CACHE) {
-                CANONICAL_NAME_CACHE.put(clazz, name);
-            }
-        }
-        return name;
     }
 
     public ByteBuffer encode() {
@@ -381,7 +372,6 @@ public class RemotingCommand {
                     if (!name.startsWith("this")) {
                         Object value = null;
                         try {
-                            field.setAccessible(true);
                             value = field.get(this.customHeader);
                         } catch (Exception e) {
                             log.error("Failed to access field [{}]", name, e);
@@ -529,8 +519,8 @@ public class RemotingCommand {
     @Override
     public String toString() {
         return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version + ", opaque=" + opaque + ", flag(B)="
-            + Integer.toBinaryString(flag) + ", remark=" + remark + ", extFields=" + extFields + ", serializeTypeCurrentRPC="
-            + serializeTypeCurrentRPC + "]";
+                + Integer.toBinaryString(flag) + ", remark=" + remark + ", extFields=" + extFields + ", serializeTypeCurrentRPC="
+                + serializeTypeCurrentRPC + "]";
     }
 
     public SerializeType getSerializeTypeCurrentRPC() {
