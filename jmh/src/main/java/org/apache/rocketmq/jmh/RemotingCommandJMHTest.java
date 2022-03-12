@@ -95,7 +95,6 @@ public class RemotingCommandJMHTest {
         Options options = new OptionsBuilder()
                 .detectJvmArgs()
                 .include(RemotingCommandJMHTest.class.getSimpleName())
-                .addProfiler("jfr","dir=/tmp/hello")
                 .build();
         new Runner(options).run();
     }
