@@ -447,9 +447,9 @@ public class ScheduleMessageService extends ConfigManager {
 
                     boolean deliverSuc;
                     if (ScheduleMessageService.this.enableAsyncDeliver) {
-                        deliverSuc = this.asyncDeliver(msgInner, msgExt.getMsgId(), offset, offsetPy, sizePy);
+                        deliverSuc = this.asyncDeliver(msgInner, msgExt.getMsgId(), nextOffset, offsetPy, sizePy);
                     } else {
-                        deliverSuc = this.syncDeliver(msgInner, msgExt.getMsgId(), offset, offsetPy, sizePy);
+                        deliverSuc = this.syncDeliver(msgInner, msgExt.getMsgId(), nextOffset, offsetPy, sizePy);
                     }
 
                     if (!deliverSuc) {
@@ -544,7 +544,9 @@ public class ScheduleMessageService extends ConfigManager {
                 try {
                     switch (putResultProcess.getStatus()) {
                         case SUCCESS:
-                            ScheduleMessageService.this.updateOffset(this.delayLevel, putResultProcess.getNextOffset());
+                            ConcurrentMap<Integer, Long> table = ScheduleMessageService.this.offsetTable;
+                            table.put(this.delayLevel, table.getOrDefault(this.delayLevel, 0L) + 1);
+                            System.out.println("Update offset to " + table.get(this.delayLevel));
                             pendingQueue.remove();
                             break;
                         case RUNNING:

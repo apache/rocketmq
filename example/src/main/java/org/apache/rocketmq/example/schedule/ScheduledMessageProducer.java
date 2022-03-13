@@ -17,6 +17,8 @@
 package org.apache.rocketmq.example.schedule;
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 
 public class ScheduledMessageProducer {
@@ -25,13 +27,14 @@ public class ScheduledMessageProducer {
         DefaultMQProducer producer = new DefaultMQProducer("ExampleProducerGroup");
         // Launch producer
         producer.start();
-        int totalMessagesToSend = 100;
+        int totalMessagesToSend = 32;
         for (int i = 0; i < totalMessagesToSend; i++) {
             Message message = new Message("TestTopic", ("Hello scheduled message " + i).getBytes());
             // This message will be delivered to consumer 10 seconds later.
             message.setDelayTimeLevel(3);
             // Send the message
-            producer.send(message);
+            SendResult sendResult = producer.send(message);
+            System.out.printf("%s %s%n", sendResult, UtilAll.timeMillisToHumanString2(System.currentTimeMillis()));
         }
         
         // Shutdown producer after use.

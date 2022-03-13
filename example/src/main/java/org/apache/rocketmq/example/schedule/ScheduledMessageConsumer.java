@@ -20,6 +20,7 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.List;
@@ -37,8 +38,8 @@ public class ScheduledMessageConsumer {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> messages, ConsumeConcurrentlyContext context) {
                 for (MessageExt message : messages) {
                     // Print approximate delay time period
-                    System.out.printf("Receive message[msgId=%s %d  ms later]\n", message.getMsgId(),
-                            System.currentTimeMillis() - message.getStoreTimestamp());
+                    System.out.printf("%s %s Receive New Messages: %s %n",
+                        UtilAll.timeMillisToHumanString2(System.currentTimeMillis()), Thread.currentThread().getName(), message);
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
