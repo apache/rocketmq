@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.proxy.client.mqconstructor;
 
-package org.apache.rocketmq.proxy.grpc.common;
+public interface RocketMQClientConstructor<T> {
 
-public interface StartAndShutdown {
-    void start() throws Exception;
-    void shutdown() throws Exception;
+    T getOne(String instanceName, int bootstrapWorkerThreads);
+
+    void shutdownAll();
 }
