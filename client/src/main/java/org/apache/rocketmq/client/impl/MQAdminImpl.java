@@ -22,8 +22,8 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -41,7 +41,6 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -81,7 +80,8 @@ public class MQAdminImpl {
         createTopic(key, newTopic, queueNum, 0, null);
     }
 
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag, Map<String, String> attributes) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag,
+        Map<String, String> attributes) throws MQClientException {
         try {
             Validators.checkTopic(newTopic);
             Validators.isSystemTopic(newTopic);
@@ -258,9 +258,8 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-    public MessageExt viewMessage(
-        String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-
+    public MessageExt viewMessage(String msgId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         MessageId messageId = null;
         try {
             messageId = MessageDecoder.decodeMessageId(msgId);
@@ -271,9 +270,9 @@ public class MQAdminImpl {
             messageId.getOffset(), timeoutMillis);
     }
 
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
-
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
+        long end) throws MQClientException,
+        InterruptedException {
         return queryMessage(topic, key, maxNum, begin, end, false);
     }
 
@@ -285,9 +284,22 @@ public class MQAdminImpl {
 
     public MessageExt queryMessageByUniqKey(String topic,
         String uniqKey) throws InterruptedException, MQClientException {
+        return queryMessageByUniqKey(topic, uniqKey, System.currentTimeMillis() - 3L * 24 * 60L * 60L * 1000L, Long.MAX_VALUE);
+    }
 
-        QueryResult qr = queryMessageByUniqKey(topic, uniqKey, 32,
-                MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE);
+    public MessageExt queryMessageByUniqKey(String clusterName, String topic,
+        String uniqKey) throws InterruptedException, MQClientException {
+        return queryMessageByUniqKey(clusterName, topic, uniqKey, System.currentTimeMillis() - 3L * 24 * 60L * 60L * 1000L, Long.MAX_VALUE);
+    }
+
+    public MessageExt queryMessageByUniqKey(String topic,
+        String uniqKey, long begin, long end) throws InterruptedException, MQClientException {
+        return queryMessageByUniqKey(null, topic, uniqKey, begin, end);
+    }
+
+    public MessageExt queryMessageByUniqKey(String clusterName, String topic,
+        String uniqKey, long begin, long end) throws InterruptedException, MQClientException {
+        QueryResult qr = this.queryMessage(clusterName, topic, uniqKey, 32, begin, end, true);
         if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
             return qr.getMessageList().get(0);
         } else {
@@ -296,6 +308,12 @@ public class MQAdminImpl {
     }
 
     protected QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end,
+        boolean isUniqKey) throws MQClientException,
+        InterruptedException {
+        return queryMessage(null, topic, key, maxNum, begin, end, isUniqKey);
+    }
+
+    protected QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end,
         boolean isUniqKey) throws MQClientException,
         InterruptedException {
         TopicRouteData topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(topic);
@@ -307,6 +325,10 @@ public class MQAdminImpl {
         if (topicRouteData != null) {
             List<String> brokerAddrs = new LinkedList<String>();
             for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+                if (clusterName != null && !clusterName.isEmpty()
+                    && !clusterName.equals(brokerData.getCluster())) {
+                    continue;
+                }
                 String addr = brokerData.selectBrokerAddr();
                 if (addr != null) {
                     brokerAddrs.add(addr);

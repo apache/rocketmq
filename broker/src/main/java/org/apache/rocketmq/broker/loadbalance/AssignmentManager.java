@@ -24,10 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
@@ -40,25 +37,16 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
-
 public class AssignmentManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private transient BrokerController brokerController;
 
-    private final static long LOCK_TIMEOUT_MILLIS = 3000;
-
-    private final Lock lockNamesrv = new ReentrantLock();
-
-    private final BrokerOuterAPI mQClientAPIImpl;
-
     private final ConcurrentHashMap<String, Set<MessageQueue>> topicSubscribeInfoTable = new ConcurrentHashMap<String, Set<MessageQueue>>();
 
-    private ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("LoadBalanceManagerScheduledThread"));
+    private ScheduledExecutorService scheduledExecutorService;
 
     private static final List<String> IGNORE_ROUTE_TOPICS = Lists.newArrayList(
-        TopicValidator.SYSTEM_TOPIC_PREFIX,
         MixAll.CID_RMQ_SYS_PREFIX,
         MixAll.DEFAULT_CONSUMER_GROUP,
         MixAll.TOOLS_CONSUMER_GROUP,
@@ -74,9 +62,10 @@ public class AssignmentManager {
 
     public AssignmentManager(BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.mQClientAPIImpl = brokerController.getBrokerOuterAPI();
         ignoreRouteTopics.add(brokerController.getBrokerConfig().getBrokerClusterName());
         ignoreRouteTopics.add(brokerController.getBrokerConfig().getBrokerName());
+        scheduledExecutorService = Executors
+            .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("LoadBalanceManagerScheduledThread", brokerController.getBrokerConfig()));
     }
 
     public void start() {
@@ -90,9 +79,12 @@ public class AssignmentManager {
                     log.error("ScheduledTask: failed to pull TopicRouteData from NameServer", e);
                 }
             }
-        }, 200, this.brokerController.getBrokerConfig().getLoadBalancePollNameServerInterval(), TimeUnit.MILLISECONDS);
+        }, 1000, this.brokerController.getBrokerConfig().getLoadBalancePollNameServerInterval(), TimeUnit.MILLISECONDS);
     }
 
+    public void shutdown() {
+        this.scheduledExecutorService.shutdown();
+    }
 
     public void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<>(brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
@@ -100,7 +92,7 @@ public class AssignmentManager {
         LOOP:
         for (String topic : topicList) {
             for (String keyword : ignoreRouteTopics) {
-                if (topic.contains(keyword)) {
+                if (topic.contains(keyword) || TopicValidator.isSystemTopic(topic)) {
                     continue LOOP;
                 }
             }
@@ -111,7 +103,7 @@ public class AssignmentManager {
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
         try {
-            TopicRouteData topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
+            TopicRouteData topicRouteData = this.brokerController.getBrokerOuterAPI().getTopicRouteInfoFromNameServer(topic, 1000 * 3);
             if (topicRouteData != null) {
                 Set<MessageQueue> newSubscribeInfo = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                 Set<MessageQueue> oldSubscribeInfo = topicSubscribeInfoTable.get(topic);
@@ -141,7 +133,6 @@ public class AssignmentManager {
         // clean no used topic
         topicSubscribeInfoTable.remove(topic);
     }
-
 
     public Set<MessageQueue> getTopicSubscribeInfo(String topic) {
         return topicSubscribeInfoTable.get(topic);

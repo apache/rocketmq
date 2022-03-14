@@ -18,7 +18,6 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.client.impl;
 
-import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.List;

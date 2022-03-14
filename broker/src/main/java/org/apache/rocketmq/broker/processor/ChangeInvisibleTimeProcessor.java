@@ -38,7 +38,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.pop.AckMsg;
@@ -47,16 +47,16 @@ import org.apache.rocketmq.store.pop.PopCheckPoint;
 public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     private static final InternalLogger POP_LOGGER = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
-    private String reviveTopic;
+    private final String reviveTopic;
 
     public ChangeInvisibleTimeProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.reviveTopic = PopAckConstants.REVIVE_TOPIC + this.brokerController.getBrokerConfig().getBrokerClusterName();
-
+        this.reviveTopic = PopAckConstants.buildClusterReviveTopic(this.brokerController.getBrokerConfig().getBrokerClusterName());
     }
 
     @Override
-    public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand processRequest(final ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
         return this.processRequest(ctx.channel(), request, true);
     }
 
@@ -65,7 +65,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend) throws RemotingCommandException {
+    private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
+        boolean brokerAllowSuspend) throws RemotingCommandException {
         final ChangeInvisibleTimeRequestHeader requestHeader = (ChangeInvisibleTimeRequestHeader) request.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class);
         RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
@@ -98,7 +99,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
         // add new ck
         long now = System.currentTimeMillis();
-        PutMessageResult ckResult = appendCheckPoint(requestHeader, ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now);
+        PutMessageResult ckResult = appendCheckPoint(requestHeader, ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, ExtraInfoUtil.getBrokerName(extraInfo));
 
         if (ckResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
             && ckResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
@@ -133,8 +134,12 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ackMsg.setTopic(requestHeader.getTopic());
         ackMsg.setQueueId(requestHeader.getQueueId());
         ackMsg.setPopTime(ExtraInfoUtil.getPopTime(extraInfo));
+        ackMsg.setBrokerName(ExtraInfoUtil.getBrokerName(extraInfo));
 
         int rqId = ExtraInfoUtil.getReviveQid(extraInfo);
+
+        this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);
+        this.brokerController.getBrokerStatsManager().incGroupAckNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
 
         if (brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
             return;
@@ -150,7 +155,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         MsgUtil.setMessageDeliverTime(this.brokerController, msgInner, ExtraInfoUtil.getPopTime(extraInfo) + ExtraInfoUtil.getInvisibleTime(extraInfo));
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-        PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+        PutMessageResult putMessageResult = this.brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
         if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
@@ -159,7 +164,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
     }
 
-    private PutMessageResult appendCheckPoint(final ChangeInvisibleTimeRequestHeader requestHeader, int reviveQid, int queueId, long offset, long popTime) {
+    private PutMessageResult appendCheckPoint(final ChangeInvisibleTimeRequestHeader requestHeader, int reviveQid,
+        int queueId, long offset, long popTime, String brokerName) {
         // add check point msg to revive log
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(reviveTopic);
@@ -187,7 +193,12 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("change Invisible , appendCheckPoint, topic {}, queueId {},reviveId {}, cid {}, startOffset {}, rt {}, result {}", requestHeader.getTopic(), queueId, reviveQid, requestHeader.getConsumerGroup(), offset,
-                    ck.getReviveTime(), putMessageResult);
+                ck.getReviveTime(), putMessageResult);
+        }
+
+        if (putMessageResult != null && putMessageResult.isOk()) {
+            this.brokerController.getBrokerStatsManager().incBrokerCkNums(1);
+            this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
         }
 
         return putMessageResult;

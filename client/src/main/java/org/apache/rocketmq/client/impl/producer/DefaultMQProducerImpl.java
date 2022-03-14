@@ -991,7 +991,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             executeEndTransactionHook(context);
         }
     }
-
     /**
      * DEFAULT ONEWAY -------------------------------------------------------
      */
