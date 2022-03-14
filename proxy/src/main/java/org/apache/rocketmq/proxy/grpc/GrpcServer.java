@@ -29,24 +29,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
-import org.apache.rocketmq.proxy.grpc.service.GrpcService;
+import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GrpcServer {
-
-    private static final Logger log = LoggerFactory.getLogger(GrpcServer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     private final io.grpc.Server server;
-
     private final ThreadPoolExecutor executor;
-    private final GrpcService grpcService;
+    private final GrpcForwardService grpcForwardService;
 
-    public GrpcServer(GrpcService grpcService) {
-        this.grpcService = grpcService;
+    public GrpcServer(GrpcForwardService grpcForwardService) {
+        this.grpcForwardService = grpcForwardService;
         int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
         NettyServerBuilder serverBuilder = NettyServerBuilder.forPort(port);
 
@@ -63,7 +62,7 @@ public class GrpcServer {
                 .build();
             serverBuilder.sslContext(sslContext);
         } catch (IOException e) {
-            log.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
+            LOGGER.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
             throw new RuntimeException("grpc tls set failed: " + e.getMessage());
         }
 
@@ -78,7 +77,7 @@ public class GrpcServer {
             threadPoolQueueCapacity
         );
 
-        GrpcMessagingProcessor messagingProcessor = new GrpcMessagingProcessor(grpcService);
+        GrpcMessagingProcessor messagingProcessor = new GrpcMessagingProcessor(grpcForwardService);
 
         // build server
         int bossLoopNum = ConfigurationManager.getProxyConfig().getGrpcBossLoopNum();
@@ -95,7 +94,7 @@ public class GrpcServer {
             .intercept(new HeaderInterceptor())
             .build();
 
-        log.info(
+        LOGGER.info(
             "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
                 + "boosLoop: {}, workerLoop: {}, maxInboundMessageSize: {}",
             port, tlsKeyPath, tlsCertPath, threadPoolNums, threadPoolQueueCapacity,
@@ -105,10 +104,10 @@ public class GrpcServer {
 
     public void start() throws Exception {
         // first to start grpc service.
-        this.grpcService.start();
+        this.grpcForwardService.start();
 
         this.server.start();
-        log.info("grpc server has started");
+        LOGGER.info("grpc server has started");
     }
 
     public void shutdown() {
@@ -116,9 +115,9 @@ public class GrpcServer {
             this.server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
             this.executor.shutdown();
 
-            this.grpcService.shutdown();
+            this.grpcForwardService.shutdown();
 
-            log.info("grpc server has stopped");
+            LOGGER.info("grpc server has stopped");
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -31,7 +31,7 @@ import org.apache.rocketmq.proxy.configuration.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.service.ClusterGrpcService;
-import org.apache.rocketmq.proxy.grpc.service.GrpcService;
+import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
 import org.apache.rocketmq.proxy.grpc.service.LocalGrpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +85,7 @@ public class ProxyStartup {
     }
 
     private static GrpcServer createGrpcServer() throws RuntimeException {
-        GrpcService grpcService;
+        GrpcForwardService grpcService;
         String proxyModeStr = ConfigurationManager.getProxyConfig().getProxyMode();
         if (ProxyMode.isClusterMode(proxyModeStr)) {
             grpcService = new ClusterGrpcService();

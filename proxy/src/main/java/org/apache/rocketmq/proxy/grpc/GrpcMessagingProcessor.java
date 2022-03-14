@@ -24,18 +24,18 @@ import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.grpc.common.ResponseWriter;
-import org.apache.rocketmq.proxy.grpc.service.GrpcService;
+import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
 
 public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServiceImplBase {
-    private final GrpcService grpcService;
+    private final GrpcForwardService grpcForwardService;
 
-    public GrpcMessagingProcessor(GrpcService grpcService) {
-        this.grpcService = grpcService;
+    public GrpcMessagingProcessor(GrpcForwardService grpcForwardService) {
+        this.grpcForwardService = grpcForwardService;
     }
 
     @Override
     public void sendMessage(SendMessageRequest request, StreamObserver<SendMessageResponse> responseObserver) {
-        CompletableFuture<SendMessageResponse> future = grpcService.sendMessage(Context.current(), request);
+        CompletableFuture<SendMessageResponse> future = grpcForwardService.sendMessage(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
                 ResponseWriter.writeException(responseObserver, e);

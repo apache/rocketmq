@@ -19,6 +19,5 @@ package org.apache.rocketmq.proxy.common.utils;
 import java.time.Duration;
 
 public class ProxyUtils {
-
     public static final long DEFAULT_MQ_CLIENT_TIMEOUT = Duration.ofSeconds(3).toMillis();
 }

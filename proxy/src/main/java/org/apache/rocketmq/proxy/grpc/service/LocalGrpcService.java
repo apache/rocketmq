@@ -72,8 +72,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocalGrpcService implements GrpcService {
+public class LocalGrpcService implements GrpcForwardService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+
     private final BrokerController brokerController;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryImpl("LocalGrpcServiceScheduledThread"));
@@ -96,7 +97,8 @@ public class LocalGrpcService implements GrpcService {
         return null;
     }
 
-    @Override public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
+    @Override
+    public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
         SendMessageRequestHeader requestHeader = Converter.buildSendMessageRequestHeader(request);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         Message message = request.getMessage();
@@ -130,7 +132,8 @@ public class LocalGrpcService implements GrpcService {
         return null;
     }
 
-    @Override public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
+    @Override
+    public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         return null;
     }
 

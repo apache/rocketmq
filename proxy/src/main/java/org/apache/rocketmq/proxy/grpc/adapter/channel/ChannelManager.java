@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class ChannelManager<R, W> {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+
     private final ConcurrentMap<String, SimpleChannel<R, W>> clientIdChannelMap = new ConcurrentHashMap<>();
 
     public SimpleChannel<R, W> createChannel() {

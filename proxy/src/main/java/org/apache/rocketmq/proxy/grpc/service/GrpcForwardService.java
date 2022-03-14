@@ -55,7 +55,7 @@ import io.grpc.Context;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import java.util.concurrent.CompletableFuture;
 
-public interface GrpcService extends StartAndShutdown {
+public interface GrpcForwardService extends StartAndShutdown {
     CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request);
 
     CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request);
