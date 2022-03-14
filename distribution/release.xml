@@ -61,6 +61,7 @@
         <moduleSet>
             <useAllReactorProjects>true</useAllReactorProjects>
             <includes>
+                <include>org.apache.rocketmq:rocketmq-container</include>
                 <include>org.apache.rocketmq:rocketmq-broker</include>
                 <include>org.apache.rocketmq:rocketmq-tools</include>
                 <include>org.apache.rocketmq:rocketmq-client</include>

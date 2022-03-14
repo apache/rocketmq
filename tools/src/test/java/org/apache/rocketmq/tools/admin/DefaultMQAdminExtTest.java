@@ -283,7 +283,7 @@ public class DefaultMQAdminExtTest {
     @Test
     public void testExamineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-        HashMap<String, BrokerData> brokerList = clusterInfo.getBrokerAddrTable();
+        Map<String, BrokerData> brokerList = clusterInfo.getBrokerAddrTable();
         assertThat(brokerList.get("default-broker").getBrokerName()).isEqualTo("default-broker");
         assertThat(brokerList.containsKey("broker-test")).isTrue();
 
@@ -294,7 +294,7 @@ public class DefaultMQAdminExtTest {
         clusterMap.put("default-cluster", brokers);
         ClusterInfo cInfo = mock(ClusterInfo.class);
         when(cInfo.getClusterAddrTable()).thenReturn(clusterMap);
-        HashMap<String, Set<String>> clusterAddress = cInfo.getClusterAddrTable();
+        Map<String, Set<String>> clusterAddress = cInfo.getClusterAddrTable();
         assertThat(clusterAddress.containsKey("default-cluster")).isTrue();
         assertThat(clusterAddress.get("default-cluster").size()).isEqualTo(2);
     }

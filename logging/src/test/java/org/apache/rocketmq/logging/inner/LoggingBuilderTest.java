@@ -17,14 +17,14 @@
 
 package org.apache.rocketmq.logging.inner;
 
-import org.apache.rocketmq.logging.BasicLoggerTest;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.PrintStream;
+
+import org.apache.rocketmq.logging.BasicLoggerTest;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class LoggingBuilderTest extends BasicLoggerTest {
 
