@@ -18,6 +18,12 @@
 package org.apache.rocketmq.proxy.grpc;
 
 import apache.rocketmq.v1.MessagingServiceGrpc;
+import apache.rocketmq.v1.SendMessageRequest;
+import apache.rocketmq.v1.SendMessageResponse;
+import io.grpc.Context;
+import io.grpc.stub.StreamObserver;
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.proxy.grpc.common.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.service.GrpcService;
 
 public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServiceImplBase {
@@ -25,5 +31,15 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
 
     public GrpcMessagingProcessor(GrpcService grpcService) {
         this.grpcService = grpcService;
+    }
+
+    @Override
+    public void sendMessage(SendMessageRequest request, StreamObserver<SendMessageResponse> responseObserver) {
+        CompletableFuture<SendMessageResponse> future = grpcService.sendMessage(Context.current(), request);
+        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+            .exceptionally(e -> {
+                ResponseWriter.writeException(responseObserver, e);
+                return null;
+            });
     }
 }
