@@ -22,6 +22,7 @@ package org.apache.rocketmq.common.protocol.header;
 
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
@@ -29,6 +30,15 @@ public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
     private String topic;
     @CFNotNull
     private Integer queueId;
+
+    /**
+     * A message at committed offset has been dispatched from Topic to MessageQueue, so it can be consumed immediately,
+     * while a message at inflight offset is not visible for a consumer temporarily.
+     * Set this flag true if the max committed offset is needed, or false if the max inflight offset is preferred.
+     * The default value is true.
+     */
+    @CFNullable
+    private boolean committed = true;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -54,4 +64,11 @@ public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
         this.queueId = queueId;
     }
 
+    public boolean isCommitted() {
+        return committed;
+    }
+
+    public void setCommitted(final boolean committed) {
+        this.committed = committed;
+    }
 }

@@ -20,6 +20,7 @@ package org.apache.rocketmq.common.protocol.route;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import org.apache.rocketmq.common.MixAll;
 
@@ -30,8 +31,25 @@ public class BrokerData implements Comparable<BrokerData> {
 
     private final Random random = new Random();
 
+    /**
+     * Enable acting master or not, used for old version HA adaption,
+     */
+    private boolean enableActingMaster = false;
+
     public BrokerData() {
 
+    }
+
+    public BrokerData(BrokerData brokerData) {
+        this.cluster = brokerData.cluster;
+        this.brokerName = brokerData.brokerName;
+        if (brokerData.brokerAddrs != null) {
+            this.brokerAddrs = new HashMap<Long, String>();
+            for (final Map.Entry<Long, String> brokerEntry : brokerData.brokerAddrs.entrySet()) {
+                this.brokerAddrs.put(brokerEntry.getKey(), brokerEntry.getValue());
+            }
+        }
+        this.enableActingMaster = brokerData.enableActingMaster;
     }
 
     public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs) {
@@ -73,6 +91,14 @@ public class BrokerData implements Comparable<BrokerData> {
         this.cluster = cluster;
     }
 
+    public boolean isEnableActingMaster() {
+        return enableActingMaster;
+    }
+
+    public void setEnableActingMaster(boolean enableActingMaster) {
+        this.enableActingMaster = enableActingMaster;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -84,29 +110,33 @@ public class BrokerData implements Comparable<BrokerData> {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         BrokerData other = (BrokerData) obj;
         if (brokerAddrs == null) {
-            if (other.brokerAddrs != null)
+            if (other.brokerAddrs != null) {
                 return false;
-        } else if (!brokerAddrs.equals(other.brokerAddrs))
+            }
+        } else if (!brokerAddrs.equals(other.brokerAddrs)) {
             return false;
+        }
         if (brokerName == null) {
-            if (other.brokerName != null)
-                return false;
-        } else if (!brokerName.equals(other.brokerName))
-            return false;
-        return true;
+            return other.brokerName == null;
+        } else {
+            return brokerName.equals(other.brokerName);
+        }
     }
 
     @Override
     public String toString() {
-        return "BrokerData [brokerName=" + brokerName + ", brokerAddrs=" + brokerAddrs + "]";
+        return "BrokerData [brokerName=" + brokerName + ", brokerAddrs=" + brokerAddrs + ", enableActingMaster=" + enableActingMaster + "]";
     }
 
     @Override

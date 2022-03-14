@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.subscription;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.rocketmq.common.MixAll;
 
 public class SubscriptionGroupConfig {
@@ -37,6 +38,8 @@ public class SubscriptionGroupConfig {
     private long whichBrokerWhenConsumeSlowly = 1;
 
     private boolean notifyConsumerIdsChangedEnable = true;
+
+    private int groupSysFlag = 0;
 
     public String getGroupName() {
         return groupName;
@@ -110,6 +113,14 @@ public class SubscriptionGroupConfig {
         this.notifyConsumerIdsChangedEnable = notifyConsumerIdsChangedEnable;
     }
 
+    public int getGroupSysFlag() {
+        return groupSysFlag;
+    }
+
+    public void setGroupSysFlag(int groupSysFlag) {
+        this.groupSysFlag = groupSysFlag;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -136,28 +147,18 @@ public class SubscriptionGroupConfig {
         if (getClass() != obj.getClass())
             return false;
         SubscriptionGroupConfig other = (SubscriptionGroupConfig) obj;
-        if (brokerId != other.brokerId)
-            return false;
-        if (consumeBroadcastEnable != other.consumeBroadcastEnable)
-            return false;
-        if (consumeEnable != other.consumeEnable)
-            return false;
-        if (consumeFromMinEnable != other.consumeFromMinEnable)
-            return false;
-        if (groupName == null) {
-            if (other.groupName != null)
-                return false;
-        } else if (!groupName.equals(other.groupName))
-            return false;
-        if (retryMaxTimes != other.retryMaxTimes)
-            return false;
-        if (retryQueueNums != other.retryQueueNums)
-            return false;
-        if (whichBrokerWhenConsumeSlowly != other.whichBrokerWhenConsumeSlowly)
-            return false;
-        if (notifyConsumerIdsChangedEnable != other.notifyConsumerIdsChangedEnable)
-            return false;
-        return true;
+        return new EqualsBuilder()
+            .append(groupName, other.groupName)
+            .append(consumeEnable, other.consumeEnable)
+            .append(consumeFromMinEnable, other.consumeFromMinEnable)
+            .append(consumeBroadcastEnable, other.consumeBroadcastEnable)
+            .append(retryQueueNums, other.retryQueueNums)
+            .append(retryMaxTimes, other.retryMaxTimes)
+            .append(brokerId, other.brokerId)
+            .append(whichBrokerWhenConsumeSlowly, other.whichBrokerWhenConsumeSlowly)
+            .append(notifyConsumerIdsChangedEnable, other.notifyConsumerIdsChangedEnable)
+            .append(groupSysFlag, other.groupSysFlag)
+            .isEquals();
     }
 
     @Override
@@ -167,6 +168,6 @@ public class SubscriptionGroupConfig {
             + consumeBroadcastEnable + ", retryQueueNums=" + retryQueueNums + ", retryMaxTimes="
             + retryMaxTimes + ", brokerId=" + brokerId + ", whichBrokerWhenConsumeSlowly="
             + whichBrokerWhenConsumeSlowly + ", notifyConsumerIdsChangedEnable="
-            + notifyConsumerIdsChangedEnable + "]";
+            + notifyConsumerIdsChangedEnable + ", groupSysFlag=" + groupSysFlag + "]";
     }
 }

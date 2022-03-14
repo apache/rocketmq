@@ -45,6 +45,8 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
     private TreeMap<String/* Topic */, ConsumeStatus> statusTable = new TreeMap<String, ConsumeStatus>();
 
+    private TreeMap<String, String> userConsumerInfo = new TreeMap<String, String>();
+
     private String jstack;
 
     public static boolean analyzeSubscription(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
@@ -87,13 +89,14 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                     prev = next.getValue();
                 }
 
-                if (prev != null) {
-
-                    if (prev.getSubscriptionSet().isEmpty()) {
-                        // Subscription empty!
-                        return false;
-                    }
-                }
+                // after consumer.unsubscribe , SubscriptionSet is Empty
+                //if (prev != null) {
+                //
+                //    if (prev.getSubscriptionSet().isEmpty()) {
+                //        // Subscription empty!
+                //        return false;
+                //    }
+                //}
             }
         }
 
@@ -191,6 +194,10 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
     public void setStatusTable(TreeMap<String, ConsumeStatus> statusTable) {
         this.statusTable = statusTable;
+    }
+
+    public TreeMap<String, String> getUserConsumerInfo() {
+        return userConsumerInfo;
     }
 
     public String formatString() {
@@ -314,6 +321,16 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                     next.getValue().getConsumeFailedMsgs()
                 );
 
+                sb.append(item);
+            }
+        }
+
+        if (this.userConsumerInfo != null) {
+            sb.append("\n\n#User Consume Info#\n");
+            Iterator<Entry<String, String>> it = this.userConsumerInfo.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, String> next = it.next();
+                String item = String.format("%-40s: %s%n", next.getKey(), next.getValue());
                 sb.append(item);
             }
         }
