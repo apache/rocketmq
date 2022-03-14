@@ -41,6 +41,10 @@
             <artifactId>rocketmq-namesrv</artifactId>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-container</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.google.truth</groupId>
             <artifactId>truth</artifactId>
             <version>0.30</version>
