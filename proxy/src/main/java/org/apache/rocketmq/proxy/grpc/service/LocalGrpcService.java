@@ -68,7 +68,6 @@ import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,12 +117,12 @@ public class LocalGrpcService implements GrpcService {
                 handler.handle(r, context);
                 channel.eraseInvocationContext(command.getOpaque());
             });
-        } catch (final RemotingCommandException e) {
+        } catch (final Exception e) {
             LOGGER.error("Failed to process send message command", e);
             channel.eraseInvocationContext(command.getOpaque());
             future.completeExceptionally(e);
         }
-        return null;
+        return future;
     }
 
     @Override
