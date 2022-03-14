@@ -140,7 +140,7 @@ public class MQAdminTestUtils {
         if (clusterInfo == null) {
             return false;
         } else {
-            HashMap<String, BrokerData> brokers = clusterInfo.getBrokerAddrTable();
+            Map<String, BrokerData> brokers = clusterInfo.getBrokerAddrTable();
             for (String brokerName : brokers.keySet()) {
                 HashMap<Long, String> brokerIps = brokers.get(brokerName).getBrokerAddrs();
                 for (long brokerId : brokerIps.keySet()) {
