@@ -137,6 +137,7 @@ public class BatchSendIT extends BaseConf {
         Thread.sleep(300);
         {
             DefaultMQPullConsumer defaultMQPullConsumer = ConsumerFactory.getRMQPullConsumer(nsAddr, "group");
+            System.out.println(defaultMQPullConsumer.maxOffset(messageQueue));
 
             PullResult pullResult = defaultMQPullConsumer.pullBlockIfNotFound(messageQueue, "*", 5, batchCount * batchNum);
             Assert.assertEquals(PullStatus.FOUND, pullResult.getPullStatus());
@@ -180,7 +181,6 @@ public class BatchSendIT extends BaseConf {
 
         DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
         MessageQueue messageQueue = producer.fetchPublishMessageQueues(batchTopic).iterator().next();
-
 
         int batchCount = 10;
         int batchNum = 10;
