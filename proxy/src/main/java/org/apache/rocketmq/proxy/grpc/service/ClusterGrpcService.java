@@ -57,7 +57,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClusterGrpcService implements GrpcService {
+public class ClusterGrpcService implements GrpcForwardService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     public ClusterGrpcService() {
