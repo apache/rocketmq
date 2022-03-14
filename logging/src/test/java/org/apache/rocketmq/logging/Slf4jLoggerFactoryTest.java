@@ -69,7 +69,7 @@ public class Slf4jLoggerFactoryTest extends BasicLoggerTest {
         logger3.error("error {}", "hahahah");
         logger3.debug("debug {}", "hahahah");
         String content = readFile(file);
-        System.out.println(content);
+        System.out.printf(content);
 
         Assert.assertTrue(content.contains("Slf4jLoggerFactoryTest"));
         Assert.assertTrue(content.contains("info"));

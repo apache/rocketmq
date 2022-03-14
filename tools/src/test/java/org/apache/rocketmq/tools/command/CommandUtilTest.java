@@ -92,7 +92,7 @@ public class CommandUtilTest {
     @Test
     public void testFetchMasterAndSlaveDistinguish() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         Map<String, List<String>> result = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExtImpl, "default-cluster");
-        assertThat(result.get(null).get(0)).isEqualTo("127.0.0.1:10911");
+        assertThat(result.get(CommandUtil.NO_MASTER_PLACEHOLDER).get(0)).isEqualTo("127.0.0.1:10911");
     }
 
     @Test

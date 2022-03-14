@@ -32,6 +32,10 @@
             <dependencies>
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
+                    <artifactId>rocketmq-container</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-broker</artifactId>
                 </dependency>
                 <dependency>
