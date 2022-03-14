@@ -85,19 +85,28 @@ public class GetBrokerConfigCommand implements SubCommand {
                 Map<String, List<String>> masterAndSlaveMap
                     = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
 
-                for (Entry<String, List<String>> masterAndSlaveEntry : masterAndSlaveMap.entrySet()) {
+                for (String masterAddr : masterAndSlaveMap.keySet()) {
+
+                    if (masterAddr == null) {
+                        continue;
+                    }
 
                     getAndPrint(
-                            defaultMQAdminExt,
-                            String.format("============Master: %s============\n", masterAndSlaveEntry.getKey()),
-                            masterAndSlaveEntry.getKey()
+                        defaultMQAdminExt,
+                        String.format("============Master: %s============\n", masterAddr),
+                        masterAddr
                     );
-                    for (String slaveAddr : masterAndSlaveEntry.getValue()) {
+
+                    for (String slaveAddr : masterAndSlaveMap.get(masterAddr)) {
+
+                        if (slaveAddr == null) {
+                            continue;
+                        }
 
                         getAndPrint(
-                                defaultMQAdminExt,
-                                String.format("============My Master: %s=====Slave: %s============\n", masterAndSlaveEntry.getKey(), slaveAddr),
-                                slaveAddr
+                            defaultMQAdminExt,
+                            String.format("============My Master: %s=====Slave: %s============\n", masterAddr, slaveAddr),
+                            slaveAddr
                         );
                     }
                 }
@@ -116,6 +125,10 @@ public class GetBrokerConfigCommand implements SubCommand {
         MQBrokerException, RemotingSendRequestException {
 
         System.out.print(printPrefix);
+
+        if (addr.equals(CommandUtil.NO_MASTER_PLACEHOLDER)) {
+            return;
+        }
 
         Properties properties = defaultMQAdminExt.getBrokerConfig(addr);
         if (properties == null) {

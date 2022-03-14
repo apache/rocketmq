@@ -116,6 +116,7 @@ public class Level implements Serializable {
         if (s.equals(OFF_NAME)) {
             return Level.OFF;
         }
+
         if (s.equals(INFO_NAME)) {
             return Level.INFO;
         }
