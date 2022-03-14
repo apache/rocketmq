@@ -27,6 +27,7 @@ import org.apache.rocketmq.test.client.rmq.RMQPopConsumer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.RandomUtil;
+import org.apache.rocketmq.test.util.TestUtils;
 import org.apache.rocketmq.test.util.VerifyUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.After;
@@ -77,6 +78,8 @@ public class PopSubCheckIT extends BaseConf {
         producer.send(msgNum);
         Assert.assertEquals("Not all sent succeeded", msgNum, producer.getAllUndupMsgBody().size());
         logger.info(producer.getFirstMsg());
+
+        TestUtils.waitForSeconds(10);
 
         consumer.getListener().waitForMessageConsume(msgNum, 30_000);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(), consumer.getListener().getAllMsgBody()))
