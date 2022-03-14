@@ -36,6 +36,12 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
     private Long maxOffset;
     @CFNullable
     private Long offsetDelta;
+    @CFNullable
+    private Integer topicSysFlag;
+    @CFNullable
+    private Integer groupSysFlag;
+    @CFNullable
+    private Integer forbiddenType;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -71,6 +77,33 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
 
     public void setSuggestWhichBrokerId(Long suggestWhichBrokerId) {
         this.suggestWhichBrokerId = suggestWhichBrokerId;
+    }
+
+    public Integer getTopicSysFlag() {
+        return topicSysFlag;
+    }
+
+    public void setTopicSysFlag(Integer topicSysFlag) {
+        this.topicSysFlag = topicSysFlag;
+    }
+
+    public Integer getGroupSysFlag() {
+        return groupSysFlag;
+    }
+
+    public void setGroupSysFlag(Integer groupSysFlag) {
+        this.groupSysFlag = groupSysFlag;
+    }
+    /**
+     * @return the forbiddenType
+     */
+    public Integer getForbiddenType() {
+        return forbiddenType;
+    }
+    /**
+     */
+    public void setForbiddenType(Integer forbiddenType) {
+        this.forbiddenType = forbiddenType;
     }
 
     public Long getOffsetDelta() {

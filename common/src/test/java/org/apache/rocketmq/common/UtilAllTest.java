@@ -19,13 +19,11 @@ package org.apache.rocketmq.common;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-
-import com.alibaba.fastjson.JSON;
-import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -173,5 +171,22 @@ public class UtilAllTest {
                 ", demoName='" + demoName + '\'' +
                 '}';
         }
+    }
+
+    @Test
+    public void testCleanBuffer() {
+        UtilAll.cleanBuffer(null);
+        UtilAll.cleanBuffer(ByteBuffer.allocate(10));
+        UtilAll.cleanBuffer(ByteBuffer.allocate(0));
+    }
+
+    @Test(expected = NoSuchMethodException.class)
+    public void testMethod() throws NoSuchMethodException {
+        UtilAll.method(new Object(), "noMethod", null);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testInvoke() throws Exception {
+        UtilAll.invoke(new Object(), "noMethod");
     }
 }

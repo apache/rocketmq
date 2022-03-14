@@ -40,16 +40,6 @@ public class TopicConfig {
         this.topicName = topicName;
     }
 
-    public TopicConfig(TopicConfig other) {
-        this.topicName = other.topicName;
-        this.readQueueNums = other.readQueueNums;
-        this.writeQueueNums = other.writeQueueNums;
-        this.perm = other.perm;
-        this.topicFilterType = other.topicFilterType;
-        this.topicSysFlag = other.topicSysFlag;
-        this.order = other.order;
-    }
-
     public TopicConfig(String topicName, int readQueueNums, int writeQueueNums) {
         this.topicName = topicName;
         this.readQueueNums = readQueueNums;
@@ -63,16 +53,38 @@ public class TopicConfig {
         this.perm = perm;
     }
 
+    public TopicConfig(String topicName, int readQueueNums, int writeQueueNums, int perm, int topicSysFlag) {
+        this.topicName = topicName;
+        this.readQueueNums = readQueueNums;
+        this.writeQueueNums = writeQueueNums;
+        this.perm = perm;
+        this.topicSysFlag = topicSysFlag;
+    }
+
+    public TopicConfig(TopicConfig other) {
+        this.topicName = other.topicName;
+        this.readQueueNums = other.readQueueNums;
+        this.writeQueueNums = other.writeQueueNums;
+        this.perm = other.perm;
+        this.topicFilterType = other.topicFilterType;
+        this.topicSysFlag = other.topicSysFlag;
+        this.order = other.order;
+    }
     public String encode() {
         StringBuilder sb = new StringBuilder();
+        //[0]
         sb.append(this.topicName);
         sb.append(SEPARATOR);
+        //[1]
         sb.append(this.readQueueNums);
         sb.append(SEPARATOR);
+        //[2]
         sb.append(this.writeQueueNums);
         sb.append(SEPARATOR);
+        //[3]
         sb.append(this.perm);
         sb.append(SEPARATOR);
+        //[4]
         sb.append(this.topicFilterType);
 
         // Leave the encode/decode [attributes] out for now
@@ -82,7 +94,7 @@ public class TopicConfig {
 
     public boolean decode(final String in) {
         String[] strs = in.split(SEPARATOR);
-        if (strs != null && strs.length == 5) {
+        if (strs != null && strs.length >= 5) {
             this.topicName = strs[0];
 
             this.readQueueNums = Integer.parseInt(strs[1]);
@@ -165,18 +177,27 @@ public class TopicConfig {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
         TopicConfig that = (TopicConfig) o;
 
-        if (readQueueNums != that.readQueueNums) return false;
-        if (writeQueueNums != that.writeQueueNums) return false;
-        if (perm != that.perm) return false;
-        if (topicSysFlag != that.topicSysFlag) return false;
-        if (order != that.order) return false;
-        if (topicName != null ? !topicName.equals(that.topicName) : that.topicName != null) return false;
-        if (topicFilterType != that.topicFilterType) return false;
+        if (readQueueNums != that.readQueueNums)
+            return false;
+        if (writeQueueNums != that.writeQueueNums)
+            return false;
+        if (perm != that.perm)
+            return false;
+        if (topicSysFlag != that.topicSysFlag)
+            return false;
+        if (order != that.order)
+            return false;
+        if (topicName != null ? !topicName.equals(that.topicName) : that.topicName != null)
+            return false;
+        if (topicFilterType != that.topicFilterType)
+            return false;
         return attributes != null ? attributes.equals(that.attributes) : that.attributes == null;
     }
 
