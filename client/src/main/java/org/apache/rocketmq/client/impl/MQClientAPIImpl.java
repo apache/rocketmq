@@ -740,7 +740,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
     }
 
-    private SendResult processSendResponse(
+    protected SendResult processSendResponse(
         final String brokerName,
         final Message msg,
         final RemotingCommand response,

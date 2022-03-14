@@ -34,6 +34,9 @@ public class ProxyConfig {
     private boolean enablePrintJstack = true;
     private long printJstackPeriodMillis = 60000;
 
+    private String nameSrvAddr = "11.165.223.199:9876";
+    private String nameSrvDomain = "";
+    private String nameSrvDomainSubgroup = "";
     /**
      * gRPC
      */
@@ -52,6 +55,22 @@ public class ProxyConfig {
      * 130M = 4M * 32 messages + 2M attributes
      */
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
+
+    private int expiredChannelTimeSec = 120;
+
+    private int consumerClientNum = 2;
+    private double consumerClientWorkerFactor = 0.2f;
+    private int producerClientNum = 2;
+    private double producerClientWorkerFactor = 0.2f;
+    private int defaultClientNum = 2;
+    private double defaultClientWorkerFactor = 0.2f;
+
+    private int topicRouteCacheExpireSecond = 20;
+    private int topicRouteCacheExecutorThreadNum = 3;
+    private int topicRouteCacheExecutorQueueCapacity = 1000;
+    private int topicRouteCacheMaxNum = 20000;
+    private int topicRouteThreadPoolNums = 36;
+    private int topicRouteThreadPoolQueueCapacity = 50000;
 
     public Integer getHealthCheckPort() {
         return healthCheckPort;
@@ -83,6 +102,30 @@ public class ProxyConfig {
 
     public void setPrintJstackPeriodMillis(long printJstackPeriodMillis) {
         this.printJstackPeriodMillis = printJstackPeriodMillis;
+    }
+
+    public String getNameSrvAddr() {
+        return nameSrvAddr;
+    }
+
+    public void setNameSrvAddr(String nameSrvAddr) {
+        this.nameSrvAddr = nameSrvAddr;
+    }
+
+    public String getNameSrvDomain() {
+        return nameSrvDomain;
+    }
+
+    public void setNameSrvDomain(String nameSrvDomain) {
+        this.nameSrvDomain = nameSrvDomain;
+    }
+
+    public String getNameSrvDomainSubgroup() {
+        return nameSrvDomainSubgroup;
+    }
+
+    public void setNameSrvDomainSubgroup(String nameSrvDomainSubgroup) {
+        this.nameSrvDomainSubgroup = nameSrvDomainSubgroup;
     }
 
     public String getProxyMode() {
@@ -171,5 +214,109 @@ public class ProxyConfig {
 
     public void setGrpcMaxInboundMessageSize(int grpcMaxInboundMessageSize) {
         this.grpcMaxInboundMessageSize = grpcMaxInboundMessageSize;
+    }
+
+    public int getExpiredChannelTimeSec() {
+        return expiredChannelTimeSec;
+    }
+
+    public void setExpiredChannelTimeSec(int expiredChannelTimeSec) {
+        this.expiredChannelTimeSec = expiredChannelTimeSec;
+    }
+
+    public int getConsumerClientNum() {
+        return consumerClientNum;
+    }
+
+    public void setConsumerClientNum(int consumerClientNum) {
+        this.consumerClientNum = consumerClientNum;
+    }
+
+    public double getConsumerClientWorkerFactor() {
+        return consumerClientWorkerFactor;
+    }
+
+    public void setConsumerClientWorkerFactor(double consumerClientWorkerFactor) {
+        this.consumerClientWorkerFactor = consumerClientWorkerFactor;
+    }
+
+    public int getProducerClientNum() {
+        return producerClientNum;
+    }
+
+    public void setProducerClientNum(int producerClientNum) {
+        this.producerClientNum = producerClientNum;
+    }
+
+    public double getProducerClientWorkerFactor() {
+        return producerClientWorkerFactor;
+    }
+
+    public void setProducerClientWorkerFactor(double producerClientWorkerFactor) {
+        this.producerClientWorkerFactor = producerClientWorkerFactor;
+    }
+
+    public int getDefaultClientNum() {
+        return defaultClientNum;
+    }
+
+    public void setDefaultClientNum(int defaultClientNum) {
+        this.defaultClientNum = defaultClientNum;
+    }
+
+    public double getDefaultClientWorkerFactor() {
+        return defaultClientWorkerFactor;
+    }
+
+    public void setDefaultClientWorkerFactor(double defaultClientWorkerFactor) {
+        this.defaultClientWorkerFactor = defaultClientWorkerFactor;
+    }
+
+    public int getTopicRouteCacheExpireSecond() {
+        return topicRouteCacheExpireSecond;
+    }
+
+    public void setTopicRouteCacheExpireSecond(int topicRouteCacheExpireSecond) {
+        this.topicRouteCacheExpireSecond = topicRouteCacheExpireSecond;
+    }
+
+    public int getTopicRouteCacheExecutorThreadNum() {
+        return topicRouteCacheExecutorThreadNum;
+    }
+
+    public void setTopicRouteCacheExecutorThreadNum(int topicRouteCacheExecutorThreadNum) {
+        this.topicRouteCacheExecutorThreadNum = topicRouteCacheExecutorThreadNum;
+    }
+
+    public int getTopicRouteCacheExecutorQueueCapacity() {
+        return topicRouteCacheExecutorQueueCapacity;
+    }
+
+    public void setTopicRouteCacheExecutorQueueCapacity(int topicRouteCacheExecutorQueueCapacity) {
+        this.topicRouteCacheExecutorQueueCapacity = topicRouteCacheExecutorQueueCapacity;
+    }
+
+    public int getTopicRouteCacheMaxNum() {
+        return topicRouteCacheMaxNum;
+    }
+
+    public void setTopicRouteCacheMaxNum(int topicRouteCacheMaxNum) {
+        this.topicRouteCacheMaxNum = topicRouteCacheMaxNum;
+    }
+
+    public int getTopicRouteThreadPoolNums() {
+        return topicRouteThreadPoolNums;
+    }
+
+    public void setTopicRouteThreadPoolNums(int topicRouteThreadPoolNums) {
+        this.topicRouteThreadPoolNums = topicRouteThreadPoolNums;
+    }
+
+    public int getTopicRouteThreadPoolQueueCapacity() {
+        return topicRouteThreadPoolQueueCapacity;
+    }
+
+    public void setTopicRouteThreadPoolQueueCapacity(int topicRouteThreadPoolQueueCapacity) {
+        this.topicRouteThreadPoolQueueCapacity = topicRouteThreadPoolQueueCapacity;
     }
 }
