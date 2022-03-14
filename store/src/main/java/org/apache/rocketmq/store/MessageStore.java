@@ -16,22 +16,27 @@
  */
 package org.apache.rocketmq.store;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
+import org.apache.rocketmq.store.hook.PutMessageHook;
+import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
-import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.util.PerfCounter;
 
@@ -145,7 +150,8 @@ public interface MessageStore {
      *
      * @param topic Topic name.
      * @param queueId Queue ID.
-     * @param committed If only count committed
+     * @param committed return the max offset in ConsumeQueue if true,
+     *                  or the max offset in CommitLog if false
      * @return Maximum offset at present.
      */
     long getMaxOffsetInQueue(final String topic, final int queueId, final boolean committed);
@@ -228,6 +234,12 @@ public interface MessageStore {
     HashMap<String, String> getRuntimeInfo();
 
     /**
+     * HA runtime information
+     * @return runtime information of ha
+     */
+    HARuntimeInfo getHARuntimeInfo();
+
+    /**
      * Get the maximum commit log offset.
      *
      * @return maximum commit log offset.
@@ -285,6 +297,16 @@ public interface MessageStore {
     SelectMappedBufferResult getCommitLogData(final long offset);
 
     /**
+     * Get the raw commit log data starting from the given offset, across multiple mapped files.
+     *
+     * @param offset starting offset.
+     * @param size size of data to get
+     * @return commit log data.
+     */
+    List<SelectMappedBufferResult> getBulkCommitLogData(final long offset, final int size);
+
+
+    /**
      * Append data to commit log.
      *
      * @param startOffset starting offset.
@@ -318,6 +340,14 @@ public interface MessageStore {
      * @param newAddr new address.
      */
     void updateHaMasterAddress(final String newAddr);
+
+
+    /**
+     * Update master address.
+     *
+     * @param newAddr new address.
+     */
+    void updateMasterAddress(final String newAddr);
 
     /**
      * Return how much the slave falls behind.
@@ -371,6 +401,13 @@ public interface MessageStore {
     long flush();
 
     /**
+     * Get the current flushed offset.
+     *
+     * @return flushed offset
+     */
+    long getFlushedWhere();
+
+    /**
      * Reset written offset.
      *
      * @param phyOffset new offset.
@@ -421,7 +458,7 @@ public interface MessageStore {
     LinkedList<CommitLogDispatcher> getDispatcherList();
 
     /**
-     * Get consume queue of the topic/queue.
+     * Get consume queue of the topic/queue. If consume queue not exist, will return null
      *
      * @param topic Topic.
      * @param queueId Queue ID.
@@ -429,7 +466,6 @@ public interface MessageStore {
      */
     ConsumeQueueInterface getConsumeQueue(String topic, int queueId);
 
-    ScheduleMessageService getScheduleMessageService();
 
     /**
      * Get BrokerStatsManager of the messageStore.
@@ -437,12 +473,6 @@ public interface MessageStore {
      * @return BrokerStatsManager.
      */
     BrokerStatsManager getBrokerStatsManager();
-
-    /**
-     * handle
-     * @param brokerRole
-     */
-    void handleScheduleMessageService(BrokerRole brokerRole);
 
     /**
      * Will be triggered when a new message is appended to commit log.
@@ -511,12 +541,6 @@ public interface MessageStore {
     HAService getHaService();
 
     /**
-     * Register clean file hook
-     * @param logicalQueueCleanHook logical queue clean hook
-     */
-    void registerCleanFileHook(CleanFilesHook logicalQueueCleanHook);
-
-    /**
      * Get the allocate-mappedFile service
      * @return the allocate-mappedFile service
      */
@@ -567,11 +591,10 @@ public interface MessageStore {
      * Assign an queue offset and increase it.
      * If there is a race condition, you need to lock/unlock this method yourself.
      *
-     * @param topicQueueKey topic-queue key
      * @param msg message
      * @param messageNum message num
      */
-    void assignOffset(String topicQueueKey, MessageExtBrokerInner msg, short messageNum);
+    void assignOffset(MessageExtBrokerInner msg, short messageNum);
 
     /**
      * get topic config
@@ -579,4 +602,198 @@ public interface MessageStore {
      * @return topic config info
      */
     Optional<TopicConfig> getTopicConfig(String topic);
+
+    /**
+     * Get master broker message store in process in broker container
+     *
+     * @return
+     */
+    MessageStore getMasterStoreInProcess();
+
+    /**
+     * Set master broker message store in process
+     *
+     * @param masterStoreInProcess
+     */
+    void setMasterStoreInProcess(MessageStore masterStoreInProcess);
+
+    /**
+     * Use FileChannel to get data
+     * @param offset
+     * @param size
+     * @param byteBuffer
+     * @return
+     */
+    boolean getData(long offset, int size, ByteBuffer byteBuffer);
+
+    /**
+     * Set the number of alive replicas in group.
+     *
+     * @param aliveReplicaNums number of alive replicas
+     */
+    void setAliveReplicaNumInGroup(int aliveReplicaNums);
+
+    /**
+     * Get the number of alive replicas in group.
+     *
+     * @return number of alive replicas
+     */
+    int getAliveReplicaNumInGroup();
+
+    /**
+     * Wake up AutoRecoverHAClient to start HA connection.
+     */
+    void wakeupHAClient();
+
+
+    /**
+     * Get master flushed offset.
+     *
+     * @return master flushed offset
+     */
+    long getMasterFlushedOffset();
+
+    /**
+     * Get broker init max offset.
+     *
+     * @return broker max offset in startup
+     */
+    long getBrokerInitMaxOffset();
+
+    /**
+     * Set master flushed offset.
+     *
+     * @param masterFlushedOffset master flushed offset
+     */
+    void setMasterFlushedOffset(long masterFlushedOffset);
+
+    /**
+     * Set broker init max offset.
+     *
+     * @param brokerInitMaxOffset broker init max offset
+     */
+    void setBrokerInitMaxOffset(long brokerInitMaxOffset);
+
+    /**
+     * Calculate the checksum of a certain range of data.
+     *
+     * @param from begin offset
+     * @param to end offset
+     * @return checksum
+     */
+    byte[] calcDeltaChecksum(long from, long to);
+
+    /**
+     * Truncate commitLog and consume queue to certain offset.
+     *
+     * @param offsetToTruncate offset to truncate
+     * @return true if truncate succeed, false otherwise
+     */
+    boolean truncateFiles(long offsetToTruncate);
+
+    /**
+     * Check if the offset is align with one message.
+     *
+     * @param offset offset to check
+     * @return true if align, false otherwise
+     */
+    boolean isOffsetAligned(long offset);
+
+    /**
+     * Get put message hook list
+     *
+     * @return List of PutMessageHook
+     */
+    List<PutMessageHook> getPutMessageHookList();
+
+    /**
+     * Set send message back hook
+     *
+     * @param sendMessageBackHook
+     */
+    void setSendMessageBackHook(SendMessageBackHook sendMessageBackHook);
+
+    /**
+     * Get send message back hook
+     *
+     * @return SendMessageBackHook
+     */
+    SendMessageBackHook getSendMessageBackHook();
+
+    //The following interfaces are used for duplication mode
+
+    /**
+     * Get last mapped file and return lase file first Offset
+     *
+     * @return lastMappedFile first Offset
+     */
+    long getLastFileFromOffset();
+
+    /**
+     * Get last mapped file
+     * @param startOffset
+     * @return true when get the last mapped file, false when get null
+     */
+    boolean getLastMappedFile(long startOffset);
+
+    /**
+     * Set physical offset
+     *
+     * @param phyOffset
+     */
+    void setPhysicalOffset(long phyOffset);
+
+    /**
+     * Return whether mapped file is empty
+     *
+     * @return whether mapped file is empty
+     */
+    boolean isMappedFilesEmpty();
+
+    /**
+     * Get state machine version
+     *
+     * @return state machine version
+     */
+    long getStateMachineVersion();
+
+    /**
+     * Check message and return size
+     *
+     * @param byteBuffer
+     * @param checkCRC
+     * @param checkDupInfo
+     * @param readBody
+     * @return DispatchRequest
+     */
+    DispatchRequest checkMessageAndReturnSize(final ByteBuffer byteBuffer, final boolean checkCRC,
+        final boolean checkDupInfo, final boolean readBody);
+
+    /**
+     * Get remain transientStoreBuffer numbers
+     *
+     * @return remain transientStoreBuffer numbers
+     */
+    int remainTransientStoreBufferNumbs();
+
+    /**
+     * Get remain how many data to commit
+     *
+     * @return remain how many data to commit
+     */
+    long remainHowManyDataToCommit();
+
+    /**
+     * Get remain how many data to flush
+     *
+     * @return remain how many data to flush
+     */
+    long remainHowManyDataToFlush();
+
+    /**
+     * Get whether message store is shutdown
+     *
+     * @return whether shutdown
+     */
+    boolean isShutdown();
 }

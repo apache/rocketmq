@@ -111,4 +111,10 @@ public interface ConsumeQueueInterface {
      * @return cq type
      */
     CQType getCQType();
+
+    /**
+     * Gets the occupied size of CQ file on disk
+     * @return total size
+     */
+    long getTotalSize();
 }

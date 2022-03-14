@@ -44,9 +44,9 @@ public class AllocateMappedFileService extends ServiceThread {
     private PriorityBlockingQueue<AllocateRequest> requestQueue =
         new PriorityBlockingQueue<AllocateRequest>();
     private volatile boolean hasException = false;
-    private MessageStore messageStore;
+    private DefaultMessageStore messageStore;
 
-    public AllocateMappedFileService(MessageStore messageStore) {
+    public AllocateMappedFileService(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
     }
 
@@ -121,6 +121,9 @@ public class AllocateMappedFileService extends ServiceThread {
 
     @Override
     public String getServiceName() {
+        if (messageStore != null && messageStore.getBrokerConfig().isInBrokerContainer()) {
+            return messageStore.getBrokerConfig().getLoggerIdentifier() + AllocateMappedFileService.class.getSimpleName();
+        }
         return AllocateMappedFileService.class.getSimpleName();
     }
 

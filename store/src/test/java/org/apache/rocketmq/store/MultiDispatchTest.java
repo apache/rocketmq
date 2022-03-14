@@ -21,9 +21,11 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -54,8 +56,9 @@ public class MultiDispatchTest {
 
         messageStoreConfig.setEnableLmq(true);
         messageStoreConfig.setEnableMultiDispatch(true);
+        BrokerConfig brokerConfig = new BrokerConfig();
         //too much reference
-        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, null);
+        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig);
         consumeQueue = new ConsumeQueue("xxx", 0,
             getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir()), messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
     }
@@ -76,7 +79,7 @@ public class MultiDispatchTest {
     @Test
     public void wrapMultiDispatch() {
         MessageExtBrokerInner messageExtBrokerInner = buildMessageMultiQueue();
-        messageStore.assignOffset("test", messageExtBrokerInner, (short) 1);
+        messageStore.assignOffset( messageExtBrokerInner, (short) 1);
         assertEquals(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), "0,0");
     }
 

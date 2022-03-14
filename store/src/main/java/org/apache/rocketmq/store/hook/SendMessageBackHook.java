@@ -14,28 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.store.hook;
 
-package org.apache.rocketmq.store.ha;
+import java.util.List;
+import org.apache.rocketmq.common.message.MessageExt;
 
-import org.junit.Assert;
-import org.junit.Test;
+public interface SendMessageBackHook {
 
-public class WaitNotifyObjectTest {
-    @Test
-    public void removeFromWaitingThreadTable() throws Exception {
-        final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
-        for (int i = 0; i < 5; i++) {
-            Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    waitNotifyObject.allWaitForRunning(100);
-                    waitNotifyObject.removeFromWaitingThreadTable();
-                }
-            });
-            t.start();
-            t.join();
-        }
-        Assert.assertEquals(0, waitNotifyObject.waitingThreadTable.size());
-    }
-
+    /**
+     * Slave send message back to master at certain offset when HA handshake
+     *
+     * @param msgList
+     * @param brokerName
+     * @param brokerAddr
+     * @return
+     */
+    boolean executeSendMessageBack(List<MessageExt> msgList, String brokerName, String brokerAddr);
 }

@@ -27,7 +27,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MappedFileQueue;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -915,6 +915,11 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     @Override
     public CQType getCQType() {
         return CQType.BatchCQ;
+    }
+
+    @Override
+    public long getTotalSize() {
+        return this.mappedFileQueue.getTotalFileSize();
     }
 
     @Override

@@ -16,10 +16,10 @@
  */
 package org.apache.rocketmq.store.logfile;
 
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
-import org.apache.rocketmq.store.MessageExtBatch;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
@@ -185,6 +185,16 @@ public interface MappedFile {
      * @return the last modified timestamp
      */
     long getLastModifiedTimestamp();
+
+    /**
+     * Get data from a certain pos offset with size byte
+     *
+     * @param pos a certain pos offset to get data
+     * @param size the size of data
+     * @param byteBuffer the data
+     * @return true if with data; false if no data;
+     */
+    boolean getData(int pos, int size, ByteBuffer byteBuffer);
 
     /**
      * Destroys the file and delete it from the file system.

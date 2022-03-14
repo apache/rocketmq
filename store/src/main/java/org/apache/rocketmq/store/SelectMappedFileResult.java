@@ -15,27 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.store.ha;
+package org.apache.rocketmq.store;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.apache.rocketmq.store.logfile.MappedFile;
 
-public class WaitNotifyObjectTest {
-    @Test
-    public void removeFromWaitingThreadTable() throws Exception {
-        final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
-        for (int i = 0; i < 5; i++) {
-            Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    waitNotifyObject.allWaitForRunning(100);
-                    waitNotifyObject.removeFromWaitingThreadTable();
-                }
-            });
-            t.start();
-            t.join();
-        }
-        Assert.assertEquals(0, waitNotifyObject.waitingThreadTable.size());
+public class SelectMappedFileResult {
+
+    protected int size;
+
+    protected MappedFile mappedFile;
+
+    public SelectMappedFileResult(int size, MappedFile mappedFile) {
+        this.size = size;
+        this.mappedFile = mappedFile;
     }
 
+    public int getSize() {
+        return size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
+    }
+
+    public MappedFile getMappedFile() {
+        return mappedFile;
+    }
 }

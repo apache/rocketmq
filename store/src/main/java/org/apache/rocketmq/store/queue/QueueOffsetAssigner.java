@@ -17,13 +17,11 @@
 
 package org.apache.rocketmq.store.queue;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-
-import java.util.HashMap;
 
 /**
  * QueueOffsetAssigner is a component for assigning offsets for queues.
@@ -32,9 +30,9 @@ import java.util.HashMap;
 public class QueueOffsetAssigner {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    private Map<String, Long> topicQueueTable = new ConcurrentHashMap<>(1024);
-    private Map<String, Long> batchTopicQueueTable = new ConcurrentHashMap<>(1024);
-    private Map<String/* topic-queueid */, Long/* offset */> lmqTopicQueueTable = new ConcurrentHashMap<>(1024);
+    private ConcurrentMap<String, Long> topicQueueTable = new ConcurrentHashMap<>(1024);
+    private ConcurrentMap<String, Long> batchTopicQueueTable = new ConcurrentHashMap<>(1024);
+    private ConcurrentMap<String/* topic-queueid */, Long/* offset */> lmqTopicQueueTable = new ConcurrentHashMap<>(1024);
 
     public long assignQueueOffset(String topicQueueKey, short messageNum) {
         long queueOffset = this.topicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
@@ -42,8 +40,12 @@ public class QueueOffsetAssigner {
         return queueOffset;
     }
 
+    public void updateQueueOffset(String topicQueueKey, long offset) {
+        this.topicQueueTable.put(topicQueueKey, offset);
+    }
+
     public long assignBatchQueueOffset(String topicQueueKey, short messageNum) {
-        long topicOffset = this.batchTopicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
+        Long topicOffset = this.batchTopicQueueTable.computeIfAbsent(topicQueueKey, k -> 0L);
         this.batchTopicQueueTable.put(topicQueueKey, topicOffset + messageNum);
         return topicOffset;
     }
@@ -76,11 +78,15 @@ public class QueueOffsetAssigner {
         log.info("removeQueueFromTopicQueueTable OK Topic: {} QueueId: {}", topic, queueId);
     }
 
-    public void setTopicQueueTable(HashMap<String, Long> topicQueueTable) {
+    public void setTopicQueueTable(ConcurrentMap<String, Long> topicQueueTable) {
         this.topicQueueTable = topicQueueTable;
     }
 
-    public void setBatchTopicQueueTable(HashMap<String, Long> batchTopicQueueTable) {
+    public ConcurrentMap<String, Long> getTopicQueueTable() {
+        return topicQueueTable;
+    }
+
+    public void setBatchTopicQueueTable(ConcurrentMap<String, Long> batchTopicQueueTable) {
         this.batchTopicQueueTable = batchTopicQueueTable;
     }
 }
