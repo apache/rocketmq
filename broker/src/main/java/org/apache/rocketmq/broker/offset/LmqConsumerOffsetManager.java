@@ -28,6 +28,10 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
     private ConcurrentHashMap<String, Long> lmqOffsetTable = new ConcurrentHashMap<>(512);
 
+    public LmqConsumerOffsetManager() {
+
+    }
+
     public LmqConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
     }

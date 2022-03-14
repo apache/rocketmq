@@ -45,6 +45,9 @@ It offers a variety of features:
 * [RocketMQ Exporter](https://github.com/apache/rocketmq-exporter)
 * [RocketMQ Operator](https://github.com/apache/rocketmq-operator)
 * [RocketMQ Docker](https://github.com/apache/rocketmq-docker)
+* [RocketMQ Dashboard](https://github.com/apache/rocketmq-dashboard)
+* [RocketMQ Connect](https://github.com/apache/rocketmq-connect)
+* [RocketMQ MQTT](https://github.com/apache/rocketmq-mqtt)
 * [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals)
 
 ----------

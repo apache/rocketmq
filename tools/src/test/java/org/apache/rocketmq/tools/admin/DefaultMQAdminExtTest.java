@@ -296,6 +296,10 @@ public class DefaultMQAdminExtTest {
         ConsumerConnection consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo("default-consumer-group");
         assertThat(consumerConnection.getConsumeType()).isEqualTo(ConsumeType.CONSUME_PASSIVELY);
         assertThat(consumerConnection.getMessageModel()).isEqualTo(MessageModel.CLUSTERING);
+
+        consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo("default-consumer-group", "127.0.0.1:10911");
+        assertThat(consumerConnection.getConsumeType()).isEqualTo(ConsumeType.CONSUME_PASSIVELY);
+        assertThat(consumerConnection.getMessageModel()).isEqualTo(MessageModel.CLUSTERING);
     }
 
     @Test
