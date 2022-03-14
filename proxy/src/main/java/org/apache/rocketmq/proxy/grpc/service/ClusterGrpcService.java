@@ -52,7 +52,7 @@ import apache.rocketmq.v1.ReportThreadStackTraceResponse;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import io.grpc.Context;
-import io.netty.util.concurrent.CompleteFuture;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,80 +65,80 @@ public class ClusterGrpcService implements GrpcService {
     }
 
     @Override
-    public CompleteFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
+    public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
         return null;
     }
 
     @Override
-    public CompleteFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+    public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
         return null;
     }
 
     @Override
-    public CompleteFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
+    public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
         return null;
     }
 
     @Override
-    public CompleteFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
+    public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
         return null;
     }
 
     @Override
-    public CompleteFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
+    public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
+    @Override public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
+    @Override public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
+    @Override public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
         return null;
     }
 
     @Override
-    public CompleteFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
+    public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
+    @Override public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
+    @Override public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
+    @Override public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
+    @Override public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
+    @Override public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
         ReportThreadStackTraceRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
+    @Override public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
         ReportMessageConsumptionResultRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    @Override public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request) {
         return null;
     }
 
-    @Override public CompleteFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+    @Override public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         return null;
     }
