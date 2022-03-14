@@ -72,6 +72,10 @@ public class ResponseFuture {
         return this.responseCommand;
     }
 
+    public void wakeupResponse() {
+        this.countDownLatch.countDown();
+    }
+
     public void putResponse(final RemotingCommand responseCommand) {
         this.responseCommand = responseCommand;
         this.countDownLatch.countDown();
