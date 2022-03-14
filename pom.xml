@@ -586,7 +586,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>19.0</version>
+                <version>30.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.googlecode.concurrentlinkedhashmap</groupId>

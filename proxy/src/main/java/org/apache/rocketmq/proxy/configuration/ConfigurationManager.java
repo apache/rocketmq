@@ -21,7 +21,7 @@ import java.io.File;
 import org.apache.commons.lang3.StringUtils;
 
 public class ConfigurationManager {
-    protected static final String RMQ_PROXY_HOME = "RMQ_PROXY_HOME";
+    public static final String RMQ_PROXY_HOME = "RMQ_PROXY_HOME";
     protected static final String DEFAULT_RMQ_PROXY_HOME = System.getProperty("user.home") + File.separator + "rmq-proxy";
     private static String proxyHome;
     private static Configuration configuration;
