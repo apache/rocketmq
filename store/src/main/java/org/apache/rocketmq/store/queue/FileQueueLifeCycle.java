@@ -17,7 +17,7 @@
 package org.apache.rocketmq.store.queue;
 
 import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.Swappable;
 
 public interface FileQueueLifeCycle extends Swappable {

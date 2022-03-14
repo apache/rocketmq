@@ -35,14 +35,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
@@ -50,11 +52,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.common.attribute.CQType;
-import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -64,9 +64,9 @@ public class CommitLog implements Swappable {
     public final static int MESSAGE_MAGIC_CODE = -626843481;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     // End of file empty MAGIC CODE cbd43194
-    protected final static int BLANK_MAGIC_CODE = -875286124;
+    public final static int BLANK_MAGIC_CODE = -875286124;
     protected final MappedFileQueue mappedFileQueue;
-    protected final MessageStore defaultMessageStore;
+    protected final DefaultMessageStore defaultMessageStore;
 
     private final FlushManager flushManager;
 
@@ -87,36 +87,36 @@ public class CommitLog implements Swappable {
 
     protected int commitLogSize;
 
-    public CommitLog(final DefaultMessageStore defaultMessageStore) {
-        String storePath = defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog();
-        if (storePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
-            this.mappedFileQueue = new MultiPathMappedFileQueue(defaultMessageStore.getMessageStoreConfig(),
-                defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
-                defaultMessageStore.getAllocateMappedFileService(), this::getFullStorePaths);
+    public CommitLog(final DefaultMessageStore messageStore) {
+        String storePath = messageStore.getMessageStoreConfig().getStorePathCommitLog();
+        if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
+            this.mappedFileQueue = new MultiPathMappedFileQueue(messageStore.getMessageStoreConfig(),
+                messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
+                messageStore.getAllocateMappedFileService(), this::getFullStorePaths);
         } else {
             this.mappedFileQueue = new MappedFileQueue(storePath,
-                defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
-                defaultMessageStore.getAllocateMappedFileService());
+                messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
+                messageStore.getAllocateMappedFileService());
         }
 
-        this.defaultMessageStore = defaultMessageStore;
+        this.defaultMessageStore = messageStore;
 
         this.flushManager = new DefaultFlushManager();
 
-        this.appendMessageCallback = new DefaultAppendMessageCallback(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
+        this.appendMessageCallback = new DefaultAppendMessageCallback(messageStore.getMessageStoreConfig().getMaxMessageSize());
         putMessageThreadLocal = new ThreadLocal<PutMessageThreadLocal>() {
             @Override
             protected PutMessageThreadLocal initialValue() {
                 return new PutMessageThreadLocal(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
             }
         };
-        this.putMessageLock = defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
+        this.putMessageLock = messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
 
-        flushDiskWatcher = new FlushDiskWatcher();
+        this.flushDiskWatcher = new FlushDiskWatcher();
 
         this.topicQueueLock = new TopicQueueLock();
 
-        this.commitLogSize = defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        this.commitLogSize = messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
     }
 
     public void setFullStorePaths(Set<String> fullStorePaths) {
@@ -127,8 +127,8 @@ public class CommitLog implements Swappable {
         return fullStorePaths;
     }
 
-    public ThreadLocal<PutMessageThreadLocal> getPutMessageThreadLocal() {
-        return putMessageThreadLocal;
+    public long getTotalSize() {
+        return this.mappedFileQueue.getTotalFileSize();
     }
 
     public boolean load() {
@@ -141,11 +141,15 @@ public class CommitLog implements Swappable {
     public void start() {
         this.flushManager.start();
         log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
+        this.flushManager.start();
+        log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         flushDiskWatcher.setDaemon(true);
         flushDiskWatcher.start();
     }
 
     public void shutdown() {
+        this.flushManager.shutdown();
+        log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         this.flushManager.shutdown();
         log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         flushDiskWatcher.shutdown(true);
@@ -154,6 +158,10 @@ public class CommitLog implements Swappable {
     public long flush() {
         this.mappedFileQueue.commit(0);
         this.mappedFileQueue.flush(0);
+        return this.mappedFileQueue.getFlushedWhere();
+    }
+
+    public long getFlushedWhere() {
         return this.mappedFileQueue.getFlushedWhere();
     }
 
@@ -207,29 +215,98 @@ public class CommitLog implements Swappable {
         return null;
     }
 
+    public boolean getData(final long offset, final int size, final ByteBuffer byteBuffer) {
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
+        if (mappedFile != null) {
+            int pos = (int) (offset % mappedFileSize);
+            return mappedFile.getData(pos, size, byteBuffer);
+        }
+        return false;
+    }
+
+    public List<SelectMappedBufferResult> getBulkData(final long offset, final int size) {
+        List<SelectMappedBufferResult> bufferResultList = new ArrayList<>();
+
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        int remainSize = size;
+        long startOffset = offset;
+        long maxOffset = this.getMaxOffset();
+        if (offset + size > maxOffset) {
+            remainSize = (int) (maxOffset - offset);
+            log.warn("get bulk data size out of range, correct to max offset. offset: {}, size: {}, max: {}", offset, remainSize, maxOffset);
+        }
+
+        while (remainSize > 0) {
+            MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(startOffset, startOffset == 0);
+            if (mappedFile != null) {
+                int pos = (int) (startOffset % mappedFileSize);
+                int readableSize = mappedFile.getReadPosition() - pos;
+                int readSize = Math.min(remainSize, readableSize);
+
+                SelectMappedBufferResult bufferResult = mappedFile.selectMappedBuffer(pos, readSize);
+                if (bufferResult == null) {
+                    break;
+                }
+                bufferResultList.add(bufferResult);
+                remainSize -= readSize;
+                startOffset += readSize;
+            }
+        }
+
+        return bufferResultList;
+    }
+
+    public SelectMappedFileResult getFile(final long offset) {
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
+        if (mappedFile != null) {
+            int size = (int) (mappedFile.getReadPosition() - offset % mappedFileSize);
+            if (size > 0) {
+                return new SelectMappedFileResult(size, mappedFile);
+            }
+        }
+        return null;
+    }
+
+    //Create new mappedFile if not exits.
+    public boolean getLastMappedFile(final long startOffset) {
+        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile(startOffset);
+        if (null == lastMappedFile) {
+            log.error("getLastMappedFile error. offset:{}", startOffset);
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * When the normal exit, data recovery, all memory data have been flush
      */
     public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
+        boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             // Began to recover from the last third file
             int index = mappedFiles.size() - 3;
-            if (index < 0)
+            if (index < 0) {
                 index = 0;
+            }
 
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
             long mappedFileOffset = 0;
+            long lastValidMsgPhyOffset = this.getConfirmOffset();
             // normal recover doesn't require dispatching
             boolean doDispatch = false;
             while (true) {
-                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
+                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
                 // Normal data
                 if (dispatchRequest.isSuccess() && size > 0) {
+                    lastValidMsgPhyOffset = processOffset + mappedFileOffset;
                     mappedFileOffset += size;
                     this.getMessageStore().onCommitLogDispatch(dispatchRequest, doDispatch, mappedFile, true, false);
                 }
@@ -253,12 +330,19 @@ public class CommitLog implements Swappable {
                 }
                 // Intermediate file read error
                 else if (!dispatchRequest.isSuccess()) {
+                    if (size > 0) {
+                        log.warn("found a half message at {}, it will be truncated.", processOffset + mappedFileOffset);
+                    }
                     log.info("recover physics file end, " + mappedFile.getFileName());
                     break;
                 }
             }
 
             processOffset += mappedFileOffset;
+            // Set a candidate confirm offset.
+            // In most cases, this value will be overwritten by confirmLog.init.
+            // It works if some confirmed messages are lost.
+            this.setConfirmOffset(lastValidMsgPhyOffset);
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
@@ -277,8 +361,9 @@ public class CommitLog implements Swappable {
         }
     }
 
-    public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC) {
-        return this.checkMessageAndReturnSize(byteBuffer, checkCRC, true);
+    public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
+        final boolean checkDupInfo) {
+        return this.checkMessageAndReturnSize(byteBuffer, checkCRC, checkDupInfo, true);
     }
 
     private void doNothingForDeadCode(final Object obj) {
@@ -293,7 +378,7 @@ public class CommitLog implements Swappable {
      * @return 0 Come the end of the file // >0 Normal messages // -1 Message checksum failure
      */
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
-        final boolean readBody) {
+        final boolean checkDupInfo, final boolean readBody) {
         try {
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
@@ -382,6 +467,14 @@ public class CommitLog implements Swappable {
 
                 uniqKey = propertiesMap.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
 
+                if (checkDupInfo) {
+                    String dupInfo = propertiesMap.get(MessageConst.DUP_INFO);
+                    if (null == dupInfo || dupInfo.split("_").length != 2) {
+                        log.warn("DupInfo in properties check failed. dupInfo={}", dupInfo);
+                        return new DispatchRequest(-1, false);
+                    }
+                }
+
                 String tags = propertiesMap.get(MessageConst.PROPERTY_TAGS);
                 if (tags != null && tags.length() > 0) {
                     tagsCode = MessageExtBrokerInner.tagsString2tagsCode(MessageExt.parseTopicFilterType(sysFlag), tags);
@@ -393,12 +486,12 @@ public class CommitLog implements Swappable {
                     if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(topic) && t != null) {
                         int delayLevel = Integer.parseInt(t);
 
-                        if (delayLevel > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
-                            delayLevel = this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel();
+                        if (delayLevel > this.defaultMessageStore.getMaxDelayLevel()) {
+                            delayLevel = this.defaultMessageStore.getMaxDelayLevel();
                         }
 
                         if (delayLevel > 0) {
-                            tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(delayLevel,
+                            tagsCode = this.defaultMessageStore.computeDeliverTimestamp(delayLevel,
                                 storeTimestamp);
                         }
                     }
@@ -437,7 +530,6 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
-            log.error("CheckMessageAndReturnSizeOld", e);
         }
 
         return new DispatchRequest(-1, false /* success */);
@@ -475,17 +567,33 @@ public class CommitLog implements Swappable {
     }
 
     public long getConfirmOffset() {
-        return this.confirmOffset;
+        if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+            return this.confirmOffset;
+        } else {
+            return getMaxOffset();
+        }
     }
 
     public void setConfirmOffset(long phyOffset) {
         this.confirmOffset = phyOffset;
     }
 
+    public long getLastFileFromOffset() {
+        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile();
+        if (lastMappedFile != null) {
+            if (lastMappedFile.isAvailable()) {
+                return lastMappedFile.getFileFromOffset();
+            }
+        }
+
+        return -1;
+    }
+
     @Deprecated
     public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
+        boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             // Looking beginning to recover from which file
@@ -507,15 +615,17 @@ public class CommitLog implements Swappable {
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
             long mappedFileOffset = 0;
+            long lastValidMsgPhyOffset = this.getConfirmOffset();
             // abnormal recover require dispatching
             boolean doDispatch = true;
             while (true) {
-                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
+                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
 
                 if (dispatchRequest.isSuccess()) {
                     // Normal data
                     if (size > 0) {
+                        lastValidMsgPhyOffset = processOffset + mappedFileOffset;
                         mappedFileOffset += size;
 
                         if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
@@ -546,12 +656,21 @@ public class CommitLog implements Swappable {
                         }
                     }
                 } else {
+
+                    if (size > 0) {
+                        log.warn("found a half message at {}, it will be truncated.", processOffset + mappedFileOffset);
+                    }
+
                     log.info("recover physics file end, " + mappedFile.getFileName() + " pos=" + byteBuffer.position());
                     break;
                 }
             }
 
             processOffset += mappedFileOffset;
+            // Set a candidate confirm offset.
+            // In most cases, this value will be overwritten by confirmLog.init.
+            // It works if some confirmed messages are lost.
+            this.setConfirmOffset(lastValidMsgPhyOffset);
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
@@ -569,6 +688,18 @@ public class CommitLog implements Swappable {
             this.mappedFileQueue.setCommittedWhere(0);
             this.defaultMessageStore.destroyLogics();
         }
+    }
+
+    public void truncateDirtyFiles(long phyOffset) {
+        if (phyOffset <= this.getFlushedWhere()) {
+            this.mappedFileQueue.setFlushedWhere(phyOffset);
+        }
+
+        if (phyOffset <= this.mappedFileQueue.getCommittedWhere()) {
+            this.mappedFileQueue.setCommittedWhere(phyOffset);
+        }
+
+        this.mappedFileQueue.truncateDirtyFiles(phyOffset);
     }
 
     protected void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile) {
@@ -611,10 +742,6 @@ public class CommitLog implements Swappable {
         return false;
     }
 
-    private void notifyMessageArriving() {
-
-    }
-
     public boolean resetOffset(long offset) {
         return this.mappedFileQueue.resetOffset(offset);
     }
@@ -623,7 +750,7 @@ public class CommitLog implements Swappable {
         return beginTimeInLock;
     }
 
-    private String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
+    public String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
         keyBuilder.setLength(0);
         keyBuilder.append(messageExt.getTopic());
         keyBuilder.append('-');
@@ -631,9 +758,17 @@ public class CommitLog implements Swappable {
         return keyBuilder.toString();
     }
 
+    public void setMappedFileQueueOffset(final long phyOffset) {
+        this.mappedFileQueue.setFlushedWhere(phyOffset);
+        this.mappedFileQueue.setCommittedWhere(phyOffset);
+    }
+
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
-        msg.setStoreTimestamp(System.currentTimeMillis());
+        if (!defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+            msg.setStoreTimestamp(System.currentTimeMillis());
+        }
+
         // Set the message body BODY CRC (consider the most appropriate setting
         // on the client)
         msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
@@ -643,28 +778,6 @@ public class CommitLog implements Swappable {
         StoreStatsService storeStatsService = this.defaultMessageStore.getStoreStatsService();
 
         String topic = msg.getTopic();
-//        int queueId msg.getQueueId();
-        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
-        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
-            || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {
-                if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
-                    msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
-                }
-
-                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
-                int queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
-
-                // Backup real topic, queueId
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
-                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
-
-                msg.setTopic(topic);
-                msg.setQueueId(queueId);
-            }
-        }
 
         InetSocketAddress bornSocketAddress = (InetSocketAddress) msg.getBornHost();
         if (bornSocketAddress.getAddress() instanceof Inet6Address) {
@@ -680,10 +793,39 @@ public class CommitLog implements Swappable {
         String topicQueueKey = generateKey(putMessageThreadLocal.getKeyBuilder(), msg);
         long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+
+        long currOffset;
+        if (mappedFile == null) {
+            currOffset = 0;
+        } else {
+            currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
+        }
+
+        boolean needHandleHA = needHandleHA(msg);
+        int needAckNums = 1;
+
+        if (needHandleHA) {
+            int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
+                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+            needAckNums = calcNeedAckNums(inSyncReplicas);
+            if (needAckNums > inSyncReplicas) {
+                // Tell the producer, don't have enough slaves to handle the send request
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+            }
+        }
 
         topicQueueLock.lock(topicQueueKey);
         try {
-            defaultMessageStore.assignOffset(topicQueueKey, msg, getMessageNum(msg));
+
+            boolean needAssignOffset = true;
+            if (defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()
+                && defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
+                needAssignOffset = false;
+            }
+            if (needAssignOffset) {
+                defaultMessageStore.assignOffset(msg, getMessageNum(msg));
+            }
 
             PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
             if (encodeResult != null) {
@@ -694,13 +836,14 @@ public class CommitLog implements Swappable {
 
             putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             try {
-                MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
                 long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
                 this.beginTimeInLock = beginLockTimestamp;
 
                 // Here settings are stored timestamp, in order to ensure an orderly
                 // global
-                msg.setStoreTimestamp(beginLockTimestamp);
+                if (!defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+                    msg.setStoreTimestamp(beginLockTimestamp);
+                }
 
                 if (null == mappedFile || mappedFile.isFull()) {
                     mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
@@ -708,7 +851,7 @@ public class CommitLog implements Swappable {
                 if (null == mappedFile) {
                     log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                     beginTimeInLock = 0;
-                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
                 }
 
                 result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
@@ -725,7 +868,7 @@ public class CommitLog implements Swappable {
                             // XXX: warn and notify me
                             log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
                             beginTimeInLock = 0;
-                            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
+                            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                         }
                         result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
                         if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
@@ -747,7 +890,6 @@ public class CommitLog implements Swappable {
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
                 beginTimeInLock = 0;
             } finally {
-                beginTimeInLock = 0;
                 putMessageLock.unlock();
             }
         } finally {
@@ -768,17 +910,7 @@ public class CommitLog implements Swappable {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(1);
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).add(result.getWroteBytes());
 
-        CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
-        CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
-        return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
-            if (flushStatus != PutMessageStatus.PUT_OK) {
-                putMessageResult.setPutMessageStatus(flushStatus);
-            }
-            if (replicaStatus != PutMessageStatus.PUT_OK) {
-                putMessageResult.setPutMessageStatus(replicaStatus);
-            }
-            return putMessageResult;
-        });
+        return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA);
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessages(final MessageExtBatch messageExtBatch) {
@@ -810,6 +942,26 @@ public class CommitLog implements Swappable {
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
+        long currOffset;
+        if (mappedFile == null) {
+            currOffset = 0;
+        } else {
+            currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
+        }
+
+        int needAckNums = 1;
+        boolean needHandleHA = needHandleHA(messageExtBatch);
+
+        if (needHandleHA) {
+            int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
+                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+            needAckNums = calcNeedAckNums(inSyncReplicas);
+            if (needAckNums > inSyncReplicas) {
+                // Tell the producer, don't have enough slaves to handle the send request
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+            }
+        }
+
         //fine-grained lock instead of the coarse-grained
         PutMessageThreadLocal pmThreadLocal = this.putMessageThreadLocal.get();
         MessageExtEncoder batchEncoder = pmThreadLocal.getEncoder();
@@ -821,7 +973,7 @@ public class CommitLog implements Swappable {
 
         topicQueueLock.lock(topicQueueKey);
         try {
-            defaultMessageStore.assignOffset(topicQueueKey, messageExtBatch, (short) putMessageContext.getBatchSize());
+            defaultMessageStore.assignOffset(messageExtBatch, (short) putMessageContext.getBatchSize());
 
             putMessageLock.lock();
             try {
@@ -838,7 +990,7 @@ public class CommitLog implements Swappable {
                 if (null == mappedFile) {
                     log.error("Create mapped file1 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
                     beginTimeInLock = 0;
-                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
                 }
 
                 result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback, putMessageContext);
@@ -853,7 +1005,7 @@ public class CommitLog implements Swappable {
                             // XXX: warn and notify me
                             log.error("Create mapped file2 error, topic: {} clientAddr: {}", messageExtBatch.getTopic(), messageExtBatch.getBornHostString());
                             beginTimeInLock = 0;
-                            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result));
+                            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                         }
                         result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback, putMessageContext);
                         break;
@@ -890,9 +1042,51 @@ public class CommitLog implements Swappable {
         storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(result.getMsgNum());
         storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).add(result.getWroteBytes());
 
-        CompletableFuture<PutMessageStatus> flushOKFuture = submitFlushRequest(result, messageExtBatch);
-        CompletableFuture<PutMessageStatus> replicaOKFuture = submitReplicaRequest(result, messageExtBatch);
-        return flushOKFuture.thenCombine(replicaOKFuture, (flushStatus, replicaStatus) -> {
+        return handleDiskFlushAndHA(putMessageResult, messageExtBatch, needAckNums, needHandleHA);
+    }
+
+    private int calcNeedAckNums(int inSyncReplicas) {
+        int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
+        if (this.defaultMessageStore.getMessageStoreConfig().isEnableAutoInSyncReplicas()) {
+            needAckNums = Math.min(needAckNums, inSyncReplicas);
+            needAckNums = Math.max(needAckNums, this.defaultMessageStore.getMessageStoreConfig().getMinInSyncReplicas());
+        }
+        return needAckNums;
+    }
+
+    private boolean needHandleHA(MessageExt messageExt) {
+
+        if (!messageExt.isWaitStoreMsgOK()) {
+            /*
+              No need to sync messages that special config to extra broker slaves.
+              @see MessageConst.PROPERTY_WAIT_STORE_MSG_OK
+             */
+            return false;
+        }
+
+        if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+            return false;
+        }
+
+        if (BrokerRole.SYNC_MASTER != this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
+            // No need to check ha in async or slave broker
+            return false;
+        }
+
+        return true;
+    }
+
+    private CompletableFuture<PutMessageResult> handleDiskFlushAndHA(PutMessageResult putMessageResult,
+        MessageExt messageExt, int needAckNums, boolean needHandleHA) {
+        CompletableFuture<PutMessageStatus> flushResultFuture = handleDiskFlush(putMessageResult.getAppendMessageResult(), messageExt);
+        CompletableFuture<PutMessageStatus> replicaResultFuture;
+        if (!needHandleHA) {
+            replicaResultFuture = CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
+        } else {
+            replicaResultFuture = handleHA(putMessageResult.getAppendMessageResult(), putMessageResult, needAckNums);
+        }
+
+        return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(flushStatus);
             }
@@ -901,66 +1095,38 @@ public class CommitLog implements Swappable {
             }
             return putMessageResult;
         });
-
     }
 
-    public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, MessageExt messageExt) {
+    private CompletableFuture<PutMessageStatus> handleDiskFlush(AppendMessageResult result, MessageExt messageExt) {
         return this.flushManager.handleDiskFlush(result, messageExt);
     }
 
-    public CompletableFuture<PutMessageStatus> submitReplicaRequest(AppendMessageResult result, MessageExt messageExt) {
-        if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
-            HAService service = this.defaultMessageStore.getHaService();
-            if (messageExt.isWaitStoreMsgOK()) {
-                if (service.isSlaveOK(result.getWroteBytes() + result.getWroteOffset())) {
-                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                        this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-                    flushDiskWatcher.add(request);
-                    service.putRequest(request);
-                    service.getWaitNotifyObject().wakeupAll();
-                    return request.future();
-                } else {
-                    return CompletableFuture.completedFuture(PutMessageStatus.SLAVE_NOT_AVAILABLE);
-                }
-            }
-        }
-        return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
-    }
-
-    public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
-        this.flushManager.handleDiskFlush(result, putMessageResult, messageExt);
-    }
-
-    public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
-        if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
-            HAService service = this.defaultMessageStore.getHaService();
-            if (messageExt.isWaitStoreMsgOK()) {
-                // Determine whether to wait
-                if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
-                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                        this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout());
-                    service.putRequest(request);
-                    service.getWaitNotifyObject().wakeupAll();
-                    PutMessageStatus replicaStatus = null;
-                    try {
-                        replicaStatus = request.future().get(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout(),
-                            TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    }
-                    if (replicaStatus != PutMessageStatus.PUT_OK) {
-                        log.error("do sync transfer other node, wait return, but failed, topic: " + messageExt.getTopic() + " tags: "
-                            + messageExt.getTags() + " client address: " + messageExt.getBornHostNameString());
-                        putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
-                    }
-                }
-                // Slave problem
-                else {
-                    // Tell the producer, slave not available
-                    putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
-                }
-            }
+    private CompletableFuture<PutMessageStatus> handleHA(AppendMessageResult result, PutMessageResult putMessageResult,
+        int needAckNums) {
+        if (needAckNums <= 1) {
+            return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         }
 
+        HAService haService = this.defaultMessageStore.getHaService();
+
+        long nextOffset = result.getWroteOffset() + result.getWroteBytes();
+        // NOTE: Plus the master replicas
+//        int inSyncReplicas = haService.inSyncSlaveNums(nextOffset) + 1;
+
+//        if (needAckNums > inSyncReplicas) {
+//            /*
+//             * Tell the producer, don't have enough slaves to handle the send request.
+//             * NOTE: this may cause msg duplicate
+//             */
+//            putMessageResult.setPutMessageStatus(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
+//            return CompletableFuture.completedFuture(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH);
+//        }
+
+        // Wait enough acks from different slaves
+        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums - 1);
+        haService.putRequest(request);
+        haService.getWaitNotifyObject().wakeupAll();
+        return request.future();
     }
 
     /**
@@ -1083,6 +1249,9 @@ public class CommitLog implements Swappable {
 
         @Override
         public String getServiceName() {
+            if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + CommitRealTimeService.class.getSimpleName();
+            }
             return CommitRealTimeService.class.getSimpleName();
         }
 
@@ -1133,6 +1302,7 @@ public class CommitLog implements Swappable {
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
 
+        @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
@@ -1197,6 +1367,9 @@ public class CommitLog implements Swappable {
 
         @Override
         public String getServiceName() {
+            if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + FlushRealTimeService.class.getSimpleName();
+            }
             return FlushRealTimeService.class.getSimpleName();
         }
 
@@ -1206,14 +1379,16 @@ public class CommitLog implements Swappable {
         }
 
         @Override
-        public long getJointime() {
+        public long getJoinTime() {
             return 1000 * 60 * 5;
         }
     }
 
     public static class GroupCommitRequest {
         private final long nextOffset;
-        private CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
+        // Indicate the GroupCommitRequest result: true or false
+        private final CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
+        private volatile int ackNums = 1;
         private final long deadLine;
 
         public GroupCommitRequest(long nextOffset, long timeoutMillis) {
@@ -1221,22 +1396,30 @@ public class CommitLog implements Swappable {
             this.deadLine = System.nanoTime() + (timeoutMillis * 1_000_000);
         }
 
-        public long getDeadLine() {
-            return deadLine;
+        public GroupCommitRequest(long nextOffset, long timeoutMillis, int ackNums) {
+            this(nextOffset, timeoutMillis);
+            this.ackNums = ackNums;
         }
 
         public long getNextOffset() {
             return nextOffset;
         }
 
-        public void wakeupCustomer(final PutMessageStatus putMessageStatus) {
-            this.flushOKFuture.complete(putMessageStatus);
+        public int getAckNums() {
+            return ackNums;
+        }
+
+        public long getDeadLine() {
+            return deadLine;
+        }
+
+        public void wakeupCustomer(final PutMessageStatus status) {
+            this.flushOKFuture.complete(status);
         }
 
         public CompletableFuture<PutMessageStatus> future() {
             return flushOKFuture;
         }
-
     }
 
     /**
@@ -1312,7 +1495,7 @@ public class CommitLog implements Swappable {
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
-                CommitLog.log.warn(this.getServiceName() + " Exception, ", e);
+                CommitLog.log.warn("GroupCommitService Exception, ", e);
             }
 
             synchronized (this) {
@@ -1331,11 +1514,14 @@ public class CommitLog implements Swappable {
 
         @Override
         public String getServiceName() {
+            if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + GroupCommitService.class.getSimpleName();
+            }
             return GroupCommitService.class.getSimpleName();
         }
 
         @Override
-        public long getJointime() {
+        public long getJoinTime() {
             return 1000 * 60 * 5;
         }
     }
@@ -1344,7 +1530,7 @@ public class CommitLog implements Swappable {
         private volatile List<GroupCommitRequest> requestsWrite = new ArrayList<GroupCommitRequest>();
         private volatile List<GroupCommitRequest> requestsRead = new ArrayList<GroupCommitRequest>();
 
-        public boolean isAynscRequestsFull() {
+        public boolean isAsyncRequestsFull() {
             return requestsWrite.size() > CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests() * 2;
         }
 
@@ -1439,11 +1625,14 @@ public class CommitLog implements Swappable {
 
         @Override
         public String getServiceName() {
-            return CommitLog.GroupCheckService.class.getSimpleName();
+            if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
+                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + GroupCheckService.class.getSimpleName();
+            }
+            return GroupCheckService.class.getSimpleName();
         }
 
         @Override
-        public long getJointime() {
+        public long getJoinTime() {
             return 1000 * 60 * 5;
         }
     }
@@ -1451,16 +1640,12 @@ public class CommitLog implements Swappable {
     class DefaultAppendMessageCallback implements AppendMessageCallback {
         // File at the end of the minimum fixed length empty
         private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
-        private final ByteBuffer msgIdMemory;
-        private final ByteBuffer msgIdV6Memory;
         // Store the message content
         private final ByteBuffer msgStoreItemMemory;
         // The maximum length of the message
         private final int maxMessageSize;
 
         DefaultAppendMessageCallback(final int size) {
-            this.msgIdMemory = ByteBuffer.allocate(4 + 4 + 8);
-            this.msgIdV6Memory = ByteBuffer.allocate(16 + 4 + 8);
             this.msgStoreItemMemory = ByteBuffer.allocate(END_FILE_MIN_BLANK_LENGTH);
             this.maxMessageSize = size;
         }
@@ -1491,8 +1676,7 @@ public class CommitLog implements Swappable {
             // Transaction messages that require special handling
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
-                // Prepared and Rollback message is not consumed, will not enter the
-                // consumer queuec
+                // Prepared and Rollback message is not consumed, will not enter the consume queue
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
                     queueOffset = 0L;
@@ -1869,9 +2053,6 @@ public class CommitLog implements Swappable {
             byteBuffer.limit(limit);
         }
 
-        public ByteBuffer getEncoderBuffer() {
-            return encoderBuffer;
-        }
     }
 
     interface FlushManager {
@@ -1918,8 +2099,7 @@ public class CommitLog implements Swappable {
             if (FlushDiskType.SYNC_FLUSH == CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
                 final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
                 if (messageExt.isWaitStoreMsgOK()) {
-                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(), CommitLog.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                     service.putRequest(request);
                     CompletableFuture<PutMessageStatus> flushOkFuture = request.future();
                     PutMessageStatus flushStatus = null;
@@ -1954,8 +2134,8 @@ public class CommitLog implements Swappable {
             if (FlushDiskType.SYNC_FLUSH == CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
                 final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
                 if (messageExt.isWaitStoreMsgOK()) {
-                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(),
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                    GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(), CommitLog.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+                    flushDiskWatcher.add(request);
                     service.putRequest(request);
                     return request.future();
                 } else {
@@ -2006,6 +2186,10 @@ public class CommitLog implements Swappable {
     @Override
     public void swapMap(int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs) {
         this.getMappedFileQueue().swapMap(reserveNum, forceSwapIntervalMs, normalSwapIntervalMs);
+    }
+
+    public boolean isMappedFilesEmpty() {
+        return this.mappedFileQueue.isMappedFilesEmpty();
     }
 
     @Override

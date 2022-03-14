@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -104,7 +105,7 @@ public class BatchPutMessageTest {
             short propertiesLength = (short) propertiesBytes.length;
             final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
             final int topicLength = topicData.length;
-            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength+batchPropLen+1) + msgLengthArr[j - 1];
+            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength + batchPropLen + 1) + msgLengthArr[j - 1];
             j++;
         }
         byte[] batchMessageBody = MessageDecoder.encodeMessages(messages);
@@ -112,14 +113,14 @@ public class BatchPutMessageTest {
         messageExtBatch.setTopic(topic);
         messageExtBatch.setQueueId(queue);
         messageExtBatch.setBody(batchMessageBody);
-        messageExtBatch.putUserProperty(batchPropK,batchPropV);
+        messageExtBatch.putUserProperty(batchPropK, batchPropV);
         messageExtBatch.setBornTimestamp(System.currentTimeMillis());
         messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
         messageExtBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
 
         PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
         assertThat(putMessageResult.isOk()).isTrue();
-        
+
         Thread.sleep(3 * 1000);
 
         for (long i = 0; i < 10; i++) {
@@ -187,23 +188,23 @@ public class BatchPutMessageTest {
 
     private int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {
         final int msgLen = 4 //TOTALSIZE
-                + 4 //MAGICCODE
-                + 4 //BODYCRC
-                + 4 //QUEUEID
-                + 4 //FLAG
-                + 8 //QUEUEOFFSET
-                + 8 //PHYSICALOFFSET
-                + 4 //SYSFLAG
-                + 8 //BORNTIMESTAMP
-                + 8 //BORNHOST
-                + 8 //STORETIMESTAMP
-                + 8 //STOREHOSTADDRESS
-                + 4 //RECONSUMETIMES
-                + 8 //Prepared Transaction Offset
-                + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
-                + 1 + topicLength //TOPIC
-                + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
-                + 0;
+            + 4 //MAGICCODE
+            + 4 //BODYCRC
+            + 4 //QUEUEID
+            + 4 //FLAG
+            + 8 //QUEUEOFFSET
+            + 8 //PHYSICALOFFSET
+            + 4 //SYSFLAG
+            + 8 //BORNTIMESTAMP
+            + 8 //BORNHOST
+            + 8 //STORETIMESTAMP
+            + 8 //STOREHOSTADDRESS
+            + 4 //RECONSUMETIMES
+            + 8 //Prepared Transaction Offset
+            + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
+            + 1 + topicLength //TOPIC
+            + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
+            + 0;
         return msgLen;
     }
 
@@ -232,7 +233,7 @@ public class BatchPutMessageTest {
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                             byte[] filterBitMap, Map<String, String> properties) {
+            byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }

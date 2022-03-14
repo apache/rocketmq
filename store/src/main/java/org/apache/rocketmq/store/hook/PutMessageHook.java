@@ -14,28 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.store.hook;
 
-package org.apache.rocketmq.store.ha;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.store.PutMessageResult;
 
-import org.junit.Assert;
-import org.junit.Test;
+public interface PutMessageHook {
 
-public class WaitNotifyObjectTest {
-    @Test
-    public void removeFromWaitingThreadTable() throws Exception {
-        final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
-        for (int i = 0; i < 5; i++) {
-            Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    waitNotifyObject.allWaitForRunning(100);
-                    waitNotifyObject.removeFromWaitingThreadTable();
-                }
-            });
-            t.start();
-            t.join();
-        }
-        Assert.assertEquals(0, waitNotifyObject.waitingThreadTable.size());
-    }
+    /**
+     * Name of the hook.
+     *
+     * @return name of the hook
+     */
+    String hookName();
 
+    /**
+     *  Execute before put message. For example, Message verification or special message transform
+     * @param msg
+     * @return
+     */
+    PutMessageResult executeBeforePutMessage(MessageExt msg);
 }

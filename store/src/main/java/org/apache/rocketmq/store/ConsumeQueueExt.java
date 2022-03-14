@@ -90,6 +90,10 @@ public class ConsumeQueueExt {
         }
     }
 
+    public long getTotalSize() {
+        return this.mappedFileQueue.getTotalFileSize();
+    }
+
     /**
      * Check whether {@code address} point to extend file.
      * <p>

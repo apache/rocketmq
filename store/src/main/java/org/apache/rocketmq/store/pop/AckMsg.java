@@ -23,6 +23,7 @@ public class AckMsg {
     private String topic;
     private int queueId;
     private long popTime;
+    private String brokerName;
 
     public long getPopTime() {
         return popTime;
@@ -72,6 +73,14 @@ public class AckMsg {
         this.startOffset = startOffset;
     }
 
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("AckMsg{");
@@ -81,6 +90,7 @@ public class AckMsg {
         sb.append(", topic='").append(topic).append('\'');
         sb.append(", queueId=").append(queueId);
         sb.append(", popTime=").append(popTime);
+        sb.append(", brokerName=").append(brokerName);
         sb.append('}');
         return sb.toString();
     }

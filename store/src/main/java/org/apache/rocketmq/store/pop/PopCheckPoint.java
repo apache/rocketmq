@@ -41,6 +41,8 @@ public class PopCheckPoint {
     private long reviveOffset;
     @JSONField(name = "d")
     private List<Integer> queueOffsetDiff;
+    @JSONField(name = "bn")
+    String brokerName;
 
     public long getReviveOffset() {
         return reviveOffset;
@@ -130,6 +132,14 @@ public class PopCheckPoint {
         this.queueOffsetDiff = queueOffsetDiff;
     }
 
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
     public void addDiff(int diff) {
         if (this.queueOffsetDiff == null) {
             this.queueOffsetDiff = new ArrayList<>(8);
@@ -168,7 +178,7 @@ public class PopCheckPoint {
     @Override
     public String toString() {
         return "PopCheckPoint [topic=" + topic + ", cid=" + cid + ", queueId=" + queueId + ", startOffset=" + startOffset + ", bitMap=" + bitMap + ", num=" + num + ", reviveTime=" + getReviveTime()
-            + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + "]";
+            + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + "]";
     }
 
 }
