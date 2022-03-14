@@ -52,46 +52,46 @@ import apache.rocketmq.v1.ReportThreadStackTraceResponse;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import io.grpc.Context;
-import io.netty.util.concurrent.CompleteFuture;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import java.util.concurrent.CompletableFuture;
 
 public interface GrpcService extends StartAndShutdown {
-    CompleteFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request);
+    CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request);
 
-    CompleteFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request);
+    CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request);
 
-    CompleteFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request);
+    CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request);
 
-    CompleteFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request);
+    CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request);
 
-    CompleteFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request);
+    CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request);
 
-    CompleteFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request);
+    CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request);
 
-    CompleteFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request);
+    CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request);
 
-    CompleteFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request);
+    CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request);
 
-    CompleteFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
+    CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request);
 
-    CompleteFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request);
+    CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request);
 
-    CompleteFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request);
+    CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request);
 
-    CompleteFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request);
+    CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request);
 
-    CompleteFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request);
+    CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request);
 
-    CompleteFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
+    CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
         ReportThreadStackTraceRequest request);
 
-    CompleteFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
+    CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
         ReportMessageConsumptionResultRequest request);
 
-    CompleteFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request);
 
-    CompleteFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+    CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request);
 }
