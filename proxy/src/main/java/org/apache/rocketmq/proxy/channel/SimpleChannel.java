@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.adapter.channel;
+package org.apache.rocketmq.proxy.channel;
 
 import com.google.common.base.Strings;
 import io.netty.channel.AbstractChannel;
@@ -29,14 +29,7 @@ import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,17 +38,15 @@ import org.slf4j.LoggerFactory;
  * @see io.netty.channel.ChannelHandlerContext#writeAndFlush
  * @see io.netty.channel.Channel#writeAndFlush
  */
-public class SimpleChannel<R, W> extends AbstractChannel {
+public class SimpleChannel extends AbstractChannel {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
-    private final String remoteAddress;
-    private final String localAddress;
-    private final long expiredTimeSec;
+    protected final String remoteAddress;
+    protected final String localAddress;
+    protected final long expiredTimeSec;
 
-    private long lastAccessTime;
-
-    protected final ConcurrentMap<Integer, InvocationContext<R, W>> inFlightRequestMap;
+    protected long lastAccessTime;
 
     /**
      * Creates a new instance.
@@ -70,16 +61,14 @@ public class SimpleChannel<R, W> extends AbstractChannel {
         lastAccessTime = System.currentTimeMillis();
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;
-        this.inFlightRequestMap = new ConcurrentHashMap<>();
         this.expiredTimeSec = expiredTimeSec;
     }
 
-    public SimpleChannel(SimpleChannel<R, W> other) {
+    public SimpleChannel(SimpleChannel other) {
         super(other);
-        lastAccessTime = System.currentTimeMillis();
+        lastAccessTime = other.lastAccessTime;
         this.remoteAddress = other.remoteAddress;
         this.localAddress = other.localAddress;
-        this.inFlightRequestMap = other.inFlightRequestMap;
         this.expiredTimeSec = other.expiredTimeSec;
     }
 
@@ -158,19 +147,6 @@ public class SimpleChannel<R, W> extends AbstractChannel {
 
     }
 
-    public boolean isWritable(int opaque) {
-        if (!inFlightRequestMap.containsKey(opaque)) {
-            return false;
-        }
-
-        InvocationContext<R, W> invocationContext = inFlightRequestMap.get(opaque);
-        if (null != invocationContext) {
-            CompletableFuture<?> future = invocationContext.getResponse();
-            return null != future && !future.isCancelled() && !future.isCompletedExceptionally() && !future.isDone();
-        }
-        return false;
-    }
-
     @Override
     public ChannelConfig config() {
         return null;
@@ -198,44 +174,13 @@ public class SimpleChannel<R, W> extends AbstractChannel {
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
-        if (msg instanceof RemotingCommand) {
-            RemotingCommand responseCommand = (RemotingCommand) msg;
-            inFlightRequestMap.remove(responseCommand.getOpaque());
-        }
-
         DefaultChannelPromise promise = new DefaultChannelPromise(this, GlobalEventExecutor.INSTANCE);
         promise.setSuccess();
         return promise;
     }
 
-    public void registerInvocationContext(int opaque, InvocationContext<R, W> context) {
-        inFlightRequestMap.put(opaque, context);
-    }
-
-    public void eraseInvocationContext(int opaque) {
-        inFlightRequestMap.remove(opaque);
-    }
-
-    public void cleanExpiredRequests() {
-        Iterator<Map.Entry<Integer, InvocationContext<R, W>>> iterator = inFlightRequestMap.entrySet().iterator();
-        int count = 0;
-        while (iterator.hasNext()) {
-            Map.Entry<Integer, InvocationContext<R, W>> entry = iterator.next();
-            if (entry.getValue().expired(expiredTimeSec)) {
-                iterator.remove();
-                count++;
-                LOGGER.debug("An expired request is found, created time-point: {}, Request: {}",
-                    entry.getValue().getTimestamp(), entry.getValue().getRequest());
-            }
-        }
-        if (count > 0) {
-            LOGGER.warn("[BUG] {} expired in-flight requests is cleaned.", count);
-        }
-    }
-
-    public SimpleChannel<R, W> updateLastAccessTime() {
+    public void updateLastAccessTime() {
         lastAccessTime = System.currentTimeMillis();
-        return this;
     }
 }
 

@@ -52,6 +52,7 @@ import apache.rocketmq.v1.ReportThreadStackTraceRequest;
 import apache.rocketmq.v1.ReportThreadStackTraceResponse;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
+import com.google.rpc.Code;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -63,11 +64,12 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.adapter.channel.ChannelManager;
+import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
-import org.apache.rocketmq.proxy.grpc.adapter.channel.SimpleChannelHandlerContext;
+import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,11 +80,11 @@ public class LocalGrpcService implements GrpcForwardService {
     private final BrokerController brokerController;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryImpl("LocalGrpcServiceScheduledThread"));
-    private final ChannelManager<SendMessageRequest, SendMessageResponse> sendChannelManager;
+    private final ChannelManager sendChannelManager;
 
     public LocalGrpcService(BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.sendChannelManager = new ChannelManager<>();
+        this.sendChannelManager = new ChannelManager();
     }
 
     @Override public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
@@ -90,11 +92,16 @@ public class LocalGrpcService implements GrpcForwardService {
     }
 
     @Override public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+
         return null;
     }
 
     @Override public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
-        return null;
+        LOGGER.trace("Received health check request from client: {}", request.getClientHost());
+        final HealthCheckResponse response = HealthCheckResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
+            .build();
+        return CompletableFuture.completedFuture(response);
     }
 
     @Override

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.adapter.channel;
+package org.apache.rocketmq.proxy.channel;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
