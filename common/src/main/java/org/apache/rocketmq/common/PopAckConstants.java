@@ -32,4 +32,13 @@ public class PopAckConstants {
     public static final String ACK_TAG = "ack";
     public static final String SPLIT = "@";
 
+    /**
+     * Build cluster revive topic
+     *
+     * @param clusterName cluster name
+     * @return revive topic
+     */
+    public static String buildClusterReviveTopic(String clusterName) {
+        return PopAckConstants.REVIVE_TOPIC + clusterName;
+    }
 }

@@ -27,6 +27,19 @@ public class QueueData implements Comparable<QueueData> {
     private int perm;
     private int topicSysFlag;
 
+    public QueueData() {
+
+    }
+
+    // Deep copy QueueData
+    public QueueData(QueueData queueData) {
+        this.brokerName = queueData.brokerName;
+        this.readQueueNums = queueData.readQueueNums;
+        this.writeQueueNums = queueData.writeQueueNums;
+        this.perm = queueData.perm;
+        this.topicSysFlag = queueData.topicSysFlag;
+    }
+
     public int getReadQueueNums() {
         return readQueueNums;
     }

@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
@@ -37,6 +39,9 @@ public class TopicRouteData extends RemotingSerializable {
     private Map<String/*brokerName*/, TopicQueueMappingInfo> topicQueueMappingByBroker;
 
     public TopicRouteData() {
+        queueDatas = new ArrayList<QueueData>();
+        brokerDatas = new ArrayList<BrokerData>();
+        filterServerTable = new HashMap<String, List<String>>();
     }
 
     public TopicRouteData(TopicRouteData topicRouteData) {
@@ -60,6 +65,54 @@ public class TopicRouteData extends RemotingSerializable {
         if (topicRouteData.topicQueueMappingByBroker != null) {
             this.topicQueueMappingByBroker = new HashMap<String, TopicQueueMappingInfo>(topicRouteData.topicQueueMappingByBroker);
         }
+    }
+
+    public TopicRouteData cloneTopicRouteData() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+
+        topicRouteData.setOrderTopicConf(this.orderTopicConf);
+
+        topicRouteData.getQueueDatas().addAll(this.queueDatas);
+        topicRouteData.getBrokerDatas().addAll(this.brokerDatas);
+        topicRouteData.getFilterServerTable().putAll(this.filterServerTable);
+        if (this.topicQueueMappingByBroker != null) {
+            Map<String, TopicQueueMappingInfo> cloneMap = new HashMap<>(this.topicQueueMappingByBroker);
+            topicRouteData.setTopicQueueMappingByBroker(cloneMap);
+        }
+        return topicRouteData;
+    }
+
+    public TopicRouteData deepCloneTopicRouteData() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+
+        topicRouteData.setOrderTopicConf(this.orderTopicConf);
+
+        for (final QueueData queueData : this.queueDatas) {
+            topicRouteData.getQueueDatas().add(new QueueData(queueData));
+        }
+
+        for (final BrokerData brokerData : this.brokerDatas) {
+            topicRouteData.getBrokerDatas().add(new BrokerData(brokerData));
+        }
+
+        for (final Map.Entry<String, List<String>> listEntry : this.filterServerTable.entrySet()) {
+            topicRouteData.getFilterServerTable().put(listEntry.getKey(),
+                new ArrayList<String>(listEntry.getValue()));
+        }
+        if (this.topicQueueMappingByBroker != null) {
+            Map<String, TopicQueueMappingInfo> cloneMap = new HashMap<>(this.topicQueueMappingByBroker.size());
+            for (final Map.Entry<String, TopicQueueMappingInfo> entry : this.getTopicQueueMappingByBroker().entrySet()) {
+                TopicQueueMappingInfo topicQueueMappingInfo = new TopicQueueMappingInfo(entry.getValue().getTopic(), entry.getValue().getTotalQueues(), entry.getValue().getBname(), entry.getValue().getEpoch());
+                topicQueueMappingInfo.setDirty(entry.getValue().isDirty());
+                topicQueueMappingInfo.setScope(entry.getValue().getScope());
+                ConcurrentMap<Integer, Integer> concurrentMap = new ConcurrentHashMap<Integer, Integer>(entry.getValue().getCurrIdMap());
+                topicQueueMappingInfo.setCurrIdMap(concurrentMap);
+                cloneMap.put(entry.getKey(), topicQueueMappingInfo);
+            }
+            topicRouteData.setTopicQueueMappingByBroker(cloneMap);
+        }
+
+        return topicRouteData;
     }
 
     public List<QueueData> getQueueDatas() {

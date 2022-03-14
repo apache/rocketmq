@@ -74,7 +74,10 @@ public class MixAll {
     public static final String LOCALHOST = localhost();
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
+    public static final long FIRST_SLAVE_ID = 1L;
     public static final long CURRENT_JVM_PID = getPID();
+    public final static int UNIT_PRE_SIZE_FOR_MSG = 28;
+
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String REPLY_TOPIC_POSTFIX = "REPLY_TOPIC";
@@ -90,6 +93,7 @@ public class MixAll {
     public static final String LOGICAL_QUEUE_MOCK_BROKER_PREFIX = "__syslo__";
     public static final String METADATA_SCOPE_GLOBAL = "__global__";
     public static final String LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST = "__syslo__none__";
+    public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
 
     public static String getWSAddr() {
         String wsDomainName = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);

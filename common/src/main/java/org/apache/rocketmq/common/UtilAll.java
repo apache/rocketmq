@@ -21,10 +21,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -229,7 +233,6 @@ public class UtilAll {
                 return -1;
             }
 
-
             long totalSpace = file.getTotalSpace();
 
             if (totalSpace > 0) {
@@ -249,6 +252,25 @@ public class UtilAll {
         }
 
         return -1;
+    }
+
+    public static long getDiskPartitionTotalSpace(final String path) {
+        if (null == path || path.isEmpty()) {
+            return -1;
+        }
+
+        try {
+            File file = new File(path);
+
+
+            if (!file.exists()) {
+                return -1;
+            }
+
+            return file.getTotalSpace() -  file.getFreeSpace() + file.getUsableSpace();
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public static int crc32(byte[] array) {
@@ -618,5 +640,89 @@ public class UtilAll {
 
         String[] addrArray = str.split(splitter);
         return Arrays.asList(addrArray);
+    }
+
+    public static void deleteEmptyDirectory(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        if (!file.isDirectory()) {
+            return;
+        }
+        File[] files = file.listFiles();
+        if (files == null || files.length <= 0) {
+            file.delete();
+            log.info("delete empty direct, {}", file.getPath());
+        }
+    }
+
+    public static void cleanBuffer(final ByteBuffer buffer) {
+        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0) {
+            return;
+        }
+        invoke(invoke(viewed(buffer), "cleaner"), "clean");
+    }
+
+    public static Object invoke(final Object target, final String methodName, final Class<?>... args) {
+        return AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                try {
+                    Method method = method(target, methodName, args);
+                    method.setAccessible(true);
+                    return method.invoke(target);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
+    }
+
+    public static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
+        try {
+            return target.getClass().getMethod(methodName, args);
+        } catch (NoSuchMethodException e) {
+            return target.getClass().getDeclaredMethod(methodName, args);
+        }
+    }
+
+    private static ByteBuffer viewed(ByteBuffer buffer) {
+        String methodName = "viewedBuffer";
+
+        Method[] methods = buffer.getClass().getMethods();
+        for (Method method : methods) {
+            if (method.getName().equals("attachment")) {
+                methodName = "attachment";
+                break;
+            }
+        }
+
+        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, methodName);
+        if (viewedBuffer == null) {
+            return buffer;
+        } else {
+            return viewed(viewedBuffer);
+        }
+    }
+
+    public static void ensureDirOK(final String dirName) {
+        if (dirName != null) {
+            if (dirName.contains(MixAll.MULTI_PATH_SPLITTER)) {
+                String[] dirs = dirName.trim().split(MixAll.MULTI_PATH_SPLITTER);
+                for (String dir : dirs) {
+                    createDirIfNotExist(dir);
+                }
+            } else {
+                createDirIfNotExist(dirName);
+            }
+        }
+    }
+
+    private static void  createDirIfNotExist(String dirName) {
+        File f = new File(dirName);
+        if (!f.exists()) {
+            boolean result = f.mkdirs();
+            log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
+        }
     }
 }

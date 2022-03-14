@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class LockBatchRequestBody extends RemotingSerializable {
     private String consumerGroup;
     private String clientId;
+    private boolean onlyThisBroker = false;
     private Set<MessageQueue> mqSet = new HashSet<MessageQueue>();
 
     public String getConsumerGroup() {
@@ -41,6 +42,14 @@ public class LockBatchRequestBody extends RemotingSerializable {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+
+    public boolean isOnlyThisBroker() {
+        return onlyThisBroker;
+    }
+
+    public void setOnlyThisBroker(boolean onlyThisBroker) {
+        this.onlyThisBroker = onlyThisBroker;
     }
 
     public Set<MessageQueue> getMqSet() {
