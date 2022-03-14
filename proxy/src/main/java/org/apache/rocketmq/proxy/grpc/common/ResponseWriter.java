@@ -40,7 +40,7 @@ public class ResponseWriter {
         }
     }
 
-    public static <T> void writeException(StreamObserver<T> observer, final Exception e) {
+    public static <T> void writeException(StreamObserver<T> observer, final Throwable e) {
         if (observer instanceof ServerCallStreamObserver) {
             final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
             if (null == e) {
