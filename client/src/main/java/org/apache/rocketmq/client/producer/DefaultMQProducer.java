@@ -954,8 +954,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Sets an Executor to be used for executing callback methods. If the Executor is not set, {@link
-     * NettyRemotingClient#publicExecutor} will be used.
+     * Sets an Executor to be used for executing callback methods.
      *
      * @param callbackExecutor the instance of Executor
      */
@@ -964,8 +963,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Sets an Executor to be used for executing asynchronous send. If the Executor is not set, {@link
-     * DefaultMQProducerImpl#defaultAsyncSenderExecutor} will be used.
+     * Sets an Executor to be used for executing asynchronous send.
      *
      * @param asyncSenderExecutor the instance of Executor
      */

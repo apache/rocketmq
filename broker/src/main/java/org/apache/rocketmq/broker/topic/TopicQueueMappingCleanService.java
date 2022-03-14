@@ -68,6 +68,9 @@ public class TopicQueueMappingCleanService extends ServiceThread {
 
     @Override
     public String getServiceName() {
+        if (this.brokerConfig.isInBrokerContainer()) {
+            return this.brokerConfig.getLoggerIdentifier() + TopicQueueMappingCleanService.class.getSimpleName();
+        }
         return TopicQueueMappingCleanService.class.getSimpleName();
     }
 

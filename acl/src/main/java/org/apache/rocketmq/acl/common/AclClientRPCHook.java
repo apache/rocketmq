@@ -56,6 +56,10 @@ public class AclClientRPCHook implements RPCHook {
 
     }
 
+    @Override public void doAfterRpcFailure(String remoteAddr, RemotingCommand request, Boolean remoteTimeout) {
+
+    }
+
     protected SortedMap<String, String> parseRequestContent(RemotingCommand request, String ak, String securityToken) {
         CommandCustomHeader header = request.readCustomHeader();
         // Sort property

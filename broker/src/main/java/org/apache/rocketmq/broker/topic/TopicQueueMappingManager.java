@@ -133,11 +133,11 @@ public class TopicQueueMappingManager extends ConfigManager {
     public void delete(final String topic) {
         TopicQueueMappingDetail old = this.topicQueueMappingTable.remove(topic);
         if (old != null) {
-            log.info("delete topic queue mapping OK, topic queue mapping: {}", old);
+            log.info("delete topic queue mapping OK, static topic queue mapping: {}", old);
             this.dataVersion.nextVersion();
             this.persist();
         } else {
-            log.warn("delete topic queue mapping failed, topic: {} not exists", topic);
+            log.warn("delete topic queue mapping failed, static topic: {} not exists", topic);
         }
     }
 
