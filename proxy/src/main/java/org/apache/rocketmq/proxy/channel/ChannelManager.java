@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.adapter.channel;
+package org.apache.rocketmq.proxy.channel;
 
 import com.google.common.base.Strings;
 import io.grpc.Context;
@@ -25,16 +25,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ChannelManager<R, W> {
+public class ChannelManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private final ConcurrentMap<String, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
 
-    private final ConcurrentMap<String, SimpleChannel<R, W>> clientIdChannelMap = new ConcurrentHashMap<>();
-
-    public SimpleChannel<R, W> createChannel() {
+    public SimpleChannel createChannel() {
         final String clientId = anonymousChannelId();
         if (Strings.isNullOrEmpty(clientId)) {
             LOGGER.warn("ClientId is unexpected null or empty");
@@ -45,8 +45,9 @@ public class ChannelManager<R, W> {
             clientIdChannelMap.putIfAbsent(clientId, createChannelInner());
         }
 
-        return clientIdChannelMap.get(clientId)
-            .updateLastAccessTime();
+        SimpleChannel channel = clientIdChannelMap.get(clientId);
+        channel.updateLastAccessTime();
+        return channel;
     }
 
     private String anonymousChannelId() {
@@ -57,12 +58,12 @@ public class ChannelManager<R, W> {
         return clientHost + "@" + localAddress;
     }
 
-    private SimpleChannel<R, W> createChannelInner() {
+    private SimpleChannel createChannelInner() {
         final String clientHost = InterceptorConstants.METADATA.get(Context.current())
             .get(InterceptorConstants.REMOTE_ADDRESS);
         final String localAddress = InterceptorConstants.METADATA.get(Context.current())
             .get(InterceptorConstants.LOCAL_ADDRESS);
-        return new SimpleChannel<>(null, clientHost, localAddress, ConfigurationManager.getProxyConfig().getExpiredChannelTimeSec());
+        return new SimpleChannel(null, clientHost, localAddress, ConfigurationManager.getProxyConfig().getExpiredChannelTimeSec());
     }
 
     /**
@@ -70,16 +71,18 @@ public class ChannelManager<R, W> {
      */
     public void scanAndCleanChannels() {
         try {
-            Iterator<Map.Entry<String, SimpleChannel<R, W>>> iterator = clientIdChannelMap.entrySet()
+            Iterator<Map.Entry<String, SimpleChannel>> iterator = clientIdChannelMap.entrySet()
                 .iterator();
             while (iterator.hasNext()) {
-                Map.Entry<String, SimpleChannel<R, W>> entry = iterator.next();
+                Map.Entry<String, SimpleChannel> entry = iterator.next();
                 if (!entry.getValue()
                     .isActive()) {
                     iterator.remove();
                 } else {
-                    entry.getValue()
-                        .cleanExpiredRequests();
+                    if (entry.getValue() instanceof SendMessageChannel) {
+                        SendMessageChannel channel = (SendMessageChannel) entry.getValue();
+                        channel.cleanExpiredRequests();
+                    }
                 }
             }
         } catch (Throwable e) {

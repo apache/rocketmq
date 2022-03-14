@@ -17,20 +17,36 @@
 
 package org.apache.rocketmq.proxy.grpc;
 
+import apache.rocketmq.v1.HealthCheckRequest;
+import apache.rocketmq.v1.HealthCheckResponse;
+import apache.rocketmq.v1.HeartbeatRequest;
+import apache.rocketmq.v1.HeartbeatResponse;
 import apache.rocketmq.v1.MessagingServiceGrpc;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.grpc.common.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServiceImplBase {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
     private final GrpcForwardService grpcForwardService;
 
     public GrpcMessagingProcessor(GrpcForwardService grpcForwardService) {
         this.grpcForwardService = grpcForwardService;
+    }
+
+    public void heartbeat(HeartbeatRequest request, StreamObserver<HeartbeatResponse> responseObserver) {
+
+    }
+
+    @Override
+    public void healthCheck(HealthCheckRequest request, StreamObserver<HealthCheckResponse> responseObserver) {
     }
 
     @Override
