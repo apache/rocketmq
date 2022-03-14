@@ -23,4 +23,9 @@ public interface RemotingService {
     void shutdown();
 
     void registerRPCHook(RPCHook rpcHook);
+
+    /**
+     * Remove all rpc hooks.
+     */
+    void clearRPCHook();
 }

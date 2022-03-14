@@ -123,8 +123,7 @@ public class RemotingCommand {
         return createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, "not set any response code", classHeader);
     }
 
-    public static RemotingCommand buildErrorResponse(int code, String remark,
-        Class<? extends CommandCustomHeader> classHeader) {
+    public static RemotingCommand buildErrorResponse(int code, String remark, Class<? extends CommandCustomHeader> classHeader) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(classHeader);
         response.setCode(code);
         response.setRemark(remark);
@@ -256,9 +255,8 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
-    public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
-        CommandCustomHeader objectHeader;
+    public <T extends CommandCustomHeader> T decodeCommandCustomHeader(Class<T> classHeader) throws RemotingCommandException {
+        T objectHeader;
         try {
             objectHeader = classHeader.newInstance();
         } catch (InstantiationException e) {
