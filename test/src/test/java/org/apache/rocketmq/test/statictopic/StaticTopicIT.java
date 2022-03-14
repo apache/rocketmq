@@ -46,6 +46,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -97,6 +98,7 @@ public class StaticTopicIT extends BaseConf {
         }
     }
 
+    @Ignore
     @Test
     public void testCommandsWithBrokers() throws Exception {
         //This case is used to mock the env to test the command manually
