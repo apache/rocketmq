@@ -447,9 +447,9 @@ public class ScheduleMessageService extends ConfigManager {
 
                     boolean deliverSuc;
                     if (ScheduleMessageService.this.enableAsyncDeliver) {
-                        deliverSuc = this.asyncDeliver(msgInner, msgExt.getMsgId(), offset, offsetPy, sizePy);
+                        deliverSuc = this.asyncDeliver(msgInner, msgExt.getMsgId(), nextOffset, offsetPy, sizePy);
                     } else {
-                        deliverSuc = this.syncDeliver(msgInner, msgExt.getMsgId(), offset, offsetPy, sizePy);
+                        deliverSuc = this.syncDeliver(msgInner, msgExt.getMsgId(), nextOffset, offsetPy, sizePy);
                     }
 
                     if (!deliverSuc) {
@@ -787,24 +787,22 @@ public class ScheduleMessageService extends ConfigManager {
     public enum ProcessStatus {
         /**
          * In process, the processing result has not yet been returned.
-         * */
+         */
         RUNNING,
 
         /**
          * Put message success.
-         * */
+         */
         SUCCESS,
 
         /**
-         * Put message exception.
-         * When autoResend is true, the message will be resend.
-         * */
+         * Put message exception. When autoResend is true, the message will be resend.
+         */
         EXCEPTION,
 
         /**
-         * Skip put message.
-         * When the message cannot be looked, the message will be skipped.
-         * */
+         * Skip put message. When the message cannot be looked, the message will be skipped.
+         */
         SKIP,
     }
 }
