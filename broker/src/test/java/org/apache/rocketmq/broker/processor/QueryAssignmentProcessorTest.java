@@ -126,7 +126,6 @@ public class QueryAssignmentProcessorTest {
         assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
     }
 
-
     @Test
     public void testAllocate4Pop() {
         testAllocate4Pop(new AllocateMessageQueueAveragely());

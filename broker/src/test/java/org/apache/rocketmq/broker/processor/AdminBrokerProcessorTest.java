@@ -20,11 +20,14 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -57,17 +60,11 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.AppendMessageResult;
-import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
-import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,11 +73,9 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.LongAdder;
@@ -159,16 +154,13 @@ public class AdminBrokerProcessorTest {
         when(channel.remoteAddress()).thenReturn(new InetSocketAddress("127.0.0.1", 12345));
 
         topic = "FooBar" + System.nanoTime();
-        TopicConfigManager topicConfigManager = brokerController.getTopicConfigManager();
-        topicConfigManager.updateTopicConfig(new TopicConfig(topic));
+
+        brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig(topic));
     }
 
     @Test
     public void testProcessRequest_success() throws RemotingCommandException, UnknownHostException {
-        RemotingCommand request = createResumeCheckHalfMessageCommand();
-        when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
-            (PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        RemotingCommand request = createUpdateBrokerConfigCommand();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -177,8 +169,6 @@ public class AdminBrokerProcessorTest {
     public void testProcessRequest_fail() throws RemotingCommandException, UnknownHostException {
         RemotingCommand request = createResumeCheckHalfMessageCommand();
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
-        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult
-            (PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
     }
@@ -433,18 +423,20 @@ public class AdminBrokerProcessorTest {
     public void testGetAllDelayOffset() throws Exception {
         defaultMessageStore = mock(DefaultMessageStore.class);
         scheduleMessageService = mock(ScheduleMessageService.class);
-        when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
-        when(defaultMessageStore.getScheduleMessageService()).thenReturn(scheduleMessageService);
+//        when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
+        when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
         when(scheduleMessageService.encode()).thenReturn("content");
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
+
     @Test
     public void testGetTopicConfig() throws Exception {
         String topic = "foobar";
-        brokerController.getTopicConfigManager().updateTopicConfig(new TopicConfig(topic));
+
+        brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig(topic));
 
         {
             GetTopicConfigRequestHeader requestHeader = new GetTopicConfigRequestHeader();
@@ -465,9 +457,6 @@ public class AdminBrokerProcessorTest {
             assertThat(response.getRemark()).contains("No topic in this broker.");
         }
     }
-
-
-
 
     private RemotingCommand buildCreateTopicRequest(String topic) {
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
@@ -517,6 +506,12 @@ public class AdminBrokerProcessorTest {
     private RemotingCommand createResumeCheckHalfMessageCommand() {
         ResumeCheckHalfMessageRequestHeader header = createResumeCheckHalfMessageRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RESUME_CHECK_HALF_MESSAGE, header);
+        request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private RemotingCommand createUpdateBrokerConfigCommand() {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_BROKER_CONFIG, null);
         request.makeCustomHeaderToNet();
         return request;
     }

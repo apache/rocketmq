@@ -164,9 +164,6 @@ public class MQClientInstance {
             MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION), RemotingCommand.getSerializeTypeConfigInThisServer());
     }
 
-
-
-
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
         // TO DO should check the usage of raw route, it is better to remove such field
@@ -672,7 +669,7 @@ public class MQClientInstance {
                             }
 
                             // Update Pub info
-                            if (!producerTable.isEmpty()) {
+                            {
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
                                 publishInfo.setHaveTopicRouterInfo(true);
                                 Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
@@ -697,7 +694,7 @@ public class MQClientInstance {
                                     }
                                 }
                             }
-                            TopicRouteData cloneTopicRouteData =  new TopicRouteData(topicRouteData);
+                            TopicRouteData cloneTopicRouteData = new TopicRouteData(topicRouteData);
                             log.info("topicRouteTable.put. Topic = {}, TopicRouteData[{}]", topic, cloneTopicRouteData);
                             this.topicRouteTable.put(topic, cloneTopicRouteData);
                             return true;
@@ -1023,7 +1020,6 @@ public class MQClientInstance {
         return this.consumerTable.get(group);
     }
 
-
     public String getBrokerNameFromMessageQueue(final MessageQueue mq) {
         if (topicEndPointsTable != null
             && topicEndPointsTable.get(mq.getTopic()) != null
@@ -1032,7 +1028,6 @@ public class MQClientInstance {
         }
         return mq.getBrokerName();
     }
-
 
     public FindBrokerResult findBrokerAddressInAdmin(final String brokerName) {
         if (brokerName == null) {
@@ -1067,7 +1062,6 @@ public class MQClientInstance {
         return null;
     }
 
-
     public String findBrokerAddressInPublish(final String brokerName) {
         if (brokerName == null) {
             return null;
@@ -1079,7 +1073,6 @@ public class MQClientInstance {
 
         return null;
     }
-
 
     public FindBrokerResult findBrokerAddressInSubscribe(
         final String brokerName,
@@ -1147,7 +1140,8 @@ public class MQClientInstance {
         return null;
     }
 
-    public Set<MessageQueueAssignment> queryAssignment(final String topic, final String consumerGroup, final String strategyName, final MessageModel messageModel, int timeout)
+    public Set<MessageQueueAssignment> queryAssignment(final String topic, final String consumerGroup,
+        final String strategyName, final MessageModel messageModel, int timeout)
         throws RemotingException, InterruptedException, MQBrokerException {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
         if (null == brokerAddr) {
@@ -1156,7 +1150,7 @@ public class MQClientInstance {
         }
 
         if (null != brokerAddr) {
-            return this.mQClientAPIImpl.queryAssignment(brokerAddr, topic, consumerGroup, clientId,  strategyName,
+            return this.mQClientAPIImpl.queryAssignment(brokerAddr, topic, consumerGroup, clientId, strategyName,
                 messageModel, timeout);
         }
 

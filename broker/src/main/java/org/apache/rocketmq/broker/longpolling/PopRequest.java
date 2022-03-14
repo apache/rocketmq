@@ -16,11 +16,13 @@
  */
 package org.apache.rocketmq.broker.longpolling;
 
-import io.netty.channel.Channel;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import io.netty.channel.Channel;
 
 public class PopRequest {
     private static final AtomicLong COUNTER = new AtomicLong(Long.MIN_VALUE);

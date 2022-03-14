@@ -21,6 +21,7 @@ import io.netty.channel.ChannelHandlerContext;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
@@ -30,7 +31,6 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
-import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,7 +41,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PopBufferMergeServiceTest {
@@ -63,10 +62,7 @@ public class PopBufferMergeServiceTest {
         FieldUtils.writeField(brokerController.getBrokerConfig(), "enablePopBufferMerge", true, true);
         brokerController.setMessageStore(messageStore);
         popMessageProcessor = new PopMessageProcessor(brokerController);
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setMessageDelayLevel("5s 10s");
-        when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-        scheduleMessageService = new ScheduleMessageService(messageStore);
+        scheduleMessageService = new ScheduleMessageService(brokerController);
         scheduleMessageService.parseDelayLevel();
         Channel mockChannel = mock(Channel.class);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());

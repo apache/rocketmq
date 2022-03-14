@@ -29,6 +29,7 @@ public abstract class BaseInvokeCallback implements InvokeCallback {
 
     @Override
     public void operationComplete(final ResponseFuture responseFuture) {
+        mqClientAPI.execRpcHooksAfterRequest(responseFuture);
         onComplete(responseFuture);
     }
 

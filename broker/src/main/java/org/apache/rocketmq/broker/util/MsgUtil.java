@@ -25,10 +25,10 @@ public final class MsgUtil {
     }
 
     public static void setMessageDeliverTime(BrokerController brokerController, Message msgInner, long timeMillis) {
-        msgInner.setDelayTimeLevel(brokerController.getMessageStore().getScheduleMessageService().computeDelayLevel(timeMillis));
+        msgInner.setDelayTimeLevel(brokerController.getScheduleMessageService().computeDelayLevel(timeMillis));
     }
 
     public static long getMessageDeliverTime(BrokerController brokerController, MessageExt msgInner) {
-        return brokerController.getMessageStore().getScheduleMessageService().computeDeliverTimestamp(msgInner.getDelayTimeLevel(), msgInner.getStoreTimestamp());
+        return brokerController.getScheduleMessageService().computeDeliverTimestamp(msgInner.getDelayTimeLevel(), msgInner.getStoreTimestamp());
     }
 }

@@ -32,17 +32,16 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 
 /**
  * EndTransaction processor: process commit and rollback message
  */
-public class EndTransactionProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
+public class EndTransactionProcessor implements NettyRequestProcessor {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
     private final BrokerController brokerController;
 
@@ -231,7 +230,7 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
                     response.setRemark(null);
                     break;
                 // Failed
-                case CREATE_MAPEDFILE_FAILED:
+                case CREATE_MAPPED_FILE_FAILED:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("Create mapped file failed.");
                     break;
@@ -244,7 +243,7 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
                     response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                     response.setRemark("Service not available now.");
                     break;
-                case OS_PAGECACHE_BUSY:
+                case OS_PAGE_CACHE_BUSY:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("OS page cache busy, please try another machine");
                     break;
