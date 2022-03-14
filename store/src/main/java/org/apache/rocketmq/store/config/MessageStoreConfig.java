@@ -24,8 +24,6 @@ import java.io.File;
 
 public class MessageStoreConfig {
 
-    public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
-
     //The root directory in which the log data is kept
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
@@ -91,6 +89,8 @@ public class MessageStoreConfig {
     // The number of hours to keep a log file before deleting it (in hours)
     @ImportantField
     private int fileReservedTime = 72;
+    @ImportantField
+    private int deleteFileBatchMax = 10;
     // Flow control for ConsumeQueue
     private int putMsgIndexHightWater = 600000;
     // The maximum size of message,default is 4M
@@ -130,15 +130,22 @@ public class MessageStoreConfig {
     private int haListenPort = 10912;
     private int haSendHeartbeatInterval = 1000 * 5;
     private int haHousekeepingInterval = 1000 * 20;
+    /**
+     * Maximum size of data to transfer to slave.
+     * NOTE: cannot be larger than HAClient.READ_MAX_BUFFER_SIZE
+     */
     private int haTransferBatchSize = 1024 * 32;
     @ImportantField
     private String haMasterAddress = null;
-    private int haSlaveFallbehindMax = 1024 * 1024 * 256;
+    private int haMaxGapNotInSync = 1024 * 1024 * 256;
     @ImportantField
     private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
+    // Used by GroupTransferService to sync messages from master to slave
     private int syncFlushTimeout = 1000 * 5;
+    // Used by PutMessage to wait messages be flushed to disk and synchronized in current broker member group.
+    private int putMessageTimeout = 1000 * 8;
     private int slaveTimeout = 3000;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;
@@ -157,16 +164,23 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    // DLedger message store config
     private boolean enableDLegerCommitLog = false;
     private String dLegerGroup;
     private String dLegerPeers;
     private String dLegerSelfId;
-
     private String preferredLeaderId;
-
     private boolean isEnableBatchPush = false;
 
     private boolean enableScheduleMessageStats = true;
+
+    private boolean enableLmq = false;
+    private boolean enableMultiDispatch = false;
+    private int maxLmqConsumeQueueNum = 20000;
+
+    private boolean enableScheduleAsyncDeliver = false;
+    private int scheduleAsyncDeliverMaxPendingLimit = 2000;
+    private int scheduleAsyncDeliverMaxResendNum2Blocked = 3;
 
     private int maxBatchDeleteFilesNum = 50;
     //Polish dispatch
@@ -210,13 +224,66 @@ public class MessageStoreConfig {
 
     private int pullBatchMaxMessageCount = 160;
 
-    private boolean enableLmq = false;
-    private boolean enableMultiDispatch = false;
-    private int maxLmqConsumeQueueNum = 20000;
+    @ImportantField
+    private int totalReplicas = 1;
 
-    private boolean enableScheduleAsyncDeliver = false;
-    private int scheduleAsyncDeliverMaxPendingLimit = 2000;
-    private int scheduleAsyncDeliverMaxResendNum2Blocked = 3;
+    /**
+     * Each message must be written successfully to at least in-sync replicas.
+     * The master broker is considered one of the in-sync replicas, and it's included in the count of total.
+     * If a master broker is ASYNC_MASTER, inSyncReplicas will be ignored.
+     */
+    @ImportantField
+    private int inSyncReplicas = 1;
+
+    /**
+     * Will be worked in auto multiple replicas mode, to provide minimum in-sync replicas.
+     */
+    @ImportantField
+    private int minInSyncReplicas = 1;
+
+    /**
+     * Dynamically adjust in-sync replicas to provide higher availability, the real time in-sync replicas
+     * will smaller than inSyncReplicas config.
+     */
+    @ImportantField
+    private boolean enableAutoInSyncReplicas = false;
+
+    /**
+     * Enable or not ha flow control
+     */
+    @ImportantField
+    private boolean haFlowControlEnable = false;
+
+    /**
+     * The max speed for one slave when transfer data in ha
+     */
+    private long maxHaTransferByteInSecond = 100 * 1024 * 1024;
+
+    /**
+     * Sync flush offset from master when broker startup, used in upgrading from old version broker.
+     */
+    private boolean syncMasterFlushOffsetWhenStartup = false;
+
+    /**
+     * Max checksum range.
+     */
+    private long maxChecksumRange = 1024 * 1024 * 1024;
+
+    private int replicasPerDiskPartition = 1;
+
+    private double logicalDiskSpaceCleanForciblyThreshold = 0.8;
+
+    /**
+     * 1. Register to broker after (startTime + disappearTimeAfterStart)
+     * 2. Internal msg exchange will start after (startTime + disappearTimeAfterStart)
+     *  PopReviveService
+     */
+    @ImportantField
+    private int disappearTimeAfterStart = -1;
+
+    private long maxSlaveResendLength = 256 * 1024 * 1024;
+
+    private boolean syncFromMinOffset = false;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -602,12 +669,12 @@ public class MessageStoreConfig {
         this.haTransferBatchSize = haTransferBatchSize;
     }
 
-    public int getHaSlaveFallbehindMax() {
-        return haSlaveFallbehindMax;
+    public int getHaMaxGapNotInSync() {
+        return haMaxGapNotInSync;
     }
 
-    public void setHaSlaveFallbehindMax(int haSlaveFallbehindMax) {
-        this.haSlaveFallbehindMax = haSlaveFallbehindMax;
+    public void setHaMaxGapNotInSync(int haMaxGapNotInSync) {
+        this.haMaxGapNotInSync = haMaxGapNotInSync;
     }
 
     public FlushDiskType getFlushDiskType() {
@@ -628,6 +695,14 @@ public class MessageStoreConfig {
 
     public void setSyncFlushTimeout(int syncFlushTimeout) {
         this.syncFlushTimeout = syncFlushTimeout;
+    }
+
+    public int getPutMessageTimeout() {
+        return putMessageTimeout;
+    }
+
+    public void setPutMessageTimeout(int putMessageTimeout) {
+        this.putMessageTimeout = putMessageTimeout;
     }
 
     public int getSlaveTimeout() {
@@ -1033,6 +1108,118 @@ public class MessageStoreConfig {
 
     public void setPullBatchMaxMessageCount(int pullBatchMaxMessageCount) {
         this.pullBatchMaxMessageCount = pullBatchMaxMessageCount;
+    }
+
+    public int getDeleteFileBatchMax() {
+        return deleteFileBatchMax;
+    }
+
+    public void setDeleteFileBatchMax(int deleteFileBatchMax) {
+        this.deleteFileBatchMax = deleteFileBatchMax;
+    }
+
+    public int getTotalReplicas() {
+        return totalReplicas;
+    }
+
+    public void setTotalReplicas(int totalReplicas) {
+        this.totalReplicas = totalReplicas;
+    }
+
+    public int getInSyncReplicas() {
+        return inSyncReplicas;
+    }
+
+    public void setInSyncReplicas(int inSyncReplicas) {
+        this.inSyncReplicas = inSyncReplicas;
+    }
+
+    public int getMinInSyncReplicas() {
+        return minInSyncReplicas;
+    }
+
+    public void setMinInSyncReplicas(int minInSyncReplicas) {
+        this.minInSyncReplicas = minInSyncReplicas;
+    }
+
+    public boolean isEnableAutoInSyncReplicas() {
+        return enableAutoInSyncReplicas;
+    }
+
+    public void setEnableAutoInSyncReplicas(boolean enableAutoInSyncReplicas) {
+        this.enableAutoInSyncReplicas = enableAutoInSyncReplicas;
+    }
+
+    public boolean isHaFlowControlEnable() {
+        return haFlowControlEnable;
+    }
+
+    public void setHaFlowControlEnable(boolean haFlowControlEnable) {
+        this.haFlowControlEnable = haFlowControlEnable;
+    }
+
+    public long getMaxHaTransferByteInSecond() {
+        return maxHaTransferByteInSecond;
+    }
+
+    public void setMaxHaTransferByteInSecond(long maxHaTransferByteInSecond) {
+        this.maxHaTransferByteInSecond = maxHaTransferByteInSecond;
+    }
+
+    public boolean isSyncMasterFlushOffsetWhenStartup() {
+        return syncMasterFlushOffsetWhenStartup;
+    }
+
+    public void setSyncMasterFlushOffsetWhenStartup(boolean syncMasterFlushOffsetWhenStartup) {
+        this.syncMasterFlushOffsetWhenStartup = syncMasterFlushOffsetWhenStartup;
+    }
+
+    public long getMaxChecksumRange() {
+        return maxChecksumRange;
+    }
+
+    public void setMaxChecksumRange(long maxChecksumRange) {
+        this.maxChecksumRange = maxChecksumRange;
+    }
+
+    public int getReplicasPerDiskPartition() {
+        return replicasPerDiskPartition;
+    }
+
+    public void setReplicasPerDiskPartition(int replicasPerDiskPartition) {
+        this.replicasPerDiskPartition = replicasPerDiskPartition;
+    }
+
+    public double getLogicalDiskSpaceCleanForciblyThreshold() {
+        return logicalDiskSpaceCleanForciblyThreshold;
+    }
+
+    public void setLogicalDiskSpaceCleanForciblyThreshold(double logicalDiskSpaceCleanForciblyThreshold) {
+        this.logicalDiskSpaceCleanForciblyThreshold = logicalDiskSpaceCleanForciblyThreshold;
+    }
+
+    public int getDisappearTimeAfterStart() {
+        return disappearTimeAfterStart;
+    }
+
+    public void setDisappearTimeAfterStart(int disappearTimeAfterStart) {
+        this.disappearTimeAfterStart = disappearTimeAfterStart;
+    }
+
+    public long getMaxSlaveResendLength() {
+        return maxSlaveResendLength;
+    }
+
+    public void setMaxSlaveResendLength(long maxSlaveResendLength) {
+        this.maxSlaveResendLength = maxSlaveResendLength;
+    }
+
+    public boolean isSyncFromMinOffset() {
+        return syncFromMinOffset;
+    }
+
+    public void setSyncFromMinOffset(boolean syncFromMinOffset) {
+        this.syncFromMinOffset = syncFromMinOffset;
     }
 
     public boolean isEnableLmq() {

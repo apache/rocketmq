@@ -19,6 +19,8 @@ package org.apache.rocketmq.store;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.junit.After;
 
@@ -159,7 +161,7 @@ public class StoreTestBase {
 
     public static boolean makeSureFileExists(String fileName) throws Exception {
         File file = new File(fileName);
-        DefaultMappedFile.ensureDirOK(file.getParent());
+        UtilAll.ensureDirOK(file.getParent());
         return file.createNewFile();
     }
 

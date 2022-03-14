@@ -22,30 +22,26 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
-import org.apache.rocketmq.store.MessageExtBatch;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
@@ -90,74 +86,6 @@ public class DefaultMappedFile extends AbstractMappedFile {
         init(fileName, fileSize, transientStorePool);
     }
 
-    public static void ensureDirOK(final String dirName) {
-        if (dirName != null) {
-            if (dirName.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
-                String[] dirs = dirName.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
-                for (String dir : dirs) {
-                    createDirIfNotExist(dir);
-                }
-            } else {
-                createDirIfNotExist(dirName);
-            }
-        }
-    }
-
-    private static void  createDirIfNotExist(String dirName) {
-        File f = new File(dirName);
-        if (!f.exists()) {
-            boolean result = f.mkdirs();
-            log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
-        }
-    }
-
-    public static void clean(final ByteBuffer buffer) {
-        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0)
-            return;
-        invoke(invoke(viewed(buffer), "cleaner"), "clean");
-    }
-
-    private static Object invoke(final Object target, final String methodName, final Class<?>... args) {
-        return AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                try {
-                    Method method = method(target, methodName, args);
-                    method.setAccessible(true);
-                    return method.invoke(target);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
-    }
-
-    private static Method method(Object target, String methodName, Class<?>[] args)
-        throws NoSuchMethodException {
-        try {
-            return target.getClass().getMethod(methodName, args);
-        } catch (NoSuchMethodException e) {
-            return target.getClass().getDeclaredMethod(methodName, args);
-        }
-    }
-
-    private static ByteBuffer viewed(ByteBuffer buffer) {
-        String methodName = "viewedBuffer";
-        Method[] methods = buffer.getClass().getMethods();
-        for (int i = 0; i < methods.length; i++) {
-            if (methods[i].getName().equals("attachment")) {
-                methodName = "attachment";
-                break;
-            }
-        }
-
-        ByteBuffer viewedBuffer = (ByteBuffer) invoke(buffer, methodName);
-        if (viewedBuffer == null)
-            return buffer;
-        else
-            return viewed(viewedBuffer);
-    }
-
     public static int getTotalMappedFiles() {
         return TOTAL_MAPPED_FILES.get();
     }
@@ -181,7 +109,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         this.fileFromOffset = Long.parseLong(this.file.getName());
         boolean ok = false;
 
-        ensureDirOK(this.file.getParent());
+        UtilAll.ensureDirOK(this.file.getParent());
 
         try {
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
@@ -205,6 +133,36 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public long getLastModifiedTimestamp() {
         return this.file.lastModified();
+    }
+
+    public boolean getData(int pos, int size, ByteBuffer byteBuffer) {
+        if (byteBuffer.remaining() < size) {
+            return false;
+        }
+
+        int readPosition = getReadPosition();
+        if ((pos + size) <= readPosition) {
+
+            if (this.hold()) {
+                try {
+                    int readNum = fileChannel.read(byteBuffer, pos);
+                    return size == readNum;
+                } catch (Throwable t) {
+                    log.warn("Get data failed pos:{} size:{} fileFromOffset:{}", pos, size, this.fileFromOffset);
+                    return false;
+                } finally {
+                    this.release();
+                }
+            } else {
+                log.debug("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
+                    + this.fileFromOffset);
+            }
+        } else {
+            log.warn("selectMappedBuffer request pos invalid, request pos: " + pos + ", size: " + size
+                + ", fileFromOffset: " + this.fileFromOffset);
+        }
+
+        return false;
     }
 
     @Override
@@ -495,8 +453,8 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         }
 
-        clean(this.mappedByteBuffer);
-        clean(this.mappedByteBufferWaitToClean);
+        UtilAll.cleanBuffer(this.mappedByteBuffer);
+        UtilAll.cleanBuffer(this.mappedByteBufferWaitToClean);
         this.mappedByteBufferWaitToClean = null;
         TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(this.fileSize * (-1));
         TOTAL_MAPPED_FILES.decrementAndGet();
@@ -636,7 +594,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             if (!force && gapTime < minGapTime) {
                 Thread.sleep(minGapTime - gapTime);
             }
-            clean(this.mappedByteBufferWaitToClean);
+            UtilAll.cleanBuffer(this.mappedByteBufferWaitToClean);
             mappedByteBufferWaitToClean = null;
             log.info("cleanSwapedMap file " + this.fileName + " success.");
         } catch (Exception e) {

@@ -19,7 +19,6 @@ package org.apache.rocketmq.store;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class GetMessageResult {
 
@@ -39,6 +38,7 @@ public class GetMessageResult {
     private boolean suggestPullingFromSlave = false;
 
     private int msgCount4Commercial = 0;
+    private int commercialSizePerMsg = 4 * 1024;
 
     public GetMessageResult() {
         messageMapedList = new ArrayList<>(100);
@@ -97,7 +97,7 @@ public class GetMessageResult {
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
         this.bufferTotalSize += mapedBuffer.getSize();
         this.msgCount4Commercial += (int) Math.ceil(
-            mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
+            mapedBuffer.getSize() /  (double)commercialSizePerMsg);
     }
 
     public void addMessage(final SelectMappedBufferResult mapedBuffer, final long queueOffset) {
@@ -105,7 +105,7 @@ public class GetMessageResult {
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
         this.bufferTotalSize += mapedBuffer.getSize();
         this.msgCount4Commercial += (int) Math.ceil(
-            mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
+            mapedBuffer.getSize() /  (double)commercialSizePerMsg);
         this.messageQueueOffset.add(queueOffset);
     }
 

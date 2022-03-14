@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +28,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -106,8 +108,9 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         if (!mappedFiles.isEmpty()) {
 
             int index = mappedFiles.size() - 3;
-            if (index < 0)
+            if (index < 0) {
                 index = 0;
+            }
 
             int mappedFileSizeLogics = this.mappedFileSize;
             MappedFile mappedFile = mappedFiles.get(index);
@@ -166,6 +169,14 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 this.consumeQueueExt.truncateByMaxAddress(maxExtAddr);
             }
         }
+    }
+
+    public long getTotalSize() {
+        long totalSize = this.mappedFileQueue.getTotalFileSize();
+        if (isExtReadEnable()) {
+            totalSize += this.consumeQueueExt.getTotalSize();
+        }
+        return totalSize;
     }
 
     @Override
@@ -239,12 +250,17 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     @Override
-    public void truncateDirtyLogicFiles(long phyOffet) {
+    public void truncateDirtyLogicFiles(long phyOffset) {
+        truncateDirtyLogicFiles(phyOffset, true);
+    }
+
+    public void truncateDirtyLogicFiles(long phyOffset, boolean deleteFile) {
 
         int logicFileSize = this.mappedFileSize;
 
-        this.maxPhysicOffset = phyOffet;
+        this.maxPhysicOffset = phyOffset;
         long maxExtAddr = 1;
+        boolean shouldDeleteFile = false;
         while (true) {
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
             if (mappedFile != null) {
@@ -260,8 +276,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     long tagsCode = byteBuffer.getLong();
 
                     if (0 == i) {
-                        if (offset >= phyOffet) {
-                            this.mappedFileQueue.deleteLastMappedFile();
+                        if (offset >= phyOffset) {
+                            shouldDeleteFile = true;
                             break;
                         } else {
                             int pos = i + CQ_STORE_UNIT_SIZE;
@@ -278,7 +294,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
                         if (offset >= 0 && size > 0) {
 
-                            if (offset >= phyOffet) {
+                            if (offset >= phyOffset) {
                                 return;
                             }
 
@@ -299,6 +315,15 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                         }
                     }
                 }
+
+                if (shouldDeleteFile) {
+                    if (deleteFile) {
+                        this.mappedFileQueue.deleteLastMappedFile();
+                    } else {
+                        this.mappedFileQueue.deleteExpiredFile(Collections.singletonList(this.mappedFileQueue.getLastMappedFile()));
+                    }
+                }
+
             } else {
                 break;
             }
@@ -399,6 +424,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
+    @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
         final int maxRetries = 30;
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
@@ -695,7 +721,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         private int relativePos = 0;
 
         public ConsumeQueueIterator(SelectMappedBufferResult sbr) {
-            this.sbr = sbr;
+            this.sbr =  sbr;
             if (sbr != null && sbr.getByteBuffer() != null) {
                 relativePos = sbr.getByteBuffer().position();
             }
@@ -715,11 +741,11 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             if (!hasNext()) {
                 return null;
             }
-            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() - relativePos) / CQ_STORE_UNIT_SIZE;
+            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() -  relativePos) / CQ_STORE_UNIT_SIZE;
             CqUnit cqUnit = new CqUnit(queueOffset,
-                sbr.getByteBuffer().getLong(),
-                sbr.getByteBuffer().getInt(),
-                sbr.getByteBuffer().getLong());
+                    sbr.getByteBuffer().getLong(),
+                    sbr.getByteBuffer().getInt(),
+                    sbr.getByteBuffer().getLong());
 
             if (isExtAddr(cqUnit.getTagsCode())) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
@@ -730,7 +756,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 } else {
                     // can't find ext content.Client will filter messages by tag also.
                     log.error("[BUG] can't find consume queue extend file content! addr={}, offsetPy={}, sizePy={}, topic={}",
-                        cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
+                            cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
                 }
             }
             return cqUnit;

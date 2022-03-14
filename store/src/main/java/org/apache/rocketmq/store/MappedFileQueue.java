@@ -28,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Lists;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -38,8 +39,6 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 public class MappedFileQueue implements Swappable {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
-
-    private static final int DELETE_FILES_BATCH_MAX = 10;
 
     protected final String storePath;
 
@@ -221,6 +220,10 @@ public class MappedFileQueue implements Swappable {
         return mappedFileLast;
     }
 
+    public boolean isMappedFilesEmpty() {
+        return this.mappedFiles.isEmpty();
+    }
+
     protected MappedFile tryCreateMappedFile(long createOffset) {
         String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
         String nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset
@@ -343,10 +346,7 @@ public class MappedFileQueue implements Swappable {
         final int deleteFilesInterval,
         final long intervalForcibly,
         final boolean cleanImmediately,
-        int deleteFileBatchMax) {
-        if (deleteFileBatchMax == 0) {
-            deleteFileBatchMax = DELETE_FILES_BATCH_MAX;
-        }
+        final int deleteFileBatchMax) {
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
@@ -355,11 +355,17 @@ public class MappedFileQueue implements Swappable {
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
         List<MappedFile> files = new ArrayList<MappedFile>();
+        int skipFileNum = 0;
         if (null != mfs) {
+            //do check before deleting
+            checkSelf();
             for (int i = 0; i < mfsLength; i++) {
                 MappedFile mappedFile = (MappedFile) mfs[i];
                 long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
                 if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
+                    if (skipFileNum > 0) {
+                        log.info("Delete CommitLog {} but skip {} files", mappedFile.getFileName(), skipFileNum);
+                    }
                     if (mappedFile.destroy(intervalForcibly)) {
                         files.add(mappedFile);
                         deleteCount++;
@@ -378,6 +384,7 @@ public class MappedFileQueue implements Swappable {
                         break;
                     }
                 } else {
+                    skipFileNum++;
                     //avoid deleting files in the middle
                     break;
                 }
@@ -432,6 +439,64 @@ public class MappedFileQueue implements Swappable {
         return deleteCount;
     }
 
+    public int deleteExpiredFileByOffsetForTimerLog(long offset, int checkOffset, int unitSize) {
+        Object[] mfs = this.copyMappedFiles(0);
+
+        List<MappedFile> files = new ArrayList<MappedFile>();
+        int deleteCount = 0;
+        if (null != mfs) {
+
+            int mfsLength = mfs.length - 1;
+
+            for (int i = 0; i < mfsLength; i++) {
+                boolean destroy = false;
+                MappedFile mappedFile = (MappedFile) mfs[i];
+                SelectMappedBufferResult result = mappedFile.selectMappedBuffer(checkOffset);
+                try {
+                    if (result != null) {
+                        int position = result.getByteBuffer().position();
+                        int size = result.getByteBuffer().getInt();//size
+                        result.getByteBuffer().getLong(); //prev pos
+                        int magic = result.getByteBuffer().getInt();
+                        if (size == unitSize && (magic | 0xF) == 0xF) {
+                            result.getByteBuffer().position(position + MixAll.UNIT_PRE_SIZE_FOR_MSG);
+                            long maxOffsetPy = result.getByteBuffer().getLong();
+                            destroy = maxOffsetPy < offset;
+                            if (destroy) {
+                                log.info("physic min commitlog offset " + offset + ", current mappedFile's max offset "
+                                    + maxOffsetPy + ", delete it");
+                            }
+                        } else {
+                            log.warn("Found error data in [{}] checkOffset:{} unitSize:{}", mappedFile.getFileName(),
+                                checkOffset, unitSize);
+                        }
+                    } else if (!mappedFile.isAvailable()) { // Handle hanged file.
+                        log.warn("Found a hanged consume queue file, attempting to delete it.");
+                        destroy = true;
+                    } else {
+                        log.warn("this being not executed forever.");
+                        break;
+                    }
+                } finally {
+                    if (null != result) {
+                        result.release();
+                    }
+                }
+
+                if (destroy && mappedFile.destroy(1000 * 60)) {
+                    files.add(mappedFile);
+                    deleteCount++;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        deleteExpiredFile(files);
+
+        return deleteCount;
+    }
+
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
@@ -449,7 +514,7 @@ public class MappedFileQueue implements Swappable {
         return result;
     }
 
-    public boolean commit(final int commitLeastPages) {
+    public synchronized boolean commit(final int commitLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);
         if (mappedFile != null) {
@@ -680,5 +745,9 @@ public class MappedFileQueue implements Swappable {
 
     public void setCommittedWhere(final long committedWhere) {
         this.committedWhere = committedWhere;
+    }
+
+    public long getTotalFileSize() {
+        return (long) mappedFileSize * mappedFiles.size();
     }
 }

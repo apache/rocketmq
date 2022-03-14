@@ -30,23 +30,22 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.MessageExtBatch;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.apache.rocketmq.store.StoreTestUtil.releaseMmapFilesOnWindows;
-
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 
-public class DLedgerCommitlogTest extends MessageStoreTestBase {
+import static org.apache.rocketmq.store.StoreTestUtil.releaseMmapFilesOnWindows;
 
+public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testTruncateCQ() throws Exception {
@@ -329,7 +328,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         msgInner.setTopic(topic);
         msgInner.setQueueId(0);
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
-        Assert.assertEquals(PutMessageStatus.OS_PAGECACHE_BUSY, putMessageResult.getPutMessageStatus());
+        Assert.assertEquals(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, putMessageResult.getPutMessageStatus());
 
         Thread.sleep(1000);
 
@@ -362,7 +361,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         msgInner.setTopic(topic);
         msgInner.setQueueId(0);
         PutMessageResult putMessageResult = leaderStore.putMessage(msgInner);
-        Assert.assertEquals(PutMessageStatus.OS_PAGECACHE_BUSY, putMessageResult.getPutMessageStatus());
+        Assert.assertEquals(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, putMessageResult.getPutMessageStatus());
 
         Thread.sleep(1000);
 

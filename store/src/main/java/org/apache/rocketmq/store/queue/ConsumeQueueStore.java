@@ -16,21 +16,25 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -79,8 +83,7 @@ public class ConsumeQueueStore {
     }
 
     /**
-     * Apply the dispatched request and build the consume queue.
-     * This function should be idempotent.
+     * Apply the dispatched request and build the consume queue. This function should be idempotent.
      *
      * @param consumeQueue consume queue
      * @param request dispatch request
@@ -144,18 +147,18 @@ public class ConsumeQueueStore {
     private ConsumeQueueInterface createConsumeQueueByType(CQType cqType, String topic, int queueId, String storePath) {
         if (Objects.equals(CQType.SimpleCQ, cqType)) {
             return new ConsumeQueue(
-                    topic,
-                    queueId,
-                    storePath,
-                    this.messageStoreConfig.getMappedFileSizeConsumeQueue(),
-                    this.messageStore);
+                topic,
+                queueId,
+                storePath,
+                this.messageStoreConfig.getMappedFileSizeConsumeQueue(),
+                this.messageStore);
         } else if (Objects.equals(CQType.BatchCQ, cqType)) {
             return new BatchConsumeQueue(
-                    topic,
-                    queueId,
-                    storePath,
-                    this.messageStoreConfig.getMapperFileSizeBatchConsumeQueue(),
-                    this.messageStore);
+                topic,
+                queueId,
+                storePath,
+                this.messageStoreConfig.getMapperFileSizeBatchConsumeQueue(),
+                this.messageStore);
         } else {
             throw new RuntimeException(format("queue type %s is not supported.", cqType.toString()));
         }
@@ -223,7 +226,8 @@ public class ConsumeQueueStore {
         fileQueueLifeCycle.truncateDirtyLogicFiles(phyOffset);
     }
 
-    public void swapMap(ConsumeQueueInterface consumeQueue, int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs) {
+    public void swapMap(ConsumeQueueInterface consumeQueue, int reserveNum, long forceSwapIntervalMs,
+        long normalSwapIntervalMs) {
         FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
         fileQueueLifeCycle.swapMap(reserveNum, forceSwapIntervalMs, normalSwapIntervalMs);
     }
@@ -270,18 +274,18 @@ public class ConsumeQueueStore {
         // TODO maybe the topic has been deleted.
         if (Objects.equals(CQType.BatchCQ, QueueTypeUtils.getCQType(topicConfig))) {
             newLogic = new BatchConsumeQueue(
-                    topic,
-                    queueId,
-                    getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                    this.messageStoreConfig.getMapperFileSizeBatchConsumeQueue(),
-                    this.messageStore);
+                topic,
+                queueId,
+                getStorePathBatchConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
+                this.messageStoreConfig.getMapperFileSizeBatchConsumeQueue(),
+                this.messageStore);
         } else {
             newLogic = new ConsumeQueue(
-                    topic,
-                    queueId,
-                    getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                    this.messageStoreConfig.getMappedFileSizeConsumeQueue(),
-                    this.messageStore);
+                topic,
+                queueId,
+                getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
+                this.messageStoreConfig.getMappedFileSizeConsumeQueue(),
+                this.messageStore);
         }
 
         ConsumeQueueInterface oldLogic = map.putIfAbsent(queueId, newLogic);
@@ -298,17 +302,26 @@ public class ConsumeQueueStore {
         return this.queueOffsetAssigner.currentQueueOffset(topic + "-" + queueId);
     }
 
-    public void setTopicQueueTable(HashMap<String, Long> topicQueueTable) {
+    public void setTopicQueueTable(ConcurrentMap<String, Long> topicQueueTable) {
         this.queueOffsetAssigner.setTopicQueueTable(topicQueueTable);
     }
 
-    public void setBatchTopicQueueTable(HashMap<String, Long> batchTopicQueueTable) {
+    public ConcurrentMap getTopicQueueTable() {
+        return this.queueOffsetAssigner.getTopicQueueTable();
+    }
+
+    public void setBatchTopicQueueTable(ConcurrentMap<String, Long> batchTopicQueueTable) {
         this.queueOffsetAssigner.setBatchTopicQueueTable(batchTopicQueueTable);
     }
 
     public void assignQueueOffset(MessageExtBrokerInner msg, short messageNum) {
         FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(msg.getTopic(), msg.getQueueId());
         fileQueueLifeCycle.assignQueueOffset(this.queueOffsetAssigner, msg, messageNum);
+    }
+
+    public void updateQueueOffset(String topic, int queueId, long offset) {
+        String topicQueueKey = topic + "-" + queueId;
+        this.queueOffsetAssigner.updateQueueOffset(topicQueueKey, offset);
     }
 
     public void removeTopicQueueTable(String topic, Integer queueId) {
@@ -331,8 +344,8 @@ public class ConsumeQueueStore {
     }
 
     public void recoverOffsetTable(long minPhyOffset) {
-        HashMap<String, Long> cqOffsetTable = new HashMap<>(1024);
-        HashMap<String, Long> bcqOffsetTable = new HashMap<>(1024);
+        ConcurrentMap<String, Long> cqOffsetTable = new ConcurrentHashMap<>(1024);
+        ConcurrentMap<String, Long> bcqOffsetTable = new ConcurrentHashMap<>(1024);
 
         for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueueInterface logic : maps.values()) {
@@ -346,6 +359,47 @@ public class ConsumeQueueStore {
                 }
 
                 this.correctMinOffset(logic, minPhyOffset);
+            }
+        }
+
+        //Correct unSubmit consumeOffset
+        if (messageStoreConfig.isDuplicationEnable()) {
+            SelectMappedBufferResult lastBuffer = null;
+            long startReadOffset = messageStore.getCommitLog().getConfirmOffset() == -1 ? 0 : messageStore.getCommitLog().getConfirmOffset();
+            while ((lastBuffer = messageStore.selectOneMessageByOffset(startReadOffset)) != null) {
+                try {
+                    if (lastBuffer.getStartOffset() > startReadOffset) {
+                        startReadOffset = lastBuffer.getStartOffset();
+                        continue;
+                    }
+
+                    ByteBuffer bb = lastBuffer.getByteBuffer();
+                    int magicCode = bb.getInt(bb.position() + 4);
+                    if (magicCode == CommitLog.BLANK_MAGIC_CODE) {
+                        startReadOffset += bb.getInt(bb.position());
+                        continue;
+                    } else if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE) {
+                        throw new RuntimeException("Unknown magicCode: " + magicCode);
+                    }
+
+                    lastBuffer.getByteBuffer().mark();
+                    DispatchRequest dispatchRequest = messageStore.getCommitLog().checkMessageAndReturnSize(lastBuffer.getByteBuffer(), true, true, true);
+                    if (!dispatchRequest.isSuccess())
+                        break;
+                    lastBuffer.getByteBuffer().reset();
+
+                    MessageExt msg = MessageDecoder.decode(lastBuffer.getByteBuffer(), true, false, false, false, true);
+                    if (msg == null)
+                        break;
+
+                    String key = msg.getTopic() + "-" + msg.getQueueId();
+                    cqOffsetTable.put(key, msg.getQueueOffset() + 1);
+                    startReadOffset += msg.getStoreSize();
+                } finally {
+                    if (lastBuffer != null)
+                        lastBuffer.release();
+                }
+
             }
         }
 
@@ -366,7 +420,7 @@ public class ConsumeQueueStore {
         while (it.hasNext()) {
             Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> next = it.next();
             String topic = next.getKey();
-            if (!topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
+            if (!TopicValidator.isSystemTopic(topic)) {
                 ConcurrentMap<Integer, ConsumeQueueInterface> queueTable = next.getValue();
                 Iterator<Map.Entry<Integer, ConsumeQueueInterface>> itQT = queueTable.entrySet().iterator();
                 while (itQT.hasNext()) {
@@ -375,20 +429,20 @@ public class ConsumeQueueStore {
 
                     if (maxCLOffsetInConsumeQueue == -1) {
                         log.warn("maybe ConsumeQueue was created just now. topic={} queueId={} maxPhysicOffset={} minLogicOffset={}.",
-                                nextQT.getValue().getTopic(),
-                                nextQT.getValue().getQueueId(),
-                                nextQT.getValue().getMaxPhysicOffset(),
-                                nextQT.getValue().getMinLogicOffset());
+                            nextQT.getValue().getTopic(),
+                            nextQT.getValue().getQueueId(),
+                            nextQT.getValue().getMaxPhysicOffset(),
+                            nextQT.getValue().getMinLogicOffset());
                     } else if (maxCLOffsetInConsumeQueue < minCommitLogOffset) {
                         log.info(
-                                "cleanExpiredConsumerQueue: {} {} consumer queue destroyed, minCommitLogOffset: {} maxCLOffsetInConsumeQueue: {}",
-                                topic,
-                                nextQT.getKey(),
-                                minCommitLogOffset,
-                                maxCLOffsetInConsumeQueue);
+                            "cleanExpiredConsumerQueue: {} {} consumer queue destroyed, minCommitLogOffset: {} maxCLOffsetInConsumeQueue: {}",
+                            topic,
+                            nextQT.getKey(),
+                            minCommitLogOffset,
+                            maxCLOffsetInConsumeQueue);
 
                         removeTopicQueueTable(nextQT.getValue().getTopic(),
-                                nextQT.getValue().getQueueId());
+                            nextQT.getValue().getQueueId());
 
                         this.destroy(nextQT.getValue());
                         itQT.remove();
@@ -417,5 +471,15 @@ public class ConsumeQueueStore {
         }
 
         return Optional.ofNullable(this.topicConfigTable.get(topic));
+    }
+
+    public long getTotalSize() {
+        long totalSize = 0;
+        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
+            for (ConsumeQueueInterface logic : maps.values()) {
+                totalSize += logic.getTotalSize();
+            }
+        }
+        return totalSize;
     }
 }

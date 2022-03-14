@@ -17,6 +17,8 @@
 package org.apache.rocketmq.store;
 
 import java.nio.ByteBuffer;
+import org.apache.rocketmq.common.message.MessageExtBatch;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 
 /**
  * Write messages callback interface
