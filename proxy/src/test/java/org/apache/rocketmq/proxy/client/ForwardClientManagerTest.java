@@ -19,13 +19,13 @@ package org.apache.rocketmq.proxy.client;
 
 import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
-import org.apache.rocketmq.proxy.configuration.InitConfigurationTest;
+import org.apache.rocketmq.proxy.configuration.InitConfigAndLoggerTest;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ClientManagerTest extends InitConfigurationTest {
+public class ForwardClientManagerTest extends InitConfigAndLoggerTest {
 
     @Test
     public void testClientManager() throws Exception {

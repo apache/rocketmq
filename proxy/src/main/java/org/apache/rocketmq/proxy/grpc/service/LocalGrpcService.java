@@ -100,7 +100,8 @@ public class LocalGrpcService implements GrpcForwardService {
         return null;
     }
 
-    @Override public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+    @Override
+    public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
         LanguageCode languageCode;
         String language = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE);
         languageCode = LanguageCode.valueOf(language);
@@ -120,7 +121,8 @@ public class LocalGrpcService implements GrpcForwardService {
         return CompletableFuture.completedFuture(heartbeatResponse);
     }
 
-    @Override public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
+    @Override
+    public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
         LOGGER.trace("Received health check request from client: {}", request.getClientHost());
         final HealthCheckResponse response = HealthCheckResponse.newBuilder()
             .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
@@ -168,7 +170,7 @@ public class LocalGrpcService implements GrpcForwardService {
         long timeRemaining = Context.current()
             .getDeadline()
             .timeRemaining(TimeUnit.MILLISECONDS);
-        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeMill();
+        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
         if (pollTime <= 0) {
             pollTime = timeRemaining;
         }

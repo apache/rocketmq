@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.proxy.configuration.ConfigurationManager.RMQ_PROXY_HOME;
 
-public class InitConfigurationTest {
+public class InitConfigAndLoggerTest {
     public static String mockProxyHome = "/mock/rmq/proxy/home";
 
     @Before

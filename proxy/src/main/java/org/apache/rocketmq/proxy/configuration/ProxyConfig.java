@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.configuration;
 
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 
 public class ProxyConfig {
@@ -72,6 +71,8 @@ public class ProxyConfig {
     private int topicRouteCacheMaxNum = 20000;
     private int topicRouteThreadPoolNums = 36;
     private int topicRouteThreadPoolQueueCapacity = 50000;
+
+    private int longPollingReserveTimeInMillis = 10000;
 
     public Integer getHealthCheckPort() {
         return healthCheckPort;
@@ -229,18 +230,6 @@ public class ProxyConfig {
         return forwardConsumerNum;
     }
 
-    public long getLongPollingReserveTimeMill() {
-        return longPollingReserveTimeMill;
-    }
-
-    public void setLongPollingReserveTimeMill(long longPollingReserveTimeMill) {
-        this.longPollingReserveTimeMill = longPollingReserveTimeMill;
-    }
-
-    public int getConsumerClientNum() {
-        return consumerClientNum;
-    }
-
     public void setForwardConsumerNum(int forwardConsumerNum) {
         this.forwardConsumerNum = forwardConsumerNum;
     }
@@ -331,5 +320,13 @@ public class ProxyConfig {
 
     public void setTopicRouteThreadPoolQueueCapacity(int topicRouteThreadPoolQueueCapacity) {
         this.topicRouteThreadPoolQueueCapacity = topicRouteThreadPoolQueueCapacity;
+    }
+
+    public int getLongPollingReserveTimeInMillis() {
+        return longPollingReserveTimeInMillis;
+    }
+
+    public void setLongPollingReserveTimeInMillis(int longPollingReserveTimeInMillis) {
+        this.longPollingReserveTimeInMillis = longPollingReserveTimeInMillis;
     }
 }
