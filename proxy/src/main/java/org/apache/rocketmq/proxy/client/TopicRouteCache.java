@@ -18,12 +18,15 @@ package org.apache.rocketmq.proxy.client;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.LoadingCache;
+import com.google.common.hash.Hashing;
+import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.proxy.client.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.client.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.common.RetainCacheLoader;
 import org.apache.rocketmq.proxy.common.RocketMQHelper;
@@ -62,6 +65,23 @@ public class TopicRouteCache {
 
     public MessageQueueWrapper getMessageQueue(String topicName) throws Exception {
         return getCacheMessageQueueWrapper(this.topicCache, topicName);
+    }
+
+    public AddressableMessageQueue selectOneWriteQueue(String topic, AddressableMessageQueue last) throws Exception {
+        if (last == null) {
+            return getMessageQueue(topic).getWrite().selectOne(false);
+        }
+        return getMessageQueue(topic).getWrite().selectNextOne(last);
+    }
+
+    public AddressableMessageQueue selectOneWriteQueue(String topic, String brokerName, int queueId) throws Exception {
+        return getMessageQueue(topic).getWrite().selectOne(brokerName, queueId);
+    }
+
+    public AddressableMessageQueue selectOneWriteQueueByKey(String topic, String shardingKey, AddressableMessageQueue last) throws Exception {
+        List<AddressableMessageQueue> writeQueues = getMessageQueue(topic).getWrite().getQueues();
+        int bucket = Hashing.consistentHash(shardingKey.hashCode(), writeQueues.size());
+        return writeQueues.get(bucket);
     }
 
     protected static MessageQueueWrapper getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueWrapper> topicCache, String key) throws Exception {

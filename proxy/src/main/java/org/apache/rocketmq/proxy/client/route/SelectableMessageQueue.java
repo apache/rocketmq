@@ -210,6 +210,14 @@ public class SelectableMessageQueue {
 //        return newOne;
 //    }
 
+    public List<AddressableMessageQueue> getQueues() {
+        return queues;
+    }
+
+    public List<AddressableMessageQueue> getBrokers() {
+        return brokers;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

@@ -54,19 +54,32 @@ import apache.rocketmq.v1.SendMessageResponse;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.proxy.client.ClientManager;
+import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
+import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClusterGrpcService implements GrpcForwardService {
+public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
-    public ClusterGrpcService() {
+    private final ClientManager clientManager;
+    private final ProducerService producerService;
+    private final RouteService routeService;
 
+    public ClusterGrpcService() {
+        this.clientManager = new ClientManager(checkData -> {
+        });
+        this.producerService = new ProducerService(clientManager);
+        this.routeService = new RouteService(clientManager);
+
+        this.appendStartAndShutdown(this.clientManager);
     }
 
     @Override
     public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
-        return null;
+        return this.routeService.queryRoute(ctx, request);
     }
 
     @Override
@@ -81,15 +94,16 @@ public class ClusterGrpcService implements GrpcForwardService {
 
     @Override
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
-        return null;
+        return this.producerService.sendMessage(ctx, request);
     }
 
     @Override
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
-        return null;
+        return this.routeService.queryAssignment(ctx, request);
     }
 
-    @Override public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
+    @Override
+    public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         return null;
     }
 
@@ -128,7 +142,8 @@ public class ClusterGrpcService implements GrpcForwardService {
         return null;
     }
 
-    @Override public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
+    @Override
+    public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
         ReportMessageConsumptionResultRequest request) {
         return null;
     }
@@ -141,13 +156,5 @@ public class ClusterGrpcService implements GrpcForwardService {
     @Override public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         return null;
-    }
-
-    @Override
-    public void start() throws Exception {
-    }
-
-    @Override
-    public void shutdown() throws Exception {
     }
 }

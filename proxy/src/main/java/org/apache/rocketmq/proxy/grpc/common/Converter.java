@@ -210,6 +210,17 @@ public class Converter {
         return messageWithHeader.getProperties();
     }
 
+    public static org.apache.rocketmq.common.message.Message buildMessage(Message protoMessage) {
+        String topic = getResourceNameWithNamespace(protoMessage.getTopic());
+
+        org.apache.rocketmq.common.message.Message message =
+            new org.apache.rocketmq.common.message.Message(topic, protoMessage.getBody().toByteArray());
+        Map<String, String> messageProperty = buildMessageProperty(protoMessage);
+
+        MessageAccessor.setProperties(message, messageProperty);
+        return message;
+    }
+
     public static String buildExpressionType(FilterType filterType) {
         switch (filterType) {
             case SQL:

@@ -14,31 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.common;
+package org.apache.rocketmq.proxy.grpc.common;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+public class ProxyException extends RuntimeException {
 
-public abstract class AbstractStartAndShutdown implements StartAndShutdown {
+    private final ProxyResponseCode code;
 
-    protected List<StartAndShutdown> startAndShutdownList = new CopyOnWriteArrayList<>();
-
-    protected void appendStartAndShutdown(StartAndShutdown startAndShutdown) {
-        this.startAndShutdownList.add(startAndShutdown);
+    public ProxyException(ProxyResponseCode proxyResponseCode, String errorMessage) {
+        super(errorMessage);
+        this.code = proxyResponseCode;
     }
 
-    @Override
-    public void start() throws Exception {
-        for (StartAndShutdown startAndShutdown : startAndShutdownList) {
-            startAndShutdown.start();
-        }
+    public ProxyException(ProxyResponseCode proxyResponseCode, String message, Throwable cause) {
+        super(message, cause);
+        this.code = proxyResponseCode;
     }
 
-    @Override
-    public void shutdown() throws Exception {
-        int index = startAndShutdownList.size() - 1;
-        for (; index >= 0; index--) {
-            startAndShutdownList.get(index).shutdown();
-        }
+    public ProxyResponseCode getCode() {
+        return code;
     }
 }
