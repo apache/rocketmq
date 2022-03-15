@@ -27,11 +27,13 @@ import com.google.rpc.Code;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
+import java.net.URL;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.processor.ClientManageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
 import org.apache.rocketmq.proxy.configuration.InitConfigurationTest;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -43,6 +45,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.apache.rocketmq.proxy.configuration.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
