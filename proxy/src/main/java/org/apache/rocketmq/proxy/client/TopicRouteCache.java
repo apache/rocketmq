@@ -66,7 +66,7 @@ public class TopicRouteCache {
 
     protected static MessageQueueWrapper getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueWrapper> topicCache, String key) throws Exception {
         MessageQueueWrapper res = topicCache.get(key);
-        if (res.isEmptyCacheQueue()) {
+        if (res.isEmptyCachedQueue()) {
             throw new MQClientException(ResponseCode.TOPIC_NOT_EXIST,
                 "No topic route info in name server for the topic: " + key);
         }
@@ -102,10 +102,10 @@ public class TopicRouteCache {
                     log.info("load {} from namesrv. topic: {}, queue: {}", loaderName(), topic, tmp);
                     return tmp;
                 }
-                return MessageQueueWrapper.EMPTY_CACHE_QUEUES;
+                return MessageQueueWrapper.EMPTY_CACHED_QUEUE;
             } catch (Exception e) {
                 if (RocketMQHelper.isTopicNotExistError(e)) {
-                    return MessageQueueWrapper.EMPTY_CACHE_QUEUES;
+                    return MessageQueueWrapper.EMPTY_CACHED_QUEUE;
                 }
                 throw e;
             }

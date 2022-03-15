@@ -19,7 +19,7 @@ package org.apache.rocketmq.proxy.client.route;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 public class MessageQueueWrapper {
-    public static final MessageQueueWrapper EMPTY_CACHE_QUEUES = new MessageQueueWrapper("", new TopicRouteData());
+    public static final MessageQueueWrapper EMPTY_CACHED_QUEUE = new MessageQueueWrapper("", new TopicRouteData());
 
     private final SelectableMessageQueue read;
     private final SelectableMessageQueue write;
@@ -40,8 +40,8 @@ public class MessageQueueWrapper {
         return topicRouteWrapper.getTopicName();
     }
 
-    public boolean isEmptyCacheQueue() {
-        return this == EMPTY_CACHE_QUEUES;
+    public boolean isEmptyCachedQueue() {
+        return this == EMPTY_CACHED_QUEUE;
     }
 
     @Override
