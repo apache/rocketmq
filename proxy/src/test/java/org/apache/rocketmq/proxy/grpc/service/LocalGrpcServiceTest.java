@@ -31,7 +31,6 @@ import io.grpc.Context;
 import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -45,8 +44,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
-import org.apache.rocketmq.proxy.configuration.InitConfigurationTest;
+import org.apache.rocketmq.proxy.configuration.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -58,11 +56,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.apache.rocketmq.proxy.configuration.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
-public class LocalGrpcServiceTest extends InitConfigurationTest {
+public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     private LocalGrpcService localGrpcService;
     @Mock
     private SendMessageProcessor sendMessageProcessorMock;
@@ -75,14 +72,7 @@ public class LocalGrpcServiceTest extends InitConfigurationTest {
 
     @Before
     public void setUp() throws Exception {
-        String mockProxyHome = "/mock/rmq/proxy/home";
-        URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
-        if (mockProxyHomeURL != null) {
-            mockProxyHome = mockProxyHomeURL.toURI().getPath();
-        }
-        System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
-        ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        super.before();
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
         localGrpcService = new LocalGrpcService(brokerControllerMock);
