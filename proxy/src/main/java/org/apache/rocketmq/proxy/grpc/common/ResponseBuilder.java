@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.common;
 
+import apache.rocketmq.v1.HeartbeatResponse;
 import apache.rocketmq.v1.ResponseCommon;
 import apache.rocketmq.v1.SendMessageResponse;
 import com.google.rpc.Code;
@@ -46,6 +47,12 @@ public class ResponseBuilder {
 
         return ResponseCommon.newBuilder()
             .setStatus(status)
+            .build();
+    }
+
+    public static HeartbeatResponse buildHeartbeatResponse(RemotingCommand command) {
+        return HeartbeatResponse.newBuilder()
+            .setCommon(buildCommon(command.getCode(), command.getRemark()))
             .build();
     }
 

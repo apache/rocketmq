@@ -17,27 +17,50 @@
 
 package org.apache.rocketmq.proxy.grpc.common;
 
+import apache.rocketmq.v1.ConsumeMessageType;
+import apache.rocketmq.v1.ConsumeModel;
+import apache.rocketmq.v1.ConsumePolicy;
+import apache.rocketmq.v1.ConsumerData;
 import apache.rocketmq.v1.Encoding;
+import apache.rocketmq.v1.FilterExpression;
+import apache.rocketmq.v1.FilterType;
+import apache.rocketmq.v1.HeartbeatRequest;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.MessageType;
+import apache.rocketmq.v1.ProducerData;
 import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
+import apache.rocketmq.v1.SubscriptionEntry;
 import apache.rocketmq.v1.SystemAttribute;
 import com.google.common.collect.Maps;
 import com.google.protobuf.Duration;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Converter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+
     public static String getResourceNameWithNamespace(Resource resource) {
         return NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
     }
@@ -148,5 +171,95 @@ public class Converter {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRACE_CONTEXT, traceContext);
         }
         return messageWithHeader.getProperties();
+    }
+
+    public static String buildExpressionType(FilterType filterType) {
+        switch (filterType) {
+            case SQL:
+                return ExpressionType.SQL92;
+            case TAG:
+            default:
+                return ExpressionType.TAG;
+        }
+    }
+
+    public static HeartbeatData buildHeartbeatData(HeartbeatRequest request) {
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setClientID(request.getClientId());
+        Set<org.apache.rocketmq.common.protocol.heartbeat.ProducerData> producerDataSet = new HashSet<>();
+        producerDataSet.add(buildProducerData(request.getProducerData()));
+        heartbeatData.setProducerDataSet(producerDataSet);
+        Set<org.apache.rocketmq.common.protocol.heartbeat.ConsumerData> consumerDataSet = new HashSet<>();
+        consumerDataSet.add(buildConsumerData(request.getConsumerData()));
+        heartbeatData.setConsumerDataSet(consumerDataSet);
+        return heartbeatData;
+    }
+
+    public static org.apache.rocketmq.common.protocol.heartbeat.ProducerData buildProducerData(ProducerData producerData) {
+        org.apache.rocketmq.common.protocol.heartbeat.ProducerData buildProducerData = new org.apache.rocketmq.common.protocol.heartbeat.ProducerData();
+        buildProducerData.setGroupName(getResourceNameWithNamespace(producerData.getGroup()));
+        return buildProducerData;
+    }
+
+    public static org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData(ConsumerData consumerData) {
+        org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData = new org.apache.rocketmq.common.protocol.heartbeat.ConsumerData();
+        buildConsumerData.setGroupName(getResourceNameWithNamespace(consumerData.getGroup()));
+        buildConsumerData.setConsumeType(buildConsumeType(consumerData.getConsumeType()));
+        buildConsumerData.setMessageModel(buildMessageModel(consumerData.getConsumeModel()));
+        buildConsumerData.setConsumeFromWhere(buildConsumeFromWhere(consumerData.getConsumePolicy()));
+        Set<SubscriptionData> subscriptionDataSet = buildSubscriptionDataSet(consumerData.getSubscriptionsList());
+        buildConsumerData.setSubscriptionDataSet(subscriptionDataSet);
+        return buildConsumerData;
+    }
+
+    public static ConsumeType buildConsumeType(ConsumeMessageType consumeMessageType) {
+        switch (consumeMessageType) {
+            case ACTIVE:
+                return ConsumeType.CONSUME_ACTIVELY;
+            case PASSIVE:
+            default:
+                return ConsumeType.CONSUME_PASSIVELY;
+        }
+    }
+
+    public static MessageModel buildMessageModel(ConsumeModel consumeModel) {
+        switch (consumeModel) {
+            case BROADCASTING:
+                return MessageModel.BROADCASTING;
+            case CLUSTERING:
+            default:
+                return MessageModel.CLUSTERING;
+        }
+    }
+
+    public static ConsumeFromWhere buildConsumeFromWhere(ConsumePolicy policy) {
+        switch (policy) {
+            case PLAYBACK:
+                return ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET;
+            case DISCARD:
+                return ConsumeFromWhere.CONSUME_FROM_MAX_OFFSET;
+            case TARGET_TIMESTAMP:
+                return ConsumeFromWhere.CONSUME_FROM_TIMESTAMP;
+            case RESUME:
+            default:
+                return ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
+        }
+    }
+
+    public static Set<SubscriptionData> buildSubscriptionDataSet(List<SubscriptionEntry> subscriptionEntryList) {
+        Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
+        for (SubscriptionEntry sub : subscriptionEntryList) {
+            String topicName = Converter.getResourceNameWithNamespace(sub.getTopic());
+            FilterExpression filterExpression = sub.getExpression();
+            String expression = filterExpression.getExpression();
+            String expressionType = Converter.buildExpressionType(filterExpression.getType());
+            try {
+                SubscriptionData subscriptionData = FilterAPI.build(topicName, expression, expressionType);
+                subscriptionDataSet.add(subscriptionData);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Build subscription failed when apply heartbeat", e);
+            }
+        }
+        return subscriptionDataSet;
     }
 }
