@@ -112,7 +112,7 @@ public class RemotingCommand {
     }
 
     public static RemotingCommand createResponseCommand(int code, String remark,
-                                                        Class<? extends CommandCustomHeader> classHeader) {
+        Class<? extends CommandCustomHeader> classHeader) {
         RemotingCommand cmd = new RemotingCommand();
         cmd.markResponseType();
         cmd.setCode(code);
@@ -232,7 +232,7 @@ public class RemotingCommand {
     }
 
     public CommandCustomHeader decodeCommandCustomHeader(
-            Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
             objectHeader = classHeader.newInstance();
@@ -294,9 +294,10 @@ public class RemotingCommand {
         if (fields == null) {
             fields = classHeader.getDeclaredFields();
 
-            fields = Arrays.stream(fields)
-                    .peek(f -> f.setAccessible(true))
-                    .toArray(Field[]::new);
+            for (Field field : fields) {
+                field.setAccessible(true);
+            }
+
             synchronized (CLASS_HASH_MAP) {
                 CLASS_HASH_MAP.put(classHeader, fields);
             }
@@ -515,7 +516,6 @@ public class RemotingCommand {
         extFields.put(key, value);
     }
 
-    @Override
     public String toString() {
         return "RemotingCommand [code=" + code + ", language=" + language + ", version=" + version + ", opaque=" + opaque + ", flag(B)="
                 + Integer.toBinaryString(flag) + ", remark=" + remark + ", extFields=" + extFields + ", serializeTypeCurrentRPC="
