@@ -17,33 +17,12 @@
 
 package org.apache.rocketmq.proxy.configuration;
 
-import java.net.URL;
 import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.rocketmq.proxy.configuration.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConfigurationManagerTest {
-    public String mockProxyHome = "/mock/rmq/proxy/home";
-
-    @Before
-    public void before() throws Exception {
-        URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
-        if (mockProxyHomeURL != null) {
-            mockProxyHome = mockProxyHomeURL.toURI().getPath();
-        }
-        System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
-        ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
-    }
-
-    @After
-    public void after() {
-        System.clearProperty(RMQ_PROXY_HOME);
-    }
+public class ConfigurationManagerTest extends InitConfigurationTest {
 
     @Test
     public void testInitEnv() {
