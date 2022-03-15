@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.mqconstructor;
+package org.apache.rocketmq.proxy.client.factory;
 
-public interface RocketMQClientConstructor<T> {
-
+public interface MQClientFactory<T> {
     T getOne(String instanceName, int bootstrapWorkerThreads);
-
     void shutdownAll();
 }

@@ -14,37 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client;
+package org.apache.rocketmq.proxy.client.factory;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.proxy.client.mqconstructor.MQClientAPIConstructor;
-import org.apache.rocketmq.proxy.client.mqconstructor.TransactionClientConstructor;
 import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class ClientFactory implements StartAndShutdown {
+public class ForwardClientFactory implements StartAndShutdown {
 
     private RPCHook rpcHook = null;
 
-    private final MQClientAPIConstructor mqClientAPIConstructor;
-    private final TransactionClientConstructor transactionClientConstructor;
+    private final MQClientFactoryImpl mqClientFactory;
+    private final TransactionalProducerFactory transactionalProducerFactory;
 
-    public ClientFactory(TransactionStateChecker transactionStateChecker) {
+    public ForwardClientFactory(TransactionStateChecker transactionStateChecker) {
         this.init();
 
-        this.mqClientAPIConstructor = new MQClientAPIConstructor(this.rpcHook);
-        this.transactionClientConstructor = new TransactionClientConstructor(this.rpcHook);
+        this.mqClientFactory = new MQClientFactoryImpl(this.rpcHook);
+        this.transactionalProducerFactory = new TransactionalProducerFactory(this.rpcHook, transactionStateChecker);
     }
 
     private void init() {
         System.setProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY,
             System.getProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
-        if (StringUtils.isEmpty(ConfigurationManager.getProxyConfig().getNameSrvAddr())) {
+        if (StringUtils.isEmpty(ConfigurationManager.getProxyConfig().getNameSrvDomain())) {
             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, ConfigurationManager.getProxyConfig().getNameSrvAddr());
         } else {
             System.setProperty("rocketmq.namesrv.domain", ConfigurationManager.getProxyConfig().getNameSrvDomain());
@@ -53,11 +51,11 @@ public class ClientFactory implements StartAndShutdown {
     }
 
     public MQClientAPIExtImpl getMQClient(String instanceName, int bootstrapWorkerThreads) {
-        return mqClientAPIConstructor.getOne(instanceName, bootstrapWorkerThreads);
+        return mqClientFactory.getOne(instanceName, bootstrapWorkerThreads);
     }
 
-    public MQClientAPIExtImpl getTransactionClient(String instanceName, int bootstrapWorkerThreads) {
-        return transactionClientConstructor.getOne(instanceName, bootstrapWorkerThreads);
+    public MQClientAPIExtImpl getTransactionalProducer(String instanceName, int bootstrapWorkerThreads) {
+        return transactionalProducerFactory.getOne(instanceName, bootstrapWorkerThreads);
     }
 
     public void setRpcHook(RPCHook rpcHook) {
@@ -71,7 +69,7 @@ public class ClientFactory implements StartAndShutdown {
 
     @Override
     public void shutdown() throws Exception {
-        this.mqClientAPIConstructor.shutdownAll();
-        this.transactionClientConstructor.shutdownAll();
+        this.mqClientFactory.shutdownAll();
+        this.transactionalProducerFactory.shutdownAll();
     }
 }

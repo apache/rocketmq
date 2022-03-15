@@ -23,8 +23,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DoNothingClientRemotingProcessor extends ClientRemotingProcessor {
 
-    public DoNothingClientRemotingProcessor(
-        MQClientInstance mqClientFactory) {
+    public DoNothingClientRemotingProcessor(MQClientInstance mqClientFactory) {
         super(mqClientFactory);
     }
 

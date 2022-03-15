@@ -20,11 +20,11 @@ import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageResponse;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.proxy.client.ClientManager;
+import org.apache.rocketmq.proxy.client.ForwardClientManager;
 
 public class ConsumerService extends BaseService {
 
-    public ConsumerService(ClientManager clientManager) {
+    public ConsumerService(ForwardClientManager clientManager) {
         super(clientManager);
     }
 

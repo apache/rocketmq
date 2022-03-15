@@ -30,20 +30,20 @@ public class ClientManagerTest extends InitConfigurationTest {
     @Test
     public void testClientManager() throws Exception {
         TransactionStateChecker mockedTransactionStateChecker = Mockito.mock(TransactionStateChecker.class);
-        ClientManager clientManager = new ClientManager(mockedTransactionStateChecker);
+        ForwardClientManager clientManager = new ForwardClientManager(mockedTransactionStateChecker);
         clientManager.start();
 
-        assertThat(clientManager.getDefaultClient()).isNotNull();
-        assertThat(clientManager.getDefaultClient().getClientNum())
-            .isEqualTo(ConfigurationManager.getProxyConfig().getDefaultClientNum());
+        assertThat(clientManager.getDefaultForwardClient()).isNotNull();
+        assertThat(clientManager.getDefaultForwardClient().getClientNum())
+            .isEqualTo(ConfigurationManager.getProxyConfig().getDefaultForwardClientNum());
 
-        assertThat(clientManager.getProducerClient()).isNotNull();
-        assertThat(clientManager.getProducerClient().getClientNum())
-            .isEqualTo(ConfigurationManager.getProxyConfig().getProducerClientNum());
+        assertThat(clientManager.getForwardProducer()).isNotNull();
+        assertThat(clientManager.getForwardProducer().getClientNum())
+            .isEqualTo(ConfigurationManager.getProxyConfig().getForwardProducerNum());
 
-        assertThat(clientManager.getReadConsumerClient()).isNotNull();
-        assertThat(clientManager.getReadConsumerClient().getClientNum())
-            .isEqualTo(ConfigurationManager.getProxyConfig().getConsumerClientNum());
+        assertThat(clientManager.getForwardReadConsumer()).isNotNull();
+        assertThat(clientManager.getForwardReadConsumer().getClientNum())
+            .isEqualTo(ConfigurationManager.getProxyConfig().getForwardConsumerNum());
 
 
 

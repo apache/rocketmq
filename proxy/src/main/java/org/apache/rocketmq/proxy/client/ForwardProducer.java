@@ -23,28 +23,29 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class ProducerClient extends BaseClient {
+public class ForwardProducer extends AbstractForwardClient {
 
     private static final String PID_PREFIX = "PID_RMQ_PROXY_PUBLISH_MESSAGE_";
 
-    public ProducerClient(ClientFactory clientFactory) {
+    public ForwardProducer(ForwardClientFactory clientFactory) {
         super(clientFactory);
     }
 
     @Override
     protected int getClientNum() {
-        return ConfigurationManager.getProxyConfig().getProducerClientNum();
+        return ConfigurationManager.getProxyConfig().getForwardProducerNum();
     }
 
     @Override
-    protected MQClientAPIExtImpl createNewClient(ClientFactory clientFactory, String name) {
-        double sendClientWorkerFactor = ConfigurationManager.getProxyConfig().getProducerClientWorkerFactor();
+    protected MQClientAPIExtImpl createNewClient(ForwardClientFactory clientFactory, String name) {
+        double sendClientWorkerFactor = ConfigurationManager.getProxyConfig().getForwardProducerWorkerFactor();
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * sendClientWorkerFactor);
 
-        return clientFactory.getTransactionClient(name, threadCount);
+        return clientFactory.getTransactionalProducer(name, threadCount);
     }
 
     @Override

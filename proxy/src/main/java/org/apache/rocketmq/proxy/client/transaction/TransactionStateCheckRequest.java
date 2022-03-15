@@ -26,8 +26,14 @@ public class TransactionStateCheckRequest {
     private TransactionId transactionId;
     private MessageExt messageExt;
 
-    public TransactionStateCheckRequest(String groupId, Long tranStateTableOffset, Long commitLogOffset,
-        String msgId, TransactionId transactionId, MessageExt messageExt) {
+    public TransactionStateCheckRequest(
+        String groupId,
+        Long tranStateTableOffset,
+        Long commitLogOffset,
+        String msgId,
+        TransactionId transactionId,
+        MessageExt messageExt
+    ) {
         this.groupId = groupId;
         this.tranStateTableOffset = tranStateTableOffset;
         this.commitLogOffset = commitLogOffset;

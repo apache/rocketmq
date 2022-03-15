@@ -34,8 +34,8 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.proxy.client.ClientManager;
-import org.apache.rocketmq.proxy.client.route.AddressableMessageQueue;
+import org.apache.rocketmq.proxy.client.ForwardClientManager;
+import org.apache.rocketmq.proxy.client.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.client.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.common.RocketMQHelper;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
@@ -47,7 +47,7 @@ public class RouteService extends BaseService {
     private volatile QueryRouteHook queryRouteHook = null;
     private volatile QueryAssignmentHook queryAssignmentHook = null;
 
-    public RouteService(ClientManager clientManager) {
+    public RouteService(ForwardClientManager clientManager) {
         super(clientManager);
     }
 
@@ -61,16 +61,16 @@ public class RouteService extends BaseService {
     }
 
     public interface RouteAssignmentQueueSelector {
-        List<AddressableMessageQueue> getAssignment(QueryAssignmentRequest request) throws Exception;
+        List<SelectableMessageQueue> getAssignment(QueryAssignmentRequest request) throws Exception;
     }
 
     public class DefaultRouteAssignmentQueueSelector implements RouteAssignmentQueueSelector {
 
         @Override
-        public List<AddressableMessageQueue> getAssignment(QueryAssignmentRequest request) throws Exception {
+        public List<SelectableMessageQueue> getAssignment(QueryAssignmentRequest request) throws Exception {
             MessageQueueWrapper messageQueueWrapper = clientManager.getTopicRouteCache()
                 .getMessageQueue(Converter.getResourceNameWithNamespace(request.getTopic()));
-            return messageQueueWrapper.getRead().getBrokerActingQueues();
+            return messageQueueWrapper.getReadSelector().getBrokerActingQueues();
         }
     }
 
@@ -189,9 +189,9 @@ public class RouteService extends BaseService {
             }
 
             List<Assignment> assignments = new ArrayList<>();
-            List<AddressableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(request);
+            List<SelectableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(request);
 
-            for (AddressableMessageQueue messageQueue : messageQueueList) {
+            for (SelectableMessageQueue messageQueue : messageQueueList) {
                 Broker broker = Broker.newBuilder()
                     .setName(messageQueue.getBrokerName())
                     .setId(0)

@@ -32,7 +32,7 @@ public class ProxyConfig {
      * configuration for ThreadPoolMonitor
      */
     private boolean enablePrintJstack = true;
-    private long printJstackPeriodMillis = 60000;
+    private long printJstackInMillis = 60000;
 
     private String nameSrvAddr = "11.165.223.199:9876";
     private String nameSrvDomain = "";
@@ -56,16 +56,16 @@ public class ProxyConfig {
      */
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
 
-    private int expiredChannelTimeSec = 120;
+    private int channelExpiredInSeconds = 120;
 
-    private int consumerClientNum = 2;
-    private double consumerClientWorkerFactor = 0.2f;
-    private int producerClientNum = 2;
-    private double producerClientWorkerFactor = 0.2f;
-    private int defaultClientNum = 2;
-    private double defaultClientWorkerFactor = 0.2f;
+    private int forwardConsumerNum = 2;
+    private double forwardConsumerWorkerFactor = 0.2f;
+    private int forwardProducerNum = 2;
+    private double forwardProducerWorkerFactor = 0.2f;
+    private int defaultForwardClientNum = 2;
+    private double defaultForwardClientWorkerFactor = 0.2f;
 
-    private int topicRouteCacheExpireSecond = 20;
+    private int topicRouteCacheExpiredInSeconds = 20;
     private int topicRouteCacheExecutorThreadNum = 3;
     private int topicRouteCacheExecutorQueueCapacity = 1000;
     private int topicRouteCacheMaxNum = 20000;
@@ -96,12 +96,12 @@ public class ProxyConfig {
         this.enablePrintJstack = enablePrintJstack;
     }
 
-    public long getPrintJstackPeriodMillis() {
-        return printJstackPeriodMillis;
+    public long getPrintJstackInMillis() {
+        return printJstackInMillis;
     }
 
-    public void setPrintJstackPeriodMillis(long printJstackPeriodMillis) {
-        this.printJstackPeriodMillis = printJstackPeriodMillis;
+    public void setPrintJstackInMillis(long printJstackInMillis) {
+        this.printJstackInMillis = printJstackInMillis;
     }
 
     public String getNameSrvAddr() {
@@ -216,68 +216,68 @@ public class ProxyConfig {
         this.grpcMaxInboundMessageSize = grpcMaxInboundMessageSize;
     }
 
-    public int getExpiredChannelTimeSec() {
-        return expiredChannelTimeSec;
+    public int getChannelExpiredInSeconds() {
+        return channelExpiredInSeconds;
     }
 
-    public void setExpiredChannelTimeSec(int expiredChannelTimeSec) {
-        this.expiredChannelTimeSec = expiredChannelTimeSec;
+    public void setChannelExpiredInSeconds(int channelExpiredInSeconds) {
+        this.channelExpiredInSeconds = channelExpiredInSeconds;
     }
 
-    public int getConsumerClientNum() {
-        return consumerClientNum;
+    public int getForwardConsumerNum() {
+        return forwardConsumerNum;
     }
 
-    public void setConsumerClientNum(int consumerClientNum) {
-        this.consumerClientNum = consumerClientNum;
+    public void setForwardConsumerNum(int forwardConsumerNum) {
+        this.forwardConsumerNum = forwardConsumerNum;
     }
 
-    public double getConsumerClientWorkerFactor() {
-        return consumerClientWorkerFactor;
+    public double getForwardConsumerWorkerFactor() {
+        return forwardConsumerWorkerFactor;
     }
 
-    public void setConsumerClientWorkerFactor(double consumerClientWorkerFactor) {
-        this.consumerClientWorkerFactor = consumerClientWorkerFactor;
+    public void setForwardConsumerWorkerFactor(double forwardConsumerWorkerFactor) {
+        this.forwardConsumerWorkerFactor = forwardConsumerWorkerFactor;
     }
 
-    public int getProducerClientNum() {
-        return producerClientNum;
+    public int getForwardProducerNum() {
+        return forwardProducerNum;
     }
 
-    public void setProducerClientNum(int producerClientNum) {
-        this.producerClientNum = producerClientNum;
+    public void setForwardProducerNum(int forwardProducerNum) {
+        this.forwardProducerNum = forwardProducerNum;
     }
 
-    public double getProducerClientWorkerFactor() {
-        return producerClientWorkerFactor;
+    public double getForwardProducerWorkerFactor() {
+        return forwardProducerWorkerFactor;
     }
 
-    public void setProducerClientWorkerFactor(double producerClientWorkerFactor) {
-        this.producerClientWorkerFactor = producerClientWorkerFactor;
+    public void setForwardProducerWorkerFactor(double forwardProducerWorkerFactor) {
+        this.forwardProducerWorkerFactor = forwardProducerWorkerFactor;
     }
 
-    public int getDefaultClientNum() {
-        return defaultClientNum;
+    public int getDefaultForwardClientNum() {
+        return defaultForwardClientNum;
     }
 
-    public void setDefaultClientNum(int defaultClientNum) {
-        this.defaultClientNum = defaultClientNum;
+    public void setDefaultForwardClientNum(int defaultForwardClientNum) {
+        this.defaultForwardClientNum = defaultForwardClientNum;
     }
 
-    public double getDefaultClientWorkerFactor() {
-        return defaultClientWorkerFactor;
+    public double getDefaultForwardClientWorkerFactor() {
+        return defaultForwardClientWorkerFactor;
     }
 
-    public void setDefaultClientWorkerFactor(double defaultClientWorkerFactor) {
-        this.defaultClientWorkerFactor = defaultClientWorkerFactor;
+    public void setDefaultForwardClientWorkerFactor(double defaultForwardClientWorkerFactor) {
+        this.defaultForwardClientWorkerFactor = defaultForwardClientWorkerFactor;
     }
 
-    public int getTopicRouteCacheExpireSecond() {
-        return topicRouteCacheExpireSecond;
+    public int getTopicRouteCacheExpiredInSeconds() {
+        return topicRouteCacheExpiredInSeconds;
     }
 
-    public void setTopicRouteCacheExpireSecond(int topicRouteCacheExpireSecond) {
-        this.topicRouteCacheExpireSecond = topicRouteCacheExpireSecond;
+    public void setTopicRouteCacheExpiredInSeconds(int topicRouteCacheExpiredInSeconds) {
+        this.topicRouteCacheExpiredInSeconds = topicRouteCacheExpiredInSeconds;
     }
 
     public int getTopicRouteCacheExecutorThreadNum() {

@@ -26,7 +26,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.apache.rocketmq.proxy.client.route.AddressableMessageQueue;
+import org.apache.rocketmq.proxy.client.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.client.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.common.RetainCacheLoader;
 import org.apache.rocketmq.proxy.common.RocketMQHelper;
@@ -43,9 +43,9 @@ public class TopicRouteCache {
     private final LoadingCache<String /* topicName */, MessageQueueWrapper> topicCache;
     private final ThreadPoolExecutor cacheRefreshExecutor;
 
-    private final DefaultClient defaultClient;
+    private final DefaultForwardClient defaultClient;
 
-    public TopicRouteCache(DefaultClient defaultClient) {
+    public TopicRouteCache(DefaultForwardClient defaultClient) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
 
         this.defaultClient = defaultClient;
@@ -59,7 +59,7 @@ public class TopicRouteCache {
         );
         this.topicCache = CacheBuilder.newBuilder()
             .maximumSize(config.getTopicRouteCacheMaxNum())
-            .refreshAfterWrite(config.getTopicRouteCacheExpireSecond(), TimeUnit.SECONDS)
+            .refreshAfterWrite(config.getTopicRouteCacheExpiredInSeconds(), TimeUnit.SECONDS)
             .build(new TopicRouteCacheLoader());
     }
 
@@ -67,19 +67,19 @@ public class TopicRouteCache {
         return getCacheMessageQueueWrapper(this.topicCache, topicName);
     }
 
-    public AddressableMessageQueue selectOneWriteQueue(String topic, AddressableMessageQueue last) throws Exception {
+    public SelectableMessageQueue selectOneWriteQueue(String topic, SelectableMessageQueue last) throws Exception {
         if (last == null) {
-            return getMessageQueue(topic).getWrite().selectOne(false);
+            return getMessageQueue(topic).getWriteSelector().selectOne(false);
         }
-        return getMessageQueue(topic).getWrite().selectNextQueue(last);
+        return getMessageQueue(topic).getWriteSelector().selectNextQueue(last);
     }
 
-    public AddressableMessageQueue selectOneWriteQueue(String topic, String brokerName, int queueId) throws Exception {
-        return getMessageQueue(topic).getWrite().selectOne(brokerName, queueId);
+    public SelectableMessageQueue selectOneWriteQueue(String topic, String brokerName, int queueId) throws Exception {
+        return getMessageQueue(topic).getWriteSelector().selectOne(brokerName, queueId);
     }
 
-    public AddressableMessageQueue selectOneWriteQueueByKey(String topic, String shardingKey, AddressableMessageQueue last) throws Exception {
-        List<AddressableMessageQueue> writeQueues = getMessageQueue(topic).getWrite().getQueues();
+    public SelectableMessageQueue selectOneWriteQueueByKey(String topic, String shardingKey, SelectableMessageQueue last) throws Exception {
+        List<SelectableMessageQueue> writeQueues = getMessageQueue(topic).getWriteSelector().getQueues();
         int bucket = Hashing.consistentHash(shardingKey.hashCode(), writeQueues.size());
         return writeQueues.get(bucket);
     }
@@ -122,10 +122,10 @@ public class TopicRouteCache {
                     log.info("load {} from namesrv. topic: {}, queue: {}", loaderName(), topic, tmp);
                     return tmp;
                 }
-                return MessageQueueWrapper.EMPTY_CACHED_QUEUE;
+                return MessageQueueWrapper.WRAPPED_EMPTY_QUEUE;
             } catch (Exception e) {
                 if (RocketMQHelper.isTopicNotExistError(e)) {
-                    return MessageQueueWrapper.EMPTY_CACHED_QUEUE;
+                    return MessageQueueWrapper.WRAPPED_EMPTY_QUEUE;
                 }
                 throw e;
             }

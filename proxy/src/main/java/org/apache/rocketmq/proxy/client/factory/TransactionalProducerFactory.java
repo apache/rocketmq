@@ -14,24 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.mqconstructor;
+package org.apache.rocketmq.proxy.client.factory;
 
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.proxy.client.processor.ProxyClientRemotingProcessor;
+import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class TransactionClientConstructor extends AbstractRocketMQClientConstructor<MQClientAPIExtImpl> {
+public class TransactionalProducerFactory extends AbstractMQClientFactory<MQClientAPIExtImpl> {
+    private final TransactionStateChecker transactionStateChecker;
 
-    public TransactionClientConstructor(RPCHook rpcHook) {
+    public TransactionalProducerFactory(RPCHook rpcHook, TransactionStateChecker transactionStateChecker) {
         super(rpcHook);
+        this.transactionStateChecker = transactionStateChecker;
     }
 
     @Override
     MQClientAPIExtImpl newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
         return new MQClientAPIExtImpl(
             createNettyClientConfig(bootstrapWorkerThreads),
-            new ProxyClientRemotingProcessor(null),
+            new ProxyClientRemotingProcessor(this.transactionStateChecker),
             rpcHook,
             new ClientConfig());
     }

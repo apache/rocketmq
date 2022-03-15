@@ -176,8 +176,15 @@ public class TransactionId {
         this.gatewayTransactionId = gatewayTransactionId;
     }
 
+    @Override
     public String toString() {
-        return "TransactionId(brokerAddr=" + this.getBrokerAddr() + ", brokerTransactionId=" + this.getBrokerTransactionId() + ", commitLogOffset=" + this.getCommitLogOffset() + ", tranStateTableOffset=" + this.getTranStateTableOffset() + ", gatewayTransactionId=" + this.getGatewayTransactionId() + ")";
+        return "TransactionId{" +
+            "brokerAddr=" + brokerAddr +
+            ", brokerTransactionId='" + brokerTransactionId + '\'' +
+            ", commitLogOffset=" + commitLogOffset +
+            ", tranStateTableOffset=" + tranStateTableOffset +
+            ", gatewayTransactionId='" + gatewayTransactionId + '\'' +
+            '}';
     }
 
     public static class TransactionIdBuilder {
@@ -219,8 +226,15 @@ public class TransactionId {
             return new TransactionId(brokerAddr, brokerTransactionId, commitLogOffset, tranStateTableOffset, gatewayTransactionId);
         }
 
+        @Override
         public String toString() {
-            return "TransactionId.TransactionIdBuilder(brokerAddr=" + this.brokerAddr + ", brokerTransactionId=" + this.brokerTransactionId + ", commitLogOffset=" + this.commitLogOffset + ", tranStateTableOffset=" + this.tranStateTableOffset + ", gatewayTransactionId=" + this.gatewayTransactionId + ")";
+            return "TransactionId.TransactionIdBuilder{" +
+                "brokerAddr=" + brokerAddr +
+                ", brokerTransactionId='" + brokerTransactionId + '\'' +
+                ", commitLogOffset=" + commitLogOffset +
+                ", tranStateTableOffset=" + tranStateTableOffset +
+                ", gatewayTransactionId='" + gatewayTransactionId + '\'' +
+                '}';
         }
     }
 }

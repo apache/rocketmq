@@ -19,17 +19,17 @@ package org.apache.rocketmq.proxy.client.route;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 public class MessageQueueWrapper {
-    public static final MessageQueueWrapper EMPTY_CACHED_QUEUE = new MessageQueueWrapper("", new TopicRouteData());
+    public static final MessageQueueWrapper WRAPPED_EMPTY_QUEUE = new MessageQueueWrapper("", new TopicRouteData());
 
-    private final SelectableMessageQueue read;
-    private final SelectableMessageQueue write;
+    private final MessageQueueSelector readSelector;
+    private final MessageQueueSelector writeSelector;
     private final TopicRouteWrapper topicRouteWrapper;
 
     public MessageQueueWrapper(String topic, TopicRouteData topicRouteData) {
         this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);
 
-        this.read = new SelectableMessageQueue(topicRouteWrapper, true);
-        this.write = new SelectableMessageQueue(topicRouteWrapper, false);
+        this.readSelector = new MessageQueueSelector(topicRouteWrapper, true);
+        this.writeSelector = new MessageQueueSelector(topicRouteWrapper, false);
     }
 
     public TopicRouteData getTopicRouteData() {
@@ -41,22 +41,22 @@ public class MessageQueueWrapper {
     }
 
     public boolean isEmptyCachedQueue() {
-        return this == EMPTY_CACHED_QUEUE;
+        return this == WRAPPED_EMPTY_QUEUE;
     }
 
-    public SelectableMessageQueue getRead() {
-        return read;
+    public MessageQueueSelector getReadSelector() {
+        return readSelector;
     }
 
-    public SelectableMessageQueue getWrite() {
-        return write;
+    public MessageQueueSelector getWriteSelector() {
+        return writeSelector;
     }
 
     @Override
     public String toString() {
         return "MessageQueueWrapper{" +
-            "read=" + read +
-            ", write=" + write +
+            "readSelector=" + readSelector +
+            ", writeSelector=" + writeSelector +
             ", topicRouteWrapper=" + topicRouteWrapper +
             '}';
     }

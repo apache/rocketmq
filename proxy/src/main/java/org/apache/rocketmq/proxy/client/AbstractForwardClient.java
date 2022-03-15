@@ -18,20 +18,21 @@ package org.apache.rocketmq.proxy.client;
 
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
+import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 
-public abstract class BaseClient implements StartAndShutdown {
+public abstract class AbstractForwardClient implements StartAndShutdown {
 
-    private final ClientFactory clientFactory;
+    private final ForwardClientFactory forwardClientFactory;
     private MQClientAPIExtImpl[] clients;
 
-    public BaseClient(ClientFactory clientFactory) {
-        this.clientFactory = clientFactory;
+    public AbstractForwardClient(ForwardClientFactory forwardClientFactory) {
+        this.forwardClientFactory = forwardClientFactory;
     }
 
     protected abstract int getClientNum();
 
-    protected abstract MQClientAPIExtImpl createNewClient(ClientFactory clientFactory, String name);
+    protected abstract MQClientAPIExtImpl createNewClient(ForwardClientFactory forwardClientFactory, String name);
 
     protected abstract String getNamePrefix();
 
@@ -48,7 +49,7 @@ public abstract class BaseClient implements StartAndShutdown {
         this.clients = new MQClientAPIExtImpl[clientCount];
         for (int i = 0; i < clientCount; i++) {
             String name = getNamePrefix() + "N_" + i;
-            clients[i] = createNewClient(clientFactory, name);
+            clients[i] = createNewClient(forwardClientFactory, name);
         }
     }
 
