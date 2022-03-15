@@ -27,7 +27,9 @@ import apache.rocketmq.v1.FilterType;
 import apache.rocketmq.v1.HeartbeatRequest;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.MessageType;
+import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.ProducerData;
+import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SubscriptionEntry;
@@ -41,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.ExpressionType;
@@ -49,6 +52,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
@@ -93,6 +97,39 @@ public class Converter {
         requestHeader.setFlag(0);
         requestHeader.setProperties(MessageDecoder.messageProperties2String(property));
         requestHeader.setReconsumeTimes(systemAttribute.getDeliveryAttempt());
+
+        return requestHeader;
+    }
+
+    public static PopMessageRequestHeader buildPopMessageRequestHeader(ReceiveMessageRequest request, long pollTime) {
+        Resource group = request.getGroup();
+        String groupName = Converter.getResourceNameWithNamespace(group);
+        Partition partition = request.getPartition();
+        Resource topic = partition.getTopic();
+        String topicName = Converter.getResourceNameWithNamespace(topic);
+        int queueId = partition.getId();
+        int maxMessageNumbers = request.getBatchSize();
+        long invisibleTime = Durations.toMillis(request.getInvisibleDuration());
+        long bornTime = Timestamps.toMillis(request.getInitializationTimestamp());
+        ConsumePolicy policy = request.getConsumePolicy();
+        int initMode = Converter.buildConsumeInitMode(policy);
+
+        FilterExpression filterExpression = request.getFilterExpression();
+        String expression = filterExpression.getExpression();
+        String expressionType = Converter.buildExpressionType(filterExpression.getType());
+
+        PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
+        requestHeader.setConsumerGroup(groupName);
+        requestHeader.setTopic(topicName);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setMaxMsgNums(maxMessageNumbers);
+        requestHeader.setInvisibleTime(invisibleTime);
+        requestHeader.setPollTime(pollTime);
+        requestHeader.setBornTime(bornTime);
+        requestHeader.setInitMode(initMode);
+        requestHeader.setExpType(expressionType);
+        requestHeader.setExp(expression);
+        requestHeader.setOrder(request.getFifoFlag());
 
         return requestHeader;
     }
@@ -261,5 +298,15 @@ public class Converter {
             }
         }
         return subscriptionDataSet;
+    }
+
+    public static int buildConsumeInitMode(ConsumePolicy policy) {
+        switch (policy) {
+            case PLAYBACK:
+                return ConsumeInitMode.MIN;
+            case RESUME:
+            default:
+                return ConsumeInitMode.MAX;
+        }
     }
 }
