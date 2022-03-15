@@ -78,7 +78,7 @@ public class MQClientAPIExtImpl {
             ex = new MQClientException("wait response timeout " + responseFuture.getTimeoutMillis() + "ms",
                 responseFuture.getCause());
         } else {
-            ex = new MQClientException("unknow reseaon", responseFuture.getCause());
+            ex = new MQClientException("unknown reason", responseFuture.getCause());
         }
         return ex;
     }

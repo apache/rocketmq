@@ -25,12 +25,11 @@ import com.google.rpc.Code;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
-import java.net.URL;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.configuration.InitConfigurationTest;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -41,27 +40,17 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.apache.rocketmq.proxy.configuration.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
-public class LocalGrpcServiceTest {
+public class LocalGrpcServiceTest extends InitConfigurationTest {
     private LocalGrpcService localGrpcService;
     @Mock
     SendMessageProcessor sendMessageProcessorMock;
 
     @Before
     public void setUp() throws Exception {
-        String mockProxyHome = "/mock/rmq/proxy/home";
-        URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
-        if (mockProxyHomeURL != null) {
-            mockProxyHome = mockProxyHomeURL.toURI().getPath();
-        }
-        System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
-        ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
-        ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        super.before();
         BrokerController brokerControllerMock = Mockito.mock(BrokerController.class);
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         localGrpcService = new LocalGrpcService(brokerControllerMock);

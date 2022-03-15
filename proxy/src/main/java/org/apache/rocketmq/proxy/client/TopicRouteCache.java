@@ -73,7 +73,7 @@ public class TopicRouteCache {
         return res;
     }
 
-    protected static boolean routeDataIsValid(TopicRouteData routeData) {
+    protected static boolean isTopicRouteValid(TopicRouteData routeData) {
         return routeData != null && routeData.getQueueDatas() != null && !routeData.getQueueDatas().isEmpty()
             && routeData.getBrokerDatas() != null && !routeData.getBrokerDatas().isEmpty();
     }
@@ -97,7 +97,7 @@ public class TopicRouteCache {
             try {
                 TopicRouteData topicRouteData = loadTopicRouteData(topic);
 
-                if (routeDataIsValid(topicRouteData)) {
+                if (isTopicRouteValid(topicRouteData)) {
                     MessageQueueWrapper tmp = new MessageQueueWrapper(topic, topicRouteData);
                     log.info("load {} from namesrv. topic: {}, queue: {}", loaderName(), topic, tmp);
                     return tmp;

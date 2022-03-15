@@ -29,11 +29,14 @@ public class MQClientAPIConstructor extends AbstractRocketMQClientConstructor<MQ
 
     @Override
     MQClientAPIExtImpl newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
+        ClientConfig clientConfig = new ClientConfig();
+        clientConfig.setInstanceName(instanceName);
+
         return new MQClientAPIExtImpl(
             createNettyClientConfig(bootstrapWorkerThreads),
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
-            new ClientConfig());
+            clientConfig);
     }
 
     @Override
