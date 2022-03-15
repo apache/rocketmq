@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.proxy.grpc.service;
 
+import apache.rocketmq.v1.HeartbeatRequest;
+import apache.rocketmq.v1.HeartbeatResponse;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
@@ -27,6 +29,7 @@ import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.processor.ClientManageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.proxy.configuration.InitConfigurationTest;
@@ -46,14 +49,48 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class LocalGrpcServiceTest extends InitConfigurationTest {
     private LocalGrpcService localGrpcService;
     @Mock
-    SendMessageProcessor sendMessageProcessorMock;
+    private SendMessageProcessor sendMessageProcessorMock;
+    @Mock
+    private BrokerController brokerControllerMock;
+
+    private Metadata metadata;
 
     @Before
     public void setUp() throws Exception {
-        super.before();
-        BrokerController brokerControllerMock = Mockito.mock(BrokerController.class);
+        String mockProxyHome = "/mock/rmq/proxy/home";
+        URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
+        if (mockProxyHomeURL != null) {
+            mockProxyHome = mockProxyHomeURL.toURI().getPath();
+        }
+        System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
+        ConfigurationManager.initEnv();
+        ConfigurationManager.intConfig();
+        ConfigurationManager.initEnv();
+        ConfigurationManager.intConfig();
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         localGrpcService = new LocalGrpcService(brokerControllerMock);
+        metadata = new Metadata();
+        metadata.put(InterceptorConstants.REMOTE_ADDRESS, "1.1.1.1");
+        metadata.put(InterceptorConstants.LOCAL_ADDRESS, "0.0.0.0");
+        metadata.put(InterceptorConstants.LANGUAGE, "JAVA");
+    }
+
+    @Test
+    public void testHeartbeat() {
+        RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
+        ClientManageProcessor clientManageProcessorMock = Mockito.mock(ClientManageProcessor.class);
+        Mockito.when(clientManageProcessorMock.heartBeat(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
+            .thenReturn(response);
+        Mockito.when(brokerControllerMock.getClientManageProcessor()).thenReturn(clientManageProcessorMock);
+        HeartbeatRequest request = HeartbeatRequest.newBuilder().getDefaultInstanceForType();
+        CompletableFuture<HeartbeatResponse> grpcFuture = localGrpcService.heartbeat(
+            Context.current().withValue(InterceptorConstants.METADATA, metadata).attach(), request);
+        grpcFuture.thenAccept(r -> {
+            assertThat(r.getCommon().getStatus().getCode())
+                .isEqualTo(Code.OK.getNumber());
+            assertThat(r.getCommon().getStatus().getMessage())
+                .isEqualTo(null);
+        });
     }
 
     @Test
@@ -70,9 +107,6 @@ public class LocalGrpcServiceTest extends InitConfigurationTest {
                     .build())
                 .build())
             .build();
-        Metadata metadata = new Metadata();
-        metadata.put(InterceptorConstants.REMOTE_ADDRESS, "1.1.1.1");
-        metadata.put(InterceptorConstants.LOCAL_ADDRESS, "0.0.0.0");
 
         CompletableFuture<SendMessageResponse> grpcFuture = localGrpcService.sendMessage(
             Context.current().withValue(InterceptorConstants.METADATA, metadata).attach(), request);

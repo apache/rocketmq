@@ -59,17 +59,22 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
+import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
-import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
+import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
+import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,11 +85,11 @@ public class LocalGrpcService implements GrpcForwardService {
     private final BrokerController brokerController;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryImpl("LocalGrpcServiceScheduledThread"));
-    private final ChannelManager sendChannelManager;
+    private final ChannelManager channelManager;
 
     public LocalGrpcService(BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.sendChannelManager = new ChannelManager();
+        this.channelManager = new ChannelManager();
     }
 
     @Override public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
@@ -92,8 +97,23 @@ public class LocalGrpcService implements GrpcForwardService {
     }
 
     @Override public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+        LanguageCode languageCode;
+        String language = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE);
+        languageCode = LanguageCode.valueOf(language);
+        HeartbeatData heartbeatData = Converter.buildHeartbeatData(request);
 
-        return null;
+        SimpleChannel channel = channelManager.createChannel();
+        SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        command.setLanguage(languageCode);
+        command.setVersion(MQVersion.Version.V5_0_0.ordinal());
+        command.setBody(heartbeatData.encode());
+        command.makeCustomHeaderToNet();
+
+        RemotingCommand response = this.brokerController.getClientManageProcessor()
+            .heartBeat(simpleChannelHandlerContext, command);
+        HeartbeatResponse heartbeatResponse = ResponseBuilder.buildHeartbeatResponse(response);
+        return CompletableFuture.completedFuture(heartbeatResponse);
     }
 
     @Override public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
@@ -113,7 +133,7 @@ public class LocalGrpcService implements GrpcForwardService {
         command.makeCustomHeaderToNet();
 
         SendMessageResponseHandler handler = new SendMessageResponseHandler(message.getSystemAttribute().getMessageId());
-        SendMessageChannel channel = SendMessageChannel.create(sendChannelManager.createChannel(), handler);
+        SendMessageChannel channel = SendMessageChannel.create(channelManager.createChannel(), handler);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
         InvocationContext<SendMessageRequest, SendMessageResponse> context
@@ -205,6 +225,6 @@ public class LocalGrpcService implements GrpcForwardService {
     }
 
     private void scanAndCleanChannels() {
-        this.sendChannelManager.scanAndCleanChannels();
+        this.channelManager.scanAndCleanChannels();
     }
 }
