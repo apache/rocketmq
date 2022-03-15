@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.mqconstructor;
+package org.apache.rocketmq.proxy.client.factory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,14 +23,14 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractRocketMQClientConstructor<T> implements RocketMQClientConstructor<T> {
+public abstract class AbstractMQClientFactory<T> implements MQClientFactory<T> {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractRocketMQClientConstructor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMQClientFactory.class);
 
     protected Map<String, T> cacheTable = new ConcurrentHashMap<>();
     protected RPCHook rpcHook;
 
-    public AbstractRocketMQClientConstructor(RPCHook rpcHook) {
+    public AbstractMQClientFactory(RPCHook rpcHook) {
         this.rpcHook = rpcHook;
     }
 
@@ -78,7 +78,7 @@ public abstract class AbstractRocketMQClientConstructor<T> implements RocketMQCl
             try {
                 this.shutdown(v);
             } catch (Exception e) {
-                log.warn("RocketMQClientConstructor shutdown all err.", e);
+                LOGGER.warn("RocketMQClientConstructor shutdown all err.", e);
             }
         });
     }

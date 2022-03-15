@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import org.apache.rocketmq.proxy.client.ClientManager;
-import org.apache.rocketmq.proxy.client.DefaultClient;
-import org.apache.rocketmq.proxy.client.ProducerClient;
-import org.apache.rocketmq.proxy.client.ReadConsumerClient;
+import org.apache.rocketmq.proxy.client.ForwardClientManager;
+import org.apache.rocketmq.proxy.client.DefaultForwardClient;
+import org.apache.rocketmq.proxy.client.ForwardProducer;
+import org.apache.rocketmq.proxy.client.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.client.TopicRouteCache;
-import org.apache.rocketmq.proxy.client.WriteConsumerClient;
+import org.apache.rocketmq.proxy.client.ForwardWriteConsumer;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
@@ -35,24 +35,24 @@ import static org.mockito.Mockito.when;
 public abstract class BaseServiceTest {
 
     @Mock
-    protected ClientManager clientManager;
+    protected ForwardClientManager clientManager;
     @Mock
-    protected DefaultClient defaultClient;
+    protected DefaultForwardClient defaultClient;
     @Mock
-    protected ProducerClient producerClient;
+    protected ForwardProducer producerClient;
     @Mock
-    protected ReadConsumerClient readConsumerClient;
+    protected ForwardReadConsumer readConsumerClient;
     @Mock
-    protected WriteConsumerClient writeConsumerClient;
+    protected ForwardWriteConsumer writeConsumerClient;
     @Mock
     protected TopicRouteCache topicRouteCache;
 
     @Before
     public void before() throws Throwable {
-        when(clientManager.getDefaultClient()).thenReturn(defaultClient);
-        when(clientManager.getProducerClient()).thenReturn(producerClient);
-        when(clientManager.getReadConsumerClient()).thenReturn(readConsumerClient);
-        when(clientManager.getWriteConsumerClient()).thenReturn(writeConsumerClient);
+        when(clientManager.getDefaultForwardClient()).thenReturn(defaultClient);
+        when(clientManager.getForwardProducer()).thenReturn(producerClient);
+        when(clientManager.getForwardReadConsumer()).thenReturn(readConsumerClient);
+        when(clientManager.getForwardWriteConsumer()).thenReturn(writeConsumerClient);
         when(clientManager.getTopicRouteCache()).thenReturn(topicRouteCache);
 
         beforeEach();

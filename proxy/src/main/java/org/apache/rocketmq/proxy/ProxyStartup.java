@@ -108,7 +108,7 @@ public class ProxyStartup {
     private static void initThreadPoolMonitor() {
         ThreadPoolMonitor.init();
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        ThreadPoolMonitor.config(config.isEnablePrintJstack(), config.getPrintJstackPeriodMillis());
+        ThreadPoolMonitor.config(config.isEnablePrintJstack(), config.getPrintJstackInMillis());
     }
 
     private static void initLogger() throws JoranException {
@@ -120,6 +120,6 @@ public class ProxyStartup {
         lc.reset();
         //https://logback.qos.ch/manual/configuration.html
         lc.setPackagingDataEnabled(false);
-        configurator.doConfigure(ConfigurationManager.getProxyHome() + "/conf/logback.xml");
+        configurator.doConfigure(ConfigurationManager.getProxyHome() + "/conf/logback_proxy.xml");
     }
 }

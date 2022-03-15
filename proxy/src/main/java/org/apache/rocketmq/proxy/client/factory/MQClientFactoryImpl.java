@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.mqconstructor;
+package org.apache.rocketmq.proxy.client.factory;
 
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.proxy.client.processor.DoNothingClientRemotingProcessor;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class MQClientAPIConstructor extends AbstractRocketMQClientConstructor<MQClientAPIExtImpl> {
+public class MQClientFactoryImpl extends AbstractMQClientFactory<MQClientAPIExtImpl> {
 
-    public MQClientAPIConstructor(RPCHook rpcHook) {
+    public MQClientFactoryImpl(RPCHook rpcHook) {
         super(rpcHook);
     }
 

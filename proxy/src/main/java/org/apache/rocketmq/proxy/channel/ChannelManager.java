@@ -63,7 +63,7 @@ public class ChannelManager {
             .get(InterceptorConstants.REMOTE_ADDRESS);
         final String localAddress = InterceptorConstants.METADATA.get(Context.current())
             .get(InterceptorConstants.LOCAL_ADDRESS);
-        return new SimpleChannel(null, clientHost, localAddress, ConfigurationManager.getProxyConfig().getExpiredChannelTimeSec());
+        return new SimpleChannel(null, clientHost, localAddress, ConfigurationManager.getProxyConfig().getChannelExpiredInSeconds());
     }
 
     /**
@@ -71,8 +71,7 @@ public class ChannelManager {
      */
     public void scanAndCleanChannels() {
         try {
-            Iterator<Map.Entry<String, SimpleChannel>> iterator = clientIdChannelMap.entrySet()
-                .iterator();
+            Iterator<Map.Entry<String, SimpleChannel>> iterator = clientIdChannelMap.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<String, SimpleChannel> entry = iterator.next();
                 if (!entry.getValue()

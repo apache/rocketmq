@@ -35,7 +35,7 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.proxy.client.route.AddressableMessageQueue;
+import org.apache.rocketmq.proxy.client.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
 import org.apache.rocketmq.proxy.grpc.common.ProxyResponseCode;
 import org.junit.Test;
@@ -56,19 +56,19 @@ public class ProducerServiceTest extends BaseServiceTest {
 
     @Override
     public void beforeEach() throws Throwable {
-        AddressableMessageQueue queue = new AddressableMessageQueue(
+        SelectableMessageQueue queue = new SelectableMessageQueue(
             new MessageQueue("topic", "selectOrderQueue", 0),
             "selectOrderQueueAddr");
         when(topicRouteCache.selectOneWriteQueueByKey(anyString(), anyString(), isNull()))
             .thenReturn(queue);
 
-        queue = new AddressableMessageQueue(
+        queue = new SelectableMessageQueue(
             new MessageQueue("topic", "selectTargetQueue", 0),
             "selectTargetQueueAddr");
         when(topicRouteCache.selectOneWriteQueue(anyString(), anyString(), anyInt()))
             .thenReturn(queue);
 
-        queue = new AddressableMessageQueue(
+        queue = new SelectableMessageQueue(
             new MessageQueue("topic", "selectNormalQueue", 0),
             "selectNormalQueueAddr");
         when(topicRouteCache.selectOneWriteQueue(anyString(), isNull()))
@@ -85,17 +85,17 @@ public class ProducerServiceTest extends BaseServiceTest {
 
         ProducerService producerService = new ProducerService(this.clientManager);
 
-        AtomicReference<AddressableMessageQueue> selectQueueRef = new AtomicReference<>();
+        AtomicReference<SelectableMessageQueue> selectQueueRef = new AtomicReference<>();
         AtomicReference<org.apache.rocketmq.common.message.Message> messageRef = new AtomicReference<>();
         producerService.setProducerServiceHook(new ProducerService.ProducerServiceHook() {
             @Override
-            public void beforeSend(Context ctx, AddressableMessageQueue addressableMessageQueue,
+            public void beforeSend(Context ctx, SelectableMessageQueue addressableMessageQueue,
                 org.apache.rocketmq.common.message.Message msg, SendMessageRequestHeader requestHeader) {
                 selectQueueRef.set(addressableMessageQueue);
             }
 
             @Override
-            public void afterSend(Context ctx, AddressableMessageQueue addressableMessageQueue,
+            public void afterSend(Context ctx, SelectableMessageQueue addressableMessageQueue,
                 org.apache.rocketmq.common.message.Message msg, SendMessageRequestHeader requestHeader,
                 SendResult sendResult) {
 
@@ -138,17 +138,17 @@ public class ProducerServiceTest extends BaseServiceTest {
 
         ProducerService producerService = new ProducerService(this.clientManager);
 
-        AtomicReference<AddressableMessageQueue> selectQueueRef = new AtomicReference<>();
+        AtomicReference<SelectableMessageQueue> selectQueueRef = new AtomicReference<>();
         AtomicReference<org.apache.rocketmq.common.message.Message> messageRef = new AtomicReference<>();
         producerService.setProducerServiceHook(new ProducerService.ProducerServiceHook() {
             @Override
-            public void beforeSend(Context ctx, AddressableMessageQueue addressableMessageQueue,
+            public void beforeSend(Context ctx, SelectableMessageQueue addressableMessageQueue,
                 org.apache.rocketmq.common.message.Message msg, SendMessageRequestHeader requestHeader) {
                 selectQueueRef.set(addressableMessageQueue);
             }
 
             @Override
-            public void afterSend(Context ctx, AddressableMessageQueue addressableMessageQueue,
+            public void afterSend(Context ctx, SelectableMessageQueue addressableMessageQueue,
                 org.apache.rocketmq.common.message.Message msg, SendMessageRequestHeader requestHeader,
                 SendResult sendResult) {
 
@@ -190,17 +190,17 @@ public class ProducerServiceTest extends BaseServiceTest {
 
         ProducerService producerService = new ProducerService(this.clientManager);
 
-        AtomicReference<AddressableMessageQueue> selectQueueRef = new AtomicReference<>();
+        AtomicReference<SelectableMessageQueue> selectQueueRef = new AtomicReference<>();
         AtomicReference<org.apache.rocketmq.common.message.Message> messageRef = new AtomicReference<>();
         producerService.setProducerServiceHook(new ProducerService.ProducerServiceHook() {
             @Override
-            public void beforeSend(Context ctx, AddressableMessageQueue addressableMessageQueue,
+            public void beforeSend(Context ctx, SelectableMessageQueue addressableMessageQueue,
                 org.apache.rocketmq.common.message.Message msg, SendMessageRequestHeader requestHeader) {
                 selectQueueRef.set(addressableMessageQueue);
             }
 
             @Override
-            public void afterSend(Context ctx, AddressableMessageQueue addressableMessageQueue,
+            public void afterSend(Context ctx, SelectableMessageQueue addressableMessageQueue,
                 org.apache.rocketmq.common.message.Message msg, SendMessageRequestHeader requestHeader,
                 SendResult sendResult) {
 

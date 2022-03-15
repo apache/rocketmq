@@ -17,6 +17,5 @@
 package org.apache.rocketmq.proxy.client.transaction;
 
 public interface TransactionStateChecker {
-
     void checkTransactionState(TransactionStateCheckRequest checkData);
 }

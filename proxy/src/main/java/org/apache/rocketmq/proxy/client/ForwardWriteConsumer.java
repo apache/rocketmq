@@ -22,25 +22,26 @@ import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
-public class WriteConsumerClient extends BaseClient {
+public class ForwardWriteConsumer extends AbstractForwardClient {
 
     private static final String CID_PREFIX = "CID_RMQ_PROXY_DELETE_MESSAGE_";
 
-    public WriteConsumerClient(ClientFactory clientFactory) {
+    public ForwardWriteConsumer(ForwardClientFactory clientFactory) {
         super(clientFactory);
     }
 
     @Override
     protected int getClientNum() {
-        return ConfigurationManager.getProxyConfig().getConsumerClientNum();
+        return ConfigurationManager.getProxyConfig().getForwardConsumerNum();
     }
 
     @Override
-    protected MQClientAPIExtImpl createNewClient(ClientFactory clientFactory, String name) {
-        double workerFactor = ConfigurationManager.getProxyConfig().getConsumerClientWorkerFactor();
+    protected MQClientAPIExtImpl createNewClient(ForwardClientFactory clientFactory, String name) {
+        double workerFactor = ConfigurationManager.getProxyConfig().getForwardConsumerWorkerFactor();
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
         return clientFactory.getMQClient(name, threadCount);

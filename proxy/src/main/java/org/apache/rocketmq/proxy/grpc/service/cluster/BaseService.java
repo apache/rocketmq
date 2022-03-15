@@ -16,13 +16,13 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import org.apache.rocketmq.proxy.client.ClientManager;
+import org.apache.rocketmq.proxy.client.ForwardClientManager;
 
 public class BaseService {
 
-    protected final ClientManager clientManager;
+    protected final ForwardClientManager clientManager;
 
-    public BaseService(ClientManager clientManager) {
+    public BaseService(ForwardClientManager clientManager) {
         this.clientManager = clientManager;
     }
 }

@@ -54,7 +54,7 @@ import apache.rocketmq.v1.SendMessageResponse;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.client.ClientManager;
+import org.apache.rocketmq.proxy.client.ForwardClientManager;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
@@ -64,12 +64,12 @@ import org.slf4j.LoggerFactory;
 public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
-    private final ClientManager clientManager;
+    private final ForwardClientManager clientManager;
     private final ProducerService producerService;
     private final RouteService routeService;
 
     public ClusterGrpcService() {
-        this.clientManager = new ClientManager(checkData -> {
+        this.clientManager = new ForwardClientManager(checkData -> {
         });
         this.producerService = new ProducerService(clientManager);
         this.routeService = new RouteService(clientManager);

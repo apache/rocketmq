@@ -31,17 +31,18 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
-
     private final TransactionStateChecker transactionStateChecker;
 
-    public ProxyClientRemotingProcessor(
-        TransactionStateChecker transactionStateChecker) {
+    public ProxyClientRemotingProcessor(TransactionStateChecker transactionStateChecker) {
         super(null);
         this.transactionStateChecker = transactionStateChecker;
     }
 
     @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand processRequest(
+        ChannelHandlerContext ctx,
+        RemotingCommand request
+    ) throws RemotingCommandException {
         if (request.getCode() == RequestCode.CHECK_TRANSACTION_STATE) {
             return this.checkTransactionState(ctx, request);
         }
@@ -49,9 +50,12 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
     }
 
     @Override
-    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
-        final CheckTransactionStateRequestHeader requestHeader = (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
+    public RemotingCommand checkTransactionState(
+        ChannelHandlerContext ctx,
+        RemotingCommand request
+    ) throws RemotingCommandException {
+        final CheckTransactionStateRequestHeader requestHeader =
+            (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer, true, false, false);
         if (messageExt != null) {

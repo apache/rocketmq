@@ -25,8 +25,8 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.proxy.client.ClientManager;
-import org.apache.rocketmq.proxy.client.route.AddressableMessageQueue;
+import org.apache.rocketmq.proxy.client.ForwardClientManager;
+import org.apache.rocketmq.proxy.client.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
@@ -42,19 +42,19 @@ public class ProducerService extends BaseService {
     private volatile ProducerServiceHook producerServiceHook = null;
     private volatile MessageQueueSelector messageQueueSelector = new DefaultMessageQueueSelector();
 
-    public ProducerService(ClientManager clientManager) {
+    public ProducerService(ForwardClientManager clientManager) {
         super(clientManager);
     }
 
     public interface MessageQueueSelector {
-        AddressableMessageQueue selectQueue(Context ctx, SendMessageRequest request, SendMessageRequestHeader requestHeader,
+        SelectableMessageQueue selectQueue(Context ctx, SendMessageRequest request, SendMessageRequestHeader requestHeader,
             org.apache.rocketmq.common.message.Message message);
     }
 
     public class DefaultMessageQueueSelector implements MessageQueueSelector {
 
         @Override
-        public AddressableMessageQueue selectQueue(Context ctx, SendMessageRequest request, SendMessageRequestHeader requestHeader,
+        public SelectableMessageQueue selectQueue(Context ctx, SendMessageRequest request, SendMessageRequestHeader requestHeader,
             org.apache.rocketmq.common.message.Message message) {
             try {
                 String topic = requestHeader.getTopic();
@@ -64,7 +64,7 @@ public class ProducerService extends BaseService {
                 }
                 Integer queueId = requestHeader.getQueueId();
                 String shardingKey = message.getProperty(MessageConst.PROPERTY_SHARDING_KEY);
-                AddressableMessageQueue addressableMessageQueue;
+                SelectableMessageQueue addressableMessageQueue;
                 if (!StringUtils.isBlank(brokerName) && queueId != null) {
                     // Grpc client sendSelect situation
                     addressableMessageQueue = selectTargetQueue(topic, brokerName, queueId);
@@ -81,24 +81,24 @@ public class ProducerService extends BaseService {
             }
         }
 
-        protected AddressableMessageQueue selectNormalQueue(String topic) throws Exception {
+        protected SelectableMessageQueue selectNormalQueue(String topic) throws Exception {
             return clientManager.getTopicRouteCache().selectOneWriteQueue(topic, null);
         }
 
-        protected AddressableMessageQueue selectTargetQueue(String topic, String brokerName, int queueId) throws Exception {
+        protected SelectableMessageQueue selectTargetQueue(String topic, String brokerName, int queueId) throws Exception {
             return clientManager.getTopicRouteCache().selectOneWriteQueue(topic, brokerName, queueId);
         }
 
-        protected AddressableMessageQueue selectOrderQueue(String topic, String shardingKey) throws Exception {
+        protected SelectableMessageQueue selectOrderQueue(String topic, String shardingKey) throws Exception {
             return clientManager.getTopicRouteCache().selectOneWriteQueueByKey(topic, shardingKey, null);
         }
     }
 
     public interface ProducerServiceHook {
 
-        void beforeSend(Context ctx, AddressableMessageQueue addressableMessageQueue, Message msg, SendMessageRequestHeader requestHeader);
+        void beforeSend(Context ctx, SelectableMessageQueue addressableMessageQueue, Message msg, SendMessageRequestHeader requestHeader);
 
-        void afterSend(Context ctx, AddressableMessageQueue addressableMessageQueue, Message msg, SendMessageRequestHeader requestHeader,
+        void afterSend(Context ctx, SelectableMessageQueue addressableMessageQueue, Message msg, SendMessageRequestHeader requestHeader,
             SendResult sendResult);
     }
 
@@ -116,7 +116,7 @@ public class ProducerService extends BaseService {
 
         try {
             SendMessageRequestHeader requestHeader = Converter.buildSendMessageRequestHeader(request);
-            AddressableMessageQueue addressableMessageQueue = messageQueueSelector.selectQueue(ctx, request, requestHeader, message);
+            SelectableMessageQueue addressableMessageQueue = messageQueueSelector.selectQueue(ctx, request, requestHeader, message);
 
             String topic = requestHeader.getTopic();
             if (addressableMessageQueue == null) {
@@ -127,7 +127,7 @@ public class ProducerService extends BaseService {
             if (producerServiceHook != null) {
                 producerServiceHook.beforeSend(ctx, addressableMessageQueue, message, requestHeader);
             }
-            CompletableFuture<SendResult> sendResultCompletableFuture = this.clientManager.getProducerClient().sendMessage(
+            CompletableFuture<SendResult> sendResultCompletableFuture = this.clientManager.getForwardProducer().sendMessage(
                 addressableMessageQueue.getBrokerAddr(),
                 addressableMessageQueue.getBrokerName(),
                 message,
