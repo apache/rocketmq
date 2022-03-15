@@ -38,11 +38,11 @@ public class ClientManager extends AbstractStartAndShutdown {
 
         this.topicRouteCache = new TopicRouteCache(this.defaultClient);
 
-        this.appendStartAndShutdown(this.clientFactory)
-            .appendStartAndShutdown(this.defaultClient)
-            .appendStartAndShutdown(this.producerClient)
-            .appendStartAndShutdown(this.readConsumerClient)
-            .appendStartAndShutdown(this.writeConsumerClient);
+        this.appendStartAndShutdown(this.clientFactory);
+        this.appendStartAndShutdown(this.defaultClient);
+        this.appendStartAndShutdown(this.producerClient);
+        this.appendStartAndShutdown(this.readConsumerClient);
+        this.appendStartAndShutdown(this.writeConsumerClient);
     }
 
     public DefaultClient getDefaultClient() {

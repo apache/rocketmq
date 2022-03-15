@@ -44,6 +44,14 @@ public class MessageQueueWrapper {
         return this == EMPTY_CACHED_QUEUE;
     }
 
+    public SelectableMessageQueue getRead() {
+        return read;
+    }
+
+    public SelectableMessageQueue getWrite() {
+        return write;
+    }
+
     @Override
     public String toString() {
         return "MessageQueueWrapper{" +

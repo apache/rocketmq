@@ -35,8 +35,10 @@ public class TopicRouteWrapper {
         this.topicRouteData = topicRouteData;
         this.topicName = topicName;
 
-        for (BrokerData brokerData : this.topicRouteData.getBrokerDatas()) {
-            brokerNameRouteData.put(brokerData.getBrokerName(), brokerData);
+        if (this.topicRouteData.getBrokerDatas() != null) {
+            for (BrokerData brokerData : this.topicRouteData.getBrokerDatas()) {
+                brokerNameRouteData.put(brokerData.getBrokerName(), brokerData);
+            }
         }
     }
 

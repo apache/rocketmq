@@ -14,31 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.common;
+package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import apache.rocketmq.v1.ReceiveMessageRequest;
+import apache.rocketmq.v1.ReceiveMessageResponse;
+import io.grpc.Context;
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.proxy.client.ClientManager;
 
-public abstract class AbstractStartAndShutdown implements StartAndShutdown {
+public class ConsumerService extends BaseService {
 
-    protected List<StartAndShutdown> startAndShutdownList = new CopyOnWriteArrayList<>();
-
-    protected void appendStartAndShutdown(StartAndShutdown startAndShutdown) {
-        this.startAndShutdownList.add(startAndShutdown);
+    public ConsumerService(ClientManager clientManager) {
+        super(clientManager);
     }
 
-    @Override
-    public void start() throws Exception {
-        for (StartAndShutdown startAndShutdown : startAndShutdownList) {
-            startAndShutdown.start();
-        }
-    }
+    public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
 
-    @Override
-    public void shutdown() throws Exception {
-        int index = startAndShutdownList.size() - 1;
-        for (; index >= 0; index--) {
-            startAndShutdownList.get(index).shutdown();
-        }
     }
 }
