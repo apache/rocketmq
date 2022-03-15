@@ -34,6 +34,14 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-proto</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-proxy</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-broker</artifactId>
         </dependency>
         <dependency>
@@ -68,6 +76,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-tools</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-testing</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

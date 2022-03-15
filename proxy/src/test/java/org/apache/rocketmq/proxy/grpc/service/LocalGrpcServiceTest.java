@@ -83,8 +83,6 @@ public class LocalGrpcServiceTest extends InitConfigurationTest {
         System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
-        ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
         localGrpcService = new LocalGrpcService(brokerControllerMock);
