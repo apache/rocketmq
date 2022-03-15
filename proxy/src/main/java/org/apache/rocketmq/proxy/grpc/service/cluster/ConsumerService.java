@@ -29,6 +29,6 @@ public class ConsumerService extends BaseService {
     }
 
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-
+        return null;
     }
 }

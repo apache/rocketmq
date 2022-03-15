@@ -71,7 +71,7 @@ public class TopicRouteCache {
         if (last == null) {
             return getMessageQueue(topic).getWrite().selectOne(false);
         }
-        return getMessageQueue(topic).getWrite().selectNextOne(last);
+        return getMessageQueue(topic).getWrite().selectNextQueue(last);
     }
 
     public AddressableMessageQueue selectOneWriteQueue(String topic, String brokerName, int queueId) throws Exception {
