@@ -119,7 +119,7 @@ public class SelectableMessageQueue {
                         AddressableMessageQueue mq = new AddressableMessageQueue(
                             new MessageQueue(topicRoute.getTopicName(), qd.getBrokerName(), i),
                             brokerAddr);
-                       queueSet.add(mq);
+                        queueSet.add(mq);
                     }
                 }
             }
@@ -128,8 +128,6 @@ public class SelectableMessageQueue {
         return queueSet.stream().sorted().collect(Collectors.toList());
     }
 
-
-    // 这里应该不是线程安全的
     private void buildBrokerActingQueues(String topic, List<AddressableMessageQueue> normalQueues) {
         for (AddressableMessageQueue mq : normalQueues) {
             AddressableMessageQueue brokerActingQueue = new AddressableMessageQueue(
@@ -194,28 +192,12 @@ public class SelectableMessageQueue {
         return newOne;
     }
 
-    // should use selectNextQueue
-//    public final AddressableMessageQueue selectNextBrokerActingQueue(AddressableMessageQueue last) {
-//        boolean onlyBroker = last.getQueueId() < 0;
-//        AddressableMessageQueue newOne = last;
-//        int count = onlyBroker ? brokerActingQueues.size() : queues.size();
-//
-//        for (int i = 0; i < count; i++) {
-//            newOne = selectOne(onlyBroker);
-//            if (!newOne.getBrokerName().equals(last.getBrokerName())) {
-//                break;
-//            }
-//        }
-//
-//        return newOne;
-//    }
-
     public List<AddressableMessageQueue> getQueues() {
         return queues;
     }
 
-    public List<AddressableMessageQueue> getBrokers() {
-        return brokers;
+    public List<AddressableMessageQueue> getBrokerActingQueues() {
+        return brokerActingQueues;
     }
 
     @Override

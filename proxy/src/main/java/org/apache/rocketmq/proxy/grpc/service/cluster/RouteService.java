@@ -70,7 +70,7 @@ public class RouteService extends BaseService {
         public List<AddressableMessageQueue> getAssignment(QueryAssignmentRequest request) throws Exception {
             MessageQueueWrapper messageQueueWrapper = clientManager.getTopicRouteCache()
                 .getMessageQueue(Converter.getResourceNameWithNamespace(request.getTopic()));
-            return messageQueueWrapper.getRead().getBrokers();
+            return messageQueueWrapper.getRead().getBrokerActingQueues();
         }
     }
 
