@@ -18,50 +18,50 @@ package org.apache.rocketmq.proxy.client.route;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 
 public class SelectableMessageQueue {
+    private static final int BROKER_ACTING_QUEUE_ID = -1;
 
-    // queueId : normal
-    private final List<AddressableMessageQueue> queues;
-    // queueId : -1
-    private final List<AddressableMessageQueue> brokers;
-    private final Map<String, AddressableMessageQueue> brokerNameMap;
+    // multiple queues for one broker, with queueId : normal
+    private final List<AddressableMessageQueue> queues = new ArrayList<>();
+    // one queue for one broker, with queueId : -1
+    private final List<AddressableMessageQueue> brokerActingQueues = new ArrayList<>();
+    private final Map<String, AddressableMessageQueue> brokerNameQueueMap = new ConcurrentHashMap<>();
     private final AtomicInteger queueIndex;
     private final AtomicInteger brokerIndex;
 
     public SelectableMessageQueue(TopicRouteWrapper topicRouteWrapper, boolean read) {
-        this.queues = new ArrayList<>();
-        this.brokers = new ArrayList<>();
-        this.brokerNameMap = new HashMap<>();
         if (read) {
             this.queues.addAll(buildRead(topicRouteWrapper));
         } else {
             this.queues.addAll(buildWrite(topicRouteWrapper));
         }
-        buildBroker(topicRouteWrapper.getTopicName(), this.queues);
+        buildBrokerActingQueues(topicRouteWrapper.getTopicName(), this.queues);
 
         this.queueIndex = new AtomicInteger(Math.abs(new Random().nextInt()));
         this.brokerIndex = new AtomicInteger(Math.abs(new Random().nextInt()));
     }
 
-    private static List<AddressableMessageQueue> buildRead(
-        TopicRouteWrapper topicRoute) {
-        List<AddressableMessageQueue> queues = new ArrayList<>();
+    private static List<AddressableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
+        Set<AddressableMessageQueue> queueSet = new HashSet<>();
         List<QueueData> qds = topicRoute.getQueueDatas();
         if (qds == null) {
-            return queues;
+            return new ArrayList<>();
         }
-        Collections.sort(qds);
+
         for (QueueData qd : qds) {
             if (PermName.isReadable(qd.getPerm())) {
                 String brokerAddr = topicRoute.getMasterAddrPrefer(qd.getBrokerName());
@@ -73,20 +73,16 @@ public class SelectableMessageQueue {
                     AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), qd.getBrokerName(), i),
                         brokerAddr);
-                    if (!queues.contains(mq)) {
-                        queues.add(mq);
-                    }
+                    queueSet.add(mq);
                 }
             }
         }
 
-        Collections.sort(queues);
-        return queues;
+        return queueSet.stream().sorted().collect(Collectors.toList());
     }
 
-    private static List<AddressableMessageQueue> buildWrite(
-        TopicRouteWrapper topicRoute) {
-        List<AddressableMessageQueue> queues = new ArrayList<>();
+    private static List<AddressableMessageQueue> buildWrite(TopicRouteWrapper topicRoute) {
+        Set<AddressableMessageQueue> queueSet = new HashSet<>();
         // order topic route.
         if (StringUtils.isNotBlank(topicRoute.getOrderTopicConf())) {
             String[] brokers = topicRoute.getOrderTopicConf().split(";");
@@ -103,61 +99,59 @@ public class SelectableMessageQueue {
                     AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), brokerName, i),
                         brokerAddr);
-                    if (!queues.contains(mq)) {
-                        queues.add(mq);
-                    }
+                    queueSet.add(mq);
                 }
             }
         } else {
             List<QueueData> qds = topicRoute.getQueueDatas();
             if (qds == null) {
-                return queues;
+                return new ArrayList<>();
             }
-            Collections.sort(qds);
+
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
-                    String brokerName = qd.getBrokerName();
-                    String brokerAddr = topicRoute.getMasterAddr(brokerName);
+                    String brokerAddr = topicRoute.getMasterAddr(qd.getBrokerName());
                     if (brokerAddr == null) {
                         continue;
                     }
 
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         AddressableMessageQueue mq = new AddressableMessageQueue(
-                            new MessageQueue(topicRoute.getTopicName(), brokerName, i),
+                            new MessageQueue(topicRoute.getTopicName(), qd.getBrokerName(), i),
                             brokerAddr);
-                        if (!queues.contains(mq)) {
-                            queues.add(mq);
-                        }
+                       queueSet.add(mq);
                     }
                 }
             }
         }
 
-        Collections.sort(queues);
-        return queues;
+        return queueSet.stream().sorted().collect(Collectors.toList());
     }
 
-    private void buildBroker(String topic, List<AddressableMessageQueue> queues) {
-        for (AddressableMessageQueue messageQueue : queues) {
-            AddressableMessageQueue mb = new AddressableMessageQueue(
-                new MessageQueue(topic, messageQueue.getMessageQueue().getBrokerName(), -1),
-                messageQueue.getBrokerAddr());
-            if (!brokers.contains(mb)) {
-                brokers.add(mb);
-                brokerNameMap.put(mb.getBrokerName(), mb);
+
+    // 这里应该不是线程安全的
+    private void buildBrokerActingQueues(String topic, List<AddressableMessageQueue> normalQueues) {
+        for (AddressableMessageQueue mq : normalQueues) {
+            AddressableMessageQueue brokerActingQueue = new AddressableMessageQueue(
+                new MessageQueue(topic, mq.getMessageQueue().getBrokerName(), BROKER_ACTING_QUEUE_ID),
+                mq.getBrokerAddr());
+
+            if (!brokerActingQueues.contains(brokerActingQueue)) {
+                brokerActingQueues.add(brokerActingQueue);
+                brokerNameQueueMap.put(brokerActingQueue.getBrokerName(), brokerActingQueue);
             }
         }
 
-        Collections.sort(brokers);
+        Collections.sort(brokerActingQueues);
     }
 
-    public final AddressableMessageQueue getBrokerByName(String brokerName) {
-        return this.brokerNameMap.get(brokerName);
+    public final AddressableMessageQueue getQueueByBrokerName(String brokerName) {
+        return this.brokerNameQueueMap.get(brokerName);
     }
 
     public final AddressableMessageQueue selectOne(boolean onlyBroker) {
-        return selectOneByIndex(onlyBroker ? brokerIndex.getAndIncrement() : queueIndex.getAndIncrement(), onlyBroker);
+        int nextIndex = onlyBroker ? brokerIndex.getAndIncrement() : queueIndex.getAndIncrement();
+        return selectOneByIndex(nextIndex, onlyBroker);
     }
 
     public final AddressableMessageQueue selectOne(String brokerName, int queueId) {
@@ -172,22 +166,23 @@ public class SelectableMessageQueue {
 
     public final AddressableMessageQueue selectOneByIndex(int index, boolean onlyBroker) {
         if (onlyBroker) {
-            if (brokers.isEmpty()) {
+            if (brokerActingQueues.isEmpty()) {
                 return null;
             }
-            return brokers.get(Math.abs(index) % brokers.size());
+            return brokerActingQueues.get(Math.abs(index) % brokerActingQueues.size());
         }
+
         if (queues.isEmpty()) {
             return null;
         }
         return queues.get(Math.abs(index) % queues.size());
     }
 
-    public final AddressableMessageQueue selectNextOne(
-        AddressableMessageQueue last) {
+    // find next same type(but different) queue with last(normal queue or broker acting queue).
+    public final AddressableMessageQueue selectNextQueue(AddressableMessageQueue last) {
         boolean onlyBroker = last.getQueueId() < 0;
         AddressableMessageQueue newOne = last;
-        int count = onlyBroker ? brokers.size() : queues.size();
+        int count = onlyBroker ? brokerActingQueues.size() : queues.size();
 
         for (int i = 0; i < count; i++) {
             newOne = selectOne(onlyBroker);
@@ -199,21 +194,21 @@ public class SelectableMessageQueue {
         return newOne;
     }
 
-    public final AddressableMessageQueue selectNextBrokerOne(
-        AddressableMessageQueue last) {
-        boolean onlyBroker = last.getQueueId() < 0;
-        AddressableMessageQueue newOne = last;
-        int count = onlyBroker ? brokers.size() : queues.size();
-
-        for (int i = 0; i < count; i++) {
-            newOne = selectOne(onlyBroker);
-            if (!newOne.getBrokerName().equals(last.getBrokerName())) {
-                break;
-            }
-        }
-
-        return newOne;
-    }
+    // should use selectNextQueue
+//    public final AddressableMessageQueue selectNextBrokerActingQueue(AddressableMessageQueue last) {
+//        boolean onlyBroker = last.getQueueId() < 0;
+//        AddressableMessageQueue newOne = last;
+//        int count = onlyBroker ? brokerActingQueues.size() : queues.size();
+//
+//        for (int i = 0; i < count; i++) {
+//            newOne = selectOne(onlyBroker);
+//            if (!newOne.getBrokerName().equals(last.getBrokerName())) {
+//                break;
+//            }
+//        }
+//
+//        return newOne;
+//    }
 
     @Override
     public boolean equals(Object o) {
@@ -225,18 +220,18 @@ public class SelectableMessageQueue {
         }
         SelectableMessageQueue queue = (SelectableMessageQueue) o;
         return Objects.equals(queues, queue.queues) &&
-            Objects.equals(brokers, queue.brokers);
+            Objects.equals(brokerActingQueues, queue.brokerActingQueues);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(queues, brokers);
+        return Objects.hash(queues, brokerActingQueues);
     }
 
     @Override
     public String toString() {
         return "SelectableMessageQueue{" + "queues=" + queues +
-            ", brokers=" + brokers +
+            ", brokers=" + brokerActingQueues +
             ", queueIndex=" + queueIndex +
             ", brokerIndex=" + brokerIndex +
             '}';
