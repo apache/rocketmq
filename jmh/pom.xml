@@ -20,12 +20,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>rocketmq-all</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>4.9.2-SNAPSHOT</version>
+        <artifactId>rocketmq-all</artifactId>
+        <version>4.9.4-SNAPSHOT</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
+    <modelVersion>4.0.0</modelVersion>
+    <packaging>jar</packaging>
     <artifactId>rocketmq-jmh</artifactId>
     <name>rocketmq-jmh ${project.version}</name>
 
