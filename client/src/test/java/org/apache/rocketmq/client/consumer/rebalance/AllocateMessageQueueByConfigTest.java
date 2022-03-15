@@ -32,14 +32,6 @@ public class AllocateMessageQueueByConfigTest extends TestCase {
         AllocateMessageQueueByConfig allocateStrategy = new AllocateMessageQueueByConfig();
         allocateStrategy.setMessageQueueList(messageQueueList);
 
-        // currentCID is empty
-        try {
-            allocateStrategy.allocate("", "", messageQueueList, consumerIdList);
-        } catch (Exception e) {
-            assert e instanceof IllegalArgumentException;
-            Assert.assertEquals("currentCID is empty", e.getMessage());
-        }
-
         Map<String, int[]> consumerAllocateQueue = new HashMap<String, int[]>(consumerIdList.size());
         for (String consumerId : consumerIdList) {
             List<MessageQueue> queues = allocateStrategy.allocate("", consumerId, messageQueueList, consumerIdList);
@@ -49,7 +41,8 @@ public class AllocateMessageQueueByConfigTest extends TestCase {
             }
             consumerAllocateQueue.put(consumerId, queueIds);
         }
-
+        Assert.assertArrayEquals(new int[] {0, 1, 2, 3}, consumerAllocateQueue.get("CID_PREFIX0"));
+        Assert.assertArrayEquals(new int[] {0, 1, 2, 3}, consumerAllocateQueue.get("CID_PREFIX1"));
     }
 
     private List<String> createConsumerIdList(int size) {
