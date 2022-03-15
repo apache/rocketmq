@@ -63,13 +63,17 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
+import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.ReceiveMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
+import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
@@ -161,7 +165,36 @@ public class LocalGrpcService implements GrpcForwardService {
 
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        return null;
+        long timeRemaining = Context.current()
+            .getDeadline()
+            .timeRemaining(TimeUnit.MILLISECONDS);
+        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeMill();
+        if (pollTime <= 0) {
+            pollTime = timeRemaining;
+        }
+        PopMessageRequestHeader requestHeader = Converter.buildPopMessageRequestHeader(request, pollTime);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
+        command.makeCustomHeaderToNet();
+
+        ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler();
+        ReceiveMessageChannel channel = ReceiveMessageChannel.create(channelManager.createChannel(), handler);
+        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+        CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
+        InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context
+            = new InvocationContext<>(request, future);
+        channel.registerInvocationContext(command.getOpaque(), context);
+        try {
+            RemotingCommand response = brokerController.getPopMessageProcessor().processRequest(channelHandlerContext, command);
+            if (response != null) {
+                handler.handle(response, context);
+                channel.eraseInvocationContext(command.getOpaque());
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to process pop message command", e);
+            channel.eraseInvocationContext(command.getOpaque());
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     @Override public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
