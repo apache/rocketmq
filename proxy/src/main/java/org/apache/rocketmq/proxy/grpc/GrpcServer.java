@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
 import org.slf4j.Logger;
@@ -91,6 +92,7 @@ public class GrpcServer {
             .channelType(NioServerSocketChannel.class)
             .addService(messagingProcessor)
             .executor(this.executor)
+            .intercept(new ContextInterceptor())
             .intercept(new HeaderInterceptor())
             .build();
 
