@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.srvutil.AclFileWatchService;
@@ -664,8 +665,18 @@ public class PlainPermissionManager {
         if (!signature.equals(plainAccessResource.getSignature())) {
             throw new AclException(String.format("Check signature failed for accessKey=%s", plainAccessResource.getAccessKey()));
         }
-        // Check perm of each resource
 
+        //Skip the topic RMQ_SYS_TRACE_TOPIC permission check,if the topic RMQ_SYS_TRACE_TOPIC is used for message trace
+        Map<String, Byte> resourcePermMap = plainAccessResource.getResourcePermMap();
+        if (resourcePermMap != null) {
+            Byte permission = resourcePermMap.get(TopicValidator.RMQ_SYS_TRACE_TOPIC);
+            if (permission != null && permission == Permission.PUB) {
+                return;
+            }
+        }
+
+
+        // Check perm of each resource
         checkPerm(plainAccessResource, ownedAccess);
     }
 
