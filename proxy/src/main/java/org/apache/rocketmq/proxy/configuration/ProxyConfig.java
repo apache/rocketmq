@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.configuration;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 
 public class ProxyConfig {
@@ -226,6 +227,18 @@ public class ProxyConfig {
 
     public int getForwardConsumerNum() {
         return forwardConsumerNum;
+    }
+
+    public long getLongPollingReserveTimeMill() {
+        return longPollingReserveTimeMill;
+    }
+
+    public void setLongPollingReserveTimeMill(long longPollingReserveTimeMill) {
+        this.longPollingReserveTimeMill = longPollingReserveTimeMill;
+    }
+
+    public int getConsumerClientNum() {
+        return consumerClientNum;
     }
 
     public void setForwardConsumerNum(int forwardConsumerNum) {

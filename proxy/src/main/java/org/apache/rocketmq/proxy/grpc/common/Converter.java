@@ -21,6 +21,8 @@ import apache.rocketmq.v1.ConsumeMessageType;
 import apache.rocketmq.v1.ConsumeModel;
 import apache.rocketmq.v1.ConsumePolicy;
 import apache.rocketmq.v1.ConsumerData;
+import apache.rocketmq.v1.Digest;
+import apache.rocketmq.v1.DigestType;
 import apache.rocketmq.v1.Encoding;
 import apache.rocketmq.v1.FilterExpression;
 import apache.rocketmq.v1.FilterType;
@@ -35,14 +37,19 @@ import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SubscriptionEntry;
 import apache.rocketmq.v1.SystemAttribute;
 import com.google.common.collect.Maps;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Duration;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
+import java.net.SocketAddress;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -51,6 +58,7 @@ import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
@@ -59,6 +67,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -320,4 +329,163 @@ public class Converter {
                 return ConsumeInitMode.MAX;
         }
     }
+
+    public static Message buildMessage(MessageExt messageExt) {
+        Map<String, String> userAttributes = buildUserAttributes(messageExt);
+        SystemAttribute systemAttributes = buildSystemAttributes(messageExt);
+        Resource topic = Resource.newBuilder()
+            .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(messageExt.getTopic()))
+            .setName(NamespaceUtil.withoutNamespace(messageExt.getTopic()))
+            .build();
+        return Message.newBuilder()
+            .setTopic(topic)
+            .putAllUserAttribute(userAttributes)
+            .setSystemAttribute(systemAttributes)
+            .setBody(ByteString.copyFrom(messageExt.getBody()))
+            .build();
+    }
+
+    protected static Map<String, String> buildUserAttributes(MessageExt messageExt) {
+        Map<String, String> userAttributes = new HashMap<>();
+        Map<String, String> properties = messageExt.getProperties();
+
+        for (Map.Entry<String, String> property : properties.entrySet()) {
+            if (!MessageConst.STRING_HASH_SET.contains(property.getKey())) {
+                userAttributes.put(property.getKey(), property.getValue());
+            }
+        }
+
+        return userAttributes;
+    }
+
+    protected static SystemAttribute buildSystemAttributes(MessageExt messageExt) {
+        SystemAttribute.Builder systemAttributeBuilder = SystemAttribute.newBuilder();
+
+        // tag
+        String tag = messageExt.getUserProperty(MessageConst.PROPERTY_TAGS);
+        if (tag != null) {
+            systemAttributeBuilder.setTag(tag);
+        }
+
+        // keys
+        String keys = messageExt.getKeys();
+        if (keys != null) {
+            String[] keysArray = keys.split(MessageConst.KEY_SEPARATOR);
+            systemAttributeBuilder.addAllKeys(Arrays.asList(keysArray));
+        }
+
+        // message_id
+        String uniqKey = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+        if (uniqKey != null) {
+            systemAttributeBuilder.setMessageId(uniqKey);
+        }
+
+        // body_digest & body_encoding
+        String md5Result = BinaryUtil.generateMd5(messageExt.getBody());
+        Digest digest = Digest.newBuilder()
+            .setType(DigestType.MD5)
+            .setChecksum(md5Result)
+            .build();
+        systemAttributeBuilder.setBodyDigest(digest);
+
+        if ((messageExt.getSysFlag() & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
+            systemAttributeBuilder.setBodyEncoding(Encoding.GZIP);
+        } else {
+            systemAttributeBuilder.setBodyEncoding(Encoding.IDENTITY);
+        }
+
+        // message_type
+        String isTrans = messageExt.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+        String isTransValue = "true";
+        if (isTransValue.equals(isTrans)) {
+            systemAttributeBuilder.setMessageType(MessageType.TRANSACTION);
+        } else if (messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
+            || messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
+            || messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
+            systemAttributeBuilder.setMessageType(MessageType.DELAY);
+        } else if (messageExt.getProperty(MessageConst.PROPERTY_SHARDING_KEY) != null) {
+            systemAttributeBuilder.setMessageType(MessageType.FIFO);
+        } else {
+            systemAttributeBuilder.setMessageType(MessageType.NORMAL);
+        }
+
+        // born_timestamp (millis)
+        long bornTimestamp = messageExt.getBornTimestamp();
+        systemAttributeBuilder.setBornTimestamp(Timestamps.fromMillis(bornTimestamp));
+
+        // born_host
+        systemAttributeBuilder.setBornHost(messageExt.getBornHostString());
+
+        // store_timestamp (millis)
+        long storeTimestamp = messageExt.getStoreTimestamp();
+        systemAttributeBuilder.setStoreTimestamp(Timestamps.fromMillis(storeTimestamp));
+
+        // store_host
+        SocketAddress storeHost = messageExt.getStoreHost();
+        if (storeHost != null) {
+            systemAttributeBuilder.setStoreHost(storeHost.toString());
+        }
+
+        // delay_level
+        String delayLevel = messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
+        if (delayLevel != null) {
+            systemAttributeBuilder.setDelayLevel(Integer.parseInt(delayLevel));
+        }
+
+        // delivery_timestamp
+        String deliverMsString;
+        long deliverMs;
+        if (messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
+            long delayMs = TimeUnit.SECONDS.toMillis(Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)));
+            deliverMs = System.currentTimeMillis() + delayMs;
+            systemAttributeBuilder.setDeliveryTimestamp(Timestamps.fromMillis(deliverMs));
+        } else {
+            deliverMsString = messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS);
+            if (deliverMsString != null) {
+                deliverMs = Long.parseLong(deliverMsString);
+                systemAttributeBuilder.setDeliveryTimestamp(Timestamps.fromMillis(deliverMs));
+            }
+        }
+
+        // sharding key
+        String shardingKey = messageExt.getProperty(MessageConst.PROPERTY_SHARDING_KEY);
+        if (shardingKey != null) {
+            systemAttributeBuilder.setMessageGroup(shardingKey);
+        }
+
+        // receipt_handle && invisible_period
+        String ckInfo = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+        if (ckInfo != null) {
+            systemAttributeBuilder.setReceiptHandle(ckInfo);
+        }
+
+        // partition_id
+        systemAttributeBuilder.setPartitionId(messageExt.getQueueId());
+
+        // partition_offset
+        systemAttributeBuilder.setPartitionOffset(messageExt.getQueueOffset());
+
+        // delivery_attempt
+        systemAttributeBuilder.setDeliveryAttempt(messageExt.getReconsumeTimes() + 1);
+
+        // publisher_group
+        String producerGroup = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
+        if (producerGroup != null) {
+            String namespaceId = NamespaceUtil.getNamespaceFromResource(producerGroup);
+            String group = NamespaceUtil.withoutNamespace(producerGroup);
+            systemAttributeBuilder.setProducerGroup(Resource.newBuilder()
+                .setResourceNamespace(namespaceId)
+                .setName(group)
+                .build());
+        }
+
+        // trace context
+        String traceContext = messageExt.getProperty(MessageConst.PROPERTY_TRACE_CONTEXT);
+        if (traceContext != null) {
+            systemAttributeBuilder.setTraceContext(traceContext);
+        }
+
+        return systemAttributeBuilder.build();
+    }
+
 }
