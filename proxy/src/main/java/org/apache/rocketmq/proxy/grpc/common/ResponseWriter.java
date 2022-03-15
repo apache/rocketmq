@@ -28,6 +28,10 @@ public class ResponseWriter {
 
     public static <T> void write(StreamObserver<T> observer, final T response) {
         if (observer instanceof ServerCallStreamObserver) {
+            if (response == null) {
+                return;
+            }
+
             final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
             if (serverCallStreamObserver.isCancelled()) {
                 LOGGER.warn("client has cancelled the request. response to write: {}", response);
