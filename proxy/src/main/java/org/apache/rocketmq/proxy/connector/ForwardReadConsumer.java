@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client;
+package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -22,7 +22,7 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 
 public class ForwardReadConsumer extends AbstractForwardClient {

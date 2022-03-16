@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.client;
+package org.apache.rocketmq.proxy.connector;
 
-import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.junit.Test;
@@ -30,7 +30,7 @@ public class ForwardClientManagerTest extends InitConfigAndLoggerTest {
     @Test
     public void testClientManager() throws Exception {
         TransactionStateChecker mockedTransactionStateChecker = Mockito.mock(TransactionStateChecker.class);
-        ForwardClientManager clientManager = new ForwardClientManager(mockedTransactionStateChecker);
+        ConnectorManager clientManager = new ConnectorManager(mockedTransactionStateChecker);
         clientManager.start();
 
         assertThat(clientManager.getDefaultForwardClient()).isNotNull();

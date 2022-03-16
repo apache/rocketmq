@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client;
+package org.apache.rocketmq.proxy.connector;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -22,15 +22,15 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class DefaultForwardClient extends AbstractForwardClient {
     private static final String CID_PREFIX = "CID_RMQ_PROXY_DEFAULT_";
 
-    public DefaultForwardClient(ForwardClientFactory clientFactory) {
-        super(clientFactory);
+    public DefaultForwardClient(ForwardClientFactory forwardClientFactory) {
+        super(forwardClientFactory);
     }
 
     @Override
@@ -52,7 +52,10 @@ public class DefaultForwardClient extends AbstractForwardClient {
     }
 
     public CompletableFuture<List<String>> getConsumerListByGroup(
-        String brokerAddr, GetConsumerListByGroupRequestHeader requestHeader, long timeoutMillis) {
+        String brokerAddr,
+        GetConsumerListByGroupRequestHeader requestHeader,
+        long timeoutMillis
+    ) {
         return getClient().getConsumerListByGroup(brokerAddr, requestHeader, timeoutMillis);
     }
 

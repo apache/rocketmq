@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client;
+package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
-import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 

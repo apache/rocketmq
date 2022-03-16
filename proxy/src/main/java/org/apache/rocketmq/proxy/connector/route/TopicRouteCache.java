@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client;
+package org.apache.rocketmq.proxy.connector.route;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.LoadingCache;
@@ -26,10 +26,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.apache.rocketmq.proxy.client.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.client.route.MessageQueueWrapper;
-import org.apache.rocketmq.proxy.common.RetainCacheLoader;
-import org.apache.rocketmq.proxy.common.RocketMQHelper;
+import org.apache.rocketmq.proxy.connector.DefaultForwardClient;
+import org.apache.rocketmq.proxy.common.AbstractCacheLoader;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -98,7 +96,7 @@ public class TopicRouteCache {
             && routeData.getBrokerDatas() != null && !routeData.getBrokerDatas().isEmpty();
     }
 
-    protected abstract class AbstractTopicRouteCacheLoader extends RetainCacheLoader<String, MessageQueueWrapper> {
+    protected abstract class AbstractTopicRouteCacheLoader extends AbstractCacheLoader<String, MessageQueueWrapper> {
 
         public AbstractTopicRouteCacheLoader() {
             super(cacheRefreshExecutor);
@@ -124,7 +122,7 @@ public class TopicRouteCache {
                 }
                 return MessageQueueWrapper.WRAPPED_EMPTY_QUEUE;
             } catch (Exception e) {
-                if (RocketMQHelper.isTopicNotExistError(e)) {
+                if (TopicRouteHelper.isTopicNotExistError(e)) {
                     return MessageQueueWrapper.WRAPPED_EMPTY_QUEUE;
                 }
                 throw e;

@@ -25,8 +25,8 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.proxy.client.ForwardClientManager;
-import org.apache.rocketmq.proxy.client.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
@@ -42,7 +42,7 @@ public class ProducerService extends BaseService {
     private volatile ProducerServiceHook producerServiceHook = null;
     private volatile MessageQueueSelector messageQueueSelector = new DefaultMessageQueueSelector();
 
-    public ProducerService(ForwardClientManager clientManager) {
+    public ProducerService(ConnectorManager clientManager) {
         super(clientManager);
     }
 

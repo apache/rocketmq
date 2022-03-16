@@ -20,16 +20,17 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
+import javax.annotation.Nonnull;
 
-public abstract class RetainCacheLoader<K, V> extends CacheLoader<K, V> {
+public abstract class AbstractCacheLoader<K, V> extends CacheLoader<K, V> {
     private final ThreadPoolExecutor cacheRefreshExecutor;
 
-    public RetainCacheLoader(ThreadPoolExecutor cacheRefreshExecutor) {
+    public AbstractCacheLoader(ThreadPoolExecutor cacheRefreshExecutor) {
         this.cacheRefreshExecutor = cacheRefreshExecutor;
     }
 
     @Override
-    public ListenableFuture<V> reload(K key, V oldValue) throws Exception {
+    public ListenableFuture<V> reload(@Nonnull K key, @Nonnull V oldValue) throws Exception {
         ListenableFutureTask<V> task = ListenableFutureTask.create(() -> {
             try {
                 return getDirectly(key);
@@ -43,7 +44,7 @@ public abstract class RetainCacheLoader<K, V> extends CacheLoader<K, V> {
     }
 
     @Override
-    public V load(K key) throws Exception {
+    public V load(@Nonnull K key) throws Exception {
         return getDirectly(key);
     }
 
