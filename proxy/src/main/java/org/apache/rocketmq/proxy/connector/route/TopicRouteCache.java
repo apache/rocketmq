@@ -23,14 +23,16 @@ import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.apache.rocketmq.proxy.connector.DefaultForwardClient;
 import org.apache.rocketmq.proxy.common.AbstractCacheLoader;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.connector.DefaultForwardClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +65,14 @@ public class TopicRouteCache {
 
     public MessageQueueWrapper getMessageQueue(String topicName) throws Exception {
         return getCacheMessageQueueWrapper(this.topicCache, topicName);
+    }
+
+    public String getBrokerAddr(String brokerName) throws Exception {
+        List<BrokerData> brokerDataList = getMessageQueue(brokerName).getTopicRouteData().getBrokerDatas();
+        if (brokerDataList.isEmpty()) {
+            return null;
+        }
+        return brokerDataList.get(0).getBrokerAddrs().get(MixAll.MASTER_ID);
     }
 
     public SelectableMessageQueue selectOneWriteQueue(String topic, SelectableMessageQueue last) throws Exception {

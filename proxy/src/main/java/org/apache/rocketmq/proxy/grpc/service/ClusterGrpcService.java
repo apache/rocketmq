@@ -139,11 +139,12 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
-        return null;
+        return this.receiveMessageService.ackMessage(ctx, request);
     }
 
-    @Override public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
-        return null;
+    @Override
+    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
+        return this.receiveMessageService.nackMessage(ctx, request);
     }
 
     @Override
