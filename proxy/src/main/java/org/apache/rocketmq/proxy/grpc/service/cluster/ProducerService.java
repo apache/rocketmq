@@ -16,22 +16,20 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
+import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.ParameterConverter;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
 import org.apache.rocketmq.proxy.grpc.common.ProxyResponseCode;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,83 +37,54 @@ public class ProducerService extends BaseService {
 
     private static final Logger log = LoggerFactory.getLogger(ProducerService.class);
 
-    private volatile ProducerServiceHook producerServiceHook = null;
-    private volatile MessageQueueSelector messageQueueSelector = new DefaultMessageQueueSelector();
+    private volatile ParameterConverter<SendMessageRequest, SendMessageRequestHeader> parameterConverter;
+    private volatile ParameterConverter<Message, org.apache.rocketmq.common.message.Message> messageConverter;
+    private volatile ParameterConverter<SendResult, SendMessageResponse> responseConverter;
+    private volatile ProducerQueueSelector messageQueueSelector;
+    private volatile ResponseHook<SendMessageRequest, SendMessageResponse> producerServiceHook = null;
 
-    public ProducerService(ConnectorManager clientManager) {
-        super(clientManager);
+    public ProducerService(ConnectorManager connectorManager) {
+        super(connectorManager);
+
+        parameterConverter = new DefaultProducerRequestConverter();
+        messageConverter = new DefaultProducerMessageConverter();
+        responseConverter = new DefaultProducerResponseConverter();
+        messageQueueSelector = new DefaultProducerQueueSelector(this.connectorManager.getTopicRouteCache());
     }
 
-    public interface MessageQueueSelector {
-        SelectableMessageQueue selectQueue(Context ctx, SendMessageRequest request, SendMessageRequestHeader requestHeader,
-            org.apache.rocketmq.common.message.Message message);
+    public void setParameterConverter(
+        ParameterConverter<SendMessageRequest, SendMessageRequestHeader> parameterConverter) {
+        this.parameterConverter = parameterConverter;
     }
 
-    public class DefaultMessageQueueSelector implements MessageQueueSelector {
-
-        @Override
-        public SelectableMessageQueue selectQueue(Context ctx, SendMessageRequest request, SendMessageRequestHeader requestHeader,
-            org.apache.rocketmq.common.message.Message message) {
-            try {
-                String topic = requestHeader.getTopic();
-                String brokerName = "";
-                if (request.hasPartition()) {
-                    brokerName = request.getPartition().getBroker().getName();
-                }
-                Integer queueId = requestHeader.getQueueId();
-                String shardingKey = message.getProperty(MessageConst.PROPERTY_SHARDING_KEY);
-                SelectableMessageQueue addressableMessageQueue;
-                if (!StringUtils.isBlank(brokerName) && queueId != null) {
-                    // Grpc client sendSelect situation
-                    addressableMessageQueue = selectTargetQueue(topic, brokerName, queueId);
-                } else if (shardingKey != null) {
-                    // With shardingKey
-                    addressableMessageQueue = selectOrderQueue(topic, shardingKey);
-                } else {
-                    addressableMessageQueue = selectNormalQueue(topic);
-                }
-                return addressableMessageQueue;
-            } catch (Exception e) {
-                log.error("error when select queue in DefaultMessageQueueSelector. request: {}", request, e);
-                return null;
-            }
-        }
-
-        protected SelectableMessageQueue selectNormalQueue(String topic) throws Exception {
-            return clientManager.getTopicRouteCache().selectOneWriteQueue(topic, null);
-        }
-
-        protected SelectableMessageQueue selectTargetQueue(String topic, String brokerName, int queueId) throws Exception {
-            return clientManager.getTopicRouteCache().selectOneWriteQueue(topic, brokerName, queueId);
-        }
-
-        protected SelectableMessageQueue selectOrderQueue(String topic, String shardingKey) throws Exception {
-            return clientManager.getTopicRouteCache().selectOneWriteQueueByKey(topic, shardingKey, null);
-        }
+    public void setMessageConverter(
+        ParameterConverter<Message, org.apache.rocketmq.common.message.Message> messageConverter) {
+        this.messageConverter = messageConverter;
     }
 
-    public interface ProducerServiceHook {
-
-        void beforeSend(Context ctx, SelectableMessageQueue addressableMessageQueue, Message msg, SendMessageRequestHeader requestHeader);
-
-        void afterSend(Context ctx, SelectableMessageQueue addressableMessageQueue, Message msg, SendMessageRequestHeader requestHeader,
-            SendResult sendResult);
+    public void setResponseConverter(ParameterConverter<SendResult, SendMessageResponse> responseConverter) {
+        this.responseConverter = responseConverter;
     }
 
-    public void setProducerServiceHook(ProducerServiceHook hook) {
-        this.producerServiceHook = hook;
+    public void setProducerServiceHook(ResponseHook<SendMessageRequest, SendMessageResponse> producerServiceHook) {
+        this.producerServiceHook = producerServiceHook;
     }
 
-    public void setMessageQueueSelector(MessageQueueSelector messageQueueSelector) {
+    public void setMessageQueueSelector(ProducerQueueSelector messageQueueSelector) {
         this.messageQueueSelector = messageQueueSelector;
     }
 
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
-        org.apache.rocketmq.common.message.Message message = Converter.buildMessage(request.getMessage());
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
+        future.whenComplete((response, throwable) -> {
+            if (producerServiceHook != null) {
+                producerServiceHook.beforeResponse(request, response, throwable);
+            }
+        });
 
         try {
-            SendMessageRequestHeader requestHeader = Converter.buildSendMessageRequestHeader(request);
+            org.apache.rocketmq.common.message.Message message = messageConverter.convert(ctx, request.getMessage());
+            SendMessageRequestHeader requestHeader = this.parameterConverter.convert(ctx, request);
             SelectableMessageQueue addressableMessageQueue = messageQueueSelector.selectQueue(ctx, request, requestHeader, message);
 
             String topic = requestHeader.getTopic();
@@ -124,10 +93,7 @@ public class ProducerService extends BaseService {
                     "no writeable topic route for topic " + topic);
             }
 
-            if (producerServiceHook != null) {
-                producerServiceHook.beforeSend(ctx, addressableMessageQueue, message, requestHeader);
-            }
-            CompletableFuture<SendResult> sendResultCompletableFuture = this.clientManager.getForwardProducer().sendMessage(
+            CompletableFuture<SendResult> sendResultCompletableFuture = this.connectorManager.getForwardProducer().sendMessage(
                 addressableMessageQueue.getBrokerAddr(),
                 addressableMessageQueue.getBrokerName(),
                 message,
@@ -136,10 +102,11 @@ public class ProducerService extends BaseService {
             );
             sendResultCompletableFuture
                 .thenAccept(result -> {
-                    if (producerServiceHook != null) {
-                        producerServiceHook.afterSend(ctx, addressableMessageQueue, message, requestHeader, result);
+                    try {
+                        future.complete(this.responseConverter.convert(ctx, result));
+                    } catch (Throwable throwable) {
+                        future.completeExceptionally(throwable);
                     }
-                    future.complete(ResponseBuilder.buildSendMessageResponse(result));
                 })
                 .exceptionally(e -> {
                     future.completeExceptionally(e);

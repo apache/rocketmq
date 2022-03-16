@@ -363,16 +363,19 @@ public class Converter {
         for (SubscriptionEntry sub : subscriptionEntryList) {
             String topicName = Converter.getResourceNameWithNamespace(sub.getTopic());
             FilterExpression filterExpression = sub.getExpression();
-            String expression = filterExpression.getExpression();
-            String expressionType = Converter.buildExpressionType(filterExpression.getType());
-            try {
-                SubscriptionData subscriptionData = FilterAPI.build(topicName, expression, expressionType);
-                subscriptionDataSet.add(subscriptionData);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Build subscription failed when apply heartbeat", e);
-            }
+            subscriptionDataSet.add(buildSubscriptionData(topicName, filterExpression));
         }
         return subscriptionDataSet;
+    }
+
+    public static SubscriptionData buildSubscriptionData(String topicName, FilterExpression filterExpression) {
+        String expression = filterExpression.getExpression();
+        String expressionType = Converter.buildExpressionType(filterExpression.getType());
+        try {
+            return FilterAPI.build(topicName, expression, expressionType);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Build subscription failed when apply heartbeat", e);
+        }
     }
 
     public static int buildConsumeInitMode(ConsumePolicy policy) {

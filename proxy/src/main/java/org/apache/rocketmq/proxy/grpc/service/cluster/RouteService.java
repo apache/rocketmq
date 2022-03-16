@@ -39,73 +39,68 @@ import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteHelper;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.ParameterConverter;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
 
 public class RouteService extends BaseService {
 
-    private volatile RouteAssignmentQueueSelector assignmentQueueSelector = new DefaultRouteAssignmentQueueSelector();
-    private volatile QueryRouteHook queryRouteHook = null;
-    private volatile QueryAssignmentHook queryAssignmentHook = null;
+    private volatile ParameterConverter<Endpoints, Endpoints> queryRouteEndpointConverter;
+    private volatile ResponseHook<QueryRouteRequest, QueryRouteResponse> queryRouteHook = null;
 
-    public RouteService(ConnectorManager clientManager) {
-        super(clientManager);
+    private volatile ParameterConverter<Endpoints, Endpoints> queryAssignmentEndpointConverter;
+    private volatile RouteAssignmentQueueSelector assignmentQueueSelector;
+    private volatile ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook = null;
+
+    public RouteService(ConnectorManager connectorManager) {
+        super(connectorManager);
+
+        queryRouteEndpointConverter = (ctx, parameter) -> parameter;
+        queryAssignmentEndpointConverter = (ctx, parameter) -> parameter;
+        assignmentQueueSelector = new DefaultRouteAssignmentQueueSelector(this.connectorManager.getTopicRouteCache());
     }
 
-    public interface QueryRouteHook {
-        QueryRouteResponse beforeResponse(Context ctx, QueryRouteRequest request, QueryRouteResponse response);
+    public void setQueryRouteEndpointConverter(ParameterConverter<Endpoints, Endpoints> queryRouteEndpointConverter) {
+        this.queryRouteEndpointConverter = queryRouteEndpointConverter;
     }
 
-    public interface QueryAssignmentHook {
-        QueryAssignmentResponse beforeResponse(Context ctx, QueryAssignmentRequest request,
-            QueryAssignmentResponse response);
-    }
-
-    public interface RouteAssignmentQueueSelector {
-        List<SelectableMessageQueue> getAssignment(QueryAssignmentRequest request) throws Exception;
-    }
-
-    public class DefaultRouteAssignmentQueueSelector implements RouteAssignmentQueueSelector {
-
-        @Override
-        public List<SelectableMessageQueue> getAssignment(QueryAssignmentRequest request) throws Exception {
-            MessageQueueWrapper messageQueueWrapper = clientManager.getTopicRouteCache()
-                .getMessageQueue(Converter.getResourceNameWithNamespace(request.getTopic()));
-            return messageQueueWrapper.getReadSelector().getBrokerActingQueues();
-        }
-    }
-
-    public void setQueryRouteHook(QueryRouteHook queryRouteHook) {
+    public void setQueryRouteHook(ResponseHook<QueryRouteRequest, QueryRouteResponse> queryRouteHook) {
         this.queryRouteHook = queryRouteHook;
+    }
+
+    public void setQueryAssignmentEndpointConverter(
+        ParameterConverter<Endpoints, Endpoints> queryAssignmentEndpointConverter) {
+        this.queryAssignmentEndpointConverter = queryAssignmentEndpointConverter;
     }
 
     public void setAssignmentQueueSelector(RouteAssignmentQueueSelector assignmentQueueSelector) {
         this.assignmentQueueSelector = assignmentQueueSelector;
     }
 
-    public void setQueryAssignmentHook(QueryAssignmentHook queryAssignmentHook) {
+    public void setQueryAssignmentHook(
+        ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook) {
         this.queryAssignmentHook = queryAssignmentHook;
     }
 
     public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
-        CompletableFuture<QueryRouteResponse> resFuture = future.thenApply(r -> {
-            if (this.queryRouteHook != null) {
-                return this.queryRouteHook.beforeResponse(ctx, request, r);
+        future.whenComplete((response, throwable) -> {
+            if (queryRouteHook != null) {
+                queryRouteHook.beforeResponse(request, response, throwable);
             }
-            return r;
         });
 
         try {
-            Endpoints resEndpoints = request.getEndpoints();
-            if (resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
+            Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, request.getEndpoints());
+            if (resEndpoints == null || resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
                 future.complete(QueryRouteResponse.newBuilder()
                     .setCommon(ResponseBuilder.buildCommon(Code.INVALID_ARGUMENT, "endpoint " +
                         request.getEndpoints() + " is invalidate"))
                     .build());
-                return resFuture;
+                return future;
             }
 
-            MessageQueueWrapper messageQueueWrapper = this.clientManager.getTopicRouteCache()
+            MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache()
                 .getMessageQueue(Converter.getResourceNameWithNamespace(request.getTopic()));
             TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
             List<QueueData> queueDataList = topicRouteData.getQueueDatas();
@@ -134,7 +129,7 @@ public class RouteService extends BaseService {
                 future.completeExceptionally(t);
             }
         }
-        return resFuture;
+        return future;
     }
 
     protected static List<Partition> genPartitionFromQueueData(QueueData queueData, Resource topic, Broker broker) {
@@ -172,24 +167,24 @@ public class RouteService extends BaseService {
 
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
         CompletableFuture<QueryAssignmentResponse> future = new CompletableFuture<>();
-        CompletableFuture<QueryAssignmentResponse> resFuture = future.thenApply(r -> {
-            if (this.queryAssignmentHook != null) {
-                return this.queryAssignmentHook.beforeResponse(ctx, request, r);
+        future.whenComplete((response, throwable) -> {
+            if (queryAssignmentHook != null) {
+                queryAssignmentHook.beforeResponse(request, response, throwable);
             }
-            return r;
         });
+
         try {
-            Endpoints resEndpoints = request.getEndpoints();
-            if (resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
+            Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, request.getEndpoints());
+            if (resEndpoints == null || Endpoints.getDefaultInstance().equals(resEndpoints)) {
                 future.complete(QueryAssignmentResponse.newBuilder()
                     .setCommon(ResponseBuilder.buildCommon(Code.INVALID_ARGUMENT, "endpoint " +
                         request.getEndpoints() + " is invalidate"))
                     .build());
-                return resFuture;
+                return future;
             }
 
             List<Assignment> assignments = new ArrayList<>();
-            List<SelectableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(request);
+            List<SelectableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(ctx, request);
 
             for (SelectableMessageQueue messageQueue : messageQueueList) {
                 Broker broker = Broker.newBuilder()
@@ -213,13 +208,10 @@ public class RouteService extends BaseService {
                 .addAllAssignments(assignments)
                 .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
                 .build();
-            if (this.queryAssignmentHook != null) {
-                this.queryAssignmentHook.beforeResponse(ctx, request, response);
-            }
             future.complete(response);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
-        return resFuture;
+        return future;
     }
 }

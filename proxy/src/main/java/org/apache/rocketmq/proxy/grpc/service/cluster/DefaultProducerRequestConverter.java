@@ -16,13 +16,16 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import apache.rocketmq.v1.SendMessageRequest;
+import io.grpc.Context;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.ParameterConverter;
 
-public class BaseService {
+public class DefaultProducerRequestConverter implements ParameterConverter<SendMessageRequest, SendMessageRequestHeader> {
 
-    protected final ConnectorManager connectorManager;
-
-    public BaseService(ConnectorManager connectorManager) {
-        this.connectorManager = connectorManager;
+    @Override
+    public SendMessageRequestHeader convert(Context ctx, SendMessageRequest parameter) {
+        return Converter.buildSendMessageRequestHeader(parameter);
     }
 }

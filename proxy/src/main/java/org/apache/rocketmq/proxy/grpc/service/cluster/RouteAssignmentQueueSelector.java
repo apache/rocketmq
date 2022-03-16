@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import apache.rocketmq.v1.QueryAssignmentRequest;
+import io.grpc.Context;
+import java.util.List;
+import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 
-public class BaseService {
+public interface RouteAssignmentQueueSelector {
 
-    protected final ConnectorManager connectorManager;
-
-    public BaseService(ConnectorManager connectorManager) {
-        this.connectorManager = connectorManager;
-    }
+    List<SelectableMessageQueue> getAssignment(Context ctx, QueryAssignmentRequest request) throws Exception;
 }

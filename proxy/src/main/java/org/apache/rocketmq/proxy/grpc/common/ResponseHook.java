@@ -14,21 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.service.cluster;
+package org.apache.rocketmq.proxy.grpc.common;
 
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.ReceiveMessageResponse;
-import io.grpc.Context;
-import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
+public interface ResponseHook<T, R> {
 
-public class ConsumerService extends BaseService {
-
-    public ConsumerService(ConnectorManager clientManager) {
-        super(clientManager);
-    }
-
-    public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        return null;
-    }
+    void beforeResponse(T request, R response, Throwable t);
 }

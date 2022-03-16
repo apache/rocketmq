@@ -14,15 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.service.cluster;
+package org.apache.rocketmq.proxy.grpc.common;
 
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import io.grpc.Context;
 
-public class BaseService {
-
-    protected final ConnectorManager connectorManager;
-
-    public BaseService(ConnectorManager connectorManager) {
-        this.connectorManager = connectorManager;
-    }
+public interface ParameterConverter<T, R> {
+    R convert(Context ctx, T parameter) throws Throwable;
 }

@@ -16,13 +16,13 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import apache.rocketmq.v1.SendMessageRequest;
+import io.grpc.Context;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 
-public class BaseService {
+public interface ProducerQueueSelector {
 
-    protected final ConnectorManager connectorManager;
-
-    public BaseService(ConnectorManager connectorManager) {
-        this.connectorManager = connectorManager;
-    }
+    SelectableMessageQueue selectQueue(Context ctx, SendMessageRequest request,
+        SendMessageRequestHeader requestHeader, org.apache.rocketmq.common.message.Message message);
 }
