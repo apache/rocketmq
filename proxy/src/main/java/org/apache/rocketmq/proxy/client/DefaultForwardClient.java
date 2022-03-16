@@ -23,7 +23,7 @@ import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class DefaultForwardClient extends AbstractForwardClient {

@@ -44,7 +44,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
-import org.apache.rocketmq.proxy.configuration.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;

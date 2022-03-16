@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class ForwardWriteConsumer extends AbstractForwardClient {
@@ -52,18 +52,28 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         return CID_PREFIX;
     }
 
-    public CompletableFuture<AckResult> ackMessage(String address, AckMessageRequestHeader requestHeader,
-        long timeoutMillis) {
+    public CompletableFuture<AckResult> ackMessage(
+        String address,
+        AckMessageRequestHeader requestHeader,
+        long timeoutMillis
+    ) {
         return getClient().ackMessage(address, requestHeader, timeoutMillis);
     }
 
-    public CompletableFuture<AckResult> changeInvisibleTimeAsync(String address, String brokerName,
-        ChangeInvisibleTimeRequestHeader requestHeader, long timeoutMillis) {
+    public CompletableFuture<AckResult> changeInvisibleTimeAsync(
+        String address,
+        String brokerName,
+        ChangeInvisibleTimeRequestHeader requestHeader,
+        long timeoutMillis
+    ) {
         return getClient().changeInvisibleTimeAsync(address, brokerName, requestHeader, timeoutMillis);
     }
 
-    public void updateConsumerOffsetOneWay(String brokerAddr, UpdateConsumerOffsetRequestHeader header,
-        long timeoutMillis) throws RemotingException, InterruptedException {
+    public void updateConsumerOffsetOneWay(
+        String brokerAddr,
+        UpdateConsumerOffsetRequestHeader header,
+        long timeoutMillis
+    ) throws RemotingException, InterruptedException {
         getClient().updateConsumerOffsetOneWay(brokerAddr, header, timeoutMillis);
     }
 }

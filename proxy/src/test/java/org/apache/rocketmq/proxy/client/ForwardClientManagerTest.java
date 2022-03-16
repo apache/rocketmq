@@ -18,8 +18,8 @@
 package org.apache.rocketmq.proxy.client;
 
 import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
-import org.apache.rocketmq.proxy.configuration.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.junit.Test;
 import org.mockito.Mockito;
 

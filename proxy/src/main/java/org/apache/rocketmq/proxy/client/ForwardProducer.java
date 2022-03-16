@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHead
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ForwardProducer extends AbstractForwardClient {

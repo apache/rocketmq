@@ -32,11 +32,15 @@ public class TransactionalProducerFactory extends AbstractMQClientFactory<MQClie
 
     @Override
     MQClientAPIExtImpl newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
+        ClientConfig clientConfig = new ClientConfig();
+        clientConfig.setInstanceName(instanceName);
+
         return new MQClientAPIExtImpl(
             createNettyClientConfig(bootstrapWorkerThreads),
             new ProxyClientRemotingProcessor(this.transactionStateChecker),
             rpcHook,
-            new ClientConfig());
+            clientConfig
+        );
     }
 
     @Override

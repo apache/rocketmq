@@ -69,7 +69,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.ReceiveMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;

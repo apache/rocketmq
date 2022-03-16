@@ -33,7 +33,7 @@ import com.google.rpc.Code;
 import io.grpc.Channel;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.GrpcMessagingProcessor;
 import org.apache.rocketmq.proxy.grpc.service.LocalGrpcService;
 import org.apache.rocketmq.test.base.GrpcBaseTest;
@@ -41,7 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
-import static org.apache.rocketmq.proxy.configuration.ConfigurationManager.RMQ_PROXY_HOME;
+import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class LocalGrpcTest extends GrpcBaseTest {

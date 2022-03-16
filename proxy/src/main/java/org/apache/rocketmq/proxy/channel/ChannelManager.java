@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.slf4j.Logger;

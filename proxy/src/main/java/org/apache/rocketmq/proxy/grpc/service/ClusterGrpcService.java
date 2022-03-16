@@ -64,17 +64,17 @@ import org.slf4j.LoggerFactory;
 public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
-    private final ForwardClientManager clientManager;
+    private final ForwardClientManager forwardClientManager;
     private final ProducerService producerService;
     private final RouteService routeService;
 
     public ClusterGrpcService() {
-        this.clientManager = new ForwardClientManager(checkData -> {
+        this.forwardClientManager = new ForwardClientManager(checkData -> {
         });
-        this.producerService = new ProducerService(clientManager);
-        this.routeService = new RouteService(clientManager);
+        this.producerService = new ProducerService(forwardClientManager);
+        this.routeService = new RouteService(forwardClientManager);
 
-        this.appendStartAndShutdown(this.clientManager);
+        this.appendStartAndShutdown(this.forwardClientManager);
     }
 
     @Override

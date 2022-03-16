@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.configuration;
+package org.apache.rocketmq.proxy.config;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
@@ -26,7 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.rocketmq.proxy.configuration.ConfigurationManager.RMQ_PROXY_HOME;
+import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 
 public class InitConfigAndLoggerTest {
     public static String mockProxyHome = "/mock/rmq/proxy/home";
