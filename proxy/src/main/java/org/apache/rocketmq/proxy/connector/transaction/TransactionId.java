@@ -91,8 +91,8 @@ public class TransactionId {
             .build();
     }
 
-    public static TransactionId genFromGatewayTransactionId(String gatewayTransactionId) throws UnknownHostException {
-        ByteBuffer byteBuffer = ByteBuffer.wrap(UtilAll.string2bytes(gatewayTransactionId));
+    public static TransactionId decode(String transactionId) throws UnknownHostException {
+        ByteBuffer byteBuffer = ByteBuffer.wrap(UtilAll.string2bytes(transactionId));
 
         byte[] ip = new byte[4];
         byteBuffer.get(ip);
@@ -111,7 +111,7 @@ public class TransactionId {
             .brokerTransactionId(new String(orgTransactionIdByte, StandardCharsets.UTF_8))
             .commitLogOffset(commitLogOffset)
             .tranStateTableOffset(tranStateTableOffset)
-            .gatewayTransactionId(gatewayTransactionId)
+            .gatewayTransactionId(transactionId)
             .build();
     }
 

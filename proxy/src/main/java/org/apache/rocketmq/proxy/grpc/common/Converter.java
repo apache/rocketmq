@@ -25,6 +25,7 @@ import apache.rocketmq.v1.ConsumerData;
 import apache.rocketmq.v1.Digest;
 import apache.rocketmq.v1.DigestType;
 import apache.rocketmq.v1.Encoding;
+import apache.rocketmq.v1.EndTransactionRequest;
 import apache.rocketmq.v1.FilterExpression;
 import apache.rocketmq.v1.FilterType;
 import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueRequest;
@@ -46,6 +47,7 @@ import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +69,7 @@ import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -75,6 +78,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -196,6 +200,33 @@ public class Converter {
         consumerSendMsgBackRequestHeader.setOriginMsgId(topicName);
         consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(request.getMaxDeliveryAttempts());
         return consumerSendMsgBackRequestHeader;
+    }
+
+    public static EndTransactionRequestHeader buildEndTransactionRequestHeader(EndTransactionRequest request) {
+        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
+        String messageId = request.getMessageId();
+        String transactionId = request.getTransactionId();
+        TransactionId handle;
+        try {
+            handle = TransactionId.decode(transactionId);
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("Parse transaction id failed", e);
+        }
+        long transactionStateTableOffset = handle.getTranStateTableOffset();
+        long commitLogOffset = handle.getCommitLogOffset();
+        boolean fromTransactionCheck = request.getSource() == EndTransactionRequest.Source.SERVER_CHECK;
+        int commitOrRollback = Converter.buildTransactionCommitOrRollback(request.getResolution());
+
+        EndTransactionRequestHeader endTransactionRequestHeader = new EndTransactionRequestHeader();
+        endTransactionRequestHeader.setProducerGroup(groupName);
+        endTransactionRequestHeader.setMsgId(messageId);
+        endTransactionRequestHeader.setTransactionId(transactionId);
+        endTransactionRequestHeader.setTranStateTableOffset(transactionStateTableOffset);
+        endTransactionRequestHeader.setCommitLogOffset(commitLogOffset);
+        endTransactionRequestHeader.setCommitOrRollback(commitOrRollback);
+        endTransactionRequestHeader.setFromTransactionCheck(fromTransactionCheck);
+
+        return endTransactionRequestHeader;
     }
 
     public static Map<String, String> buildMessageProperty(Message message) {
@@ -544,6 +575,17 @@ public class Converter {
         }
 
         return systemAttributeBuilder.build();
+    }
+
+    public static int buildTransactionCommitOrRollback(EndTransactionRequest.TransactionResolution type) {
+        switch (type) {
+            case COMMIT:
+                return MessageSysFlag.TRANSACTION_COMMIT_TYPE;
+            case ROLLBACK:
+                return MessageSysFlag.TRANSACTION_ROLLBACK_TYPE;
+            default:
+                return MessageSysFlag.TRANSACTION_NOT_TYPE;
+        }
     }
 
 }
