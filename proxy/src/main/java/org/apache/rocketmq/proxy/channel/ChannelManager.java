@@ -43,6 +43,10 @@ public class ChannelManager {
         return createChannel(clientId, ChannelManager::createSimpleChannelDirectly, SimpleChannel.class);
     }
 
+    public <T extends SimpleChannel> T createChannel(Supplier<T> creator, Class<T> clazz) {
+        return createChannel(anonymousChannelId(), creator, clazz);
+    }
+
     public <T extends SimpleChannel> T createChannel(String clientId, Supplier<T> creator, Class<T> clazz) {
         if (Strings.isNullOrEmpty(clientId)) {
             LOGGER.warn("ClientId is unexpected null or empty");

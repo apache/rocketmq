@@ -20,8 +20,8 @@ package org.apache.rocketmq.proxy.grpc.adapter.channel;
 import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageResponse;
 import io.netty.channel.ChannelFuture;
+import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.InvocationChannel;
-import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -29,12 +29,8 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class ReceiveMessageChannel extends InvocationChannel<ReceiveMessageRequest, ReceiveMessageResponse> {
     private final ReceiveMessageResponseHandler handler;
 
-    public static ReceiveMessageChannel create(SimpleChannel other, ReceiveMessageResponseHandler handler) {
-        return new ReceiveMessageChannel(other, handler);
-    }
-
-    private ReceiveMessageChannel(SimpleChannel simpleChannel, ReceiveMessageResponseHandler handler) {
-        super(simpleChannel);
+    public ReceiveMessageChannel(ReceiveMessageResponseHandler handler) {
+        super(ChannelManager.createSimpleChannelDirectly());
         this.handler = handler;
     }
 
