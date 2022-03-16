@@ -54,6 +54,7 @@ import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import com.google.rpc.Code;
 import io.grpc.Context;
+import io.netty.channel.Channel;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -63,11 +64,12 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
-import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
@@ -107,7 +109,7 @@ public class LocalGrpcService implements GrpcForwardService {
         languageCode = LanguageCode.valueOf(language);
         HeartbeatData heartbeatData = Converter.buildHeartbeatData(request);
 
-        SimpleChannel channel = channelManager.createChannel();
+        Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         command.setLanguage(languageCode);
@@ -200,11 +202,51 @@ public class LocalGrpcService implements GrpcForwardService {
     }
 
     @Override public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
-        return null;
+        Channel channel = channelManager.createChannel();
+        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+        AckMessageRequestHeader requestHeader = Converter.buildAckMessageRequestHeader(request);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.ACK_MESSAGE, requestHeader);
+        command.makeCustomHeaderToNet();
+
+        CompletableFuture<AckMessageResponse> future = new CompletableFuture<>();
+        try {
+            RemotingCommand responseCommand = brokerController.getAckMessageProcessor()
+                .processRequest(channelHandlerContext, command);
+            AckMessageResponse.Builder builder = AckMessageResponse.newBuilder();
+            if (null != responseCommand) {
+                builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
+            } else {
+                builder.setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "Response command is null"));
+            }
+            AckMessageResponse response = builder.build();
+            future.complete(response);
+        } catch (Exception e) {
+            LOGGER.error("Exception raised when ack message", e);
+        }
+        return future;
     }
 
     @Override public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
-        return null;
+        Channel channel = channelManager.createChannel();
+        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+
+        ChangeInvisibleTimeRequestHeader requestHeader = Converter.buildChangeInvisibleTimeRequestHeader(request);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        command.makeCustomHeaderToNet();
+
+        CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
+        try {
+            RemotingCommand responseCommand = brokerController.getChangeInvisibleTimeProcessor()
+                .processRequest(channelHandlerContext, command);
+            NackMessageResponse response = NackMessageResponse.newBuilder()
+                .setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()))
+                .build();
+            future.complete(response);
+        } catch (Exception e) {
+            LOGGER.error("Exception raised while changeInvisibleTime", e);
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     @Override
