@@ -31,8 +31,8 @@ import org.apache.rocketmq.proxy.client.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.common.RetainCacheLoader;
 import org.apache.rocketmq.proxy.common.RocketMQHelper;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
-import org.apache.rocketmq.proxy.configuration.ProxyConfig;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -22,20 +22,20 @@ import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class ForwardClientFactory implements StartAndShutdown {
 
     private RPCHook rpcHook = null;
 
-    private final MQClientFactoryImpl mqClientFactory;
+    private final MQClientFactory mqClientFactory;
     private final TransactionalProducerFactory transactionalProducerFactory;
 
     public ForwardClientFactory(TransactionStateChecker transactionStateChecker) {
         this.init();
 
-        this.mqClientFactory = new MQClientFactoryImpl(this.rpcHook);
+        this.mqClientFactory = new MQClientFactory(this.rpcHook);
         this.transactionalProducerFactory = new TransactionalProducerFactory(this.rpcHook, transactionStateChecker);
     }
 

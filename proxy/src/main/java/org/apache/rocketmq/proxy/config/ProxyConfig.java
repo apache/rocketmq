@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.configuration;
+package org.apache.rocketmq.proxy.config;
 
 import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 

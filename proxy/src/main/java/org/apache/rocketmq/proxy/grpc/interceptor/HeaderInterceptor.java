@@ -29,26 +29,26 @@ import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 
 public class HeaderInterceptor implements ServerInterceptor {
     @Override
-    public <R, W> ServerCall.Listener<R> interceptCall(ServerCall<R, W> call, Metadata headers,
-        ServerCallHandler<R, W> next) {
-        SocketAddress remoteSocketAddress = call.getAttributes()
-            .get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
+    public <R, W> ServerCall.Listener<R> interceptCall(
+        ServerCall<R, W> call,
+        Metadata headers,
+        ServerCallHandler<R, W> next
+    ) {
+        SocketAddress remoteSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
         String remoteAddress = parseSocketAddress(remoteSocketAddress);
         headers.put(InterceptorConstants.REMOTE_ADDRESS, remoteAddress);
 
-        SocketAddress localSocketAddress = call.getAttributes()
-            .get(Grpc.TRANSPORT_ATTR_LOCAL_ADDR);
+        SocketAddress localSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_LOCAL_ADDR);
         String localAddress = parseSocketAddress(localSocketAddress);
         headers.put(InterceptorConstants.LOCAL_ADDRESS, localAddress);
         return next.startCall(call, headers);
     }
 
-
     private String parseSocketAddress(SocketAddress socketAddress) {
         if (socketAddress instanceof InetSocketAddress) {
             InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
             return HostAndPort.fromParts(inetSocketAddress.getAddress()
-                .getHostAddress(), inetSocketAddress.getPort())
+                    .getHostAddress(), inetSocketAddress.getPort())
                 .toString();
         }
 

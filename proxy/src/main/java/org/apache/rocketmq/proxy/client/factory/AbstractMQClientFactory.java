@@ -23,8 +23,7 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractMQClientFactory<T> implements MQClientFactory<T> {
-
+public abstract class AbstractMQClientFactory<T>  {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMQClientFactory.class);
 
     protected Map<String, T> cacheTable = new ConcurrentHashMap<>();
@@ -48,7 +47,7 @@ public abstract class AbstractMQClientFactory<T> implements MQClientFactory<T> {
         return nettyClientConfig;
     }
 
-    @Override
+//    @Override
     public T getOne(String instanceName, int bootstrapWorkerThreads) {
         if (cacheTable.containsKey(instanceName)) {
             return cacheTable.get(instanceName);
@@ -57,8 +56,8 @@ public abstract class AbstractMQClientFactory<T> implements MQClientFactory<T> {
         T object;
         try {
             object = this.newOne(instanceName, rpcHook, bootstrapWorkerThreads);
-        } catch (Throwable throwable) {
-            throw new RuntimeException(throwable);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
         }
         T old = cacheTable.putIfAbsent(instanceName, object);
         if (old == null) {
@@ -72,7 +71,7 @@ public abstract class AbstractMQClientFactory<T> implements MQClientFactory<T> {
         return object;
     }
 
-    @Override
+//    @Override
     public void shutdownAll() {
         this.cacheTable.forEach((k, v) -> {
             try {

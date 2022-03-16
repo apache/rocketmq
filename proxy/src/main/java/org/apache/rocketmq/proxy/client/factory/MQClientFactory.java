@@ -16,7 +16,38 @@
  */
 package org.apache.rocketmq.proxy.client.factory;
 
-public interface MQClientFactory<T> {
-    T getOne(String instanceName, int bootstrapWorkerThreads);
-    void shutdownAll();
+import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
+import org.apache.rocketmq.proxy.client.processor.DoNothingClientRemotingProcessor;
+import org.apache.rocketmq.remoting.RPCHook;
+
+public class MQClientFactory extends AbstractMQClientFactory<MQClientAPIExtImpl> {
+
+    public MQClientFactory(RPCHook rpcHook) {
+        super(rpcHook);
+    }
+
+    @Override
+    MQClientAPIExtImpl newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
+        ClientConfig clientConfig = new ClientConfig();
+        clientConfig.setInstanceName(instanceName);
+
+        return new MQClientAPIExtImpl(
+            createNettyClientConfig(bootstrapWorkerThreads),
+            new DoNothingClientRemotingProcessor(null),
+            rpcHook,
+            clientConfig
+        );
+    }
+
+    @Override
+    boolean tryStart(MQClientAPIExtImpl client) {
+        client.start();
+        return true;
+    }
+
+    @Override
+    void shutdown(MQClientAPIExtImpl client) {
+        client.shutdown();
+    }
 }

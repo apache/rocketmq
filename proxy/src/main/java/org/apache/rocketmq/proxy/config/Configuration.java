@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.configuration;
+package org.apache.rocketmq.proxy.config;
 
 import com.alibaba.fastjson.JSON;
 import java.io.File;
