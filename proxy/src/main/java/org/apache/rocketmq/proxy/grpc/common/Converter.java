@@ -27,6 +27,7 @@ import apache.rocketmq.v1.DigestType;
 import apache.rocketmq.v1.Encoding;
 import apache.rocketmq.v1.FilterExpression;
 import apache.rocketmq.v1.FilterType;
+import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v1.HeartbeatRequest;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.MessageType;
@@ -65,6 +66,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -177,6 +179,23 @@ public class Converter {
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
         changeInvisibleTimeRequestHeader.setInvisibleTime(handle.getInvisibleTime());
         return changeInvisibleTimeRequestHeader;
+    }
+
+    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(
+        ForwardMessageToDeadLetterQueueRequest request) {
+        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
+        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String receiptHandleStr = request.getReceiptHandle();
+        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+
+        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
+        consumerSendMsgBackRequestHeader.setOffset(handle.getOffset());
+        consumerSendMsgBackRequestHeader.setGroup(groupName);
+        consumerSendMsgBackRequestHeader.setDelayLevel(-1);
+        consumerSendMsgBackRequestHeader.setOriginMsgId(request.getMessageId());
+        consumerSendMsgBackRequestHeader.setOriginMsgId(topicName);
+        consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(request.getMaxDeliveryAttempts());
+        return consumerSendMsgBackRequestHeader;
     }
 
     public static Map<String, String> buildMessageProperty(Message message) {

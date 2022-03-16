@@ -66,10 +66,12 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
+import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
@@ -252,7 +254,32 @@ public class LocalGrpcService implements GrpcForwardService {
     @Override
     public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
-        return null;
+        SimpleChannel channel = channelManager.createChannel();
+        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+
+        ConsumerSendMsgBackRequestHeader requestHeader = Converter.buildConsumerSendMsgBackRequestHeader(request);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
+        command.makeCustomHeaderToNet();
+
+        CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = new CompletableFuture<>();
+        try {
+            CompletableFuture<RemotingCommand> processorFuture = brokerController.getSendMessageProcessor()
+                .asyncProcessRequest(channelHandlerContext, command);
+            processorFuture.thenAccept(r -> {
+                ForwardMessageToDeadLetterQueueResponse.Builder builder = ForwardMessageToDeadLetterQueueResponse.newBuilder();
+                if (null != r) {
+                    builder.setCommon(ResponseBuilder.buildCommon(r.getCode(), r.getRemark()));
+                } else {
+                    builder.setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "Response command is null"));
+                }
+                ForwardMessageToDeadLetterQueueResponse response = builder.build();
+                future.complete(response);
+            });
+        } catch (Exception e) {
+            LOGGER.error("Exception raised when forwardMessageToDeadLetterQueue", e);
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     @Override public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
