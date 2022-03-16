@@ -50,6 +50,7 @@ import apache.rocketmq.v1.ReportMessageConsumptionResultRequest;
 import apache.rocketmq.v1.ReportMessageConsumptionResultResponse;
 import apache.rocketmq.v1.ReportThreadStackTraceRequest;
 import apache.rocketmq.v1.ReportThreadStackTraceResponse;
+import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import com.google.rpc.Code;
@@ -75,6 +76,7 @@ import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.ReceiveMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHandler;
@@ -111,7 +113,24 @@ public class LocalGrpcService implements GrpcForwardService {
         languageCode = LanguageCode.valueOf(language);
         HeartbeatData heartbeatData = Converter.buildHeartbeatData(request);
 
-        Channel channel = channelManager.createChannel();
+        CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
+        String groupName;
+        switch (request.getClientDataCase()) {
+            case PRODUCER_DATA: {
+                groupName = Converter.getResourceNameWithNamespace(request.getProducerData().getGroup());
+                break;
+            }
+            case CONSUMER_DATA: {
+                groupName = Converter.getResourceNameWithNamespace(request.getConsumerData().getGroup());
+                break;
+            }
+            default: {
+                future.completeExceptionally(new IllegalArgumentException("Wrong client data type"));
+                return future;
+            }
+        }
+
+        GrpcClientChannel channel = GrpcClientChannel.create(channelManager, groupName, request.getClientId());
         SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         command.setLanguage(languageCode);
@@ -122,7 +141,8 @@ public class LocalGrpcService implements GrpcForwardService {
         RemotingCommand response = this.brokerController.getClientManageProcessor()
             .heartBeat(simpleChannelHandlerContext, command);
         HeartbeatResponse heartbeatResponse = ResponseBuilder.buildHeartbeatResponse(response);
-        return CompletableFuture.completedFuture(heartbeatResponse);
+        future.complete(heartbeatResponse);
+        return future;
     }
 
     @Override
@@ -282,7 +302,8 @@ public class LocalGrpcService implements GrpcForwardService {
         return future;
     }
 
-    @Override public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
+    @Override
+    public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
         return null;
     }
 
@@ -295,7 +316,25 @@ public class LocalGrpcService implements GrpcForwardService {
     }
 
     @Override public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
-        return null;
+        String clientId = request.getClientId();
+        CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
+        switch (request.getGroupCase()) {
+            case PRODUCER_GROUP:
+                Resource producerGroup = request.getProducerGroup();
+                String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
+                GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(channelManager, producerGroupName, clientId);
+                producerChannel.addClientObserver(future);
+                break;
+            case CONSUMER_GROUP:
+                Resource consumerGroup = request.getConsumerGroup();
+                String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
+                GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(channelManager, consumerGroupName, clientId);
+                consumerChannel.addClientObserver(future);
+                break;
+            default:
+                break;
+        }
+        return future;
     }
 
     @Override public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
@@ -303,7 +342,8 @@ public class LocalGrpcService implements GrpcForwardService {
         return null;
     }
 
-    @Override public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
+    @Override
+    public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
         ReportMessageConsumptionResultRequest request) {
         return null;
     }

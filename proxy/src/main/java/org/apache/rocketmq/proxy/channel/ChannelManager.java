@@ -20,9 +20,11 @@ package org.apache.rocketmq.proxy.channel;
 import com.google.common.base.Strings;
 import io.grpc.Context;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 public class ChannelManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
     private final ConcurrentMap<String, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String /* group */, List<String>/* clientId */> groupClientIdMap = new ConcurrentHashMap<>();
 
     public SimpleChannel createChannel() {
         return createChannel(anonymousChannelId());
@@ -70,6 +73,10 @@ public class ChannelManager {
         return clazz.cast(channel);
     }
 
+    public <T extends SimpleChannel> void setChannel(String clientId, T channel) {
+        clientIdChannelMap.put(clientId, channel);
+    }
+
     public <T extends SimpleChannel> T removeChannel(String clientId, Class<T> clazz) {
         SimpleChannel channel = clientIdChannelMap.remove(clientId);
         if (channel == null) {
@@ -92,6 +99,11 @@ public class ChannelManager {
         final String localAddress = InterceptorConstants.METADATA.get(Context.current())
             .get(InterceptorConstants.LOCAL_ADDRESS);
         return new SimpleChannel(null, clientHost, localAddress, ConfigurationManager.getProxyConfig().getChannelExpiredInSeconds());
+    }
+
+    public void addGroupClientId(String group, String clientId) {
+        groupClientIdMap.computeIfAbsent(group, k -> new CopyOnWriteArrayList<>())
+            .add(clientId);
     }
 
     /**

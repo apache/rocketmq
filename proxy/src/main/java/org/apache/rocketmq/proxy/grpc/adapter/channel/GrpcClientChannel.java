@@ -18,23 +18,20 @@ package org.apache.rocketmq.proxy.grpc.adapter.channel;
 
 import apache.rocketmq.v1.PollCommandResponse;
 import io.netty.channel.ChannelFuture;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 
 public class GrpcClientChannel extends SimpleChannel {
-
-    private static final Map<String /* group */, List<String>/* clientId */> GROUP_CLIENT_IDS = new ConcurrentHashMap<>();
-
     private final AtomicReference<CompletableFuture<PollCommandResponse>> pollCommandResponseFutureRef = new AtomicReference<>();
 
-    public GrpcClientChannel() {
+    private GrpcClientChannel() {
         super(ChannelManager.createSimpleChannelDirectly());
+    }
+
+    public void addClientObserver(CompletableFuture<PollCommandResponse> future) {
+        this.pollCommandResponseFutureRef.set(future);
     }
 
     public static GrpcClientChannel create(ChannelManager channelManager, String group, String clientId) {
@@ -43,19 +40,8 @@ public class GrpcClientChannel extends SimpleChannel {
             GrpcClientChannel::new,
             GrpcClientChannel.class);
 
-        GROUP_CLIENT_IDS.compute(group, (groupKey, clientIds) -> {
-            if (clientIds == null) {
-                clientIds = new CopyOnWriteArrayList<>();
-            }
-            clientIds.add(clientId);
-            return clientIds;
-        });
+        channelManager.addGroupClientId(group, clientId);
         return channel;
-    }
-
-    public static void addClientObserver(ChannelManager channelManager, String group, String clientId, CompletableFuture<PollCommandResponse> future) {
-        GrpcClientChannel channel = getChannel(channelManager, group, clientId);
-        channel.pollCommandResponseFutureRef.set(future);
     }
 
     public static GrpcClientChannel getChannel(ChannelManager channelManager, String group, String clientId) {
