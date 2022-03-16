@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client;
+package org.apache.rocketmq.proxy.connector;
 
-import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
-import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 
-public class ForwardClientManager extends AbstractStartAndShutdown {
+public class ConnectorManager extends AbstractStartAndShutdown {
     private final ForwardClientFactory forwardClientFactory;
     private final DefaultForwardClient defaultForwardClient;
     private final ForwardProducer forwardProducer;
@@ -29,7 +30,7 @@ public class ForwardClientManager extends AbstractStartAndShutdown {
 
     private final TopicRouteCache topicRouteCache;
 
-    public ForwardClientManager(TransactionStateChecker transactionStateChecker) {
+    public ConnectorManager(TransactionStateChecker transactionStateChecker) {
         this.forwardClientFactory = new ForwardClientFactory(transactionStateChecker);
         this.defaultForwardClient = new DefaultForwardClient(this.forwardClientFactory);
         this.forwardProducer = new ForwardProducer(this.forwardClientFactory);

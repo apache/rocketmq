@@ -14,43 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.factory;
+package org.apache.rocketmq.proxy.connector.factory;
 
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
-import org.apache.rocketmq.proxy.client.processor.ProxyClientRemotingProcessor;
-import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
+import org.apache.rocketmq.proxy.connector.processor.DoNothingClientRemotingProcessor;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class TransactionalProducerFactory extends AbstractMQClientFactory<MQClientAPIExtImpl> {
-    private final TransactionStateChecker transactionStateChecker;
+public class MQClientFactory extends AbstractClientFactory<MQClientAPIExtImpl> {
 
-    public TransactionalProducerFactory(RPCHook rpcHook, TransactionStateChecker transactionStateChecker) {
+    public MQClientFactory(RPCHook rpcHook) {
         super(rpcHook);
-        this.transactionStateChecker = transactionStateChecker;
     }
 
     @Override
-    MQClientAPIExtImpl newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
+    protected MQClientAPIExtImpl newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setInstanceName(instanceName);
 
         return new MQClientAPIExtImpl(
             createNettyClientConfig(bootstrapWorkerThreads),
-            new ProxyClientRemotingProcessor(this.transactionStateChecker),
+            new DoNothingClientRemotingProcessor(null),
             rpcHook,
             clientConfig
         );
     }
 
     @Override
-    boolean tryStart(MQClientAPIExtImpl client) {
+    protected boolean tryStart(MQClientAPIExtImpl client) {
         client.start();
         return true;
     }
 
     @Override
-    void shutdown(MQClientAPIExtImpl client) {
+    protected void shutdown(MQClientAPIExtImpl client) {
         client.shutdown();
     }
 }

@@ -34,10 +34,10 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.proxy.client.ForwardClientManager;
-import org.apache.rocketmq.proxy.client.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.client.route.MessageQueueWrapper;
-import org.apache.rocketmq.proxy.common.RocketMQHelper;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
+import org.apache.rocketmq.proxy.connector.route.TopicRouteHelper;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 
@@ -47,7 +47,7 @@ public class RouteService extends BaseService {
     private volatile QueryRouteHook queryRouteHook = null;
     private volatile QueryAssignmentHook queryAssignmentHook = null;
 
-    public RouteService(ForwardClientManager clientManager) {
+    public RouteService(ConnectorManager clientManager) {
         super(clientManager);
     }
 
@@ -126,7 +126,7 @@ public class RouteService extends BaseService {
                 .build();
             future.complete(response);
         } catch (Throwable t) {
-            if (RocketMQHelper.isTopicNotExistError(t)) {
+            if (TopicRouteHelper.isTopicNotExistError(t)) {
                 future.complete(QueryRouteResponse.newBuilder()
                     .setCommon(ResponseBuilder.buildCommon(Code.NOT_FOUND, t.getMessage()))
                     .build());

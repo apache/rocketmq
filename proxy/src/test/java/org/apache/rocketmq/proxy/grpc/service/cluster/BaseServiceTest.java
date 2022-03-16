@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import org.apache.rocketmq.proxy.client.ForwardClientManager;
-import org.apache.rocketmq.proxy.client.DefaultForwardClient;
-import org.apache.rocketmq.proxy.client.ForwardProducer;
-import org.apache.rocketmq.proxy.client.ForwardReadConsumer;
-import org.apache.rocketmq.proxy.client.TopicRouteCache;
-import org.apache.rocketmq.proxy.client.ForwardWriteConsumer;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.connector.DefaultForwardClient;
+import org.apache.rocketmq.proxy.connector.ForwardProducer;
+import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
+import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
+import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 public abstract class BaseServiceTest {
 
     @Mock
-    protected ForwardClientManager clientManager;
+    protected ConnectorManager clientManager;
     @Mock
     protected DefaultForwardClient defaultClient;
     @Mock

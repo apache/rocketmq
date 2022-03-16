@@ -14,21 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.processor;
+package org.apache.rocketmq.proxy.connector.transaction;
 
-import io.netty.channel.ChannelHandlerContext;
-import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
-import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
-public class DoNothingClientRemotingProcessor extends ClientRemotingProcessor {
-
-    public DoNothingClientRemotingProcessor(MQClientInstance mqClientFactory) {
-        super(mqClientFactory);
-    }
-
-    @Override
-    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
-        return null;
-    }
+public interface TransactionStateChecker {
+    void checkTransactionState(TransactionStateCheckRequest checkData);
 }

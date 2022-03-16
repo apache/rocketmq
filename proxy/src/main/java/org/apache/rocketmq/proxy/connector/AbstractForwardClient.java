@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client;
+package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
-import org.apache.rocketmq.proxy.client.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 
 public abstract class AbstractForwardClient implements StartAndShutdown {

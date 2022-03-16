@@ -35,7 +35,7 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.proxy.client.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
 import org.apache.rocketmq.proxy.grpc.common.ProxyResponseCode;
 import org.junit.Test;

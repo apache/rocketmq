@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.factory;
+package org.apache.rocketmq.proxy.connector.factory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,21 +23,21 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractMQClientFactory<T>  {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMQClientFactory.class);
+public abstract class AbstractClientFactory<T>  {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClientFactory.class);
 
     protected Map<String, T> cacheTable = new ConcurrentHashMap<>();
     protected RPCHook rpcHook;
 
-    public AbstractMQClientFactory(RPCHook rpcHook) {
+    public AbstractClientFactory(RPCHook rpcHook) {
         this.rpcHook = rpcHook;
     }
 
-    abstract T newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) throws Throwable;
+    protected abstract T newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) throws Throwable;
 
-    abstract boolean tryStart(T t);
+    protected abstract boolean tryStart(T t);
 
-    abstract void shutdown(T t);
+    protected abstract void shutdown(T t);
 
     protected static NettyClientConfig createNettyClientConfig(int bootstrapWorkerThreads) {
         NettyClientConfig nettyClientConfig = new NettyClientConfig();

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.factory;
+package org.apache.rocketmq.proxy.connector.factory;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -30,13 +30,13 @@ public class ForwardClientFactory implements StartAndShutdown {
     private RPCHook rpcHook = null;
 
     private final MQClientFactory mqClientFactory;
-    private final TransactionalProducerFactory transactionalProducerFactory;
+    private final TransactionProducerFactory transactionalProducerFactory;
 
     public ForwardClientFactory(TransactionStateChecker transactionStateChecker) {
         this.init();
 
         this.mqClientFactory = new MQClientFactory(this.rpcHook);
-        this.transactionalProducerFactory = new TransactionalProducerFactory(this.rpcHook, transactionStateChecker);
+        this.transactionalProducerFactory = new TransactionProducerFactory(this.rpcHook, transactionStateChecker);
     }
 
     private void init() {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.client.processor;
+package org.apache.rocketmq.proxy.connector.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.nio.ByteBuffer;
@@ -24,9 +24,9 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
-import org.apache.rocketmq.proxy.client.transaction.TransactionId;
-import org.apache.rocketmq.proxy.client.transaction.TransactionStateCheckRequest;
-import org.apache.rocketmq.proxy.client.transaction.TransactionStateChecker;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
