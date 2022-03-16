@@ -57,38 +57,38 @@ public class RemotingCommandJMHTest {
 
     @State(Scope.Benchmark)
     static class RequestHolder {
-        public static final SendMessageRequestHeader request = new SendMessageRequestHeader();
+        public static final SendMessageRequestHeader SEND_MESSAGE_REQUEST_HEADER = new SendMessageRequestHeader();
 
         static {
-            request.setProducerGroup(genString(5));
-            request.setTopic(genString(15));
-            request.setDefaultTopic(genString(5));
-            request.setDefaultTopicQueueNums(1);
-            request.setQueueId(1);
-            request.setSysFlag(1);
-            request.setBornTimestamp(System.currentTimeMillis());
-            request.setFlag(10);
-            request.setProperties(genString(30));
-            request.setReconsumeTimes(1010);
-            request.setUnitMode(false);
-            request.setMaxReconsumeTimes(111);
-            request.setBatch(true);
+            SEND_MESSAGE_REQUEST_HEADER.setProducerGroup(genString(5));
+            SEND_MESSAGE_REQUEST_HEADER.setTopic(genString(15));
+            SEND_MESSAGE_REQUEST_HEADER.setDefaultTopic(genString(5));
+            SEND_MESSAGE_REQUEST_HEADER.setDefaultTopicQueueNums(1);
+            SEND_MESSAGE_REQUEST_HEADER.setQueueId(1);
+            SEND_MESSAGE_REQUEST_HEADER.setSysFlag(1);
+            SEND_MESSAGE_REQUEST_HEADER.setBornTimestamp(System.currentTimeMillis());
+            SEND_MESSAGE_REQUEST_HEADER.setFlag(10);
+            SEND_MESSAGE_REQUEST_HEADER.setProperties(genString(30));
+            SEND_MESSAGE_REQUEST_HEADER.setReconsumeTimes(1010);
+            SEND_MESSAGE_REQUEST_HEADER.setUnitMode(false);
+            SEND_MESSAGE_REQUEST_HEADER.setMaxReconsumeTimes(111);
+            SEND_MESSAGE_REQUEST_HEADER.setBatch(true);
         }
     }
 
     @State(Scope.Benchmark)
     static class RemotingCommandHolder {
-        public static final RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, RequestHolder.request);
+        public static final RemotingCommand REMOTING_COMMAND = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, RequestHolder.SEND_MESSAGE_REQUEST_HEADER);
 
         static {
-            command.makeCustomHeaderToNet();
+            REMOTING_COMMAND.makeCustomHeaderToNet();
         }
 
     }
 
     @Benchmark
     public CommandCustomHeader testDecodeCustomHeader() throws RemotingCommandException {
-        return RemotingCommandHolder.command.decodeCommandCustomHeader(SendMessageRequestHeader.class);
+        return RemotingCommandHolder.REMOTING_COMMAND.decodeCommandCustomHeader(SendMessageRequestHeader.class);
     }
 
     public static void main(String[] args) throws RunnerException {
