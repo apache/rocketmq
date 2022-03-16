@@ -15,15 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.adapter.channel;
+package org.apache.rocketmq.proxy.common;
 
-import apache.rocketmq.v1.SendMessageRequest;
-import apache.rocketmq.v1.SendMessageResponse;
-import org.apache.rocketmq.proxy.channel.InvocationChannel;
-import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
-
-public class SendMessageChannel extends InvocationChannel<SendMessageRequest, SendMessageResponse> {
-    public SendMessageChannel(SendMessageResponseHandler handler) {
-        super(handler);
-    }
+public interface Cleaner {
+    void clean();
 }
