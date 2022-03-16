@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.common;
 
+import apache.rocketmq.v1.AckMessageRequest;
 import apache.rocketmq.v1.ConsumeMessageType;
 import apache.rocketmq.v1.ConsumeModel;
 import apache.rocketmq.v1.ConsumePolicy;
@@ -29,6 +30,7 @@ import apache.rocketmq.v1.FilterType;
 import apache.rocketmq.v1.HeartbeatRequest;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.MessageType;
+import apache.rocketmq.v1.NackMessageRequest;
 import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.ProducerData;
 import apache.rocketmq.v1.ReceiveMessageRequest;
@@ -53,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -60,6 +63,8 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -141,6 +146,37 @@ public class Converter {
         requestHeader.setOrder(request.getFifoFlag());
 
         return requestHeader;
+    }
+
+    public static AckMessageRequestHeader buildAckMessageRequestHeader(AckMessageRequest request) {
+        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
+        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String receiptHandleStr = request.getReceiptHandle();
+        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+
+        AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
+        ackMessageRequestHeader.setConsumerGroup(groupName);
+        ackMessageRequestHeader.setTopic(topicName);
+        ackMessageRequestHeader.setQueueId(handle.getQueueId());
+        ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
+        ackMessageRequestHeader.setOffset(handle.getOffset());
+        return ackMessageRequestHeader;
+    }
+
+    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(NackMessageRequest request) {
+        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
+        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String receiptHandleStr = request.getReceiptHandle();
+        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+
+        ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
+        changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
+        changeInvisibleTimeRequestHeader.setTopic(topicName);
+        changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
+        changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
+        changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
+        changeInvisibleTimeRequestHeader.setInvisibleTime(handle.getInvisibleTime());
+        return changeInvisibleTimeRequestHeader;
     }
 
     public static Map<String, String> buildMessageProperty(Message message) {
