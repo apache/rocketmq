@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.configuration.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
@@ -35,19 +36,42 @@ public class ChannelManager {
     private final ConcurrentMap<String, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
 
     public SimpleChannel createChannel() {
-        final String clientId = anonymousChannelId();
+        return createChannel(anonymousChannelId());
+    }
+
+    public SimpleChannel createChannel(String clientId) {
+        return createChannel(clientId, ChannelManager::createSimpleChannelDirectly, SimpleChannel.class);
+    }
+
+    public <T extends SimpleChannel> T createChannel(String clientId, Supplier<T> creator, Class<T> clazz) {
         if (Strings.isNullOrEmpty(clientId)) {
             LOGGER.warn("ClientId is unexpected null or empty");
-            return createChannelInner();
+            return creator.get();
         }
 
         if (!clientIdChannelMap.containsKey(clientId)) {
-            clientIdChannelMap.putIfAbsent(clientId, createChannelInner());
+            clientIdChannelMap.putIfAbsent(clientId, creator.get());
         }
 
-        SimpleChannel channel = clientIdChannelMap.get(clientId);
+        T channel = clazz.cast(clientIdChannelMap.get(clientId));
         channel.updateLastAccessTime();
         return channel;
+    }
+
+    public <T extends SimpleChannel> T getChannel(String clientId, Class<T> clazz) {
+        SimpleChannel channel = clientIdChannelMap.get(clientId);
+        if (channel == null) {
+            return null;
+        }
+        return clazz.cast(channel);
+    }
+
+    public <T extends SimpleChannel> T removeChannel(String clientId, Class<T> clazz) {
+        SimpleChannel channel = clientIdChannelMap.remove(clientId);
+        if (channel == null) {
+            return null;
+        }
+        return clazz.cast(channel);
     }
 
     private String anonymousChannelId() {
@@ -58,7 +82,7 @@ public class ChannelManager {
         return clientHost + "@" + localAddress;
     }
 
-    private SimpleChannel createChannelInner() {
+    public static SimpleChannel createSimpleChannelDirectly() {
         final String clientHost = InterceptorConstants.METADATA.get(Context.current())
             .get(InterceptorConstants.REMOTE_ADDRESS);
         final String localAddress = InterceptorConstants.METADATA.get(Context.current())
