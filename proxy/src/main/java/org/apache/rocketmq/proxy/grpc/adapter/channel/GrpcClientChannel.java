@@ -33,14 +33,14 @@ public class GrpcClientChannel extends SimpleChannel {
 
     private final AtomicReference<CompletableFuture<PollCommandResponse>> pollCommandResponseFutureRef = new AtomicReference<>();
 
-    public GrpcClientChannel(SimpleChannel simpleChannel) {
-        super(simpleChannel);
+    public GrpcClientChannel() {
+        super(ChannelManager.createSimpleChannelDirectly());
     }
 
     public static GrpcClientChannel create(ChannelManager channelManager, String group, String clientId) {
         GrpcClientChannel channel = channelManager.createChannel(
             buildKey(group, clientId),
-            () -> new GrpcClientChannel(ChannelManager.createSimpleChannelDirectly()),
+            GrpcClientChannel::new,
             GrpcClientChannel.class);
 
         GROUP_CLIENT_IDS.compute(group, (groupKey, clientIds) -> {

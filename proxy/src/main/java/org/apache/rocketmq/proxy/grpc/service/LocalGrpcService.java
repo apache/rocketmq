@@ -139,7 +139,7 @@ public class LocalGrpcService implements GrpcForwardService {
         command.makeCustomHeaderToNet();
 
         SendMessageResponseHandler handler = new SendMessageResponseHandler(message.getSystemAttribute().getMessageId());
-        SendMessageChannel channel = SendMessageChannel.create(channelManager.createChannel(), handler);
+        SendMessageChannel channel = channelManager.createChannel(() -> new SendMessageChannel(handler), SendMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
         InvocationContext<SendMessageRequest, SendMessageResponse> context
@@ -179,7 +179,7 @@ public class LocalGrpcService implements GrpcForwardService {
         command.makeCustomHeaderToNet();
 
         ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler();
-        ReceiveMessageChannel channel = ReceiveMessageChannel.create(channelManager.createChannel(), handler);
+        ReceiveMessageChannel channel = channelManager.createChannel(() -> new ReceiveMessageChannel(handler), ReceiveMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
         InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context
