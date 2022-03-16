@@ -51,10 +51,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BrokerContainerStartup {
-    private static final char BROKER_CONTAINER_CONFIG_OPTION = 'c';
-    private static final char BROKER_CONFIG_OPTION = 'b';
-    private static final char PRINT_PROPERTIES_OPTION = 'p';
-    private static final String PRINT_IMPORTANT_PROPERTIES_OPTION = "pm";
+    private static final String BROKER_CONTAINER_CONFIG_OPTION = "c";
+    private static final String BROKER_CONFIG_OPTION = "b";
+    private static final String PRINT_PROPERTIES_OPTION = "p";
+    private static final String PRINT_IMPORTANT_PROPERTIES_OPTION = "m";
     public static Properties properties = null;
     public static CommandLine commandLine = null;
     public static String configFile = null;
@@ -98,7 +98,7 @@ public class BrokerContainerStartup {
     }
 
     public static BrokerController createBrokerController(String[] args) {
-        final BrokerContainer sharedBrokerController = startBrokerContainer(createBrokerContainer(args, true));
+        final BrokerContainer sharedBrokerController = startBrokerContainer(createBrokerContainer(args));
         return createAndInitializeBroker(sharedBrokerController, configFile, properties);
     }
 
@@ -277,10 +277,6 @@ public class BrokerContainerStartup {
     }
 
     public static BrokerContainer createBrokerContainer(String[] args) {
-        return createBrokerContainer(args, false);
-    }
-
-    public static BrokerContainer createBrokerContainer(String[] args, boolean useDefaultPort) {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
 
         if (null == System.getProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_SNDBUF_SIZE)) {
@@ -300,7 +296,7 @@ public class BrokerContainerStartup {
                 System.exit(-1);
             }
 
-            final BrokerContainerConfig brokerConfig = new BrokerContainerConfig();
+            final BrokerContainerConfig containerConfig = new BrokerContainerConfig();
             final NettyServerConfig nettyServerConfig = new NettyServerConfig();
             final NettyClientConfig nettyClientConfig = new NettyClientConfig();
 
@@ -320,24 +316,20 @@ public class BrokerContainerStartup {
             properties = configFileHelper.loadConfig();
             if (properties != null) {
                 properties2SystemEnv(properties);
-                MixAll.properties2Object(properties, brokerConfig);
+                MixAll.properties2Object(properties, containerConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
                 MixAll.properties2Object(properties, nettyClientConfig);
             }
 
-            if (useDefaultPort) {
-                nettyServerConfig.setListenPort(10811);
-            }
+            MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), containerConfig);
 
-            MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
-
-            if (null == brokerConfig.getRocketmqHome()) {
+            if (null == containerConfig.getRocketmqHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
                 System.exit(-2);
             }
-            rocketmqHome = brokerConfig.getRocketmqHome();
+            rocketmqHome = containerConfig.getRocketmqHome();
 
-            String namesrvAddr = brokerConfig.getNamesrvAddr();
+            String namesrvAddr = containerConfig.getNamesrvAddr();
             if (null != namesrvAddr) {
                 try {
                     String[] addrArray = namesrvAddr.split(";");
@@ -362,25 +354,25 @@ public class BrokerContainerStartup {
 
             if (commandLine.hasOption(PRINT_PROPERTIES_OPTION)) {
                 InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
-                MixAll.printObjectProperties(console, brokerConfig);
+                MixAll.printObjectProperties(console, containerConfig);
                 MixAll.printObjectProperties(console, nettyServerConfig);
                 MixAll.printObjectProperties(console, nettyClientConfig);
                 System.exit(0);
             } else if (commandLine.hasOption(PRINT_IMPORTANT_PROPERTIES_OPTION)) {
                 InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
-                MixAll.printObjectProperties(console, brokerConfig, true);
+                MixAll.printObjectProperties(console, containerConfig, true);
                 MixAll.printObjectProperties(console, nettyServerConfig, true);
                 MixAll.printObjectProperties(console, nettyClientConfig, true);
                 System.exit(0);
             }
 
             log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-            MixAll.printObjectProperties(log, brokerConfig);
+            MixAll.printObjectProperties(log, containerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
             MixAll.printObjectProperties(log, nettyClientConfig);
 
             final BrokerContainer brokerContainer = new BrokerContainer(
-                brokerConfig,
+                containerConfig,
                 nettyServerConfig,
                 nettyClientConfig);
             // remember all configs to prevent discard
@@ -431,19 +423,19 @@ public class BrokerContainerStartup {
     }
 
     private static Options buildCommandlineOptions(final Options options) {
-        Option opt = new Option("c", "configFile", true, "Config file for shared broker");
+        Option opt = new Option(BROKER_CONTAINER_CONFIG_OPTION, "configFile", true, "Config file for shared broker");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("p", "printConfigItem", false, "Print all config item");
+        opt = new Option(PRINT_PROPERTIES_OPTION, "printConfigItem", false, "Print all config item");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("m", "printImportantConfig", false, "Print important config item");
+        opt = new Option(PRINT_IMPORTANT_PROPERTIES_OPTION, "printImportantConfig", false, "Print important config item");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("b", "brokerConfigFiles", true, "The path of broker config files, split by ':'");
+        opt = new Option(BROKER_CONFIG_OPTION, "brokerConfigFiles", true, "The path of broker config files, split by ':'");
         opt.setRequired(false);
         options.addOption(opt);
 
