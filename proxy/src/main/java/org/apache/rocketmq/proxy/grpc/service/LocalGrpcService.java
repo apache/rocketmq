@@ -32,6 +32,7 @@ import apache.rocketmq.v1.HeartbeatResponse;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.NackMessageRequest;
 import apache.rocketmq.v1.NackMessageResponse;
+import apache.rocketmq.v1.NoopCommand;
 import apache.rocketmq.v1.NotifyClientTerminationRequest;
 import apache.rocketmq.v1.NotifyClientTerminationResponse;
 import apache.rocketmq.v1.PollCommandRequest;
@@ -68,6 +69,7 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
@@ -304,7 +306,30 @@ public class LocalGrpcService implements GrpcForwardService {
 
     @Override
     public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
-        return null;
+        Channel channel = channelManager.createChannel();
+        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+
+        EndTransactionRequestHeader requestHeader = Converter.buildEndTransactionRequestHeader(request);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
+        command.makeCustomHeaderToNet();
+
+        CompletableFuture<EndTransactionResponse> future = new CompletableFuture<>();
+        try {
+            RemotingCommand responseCommand = brokerController.getEndTransactionProcessor()
+                .processRequest(channelHandlerContext, command);
+            EndTransactionResponse.Builder builder = EndTransactionResponse.newBuilder();
+            if (null != responseCommand) {
+                builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
+            } else {
+                builder.setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "Response command is null"));
+            }
+            EndTransactionResponse response = builder.build();
+            future.complete(response);
+        } catch (Exception e) {
+            LOGGER.error("Exception raised while endTransaction", e);
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     @Override public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
@@ -323,12 +348,24 @@ public class LocalGrpcService implements GrpcForwardService {
                 Resource producerGroup = request.getProducerGroup();
                 String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
                 GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(channelManager, producerGroupName, clientId);
+                if (producerChannel == null) {
+                    future.complete(PollCommandResponse.newBuilder()
+                        .setNoopCommand(NoopCommand.newBuilder().build())
+                        .build());
+                    break;
+                }
                 producerChannel.addClientObserver(future);
                 break;
             case CONSUMER_GROUP:
                 Resource consumerGroup = request.getConsumerGroup();
                 String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
                 GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(channelManager, consumerGroupName, clientId);
+                if (consumerChannel == null) {
+                    future.complete(PollCommandResponse.newBuilder()
+                        .setNoopCommand(NoopCommand.newBuilder().build())
+                        .build());
+                    break;
+                }
                 consumerChannel.addClientObserver(future);
                 break;
             default:

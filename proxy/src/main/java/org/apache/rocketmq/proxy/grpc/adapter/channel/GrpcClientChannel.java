@@ -17,11 +17,19 @@
 package org.apache.rocketmq.proxy.grpc.adapter.channel;
 
 import apache.rocketmq.v1.PollCommandResponse;
+import apache.rocketmq.v1.RecoverOrphanedTransactionCommand;
 import io.netty.channel.ChannelFuture;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
+import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class GrpcClientChannel extends SimpleChannel {
     private final AtomicReference<CompletableFuture<PollCommandResponse>> pollCommandResponseFutureRef = new AtomicReference<>();
@@ -56,9 +64,40 @@ public class GrpcClientChannel extends SimpleChannel {
         return group + "@" + clientId;
     }
 
+    /**
+     * Write response to corresponding remote client
+     *
+     * @param msg Target write object, {@link RemotingCommand} or {@link PollCommandResponse}
+     * @return Always success {@link ChannelFuture}
+     * <p>
+     * Case {@link RequestCode#CHECK_TRANSACTION_STATE}
+     * @see org.apache.rocketmq.broker.client.net.Broker2Client#checkProducerTransactionState
+     */
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
         CompletableFuture<PollCommandResponse> future = pollCommandResponseFutureRef.get();
+        if (msg instanceof RemotingCommand) {
+            RemotingCommand command = (RemotingCommand) msg;
+            try {
+                switch (command.getCode()) {
+                    case RequestCode.CHECK_TRANSACTION_STATE: {
+                        final CheckTransactionStateRequestHeader requestHeader =
+                            (CheckTransactionStateRequestHeader) command.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
+                        MessageExt messageExt = MessageDecoder.decode(ByteBuffer.wrap(command.getBody()), true, false, false);
+                        RecoverOrphanedTransactionCommand recoverOrphanedTransactionCommand = RecoverOrphanedTransactionCommand.newBuilder()
+                            .setTransactionId(requestHeader.getTransactionId())
+                            .setOrphanedTransactionalMessage(Converter.buildMessage(messageExt))
+                            .build();
+                        future.complete(PollCommandResponse.newBuilder()
+                            .setRecoverOrphanedTransactionCommand(recoverOrphanedTransactionCommand)
+                            .build());
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+
+            }
+        }
         if (msg instanceof PollCommandResponse) {
             PollCommandResponse response = (PollCommandResponse) msg;
             future.complete(response);
