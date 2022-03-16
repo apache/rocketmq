@@ -31,6 +31,7 @@ import apache.rocketmq.v1.HeartbeatRequest;
 import apache.rocketmq.v1.HeartbeatResponse;
 import apache.rocketmq.v1.NackMessageRequest;
 import apache.rocketmq.v1.NackMessageResponse;
+import apache.rocketmq.v1.NoopCommand;
 import apache.rocketmq.v1.NotifyClientTerminationRequest;
 import apache.rocketmq.v1.NotifyClientTerminationResponse;
 import apache.rocketmq.v1.PollCommandRequest;
@@ -168,17 +169,28 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
         CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
         String clientId = request.getClientId();
+        PollCommandResponse noopCommandResponse = PollCommandResponse.newBuilder().setNoopCommand(NoopCommand.newBuilder().build()).build();
 
         switch (request.getGroupCase()) {
             case PRODUCER_GROUP:
                 Resource producerGroup = request.getProducerGroup();
                 String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
-                GrpcClientChannel.addClientObserver(this.channelManager, producerGroupName, clientId, future);
+                GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(this.channelManager, producerGroupName, clientId);
+                if (producerChannel == null) {
+                    future.complete(noopCommandResponse);
+                } else {
+                    producerChannel.addClientObserver(future);
+                }
                 break;
             case CONSUMER_GROUP:
                 Resource consumerGroup = request.getConsumerGroup();
                 String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
-                GrpcClientChannel.addClientObserver(this.channelManager, consumerGroupName, clientId, future);
+                GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(this.channelManager, consumerGroupName, clientId);
+                if (consumerChannel == null) {
+                    future.complete(noopCommandResponse);
+                } else {
+                    consumerChannel.addClientObserver(future);
+                }
                 break;
             default:
                 break;
