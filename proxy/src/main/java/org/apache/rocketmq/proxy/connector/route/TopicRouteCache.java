@@ -76,10 +76,21 @@ public class TopicRouteCache {
         return getMessageQueue(topic).getWriteSelector().selectOne(brokerName, queueId);
     }
 
-    public SelectableMessageQueue selectOneWriteQueueByKey(String topic, String shardingKey, SelectableMessageQueue last) throws Exception {
+    public SelectableMessageQueue selectOneWriteQueueByKey(String topic, String shardingKey) throws Exception {
         List<SelectableMessageQueue> writeQueues = getMessageQueue(topic).getWriteSelector().getQueues();
         int bucket = Hashing.consistentHash(shardingKey.hashCode(), writeQueues.size());
         return writeQueues.get(bucket);
+    }
+
+    public SelectableMessageQueue selectReadBrokerByName(String topic, String brokerName) throws Exception {
+        return getMessageQueue(topic).getReadSelector().getQueueByBrokerName(brokerName);
+    }
+
+    public SelectableMessageQueue selectOneReadBroker(String topic, SelectableMessageQueue last) throws Exception {
+        if (last == null) {
+            return getMessageQueue(topic).getReadSelector().selectOne(true);
+        }
+        return getMessageQueue(topic).getReadSelector().selectNextQueue(last);
     }
 
     protected static MessageQueueWrapper getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueWrapper> topicCache, String key) throws Exception {

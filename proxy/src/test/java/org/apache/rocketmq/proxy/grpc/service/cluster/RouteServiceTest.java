@@ -129,25 +129,6 @@ public class RouteServiceTest extends BaseServiceTest {
     }
 
     @Test
-    public void testQueryRouteHook() {
-        RouteService routeService = new RouteService(this.clientManager);
-
-        routeService.setQueryRouteHook((ctx, request, response) -> QueryRouteResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.NOT_FOUND, Code.NOT_FOUND.name()))
-            .build());
-
-        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
-            .build());
-
-        try {
-            QueryRouteResponse response = future.get();
-            assertEquals(Code.NOT_FOUND.getNumber(), response.getCommon().getStatus().getCode());
-        } catch (Exception e) {
-            assertNull(e);
-        }
-    }
-
-    @Test
     public void testQueryAssignmentInvalidEndpoints() {
         RouteService routeService = new RouteService(this.clientManager);
 

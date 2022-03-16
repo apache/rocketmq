@@ -16,13 +16,15 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import apache.rocketmq.v1.Message;
+import io.grpc.Context;
+import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.ParameterConverter;
 
-public class BaseService {
+public class DefaultProducerMessageConverter implements ParameterConverter<Message, org.apache.rocketmq.common.message.Message> {
 
-    protected final ConnectorManager connectorManager;
-
-    public BaseService(ConnectorManager connectorManager) {
-        this.connectorManager = connectorManager;
+    @Override
+    public org.apache.rocketmq.common.message.Message convert(Context ctx, Message parameter) {
+        return Converter.buildMessage(parameter);
     }
 }

@@ -18,13 +18,18 @@
 package org.apache.rocketmq.proxy.grpc.common;
 
 import apache.rocketmq.v1.HeartbeatResponse;
+import apache.rocketmq.v1.Message;
+import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.ResponseCommon;
 import apache.rocketmq.v1.SendMessageResponse;
+import apache.rocketmq.v1.SystemAttribute;
+import com.google.protobuf.ByteString;
 import com.google.rpc.Code;
 import com.google.rpc.Status;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -70,19 +75,6 @@ public class ResponseBuilder {
             .setCommon(buildCommon(command.getCode(), command.getRemark()))
             .setMessageId(StringUtils.defaultString(messageId))
             .setTransactionId(StringUtils.defaultString(transactionId))
-            .build();
-    }
-
-    public static SendMessageResponse buildSendMessageResponse(SendResult sendResult) {
-        if (sendResult.getSendStatus() != SendStatus.SEND_OK) {
-            return SendMessageResponse.newBuilder()
-                .setCommon(buildCommon(Code.INTERNAL, "send message failed, sendStatus=" + sendResult.getSendStatus()))
-                .build();
-        }
-        return SendMessageResponse.newBuilder()
-            .setCommon(buildCommon(Code.OK, Code.OK.name()))
-            .setMessageId(StringUtils.defaultString(sendResult.getMsgId()))
-            .setTransactionId(StringUtils.defaultString(sendResult.getTransactionId()))
             .build();
     }
 

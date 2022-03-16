@@ -49,13 +49,25 @@ import apache.rocketmq.v1.ReportMessageConsumptionResultRequest;
 import apache.rocketmq.v1.ReportMessageConsumptionResultResponse;
 import apache.rocketmq.v1.ReportThreadStackTraceRequest;
 import apache.rocketmq.v1.ReportThreadStackTraceResponse;
+import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
+import com.google.rpc.Code;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.service.cluster.ClientService;
+import org.apache.rocketmq.proxy.grpc.service.cluster.ReceiveMessageService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
 import org.slf4j.Logger;
@@ -64,17 +76,28 @@ import org.slf4j.LoggerFactory;
 public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
-    private final ConnectorManager forwardClientManager;
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactoryImpl("ClusterGrpcServiceScheduledThread"));
+
+    private final ChannelManager channelManager;
+
+    private final ConnectorManager connectorManager;
     private final ProducerService producerService;
+    private final ReceiveMessageService receiveMessageService;
     private final RouteService routeService;
+    private final ClientService clientService;
 
     public ClusterGrpcService() {
-        this.forwardClientManager = new ConnectorManager(checkData -> {
+        this.channelManager = new ChannelManager();
+        this.connectorManager = new ConnectorManager(checkData -> {
         });
-        this.producerService = new ProducerService(forwardClientManager);
-        this.routeService = new RouteService(forwardClientManager);
+        this.receiveMessageService = new ReceiveMessageService(connectorManager);
+        this.producerService = new ProducerService(connectorManager);
+        this.routeService = new RouteService(connectorManager);
+        this.clientService = new ClientService(scheduledExecutorService);
 
-        this.appendStartAndShutdown(this.forwardClientManager);
+        this.appendStartAndShutdown(new ClusterGrpcServiceStartAndShutdown());
+        this.appendStartAndShutdown(this.connectorManager);
     }
 
     @Override
@@ -84,12 +107,18 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
-        return null;
+        this.clientService.heartbeat(ctx, request, channelManager);
+        return CompletableFuture.completedFuture(HeartbeatResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+            .build());
     }
 
     @Override
     public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
-        return null;
+        final HealthCheckResponse response = HealthCheckResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+            .build();
+        return CompletableFuture.completedFuture(response);
     }
 
     @Override
@@ -104,10 +133,11 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        return null;
+        return this.receiveMessageService.receiveMessage(ctx, request);
     }
 
-    @Override public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
+    @Override
+    public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
         return null;
     }
 
@@ -121,7 +151,8 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         return null;
     }
 
-    @Override public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
+    @Override
+    public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
         return null;
     }
 
@@ -133,8 +164,26 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         return null;
     }
 
-    @Override public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
-        return null;
+    @Override
+    public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
+        CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
+        String clientId = request.getClientId();
+
+        switch (request.getGroupCase()) {
+            case PRODUCER_GROUP:
+                Resource producerGroup = request.getProducerGroup();
+                String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
+                GrpcClientChannel.addClientObserver(this.channelManager, producerGroupName, clientId, future);
+                break;
+            case CONSUMER_GROUP:
+                Resource consumerGroup = request.getConsumerGroup();
+                String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
+                GrpcClientChannel.addClientObserver(this.channelManager, consumerGroupName, clientId, future);
+                break;
+            default:
+                break;
+        }
+        return future;
     }
 
     @Override public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
@@ -148,13 +197,30 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         return null;
     }
 
-    @Override public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    @Override
+    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request) {
-        return null;
+        this.clientService.unregister(ctx, request, channelManager);
+        return CompletableFuture.completedFuture(NotifyClientTerminationResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+            .build());
     }
 
     @Override public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         return null;
+    }
+
+    private class ClusterGrpcServiceStartAndShutdown implements StartAndShutdown {
+
+        @Override
+        public void start() throws Exception {
+
+        }
+
+        @Override
+        public void shutdown() throws Exception {
+            scheduledExecutorService.shutdown();
+        }
     }
 }
