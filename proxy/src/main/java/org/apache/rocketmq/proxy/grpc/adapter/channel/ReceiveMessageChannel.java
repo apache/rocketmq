@@ -19,30 +19,11 @@ package org.apache.rocketmq.proxy.grpc.adapter.channel;
 
 import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageResponse;
-import io.netty.channel.ChannelFuture;
-import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.InvocationChannel;
-import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHandler;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ReceiveMessageChannel extends InvocationChannel<ReceiveMessageRequest, ReceiveMessageResponse> {
-    private final ReceiveMessageResponseHandler handler;
-
     public ReceiveMessageChannel(ReceiveMessageResponseHandler handler) {
-        super(ChannelManager.createSimpleChannelDirectly());
-        this.handler = handler;
-    }
-
-    @Override
-    public ChannelFuture writeAndFlush(Object msg) {
-        if (msg instanceof RemotingCommand) {
-            RemotingCommand responseCommand = (RemotingCommand) msg;
-            InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context = inFlightRequestMap.remove(responseCommand.getOpaque());
-            if (null != context) {
-                handler.handle(responseCommand, context);
-            }
-        }
-        return super.writeAndFlush(msg);
+        super(handler);
     }
 }

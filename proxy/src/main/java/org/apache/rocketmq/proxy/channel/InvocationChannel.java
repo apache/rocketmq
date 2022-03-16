@@ -23,21 +23,29 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.proxy.common.Cleaner;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
+import org.apache.rocketmq.proxy.grpc.adapter.handler.ResponseHandler;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class InvocationChannel<R, W> extends SimpleChannel {
+public abstract class InvocationChannel<R, W> extends SimpleChannel implements Cleaner {
     protected final ConcurrentMap<Integer, InvocationContext<R, W>> inFlightRequestMap;
+    protected final ResponseHandler<R, W> handler;
 
-    public InvocationChannel(SimpleChannel simpleChannel) {
-        super(simpleChannel);
+    public InvocationChannel(ResponseHandler<R, W> handler) {
+        super(ChannelManager.createSimpleChannelDirectly());
         this.inFlightRequestMap = new ConcurrentHashMap<>();
+        this.handler = handler;
     }
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
         if (msg instanceof RemotingCommand) {
             RemotingCommand responseCommand = (RemotingCommand) msg;
+            InvocationContext<R, W> context = inFlightRequestMap.remove(responseCommand.getOpaque());
+            if (null != context) {
+                handler.handle(responseCommand, context);
+            }
             inFlightRequestMap.remove(responseCommand.getOpaque());
         }
         return super.writeAndFlush(msg);
@@ -64,7 +72,8 @@ public class InvocationChannel<R, W> extends SimpleChannel {
         inFlightRequestMap.remove(opaque);
     }
 
-    public void cleanExpiredRequests() {
+    @Override
+    public void clean() {
         Iterator<Map.Entry<Integer, InvocationContext<R, W>>> iterator = inFlightRequestMap.entrySet().iterator();
         int count = 0;
         while (iterator.hasNext()) {

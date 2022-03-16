@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
+import org.apache.rocketmq.proxy.common.Cleaner;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,13 +102,12 @@ public class ChannelManager {
             Iterator<Map.Entry<String, SimpleChannel>> iterator = clientIdChannelMap.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<String, SimpleChannel> entry = iterator.next();
-                if (!entry.getValue()
-                    .isActive()) {
+                if (!entry.getValue().isActive()) {
                     iterator.remove();
                 } else {
-                    if (entry.getValue() instanceof SendMessageChannel) {
-                        SendMessageChannel channel = (SendMessageChannel) entry.getValue();
-                        channel.cleanExpiredRequests();
+                    if (entry.getValue() instanceof Cleaner) {
+                        Cleaner cleaner = (Cleaner) entry.getValue();
+                        cleaner.clean();
                     }
                 }
             }
