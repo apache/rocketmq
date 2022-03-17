@@ -39,15 +39,15 @@ public class TransactionId {
     private String brokerTransactionId;
     private long commitLogOffset;
     private long tranStateTableOffset;
-    private String gatewayTransactionId;
+    private String proxyTransactionId;
 
     public TransactionId(SocketAddress brokerAddr, String brokerTransactionId, long commitLogOffset,
-        long tranStateTableOffset, String gatewayTransactionId) {
+        long tranStateTableOffset, String proxyTransactionId) {
         this.brokerAddr = brokerAddr;
         this.brokerTransactionId = brokerTransactionId;
         this.commitLogOffset = commitLogOffset;
         this.tranStateTableOffset = tranStateTableOffset;
-        this.gatewayTransactionId = gatewayTransactionId;
+        this.proxyTransactionId = proxyTransactionId;
     }
 
     public TransactionId() {
@@ -87,7 +87,7 @@ public class TransactionId {
             .brokerTransactionId(orgTransactionId)
             .commitLogOffset(commitLogOffset)
             .tranStateTableOffset(tranStateTableOffset)
-            .gatewayTransactionId(gatewayTransactionId)
+            .proxyTransactionId(gatewayTransactionId)
             .build();
     }
 
@@ -111,7 +111,7 @@ public class TransactionId {
             .brokerTransactionId(new String(orgTransactionIdByte, StandardCharsets.UTF_8))
             .commitLogOffset(commitLogOffset)
             .tranStateTableOffset(tranStateTableOffset)
-            .gatewayTransactionId(transactionId)
+            .proxyTransactionId(transactionId)
             .build();
     }
 
@@ -124,12 +124,12 @@ public class TransactionId {
             return false;
         }
         TransactionId id = (TransactionId) o;
-        return commitLogOffset == id.commitLogOffset && tranStateTableOffset == id.tranStateTableOffset && Objects.equals(brokerAddr, id.brokerAddr) && Objects.equals(brokerTransactionId, id.brokerTransactionId) && Objects.equals(gatewayTransactionId, id.gatewayTransactionId);
+        return commitLogOffset == id.commitLogOffset && tranStateTableOffset == id.tranStateTableOffset && Objects.equals(brokerAddr, id.brokerAddr) && Objects.equals(brokerTransactionId, id.brokerTransactionId) && Objects.equals(proxyTransactionId, id.proxyTransactionId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(brokerAddr, brokerTransactionId, commitLogOffset, tranStateTableOffset, gatewayTransactionId);
+        return Objects.hash(brokerAddr, brokerTransactionId, commitLogOffset, tranStateTableOffset, proxyTransactionId);
     }
 
     public static TransactionIdBuilder builder() {
@@ -152,8 +152,8 @@ public class TransactionId {
         return this.tranStateTableOffset;
     }
 
-    public String getGatewayTransactionId() {
-        return this.gatewayTransactionId;
+    public String getProxyTransactionId() {
+        return this.proxyTransactionId;
     }
 
     public void setBrokerAddr(SocketAddress brokerAddr) {
@@ -172,8 +172,8 @@ public class TransactionId {
         this.tranStateTableOffset = tranStateTableOffset;
     }
 
-    public void setGatewayTransactionId(String gatewayTransactionId) {
-        this.gatewayTransactionId = gatewayTransactionId;
+    public void setProxyTransactionId(String proxyTransactionId) {
+        this.proxyTransactionId = proxyTransactionId;
     }
 
     @Override
@@ -183,7 +183,7 @@ public class TransactionId {
             ", brokerTransactionId='" + brokerTransactionId + '\'' +
             ", commitLogOffset=" + commitLogOffset +
             ", tranStateTableOffset=" + tranStateTableOffset +
-            ", gatewayTransactionId='" + gatewayTransactionId + '\'' +
+            ", gatewayTransactionId='" + proxyTransactionId + '\'' +
             '}';
     }
 
@@ -192,7 +192,7 @@ public class TransactionId {
         private String brokerTransactionId;
         private long commitLogOffset;
         private long tranStateTableOffset;
-        private String gatewayTransactionId;
+        private String proxyTransactionId;
 
         TransactionIdBuilder() {
         }
@@ -217,13 +217,13 @@ public class TransactionId {
             return this;
         }
 
-        public TransactionIdBuilder gatewayTransactionId(String gatewayTransactionId) {
-            this.gatewayTransactionId = gatewayTransactionId;
+        public TransactionIdBuilder proxyTransactionId(String proxyTransactionId) {
+            this.proxyTransactionId = proxyTransactionId;
             return this;
         }
 
         public TransactionId build() {
-            return new TransactionId(brokerAddr, brokerTransactionId, commitLogOffset, tranStateTableOffset, gatewayTransactionId);
+            return new TransactionId(brokerAddr, brokerTransactionId, commitLogOffset, tranStateTableOffset, proxyTransactionId);
         }
 
         @Override
@@ -233,7 +233,7 @@ public class TransactionId {
                 ", brokerTransactionId='" + brokerTransactionId + '\'' +
                 ", commitLogOffset=" + commitLogOffset +
                 ", tranStateTableOffset=" + tranStateTableOffset +
-                ", gatewayTransactionId='" + gatewayTransactionId + '\'' +
+                ", gatewayTransactionId='" + proxyTransactionId + '\'' +
                 '}';
         }
     }

@@ -17,14 +17,19 @@
 package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
-import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ForwardProducer extends AbstractForwardClient {
@@ -57,9 +62,38 @@ public class ForwardProducer extends AbstractForwardClient {
         return this.getClient().sendHeartbeat(heartbeatAddr, heartbeatData, timeout);
     }
 
+    public void endTransaction(EndTransactionRequestHeader request, long timeoutMillis) throws Exception {
+        TransactionId transactionId = TransactionId.decode(request.getTransactionId());
+
+        EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
+        requestHeader.setProducerGroup(request.getProducerGroup());
+        requestHeader.setTranStateTableOffset(transactionId.getTranStateTableOffset());
+        requestHeader.setCommitLogOffset(transactionId.getCommitLogOffset());
+        requestHeader.setFromTransactionCheck(request.getFromTransactionCheck());
+        requestHeader.setMsgId(request.getMsgId());
+        requestHeader.setTransactionId(transactionId.getBrokerTransactionId());
+        requestHeader.setCommitOrRollback(request.getCommitOrRollback());
+
+        String brokerAddr = RemotingHelper.parseSocketAddressAddr(transactionId.getBrokerAddr());
+        this.getClient().endTransactionOneway(
+            brokerAddr,
+            requestHeader,
+            "end transaction from rmq proxy",
+            timeoutMillis
+        );
+    }
+
     public CompletableFuture<SendResult> sendMessage(String address, String brokerName, Message msg,
         SendMessageRequestHeader requestHeader, long timeoutMillis) {
-        return this.getClient().sendMessage(address, brokerName, msg, requestHeader, timeoutMillis);
+        CompletableFuture<SendResult> future = this.getClient().sendMessage(address, brokerName, msg, requestHeader, timeoutMillis);
+        future.thenApply(sendResult -> {
+            if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) && !StringUtils.isEmpty(sendResult.getTransactionId())) {
+                TransactionId transactionId = TransactionId.genFromBrokerTransactionId(address, sendResult);
+                sendResult.setTransactionId(transactionId.getProxyTransactionId());
+            }
+            return sendResult;
+        });
+        return future;
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {

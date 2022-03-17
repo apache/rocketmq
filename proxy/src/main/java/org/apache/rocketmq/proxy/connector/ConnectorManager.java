@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.connector;
 
 import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionHeartbeatRegisterService;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 
@@ -29,6 +30,7 @@ public class ConnectorManager extends AbstractStartAndShutdown {
     private final ForwardWriteConsumer forwardWriteConsumer;
 
     private final TopicRouteCache topicRouteCache;
+    private final TransactionHeartbeatRegisterService transactionHeartbeatRegisterService;
 
     public ConnectorManager(TransactionStateChecker transactionStateChecker) {
         this.forwardClientFactory = new ForwardClientFactory(transactionStateChecker);
@@ -38,12 +40,14 @@ public class ConnectorManager extends AbstractStartAndShutdown {
         this.forwardWriteConsumer = new ForwardWriteConsumer(this.forwardClientFactory);
 
         this.topicRouteCache = new TopicRouteCache(this.defaultForwardClient);
+        this.transactionHeartbeatRegisterService = new TransactionHeartbeatRegisterService(this.forwardProducer, this.topicRouteCache);
 
         this.appendStartAndShutdown(this.forwardClientFactory);
         this.appendStartAndShutdown(this.defaultForwardClient);
         this.appendStartAndShutdown(this.forwardProducer);
         this.appendStartAndShutdown(this.forwardReadConsumer);
         this.appendStartAndShutdown(this.forwardWriteConsumer);
+        this.appendStartAndShutdown(this.transactionHeartbeatRegisterService);
     }
 
     public ForwardClientFactory getForwardClientFactory() {
@@ -68,5 +72,9 @@ public class ConnectorManager extends AbstractStartAndShutdown {
 
     public TopicRouteCache getTopicRouteCache() {
         return topicRouteCache;
+    }
+
+    public TransactionHeartbeatRegisterService getTransactionHeartbeatRegisterService() {
+        return transactionHeartbeatRegisterService;
     }
 }

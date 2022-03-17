@@ -34,8 +34,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class GrpcClientChannel extends SimpleChannel {
     private final AtomicReference<CompletableFuture<PollCommandResponse>> pollCommandResponseFutureRef = new AtomicReference<>();
 
-    private GrpcClientChannel() {
+    private final String group;
+    private final String clientId;
+
+    private GrpcClientChannel(String group, String clientId) {
         super(ChannelManager.createSimpleChannelDirectly());
+        this.group = group;
+        this.clientId = clientId;
     }
 
     public void addClientObserver(CompletableFuture<PollCommandResponse> future) {
@@ -45,7 +50,7 @@ public class GrpcClientChannel extends SimpleChannel {
     public static GrpcClientChannel create(ChannelManager channelManager, String group, String clientId) {
         GrpcClientChannel channel = channelManager.createChannel(
             buildKey(group, clientId),
-            GrpcClientChannel::new,
+            () -> new GrpcClientChannel(group, clientId),
             GrpcClientChannel.class);
 
         channelManager.addGroupClientId(group, clientId);
@@ -103,5 +108,13 @@ public class GrpcClientChannel extends SimpleChannel {
             future.complete(response);
         }
         return super.writeAndFlush(msg);
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public String getClientId() {
+        return clientId;
     }
 }

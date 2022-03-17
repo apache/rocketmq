@@ -72,6 +72,11 @@ public class ProxyConfig {
     private int topicRouteThreadPoolNums = 36;
     private int topicRouteThreadPoolQueueCapacity = 50000;
 
+    private int transactionHeartbeatThreadPoolNums = 20;
+    private int transactionHeartbeatThreadPoolQueueCapacity = 200;
+    private int transactionHeartbeatPeriodSecond = 20;
+    private int transactionHeartbeatBatchNum = 100;
+
     private int longPollingReserveTimeInMillis = 10000;
 
     public Integer getHealthCheckPort() {
@@ -320,6 +325,38 @@ public class ProxyConfig {
 
     public void setTopicRouteThreadPoolQueueCapacity(int topicRouteThreadPoolQueueCapacity) {
         this.topicRouteThreadPoolQueueCapacity = topicRouteThreadPoolQueueCapacity;
+    }
+
+    public int getTransactionHeartbeatThreadPoolNums() {
+        return transactionHeartbeatThreadPoolNums;
+    }
+
+    public void setTransactionHeartbeatThreadPoolNums(int transactionHeartbeatThreadPoolNums) {
+        this.transactionHeartbeatThreadPoolNums = transactionHeartbeatThreadPoolNums;
+    }
+
+    public int getTransactionHeartbeatThreadPoolQueueCapacity() {
+        return transactionHeartbeatThreadPoolQueueCapacity;
+    }
+
+    public void setTransactionHeartbeatThreadPoolQueueCapacity(int transactionHeartbeatThreadPoolQueueCapacity) {
+        this.transactionHeartbeatThreadPoolQueueCapacity = transactionHeartbeatThreadPoolQueueCapacity;
+    }
+
+    public int getTransactionHeartbeatPeriodSecond() {
+        return transactionHeartbeatPeriodSecond;
+    }
+
+    public void setTransactionHeartbeatPeriodSecond(int transactionHeartbeatPeriodSecond) {
+        this.transactionHeartbeatPeriodSecond = transactionHeartbeatPeriodSecond;
+    }
+
+    public int getTransactionHeartbeatBatchNum() {
+        return transactionHeartbeatBatchNum;
+    }
+
+    public void setTransactionHeartbeatBatchNum(int transactionHeartbeatBatchNum) {
+        this.transactionHeartbeatBatchNum = transactionHeartbeatBatchNum;
     }
 
     public int getLongPollingReserveTimeInMillis() {
