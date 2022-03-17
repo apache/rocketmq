@@ -17,38 +17,65 @@
 
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
+import apache.rocketmq.v1.Address;
+import apache.rocketmq.v1.AddressScheme;
 import apache.rocketmq.v1.Broker;
+import apache.rocketmq.v1.Endpoints;
 import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.Permission;
+import apache.rocketmq.v1.QueryAssignmentRequest;
+import apache.rocketmq.v1.QueryAssignmentResponse;
+import apache.rocketmq.v1.QueryRouteRequest;
+import apache.rocketmq.v1.QueryRouteResponse;
 import apache.rocketmq.v1.Resource;
+import com.google.common.net.HostAndPort;
+import com.google.rpc.Code;
+import io.grpc.Context;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.junit.Test;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-public class RouteServiceTest {
+public class RouteServiceTest extends BaseServiceTest {
+    private String brokerAddress = "127.0.0.1:10911";
     public static final String BROKER_NAME = "brokerName";
     public static final String NAMESPACE = "namespace";
     public static final String TOPIC = "topic";
     public static final Broker MOCK_BROKER = Broker.newBuilder().setName(BROKER_NAME).build();
     public static final Resource MOCK_TOPIC = Resource.newBuilder()
-            .setName(TOPIC)
-            .setResourceNamespace(NAMESPACE)
-            .build();
+        .setName(TOPIC)
+        .setResourceNamespace(NAMESPACE)
+        .build();
 
-    @Before
-    public void before() throws Exception {
+    @Override
+    public void beforeEach() {
+        List<BrokerData> brokerDataList = new ArrayList<>();
+        BrokerData brokerData = new BrokerData();
+        brokerData.setCluster("cluster");
+        brokerData.setBrokerName("brokerName");
+        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>() {{
+            put(0L, brokerAddress);
+        }};
+        brokerData.setBrokerAddrs(brokerAddrs);
+        brokerDataList.add(brokerData);
+
+        List<QueueData> queueDataList = new ArrayList<>();
+        QueueData queueData = new QueueData();
+        queueData.setPerm(6);
+        queueData.setWriteQueueNums(8);
+        queueData.setReadQueueNums(8);
+        queueData.setBrokerName("brokerName");
+        queueDataList.add(queueData);
     }
-
-    @After
-    public void after() throws Exception {
-    }
-
 
     @Test
     public void testGenPartitionFromQueueData() throws Exception {
@@ -101,6 +128,187 @@ public class RouteServiceTest {
         queueData.setWriteQueueNums(w);
         queueData.setPerm(perm);
         return queueData;
+    }
+
+    @Test
+    public void testLocalModeQueryRoute() {
+        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.clientManager);
+        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
+            .setEndpoints(Endpoints.newBuilder()
+                .addAddresses(Address.newBuilder()
+                    .setPort(80)
+                    .setHost("host")
+                    .build())
+                .setScheme(AddressScheme.DOMAIN_NAME)
+                .build())
+            .setTopic(Resource.newBuilder()
+                .setName("topic")
+                .build())
+            .build());
+        try {
+            QueryRouteResponse response = future.get();
+            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+            assertEquals(8, response.getPartitionsCount());
+            assertEquals(HostAndPort.fromString(brokerAddress).getHost(), response.getPartitions(0).getBroker()
+                .getEndpoints().getAddresses(0).getHost());
+        } catch (Exception e) {
+            assertNull(e);
+        }
+    }
+
+    @Test
+    public void testQueryRouteWithInvalidEndpoints() {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+
+        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
+            .setTopic(Resource.newBuilder()
+                .setName("topic")
+                .build())
+            .build());
+
+        try {
+            QueryRouteResponse response = future.get();
+            assertEquals(Code.INVALID_ARGUMENT.getNumber(), response.getCommon().getStatus().getCode());
+        } catch (Exception e) {
+            assertNull(e);
+        }
+    }
+
+    @Test
+    public void testQueryRoute() {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+
+        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
+            .setEndpoints(Endpoints.newBuilder()
+                .addAddresses(Address.newBuilder()
+                    .setPort(80)
+                    .setHost("host")
+                    .build())
+                .setScheme(AddressScheme.DOMAIN_NAME)
+                .build())
+            .setTopic(Resource.newBuilder()
+                .setName("topic")
+                .build())
+            .build());
+
+        try {
+            QueryRouteResponse response = future.get();
+            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+            assertEquals(8, response.getPartitionsCount());
+            assertEquals("host", response.getPartitions(0).getBroker()
+                .getEndpoints().getAddresses(0).getHost());
+        } catch (Exception e) {
+            assertNull(e);
+        }
+    }
+
+    @Test
+    public void testQueryRouteWhenTopicNotExist() {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+
+        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
+            .setEndpoints(Endpoints.newBuilder()
+                .addAddresses(Address.newBuilder()
+                    .setPort(80)
+                    .setHost("host")
+                    .build())
+                .setScheme(AddressScheme.DOMAIN_NAME)
+                .build())
+            .setTopic(Resource.newBuilder()
+                .setName("notExistTopic")
+                .build())
+            .build());
+
+        try {
+            QueryRouteResponse response = future.get();
+            assertEquals(Code.NOT_FOUND.getNumber(), response.getCommon().getStatus().getCode());
+        } catch (Exception e) {
+            assertNull(e);
+        }
+    }
+
+    @Test
+    public void testQueryAssignmentInvalidEndpoints() {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+
+        CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
+            .setTopic(
+                Resource.newBuilder()
+                    .setName("topic")
+                    .build()
+            )
+            .build());
+
+        try {
+            QueryAssignmentResponse response = future.get();
+            assertEquals(Code.INVALID_ARGUMENT.getNumber(), response.getCommon().getStatus().getCode());
+        } catch (Exception e) {
+            assertNull(e);
+        }
+    }
+
+    @Test
+    public void testLocalModeQueryAssignment() {
+        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.clientManager);
+
+        CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
+            .setEndpoints(Endpoints.newBuilder()
+                .addAddresses(Address.newBuilder()
+                    .setPort(80)
+                    .setHost("host")
+                    .build())
+                .setScheme(AddressScheme.DOMAIN_NAME)
+                .build())
+            .setTopic(Resource.newBuilder()
+                .setName("topic")
+                .build())
+            .setGroup(Resource.newBuilder()
+                .setName("group")
+                .build())
+            .setClientId("clientId")
+            .build());
+
+        try {
+            QueryAssignmentResponse response = future.get();
+            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+            assertEquals(1, response.getAssignmentsCount());
+            assertEquals("brokerName", response.getAssignments(0).getPartition().getBroker().getName());
+            assertEquals(HostAndPort.fromString(brokerAddress).getHost(), response.getAssignments(0).getPartition().getBroker().getEndpoints().getAddresses(0).getHost());
+        } catch (Exception e) {
+            assertNull(e);
+        }
+    }
+
+    @Test
+    public void testQueryAssignment() {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+
+        CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
+            .setEndpoints(Endpoints.newBuilder()
+                .addAddresses(Address.newBuilder()
+                    .setPort(80)
+                    .setHost("host")
+                    .build())
+                .setScheme(AddressScheme.DOMAIN_NAME)
+                .build())
+            .setTopic(Resource.newBuilder()
+                .setName("topic")
+                .build())
+            .setGroup(Resource.newBuilder()
+                .setName("group")
+                .build())
+            .setClientId("clientId")
+            .build());
+
+        try {
+            QueryAssignmentResponse response = future.get();
+            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+            assertEquals(1, response.getAssignmentsCount());
+            assertEquals("brokerName", response.getAssignments(0).getPartition().getBroker().getName());
+            assertEquals("host", response.getAssignments(0).getPartition().getBroker().getEndpoints().getAddresses(0).getHost());
+        } catch (Exception e) {
+            assertNull(e);
+        }
     }
 
 } 
