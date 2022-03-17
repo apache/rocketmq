@@ -66,6 +66,9 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
@@ -86,9 +89,13 @@ import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHand
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseFuture;
+import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
 import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
+import org.apache.rocketmq.remoting.RemotingServer;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
@@ -101,6 +108,7 @@ public class LocalGrpcService implements GrpcForwardService {
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryImpl("LocalGrpcServiceScheduledThread"));
     private final ChannelManager channelManager;
+    private final PollCommandResponseManager pollCommandResponseManager;
     private final RouteService routeService;
 
     public LocalGrpcService(BrokerController brokerController) {
@@ -108,6 +116,7 @@ public class LocalGrpcService implements GrpcForwardService {
         this.channelManager = new ChannelManager();
         // TransactionStateChecker is not used in Local mode.
         ConnectorManager connectorManager = new ConnectorManager(null);
+        this.pollCommandResponseManager = new PollCommandResponseManager();
         this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager);
     }
 
@@ -139,7 +148,7 @@ public class LocalGrpcService implements GrpcForwardService {
             }
         }
 
-        GrpcClientChannel channel = GrpcClientChannel.create(channelManager, groupName, request.getClientId());
+        GrpcClientChannel channel = GrpcClientChannel.create(channelManager, groupName, request.getClientId(), pollCommandResponseManager);
         SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         command.setLanguage(languageCode);
@@ -381,16 +390,48 @@ public class LocalGrpcService implements GrpcForwardService {
         return future;
     }
 
-    @Override public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
+    @Override
+    public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
         ReportThreadStackTraceRequest request) {
         String commandId = request.getCommandId();
-        return null;
+        String threadStack = request.getThreadStackTrace();
+        PollCommandResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(commandId);
+        if (pollCommandResponseFuture != null) {
+            RemotingServer remotingServer = this.brokerController.getRemotingServer();
+            if (remotingServer instanceof NettyRemotingAbstract) {
+                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "From gRPC client");
+                remotingCommand.setOpaque(pollCommandResponseFuture.getOpaque());
+                ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
+                runningInfo.setJstack(threadStack);
+                remotingCommand.setBody(runningInfo.encode());
+                nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel()), remotingCommand);
+            }
+        }
+        return CompletableFuture.completedFuture(ReportThreadStackTraceResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildSuccessCommon())
+            .build());
     }
 
     @Override
     public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
         ReportMessageConsumptionResultRequest request) {
-        return null;
+        String commandId = request.getCommandId();
+        PollCommandResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(commandId);
+        if (pollCommandResponseFuture != null) {
+            RemotingServer remotingServer = this.brokerController.getRemotingServer();
+            if (remotingServer instanceof NettyRemotingAbstract) {
+                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "From gRPC client");
+                remotingCommand.setOpaque(pollCommandResponseFuture.getOpaque());
+                ConsumeMessageDirectlyResult result = Converter.buildConsumeMessageDirectlyResult(request);
+                remotingCommand.setBody(result.encode());
+                nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel()), remotingCommand);
+            }
+        }
+        return CompletableFuture.completedFuture(ReportMessageConsumptionResultResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildSuccessCommon())
+            .build());
     }
 
     @Override public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,

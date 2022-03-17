@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.common;
 
 import apache.rocketmq.v1.AckMessageRequest;
+import apache.rocketmq.v1.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v1.ConsumeMessageType;
 import apache.rocketmq.v1.ConsumeModel;
 import apache.rocketmq.v1.ConsumePolicy;
@@ -37,6 +38,7 @@ import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.ProducerData;
 import apache.rocketmq.v1.PullMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageRequest;
+import apache.rocketmq.v1.ReportMessageConsumptionResultRequest;
 import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SubscriptionEntry;
@@ -68,6 +70,8 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.common.protocol.body.CMResult;
+import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
@@ -185,7 +189,24 @@ public class Converter {
         changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
         changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
-        changeInvisibleTimeRequestHeader.setInvisibleTime(handle.getInvisibleTime());
+        changeInvisibleTimeRequestHeader.setInvisibleTime(0L);
+        return changeInvisibleTimeRequestHeader;
+    }
+
+    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(
+        ChangeInvisibleDurationRequest request) {
+        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
+        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String receiptHandleStr = request.getReceiptHandle();
+        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+
+        ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
+        changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
+        changeInvisibleTimeRequestHeader.setTopic(topicName);
+        changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
+        changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
+        changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
+        changeInvisibleTimeRequestHeader.setInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
         return changeInvisibleTimeRequestHeader;
     }
 
@@ -617,6 +638,27 @@ public class Converter {
             default:
                 return MessageSysFlag.TRANSACTION_NOT_TYPE;
         }
+    }
+
+    public static ConsumeMessageDirectlyResult buildConsumeMessageDirectlyResult(
+        ReportMessageConsumptionResultRequest request) {
+        ConsumeMessageDirectlyResult consumeMessageDirectlyResult = new ConsumeMessageDirectlyResult();
+        switch (request.getStatus().getCode()) {
+            case Code.OK_VALUE: {
+                consumeMessageDirectlyResult.setConsumeResult(CMResult.CR_SUCCESS);
+                break;
+            }
+            case Code.INTERNAL_VALUE: {
+                consumeMessageDirectlyResult.setConsumeResult(CMResult.CR_LATER);
+                break;
+            }
+            case Code.INVALID_ARGUMENT_VALUE: {
+                consumeMessageDirectlyResult.setConsumeResult(CMResult.CR_RETURN_NULL);
+                break;
+            }
+        }
+        consumeMessageDirectlyResult.setRemark("From gRPC client");
+        return consumeMessageDirectlyResult;
     }
 
 }

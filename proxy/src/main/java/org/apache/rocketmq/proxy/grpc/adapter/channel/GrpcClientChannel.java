@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.grpc.adapter.channel;
 
 import apache.rocketmq.v1.PollCommandResponse;
+import apache.rocketmq.v1.PrintThreadStackTraceCommand;
 import apache.rocketmq.v1.RecoverOrphanedTransactionCommand;
 import io.netty.channel.ChannelFuture;
 import java.nio.ByteBuffer;
@@ -26,9 +27,11 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class GrpcClientChannel extends SimpleChannel {
@@ -36,21 +39,23 @@ public class GrpcClientChannel extends SimpleChannel {
 
     private final String group;
     private final String clientId;
+    private final PollCommandResponseManager manager;
 
-    private GrpcClientChannel(String group, String clientId) {
+    private GrpcClientChannel(String group, String clientId, PollCommandResponseManager manager) {
         super(ChannelManager.createSimpleChannelDirectly());
         this.group = group;
         this.clientId = clientId;
+        this.manager = manager;
     }
 
     public void addClientObserver(CompletableFuture<PollCommandResponse> future) {
         this.pollCommandResponseFutureRef.set(future);
     }
 
-    public static GrpcClientChannel create(ChannelManager channelManager, String group, String clientId) {
+    public static GrpcClientChannel create(ChannelManager channelManager, String group, String clientId, PollCommandResponseManager manager) {
         GrpcClientChannel channel = channelManager.createChannel(
             buildKey(group, clientId),
-            () -> new GrpcClientChannel(group, clientId),
+            () -> new GrpcClientChannel(group, clientId, manager),
             GrpcClientChannel.class);
 
         channelManager.addGroupClientId(group, clientId);
@@ -89,12 +94,25 @@ public class GrpcClientChannel extends SimpleChannel {
                         final CheckTransactionStateRequestHeader requestHeader =
                             (CheckTransactionStateRequestHeader) command.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
                         MessageExt messageExt = MessageDecoder.decode(ByteBuffer.wrap(command.getBody()), true, false, false);
-                        RecoverOrphanedTransactionCommand recoverOrphanedTransactionCommand = RecoverOrphanedTransactionCommand.newBuilder()
-                            .setTransactionId(requestHeader.getTransactionId())
-                            .setOrphanedTransactionalMessage(Converter.buildMessage(messageExt))
-                            .build();
                         future.complete(PollCommandResponse.newBuilder()
-                            .setRecoverOrphanedTransactionCommand(recoverOrphanedTransactionCommand)
+                            .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
+                                .setTransactionId(requestHeader.getTransactionId())
+                                .setOrphanedTransactionalMessage(Converter.buildMessage(messageExt))
+                                .build())
+                            .build());
+                        break;
+                    }
+                    case RequestCode.GET_CONSUMER_RUNNING_INFO: {
+                        final GetConsumerRunningInfoRequestHeader requestHeader =
+                            (GetConsumerRunningInfoRequestHeader) command.decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
+                        if (!requestHeader.isJstackEnable()) {
+                            break;
+                        }
+                        String commandId = manager.putResponse(command.getOpaque());
+                        future.complete(PollCommandResponse.newBuilder()
+                            .setPrintThreadStackTraceCommand(PrintThreadStackTraceCommand.newBuilder()
+                                .setCommandId(commandId)
+                                .build())
                             .build());
                         break;
                     }
