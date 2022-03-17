@@ -23,7 +23,6 @@ import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import com.google.rpc.Code;
 import io.grpc.Context;
-import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -31,14 +30,16 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import java.util.concurrent.CompletableFuture;
 
 public class ProducerService extends BaseService {
 
@@ -149,14 +150,12 @@ public class ProducerService extends BaseService {
             ConsumerSendMsgBackRequestHeader requestHeader = this.convertToConsumerSendMsgBackRequestHeader(ctx, request);
             CompletableFuture<RemotingCommand> resultFuture = this.connectorManager.getForwardProducer()
                 .sendMessageBack(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
-            resultFuture.thenAccept(result -> {
-                future.complete(ForwardMessageToDeadLetterQueueResponse.newBuilder()
+            resultFuture.thenAccept(result -> future.complete(ForwardMessageToDeadLetterQueueResponse.newBuilder()
                     .setCommon(ResponseBuilder.buildCommon(result.getCode(), result.getRemark()))
-                    .build());
-            }).exceptionally(throwable -> {
-                future.completeExceptionally(throwable);
-                return null;
-            });
+                    .build())).exceptionally(throwable -> {
+                        future.completeExceptionally(throwable);
+                        return null;
+                    });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

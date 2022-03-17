@@ -16,7 +16,16 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.*;
+import apache.rocketmq.v1.Assignment;
+import apache.rocketmq.v1.Broker;
+import apache.rocketmq.v1.Endpoints;
+import apache.rocketmq.v1.Partition;
+import apache.rocketmq.v1.Permission;
+import apache.rocketmq.v1.QueryAssignmentRequest;
+import apache.rocketmq.v1.QueryAssignmentResponse;
+import apache.rocketmq.v1.QueryRouteRequest;
+import apache.rocketmq.v1.QueryRouteResponse;
+import apache.rocketmq.v1.Resource;
 import com.google.rpc.Code;
 import io.grpc.Context;
 import org.apache.rocketmq.common.constant.PermName;
@@ -140,33 +149,33 @@ public class RouteService extends BaseService {
             r = queueData.getReadQueueNums();
         }
 
-        // r here means readOnly queue nums, w means writeOnly queue nums, while rw means readable and writable queue nums.
+        // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
         int queueIdIndex = 0;
-        for(int i = 0; i < r; i++){
-            Partition partition = buildPartition(broker, topic, queueIdIndex++, Permission.READ);
+        for (int i = 0; i < r; i++) {
+            Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
+                    .setId(queueIdIndex++)
+                    .setPermission(Permission.READ)
+                    .build();
             partitionList.add(partition);
         }
 
-        for(int i = 0; i < w; i++){
-            Partition partition = buildPartition(broker, topic, queueIdIndex++, Permission.WRITE);
+        for (int i = 0; i < w; i++) {
+            Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
+                    .setId(queueIdIndex++)
+                    .setPermission(Permission.WRITE)
+                    .build();
             partitionList.add(partition);
         }
 
         for (int i = 0; i < rw; i++) {
-            Partition partition = buildPartition(broker, topic, queueIdIndex++, Permission.READ_WRITE);
+            Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
+                    .setId(queueIdIndex++)
+                    .setPermission(Permission.READ_WRITE)
+                    .build();
             partitionList.add(partition);
         }
 
         return partitionList;
-    }
-
-    private static Partition buildPartition(Broker broker, Resource topic, int queueId, Permission perm) {
-        Partition.Builder builder = Partition.newBuilder()
-                .setBroker(broker)
-                .setTopic(topic)
-                .setId(queueId);
-        builder.setPermission(perm);
-        return builder.build();
     }
 
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
