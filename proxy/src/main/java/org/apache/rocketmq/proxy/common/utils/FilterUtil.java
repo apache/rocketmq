@@ -14,22 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.service.cluster;
+package org.apache.rocketmq.proxy.common.utils;
 
-import io.grpc.Context;
-import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
-import org.apache.rocketmq.proxy.grpc.common.ParameterConverter;
+import java.util.Set;
 
-public class DefaultBrokerAddrConverter implements ParameterConverter<String /* addr */, String /* brokerName */> {
-
-    private final TopicRouteCache topicRouteCache;
-
-    public DefaultBrokerAddrConverter(TopicRouteCache topicRouteCache) {
-        this.topicRouteCache = topicRouteCache;
-    }
-
-    @Override
-    public String convert(Context ctx, String parameter) throws Throwable {
-        return this.topicRouteCache.getBrokerAddr(parameter);
+public class FilterUtil {
+    public static boolean isTagNotMatched(Set<String> tagsSet, String tags) {
+        if (tagsSet.isEmpty()) {
+            return false;
+        }
+        if (tags == null) {
+            return true;
+        }
+        return !tagsSet.contains(tags);
     }
 }

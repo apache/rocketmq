@@ -127,10 +127,6 @@ public class TopicRouteCache {
 
         protected abstract TopicRouteData loadTopicRouteData(String topic) throws Exception;
 
-        protected boolean refreshBrokerAddrTable() {
-            return false;
-        }
-
         @Override
         public MessageQueueWrapper getDirectly(String topic) throws Exception {
             try {

@@ -35,6 +35,7 @@ import apache.rocketmq.v1.MessageType;
 import apache.rocketmq.v1.NackMessageRequest;
 import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.ProducerData;
+import apache.rocketmq.v1.PullMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
@@ -46,6 +47,7 @@ import com.google.protobuf.Duration;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
+import com.google.rpc.Code;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -71,12 +73,14 @@ import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHead
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.slf4j.Logger;
@@ -227,6 +231,33 @@ public class Converter {
         endTransactionRequestHeader.setFromTransactionCheck(fromTransactionCheck);
 
         return endTransactionRequestHeader;
+    }
+
+    public static PullMessageRequestHeader buildPullMessageRequestHeader(PullMessageRequest request, long pollTime) {
+        Partition partition = request.getPartition();
+        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
+        String topicName = Converter.getResourceNameWithNamespace(partition.getTopic());
+
+        int queueId = partition.getId();
+        int sysFlag = PullSysFlag.buildSysFlag(false, true, true, false, false);
+        String expression = request.getFilterExpression()
+            .getExpression();
+        String expressionType = Converter.buildExpressionType(request.getFilterExpression()
+            .getType());
+
+        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
+        requestHeader.setConsumerGroup(groupName);
+        requestHeader.setTopic(topicName);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setQueueOffset(request.getOffset());
+        requestHeader.setMaxMsgNums(request.getBatchSize());
+        requestHeader.setSysFlag(sysFlag);
+        requestHeader.setCommitOffset(0L);
+        requestHeader.setSuspendTimeoutMillis(pollTime);
+        requestHeader.setSubscription(expression);
+        requestHeader.setSubVersion(0L);
+        requestHeader.setExpressionType(expressionType);
+        return requestHeader;
     }
 
     public static Map<String, String> buildMessageProperty(Message message) {
@@ -405,7 +436,7 @@ public class Converter {
         try {
             return FilterAPI.build(topicName, expression, expressionType);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Build subscription failed when apply heartbeat", e);
+            throw new ProxyException(Code.INVALID_ARGUMENT, "expression format is not correct", e);
         }
     }
 

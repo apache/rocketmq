@@ -37,8 +37,12 @@ import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHead
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
@@ -293,4 +297,66 @@ public class MQClientAPIExtImpl {
     public TopicRouteData getTopicRouteInfoFromNameServer(String topic, long timeoutMillis) throws RemotingException, InterruptedException, MQClientException {
         return this.mqClientAPI.getTopicRouteInfoFromNameServer(topic, timeoutMillis);
     }
+
+    public CompletableFuture<Long> getMaxOffset(String brokerAddr, String topic, int queueId, long timeoutMillis) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
+            requestHeader.setTopic(topic);
+            requestHeader.setQueueId(queueId);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    if (ResponseCode.SUCCESS == response.getCode()) {
+                        try {
+                            GetMaxOffsetResponseHeader responseHeader =
+                                (GetMaxOffsetResponseHeader) response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
+                            future.complete(responseHeader.getOffset());
+                        } catch (Throwable t) {
+                            future.completeExceptionally(t);
+                        }
+                    }
+                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+                } else {
+                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public CompletableFuture<Long> searchOffset(String brokerAddr, String topic, int queueId , long timestamp, long timeoutMillis) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
+            requestHeader.setTopic(topic);
+            requestHeader.setQueueId(queueId);
+            requestHeader.setTimestamp(timestamp);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    if (response.getCode() == ResponseCode.SUCCESS) {
+                        try {
+                            SearchOffsetResponseHeader responseHeader =
+                                (SearchOffsetResponseHeader) response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+                            future.complete(responseHeader.getOffset());
+                        } catch (Throwable t) {
+                            future.completeExceptionally(t);
+                        }
+                    }
+                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+                } else {
+                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
 }

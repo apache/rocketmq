@@ -32,7 +32,6 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
-import org.apache.rocketmq.proxy.grpc.common.ProxyResponseCode;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -113,7 +112,7 @@ public class ProducerServiceTest extends BaseServiceTest {
             assertNotNull(e);
             assertTrue(e instanceof ExecutionException);
             assertTrue(e.getCause() instanceof ProxyException);
-            assertEquals(ProxyResponseCode.NO_TOPIC_ROUTE, ((ProxyException) e.getCause()).getCode());
+            assertEquals(Code.NOT_FOUND, ((ProxyException) e.getCause()).getCode());
         }
     }
 

@@ -16,21 +16,23 @@
  */
 package org.apache.rocketmq.proxy.grpc.common;
 
+import com.google.rpc.Code;
+
 public class ProxyException extends RuntimeException {
 
-    private final ProxyResponseCode code;
+    private final Code code;
 
-    public ProxyException(ProxyResponseCode proxyResponseCode, String errorMessage) {
+    public ProxyException(Code code, String errorMessage) {
         super(errorMessage);
-        this.code = proxyResponseCode;
+        this.code = code;
     }
 
-    public ProxyException(ProxyResponseCode proxyResponseCode, String message, Throwable cause) {
+    public ProxyException(Code code, String message, Throwable cause) {
         super(message, cause);
-        this.code = proxyResponseCode;
+        this.code = code;
     }
 
-    public ProxyResponseCode getCode() {
+    public Code getCode() {
         return code;
     }
 }

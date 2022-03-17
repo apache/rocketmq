@@ -68,6 +68,7 @@ import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ClientService;
+import org.apache.rocketmq.proxy.grpc.service.cluster.PullMessageService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ReceiveMessageService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
@@ -87,6 +88,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private final ReceiveMessageService receiveMessageService;
     private final RouteService routeService;
     private final ClientService clientService;
+    private final PullMessageService pullMessageService;
 
     public ClusterGrpcService() {
         this.channelManager = new ChannelManager();
@@ -96,6 +98,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         this.producerService = new ProducerService(connectorManager);
         this.routeService = new RouteService(connectorManager);
         this.clientService = new ClientService(scheduledExecutorService);
+        this.pullMessageService = new PullMessageService(connectorManager);
 
         this.appendStartAndShutdown(new ClusterGrpcServiceStartAndShutdown());
         this.appendStartAndShutdown(this.connectorManager);
@@ -158,12 +161,14 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         return null;
     }
 
-    @Override public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
-        return null;
+    @Override
+    public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
+        return this.pullMessageService.queryOffset(ctx, request);
     }
 
-    @Override public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
-        return null;
+    @Override
+    public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
+        return this.pullMessageService.pullMessage(ctx, request);
     }
 
     @Override

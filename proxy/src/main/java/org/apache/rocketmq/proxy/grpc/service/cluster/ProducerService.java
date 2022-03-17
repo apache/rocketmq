@@ -16,54 +16,31 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
+import com.google.rpc.Code;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
-import org.apache.rocketmq.proxy.grpc.common.ParameterConverter;
+import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
-import org.apache.rocketmq.proxy.grpc.common.ProxyResponseCode;
+import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class ProducerService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(ProducerService.class);
-
-    private volatile ParameterConverter<SendMessageRequest, SendMessageRequestHeader> parameterConverter;
-    private volatile ParameterConverter<Message, org.apache.rocketmq.common.message.Message> messageConverter;
-    private volatile ParameterConverter<SendResult, SendMessageResponse> responseConverter;
     private volatile ProducerQueueSelector messageQueueSelector;
     private volatile ResponseHook<SendMessageRequest, SendMessageResponse> producerServiceHook = null;
 
     public ProducerService(ConnectorManager connectorManager) {
         super(connectorManager);
-
-        parameterConverter = new DefaultProducerRequestConverter();
-        messageConverter = new DefaultProducerMessageConverter();
-        responseConverter = new DefaultProducerResponseConverter();
         messageQueueSelector = new DefaultProducerQueueSelector(this.connectorManager.getTopicRouteCache());
-    }
-
-    public void setParameterConverter(
-        ParameterConverter<SendMessageRequest, SendMessageRequestHeader> parameterConverter) {
-        this.parameterConverter = parameterConverter;
-    }
-
-    public void setMessageConverter(
-        ParameterConverter<Message, org.apache.rocketmq.common.message.Message> messageConverter) {
-        this.messageConverter = messageConverter;
-    }
-
-    public void setResponseConverter(ParameterConverter<SendResult, SendMessageResponse> responseConverter) {
-        this.responseConverter = responseConverter;
     }
 
     public void setProducerServiceHook(ResponseHook<SendMessageRequest, SendMessageResponse> producerServiceHook) {
@@ -83,14 +60,14 @@ public class ProducerService extends BaseService {
         });
 
         try {
-            org.apache.rocketmq.common.message.Message message = messageConverter.convert(ctx, request.getMessage());
-            SendMessageRequestHeader requestHeader = this.parameterConverter.convert(ctx, request);
+            Pair<SendMessageRequestHeader, org.apache.rocketmq.common.message.Message> requestPair = this.convert(ctx, request);
+            SendMessageRequestHeader requestHeader = requestPair.getLeft();
+            org.apache.rocketmq.common.message.Message message = requestPair.getRight();
             SelectableMessageQueue addressableMessageQueue = messageQueueSelector.selectQueue(ctx, request, requestHeader, message);
 
             String topic = requestHeader.getTopic();
             if (addressableMessageQueue == null) {
-                throw new ProxyException(ProxyResponseCode.NO_TOPIC_ROUTE,
-                    "no writeable topic route for topic " + topic);
+                throw new ProxyException(Code.NOT_FOUND, "no writeable topic route for topic " + topic);
             }
 
             CompletableFuture<SendResult> sendResultCompletableFuture = this.connectorManager.getForwardProducer().sendMessage(
@@ -103,7 +80,7 @@ public class ProducerService extends BaseService {
             sendResultCompletableFuture
                 .thenAccept(result -> {
                     try {
-                        future.complete(this.responseConverter.convert(ctx, result));
+                        future.complete(convertToSendMessageResponse(ctx, request, result));
                     } catch (Throwable throwable) {
                         future.completeExceptionally(throwable);
                     }
@@ -116,5 +93,22 @@ public class ProducerService extends BaseService {
             future.completeExceptionally(t);
         }
         return future;
+    }
+
+    protected Pair<SendMessageRequestHeader, org.apache.rocketmq.common.message.Message> convert(Context ctx, SendMessageRequest request) {
+        return Pair.of(Converter.buildSendMessageRequestHeader(request), Converter.buildMessage(request.getMessage()));
+    }
+
+    protected SendMessageResponse convertToSendMessageResponse(Context ctx, SendMessageRequest request, SendResult sendResult) {
+        if (sendResult.getSendStatus() != SendStatus.SEND_OK) {
+            return SendMessageResponse.newBuilder()
+                .setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "send message failed, sendStatus=" + sendResult.getSendStatus()))
+                .build();
+        }
+        return SendMessageResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+            .setMessageId(StringUtils.defaultString(sendResult.getMsgId()))
+            .setTransactionId(StringUtils.defaultString(sendResult.getTransactionId()))
+            .build();
     }
 }
