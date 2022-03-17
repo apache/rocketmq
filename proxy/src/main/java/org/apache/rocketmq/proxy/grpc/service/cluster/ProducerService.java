@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
+import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import com.google.rpc.Code;
@@ -105,6 +106,14 @@ public class ProducerService extends BaseService {
                 .setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "send message failed, sendStatus=" + sendResult.getSendStatus()))
                 .build();
         }
+
+        if (StringUtils.isNotBlank(sendResult.getTransactionId())) {
+            Message message = request.getMessage();
+            String group = Converter.getResourceNameWithNamespace(message.getSystemAttribute().getProducerGroup());
+            String topic = Converter.getResourceNameWithNamespace(message.getTopic());
+            this.connectorManager.getTransactionHeartbeatRegisterService().addProducerGroup(group, topic);
+        }
+
         return SendMessageResponse.newBuilder()
             .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
             .setMessageId(StringUtils.defaultString(sendResult.getMsgId()))

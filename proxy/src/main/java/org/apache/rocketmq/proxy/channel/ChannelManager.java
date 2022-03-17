@@ -19,16 +19,19 @@ package org.apache.rocketmq.proxy.channel;
 
 import com.google.common.base.Strings;
 import io.grpc.Context;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.common.Cleaner;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +39,7 @@ import org.slf4j.LoggerFactory;
 public class ChannelManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
     private final ConcurrentMap<String, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String /* group */, List<String>/* clientId */> groupClientIdMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String /* group */, Set<String>/* clientId */> groupClientIdMap = new ConcurrentHashMap<>();
 
     public SimpleChannel createChannel() {
         return createChannel(anonymousChannelId());
@@ -102,8 +105,12 @@ public class ChannelManager {
     }
 
     public void addGroupClientId(String group, String clientId) {
-        groupClientIdMap.computeIfAbsent(group, k -> new CopyOnWriteArrayList<>())
+        groupClientIdMap.computeIfAbsent(group, k -> Collections.newSetFromMap(new ConcurrentHashMap<>()))
             .add(clientId);
+    }
+
+    public List<String> getClientIdList(String group) {
+        return new ArrayList<>(groupClientIdMap.get(group));
     }
 
     /**
@@ -116,6 +123,16 @@ public class ChannelManager {
                 Map.Entry<String, SimpleChannel> entry = iterator.next();
                 if (!entry.getValue().isActive()) {
                     iterator.remove();
+                    if (entry.getValue() instanceof GrpcClientChannel) {
+                        GrpcClientChannel grpcClientChannel = (GrpcClientChannel) entry.getValue();
+                        groupClientIdMap.computeIfPresent(grpcClientChannel.getGroup(), (group, clientIds) -> {
+                            clientIds.remove(grpcClientChannel.getClientId());
+                            if (clientIds.isEmpty()) {
+                                return null;
+                            }
+                            return clientIds;
+                        });
+                    }
                 } else {
                     if (entry.getValue() instanceof Cleaner) {
                         Cleaner cleaner = (Cleaner) entry.getValue();

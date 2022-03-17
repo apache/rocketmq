@@ -35,6 +35,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
@@ -115,6 +116,11 @@ public class MQClientAPIExtImpl {
             future.completeExceptionally(t);
         }
         return future;
+    }
+
+    public void endTransactionOneway(String brokerAddr, EndTransactionRequestHeader requestHeader, String remark, long timeoutMillis)
+        throws MQBrokerException, RemotingException, InterruptedException {
+        this.mqClientAPI.endTransactionOneway(brokerAddr, requestHeader, remark, timeoutMillis);
     }
 
     public CompletableFuture<SendResult> sendMessage(String brokerAddr, String brokerName, Message msg,

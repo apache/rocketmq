@@ -64,6 +64,8 @@ import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
@@ -72,6 +74,7 @@ import org.apache.rocketmq.proxy.grpc.service.cluster.PullMessageService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ReceiveMessageService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
+import org.apache.rocketmq.proxy.grpc.service.cluster.TransactionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,16 +92,17 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private final RouteService routeService;
     private final ClientService clientService;
     private final PullMessageService pullMessageService;
+    private final TransactionService transactionService;
 
     public ClusterGrpcService() {
         this.channelManager = new ChannelManager();
-        this.connectorManager = new ConnectorManager(checkData -> {
-        });
+        this.connectorManager = new ConnectorManager(new GrpcTransactionStateChecker());
         this.receiveMessageService = new ReceiveMessageService(connectorManager);
         this.producerService = new ProducerService(connectorManager);
         this.routeService = new RouteService(connectorManager);
         this.clientService = new ClientService(scheduledExecutorService);
         this.pullMessageService = new PullMessageService(connectorManager);
+        this.transactionService = new TransactionService(connectorManager, channelManager);
 
         this.appendStartAndShutdown(new ClusterGrpcServiceStartAndShutdown());
         this.appendStartAndShutdown(this.connectorManager);
@@ -158,7 +162,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
-        return null;
+        return this.transactionService.endTransaction(ctx, request);
     }
 
     @Override
@@ -239,6 +243,14 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         @Override
         public void shutdown() throws Exception {
             scheduledExecutorService.shutdown();
+        }
+    }
+
+    private class GrpcTransactionStateChecker implements TransactionStateChecker {
+
+        @Override
+        public void checkTransactionState(TransactionStateCheckRequest checkData) {
+            transactionService.checkTransactionState(checkData);
         }
     }
 }
