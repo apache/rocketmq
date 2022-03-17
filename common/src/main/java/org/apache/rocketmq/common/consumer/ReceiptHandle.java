@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
 
 public class ReceiptHandle {
     private static final String SEPARATOR = MessageConst.KEY_SEPARATOR;
@@ -35,6 +36,7 @@ public class ReceiptHandle {
     private final String brokerName;
     private final int queueId;
     private final long offset;
+    private final long commitLogOffset;
     private final String receiptHandle;
 
     public String encode() {
@@ -42,7 +44,17 @@ public class ReceiptHandle {
         if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             t = RETRY_TOPIC;
         }
-        return startOffset + SEPARATOR + retrieveTime + SEPARATOR + invisibleTime + SEPARATOR + reviveQueueId + SEPARATOR + t + SEPARATOR + brokerName + SEPARATOR + queueId + SEPARATOR + offset;
+        return startOffset + SEPARATOR + retrieveTime + SEPARATOR + invisibleTime + SEPARATOR + reviveQueueId
+            + SEPARATOR + t + SEPARATOR + brokerName + SEPARATOR + queueId + SEPARATOR + offset + SEPARATOR
+            + commitLogOffset;
+    }
+
+    public static ReceiptHandle create(MessageExt messageExt) {
+        String ckInfo = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+        if (ckInfo == null) {
+            return null;
+        }
+        return decode(ckInfo + SEPARATOR + messageExt.getCommitLogOffset());
     }
 
     public boolean isExpired() {
@@ -62,6 +74,11 @@ public class ReceiptHandle {
         String brokerName = dataList.get(5);
         int queueId = Integer.parseInt(dataList.get(6));
         long offset = Long.parseLong(dataList.get(7));
+        long commitLogOffset = -1L;
+        if (dataList.size() >= 9) {
+            commitLogOffset = Long.parseLong(dataList.get(8));
+        }
+
         return new ReceiptHandleBuilder()
             .startOffset(startOffset)
             .retrieveTime(retrieveTime)
@@ -72,12 +89,13 @@ public class ReceiptHandle {
             .queueId(queueId)
             .offset(offset)
             .nextVisibleTime(retrieveTime + invisibleTime)
+            .commitLogOffset(commitLogOffset)
             .receiptHandle(receiptHandle).build();
     }
 
     ReceiptHandle(final long startOffset, final long retrieveTime, final long invisibleTime, final long nextVisibleTime,
         final int reviveQueueId, final String topic, final String brokerName, final int queueId, final long offset,
-        final String receiptHandle) {
+        final long commitLogOffset, final String receiptHandle) {
         this.startOffset = startOffset;
         this.retrieveTime = retrieveTime;
         this.invisibleTime = invisibleTime;
@@ -87,6 +105,7 @@ public class ReceiptHandle {
         this.brokerName = brokerName;
         this.queueId = queueId;
         this.offset = offset;
+        this.commitLogOffset = commitLogOffset;
         this.receiptHandle = receiptHandle;
     }
 
@@ -168,7 +187,8 @@ public class ReceiptHandle {
         }
 
         public ReceiptHandle build() {
-            return new ReceiptHandle(this.startOffset, this.retrieveTime, this.invisibleTime, this.nextVisibleTime, this.reviveQueueId, this.topic, this.brokerName, this.queueId, this.offset, this.receiptHandle);
+            return new ReceiptHandle(this.startOffset, this.retrieveTime, this.invisibleTime, this.nextVisibleTime,
+                this.reviveQueueId, this.topic, this.brokerName, this.queueId, this.offset, this.commitLogOffset, this.receiptHandle);
         }
 
         @java.lang.Override
@@ -215,6 +235,10 @@ public class ReceiptHandle {
 
     public long getOffset() {
         return this.offset;
+    }
+
+    public long getCommitLogOffset() {
+        return commitLogOffset;
     }
 
     public String getReceiptHandle() {

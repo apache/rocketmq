@@ -40,6 +40,7 @@ public class ProducerManager {
     private final ConcurrentHashMap<String, Channel> clientChannelTable = new ConcurrentHashMap<>();
     protected final BrokerStatsManager brokerStatsManager;
     private PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();
+    private volatile ProducerGroupOfflineListener producerGroupOfflineListener;
 
     public ProducerManager() {
         this.brokerStatsManager = null;
@@ -63,8 +64,11 @@ public class ProducerManager {
     }
 
     public void scanNotActiveChannel() {
-        for (final Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
-                .entrySet()) {
+        Iterator<Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>>> iterator = this.groupChannelTable.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry = iterator.next();
+
             final String group = entry.getKey();
             final ConcurrentHashMap<Channel, ClientChannelInfo> chlMap = entry.getValue();
 
@@ -83,6 +87,12 @@ public class ProducerManager {
                             RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
                     RemotingUtil.closeChannel(info.getChannel());
                 }
+            }
+
+            if (chlMap.isEmpty()) {
+                log.warn("SCAN: remove expired channel from ProducerManager groupChannelTable, all clear, group={}", group);
+                iterator.remove();
+                this.notifyProducerOffline(group);
             }
         }
     }
@@ -103,6 +113,13 @@ public class ProducerManager {
                     log.info(
                             "NETTY EVENT: remove channel[{}][{}] from ProducerManager groupChannelTable, producer group: {}",
                             clientChannelInfo.toString(), remoteAddr, group);
+                    if (clientChannelInfoTable.isEmpty()) {
+                        ConcurrentHashMap<Channel, ClientChannelInfo> oldGroupTable = this.groupChannelTable.remove(group);
+                        if (oldGroupTable != null) {
+                            log.info("unregister a producer group[{}] from groupChannelTable", group);
+                            this.notifyProducerOffline(group);
+                        }
+                    }
                 }
 
             }
@@ -145,6 +162,7 @@ public class ProducerManager {
 
             if (channelTable.isEmpty()) {
                 this.groupChannelTable.remove(group);
+                this.notifyProducerOffline(group);
                 log.info("unregister a producer group[{}] from groupChannelTable", group);
             }
         }
@@ -192,5 +210,15 @@ public class ProducerManager {
 
     public Channel findChannel(String clientId) {
         return clientChannelTable.get(clientId);
+    }
+
+    public void notifyProducerOffline(String group) {
+        if (this.producerGroupOfflineListener != null) {
+            this.producerGroupOfflineListener.onOffline(group);
+        }
+    }
+
+    public void setProducerOfflineListener(ProducerGroupOfflineListener producerGroupOfflineListener) {
+        this.producerGroupOfflineListener = producerGroupOfflineListener;
     }
 }

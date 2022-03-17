@@ -149,7 +149,7 @@ public class ProducerServiceTest extends BaseServiceTest {
         producerService.setMessageQueueSelector((ctx, request, requestHeader, message) -> {
             throw ex;
         });
-        producerService.setProducerServiceHook((request, response, t) ->  {
+        producerService.setSendMessageHook((request, response, t) ->  {
             assertSame(ex, t);
         });
 
