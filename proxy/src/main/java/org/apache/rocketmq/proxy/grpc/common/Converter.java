@@ -197,7 +197,7 @@ public class Converter {
         ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
 
         ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
-        consumerSendMsgBackRequestHeader.setOffset(handle.getOffset());
+        consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());
         consumerSendMsgBackRequestHeader.setGroup(groupName);
         consumerSendMsgBackRequestHeader.setDelayLevel(-1);
         consumerSendMsgBackRequestHeader.setOriginMsgId(request.getMessageId());
@@ -574,9 +574,9 @@ public class Converter {
         }
 
         // receipt_handle && invisible_period
-        String ckInfo = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
-        if (ckInfo != null) {
-            systemAttributeBuilder.setReceiptHandle(ckInfo);
+        ReceiptHandle receiptHandle = ReceiptHandle.create(messageExt);
+        if (receiptHandle != null) {
+            systemAttributeBuilder.setReceiptHandle(receiptHandle.encode());
         }
 
         // partition_id

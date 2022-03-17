@@ -18,8 +18,13 @@ package org.apache.rocketmq.proxy.grpc.service.cluster;
 
 import apache.rocketmq.v1.ConsumerData;
 import apache.rocketmq.v1.HeartbeatRequest;
+import apache.rocketmq.v1.NoopCommand;
 import apache.rocketmq.v1.NotifyClientTerminationRequest;
+import apache.rocketmq.v1.PollCommandRequest;
+import apache.rocketmq.v1.PollCommandResponse;
+import apache.rocketmq.v1.Resource;
 import io.grpc.Context;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
@@ -27,6 +32,8 @@ import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionHeartbeatRegisterService;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
@@ -34,16 +41,22 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClientService {
+public class ClientService extends BaseService {
 
     private static final Logger log = LoggerFactory.getLogger(ClientService.class);
 
+    private final ChannelManager channelManager;
     private final ConsumerManager consumerManager = new ConsumerManager((event, group, args) -> {
     });
-    private final ProducerManager producerManager = new ProducerManager();
+    private final ProducerManager producerManager;
 
-    public ClientService(ScheduledExecutorService scheduledExecutorService) {
+    public ClientService(ConnectorManager connectorManager, ScheduledExecutorService scheduledExecutorService, ChannelManager channelManager) {
+        super(connectorManager);
         scheduledExecutorService.scheduleWithFixedDelay(this::scanNotActiveChannel, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+        this.channelManager = channelManager;
+
+        this.producerManager = new ProducerManager();
+        this.producerManager.setProducerOfflineListener(connectorManager.getTransactionHeartbeatRegisterService()::onProducerGroupOffline);
     }
 
     public void heartbeat(Context ctx, HeartbeatRequest request, ChannelManager channelManager) {
@@ -94,6 +107,38 @@ public class ClientService {
                 consumerManager.doChannelCloseEvent(consumerGroup, channel);
             }
         }
+    }
+
+    public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
+        CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
+        String clientId = request.getClientId();
+        PollCommandResponse noopCommandResponse = PollCommandResponse.newBuilder().setNoopCommand(NoopCommand.newBuilder().build()).build();
+
+        switch (request.getGroupCase()) {
+            case PRODUCER_GROUP:
+                Resource producerGroup = request.getProducerGroup();
+                String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
+                GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(this.channelManager, producerGroupName, clientId);
+                if (producerChannel == null) {
+                    future.complete(noopCommandResponse);
+                } else {
+                    producerChannel.addClientObserver(future);
+                }
+                break;
+            case CONSUMER_GROUP:
+                Resource consumerGroup = request.getConsumerGroup();
+                String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
+                GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(this.channelManager, consumerGroupName, clientId);
+                if (consumerChannel == null) {
+                    future.complete(noopCommandResponse);
+                } else {
+                    consumerChannel.addClientObserver(future);
+                }
+                break;
+            default:
+                break;
+        }
+        return future;
     }
 
     private void scanNotActiveChannel() {

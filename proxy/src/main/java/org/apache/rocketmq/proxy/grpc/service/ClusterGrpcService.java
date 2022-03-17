@@ -60,7 +60,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         this.receiveMessageService = new ReceiveMessageService(connectorManager);
         this.producerService = new ProducerService(connectorManager);
         this.routeService = new RouteService(connectorManager);
-        this.clientService = new ClientService(scheduledExecutorService);
+        this.clientService = new ClientService(connectorManager, scheduledExecutorService, channelManager);
         this.pullMessageService = new PullMessageService(connectorManager);
         this.transactionService = new TransactionService(connectorManager, channelManager);
 
@@ -117,7 +117,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     @Override
     public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
-        return null;
+        return this.producerService.forwardMessageToDeadLetterQueue(ctx, request);
     }
 
     @Override
@@ -137,35 +137,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
-        CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
-        String clientId = request.getClientId();
-        PollCommandResponse noopCommandResponse = PollCommandResponse.newBuilder().setNoopCommand(NoopCommand.newBuilder().build()).build();
-
-        switch (request.getGroupCase()) {
-            case PRODUCER_GROUP:
-                Resource producerGroup = request.getProducerGroup();
-                String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
-                GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(this.channelManager, producerGroupName, clientId);
-                if (producerChannel == null) {
-                    future.complete(noopCommandResponse);
-                } else {
-                    producerChannel.addClientObserver(future);
-                }
-                break;
-            case CONSUMER_GROUP:
-                Resource consumerGroup = request.getConsumerGroup();
-                String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
-                GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(this.channelManager, consumerGroupName, clientId);
-                if (consumerChannel == null) {
-                    future.complete(noopCommandResponse);
-                } else {
-                    consumerChannel.addClientObserver(future);
-                }
-                break;
-            default:
-                break;
-        }
-        return future;
+        return this.clientService.pollCommand(ctx, request);
     }
 
     @Override public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
