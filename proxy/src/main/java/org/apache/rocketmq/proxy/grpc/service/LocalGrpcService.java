@@ -35,12 +35,14 @@ import apache.rocketmq.v1.NackMessageResponse;
 import apache.rocketmq.v1.NoopCommand;
 import apache.rocketmq.v1.NotifyClientTerminationRequest;
 import apache.rocketmq.v1.NotifyClientTerminationResponse;
+import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.PollCommandRequest;
 import apache.rocketmq.v1.PollCommandResponse;
 import apache.rocketmq.v1.PullMessageRequest;
 import apache.rocketmq.v1.PullMessageResponse;
 import apache.rocketmq.v1.QueryAssignmentRequest;
 import apache.rocketmq.v1.QueryAssignmentResponse;
+import apache.rocketmq.v1.QueryOffsetPolicy;
 import apache.rocketmq.v1.QueryOffsetRequest;
 import apache.rocketmq.v1.QueryOffsetResponse;
 import apache.rocketmq.v1.QueryRouteRequest;
@@ -54,6 +56,7 @@ import apache.rocketmq.v1.ReportThreadStackTraceResponse;
 import apache.rocketmq.v1.Resource;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
+import com.google.protobuf.util.Timestamps;
 import com.google.rpc.Code;
 import io.grpc.Context;
 import io.netty.channel.Channel;
@@ -76,6 +79,7 @@ import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHea
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
@@ -88,6 +92,8 @@ import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.ReceiveMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.PullMessageChannel;
+import org.apache.rocketmq.proxy.grpc.adapter.handler.PullMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
@@ -352,11 +358,58 @@ public class LocalGrpcService implements GrpcForwardService {
     }
 
     @Override public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
-        return null;
+        Partition partition = request.getPartition();
+        String topicName = Converter.getResourceNameWithNamespace(partition.getTopic());
+        int queueId = partition.getId();
+
+        long offset;
+        if (request.getPolicy() == QueryOffsetPolicy.BEGINNING) {
+            offset = 0L;
+        } else if (request.getPolicy() == QueryOffsetPolicy.END) {
+            offset = brokerController.getMessageStore()
+                .getMaxOffsetInQueue(topicName, queueId);
+        } else {
+            long timestamp = Timestamps.toMillis(request.getTimePoint());
+            offset = brokerController.getMessageStore()
+                .getOffsetInQueueByTime(topicName, queueId, timestamp);
+        }
+        return CompletableFuture.completedFuture(QueryOffsetResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
+            .setOffset(offset)
+            .build());
     }
 
     @Override public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
-        return null;
+        long timeRemaining = Context.current()
+            .getDeadline()
+            .timeRemaining(TimeUnit.MILLISECONDS);
+        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
+        if (pollTime <= 0) {
+            pollTime = timeRemaining;
+        }
+        PullMessageRequestHeader requestHeader = Converter.buildPullMessageRequestHeader(request, pollTime);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
+        command.makeCustomHeaderToNet();
+
+        PullMessageResponseHandler handler = new PullMessageResponseHandler();
+        PullMessageChannel channel = channelManager.createChannel(() -> new PullMessageChannel(handler), PullMessageChannel.class);
+        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+        CompletableFuture<PullMessageResponse> future = new CompletableFuture<>();
+        InvocationContext<PullMessageRequest, PullMessageResponse> context = new InvocationContext<>(request, future);
+        channel.registerInvocationContext(command.getOpaque(), context);
+        try {
+            RemotingCommand response = brokerController.getPullMessageProcessor()
+                .processRequest(channelHandlerContext, command);
+            if (response != null) {
+                handler.handle(response, context);
+                channel.eraseInvocationContext(command.getOpaque());
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to process pull message command", e);
+            channel.eraseInvocationContext(command.getOpaque());
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     @Override public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
