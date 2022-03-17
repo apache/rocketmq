@@ -56,7 +56,8 @@ public class CommandUtil {
         }
 
         for (String brokerName : brokerNameSet) {
-            BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
+            ClusterData clusterData = new ClusterData(clusterName, brokerName);
+            BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(clusterData);
 
             if (brokerData == null || brokerData.getBrokerAddrs() == null) {
                 continue;

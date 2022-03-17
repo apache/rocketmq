@@ -74,9 +74,9 @@ public class CommandUtilTest {
         brokerData.setBrokerName("default-broker");
         brokerData.setCluster("default-cluster");
         brokerData.setBrokerAddrs(brokerAddrs);
-        ClusterData clusterData = new ClusterData("default-broker", "default-broker");
+        ClusterData clusterData = new ClusterData("default-cluster", "default-broker");
         brokerAddrTable.put(clusterData, brokerData);
-        ClusterData clusterDataTest = new ClusterData("broker-test", null);
+        ClusterData clusterDataTest = new ClusterData("default-cluster", null);
         brokerAddrTable.put(clusterDataTest, new BrokerData());
         Set<String> brokerSet = new HashSet<>();
         brokerSet.add("default-broker");
