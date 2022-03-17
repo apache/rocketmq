@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -51,14 +52,14 @@ public class RouteInfoManager {
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
-    private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    private final HashMap<ClusterData/* clusterNameAndBrokerName */, BrokerData> brokerAddrTable;
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
         this.topicQueueTable = new HashMap<String, List<QueueData>>(1024);
-        this.brokerAddrTable = new HashMap<String, BrokerData>(128);
+        this.brokerAddrTable = new HashMap<ClusterData, BrokerData>(128);
         this.clusterAddrTable = new HashMap<String, Set<String>>(32);
         this.brokerLiveTable = new HashMap<String, BrokerLiveInfo>(256);
         this.filterServerTable = new HashMap<String, List<String>>(256);
@@ -123,11 +124,12 @@ public class RouteInfoManager {
 
                 boolean registerFirst = false;
 
-                BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                ClusterData clusterData = new ClusterData(clusterName, brokerName);
+                BrokerData brokerData = this.brokerAddrTable.get(clusterData);
                 if (null == brokerData) {
                     registerFirst = true;
                     brokerData = new BrokerData(clusterName, brokerName, new HashMap<Long, String>());
-                    this.brokerAddrTable.put(brokerName, brokerData);
+                    this.brokerAddrTable.put(clusterData, brokerData);
                 }
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
                 //Switch slave to master: first remove <1, IP:PORT> in namesrv, then add <0, IP:PORT>
@@ -491,7 +493,7 @@ public class RouteInfoManager {
                     this.filterServerTable.remove(brokerAddrFound);
                     String brokerNameFound = null;
                     boolean removeBrokerName = false;
-                    Iterator<Entry<String, BrokerData>> itBrokerAddrTable =
+                    Iterator<Entry<ClusterData, BrokerData>> itBrokerAddrTable =
                         this.brokerAddrTable.entrySet().iterator();
                     while (itBrokerAddrTable.hasNext() && (null == brokerNameFound)) {
                         BrokerData brokerData = itBrokerAddrTable.next().getValue();
@@ -590,9 +592,9 @@ public class RouteInfoManager {
 
                 {
                     log.info("brokerAddrTable SIZE: {}", this.brokerAddrTable.size());
-                    Iterator<Entry<String, BrokerData>> it = this.brokerAddrTable.entrySet().iterator();
+                    Iterator<Entry<ClusterData, BrokerData>> it = this.brokerAddrTable.entrySet().iterator();
                     while (it.hasNext()) {
-                        Entry<String, BrokerData> next = it.next();
+                        Entry<ClusterData, BrokerData> next = it.next();
                         log.info("brokerAddrTable brokerName: {} {}", next.getKey(), next.getValue());
                     }
                 }
@@ -633,7 +635,7 @@ public class RouteInfoManager {
                 }
 
                 if (brokerAddrTable != null && !brokerAddrTable.isEmpty()) {
-                    Iterator<String> it = brokerAddrTable.keySet().iterator();
+                    Iterator<ClusterData> it = brokerAddrTable.keySet().iterator();
                     while (it.hasNext()) {
                         BrokerData bd = brokerAddrTable.get(it.next());
                         HashMap<Long, String> brokerAddrs = bd.getBrokerAddrs();

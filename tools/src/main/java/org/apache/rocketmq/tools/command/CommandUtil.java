@@ -29,6 +29,7 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -136,13 +137,13 @@ public class CommandUtil {
 
     public static String fetchBrokerNameByAddr(final MQAdminExt adminExt, final String addr) throws Exception {
         ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
-        HashMap<String/* brokerName */, BrokerData> brokerAddrTable = clusterInfoSerializeWrapper.getBrokerAddrTable();
-        Iterator<Map.Entry<String, BrokerData>> it = brokerAddrTable.entrySet().iterator();
+        HashMap<ClusterData/* clusterNameAndBrokerName */, BrokerData> brokerAddrTable = clusterInfoSerializeWrapper.getBrokerAddrTable();
+        Iterator<Map.Entry<ClusterData, BrokerData>> it = brokerAddrTable.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<String, BrokerData> entry = it.next();
+            Map.Entry<ClusterData, BrokerData> entry = it.next();
             HashMap<Long, String> brokerAddrs = entry.getValue().getBrokerAddrs();
             if (brokerAddrs.containsValue(addr)) {
-                return entry.getKey();
+                return entry.getKey().getBrokerName();
             }
         }
         throw new Exception(ERROR_MESSAGE);
