@@ -38,7 +38,7 @@ public class ClusterInfoTest {
         ClusterInfo clusterInfo = buildClusterInfo();
         byte[] data = clusterInfo.encode();
         ClusterInfo json = RemotingSerializable.decode(data, ClusterInfo.class);
-        ClusterData clusterData = new ClusterData("master", "master");
+        ClusterData clusterData = new ClusterData("DEFAULT_CLUSTER", "master");
 
         assertNotNull(json);
         assertNotNull(json.getClusterAddrTable());
@@ -87,7 +87,7 @@ public class ClusterInfoTest {
         brokerAddrs.put(MixAll.MASTER_ID, MixAll.getLocalhostByNetworkInterface());
 
         brokerData.setBrokerAddrs(brokerAddrs);
-        ClusterData clusterData = new ClusterData("master", "master");
+        ClusterData clusterData = new ClusterData("DEFAULT_CLUSTER", "master");
         brokerAddrTable.put(clusterData, brokerData);
 
         Set<String> brokerNames = new HashSet<String>();

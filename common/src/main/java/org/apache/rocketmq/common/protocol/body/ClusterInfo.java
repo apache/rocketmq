@@ -50,7 +50,8 @@ public class ClusterInfo extends RemotingSerializable {
         if (clusterAddrTable.containsKey(cluster)) {
             Set<String> brokerNames = clusterAddrTable.get(cluster);
             for (String brokerName : brokerNames) {
-                BrokerData brokerData = brokerAddrTable.get(brokerName);
+                ClusterData clusterData = new ClusterData(cluster, brokerName);
+                BrokerData brokerData = brokerAddrTable.get(clusterData);
                 if (null != brokerData) {
                     addrs.addAll(brokerData.getBrokerAddrs().values());
                 }
