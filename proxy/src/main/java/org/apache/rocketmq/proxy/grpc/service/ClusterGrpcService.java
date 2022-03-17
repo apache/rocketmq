@@ -53,6 +53,9 @@ import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import com.google.rpc.Code;
 import io.grpc.Context;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
@@ -61,6 +64,7 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
+import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ClientService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
@@ -70,10 +74,6 @@ import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.TransactionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
@@ -95,7 +95,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         this.connectorManager = new ConnectorManager(new GrpcTransactionStateChecker());
         this.receiveMessageService = new ReceiveMessageService(connectorManager);
         this.producerService = new ProducerService(connectorManager);
-        this.routeService = new RouteService(connectorManager);
+        this.routeService = new RouteService(ProxyMode.CLUSTER, connectorManager);
         this.clientService = new ClientService(connectorManager, scheduledExecutorService, channelManager);
         this.pullMessageService = new PullMessageService(connectorManager);
         this.transactionService = new TransactionService(connectorManager, channelManager);

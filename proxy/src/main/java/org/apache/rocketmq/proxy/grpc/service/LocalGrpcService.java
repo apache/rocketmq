@@ -77,6 +77,7 @@ import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.ReceiveMessageChannel;
@@ -85,7 +86,9 @@ import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHand
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
@@ -98,14 +101,18 @@ public class LocalGrpcService implements GrpcForwardService {
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryImpl("LocalGrpcServiceScheduledThread"));
     private final ChannelManager channelManager;
+    private final RouteService routeService;
 
     public LocalGrpcService(BrokerController brokerController) {
         this.brokerController = brokerController;
         this.channelManager = new ChannelManager();
+        // TransactionStateChecker is not used in Local mode.
+        ConnectorManager connectorManager = new ConnectorManager(null);
+        this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager);
     }
 
     @Override public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
-        return null;
+        return this.routeService.queryRoute(ctx, request);
     }
 
     @Override
@@ -188,7 +195,7 @@ public class LocalGrpcService implements GrpcForwardService {
 
     @Override
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
-        return null;
+        return this.routeService.queryAssignment(ctx, request);
     }
 
     @Override
@@ -376,6 +383,7 @@ public class LocalGrpcService implements GrpcForwardService {
 
     @Override public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
         ReportThreadStackTraceRequest request) {
+        String commandId = request.getCommandId();
         return null;
     }
 
