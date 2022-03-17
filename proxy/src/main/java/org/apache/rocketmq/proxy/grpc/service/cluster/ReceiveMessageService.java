@@ -25,10 +25,6 @@ import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageResponse;
 import com.google.rpc.Code;
 import io.grpc.Context;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -47,6 +43,11 @@ import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class ReceiveMessageService extends BaseService {
 
@@ -147,16 +148,18 @@ public class ReceiveMessageService extends BaseService {
 
             AckMessageRequestHeader requestHeader = this.convertToAckMessageRequestHeader(ctx, request);
             CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
-            ackResultFuture.thenAccept(result -> {
-                try {
-                    future.complete(convertToAckMessageResponse(ctx, request, result));
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            }).exceptionally(throwable -> {
-                future.completeExceptionally(throwable);
-                return null;
-            });
+            ackResultFuture
+                    .thenAccept(result -> {
+                        try {
+                            future.complete(convertToAckMessageResponse(ctx, request, result));
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    })
+                    .exceptionally(throwable -> {
+                        future.completeExceptionally(throwable);
+                        return null;
+                    });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -192,16 +195,18 @@ public class ReceiveMessageService extends BaseService {
             ChangeInvisibleTimeRequestHeader requestHeader = this.convertToChangeInvisibleTimeRequestHeader(ctx, request);
             CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader,
                 ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
-            resultFuture.thenAccept(result -> {
-                try {
-                    future.complete(convertToNackMessageResponse(ctx, request, result));
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            }).exceptionally(throwable -> {
-                future.completeExceptionally(throwable);
-                return null;
-            });
+            resultFuture
+                    .thenAccept(result -> {
+                        try {
+                            future.complete(convertToNackMessageResponse(ctx, request, result));
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    })
+                    .exceptionally(throwable -> {
+                        future.completeExceptionally(throwable);
+                        return null;
+                    });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
