@@ -218,7 +218,7 @@ public class RemotingUtil {
 
     public static void closeChannel(Channel channel) {
         final String addrRemote = RemotingHelper.parseChannelRemoteAddr(channel);
-        if (addrRemote == "") {
+        if ("".equals(addrRemote)) {
             channel.close();
         } else {
             channel.close().addListener(new ChannelFutureListener() {
