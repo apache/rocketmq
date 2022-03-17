@@ -34,6 +34,7 @@ import apache.rocketmq.v1.HeartbeatRequest;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.MessageType;
 import apache.rocketmq.v1.NackMessageRequest;
+import apache.rocketmq.v1.NotifyClientTerminationRequest;
 import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.ProducerData;
 import apache.rocketmq.v1.PullMessageRequest;
@@ -79,6 +80,7 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
@@ -661,4 +663,15 @@ public class Converter {
         return consumeMessageDirectlyResult;
     }
 
+    public static UnregisterClientRequestHeader buildUnregisterClientRequestHeader(NotifyClientTerminationRequest request) {
+        UnregisterClientRequestHeader header = new UnregisterClientRequestHeader();
+        header.setClientID(request.getClientId());
+        if (request.hasProducerGroup()) {
+            header.setProducerGroup(getResourceNameWithNamespace(request.getProducerGroup()));
+        }
+        if (request.hasConsumerGroup()) {
+            header.setConsumerGroup(getResourceNameWithNamespace(request.getConsumerGroup()));
+        }
+        return header;
+    }
 }

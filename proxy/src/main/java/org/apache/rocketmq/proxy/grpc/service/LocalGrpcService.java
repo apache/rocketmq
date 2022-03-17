@@ -65,16 +65,19 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
@@ -283,7 +286,7 @@ public class LocalGrpcService implements GrpcForwardService {
                 .build();
             future.complete(response);
         } catch (Exception e) {
-            LOGGER.error("Exception raised while changeInvisibleTime", e);
+            LOGGER.error("Exception raised while nackMessage", e);
             future.completeExceptionally(e);
         }
         return future;
@@ -436,12 +439,55 @@ public class LocalGrpcService implements GrpcForwardService {
 
     @Override public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request) {
-        return null;
+        Channel channel = channelManager.createChannel();
+        SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
+        UnregisterClientRequestHeader header = Converter.buildUnregisterClientRequestHeader(request);
+
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, header);
+        remotingCommand.makeCustomHeaderToNet();
+        try {
+            this.brokerController.getClientManageProcessor().unregisterClient(simpleChannelHandlerContext, remotingCommand);
+        } catch (Exception ignored) {
+        }
+        return new CompletableFuture<>();
     }
 
     @Override public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
-        return null;
+        Channel channel = channelManager.createChannel();
+        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
+
+        ChangeInvisibleTimeRequestHeader requestHeader = Converter.buildChangeInvisibleTimeRequestHeader(request);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        command.makeCustomHeaderToNet();
+
+        CompletableFuture<ChangeInvisibleDurationResponse> future = new CompletableFuture<>();
+        try {
+            RemotingCommand responseCommand = brokerController.getChangeInvisibleTimeProcessor()
+                .processRequest(channelHandlerContext, command);
+            ChangeInvisibleTimeResponseHeader responseHeader = (ChangeInvisibleTimeResponseHeader) responseCommand.readCustomHeader();
+            ChangeInvisibleDurationResponse.Builder builder = ChangeInvisibleDurationResponse.newBuilder()
+                .setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
+            if (responseCommand.getCode() == ResponseCode.SUCCESS) {
+                builder.setReceiptHandle(ReceiptHandle.builder()
+                    .startOffset(requestHeader.getOffset())
+                    .retrieveTime(responseHeader.getPopTime())
+                    .invisibleTime(responseHeader.getInvisibleTime())
+                    .reviveQueueId(responseHeader.getReviveQid())
+                    .topic(Converter.getResourceNameWithNamespace(request.getTopic()))
+                    .brokerName(brokerController.getBrokerConfig().getBrokerName())
+                    .queueId(requestHeader.getQueueId())
+                    .offset(requestHeader.getOffset())
+                    .build()
+                    .encode());
+            }
+
+            future.complete(builder.build());
+        } catch (Exception e) {
+            LOGGER.error("Exception raised while changeInvisibleDuration", e);
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     @Override public void start() throws Exception {
