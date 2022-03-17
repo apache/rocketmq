@@ -83,13 +83,15 @@ public class PullMessageService extends BaseService {
                 String brokerAddr = this.getBrokerAddr(ctx, brokerName);
                 offsetFuture = this.defaultForwardClient.searchOffset(brokerAddr, topic, queueId, timestamp, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
             }
-            offsetFuture.thenAccept(result -> future.complete(QueryOffsetResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-                .setOffset(result)
-                .build())).exceptionally(throwable -> {
-                    future.completeExceptionally(throwable);
-                    return null;
-                });
+            offsetFuture.thenAccept(result -> future.complete(
+                            QueryOffsetResponse.newBuilder()
+                                    .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                                    .setOffset(result)
+                                    .build()))
+                    .exceptionally(throwable -> {
+                        future.completeExceptionally(throwable);
+                        return null;
+                    });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

@@ -150,9 +150,15 @@ public class ProducerService extends BaseService {
             ConsumerSendMsgBackRequestHeader requestHeader = this.convertToConsumerSendMsgBackRequestHeader(ctx, request);
             CompletableFuture<RemotingCommand> resultFuture = this.connectorManager.getForwardProducer()
                 .sendMessageBack(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
-            resultFuture.thenAccept(result -> future.complete(ForwardMessageToDeadLetterQueueResponse.newBuilder()
-                    .setCommon(ResponseBuilder.buildCommon(result.getCode(), result.getRemark()))
-                    .build())).exceptionally(throwable -> {
+            resultFuture
+                    .thenAccept(result ->
+                            future.complete(
+                                    ForwardMessageToDeadLetterQueueResponse.newBuilder()
+                                            .setCommon(ResponseBuilder.buildCommon(result.getCode(), result.getRemark()))
+                                            .build()
+                            )
+                    )
+                    .exceptionally(throwable -> {
                         future.completeExceptionally(throwable);
                         return null;
                     });
