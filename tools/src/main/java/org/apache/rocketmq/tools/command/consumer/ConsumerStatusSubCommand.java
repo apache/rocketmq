@@ -60,6 +60,10 @@ public class ConsumerStatusSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("b", "brokerAddr", true, "broker address");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         opt = new Option("s", "jstack", false, "Run jstack command in the consumer progress");
         opt.setRequired(false);
         options.addOption(opt);
@@ -76,7 +80,9 @@ public class ConsumerStatusSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
             String group = commandLine.getOptionValue('g').trim();
-            ConsumerConnection cc = defaultMQAdminExt.examineConsumerConnectionInfo(group);
+            ConsumerConnection cc = commandLine.hasOption('b')
+                ? defaultMQAdminExt.examineConsumerConnectionInfo(group, commandLine.getOptionValue('b').trim())
+                : defaultMQAdminExt.examineConsumerConnectionInfo(group);
             boolean jstack = commandLine.hasOption('s');
             if (!commandLine.hasOption('i')) {
                 int i = 1;

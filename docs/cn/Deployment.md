@@ -49,7 +49,7 @@ The broker[broker-a,192.169.1.2:10911] boot success...
 **1）启动 NameServer**
 
 ```shell
-### 第一步先启动broker
+### 第一步先启动namesrv
 $ nohup sh mqnamesrv &
  
 ### 验证namesrv是否启动成功
@@ -69,14 +69,14 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker
 ...
 ```
 
-上面显示的boot命令用于单个NameServer的情况。对于多个NameServer的集群，broker boot命令中-n参数后面的地址列表用分号隔开，例如 192.168.1.1 : 9876; 192.161.2 : 9876
+上面显示的启动命令用于单个NameServer的情况。对于多个NameServer的集群，broker 启动命令中-n参数后面的地址列表用分号隔开，例如 192.168.1.1:9876;192.161.2:9876
 
 ### 3 多Master多Slave模式-异步复制
 
 每个主节点配置多个从节点，多对主从。HA采用异步复制，主节点和从节点之间有短消息延迟（毫秒）。这种模式的优缺点如下：
 
-- 优点: 
-  1. 即使磁盘损坏，也不会丢失极少的消息，不影响消息的实时性能。
+- 优点:
+  1. 即使磁盘损坏，也只会丢失极少的消息，不影响消息的实时性能。
   2. 同时，当主节点宕机时，消费者仍然可以消费从节点的消息，这个过程对应用本身是透明的，不需要人为干预。
   3. 性能几乎与多Master模式一样高。
 - 缺点:
@@ -87,7 +87,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker
 **1）启动 NameServer**
 
 ```shell
-### 第一步先启动broker
+### 第一步先启动namesrv
 $ nohup sh mqnamesrv &
  
 ### 验证namesrv是否启动成功
@@ -132,7 +132,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broke
 **1）启动NameServer**
 
 ```shell
-### 第一步启动broker
+### 第一步启动namesrv
 $ nohup sh mqnamesrv &
  
 ### 验证namesrv是否启动成功
