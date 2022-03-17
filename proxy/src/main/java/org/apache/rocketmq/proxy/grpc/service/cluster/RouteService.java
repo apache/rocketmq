@@ -16,32 +16,24 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.Assignment;
-import apache.rocketmq.v1.Broker;
-import apache.rocketmq.v1.Endpoints;
-import apache.rocketmq.v1.Partition;
-import apache.rocketmq.v1.Permission;
-import apache.rocketmq.v1.QueryAssignmentRequest;
-import apache.rocketmq.v1.QueryAssignmentResponse;
-import apache.rocketmq.v1.QueryRouteRequest;
-import apache.rocketmq.v1.QueryRouteResponse;
-import apache.rocketmq.v1.Resource;
+import apache.rocketmq.v1.*;
 import com.google.rpc.Code;
 import io.grpc.Context;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
-import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
+import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteHelper;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ParameterConverter;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class RouteService extends BaseService {
 
@@ -148,21 +140,33 @@ public class RouteService extends BaseService {
             r = queueData.getReadQueueNums();
         }
 
-        for (int i = 0; i < (rw + r + w); i++) {
-            Partition.Builder builder = Partition.newBuilder()
+        // r here means readOnly queue nums, w means writeOnly queue nums, while rw means readable and writable queue nums.
+        int queueIdIndex = 0;
+        for(int i = 0; i < r; i++){
+            Partition partition = buildPartition(broker, topic, queueIdIndex++, Permission.READ);
+            partitionList.add(partition);
+        }
+
+        for(int i = 0; i < w; i++){
+            Partition partition = buildPartition(broker, topic, queueIdIndex++, Permission.WRITE);
+            partitionList.add(partition);
+        }
+
+        for (int i = 0; i < rw; i++) {
+            Partition partition = buildPartition(broker, topic, queueIdIndex++, Permission.READ_WRITE);
+            partitionList.add(partition);
+        }
+
+        return partitionList;
+    }
+
+    private static Partition buildPartition(Broker broker, Resource topic, int queueId, Permission perm) {
+        Partition.Builder builder = Partition.newBuilder()
                 .setBroker(broker)
                 .setTopic(topic)
-                .setId(i);
-            if (i < r) {
-                builder.setPermission(Permission.READ);
-            } else if (i < w) {
-                builder.setPermission(Permission.WRITE);
-            } else {
-                builder.setPermission(Permission.READ_WRITE);
-            }
-            partitionList.add(builder.build());
-        }
-        return partitionList;
+                .setId(queueId);
+        builder.setPermission(perm);
+        return builder.build();
     }
 
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
