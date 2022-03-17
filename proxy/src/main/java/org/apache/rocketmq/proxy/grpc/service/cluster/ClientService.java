@@ -33,6 +33,7 @@ import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,11 +50,13 @@ public class ClientService extends BaseService {
     private final ConsumerManager consumerManager = new ConsumerManager((event, group, args) -> {
     });
     private final ProducerManager producerManager;
+    private final PollCommandResponseManager pollCommandResponseManager;
 
-    public ClientService(ConnectorManager connectorManager, ScheduledExecutorService scheduledExecutorService, ChannelManager channelManager) {
+    public ClientService(ConnectorManager connectorManager, ScheduledExecutorService scheduledExecutorService, ChannelManager channelManager, PollCommandResponseManager pollCommandResponseManager) {
         super(connectorManager);
         scheduledExecutorService.scheduleWithFixedDelay(this::scanNotActiveChannel, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
         this.channelManager = channelManager;
+        this.pollCommandResponseManager = pollCommandResponseManager;
 
         this.producerManager = new ProducerManager();
         this.producerManager.setProducerOfflineListener(connectorManager.getTransactionHeartbeatRegisterService()::onProducerGroupOffline);
@@ -66,7 +69,7 @@ public class ClientService extends BaseService {
 
         if (request.hasProducerData()) {
             String producerGroup = Converter.getResourceNameWithNamespace(request.getProducerData().getGroup());
-            GrpcClientChannel channel = GrpcClientChannel.create(channelManager, producerGroup, clientId);
+            GrpcClientChannel channel = GrpcClientChannel.create(channelManager, producerGroup, clientId, pollCommandResponseManager);
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
             producerManager.registerProducer(producerGroup, clientChannelInfo);
         }
@@ -74,7 +77,7 @@ public class ClientService extends BaseService {
         if (request.hasConsumerData()) {
             ConsumerData consumerData = request.getConsumerData();
             String consumerGroup = Converter.getResourceNameWithNamespace(consumerData.getGroup());
-            GrpcClientChannel channel = GrpcClientChannel.create(channelManager, consumerGroup, clientId);
+            GrpcClientChannel channel = GrpcClientChannel.create(channelManager, consumerGroup, clientId, pollCommandResponseManager);
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
 
             consumerManager.registerConsumer(

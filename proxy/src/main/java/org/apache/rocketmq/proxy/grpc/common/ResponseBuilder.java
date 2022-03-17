@@ -50,6 +50,17 @@ public class ResponseBuilder {
             .build();
     }
 
+    public static ResponseCommon buildSuccessCommon() {
+        Status status = Status.newBuilder()
+            .setCode(Code.OK.getNumber())
+            .setMessage("ok")
+            .build();
+
+        return ResponseCommon.newBuilder()
+            .setStatus(status)
+            .build();
+    }
+
     public static HeartbeatResponse buildHeartbeatResponse(RemotingCommand command) {
         return HeartbeatResponse.newBuilder()
             .setCommon(buildCommon(command.getCode(), command.getRemark()))
