@@ -22,17 +22,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ClusterInfo extends RemotingSerializable {
-    private HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    private HashMap<ClusterData/* clusterNameAndBrokerName */, BrokerData> brokerAddrTable;
     private HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
 
-    public HashMap<String, BrokerData> getBrokerAddrTable() {
+    public HashMap<ClusterData/* clusterNameAndBrokerName */, BrokerData> getBrokerAddrTable() {
         return brokerAddrTable;
     }
 
-    public void setBrokerAddrTable(HashMap<String, BrokerData> brokerAddrTable) {
+    public void setBrokerAddrTable(HashMap<ClusterData/* clusterNameAndBrokerName */, BrokerData> brokerAddrTable) {
         this.brokerAddrTable = brokerAddrTable;
     }
 

@@ -20,6 +20,7 @@ package org.apache.rocketmq.common.protocol;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import static org.junit.Assert.*;
@@ -71,7 +72,7 @@ public class ClusterInfoTest {
 
     private ClusterInfo buildClusterInfo() throws Exception {
         ClusterInfo clusterInfo = new ClusterInfo();
-        HashMap<String, BrokerData> brokerAddrTable = new HashMap<String, BrokerData>();
+        HashMap<ClusterData, BrokerData> brokerAddrTable = new HashMap<ClusterData, BrokerData>();
         HashMap<String, Set<String>> clusterAddrTable = new HashMap<String, Set<String>>();
 
         //build brokerData
@@ -84,7 +85,8 @@ public class ClusterInfoTest {
         brokerAddrs.put(MixAll.MASTER_ID, MixAll.getLocalhostByNetworkInterface());
 
         brokerData.setBrokerAddrs(brokerAddrs);
-        brokerAddrTable.put("master", brokerData);
+        ClusterData clusterData = new ClusterData("master", "master");
+        brokerAddrTable.put(clusterData, brokerData);
 
         Set<String> brokerNames = new HashSet<String>();
         brokerNames.add("master");
