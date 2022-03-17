@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -180,8 +181,9 @@ public class DefaultRequestProcessorTest {
         broker.setBrokerName("broker");
         broker.setBrokerAddrs((HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1"));
 
+        ClusterData clusterData = new ClusterData("cluster", "broker");
         assertThat((Map) brokerAddrTable.get(routes))
-            .contains(new HashMap.SimpleEntry("broker", broker));
+            .contains(new HashMap.SimpleEntry<>(clusterData, broker));
     }
 
     @Test
@@ -208,8 +210,9 @@ public class DefaultRequestProcessorTest {
         broker.setBrokerName("broker");
         broker.setBrokerAddrs((HashMap) Maps.newHashMap(new Long(2333), "10.10.1.1"));
 
+        ClusterData clusterData = new ClusterData("cluster", "broker");
         assertThat((Map) brokerAddrTable.get(routes))
-            .contains(new HashMap.SimpleEntry("broker", broker));
+            .contains(new HashMap.SimpleEntry<>(clusterData, broker));
     }
 
     @Test
@@ -240,9 +243,6 @@ public class DefaultRequestProcessorTest {
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
         when(ctx.channel()).thenReturn(null);
         RemotingCommand request = getRemotingCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC);
-        RemotingCommand remotingCommandSuccess = defaultRequestProcessor.processRequest(ctx, request);
-        assertThat(remotingCommandSuccess.getCode()).isEqualTo(ResponseCode.SUCCESS);
-        request.getExtFields().put("topic", "test");
         RemotingCommand remotingCommandNoTopicRouteInfo = defaultRequestProcessor.processRequest(ctx, request);
         assertThat(remotingCommandNoTopicRouteInfo.getCode()).isEqualTo(ResponseCode.TOPIC_NOT_EXIST);
     }
