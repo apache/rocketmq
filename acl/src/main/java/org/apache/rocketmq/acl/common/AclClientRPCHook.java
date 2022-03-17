@@ -17,6 +17,9 @@
 package org.apache.rocketmq.acl.common;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,7 +72,11 @@ public class AclClientRPCHook implements RPCHook {
             if (null != header) {
                 Field[] fields = fieldCache.get(header.getClass());
                 if (null == fields) {
-                    fields = header.getClass().getDeclaredFields();
+                    Set<Field> fieldList = new HashSet<Field>();
+                    for (Class className = header.getClass(); className != Object.class; className = className.getSuperclass()) {
+                        fieldList.addAll(Arrays.asList(className.getDeclaredFields()));
+                    }
+                    fields = fieldList.toArray(new Field[0]);
                     for (Field field : fields) {
                         field.setAccessible(true);
                     }
