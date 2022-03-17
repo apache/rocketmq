@@ -38,16 +38,18 @@ public class ClusterInfoTest {
         ClusterInfo clusterInfo = buildClusterInfo();
         byte[] data = clusterInfo.encode();
         ClusterInfo json = RemotingSerializable.decode(data, ClusterInfo.class);
+        ClusterData clusterData = new ClusterData("master", "master");
 
         assertNotNull(json);
         assertNotNull(json.getClusterAddrTable());
         assertTrue(json.getClusterAddrTable().containsKey("DEFAULT_CLUSTER"));
         assertTrue(json.getClusterAddrTable().get("DEFAULT_CLUSTER").contains("master"));
         assertNotNull(json.getBrokerAddrTable());
-        assertTrue(json.getBrokerAddrTable().containsKey("master"));
-        assertEquals(json.getBrokerAddrTable().get("master").getBrokerName(), "master");
-        assertEquals(json.getBrokerAddrTable().get("master").getCluster(), "DEFAULT_CLUSTER");
-        assertEquals(json.getBrokerAddrTable().get("master").getBrokerAddrs().get(MixAll.MASTER_ID), MixAll.getLocalhostByNetworkInterface());
+        assertTrue(json.getBrokerAddrTable().containsKey(clusterData));
+
+        assertEquals(json.getBrokerAddrTable().get(clusterData).getBrokerName(), "master");
+        assertEquals(json.getBrokerAddrTable().get(clusterData).getCluster(), "DEFAULT_CLUSTER");
+        assertEquals(json.getBrokerAddrTable().get(clusterData).getBrokerAddrs().get(MixAll.MASTER_ID), MixAll.getLocalhostByNetworkInterface());
     }
 
     @Test
