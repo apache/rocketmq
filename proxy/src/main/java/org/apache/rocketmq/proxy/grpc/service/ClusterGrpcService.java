@@ -70,7 +70,7 @@ import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ClientService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.PullMessageService;
-import org.apache.rocketmq.proxy.grpc.service.cluster.ReceiveMessageService;
+import org.apache.rocketmq.proxy.grpc.service.cluster.ConsumerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.TransactionService;
 import org.slf4j.Logger;
@@ -85,7 +85,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private final ChannelManager channelManager;
     private final ConnectorManager connectorManager;
     private final ProducerService producerService;
-    private final ReceiveMessageService receiveMessageService;
+    private final ConsumerService receiveMessageService;
     private final RouteService routeService;
     private final ClientService clientService;
     private final PullMessageService pullMessageService;
@@ -96,7 +96,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         this.channelManager = new ChannelManager();
         this.pollCommandResponseManager = new PollCommandResponseManager();
         this.connectorManager = new ConnectorManager(new GrpcTransactionStateChecker());
-        this.receiveMessageService = new ReceiveMessageService(connectorManager);
+        this.receiveMessageService = new ConsumerService(connectorManager);
         this.producerService = new ProducerService(connectorManager);
         this.routeService = new RouteService(ProxyMode.CLUSTER, connectorManager);
         this.clientService = new ClientService(connectorManager, scheduledExecutorService, channelManager, pollCommandResponseManager);

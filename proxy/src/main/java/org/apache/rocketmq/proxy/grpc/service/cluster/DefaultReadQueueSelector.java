@@ -23,11 +23,11 @@ import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
 
-public class DefaultReceiveMessageQueueSelector implements ReceiveMessageQueueSelector {
+public class DefaultReadQueueSelector implements ReadQueueSelector {
 
     private final TopicRouteCache topicRouteCache;
 
-    public DefaultReceiveMessageQueueSelector(TopicRouteCache topicRouteCache) {
+    public DefaultReadQueueSelector(TopicRouteCache topicRouteCache) {
         this.topicRouteCache = topicRouteCache;
     }
 

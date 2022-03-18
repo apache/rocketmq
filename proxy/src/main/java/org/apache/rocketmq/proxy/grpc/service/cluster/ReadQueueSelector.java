@@ -16,25 +16,12 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.QueryAssignmentRequest;
+import apache.rocketmq.v1.ReceiveMessageRequest;
 import io.grpc.Context;
-import java.util.List;
-import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
+import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
 
-public class DefaultRouteAssignmentQueueSelector implements RouteAssignmentQueueSelector {
+public interface ReadQueueSelector {
 
-    private final TopicRouteCache topicRouteCache;
-
-    public DefaultRouteAssignmentQueueSelector(TopicRouteCache topicRouteCache) {
-        this.topicRouteCache = topicRouteCache;
-    }
-
-    @Override
-    public List<SelectableMessageQueue> getAssignment(Context ctx, QueryAssignmentRequest request) throws Exception {
-        MessageQueueWrapper messageQueueWrapper = topicRouteCache.getMessageQueue(Converter.getResourceNameWithNamespace(request.getTopic()));
-        return messageQueueWrapper.getReadSelector().getBrokerActingQueues();
-    }
+    SelectableMessageQueue select(Context ctx, ReceiveMessageRequest request, PopMessageRequestHeader requestHeader);
 }

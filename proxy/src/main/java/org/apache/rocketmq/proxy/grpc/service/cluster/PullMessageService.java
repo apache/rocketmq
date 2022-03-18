@@ -26,6 +26,10 @@ import apache.rocketmq.v1.QueryOffsetResponse;
 import com.google.protobuf.util.Timestamps;
 import com.google.rpc.Code;
 import io.grpc.Context;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -40,11 +44,6 @@ import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.ProxyException;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public class PullMessageService extends BaseService {
 
@@ -84,14 +83,14 @@ public class PullMessageService extends BaseService {
                 offsetFuture = this.defaultForwardClient.searchOffset(brokerAddr, topic, queueId, timestamp, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
             }
             offsetFuture.thenAccept(result -> future.complete(
-                            QueryOffsetResponse.newBuilder()
-                                    .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-                                    .setOffset(result)
-                                    .build()))
-                    .exceptionally(throwable -> {
-                        future.completeExceptionally(throwable);
-                        return null;
-                    });
+                    QueryOffsetResponse.newBuilder()
+                        .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                        .setOffset(result)
+                        .build()))
+                .exceptionally(throwable -> {
+                    future.completeExceptionally(throwable);
+                    return null;
+                });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -113,19 +112,19 @@ public class PullMessageService extends BaseService {
             String brokerAddr = this.getBrokerAddr(ctx, brokerName);
 
             CompletableFuture<PullResult> pullResultFuture = this.connectorManager.getForwardReadConsumer()
-                    .pullMessage(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+                .pullMessage(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
             pullResultFuture
-                    .thenAccept(pullResult -> {
-                        try {
-                            future.complete(convertToPullMessageResponse(ctx, request, pullResult));
-                        } catch (Throwable throwable) {
-                            future.completeExceptionally(throwable);
-                        }
-                    })
-                    .exceptionally(throwable -> {
+                .thenAccept(pullResult -> {
+                    try {
+                        future.complete(convertToPullMessageResponse(ctx, request, pullResult));
+                    } catch (Throwable throwable) {
                         future.completeExceptionally(throwable);
-                        return null;
-                    });
+                    }
+                })
+                .exceptionally(throwable -> {
+                    future.completeExceptionally(throwable);
+                    return null;
+                });
 
         } catch (Throwable t) {
             future.completeExceptionally(t);

@@ -26,12 +26,12 @@ import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DefaultProducerQueueSelector implements ProducerQueueSelector {
+public class DefaultWriteQueueSelector implements WriteQueueSelector {
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultProducerQueueSelector.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultWriteQueueSelector.class);
     protected final TopicRouteCache topicRouteCache;
 
-    public DefaultProducerQueueSelector(TopicRouteCache topicRouteCache) {
+    public DefaultWriteQueueSelector(TopicRouteCache topicRouteCache) {
         this.topicRouteCache = topicRouteCache;
     }
 

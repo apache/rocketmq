@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.grpc.common;
 
 import io.grpc.Context;
 
+@FunctionalInterface
 public interface ParameterConverter<T, R> {
     R convert(Context ctx, T parameter) throws Throwable;
 }

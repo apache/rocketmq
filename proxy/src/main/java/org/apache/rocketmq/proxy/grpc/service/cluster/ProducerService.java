@@ -23,6 +23,7 @@ import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import com.google.rpc.Code;
 import io.grpc.Context;
+import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -39,25 +40,23 @@ import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import java.util.concurrent.CompletableFuture;
-
 public class ProducerService extends BaseService {
 
-    private volatile ProducerQueueSelector messageQueueSelector;
+    private volatile WriteQueueSelector writeQueueSelector;
     private volatile ResponseHook<SendMessageRequest, SendMessageResponse> sendMessageHook = null;
     private volatile ResponseHook<ForwardMessageToDeadLetterQueueRequest, ForwardMessageToDeadLetterQueueResponse> forwardMessageToDLQHook = null;
 
     public ProducerService(ConnectorManager connectorManager) {
         super(connectorManager);
-        messageQueueSelector = new DefaultProducerQueueSelector(this.connectorManager.getTopicRouteCache());
+        writeQueueSelector = new DefaultWriteQueueSelector(this.connectorManager.getTopicRouteCache());
     }
 
     public void setSendMessageHook(ResponseHook<SendMessageRequest, SendMessageResponse> sendMessageHook) {
         this.sendMessageHook = sendMessageHook;
     }
 
-    public void setMessageQueueSelector(ProducerQueueSelector messageQueueSelector) {
-        this.messageQueueSelector = messageQueueSelector;
+    public void setWriteQueueSelector(WriteQueueSelector writeQueueSelector) {
+        this.writeQueueSelector = writeQueueSelector;
     }
 
     public void setForwardMessageToDLQHook(
@@ -77,7 +76,7 @@ public class ProducerService extends BaseService {
             Pair<SendMessageRequestHeader, org.apache.rocketmq.common.message.Message> requestPair = this.convertSendMessageRequest(ctx, request);
             SendMessageRequestHeader requestHeader = requestPair.getLeft();
             org.apache.rocketmq.common.message.Message message = requestPair.getRight();
-            SelectableMessageQueue addressableMessageQueue = messageQueueSelector.selectQueue(ctx, request, requestHeader, message);
+            SelectableMessageQueue addressableMessageQueue = writeQueueSelector.selectQueue(ctx, request, requestHeader, message);
 
             String topic = requestHeader.getTopic();
             if (addressableMessageQueue == null) {
@@ -151,17 +150,17 @@ public class ProducerService extends BaseService {
             CompletableFuture<RemotingCommand> resultFuture = this.connectorManager.getForwardProducer()
                 .sendMessageBack(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
             resultFuture
-                    .thenAccept(result ->
-                            future.complete(
-                                    ForwardMessageToDeadLetterQueueResponse.newBuilder()
-                                            .setCommon(ResponseBuilder.buildCommon(result.getCode(), result.getRemark()))
-                                            .build()
-                            )
+                .thenAccept(result ->
+                    future.complete(
+                        ForwardMessageToDeadLetterQueueResponse.newBuilder()
+                            .setCommon(ResponseBuilder.buildCommon(result.getCode(), result.getRemark()))
+                            .build()
                     )
-                    .exceptionally(throwable -> {
-                        future.completeExceptionally(throwable);
-                        return null;
-                    });
+                )
+                .exceptionally(throwable -> {
+                    future.completeExceptionally(throwable);
+                    return null;
+                });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

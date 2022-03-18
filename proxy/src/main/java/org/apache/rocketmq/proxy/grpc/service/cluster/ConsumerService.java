@@ -49,22 +49,22 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-public class ReceiveMessageService extends BaseService {
+public class ConsumerService extends BaseService {
 
     private final ForwardReadConsumer readConsumer;
     private final ForwardWriteConsumer writeConsumer;
 
-    private volatile ReceiveMessageQueueSelector receiveMessageQueueSelector;
+    private volatile ReadQueueSelector readQueueSelector;
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook = null;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook = null;
     private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook = null;
 
-    public ReceiveMessageService(ConnectorManager connectorManager) {
+    public ConsumerService(ConnectorManager connectorManager) {
         super(connectorManager);
         this.readConsumer = connectorManager.getForwardReadConsumer();
         this.writeConsumer = connectorManager.getForwardWriteConsumer();
 
-        this.receiveMessageQueueSelector = new DefaultReceiveMessageQueueSelector(connectorManager.getTopicRouteCache());
+        this.readQueueSelector = new DefaultReadQueueSelector(connectorManager.getTopicRouteCache());
     }
 
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
@@ -76,7 +76,7 @@ public class ReceiveMessageService extends BaseService {
         });
         try {
             PopMessageRequestHeader requestHeader = this.convertToPopMessageRequestHeader(ctx, request);
-            SelectableMessageQueue messageQueue = this.receiveMessageQueueSelector.select(ctx, request, requestHeader);
+            SelectableMessageQueue messageQueue = this.readQueueSelector.select(ctx, request, requestHeader);
 
             CompletableFuture<PopResult> popResultFuture = this.readConsumer.popMessage(
                 messageQueue.getBrokerAddr(),
@@ -228,9 +228,9 @@ public class ReceiveMessageService extends BaseService {
             .build();
     }
 
-    public void setReceiveMessageQueueSelector(
-        ReceiveMessageQueueSelector receiveMessageQueueSelector) {
-        this.receiveMessageQueueSelector = receiveMessageQueueSelector;
+    public void setReadQueueSelector(
+        ReadQueueSelector readQueueSelector) {
+        this.readQueueSelector = readQueueSelector;
     }
 
     public void setReceiveMessageHook(

@@ -21,7 +21,7 @@ import io.grpc.Context;
 import java.util.List;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 
-public interface RouteAssignmentQueueSelector {
+public interface AssignmentQueueSelector {
 
     List<SelectableMessageQueue> getAssignment(Context ctx, QueryAssignmentRequest request) throws Exception;
 }
