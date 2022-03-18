@@ -19,6 +19,10 @@ package org.apache.rocketmq.apis;
 
 import java.util.Iterator;
 import java.util.ServiceLoader;
+
+import org.apache.rocketmq.apis.consumer.PullConsumerBuilder;
+import org.apache.rocketmq.apis.consumer.PushConsumerBuilder;
+import org.apache.rocketmq.apis.consumer.SimpleConsumerBuilder;
 import org.apache.rocketmq.apis.message.MessageBuilder;
 import org.apache.rocketmq.apis.producer.ProducerBuilder;
 
@@ -42,6 +46,27 @@ public interface ClientServiceProvider {
      * @return the producer builder instance.
      */
     ProducerBuilder newProducerBuilder();
+
+    /**
+     * Get the simple consumer builder by current provider.
+     *
+     * @return the simple consumer builder instance.
+     */
+    SimpleConsumerBuilder newSimpleConsumerBuilder();
+
+    /**
+     * Get the pull consumer builder by current provider.
+     *
+     * @return the pull consumer builder instance.
+     */
+    PullConsumerBuilder newPollConsumerBuilder();
+
+    /**
+     * Get the push consumer builder by current provider.
+     *
+     * @return the push consumer builder instance.
+     */
+    PushConsumerBuilder newPushConsumerBuilder();
 
     /**
      * Get the message builder by current provider.
