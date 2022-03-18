@@ -88,6 +88,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,7 +180,8 @@ public class Converter {
         return ackMessageRequestHeader;
     }
 
-    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(NackMessageRequest request) {
+    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(NackMessageRequest request,
+        DelayPolicy delayPolicy) {
         String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
         String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
         String receiptHandleStr = request.getReceiptHandle();
@@ -191,7 +193,7 @@ public class Converter {
         changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
         changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
-        changeInvisibleTimeRequestHeader.setInvisibleTime(0L);
+        changeInvisibleTimeRequestHeader.setInvisibleTime(delayPolicy.getDelayInterval(ConfigurationManager.getProxyConfig().getRetryDelayLevelDelta() + request.getDeliveryAttempt()));
         return changeInvisibleTimeRequestHeader;
     }
 

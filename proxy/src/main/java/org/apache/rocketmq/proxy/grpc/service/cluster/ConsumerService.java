@@ -41,6 +41,7 @@ import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.DelayPolicy;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
 
@@ -59,12 +60,15 @@ public class ConsumerService extends BaseService {
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook = null;
     private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook = null;
 
+    private final DelayPolicy delayPolicy;
+
     public ConsumerService(ConnectorManager connectorManager) {
         super(connectorManager);
         this.readConsumer = connectorManager.getForwardReadConsumer();
         this.writeConsumer = connectorManager.getForwardWriteConsumer();
 
         this.readQueueSelector = new DefaultReadQueueSelector(connectorManager.getTopicRouteCache());
+        this.delayPolicy = DelayPolicy.build(ConfigurationManager.getProxyConfig().getMessageDelayLevel());
     }
 
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
@@ -214,7 +218,7 @@ public class ConsumerService extends BaseService {
     }
 
     protected ChangeInvisibleTimeRequestHeader convertToChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
-        return Converter.buildChangeInvisibleTimeRequestHeader(request);
+        return Converter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
     }
 
     protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, AckResult ackResult) {

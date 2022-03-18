@@ -79,6 +79,9 @@ public class ProxyConfig {
 
     private int longPollingReserveTimeInMillis = 10000;
 
+    private int retryDelayLevelDelta = 3;
+    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
+
     public Integer getHealthCheckPort() {
         return healthCheckPort;
     }
@@ -365,5 +368,21 @@ public class ProxyConfig {
 
     public void setLongPollingReserveTimeInMillis(int longPollingReserveTimeInMillis) {
         this.longPollingReserveTimeInMillis = longPollingReserveTimeInMillis;
+    }
+
+    public int getRetryDelayLevelDelta() {
+        return retryDelayLevelDelta;
+    }
+
+    public void setRetryDelayLevelDelta(int retryDelayLevelDelta) {
+        this.retryDelayLevelDelta = retryDelayLevelDelta;
+    }
+
+    public String getMessageDelayLevel() {
+        return messageDelayLevel;
+    }
+
+    public void setMessageDelayLevel(String messageDelayLevel) {
+        this.messageDelayLevel = messageDelayLevel;
     }
 }
