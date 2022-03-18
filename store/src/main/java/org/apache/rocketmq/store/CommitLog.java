@@ -1351,7 +1351,7 @@ public class CommitLog {
                         queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             }
 
-            int pos = 4 + 4 + 4 + 4 + 4;
+            int pos = 20;
             // 6 QUEUEOFFSET
             preEncodeBuffer.putLong(pos, queueOffset);
             pos += 8;
