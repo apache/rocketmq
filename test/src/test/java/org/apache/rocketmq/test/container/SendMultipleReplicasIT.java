@@ -32,11 +32,13 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+@Ignore
 public class SendMultipleReplicasIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer mqProducer;
 

@@ -21,11 +21,13 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+@Ignore
 public class SlaveBrokerIT extends ContainerIntegrationTestBase {
     @Test
     public void reAddSlaveBroker() throws Exception {

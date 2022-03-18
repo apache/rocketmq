@@ -41,6 +41,7 @@ import org.junit.Test;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+@Ignore
 public class ScheduledMessageIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer producer;
 

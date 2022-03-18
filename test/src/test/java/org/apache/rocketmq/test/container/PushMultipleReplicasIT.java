@@ -31,10 +31,12 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
 
+@Ignore
 public class PushMultipleReplicasIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer producer;
 

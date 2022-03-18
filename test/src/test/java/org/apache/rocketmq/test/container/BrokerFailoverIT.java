@@ -22,12 +22,13 @@ import org.apache.rocketmq.container.InnerSalveBrokerController;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-
+@Ignore
 public class BrokerFailoverIT extends ContainerIntegrationTestBase {
 
     @Test
