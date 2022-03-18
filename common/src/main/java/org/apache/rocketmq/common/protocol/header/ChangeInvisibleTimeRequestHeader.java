@@ -94,4 +94,15 @@ public class ChangeInvisibleTimeRequestHeader implements CommandCustomHeader {
         this.queueId = queueId;
     }
 
+    @Override
+    public String toString() {
+        return "ChangeInvisibleTimeRequestHeader [" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ", topic='" + topic + '\'' +
+            ", queueId=" + queueId +
+            ", extraInfo='" + extraInfo + '\'' +
+            ", offset=" + offset +
+            ", invisibleTime=" + invisibleTime +
+            ']';
+    }
 }

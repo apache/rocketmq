@@ -16,38 +16,20 @@
  */
 package org.apache.rocketmq.proxy.connector.factory;
 
-import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
+import java.util.concurrent.ScheduledExecutorService;
+import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.proxy.connector.processor.DoNothingClientRemotingProcessor;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class MQClientFactory extends AbstractClientFactory<MQClientAPIExtImpl> {
+public class MQClientFactory extends AbstractMQClientFactory {
 
-    public MQClientFactory(RPCHook rpcHook) {
-        super(rpcHook);
+    public MQClientFactory(ScheduledExecutorService scheduledExecutorService,
+        RPCHook rpcHook) {
+        super(scheduledExecutorService, rpcHook);
     }
 
     @Override
-    protected MQClientAPIExtImpl newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
-        ClientConfig clientConfig = new ClientConfig();
-        clientConfig.setInstanceName(instanceName);
-
-        return new MQClientAPIExtImpl(
-            createNettyClientConfig(bootstrapWorkerThreads),
-            new DoNothingClientRemotingProcessor(null),
-            rpcHook,
-            clientConfig
-        );
-    }
-
-    @Override
-    protected boolean tryStart(MQClientAPIExtImpl client) {
-        client.start();
-        return true;
-    }
-
-    @Override
-    protected void shutdown(MQClientAPIExtImpl client) {
-        client.shutdown();
+    protected ClientRemotingProcessor createClientRemotingProcessor() {
+        return new DoNothingClientRemotingProcessor(null);
     }
 }

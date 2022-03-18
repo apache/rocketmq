@@ -88,6 +88,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.slf4j.Logger;
@@ -140,6 +141,11 @@ public class Converter {
         String topicName = Converter.getResourceNameWithNamespace(topic);
         int queueId = partition.getId();
         int maxMessageNumbers = request.getBatchSize();
+        if (maxMessageNumbers > ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST) {
+            LOGGER.warn("change maxNums from {} to {} for pop request, with info: topic:{}, group:{}",
+                maxMessageNumbers, ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST, topicName, groupName);
+            maxMessageNumbers = ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST;
+        }
         long invisibleTime = Durations.toMillis(request.getInvisibleDuration());
         long bornTime = Timestamps.toMillis(request.getInitializationTimestamp());
         ConsumePolicy policy = request.getConsumePolicy();

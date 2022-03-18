@@ -34,6 +34,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.proxy.common.utils.FilterUtil;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
@@ -57,6 +59,7 @@ public class ConsumerService extends BaseService {
 
     private volatile ReadQueueSelector readQueueSelector;
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook = null;
+    private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook = null;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook = null;
     private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook = null;
 
@@ -87,13 +90,18 @@ public class ConsumerService extends BaseService {
                 messageQueue.getBrokerName(),
                 requestHeader,
                 requestHeader.getPollTime());
-            popResultFuture.thenAccept(result -> {
-                try {
-                    future.complete(convertToReceiveMessageResponse(ctx, request, result));
-                } catch (Throwable throwable) {
+            popResultFuture
+                .thenAccept(result -> {
+                    try {
+                        future.complete(convertToReceiveMessageResponse(ctx, request, result));
+                    } catch (Throwable throwable) {
+                        future.completeExceptionally(throwable);
+                    }
+                })
+                .exceptionally(throwable -> {
                     future.completeExceptionally(throwable);
-                }
-            });
+                    return null;
+                });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -101,6 +109,9 @@ public class ConsumerService extends BaseService {
     }
 
     protected PopMessageRequestHeader convertToPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
+        // check filterExpression is correct or not
+        Converter.buildSubscriptionData(Converter.getResourceNameWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
+
         long timeRemaining = ctx.getDeadline()
             .timeRemaining(TimeUnit.MILLISECONDS);
         long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
@@ -112,6 +123,8 @@ public class ConsumerService extends BaseService {
     }
 
     protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request, PopResult result) {
+        SubscriptionData subscriptionData =  Converter.buildSubscriptionData(
+            Converter.getResourceNameWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
         PopStatus status = result.getPopStatus();
         switch (status) {
             case FOUND:
@@ -130,6 +143,10 @@ public class ConsumerService extends BaseService {
 
         List<Message> messages = new ArrayList<>();
         for (MessageExt messageExt : result.getMsgFoundList()) {
+            if (FilterUtil.isTagNotMatched(subscriptionData.getTagsSet(), messageExt.getTags())) {
+                this.ackNoMatchedMessage(ctx, request, messageExt);
+                continue;
+            }
             messages.add(Converter.buildMessage(messageExt));
         }
 
@@ -137,6 +154,32 @@ public class ConsumerService extends BaseService {
             .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
             .addAllMessages(messages)
             .build();
+    }
+
+    protected void ackNoMatchedMessage(Context ctx, ReceiveMessageRequest request, MessageExt messageExt) {
+        CompletableFuture<AckResult> future = new CompletableFuture<>();
+        AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
+        try {
+            ReceiptHandle handle = ReceiptHandle.create(messageExt);
+            if (handle == null) {
+                return;
+            }
+            String brokerAddr = this.getBrokerAddr(ctx, handle.getBrokerName());
+            ackMessageRequestHeader.setConsumerGroup(Converter.getResourceNameWithNamespace(request.getGroup()));
+            ackMessageRequestHeader.setTopic(messageExt.getTopic());
+            ackMessageRequestHeader.setQueueId(handle.getQueueId());
+            ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
+            ackMessageRequestHeader.setOffset(handle.getOffset());
+
+            future = this.writeConsumer.ackMessage(brokerAddr, ackMessageRequestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        future.whenComplete((ackResult, throwable) -> {
+            if (ackNoMatchedMessageHook != null) {
+                ackNoMatchedMessageHook.beforeResponse(ackMessageRequestHeader, ackResult, throwable);
+            }
+        });
     }
 
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
@@ -240,6 +283,11 @@ public class ConsumerService extends BaseService {
     public void setReceiveMessageHook(
         ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook) {
         this.receiveMessageHook = receiveMessageHook;
+    }
+
+    public void setAckNoMatchedMessageHook(
+        ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook) {
+        this.ackNoMatchedMessageHook = ackNoMatchedMessageHook;
     }
 
     public void setAckMessageHook(

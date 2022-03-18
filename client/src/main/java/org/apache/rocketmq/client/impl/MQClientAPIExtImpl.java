@@ -54,8 +54,12 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MQClientAPIExtImpl {
+
+    private static final Logger log = LoggerFactory.getLogger(MQClientAPIExtImpl.class);
 
     private final MQClientAPIImpl mqClientAPI;
     private final ClientConfig clientConfig;
@@ -73,6 +77,19 @@ public class MQClientAPIExtImpl {
 
     public void shutdown() {
         this.mqClientAPI.shutdown();
+    }
+
+    public void fetchNameServerAddr() {
+        this.mqClientAPI.fetchNameServerAddr();
+    }
+
+    public boolean updateNameServerAddressList() {
+        if (this.clientConfig.getNamesrvAddr() != null) {
+            this.mqClientAPI.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
+            log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
+            return true;
+        }
+        return false;
     }
 
     protected static MQClientException processNullResponseErr(ResponseFuture responseFuture) {
@@ -174,7 +191,7 @@ public class MQClientAPIExtImpl {
         long timeoutMillis) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
         try {
-            this.mqClientAPI.popMessageAsync(brokerAddr, brokerName, requestHeader, timeoutMillis, new PopCallback() {
+            this.mqClientAPI.popMessageAsync(brokerName, brokerAddr, requestHeader, timeoutMillis, new PopCallback() {
                 @Override
                 public void onSuccess(PopResult popResult) {
                     future.complete(popResult);

@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.proxy.connector.factory;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
@@ -35,8 +38,11 @@ public class ForwardClientFactory implements StartAndShutdown {
     public ForwardClientFactory(TransactionStateChecker transactionStateChecker) {
         this.init();
 
-        this.mqClientFactory = new MQClientFactory(this.rpcHook);
-        this.transactionalProducerFactory = new TransactionProducerFactory(this.rpcHook, transactionStateChecker);
+        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryBuilder().setNameFormat("ForwardClientFactoryScheduledThread" + "-%d").build()
+        );
+        this.mqClientFactory = new MQClientFactory(scheduledExecutorService, this.rpcHook);
+        this.transactionalProducerFactory = new TransactionProducerFactory(scheduledExecutorService, this.rpcHook, transactionStateChecker);
     }
 
     private void init() {

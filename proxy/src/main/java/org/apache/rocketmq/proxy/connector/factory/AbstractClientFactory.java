@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.connector.factory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.slf4j.Logger;
@@ -26,10 +27,12 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractClientFactory<T>  {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClientFactory.class);
 
+    protected final ScheduledExecutorService scheduledExecutorService;
     protected Map<String, T> cacheTable = new ConcurrentHashMap<>();
     protected RPCHook rpcHook;
 
-    public AbstractClientFactory(RPCHook rpcHook) {
+    public AbstractClientFactory(ScheduledExecutorService scheduledExecutorService, RPCHook rpcHook) {
+        this.scheduledExecutorService = scheduledExecutorService;
         this.rpcHook = rpcHook;
     }
 
@@ -47,7 +50,6 @@ public abstract class AbstractClientFactory<T>  {
         return nettyClientConfig;
     }
 
-//    @Override
     public T getOne(String instanceName, int bootstrapWorkerThreads) {
         if (cacheTable.containsKey(instanceName)) {
             return cacheTable.get(instanceName);
@@ -71,7 +73,6 @@ public abstract class AbstractClientFactory<T>  {
         return object;
     }
 
-//    @Override
     public void shutdownAll() {
         this.cacheTable.forEach((k, v) -> {
             try {
