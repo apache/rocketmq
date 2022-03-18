@@ -27,6 +27,7 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+
 public class BrokerFailoverIT extends ContainerIntegrationTestBase {
 
     @Test

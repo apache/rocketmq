@@ -102,7 +102,7 @@ public class BrokerContainerStartupTest {
     }
 
     @Test
-    public void testStartBroker1() {
+    public void testStartBrokerContainer() {
         BrokerContainer brokerContainer = BrokerContainerStartup.startBrokerContainer(
             BrokerContainerStartup.createBrokerContainer(Arrays.array("-c", brokerContainerConfigPath)));
         assertThat(brokerContainer).isNotNull();
@@ -111,17 +111,6 @@ public class BrokerContainerStartupTest {
 
         brokerContainer.shutdown();
         assertThat(brokerContainer.getBrokerControllers().size()).isEqualTo(0);
-    }
-
-    @Test
-    public void testStartBroker2() {
-        InnerBrokerController brokerController = (InnerBrokerController) BrokerContainerStartup.start(BrokerContainerStartup.createBrokerController(Arrays.array("-c", brokerConfigPath)));
-        assertThat(brokerController).isNotNull();
-
-        assertThat(brokerController.getBrokerContainer().getBrokerControllers().size()).isEqualTo(1);
-
-        brokerController.getBrokerContainer().shutdown();
-        assertThat(brokerController.getBrokerContainer().getBrokerControllers().size()).isEqualTo(0);
     }
 
     private static File createBaseDir(String prefix) {

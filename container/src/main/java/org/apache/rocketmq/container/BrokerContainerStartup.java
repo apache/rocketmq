@@ -68,38 +68,9 @@ public class BrokerContainerStartup {
         createAndStartBrokers(brokerContainer);
     }
 
-    /**
-     * Start brokerController, for old version compatibility.
-     *
-     * @param controller brokerController
-     * @return brokerController
-     */
-    public static BrokerController start(BrokerController controller) {
-        try {
-
-            controller.start();
-
-            String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
-                + controller.getBrokerAddr() + "] boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
-
-            if (null != controller.getBrokerConfig().getNamesrvAddr()) {
-                tip += " and name server is " + controller.getBrokerConfig().getNamesrvAddr();
-            }
-
-            log.info(tip);
-            System.out.printf("%s%n", tip);
-            return controller;
-        } catch (Throwable e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
-
-        return null;
-    }
-
     public static BrokerController createBrokerController(String[] args) {
-        final BrokerContainer sharedBrokerController = startBrokerContainer(createBrokerContainer(args));
-        return createAndInitializeBroker(sharedBrokerController, configFile, properties);
+        final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));
+        return createAndInitializeBroker(brokerContainer, configFile, properties);
     }
 
     public static List<BrokerController> createAndStartBrokers(BrokerContainer brokerContainer) {
