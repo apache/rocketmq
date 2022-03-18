@@ -97,6 +97,7 @@ import org.apache.rocketmq.proxy.grpc.adapter.handler.PullMessageResponseHandler
 import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.common.DelayPolicy;
 import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseFuture;
 import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
@@ -119,6 +120,7 @@ public class LocalGrpcService implements GrpcForwardService {
     private final ChannelManager channelManager;
     private final PollCommandResponseManager pollCommandResponseManager;
     private final RouteService routeService;
+    private final DelayPolicy delayPolicy;
 
     public LocalGrpcService(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -127,6 +129,7 @@ public class LocalGrpcService implements GrpcForwardService {
         ConnectorManager connectorManager = new ConnectorManager(null);
         this.pollCommandResponseManager = new PollCommandResponseManager();
         this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager);
+        this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
     }
 
     @Override public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
@@ -279,7 +282,7 @@ public class LocalGrpcService implements GrpcForwardService {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
-        ChangeInvisibleTimeRequestHeader requestHeader = Converter.buildChangeInvisibleTimeRequestHeader(request);
+        ChangeInvisibleTimeRequestHeader requestHeader = Converter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
         command.makeCustomHeaderToNet();
 
