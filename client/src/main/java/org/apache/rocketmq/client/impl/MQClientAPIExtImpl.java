@@ -171,7 +171,7 @@ public class MQClientAPIExtImpl {
         long timeoutMillis) {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
-            RemotingCommand request = RemotingCommand.createResponseCommandWithHeader(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
             this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {

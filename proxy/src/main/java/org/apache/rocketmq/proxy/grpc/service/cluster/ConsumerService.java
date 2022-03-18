@@ -33,12 +33,14 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.proxy.common.utils.FilterUtil;
+import org.apache.rocketmq.proxy.common.utils.FilterUtils;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
@@ -51,11 +53,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ConsumerService extends BaseService {
 
     private final ForwardReadConsumer readConsumer;
     private final ForwardWriteConsumer writeConsumer;
+    private final ForwardProducer producer;
 
     private volatile ReadQueueSelector readQueueSelector;
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook = null;
@@ -69,6 +73,7 @@ public class ConsumerService extends BaseService {
         super(connectorManager);
         this.readConsumer = connectorManager.getForwardReadConsumer();
         this.writeConsumer = connectorManager.getForwardWriteConsumer();
+        this.producer = connectorManager.getForwardProducer();
 
         this.readQueueSelector = new DefaultReadQueueSelector(connectorManager.getTopicRouteCache());
         this.delayPolicy = DelayPolicy.build(ConfigurationManager.getProxyConfig().getMessageDelayLevel());
@@ -143,7 +148,7 @@ public class ConsumerService extends BaseService {
 
         List<Message> messages = new ArrayList<>();
         for (MessageExt messageExt : result.getMsgFoundList()) {
-            if (FilterUtil.isTagNotMatched(subscriptionData.getTagsSet(), messageExt.getTags())) {
+            if (!FilterUtils.isTagMatched(subscriptionData.getTagsSet(), messageExt.getTags())) {
                 this.ackNoMatchedMessage(ctx, request, messageExt);
                 continue;
             }
@@ -239,10 +244,29 @@ public class ConsumerService extends BaseService {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
-            ChangeInvisibleTimeRequestHeader requestHeader = this.convertToChangeInvisibleTimeRequestHeader(ctx, request);
-            CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader,
-                ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
-            resultFuture
+            if (request.getDeliveryAttempt() >= request.getMaxDeliveryAttempts()) {
+                CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
+                    brokerAddr,
+                    this.convertToConsumerSendMsgBackToDLQRequestHeader(ctx, request),
+                    ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+                resultFuture
+                    .thenAccept(result -> {
+                        try {
+                            future.complete(convertToNackMessageResponse(ctx, request, result));
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    })
+                    .exceptionally(throwable -> {
+                        throwable.printStackTrace();
+                        future.completeExceptionally(throwable);
+                        return null;
+                    });
+            } else {
+                ChangeInvisibleTimeRequestHeader requestHeader = this.convertToChangeInvisibleTimeRequestHeader(ctx, request);
+                CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader,
+                    ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+                resultFuture
                     .thenAccept(result -> {
                         try {
                             future.complete(convertToNackMessageResponse(ctx, request, result));
@@ -254,6 +278,7 @@ public class ConsumerService extends BaseService {
                         future.completeExceptionally(throwable);
                         return null;
                     });
+            }
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -262,6 +287,10 @@ public class ConsumerService extends BaseService {
 
     protected ChangeInvisibleTimeRequestHeader convertToChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
         return Converter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
+    }
+
+    protected ConsumerSendMsgBackRequestHeader convertToConsumerSendMsgBackToDLQRequestHeader(Context ctx, NackMessageRequest request) {
+        return Converter.buildConsumerSendMsgBackToDLQRequestHeader(request);
     }
 
     protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, AckResult ackResult) {
@@ -275,8 +304,13 @@ public class ConsumerService extends BaseService {
             .build();
     }
 
-    public void setReadQueueSelector(
-        ReadQueueSelector readQueueSelector) {
+    protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, RemotingCommand sendMsgBackToDLQResult) {
+        return NackMessageResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(sendMsgBackToDLQResult.getCode(), sendMsgBackToDLQResult.getRemark()))
+            .build();
+    }
+
+    public void setReadQueueSelector(ReadQueueSelector readQueueSelector) {
         this.readQueueSelector = readQueueSelector;
     }
 
