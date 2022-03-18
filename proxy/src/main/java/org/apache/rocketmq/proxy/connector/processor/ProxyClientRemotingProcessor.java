@@ -39,10 +39,8 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
     }
 
     @Override
-    public RemotingCommand processRequest(
-        ChannelHandlerContext ctx,
-        RemotingCommand request
-    ) throws RemotingCommandException {
+    public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
+        throws RemotingCommandException {
         if (request.getCode() == RequestCode.CHECK_TRANSACTION_STATE) {
             return this.checkTransactionState(ctx, request);
         }
@@ -50,10 +48,8 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
     }
 
     @Override
-    public RemotingCommand checkTransactionState(
-        ChannelHandlerContext ctx,
-        RemotingCommand request
-    ) throws RemotingCommandException {
+    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request)
+        throws RemotingCommandException {
         final CheckTransactionStateRequestHeader requestHeader =
             (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
@@ -61,18 +57,20 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
         if (messageExt != null) {
             final String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (group != null) {
-                transactionStateChecker.checkTransactionState(new TransactionStateCheckRequest(
-                    group,
-                    requestHeader.getTranStateTableOffset(),
-                    requestHeader.getCommitLogOffset(),
-                    requestHeader.getMsgId(),
-                    TransactionId.genFromBrokerTransactionId(
-                        ctx.channel().remoteAddress(),
-                        requestHeader.getTransactionId(),
+                transactionStateChecker.checkTransactionState(
+                    new TransactionStateCheckRequest(
+                        group,
+                        requestHeader.getTranStateTableOffset(),
                         requestHeader.getCommitLogOffset(),
-                        requestHeader.getTranStateTableOffset()),
-                    messageExt
-                ));
+                        requestHeader.getMsgId(),
+                        TransactionId.genFromBrokerTransactionId(
+                            ctx.channel().remoteAddress(),
+                            requestHeader.getTransactionId(),
+                            requestHeader.getCommitLogOffset(),
+                            requestHeader.getTranStateTableOffset()),
+                        messageExt
+                    )
+                );
             }
         }
         return null;
