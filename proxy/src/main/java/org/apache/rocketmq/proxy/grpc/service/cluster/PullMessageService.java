@@ -26,13 +26,12 @@ import apache.rocketmq.v1.QueryOffsetResponse;
 import com.google.protobuf.util.Timestamps;
 import com.google.rpc.Code;
 import io.grpc.Context;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.utils.FilterUtil;
@@ -145,32 +144,25 @@ public class PullMessageService extends BaseService {
     }
 
     protected PullMessageResponse convertToPullMessageResponse(Context ctx, PullMessageRequest request, PullResult result) {
+        PullMessageResponse.Builder responseBuilder = PullMessageResponse.newBuilder()
+            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+            .setMinOffset(result.getMinOffset())
+            .setMaxOffset(result.getMaxOffset())
+            .setNextOffset(result.getNextBeginOffset());
+
         SubscriptionData subscriptionData =  Converter.buildSubscriptionData(
             Converter.getResourceNameWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
 
         PullStatus status = result.getPullStatus();
         if (status.equals(PullStatus.FOUND)) {
-            List<Message> messages = new ArrayList<>();
-            for (MessageExt messageExt : result.getMsgFoundList()) {
-                if (FilterUtil.isTagNotMatched(subscriptionData.getTagsSet(), messageExt.getTags())) {
-                    continue;
-                }
-                messages.add(Converter.buildMessage(messageExt));
-            }
-            return PullMessageResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-                .setMinOffset(result.getMinOffset())
-                .setMaxOffset(result.getMaxOffset())
-                .setNextOffset(result.getNextBeginOffset())
-                .addAllMessages(messages)
-                .build();
+            List<Message> messageList = result.getMsgFoundList().stream()
+                .filter(msg -> FilterUtil.isTagMatched(subscriptionData.getTagsSet(), msg.getTags())) // only return tag matched messages.
+                .map(Converter::buildMessage)
+                .collect(Collectors.toList());
+
+            return responseBuilder.addAllMessages(messageList).build();
         } else {
-            return PullMessageResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-                .setMinOffset(result.getMinOffset())
-                .setMaxOffset(result.getMaxOffset())
-                .setNextOffset(result.getNextBeginOffset())
-                .build();
+            return responseBuilder.build();
         }
     }
 }
