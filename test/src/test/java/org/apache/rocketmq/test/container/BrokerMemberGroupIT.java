@@ -20,11 +20,12 @@ package org.apache.rocketmq.test.container;
 import java.time.Duration;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
 
-
+@Ignore
 public class BrokerMemberGroupIT extends ContainerIntegrationTestBase {
     @Test
     public void testSyncBrokerMemberGroup() throws Exception {

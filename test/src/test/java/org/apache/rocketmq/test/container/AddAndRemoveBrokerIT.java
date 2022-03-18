@@ -25,11 +25,12 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
+@Ignore
 public class AddAndRemoveBrokerIT extends ContainerIntegrationTestBase {
     private static BrokerContainer brokerContainer4;
 

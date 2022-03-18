@@ -43,6 +43,7 @@ import static org.awaitility.Awaitility.await;
 /**
  * Test lock on slave when acting master enabled
  */
+@Ignore
 public class RebalanceLockOnSlaveIT extends ContainerIntegrationTestBase {
     private static final String THREE_REPLICA_CONSUMER_GROUP = "SyncConsumerOffsetIT_ConsumerThreeReplica";
 
