@@ -68,9 +68,9 @@ import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
 import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ClientService;
+import org.apache.rocketmq.proxy.grpc.service.cluster.ConsumerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.PullMessageService;
-import org.apache.rocketmq.proxy.grpc.service.cluster.ConsumerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.TransactionService;
 import org.slf4j.Logger;
@@ -115,9 +115,11 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     @Override
     public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
         this.clientService.heartbeat(ctx, request, channelManager);
-        return CompletableFuture.completedFuture(HeartbeatResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-            .build());
+        return CompletableFuture.completedFuture(
+            HeartbeatResponse.newBuilder()
+                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                .build()
+        );
     }
 
     @Override
@@ -194,13 +196,16 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
                                                                                       NotifyClientTerminationRequest request) {
         this.clientService.unregister(ctx, request, channelManager);
-        return CompletableFuture.completedFuture(NotifyClientTerminationResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-            .build());
+        return CompletableFuture.completedFuture(
+            NotifyClientTerminationResponse.newBuilder()
+                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                .build()
+        );
     }
 
-    @Override public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
-                                                                                                ChangeInvisibleDurationRequest request) {
+    @Override
+    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+        ChangeInvisibleDurationRequest request) {
         return null;
     }
 

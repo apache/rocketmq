@@ -259,17 +259,15 @@ public class Converter {
         return endTransactionRequestHeader;
     }
 
-    public static PullMessageRequestHeader buildPullMessageRequestHeader(PullMessageRequest request, long pollTime) {
+    public static PullMessageRequestHeader buildPullMessageRequestHeader(PullMessageRequest request, long pollTimeoutInMillis) {
         Partition partition = request.getPartition();
         String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
         String topicName = Converter.getResourceNameWithNamespace(partition.getTopic());
 
         int queueId = partition.getId();
         int sysFlag = PullSysFlag.buildSysFlag(false, true, true, false, false);
-        String expression = request.getFilterExpression()
-            .getExpression();
-        String expressionType = Converter.buildExpressionType(request.getFilterExpression()
-            .getType());
+        String expression = request.getFilterExpression().getExpression();
+        String expressionType = Converter.buildExpressionType(request.getFilterExpression().getType());
 
         PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
         requestHeader.setConsumerGroup(groupName);
@@ -279,7 +277,7 @@ public class Converter {
         requestHeader.setMaxMsgNums(request.getBatchSize());
         requestHeader.setSysFlag(sysFlag);
         requestHeader.setCommitOffset(0L);
-        requestHeader.setSuspendTimeoutMillis(pollTime);
+        requestHeader.setSuspendTimeoutMillis(pollTimeoutInMillis);
         requestHeader.setSubscription(expression);
         requestHeader.setSubVersion(0L);
         requestHeader.setExpressionType(expressionType);
@@ -296,22 +294,26 @@ public class Converter {
             }
         }
         MessageAccessor.setProperties(messageWithHeader, Maps.newHashMap(userProperties));
+
         // set tag
         String tag = message.getSystemAttribute().getTag();
         if (!"".equals(tag)) {
             messageWithHeader.setTags(tag);
         }
+
         // set keys
         List<String> keysList = message.getSystemAttribute().getKeysList();
         if (keysList.size() > 0) {
             messageWithHeader.setKeys(keysList);
         }
+
         // set message id
         String messageId = message.getSystemAttribute().getMessageId();
         if ("".equals(messageId)) {
             throw new IllegalArgumentException("message id is empty");
         }
         MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, messageId);
+
         // set transaction property
         MessageType messageType = message.getSystemAttribute().getMessageType();
         if (messageType.equals(MessageType.TRANSACTION)) {
@@ -328,8 +330,7 @@ public class Converter {
             case DELAY_LEVEL:
                 int delayLevel = message.getSystemAttribute().getDelayLevel();
                 if (delayLevel > 0) {
-                    MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_DELAY_TIME_LEVEL,
-                        String.valueOf(delayLevel));
+                    MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(delayLevel));
                 }
                 break;
             case DELIVERY_TIMESTAMP:

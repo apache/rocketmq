@@ -40,7 +40,7 @@ import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
 
 public class TransactionService extends BaseService implements TransactionStateChecker {
 
-    private ChannelManager channelManager;
+    private final ChannelManager channelManager;
     private final ForwardProducer forwardProducer;
 
     private volatile ResponseHook<TransactionStateCheckRequest, PollCommandResponse> checkTransactionStateHook = null;
@@ -56,23 +56,23 @@ public class TransactionService extends BaseService implements TransactionStateC
     public void checkTransactionState(TransactionStateCheckRequest checkData) {
         try {
             List<String> clientIdList = this.channelManager.getClientIdList(checkData.getGroupId());
+            // if clientIdList's size is 0, here will throw: java.lang.IllegalArgumentException: bound must be positive
             String clientId = clientIdList.get(ThreadLocalRandom.current().nextInt(clientIdList.size()));
 
             GrpcClientChannel channel = GrpcClientChannel.getChannel(this.channelManager, checkData.getGroupId(), clientId);
             String transactionId = checkData.getTransactionId().getProxyTransactionId();
 
             Message message = Converter.buildMessage(checkData.getMessageExt());
-
-            PollCommandResponse commandResponse = PollCommandResponse.newBuilder()
+            PollCommandResponse response = PollCommandResponse.newBuilder()
                 .setRecoverOrphanedTransactionCommand(
                     RecoverOrphanedTransactionCommand.newBuilder()
                         .setOrphanedTransactionalMessage(message)
                         .setTransactionId(transactionId)
                         .build()
                 ).build();
-            channel.writeAndFlush(commandResponse);
+            channel.writeAndFlush(response);
             if (this.checkTransactionStateHook != null) {
-                this.checkTransactionStateHook.beforeResponse(checkData, commandResponse, null);
+                this.checkTransactionStateHook.beforeResponse(checkData, response, null);
             }
         } catch (Throwable t) {
             if (this.checkTransactionStateHook != null) {
@@ -88,8 +88,9 @@ public class TransactionService extends BaseService implements TransactionStateC
                 endTransactionHook.beforeResponse(request, response, throwable);
             }
         });
+
         try {
-            EndTransactionRequestHeader requestHeader = this.convertToEndTransactionRequestHeader(ctx, request);
+            EndTransactionRequestHeader requestHeader = this.toEndTransactionRequestHeader(ctx, request);
             this.forwardProducer.endTransaction(requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
             future.complete(EndTransactionResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
@@ -100,8 +101,7 @@ public class TransactionService extends BaseService implements TransactionStateC
         return future;
     }
 
-    protected EndTransactionRequestHeader convertToEndTransactionRequestHeader(Context ctx,
-        EndTransactionRequest request) {
+    protected EndTransactionRequestHeader toEndTransactionRequestHeader(Context ctx, EndTransactionRequest request) {
         return Converter.buildEndTransactionRequestHeader(request);
     }
 

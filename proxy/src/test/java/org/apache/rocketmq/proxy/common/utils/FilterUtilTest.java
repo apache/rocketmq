@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.common.utils;
 
+import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.junit.Test;
