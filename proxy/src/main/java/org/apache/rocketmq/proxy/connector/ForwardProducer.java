@@ -86,14 +86,13 @@ public class ForwardProducer extends AbstractForwardClient {
     public CompletableFuture<SendResult> sendMessage(String address, String brokerName, Message msg,
         SendMessageRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<SendResult> future = this.getClient().sendMessage(address, brokerName, msg, requestHeader, timeoutMillis);
-        future.thenApply(sendResult -> {
+        return future.thenApply(sendResult -> {
             if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) && !StringUtils.isEmpty(sendResult.getTransactionId())) {
                 TransactionId transactionId = TransactionId.genFromBrokerTransactionId(address, sendResult);
                 sendResult.setTransactionId(transactionId.getProxyTransactionId());
             }
             return sendResult;
         });
-        return future;
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {
