@@ -25,7 +25,6 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
 
 public class HeaderInterceptor implements ServerInterceptor {
     @Override

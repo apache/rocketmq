@@ -19,7 +19,7 @@ package org.apache.rocketmq.proxy.common.utils;
 import java.util.Set;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
-public class FilterUtil {
+public class FilterUtils {
     /**
      * Whether the message's tag matches consumerGroup's SubscriptionData
      *
