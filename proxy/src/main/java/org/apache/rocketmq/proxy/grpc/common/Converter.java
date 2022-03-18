@@ -503,10 +503,8 @@ public class Converter {
     public static Message buildMessage(MessageExt messageExt) {
         Map<String, String> userAttributes = buildUserAttributes(messageExt);
         SystemAttribute systemAttributes = buildSystemAttributes(messageExt);
-        Resource topic = Resource.newBuilder()
-            .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(messageExt.getTopic()))
-            .setName(NamespaceUtil.withoutNamespace(messageExt.getTopic()))
-            .build();
+        Resource topic = buildResource(messageExt.getTopic());
+
         return Message.newBuilder()
             .setTopic(topic)
             .putAllUserAttribute(userAttributes)
@@ -641,12 +639,7 @@ public class Converter {
         // publisher_group
         String producerGroup = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
         if (producerGroup != null) {
-            String namespaceId = NamespaceUtil.getNamespaceFromResource(producerGroup);
-            String group = NamespaceUtil.withoutNamespace(producerGroup);
-            systemAttributeBuilder.setProducerGroup(Resource.newBuilder()
-                .setResourceNamespace(namespaceId)
-                .setName(group)
-                .build());
+            systemAttributeBuilder.setProducerGroup(buildResource(producerGroup));
         }
 
         // trace context
@@ -688,6 +681,13 @@ public class Converter {
         }
         consumeMessageDirectlyResult.setRemark("From gRPC client");
         return consumeMessageDirectlyResult;
+    }
+
+    public static Resource buildResource(String resourceNameWithNamespace) {
+        return Resource.newBuilder()
+            .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(resourceNameWithNamespace))
+            .setName(NamespaceUtil.withoutNamespace(resourceNameWithNamespace))
+            .build();
     }
 
     public static UnregisterClientRequestHeader buildUnregisterClientRequestHeader(NotifyClientTerminationRequest request) {
