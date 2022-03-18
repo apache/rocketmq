@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.ReceiveMessageRequest;
+import apache.rocketmq.v1.SendMessageRequest;
 import io.grpc.Context;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 
-public interface ReceiveMessageQueueSelector {
+public interface WriteQueueSelector {
 
-    SelectableMessageQueue select(Context ctx, ReceiveMessageRequest request, PopMessageRequestHeader requestHeader);
+    SelectableMessageQueue selectQueue(Context ctx, SendMessageRequest request,
+        SendMessageRequestHeader requestHeader, org.apache.rocketmq.common.message.Message message);
 }

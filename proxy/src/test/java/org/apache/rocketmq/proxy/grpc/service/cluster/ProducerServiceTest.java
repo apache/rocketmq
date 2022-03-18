@@ -72,7 +72,7 @@ public class ProducerServiceTest extends BaseServiceTest {
             1L, "txId", "offsetMsgId", "regionId"));
 
         ProducerService producerService = new ProducerService(this.clientManager);
-        producerService.setMessageQueueSelector((ctx, request, requestHeader, message) ->
+        producerService.setWriteQueueSelector((ctx, request, requestHeader, message) ->
             new SelectableMessageQueue(new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr"));
 
         CompletableFuture<SendMessageResponse> future = producerService.sendMessage(Context.current(), REQUEST);
@@ -90,7 +90,7 @@ public class ProducerServiceTest extends BaseServiceTest {
     public void testSendMessageNoQueueSelect() {
         ProducerService producerService = new ProducerService(this.clientManager);
 
-        producerService.setMessageQueueSelector((ctx, request, requestHeader, message) -> null);
+        producerService.setWriteQueueSelector((ctx, request, requestHeader, message) -> null);
 
         CompletableFuture<SendMessageResponse> future = producerService.sendMessage(Context.current(), SendMessageRequest.newBuilder()
             .setMessage(Message.newBuilder()
@@ -126,7 +126,7 @@ public class ProducerServiceTest extends BaseServiceTest {
         sendResultFuture.completeExceptionally(ex);
 
         ProducerService producerService = new ProducerService(this.clientManager);
-        producerService.setMessageQueueSelector((ctx, request, requestHeader, message) ->
+        producerService.setWriteQueueSelector((ctx, request, requestHeader, message) ->
             new SelectableMessageQueue(new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr"));
 
         CompletableFuture<SendMessageResponse> future = producerService.sendMessage(Context.current(), REQUEST);
@@ -146,7 +146,7 @@ public class ProducerServiceTest extends BaseServiceTest {
         RuntimeException ex = new RuntimeException();
 
         ProducerService producerService = new ProducerService(this.clientManager);
-        producerService.setMessageQueueSelector((ctx, request, requestHeader, message) -> {
+        producerService.setWriteQueueSelector((ctx, request, requestHeader, message) -> {
             throw ex;
         });
         producerService.setSendMessageHook((request, response, t) ->  {

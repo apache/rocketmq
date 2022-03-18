@@ -59,7 +59,7 @@ public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
                 .setBody(ByteString.copyFrom("hello", StandardCharsets.UTF_8))
                 .build())
             .build();
-        ProducerQueueSelector queueSelector = new DefaultProducerQueueSelector(this.topicRouteCache);
+        WriteQueueSelector queueSelector = new DefaultWriteQueueSelector(this.topicRouteCache);
         SelectableMessageQueue queue = queueSelector.selectQueue(Context.current(), request,
             Converter.buildSendMessageRequestHeader(request),
             Converter.buildMessage(request.getMessage()));
@@ -83,7 +83,7 @@ public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
                 .setBody(ByteString.copyFrom("hello", StandardCharsets.UTF_8))
                 .build())
             .build();
-        ProducerQueueSelector queueSelector = new DefaultProducerQueueSelector(this.topicRouteCache);
+        WriteQueueSelector queueSelector = new DefaultWriteQueueSelector(this.topicRouteCache);
         SelectableMessageQueue queue = queueSelector.selectQueue(Context.current(), request,
             Converter.buildSendMessageRequestHeader(request),
             Converter.buildMessage(request.getMessage()));
@@ -106,7 +106,7 @@ public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
                 .setBody(ByteString.copyFrom("hello", StandardCharsets.UTF_8))
                 .build())
             .build();
-        ProducerQueueSelector queueSelector = new DefaultProducerQueueSelector(this.topicRouteCache);
+        WriteQueueSelector queueSelector = new DefaultWriteQueueSelector(this.topicRouteCache);
         SelectableMessageQueue queue = queueSelector.selectQueue(Context.current(), request,
             Converter.buildSendMessageRequestHeader(request),
             Converter.buildMessage(request.getMessage()));
@@ -134,7 +134,7 @@ public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
                     .build())
                 .build())
             .build();
-        ProducerQueueSelector queueSelector = new DefaultProducerQueueSelector(this.topicRouteCache);
+        WriteQueueSelector queueSelector = new DefaultWriteQueueSelector(this.topicRouteCache);
         SelectableMessageQueue queue = queueSelector.selectQueue(Context.current(), request,
             Converter.buildSendMessageRequestHeader(request),
             Converter.buildMessage(request.getMessage()));

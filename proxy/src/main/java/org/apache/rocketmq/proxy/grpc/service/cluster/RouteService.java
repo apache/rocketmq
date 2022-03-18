@@ -58,7 +58,7 @@ public class RouteService extends BaseService {
     private volatile ResponseHook<QueryRouteRequest, QueryRouteResponse> queryRouteHook = null;
 
     private volatile ParameterConverter<Endpoints, Endpoints> queryAssignmentEndpointConverter;
-    private volatile RouteAssignmentQueueSelector assignmentQueueSelector;
+    private volatile AssignmentQueueSelector assignmentQueueSelector;
     private volatile ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook = null;
 
     public RouteService(ProxyMode mode, ConnectorManager connectorManager) {
@@ -67,7 +67,7 @@ public class RouteService extends BaseService {
         this.mode = mode;
         queryRouteEndpointConverter = (ctx, parameter) -> parameter;
         queryAssignmentEndpointConverter = (ctx, parameter) -> parameter;
-        assignmentQueueSelector = new DefaultRouteAssignmentQueueSelector(this.connectorManager.getTopicRouteCache());
+        assignmentQueueSelector = new DefaultAssignmentQueueSelector(this.connectorManager.getTopicRouteCache());
     }
 
     public void setQueryRouteEndpointConverter(ParameterConverter<Endpoints, Endpoints> queryRouteEndpointConverter) {
@@ -83,7 +83,7 @@ public class RouteService extends BaseService {
         this.queryAssignmentEndpointConverter = queryAssignmentEndpointConverter;
     }
 
-    public void setAssignmentQueueSelector(RouteAssignmentQueueSelector assignmentQueueSelector) {
+    public void setAssignmentQueueSelector(AssignmentQueueSelector assignmentQueueSelector) {
         this.assignmentQueueSelector = assignmentQueueSelector;
     }
 
@@ -179,25 +179,25 @@ public class RouteService extends BaseService {
         int queueIdIndex = 0;
         for (int i = 0; i < r; i++) {
             Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
-                    .setId(queueIdIndex++)
-                    .setPermission(Permission.READ)
-                    .build();
+                .setId(queueIdIndex++)
+                .setPermission(Permission.READ)
+                .build();
             partitionList.add(partition);
         }
 
         for (int i = 0; i < w; i++) {
             Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
-                    .setId(queueIdIndex++)
-                    .setPermission(Permission.WRITE)
-                    .build();
+                .setId(queueIdIndex++)
+                .setPermission(Permission.WRITE)
+                .build();
             partitionList.add(partition);
         }
 
         for (int i = 0; i < rw; i++) {
             Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
-                    .setId(queueIdIndex++)
-                    .setPermission(Permission.READ_WRITE)
-                    .build();
+                .setId(queueIdIndex++)
+                .setPermission(Permission.READ_WRITE)
+                .build();
             partitionList.add(partition);
         }
 
@@ -278,7 +278,7 @@ public class RouteService extends BaseService {
         return future;
     }
 
-    private Map<String, Map<Long, Broker>> buildBrokerMap(List<BrokerData> brokerDataList) {
+    private Map<String/*brokerName*/, Map<Long/*brokerID*/, Broker>> buildBrokerMap(List<BrokerData> brokerDataList) {
         Map<String, Map<Long, Broker>> brokerMap = new HashMap<>();
         for (BrokerData brokerData : brokerDataList) {
             Map<Long, Broker> brokerIdMap = new HashMap<>();
