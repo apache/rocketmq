@@ -32,7 +32,7 @@ import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.slf4j.Logger;

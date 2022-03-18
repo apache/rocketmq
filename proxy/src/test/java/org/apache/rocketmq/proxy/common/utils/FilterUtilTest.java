@@ -27,25 +27,25 @@ public class FilterUtilTest {
     @Test
     public void testIsTagMatched() throws Exception {
         SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("", "tagA");
-        assertThat(FilterUtil.isTagMatched(subscriptionData.getTagsSet(), "tagA")).isTrue();
+        assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), "tagA")).isTrue();
     }
 
     @Test
     public void testIsTagNotMatched() throws Exception {
         SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("", "tagA");
-        assertThat(FilterUtil.isTagMatched(subscriptionData.getTagsSet(), "tagB")).isFalse();
+        assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), "tagB")).isFalse();
     }
 
     @Test
     public void testIsTagMatchedStar() throws Exception {
         SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("", "*");
-        assertThat(FilterUtil.isTagMatched(subscriptionData.getTagsSet(), "tagA")).isTrue();
+        assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), "tagA")).isTrue();
     }
 
     @Test
     public void testIsTagNotMatchedNull() throws Exception {
         SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("", "tagA");
-        assertThat(FilterUtil.isTagMatched(subscriptionData.getTagsSet(), null)).isFalse();
+        assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), null)).isFalse();
     }
 
 } 

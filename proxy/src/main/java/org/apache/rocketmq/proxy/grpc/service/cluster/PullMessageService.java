@@ -34,7 +34,7 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.proxy.common.utils.FilterUtil;
+import org.apache.rocketmq.proxy.common.utils.FilterUtils;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
@@ -156,7 +156,7 @@ public class PullMessageService extends BaseService {
         PullStatus status = result.getPullStatus();
         if (status.equals(PullStatus.FOUND)) {
             List<Message> messageList = result.getMsgFoundList().stream()
-                .filter(msg -> FilterUtil.isTagMatched(subscriptionData.getTagsSet(), msg.getTags())) // only return tag matched messages.
+                .filter(msg -> FilterUtils.isTagMatched(subscriptionData.getTagsSet(), msg.getTags())) // only return tag matched messages.
                 .map(Converter::buildMessage)
                 .collect(Collectors.toList());
 

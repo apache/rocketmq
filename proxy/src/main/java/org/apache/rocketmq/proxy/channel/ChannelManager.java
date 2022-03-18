@@ -32,7 +32,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.common.Cleaner;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
-import org.apache.rocketmq.proxy.grpc.common.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

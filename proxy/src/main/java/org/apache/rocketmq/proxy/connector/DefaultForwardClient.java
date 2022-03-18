@@ -64,12 +64,22 @@ public class DefaultForwardClient extends AbstractForwardClient {
         return getClient().getTopicRouteInfoFromNameServer(topic, timeoutMillis);
     }
 
-    public CompletableFuture<Long> getMaxOffset(String brokerAddr, String topic, int queueId, long timeoutMillis) {
+    public CompletableFuture<Long> getMaxOffset(
+        String brokerAddr,
+        String topic,
+        int queueId,
+        long timeoutMillis
+    ) {
         return getClient().getMaxOffset(brokerAddr, topic, queueId, timeoutMillis);
     }
 
-    public CompletableFuture<Long> searchOffset(String brokerAddr, String topic, int queueId, long timestamp,
-        long timeoutMillis) {
+    public CompletableFuture<Long> searchOffset(
+        String brokerAddr,
+        String topic,
+        int queueId,
+        long timestamp,
+        long timeoutMillis
+    ) {
         return getClient().searchOffset(brokerAddr, topic, queueId, timestamp, timeoutMillis);
     }
 }
