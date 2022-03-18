@@ -26,6 +26,9 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class GetRouteInfoRequestHeader implements CommandCustomHeader {
     @CFNotNull
+    private String cluster;
+
+    @CFNotNull
     private String topic;
 
     @Override
@@ -38,5 +41,13 @@ public class GetRouteInfoRequestHeader implements CommandCustomHeader {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public String getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(String cluster) {
+        this.cluster = cluster;
     }
 }

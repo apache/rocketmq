@@ -381,7 +381,7 @@ public class RouteInfoManager {
         noBrokerRegisterTopic.forEach(topicQueueTable::remove);
     }
 
-    public TopicRouteData pickupTopicRouteData(final String topic) {
+    public TopicRouteData pickupTopicRouteData(final String cluster, final String topic) {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
@@ -403,7 +403,8 @@ public class RouteInfoManager {
                     brokerNameSet.addAll(queueDataMap.keySet());
 
                     for (String brokerName : brokerNameSet) {
-                        BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                        ClusterData clusterData = new ClusterData(cluster, brokerName);
+                        BrokerData brokerData = this.brokerAddrTable.get(clusterData);
                         if (null != brokerData) {
                             BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), brokerData.getBrokerName(), (HashMap<Long, String>) brokerData
                                     .getBrokerAddrs().clone());
