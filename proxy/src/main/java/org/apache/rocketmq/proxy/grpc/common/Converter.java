@@ -179,7 +179,7 @@ public class Converter {
 
         AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
         ackMessageRequestHeader.setConsumerGroup(groupName);
-        ackMessageRequestHeader.setTopic(topicName);
+        ackMessageRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
         ackMessageRequestHeader.setQueueId(handle.getQueueId());
         ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
         ackMessageRequestHeader.setOffset(handle.getOffset());
@@ -195,7 +195,7 @@ public class Converter {
 
         ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
         changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
-        changeInvisibleTimeRequestHeader.setTopic(topicName);
+        changeInvisibleTimeRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
         changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
         changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
@@ -213,7 +213,7 @@ public class Converter {
 
         ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
         changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
-        changeInvisibleTimeRequestHeader.setTopic(topicName);
+        changeInvisibleTimeRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
         changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
         changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
@@ -233,7 +233,24 @@ public class Converter {
         consumerSendMsgBackRequestHeader.setGroup(groupName);
         consumerSendMsgBackRequestHeader.setDelayLevel(-1);
         consumerSendMsgBackRequestHeader.setOriginMsgId(request.getMessageId());
-        consumerSendMsgBackRequestHeader.setOriginMsgId(topicName);
+        consumerSendMsgBackRequestHeader.setOriginTopic(handle.getRealTopic(topicName, groupName));
+        consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(request.getMaxDeliveryAttempts());
+        return consumerSendMsgBackRequestHeader;
+    }
+
+    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(
+        NackMessageRequest request) {
+        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
+        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String receiptHandleStr = request.getReceiptHandle();
+        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+
+        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
+        consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());
+        consumerSendMsgBackRequestHeader.setGroup(groupName);
+        consumerSendMsgBackRequestHeader.setDelayLevel(-1);
+        consumerSendMsgBackRequestHeader.setOriginMsgId(request.getMessageId());
+        consumerSendMsgBackRequestHeader.setOriginTopic(handle.getRealTopic(topicName, groupName));
         consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(request.getMaxDeliveryAttempts());
         return consumerSendMsgBackRequestHeader;
     }

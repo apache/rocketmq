@@ -514,6 +514,7 @@ public class LocalGrpcService implements GrpcForwardService {
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
         ChangeInvisibleTimeRequestHeader requestHeader = Converter.buildChangeInvisibleTimeRequestHeader(request);
+        ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
         command.makeCustomHeaderToNet();
 
@@ -530,7 +531,7 @@ public class LocalGrpcService implements GrpcForwardService {
                     .retrieveTime(responseHeader.getPopTime())
                     .invisibleTime(responseHeader.getInvisibleTime())
                     .reviveQueueId(responseHeader.getReviveQid())
-                    .topic(Converter.getResourceNameWithNamespace(request.getTopic()))
+                    .topicType(receiptHandle.getTopicType())
                     .brokerName(brokerController.getBrokerConfig().getBrokerName())
                     .queueId(requestHeader.getQueueId())
                     .offset(requestHeader.getOffset())
