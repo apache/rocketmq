@@ -34,7 +34,8 @@ public class DefaultAssignmentQueueSelector implements AssignmentQueueSelector {
 
     @Override
     public List<SelectableMessageQueue> getAssignment(Context ctx, QueryAssignmentRequest request) throws Exception {
-        MessageQueueWrapper messageQueueWrapper = topicRouteCache.getMessageQueue(Converter.getResourceNameWithNamespace(request.getTopic()));
+        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        MessageQueueWrapper messageQueueWrapper = topicRouteCache.getMessageQueue(topicName);
         return messageQueueWrapper.getReadSelector().getBrokerActingQueues();
     }
 }

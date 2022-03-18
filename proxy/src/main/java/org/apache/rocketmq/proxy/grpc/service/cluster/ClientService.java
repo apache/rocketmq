@@ -24,6 +24,9 @@ import apache.rocketmq.v1.PollCommandRequest;
 import apache.rocketmq.v1.PollCommandResponse;
 import apache.rocketmq.v1.Resource;
 import io.grpc.Context;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
@@ -32,15 +35,11 @@ import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class ClientService extends BaseService {
 
@@ -52,7 +51,12 @@ public class ClientService extends BaseService {
     private final ProducerManager producerManager;
     private final PollCommandResponseManager pollCommandResponseManager;
 
-    public ClientService(ConnectorManager connectorManager, ScheduledExecutorService scheduledExecutorService, ChannelManager channelManager, PollCommandResponseManager pollCommandResponseManager) {
+    public ClientService(
+        ConnectorManager connectorManager,
+        ScheduledExecutorService scheduledExecutorService,
+        ChannelManager channelManager,
+        PollCommandResponseManager pollCommandResponseManager
+    ) {
         super(connectorManager);
         scheduledExecutorService.scheduleWithFixedDelay(this::scanNotActiveChannel, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
         this.channelManager = channelManager;
@@ -70,6 +74,7 @@ public class ClientService extends BaseService {
         if (request.hasProducerData()) {
             String producerGroup = Converter.getResourceNameWithNamespace(request.getProducerData().getGroup());
             GrpcClientChannel channel = GrpcClientChannel.create(channelManager, producerGroup, clientId, pollCommandResponseManager);
+            //TODO: Use the faked MQ Version ？
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
             producerManager.registerProducer(producerGroup, clientChannelInfo);
         }
