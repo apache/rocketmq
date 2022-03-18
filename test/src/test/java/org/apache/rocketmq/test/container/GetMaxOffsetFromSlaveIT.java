@@ -39,6 +39,7 @@ import org.junit.Test;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+
 public class GetMaxOffsetFromSlaveIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer mqProducer;
 

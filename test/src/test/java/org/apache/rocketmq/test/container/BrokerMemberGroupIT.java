@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
 
+
 public class BrokerMemberGroupIT extends ContainerIntegrationTestBase {
     @Test
     public void testSyncBrokerMemberGroup() throws Exception {

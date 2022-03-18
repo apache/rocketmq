@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+
 public class AddAndRemoveBrokerIT extends ContainerIntegrationTestBase {
     private static BrokerContainer brokerContainer4;
 
