@@ -27,6 +27,8 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.AddWritePermOfBrokerResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -270,7 +272,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
 
         Boolean changed = this.namesrvController.getRouteInfoManager().isBrokerTopicConfigChanged(requestHeader.getBrokerAddr(), dataVersion);
         if (!changed) {
-            this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getBrokerAddr());
+            this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getBrokerAddr(), System.currentTimeMillis());
         }
 
         DataVersion nameSeverDataVersion = this.namesrvController.getRouteInfoManager().queryBrokerTopicConfig(requestHeader.getBrokerAddr());
@@ -376,7 +378,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
     private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
+        ClusterInfo clusterInfo = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
+        byte[] content = clusterInfo.encode();
         response.setBody(content);
 
         response.setCode(ResponseCode.SUCCESS);
@@ -427,7 +430,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
     private RemotingCommand getAllTopicListFromNameserver(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        byte[] body = this.namesrvController.getRouteInfoManager().getAllTopicList();
+        TopicList allTopicList = this.namesrvController.getRouteInfoManager().getAllTopicList();
+        byte[] body = allTopicList.encode();
 
         response.setBody(body);
         response.setCode(ResponseCode.SUCCESS);
@@ -474,7 +478,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         final GetTopicsByClusterRequestHeader requestHeader =
             (GetTopicsByClusterRequestHeader) request.decodeCommandCustomHeader(GetTopicsByClusterRequestHeader.class);
 
-        byte[] body = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
+        TopicList topicsByCluster = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
+        byte[] body = topicsByCluster.encode();
 
         response.setBody(body);
         response.setCode(ResponseCode.SUCCESS);
@@ -486,7 +491,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        byte[] body = this.namesrvController.getRouteInfoManager().getSystemTopicList();
+        TopicList systemTopicList = this.namesrvController.getRouteInfoManager().getSystemTopicList();
+        byte[] body = systemTopicList.encode();
 
         response.setBody(body);
         response.setCode(ResponseCode.SUCCESS);
@@ -498,7 +504,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        byte[] body = this.namesrvController.getRouteInfoManager().getUnitTopics();
+        TopicList unitTopics = this.namesrvController.getRouteInfoManager().getUnitTopics();
+        byte[] body = unitTopics.encode();
 
         response.setBody(body);
         response.setCode(ResponseCode.SUCCESS);
@@ -510,7 +517,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        byte[] body = this.namesrvController.getRouteInfoManager().getHasUnitSubTopicList();
+        TopicList hasUnitSubTopicList = this.namesrvController.getRouteInfoManager().getHasUnitSubTopicList();
+        byte[] body = hasUnitSubTopicList.encode();
 
         response.setBody(body);
         response.setCode(ResponseCode.SUCCESS);
@@ -522,7 +530,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        byte[] body = this.namesrvController.getRouteInfoManager().getHasUnitSubUnUnitTopicList();
+        TopicList hasUnitSubUnUnitTopicList = this.namesrvController.getRouteInfoManager().getHasUnitSubUnUnitTopicList();
+        byte[] body = hasUnitSubUnUnitTopicList.encode();
 
         response.setBody(body);
         response.setCode(ResponseCode.SUCCESS);

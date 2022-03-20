@@ -44,6 +44,8 @@ public class ClientLogger {
 
     private static final boolean CLIENT_USE_SLF4J;
 
+    private static Appender appenderProxy = new AppenderProxy();
+
     //private static Appender rocketmqClientAppender = null;
 
     static {
@@ -53,6 +55,7 @@ public class ClientLogger {
             CLIENT_LOGGER = createLogger(LoggerName.CLIENT_LOGGER_NAME);
             createLogger(LoggerName.COMMON_LOGGER_NAME);
             createLogger(RemotingHelper.ROCKETMQ_REMOTING);
+            Logger.getRootLogger().addAppender(appenderProxy);
         } else {
             CLIENT_LOGGER = InternalLoggerFactory.getLogger(LoggerName.CLIENT_LOGGER_NAME);
         }
@@ -76,7 +79,6 @@ public class ClientLogger {
             .withRollingFileAppender(logFileName, maxFileSize, maxFileIndex)
             .withAsync(false, queueSize).withName(ROCKETMQ_CLIENT_APPENDER_NAME).withLayout(layout).build();
 
-        Logger.getRootLogger().addAppender(rocketmqClientAppender);
         return rocketmqClientAppender;
     }
 
@@ -91,7 +93,7 @@ public class ClientLogger {
         //   createClientAppender();
         //}
 
-        realLogger.addAppender(new AppenderProxy());
+        realLogger.addAppender(appenderProxy);
         realLogger.setLevel(Level.toLevel(clientLogLevel));
         realLogger.setAdditivity(additive);
         return logger;
