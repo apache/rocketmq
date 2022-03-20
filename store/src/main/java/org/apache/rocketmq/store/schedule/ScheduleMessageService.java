@@ -460,9 +460,9 @@ public class ScheduleMessageService extends ConfigManager {
 
                     boolean deliverSuc;
                     if (ScheduleMessageService.this.enableAsyncDeliver) {
-                        deliverSuc = this.asyncDeliver(msgInner, msgExt.getMsgId(), offset, offsetPy, sizePy);
+                        deliverSuc = this.asyncDeliver(msgInner, msgExt.getMsgId(), nextOffset, offsetPy, sizePy);
                     } else {
-                        deliverSuc = this.syncDeliver(msgInner, msgExt.getMsgId(), offset, offsetPy, sizePy);
+                        deliverSuc = this.syncDeliver(msgInner, msgExt.getMsgId(), nextOffset, offsetPy, sizePy);
                     }
 
                     if (!deliverSuc) {
