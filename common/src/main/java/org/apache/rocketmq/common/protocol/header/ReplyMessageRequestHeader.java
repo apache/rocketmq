@@ -22,6 +22,10 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+
 public class ReplyMessageRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String producerGroup;
@@ -47,12 +51,13 @@ public class ReplyMessageRequestHeader implements CommandCustomHeader {
     private boolean unitMode = false;
 
     @CFNotNull
-    private String bornHost;
+    private SocketAddress bornHost;
     @CFNotNull
-    private String storeHost;
+    private SocketAddress storeHost;
     @CFNotNull
     private long storeTimestamp;
 
+    @Override
     public void checkFields() throws RemotingCommandException {
     }
 
@@ -144,19 +149,36 @@ public class ReplyMessageRequestHeader implements CommandCustomHeader {
         this.unitMode = unitMode;
     }
 
-    public String getBornHost() {
+    public SocketAddress getBornHost() {
         return bornHost;
     }
 
-    public void setBornHost(String bornHost) {
+    public void setBornHost(SocketAddress bornHost) {
+        System.out.println("【header】【setBornHost】" + bornHost);
         this.bornHost = bornHost;
     }
 
-    public String getStoreHost() {
+    public SocketAddress getStoreHost() {
         return storeHost;
     }
 
-    public void setStoreHost(String storeHost) {
+    public String getBornHostString() {
+        if (null != this.bornHost) {
+            InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
+            return null != inetAddress ? inetAddress.getHostAddress() : null;
+        }
+        return null;
+    }
+
+    public String getStoreHostString() {
+        if (null != this.bornHost) {
+            InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
+            return null != inetAddress ? inetAddress.getHostAddress() : null;
+        }
+        return null;
+    }
+
+    public void setStoreHost(SocketAddress storeHost) {
         this.storeHost = storeHost;
     }
 

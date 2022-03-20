@@ -157,8 +157,8 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         final SendMessageRequestHeader requestHeader,
         final Message msg) {
         ReplyMessageRequestHeader replyMessageRequestHeader = new ReplyMessageRequestHeader();
-        replyMessageRequestHeader.setBornHost(ctx.channel().remoteAddress().toString());
-        replyMessageRequestHeader.setStoreHost(this.getStoreHost().toString());
+        replyMessageRequestHeader.setBornHost(ctx.channel().remoteAddress());
+        replyMessageRequestHeader.setStoreHost(this.getStoreHost());
         replyMessageRequestHeader.setStoreTimestamp(System.currentTimeMillis());
         replyMessageRequestHeader.setProducerGroup(requestHeader.getProducerGroup());
         replyMessageRequestHeader.setTopic(requestHeader.getTopic());

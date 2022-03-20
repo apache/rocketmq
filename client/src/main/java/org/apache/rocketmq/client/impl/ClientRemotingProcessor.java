@@ -237,11 +237,11 @@ public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implemen
             msg.setStoreTimestamp(requestHeader.getStoreTimestamp());
 
             if (requestHeader.getBornHost() != null) {
-                msg.setBornHost(RemotingUtil.string2SocketAddress(requestHeader.getBornHost()));
+                msg.setBornHost(requestHeader.getBornHost());
             }
 
             if (requestHeader.getStoreHost() != null) {
-                msg.setStoreHost(RemotingUtil.string2SocketAddress(requestHeader.getStoreHost()));
+                msg.setStoreHost(requestHeader.getStoreHost());
             }
 
             byte[] body = request.getBody();
