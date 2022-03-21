@@ -21,11 +21,12 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
@@ -39,6 +40,13 @@ import org.slf4j.LoggerFactory;
 public class ProxyStartup {
 
     private static final Logger log = LoggerFactory.getLogger(ProxyStartup.class);
+    private static final ProxyStartAndShutdown proxyStartAndShutdown = new ProxyStartAndShutdown();
+
+    private static class ProxyStartAndShutdown extends AbstractStartAndShutdown {
+        @Override public void appendStartAndShutdown(StartAndShutdown startAndShutdown) {
+            super.appendStartAndShutdown(startAndShutdown);
+        }
+    }
 
     public static void main(String[] args) {
         try {
@@ -51,26 +59,19 @@ public class ProxyStartup {
 
             // create and start grpcServer
             GrpcServer grpcServer = createGrpcServer();
-            grpcServer.start();
+            proxyStartAndShutdown.appendStartAndShutdown(grpcServer);
 
             // health check server
             final HealthCheckServer healthCheckServer = new HealthCheckServer();
-            healthCheckServer.start();
+            proxyStartAndShutdown.appendStartAndShutdown(healthCheckServer);
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 log.info("try to shutdown server");
 
                 try {
-                    healthCheckServer.shutdown();
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(ConfigurationManager.getProxyConfig().getWaitAfterStopHealthCheckInSeconds()));
+                    proxyStartAndShutdown.shutdown();
                 } catch (Exception e) {
-                    log.error("err when shutdown healthCheckServer", e);
-                }
-
-                try {
-                    grpcServer.shutdown();
-                } catch (Exception e) {
-                    log.error("err when shutdown grpc server", e);
+                    log.error("err when shutdown proxy", e);
                 }
             }));
         } catch (Exception e) {
@@ -84,20 +85,29 @@ public class ProxyStartup {
         log.info(new Date() + "rmq-proxy startup successfully");
     }
 
-    private static GrpcServer createGrpcServer() throws RuntimeException {
+    private static GrpcServer createGrpcServer() throws Exception {
         GrpcForwardService grpcService;
         String proxyModeStr = ConfigurationManager.getProxyConfig().getProxyMode();
         if (ProxyMode.isClusterMode(proxyModeStr)) {
             grpcService = new ClusterGrpcService();
         } else if (ProxyMode.isLocalMode(proxyModeStr)) {
             BrokerController brokerController = createBrokerController();
+            StartAndShutdown brokerControllerWrapper = new StartAndShutdown() {
+                @Override public void start() throws Exception {
+                    brokerController.start();
+                }
+
+                @Override public void shutdown() throws Exception {
+                    brokerController.shutdown();
+                }
+            };
+            proxyStartAndShutdown.appendStartAndShutdown(brokerControllerWrapper);
             grpcService = new LocalGrpcService(brokerController);
         } else {
             throw new IllegalArgumentException("try to start grpc server with wrong mode, use 'local' or 'cluster'");
         }
 
         return new GrpcServer(grpcService);
-
     }
 
     private static BrokerController createBrokerController() {

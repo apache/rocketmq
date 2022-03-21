@@ -17,19 +17,10 @@
 
 package org.apache.rocketmq.test.proxy;
 
-import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.MessagingServiceGrpc;
-import apache.rocketmq.v1.Partition;
-import apache.rocketmq.v1.ReceiveMessageRequest;
+import apache.rocketmq.v1.QueryRouteResponse;
 import apache.rocketmq.v1.ReceiveMessageResponse;
-import apache.rocketmq.v1.Resource;
-import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
-import apache.rocketmq.v1.SystemAttribute;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Duration;
-import com.google.protobuf.Timestamp;
-import com.google.rpc.Code;
 import io.grpc.Channel;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
@@ -37,15 +28,16 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.GrpcMessagingProcessor;
 import org.apache.rocketmq.proxy.grpc.service.LocalGrpcService;
 import org.apache.rocketmq.test.base.GrpcBaseTest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class LocalGrpcTest extends GrpcBaseTest {
     private MessagingServiceGrpc.MessagingServiceBlockingStub blockingStub;
+    private LocalGrpcService localGrpcService;
 
     @Before
     public void setUp() throws Exception {
@@ -57,56 +49,37 @@ public class LocalGrpcTest extends GrpcBaseTest {
         System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
-        GrpcMessagingProcessor processor = new GrpcMessagingProcessor(new LocalGrpcService(brokerController1));
         ConfigurationManager.getProxyConfig().setGrpcServerPort(8082);
+        ConfigurationManager.getProxyConfig().setNameSrvAddr(nsAddr);
+        localGrpcService = new LocalGrpcService(brokerController1);
+        localGrpcService.start();
+        GrpcMessagingProcessor processor = new GrpcMessagingProcessor(localGrpcService);
         Channel channel = setUpServer(processor, ConfigurationManager.getProxyConfig().getGrpcServerPort(), true);
         blockingStub = MessagingServiceGrpc.newBlockingStub(channel);
+    }
+
+    @After
+    public void clean() throws Exception {
+        localGrpcService.shutdown();
+        shutdown();
+    }
+
+    @Test
+    public void testQueryRoute() {
+        String topic = initTopic();
+        QueryRouteResponse response = blockingStub.queryRoute(buildQueryRouteRequest(topic));
+        assertQueryRoute(response, brokerControllerList.size());
     }
 
     @Test
     public void testSendReceiveMessage() {
         String group = "group";
-        SendMessageResponse sendResponse = blockingStub.sendMessage(SendMessageRequest.newBuilder()
-            .setMessage(Message.newBuilder()
-                .setTopic(Resource.newBuilder()
-                    .setName(broker1Name)
-                    .build())
-                .setSystemAttribute(SystemAttribute.newBuilder()
-                    .setMessageId(createUniqID())
-                    .setPartitionId(0)
-                    .build())
-                .setBody(ByteString.copyFromUtf8("123"))
-                .build())
-            .build());
-        assertThat(sendResponse.getCommon()
-            .getStatus()
-            .getCode()).isEqualTo(Code.OK.getNumber());
-        String messageId = sendResponse.getMessageId();
+        String messageId = createUniqID();
+        SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(broker1Name, messageId));
+        assertSendMessage(sendResponse, messageId);
+
         ReceiveMessageResponse receiveResponse = blockingStub.withDeadlineAfter(3, TimeUnit.SECONDS)
-            .receiveMessage(ReceiveMessageRequest.newBuilder()
-                .setGroup(Resource.newBuilder()
-                    .setName(group)
-                    .build())
-                .setPartition(Partition.newBuilder()
-                    .setTopic(Resource.newBuilder()
-                        .setName(broker1Name)
-                        .build())
-                    .setId(0)
-                    .build())
-                .setBatchSize(16)
-                .setInvisibleDuration(Duration.newBuilder()
-                    .setSeconds(3)
-                    .build())
-                .setInitializationTimestamp(Timestamp.newBuilder()
-                    .setSeconds(TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()))
-                    .build())
-                .build());
-        assertThat(receiveResponse.getCommon()
-            .getStatus()
-            .getCode()).isEqualTo(Code.OK.getNumber());
-        assertThat(receiveResponse.getMessagesCount()).isEqualTo(1);
-        assertThat(receiveResponse.getMessages(0)
-            .getSystemAttribute()
-            .getMessageId()).isEqualTo(messageId);
+            .receiveMessage(buildReceiveMessageRequest(group, broker1Name));
+        assertReceiveMessage(receiveResponse, messageId);
     }
 }
