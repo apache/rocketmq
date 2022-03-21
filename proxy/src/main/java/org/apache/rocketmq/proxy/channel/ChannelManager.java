@@ -50,7 +50,7 @@ public class ChannelManager {
     }
 
     public <T extends SimpleChannel> T createChannel(Supplier<T> creator, Class<T> clazz) {
-        return createChannel(anonymousChannelId(), creator, clazz);
+        return createChannel(anonymousChannelId(clazz.getName()), creator, clazz);
     }
 
     public <T extends SimpleChannel> T createChannel(String clientId, Supplier<T> creator, Class<T> clazz) {
@@ -94,6 +94,14 @@ public class ChannelManager {
         final String localAddress = InterceptorConstants.METADATA.get(Context.current())
             .get(InterceptorConstants.LOCAL_ADDRESS);
         return clientHost + "@" + localAddress;
+    }
+
+    private String anonymousChannelId(String className) {
+        final String clientHost = InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.REMOTE_ADDRESS);
+        final String localAddress = InterceptorConstants.METADATA.get(Context.current())
+            .get(InterceptorConstants.LOCAL_ADDRESS);
+        return className + "@" + clientHost + "@" + localAddress;
     }
 
     public static SimpleChannel createSimpleChannelDirectly() {
