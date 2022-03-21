@@ -136,7 +136,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         this.appendStartAndShutdown(new LocalGrpcServiceStartAndShutdown());
     }
 
-    @Override public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
+    @Override
+    public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
         return this.routeService.queryRoute(ctx, request);
     }
 
@@ -257,7 +258,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         return future;
     }
 
-    @Override public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
+    @Override
+    public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         AckMessageRequestHeader requestHeader = Converter.buildAckMessageRequestHeader(request);
@@ -282,7 +284,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         return future;
     }
 
-    @Override public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
+    @Override
+    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
@@ -364,7 +367,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         return future;
     }
 
-    @Override public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
+    @Override
+    public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
         Partition partition = request.getPartition();
         String topicName = Converter.getResourceNameWithNamespace(partition.getTopic());
         int queueId = partition.getId();
@@ -386,7 +390,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             .build());
     }
 
-    @Override public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
+    @Override
+    public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
         long timeRemaining = Context.current()
             .getDeadline()
             .timeRemaining(TimeUnit.MILLISECONDS);
@@ -419,7 +424,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         return future;
     }
 
-    @Override public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
+    @Override
+    public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
         String clientId = request.getClientId();
         CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
         switch (request.getGroupCase()) {
@@ -479,6 +485,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     @Override
     public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
         ReportMessageConsumptionResultRequest request) {
+
         String commandId = request.getCommandId();
         PollCommandResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(commandId);
         if (pollCommandResponseFuture != null) {
@@ -497,7 +504,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             .build());
     }
 
-    @Override public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    @Override
+    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
@@ -512,7 +520,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         return new CompletableFuture<>();
     }
 
-    @Override public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+    @Override
+    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);

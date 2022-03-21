@@ -39,11 +39,12 @@ import org.slf4j.LoggerFactory;
 
 public class ProxyStartup {
 
-    private static final Logger log = LoggerFactory.getLogger(ProxyStartup.class);
-    private static final ProxyStartAndShutdown proxyStartAndShutdown = new ProxyStartAndShutdown();
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProxyStartup.class);
+    private static final ProxyStartAndShutdown PROXY_START_AND_SHUTDOWN = new ProxyStartAndShutdown();
 
     private static class ProxyStartAndShutdown extends AbstractStartAndShutdown {
-        @Override public void appendStartAndShutdown(StartAndShutdown startAndShutdown) {
+        @Override
+        public void appendStartAndShutdown(StartAndShutdown startAndShutdown) {
             super.appendStartAndShutdown(startAndShutdown);
         }
     }
@@ -59,30 +60,29 @@ public class ProxyStartup {
 
             // create and start grpcServer
             GrpcServer grpcServer = createGrpcServer();
-            proxyStartAndShutdown.appendStartAndShutdown(grpcServer);
+            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
             // health check server
             final HealthCheckServer healthCheckServer = new HealthCheckServer();
-            proxyStartAndShutdown.appendStartAndShutdown(healthCheckServer);
+            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(healthCheckServer);
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                log.info("try to shutdown server");
-
+                LOGGER.info("try to shutdown server");
                 try {
-                    proxyStartAndShutdown.shutdown();
+                    PROXY_START_AND_SHUTDOWN.shutdown();
                 } catch (Exception e) {
-                    log.error("err when shutdown proxy", e);
+                    LOGGER.error("err when shutdown proxy", e);
                 }
             }));
         } catch (Exception e) {
             System.err.println("find a unexpect err." + e);
             e.printStackTrace();
-            log.error("find a unexpect err.", e);
+            LOGGER.error("find a unexpect err.", e);
             System.exit(1);
         }
 
         System.out.printf("%s%n", new Date() + " rmq-proxy startup successfully");
-        log.info(new Date() + "rmq-proxy startup successfully");
+        LOGGER.info(new Date() + "rmq-proxy startup successfully");
     }
 
     private static GrpcServer createGrpcServer() throws Exception {
@@ -93,15 +93,17 @@ public class ProxyStartup {
         } else if (ProxyMode.isLocalMode(proxyModeStr)) {
             BrokerController brokerController = createBrokerController();
             StartAndShutdown brokerControllerWrapper = new StartAndShutdown() {
-                @Override public void start() throws Exception {
+                @Override
+                public void start() throws Exception {
                     brokerController.start();
                 }
 
-                @Override public void shutdown() throws Exception {
+                @Override
+                public void shutdown() throws Exception {
                     brokerController.shutdown();
                 }
             };
-            proxyStartAndShutdown.appendStartAndShutdown(brokerControllerWrapper);
+            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(brokerControllerWrapper);
             grpcService = new LocalGrpcService(brokerController);
         } else {
             throw new IllegalArgumentException("try to start grpc server with wrong mode, use 'local' or 'cluster'");

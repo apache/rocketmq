@@ -33,7 +33,8 @@ public class HealthCheckServer implements StartAndShutdown {
 
     @Override
     public void start() throws Exception {
-        this.healthChecker = HttpServer.create(new InetSocketAddress(ConfigurationManager.getProxyConfig().getHealthCheckPort()), 0);
+        this.healthChecker = HttpServer.create(
+            new InetSocketAddress(ConfigurationManager.getProxyConfig().getHealthCheckPort()), 0);
         this.healthChecker.createContext("/status", new HealthCheckHandler());
         this.healthChecker.setExecutor(null);
         this.healthChecker.start();

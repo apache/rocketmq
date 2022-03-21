@@ -21,9 +21,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class InvocationContext<R, W> {
-    final private R request;
-    final private CompletableFuture<W> response;
-    final private long timestamp = System.currentTimeMillis();
+    private final R request;
+    private final CompletableFuture<W> response;
+    private final long timestamp = System.currentTimeMillis();
 
     public InvocationContext(R req, CompletableFuture<W> resp) {
         request = req;

@@ -52,11 +52,17 @@ public class GrpcClientChannel extends SimpleChannel {
         this.pollCommandResponseFutureRef.set(future);
     }
 
-    public static GrpcClientChannel create(ChannelManager channelManager, String group, String clientId, PollCommandResponseManager manager) {
+    public static GrpcClientChannel create(
+        ChannelManager channelManager,
+        String group,
+        String clientId,
+        PollCommandResponseManager manager
+    ) {
         GrpcClientChannel channel = channelManager.createChannel(
             buildKey(group, clientId),
             () -> new GrpcClientChannel(group, clientId, manager),
-            GrpcClientChannel.class);
+            GrpcClientChannel.class
+        );
 
         channelManager.addGroupClientId(group, clientId);
         return channel;

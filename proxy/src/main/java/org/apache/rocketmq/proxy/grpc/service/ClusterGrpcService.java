@@ -181,8 +181,9 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         return this.clientService.pollCommand(ctx, request);
     }
 
-    @Override public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
-                                                                                              ReportThreadStackTraceRequest request) {
+    @Override
+    public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
+        ReportThreadStackTraceRequest request) {
         return null;
     }
 
