@@ -74,7 +74,6 @@ public class ClientService extends BaseService {
         if (request.hasProducerData()) {
             String producerGroup = Converter.getResourceNameWithNamespace(request.getProducerData().getGroup());
             GrpcClientChannel channel = GrpcClientChannel.create(channelManager, producerGroup, clientId, pollCommandResponseManager);
-            //TODO: Use the faked MQ Version ？
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
             producerManager.registerProducer(producerGroup, clientChannelInfo);
         }
