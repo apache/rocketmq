@@ -17,7 +17,6 @@
 package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.CompletableFuture;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -26,6 +25,7 @@ import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHead
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
@@ -87,7 +87,8 @@ public class ForwardProducer extends AbstractForwardClient {
         SendMessageRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<SendResult> future = this.getClient().sendMessage(address, brokerName, msg, requestHeader, timeoutMillis);
         return future.thenApply(sendResult -> {
-            if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) && !StringUtils.isEmpty(sendResult.getTransactionId())) {
+            int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
+            if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) && tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE) {
                 TransactionId transactionId = TransactionId.genFromBrokerTransactionId(address, sendResult);
                 sendResult.setTransactionId(transactionId.getProxyTransactionId());
             }

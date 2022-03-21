@@ -344,7 +344,6 @@ public class Converter {
 
             Duration transactionResolveDelay = message.getSystemAttribute().getOrphanedTransactionRecoveryPeriod();
 
-            MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, String.valueOf(15));
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS,
                 String.valueOf(Durations.toSeconds(transactionResolveDelay)));
         }

@@ -23,6 +23,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -70,7 +71,10 @@ public class TransactionId {
 
     public static TransactionId genFromBrokerTransactionId(SocketAddress brokerAddr, String orgTransactionId,
         long commitLogOffset, long tranStateTableOffset) {
-        byte[] orgTransactionIdByte = orgTransactionId.getBytes(StandardCharsets.UTF_8);
+        byte[] orgTransactionIdByte = new byte[0];
+        if (StringUtils.isNotBlank(orgTransactionId)) {
+            orgTransactionIdByte = orgTransactionId.getBytes(StandardCharsets.UTF_8);
+        }
 
         ByteBuffer byteBuffer = ByteBuffer.allocate(8 + 4 + orgTransactionIdByte.length + 8 + 8);
         byteBuffer.put(MessageExt.socketAddress2ByteBuffer(brokerAddr));
@@ -100,8 +104,11 @@ public class TransactionId {
         SocketAddress brokerAddr = new InetSocketAddress(InetAddress.getByAddress(ip), port);
 
         int orgTransactionIdLen = byteBuffer.getInt();
-        byte[] orgTransactionIdByte = new byte[orgTransactionIdLen];
-        byteBuffer.get(orgTransactionIdByte);
+        byte[] orgTransactionIdByte = new byte[0];
+        if (orgTransactionIdLen > 0) {
+            orgTransactionIdByte = new byte[orgTransactionIdLen];
+            byteBuffer.get(orgTransactionIdByte);
+        }
 
         long commitLogOffset = byteBuffer.getLong();
         long tranStateTableOffset = byteBuffer.getLong();
