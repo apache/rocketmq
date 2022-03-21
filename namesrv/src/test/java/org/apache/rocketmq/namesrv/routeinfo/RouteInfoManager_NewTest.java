@@ -83,7 +83,7 @@ public class RouteInfoManager_NewTest {
             .name("AnotherBroker")
             .addr(DEFAULT_ADDR_PREFIX + 30911), "TestTopic1");
 
-        final byte[] content = routeInfoManager.getAllClusterInfo();
+        final byte[] content = routeInfoManager.getAllClusterInfo().encode();
 
         final ClusterInfo clusterInfo = ClusterInfo.decode(content, ClusterInfo.class);
 
@@ -117,14 +117,14 @@ public class RouteInfoManager_NewTest {
 
     @Test
     public void getAllTopicList() {
-        byte[] content = routeInfoManager.getAllTopicList();
+        byte[] content = routeInfoManager.getAllTopicList().encode();
 
         TopicList topicList = TopicList.decode(content, TopicList.class);
         assertThat(topicList.getTopicList()).isEmpty();
 
         registerBrokerWithNormalTopic(BrokerBasicInfo.defaultBroker(), "TestTopic", "TestTopic1", "TestTopic2");
 
-        content = routeInfoManager.getAllTopicList();
+        content = routeInfoManager.getAllTopicList().encode();
 
         topicList = TopicList.decode(content, TopicList.class);
         assertThat(topicList.getTopicList()).contains("TestTopic", "TestTopic1", "TestTopic2");
