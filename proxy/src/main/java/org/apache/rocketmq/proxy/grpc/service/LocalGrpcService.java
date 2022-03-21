@@ -86,23 +86,25 @@ import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
+import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.PullMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.ReceiveMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
-import org.apache.rocketmq.proxy.grpc.adapter.channel.PullMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.PullMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.common.Converter;
 import org.apache.rocketmq.proxy.grpc.common.DelayPolicy;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseFuture;
 import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
 import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
@@ -111,7 +113,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocalGrpcService implements GrpcForwardService {
+public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     private final BrokerController brokerController;
@@ -130,6 +132,8 @@ public class LocalGrpcService implements GrpcForwardService {
         this.pollCommandResponseManager = new PollCommandResponseManager();
         this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager);
         this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
+        this.appendStartAndShutdown(connectorManager);
+        this.appendStartAndShutdown(new LocalGrpcServiceStartAndShutdown());
     }
 
     @Override public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
@@ -547,14 +551,14 @@ public class LocalGrpcService implements GrpcForwardService {
         return future;
     }
 
-    @Override public void start() throws Exception {
-        this.brokerController.start();
-        this.scheduledExecutorService.scheduleWithFixedDelay(this::scanAndCleanChannels, 5, 5, TimeUnit.MINUTES);
-    }
+    private class LocalGrpcServiceStartAndShutdown implements StartAndShutdown {
+        @Override public void start() throws Exception {
+            LocalGrpcService.this.scheduledExecutorService.scheduleWithFixedDelay(LocalGrpcService.this::scanAndCleanChannels, 5, 5, TimeUnit.MINUTES);
+        }
 
-    @Override public void shutdown() throws Exception {
-        this.scheduledExecutorService.shutdown();
-        this.brokerController.shutdown();
+        @Override public void shutdown() throws Exception {
+            LocalGrpcService.this.scheduledExecutorService.shutdown();
+        }
     }
 
     private void scanAndCleanChannels() {

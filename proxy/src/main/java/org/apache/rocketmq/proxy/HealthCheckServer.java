@@ -23,6 +23,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 
@@ -39,8 +40,9 @@ public class HealthCheckServer implements StartAndShutdown {
     }
 
     @Override
-    public void shutdown() {
+    public void shutdown() throws InterruptedException {
         this.healthChecker.stop(0);
+        Thread.sleep(TimeUnit.SECONDS.toMillis(ConfigurationManager.getProxyConfig().getWaitAfterStopHealthCheckInSeconds()));
     }
 
     static class HealthCheckHandler implements HttpHandler {

@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
@@ -293,7 +294,7 @@ public class RouteService extends BaseService {
                         .setScheme(AddressScheme.IPv4)
                         .addAddresses(
                             Address.newBuilder()
-                                .setPort(hostAndPort.getPort())
+                                .setPort(ConfigurationManager.getProxyConfig().getGrpcServerPort())
                                 .setHost(hostAndPort.getHost())
                         )
                         .build())
