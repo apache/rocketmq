@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.test.base;
 
+import apache.rocketmq.v1.Address;
+import apache.rocketmq.v1.AddressScheme;
+import apache.rocketmq.v1.Endpoints;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.QueryRouteRequest;
@@ -94,10 +97,15 @@ public class GrpcBaseTest extends BaseConf {
     }
 
     public QueryRouteRequest buildQueryRouteRequest(String topic) {
+        return buildQueryRouteRequest(topic, Endpoints.getDefaultInstance());
+    }
+
+    public QueryRouteRequest buildQueryRouteRequest(String topic, Endpoints endpoints) {
         return QueryRouteRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName(topic)
                 .build())
+            .setEndpoints(endpoints)
             .build();
     }
 
