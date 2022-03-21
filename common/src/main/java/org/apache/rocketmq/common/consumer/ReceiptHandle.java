@@ -25,8 +25,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 public class ReceiptHandle {
     private static final String SEPARATOR = MessageConst.KEY_SEPARATOR;
-    private static final String NORMAL_TOPIC = "0";
-    private static final String RETRY_TOPIC = "1";
+    public static final String NORMAL_TOPIC = "0";
+    public static final String RETRY_TOPIC = "1";
     private final long startOffset;
     private final long retrieveTime;
     private final long invisibleTime;

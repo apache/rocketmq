@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.test.base;
 
-import apache.rocketmq.v1.Address;
-import apache.rocketmq.v1.AddressScheme;
+import apache.rocketmq.v1.AckMessageRequest;
+import apache.rocketmq.v1.AckMessageResponse;
 import apache.rocketmq.v1.Endpoints;
 import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.Partition;
@@ -145,6 +145,18 @@ public class GrpcBaseTest extends BaseConf {
             .build();
     }
 
+    public AckMessageRequest buildAckMessageRequest(String group, String topic, String receiptHandle) {
+        return AckMessageRequest.newBuilder()
+            .setGroup(Resource.newBuilder()
+                .setName(group)
+                .build())
+            .setTopic(Resource.newBuilder()
+                .setName(topic)
+                .build())
+            .setReceiptHandle(receiptHandle)
+            .build();
+    }
+
     public void assertQueryRoute(QueryRouteResponse response, int brokerSize) {
         assertThat(response.getCommon().getStatus().getCode()).isEqualTo(Code.OK_VALUE);
         assertThat(response.getPartitionsList().size()).isEqualTo(brokerSize * defaultQueueNums);
@@ -166,5 +178,11 @@ public class GrpcBaseTest extends BaseConf {
         assertThat(response.getMessages(0)
             .getSystemAttribute()
             .getMessageId()).isEqualTo(messageId);
+    }
+
+    public void assertAck(AckMessageResponse response) {
+        assertThat(response.getCommon()
+            .getStatus()
+            .getCode()).isEqualTo(Code.OK_VALUE);
     }
 }

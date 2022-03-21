@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.proxy;
 
+import apache.rocketmq.v1.AckMessageResponse;
 import apache.rocketmq.v1.MessagingServiceGrpc;
 import apache.rocketmq.v1.QueryRouteResponse;
 import apache.rocketmq.v1.ReceiveMessageResponse;
@@ -81,5 +82,8 @@ public class LocalGrpcTest extends GrpcBaseTest {
         ReceiveMessageResponse receiveResponse = blockingStub.withDeadlineAfter(3, TimeUnit.SECONDS)
             .receiveMessage(buildReceiveMessageRequest(group, broker1Name));
         assertReceiveMessage(receiveResponse, messageId);
+        String receiptHandle = receiveResponse.getMessages(0).getSystemAttribute().getReceiptHandle();
+        AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(group, broker1Name, receiptHandle));
+        assertAck(ackMessageResponse);
     }
 }
