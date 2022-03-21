@@ -111,11 +111,11 @@ public class RouteInfoManager {
         return this.unRegisterService.queueLength();
     }
 
-    public byte[] getAllClusterInfo() {
+    public ClusterInfo getAllClusterInfo() {
         ClusterInfo clusterInfoSerializeWrapper = new ClusterInfo();
         clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
         clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
-        return clusterInfoSerializeWrapper.encode();
+        return clusterInfoSerializeWrapper;
     }
 
     public void registerTopic(final String topic, List<QueueData> queueDatas) {
@@ -196,7 +196,7 @@ public class RouteInfoManager {
         }
     }
 
-    public byte[] getAllTopicList() {
+    public TopicList getAllTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -209,7 +209,7 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
     public RegisterBrokerResult registerBroker(
@@ -1005,7 +1005,7 @@ public class RouteInfoManager {
         }
     }
 
-    public byte[] getSystemTopicList() {
+    public TopicList getSystemTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -1034,10 +1034,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getTopicsByCluster(String cluster) {
+    public TopicList getTopicsByCluster(String cluster) {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -1063,10 +1063,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getUnitTopics() {
+    public TopicList getUnitTopics() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -1089,10 +1089,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getHasUnitSubTopicList() {
+    public TopicList getHasUnitSubTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -1115,10 +1115,10 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 
-    public byte[] getHasUnitSubUnUnitTopicList() {
+    public TopicList getHasUnitSubUnUnitTopicList() {
         TopicList topicList = new TopicList();
         try {
             try {
@@ -1142,7 +1142,7 @@ public class RouteInfoManager {
             log.error("getAllTopicList Exception", e);
         }
 
-        return topicList.encode();
+        return topicList;
     }
 }
 

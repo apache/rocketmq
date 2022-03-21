@@ -60,7 +60,7 @@ public class RouteInfoManagerTest {
 
     @Test
     public void testGetAllClusterInfo() {
-        byte[] clusterInfo = routeInfoManager.getAllClusterInfo();
+        byte[] clusterInfo = routeInfoManager.getAllClusterInfo().encode();
         assertThat(clusterInfo).isNotNull();
     }
 
@@ -115,7 +115,7 @@ public class RouteInfoManagerTest {
 
     @Test
     public void testGetAllTopicList() {
-        byte[] topicInfo = routeInfoManager.getAllTopicList();
+        byte[] topicInfo = routeInfoManager.getAllTopicList().encode();
         Assert.assertTrue(topicInfo != null);
         assertThat(topicInfo).isNotNull();
     }
@@ -173,31 +173,31 @@ public class RouteInfoManagerTest {
 
     @Test
     public void testGetSystemTopicList() {
-        byte[] topicList = routeInfoManager.getSystemTopicList();
+        byte[] topicList = routeInfoManager.getSystemTopicList().encode();
         assertThat(topicList).isNotNull();
     }
 
     @Test
     public void testGetTopicsByCluster() {
-        byte[] topicList = routeInfoManager.getTopicsByCluster("default-cluster");
+        byte[] topicList = routeInfoManager.getTopicsByCluster("default-cluster").encode();
         assertThat(topicList).isNotNull();
     }
 
     @Test
     public void testGetUnitTopics() {
-        byte[] topicList = routeInfoManager.getUnitTopics();
+        byte[] topicList = routeInfoManager.getUnitTopics().encode();
         assertThat(topicList).isNotNull();
     }
 
     @Test
     public void testGetHasUnitSubTopicList() {
-        byte[] topicList = routeInfoManager.getHasUnitSubTopicList();
+        byte[] topicList = routeInfoManager.getHasUnitSubTopicList().encode();
         assertThat(topicList).isNotNull();
     }
 
     @Test
     public void testGetHasUnitSubUnUnitTopicList() {
-        byte[] topicList = routeInfoManager.getHasUnitSubUnUnitTopicList();
+        byte[] topicList = routeInfoManager.getHasUnitSubUnUnitTopicList().encode();
         assertThat(topicList).isNotNull();
     }
 
