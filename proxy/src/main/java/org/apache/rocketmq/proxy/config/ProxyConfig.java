@@ -82,6 +82,8 @@ public class ProxyConfig {
     private int retryDelayLevelDelta = 3;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
 
+    private boolean enableACL = false;
+
     public Integer getHealthCheckPort() {
         return healthCheckPort;
     }
@@ -384,5 +386,13 @@ public class ProxyConfig {
 
     public void setMessageDelayLevel(String messageDelayLevel) {
         this.messageDelayLevel = messageDelayLevel;
+    }
+
+    public boolean isEnableACL() {
+        return enableACL;
+    }
+
+    public void setEnableACL(boolean enableACL) {
+        this.enableACL = enableACL;
     }
 }

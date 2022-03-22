@@ -62,4 +62,7 @@ public class InterceptorConstants {
 
     public static final Metadata.Key<String> RPC_NAME
         = Metadata.Key.of("x-mq-rpc-name", Metadata.ASCII_STRING_MARSHALLER);
+
+    public static final Metadata.Key<String> SESSION_TOKEN
+        = Metadata.Key.of("x-mq-session-token", Metadata.ASCII_STRING_MARSHALLER);
 }

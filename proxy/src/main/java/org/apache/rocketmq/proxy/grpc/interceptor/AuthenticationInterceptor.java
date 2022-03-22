@@ -1,0 +1,64 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.rocketmq.proxy.grpc.interceptor;
+
+import com.google.protobuf.GeneratedMessageV3;
+import io.grpc.Context;
+import io.grpc.ForwardingServerCallListener;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import java.util.List;
+import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.common.MetadataHeader;
+import org.apache.rocketmq.proxy.common.RequestMapping;
+
+public class AuthenticationInterceptor implements ServerInterceptor {
+    private final List<AccessValidator> accessValidatorList;
+
+    public AuthenticationInterceptor(List<AccessValidator> accessValidatorList) {
+        this.accessValidatorList = accessValidatorList;
+    }
+
+    @Override
+    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers,
+        ServerCallHandler<ReqT, RespT> next) {
+        return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(next.startCall(call, headers)) {
+            @Override
+            public void onMessage(ReqT message) {
+                GeneratedMessageV3 messageV3 = (GeneratedMessageV3) message;
+                MetadataHeader metadataHeader = MetadataHeader.builder()
+                    .remoteAddress(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS))
+                    .namespace(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.NAMESPACE_ID))
+                    .authorization(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.AUTHORIZATION))
+                    .datetime(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.DATE_TIME))
+                    .sessionToken(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.SESSION_TOKEN))
+                    .requestId(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REQUEST_ID))
+                    .language(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE))
+                    .clientVersion(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.CLIENT_VERSION))
+                    .protocol(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.PROTOCOL_VERSION))
+                    .requestCode(RequestMapping.map(messageV3.getDescriptorForType().getFullName()))
+                    .build();
+                for (AccessValidator accessValidator : accessValidatorList) {
+                    accessValidator.validate(accessValidator.parse(messageV3, metadataHeader));
+                }
+            }
+        };
+    }
+}

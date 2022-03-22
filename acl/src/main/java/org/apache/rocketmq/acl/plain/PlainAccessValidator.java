@@ -16,20 +16,36 @@
  */
 package org.apache.rocketmq.acl.plain;
 
+import apache.rocketmq.v1.AckMessageRequest;
+import apache.rocketmq.v1.EndTransactionRequest;
+import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueRequest;
+import apache.rocketmq.v1.HeartbeatRequest;
+import apache.rocketmq.v1.NackMessageRequest;
+import apache.rocketmq.v1.PullMessageRequest;
+import apache.rocketmq.v1.QueryOffsetRequest;
+import apache.rocketmq.v1.ReceiveMessageRequest;
+import apache.rocketmq.v1.Resource;
+import apache.rocketmq.v1.SendMessageRequest;
+import com.google.protobuf.GeneratedMessageV3;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import org.apache.commons.codec.DecoderException;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
+import org.apache.rocketmq.acl.common.AuthorizationHeader;
+import org.apache.rocketmq.acl.common.MetadataHeader;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
@@ -133,6 +149,102 @@ public class PlainAccessValidator implements AccessValidator {
             }
         }
         accessResource.setContent(AclUtils.combineRequestContent(request, map));
+        return accessResource;
+    }
+
+    @Override public AccessResource parse(GeneratedMessageV3 messageV3, MetadataHeader header) {
+        PlainAccessResource accessResource = new PlainAccessResource();
+        String remoteAddress = header.getRemoteAddress();
+        if (remoteAddress != null && remoteAddress.contains(":")) {
+            accessResource.setWhiteRemoteAddress(remoteAddress.substring(0, remoteAddress.lastIndexOf(':')));
+        } else {
+            accessResource.setWhiteRemoteAddress(remoteAddress);
+        }
+        try {
+            AuthorizationHeader authorizationHeader = new AuthorizationHeader(header.getAuthorization());
+            accessResource.setAccessKey(authorizationHeader.getAccessKey());
+            accessResource.setSignature(authorizationHeader.getSignature());
+        } catch (DecoderException e) {
+            throw new AclException(e.getMessage(), e);
+        }
+        accessResource.setSecretToken(header.getSessionToken());
+        accessResource.setRequestCode(header.getRequestCode());
+        accessResource.setContent(header.getDatetime().getBytes(StandardCharsets.UTF_8));
+
+        try {
+            String rpcFullName = messageV3.getDescriptorForType().getFullName();
+            if (HeartbeatRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                HeartbeatRequest request = (HeartbeatRequest) messageV3;
+                if (request.hasProducerData()) {
+                    Resource group = request.getProducerData()
+                        .getGroup();
+                    String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
+                    accessResource.addResourceAndPerm(groupName, Permission.SUB);
+                } else if (request.hasConsumerData()) {
+                    Resource group = request.getConsumerData()
+                        .getGroup();
+                    String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
+                    accessResource.addResourceAndPerm(groupName, Permission.SUB);
+                }
+            } else if (SendMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                SendMessageRequest request = (SendMessageRequest) messageV3;
+                Resource topic = request.getMessage().getTopic();
+                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
+                accessResource.addResourceAndPerm(topicName, Permission.PUB);
+            } else if (ReceiveMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                ReceiveMessageRequest request = (ReceiveMessageRequest) messageV3;
+                Resource group = request.getGroup();
+                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
+                accessResource.addResourceAndPerm(groupName, Permission.SUB);
+                Resource topic = request.getPartition().getTopic();
+                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
+                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+            } else if (AckMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                AckMessageRequest request = (AckMessageRequest) messageV3;
+                Resource group = request.getGroup();
+                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
+                accessResource.addResourceAndPerm(groupName, Permission.SUB);
+                Resource topic = request.getTopic();
+                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
+                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+            } else if (NackMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                NackMessageRequest request = (NackMessageRequest) messageV3;
+                Resource group = request.getGroup();
+                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
+                accessResource.addResourceAndPerm(groupName, Permission.SUB);
+                Resource topic = request.getTopic();
+                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
+                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+            } else if (ForwardMessageToDeadLetterQueueRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                ForwardMessageToDeadLetterQueueRequest request = (ForwardMessageToDeadLetterQueueRequest) messageV3;
+                Resource group = request.getGroup();
+                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
+                accessResource.addResourceAndPerm(groupName, Permission.SUB);
+                Resource topic = request.getTopic();
+                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
+                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+            } else if (EndTransactionRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                EndTransactionRequest request = (EndTransactionRequest) messageV3;
+                Resource group = request.getGroup();
+                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
+                accessResource.addResourceAndPerm(groupName, Permission.PUB);
+            } else if (QueryOffsetRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                QueryOffsetRequest request = (QueryOffsetRequest) messageV3;
+                Resource topic = request.getPartition().getTopic();
+                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
+                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+            }  else if (PullMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                PullMessageRequest request = (PullMessageRequest) messageV3;
+                Resource group = request.getGroup();
+                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
+                accessResource.addResourceAndPerm(groupName, Permission.SUB);
+                Resource topic = request.getPartition().getTopic();
+                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
+                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+            }
+        } catch (Throwable t) {
+            throw new AclException(t.getMessage(), t);
+        }
         return accessResource;
     }
 
