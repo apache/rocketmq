@@ -318,17 +318,17 @@ public class UtilAll {
             try {
                 byteArrayInputStream.close();
             } catch (IOException e) {
-                log.error("Failed to close the ByteArrayInputStream", e);
+                log.error("Failed to close the stream", e);
             }
             try {
                 inflaterInputStream.close();
             } catch (IOException e) {
-                log.error("Failed to close the InflaterInputStream", e);
+                log.error("Failed to close the stream", e);
             }
             try {
                 byteArrayOutputStream.close();
             } catch (IOException e) {
-                log.error("Failed to close the ByteArrayOutputStream", e);
+                log.error("Failed to close the stream", e);
             }
         }
 
