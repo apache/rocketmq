@@ -27,12 +27,16 @@ import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactor
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.broker.util.ServiceProvider;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
@@ -86,14 +90,22 @@ public class GrpcServer implements StartAndShutdown {
         int workerLoopNum = ConfigurationManager.getProxyConfig().getGrpcWorkerLoopNum();
         int maxInboundMessageSize = ConfigurationManager.getProxyConfig().getGrpcMaxInboundMessageSize();
 
-        this.server = serverBuilder
-            .maxInboundMessageSize(maxInboundMessageSize)
+        serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
             .bossEventLoopGroup(new NioEventLoopGroup(bossLoopNum))
             .workerEventLoopGroup(new NioEventLoopGroup(workerLoopNum))
             .channelType(NioServerSocketChannel.class)
             .addService(messagingProcessor)
-            .executor(this.executor)
-            .intercept(new ContextInterceptor())
+            .executor(this.executor);
+
+        if (ConfigurationManager.getProxyConfig().isEnableACL()) {
+            List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+            if (accessValidators.isEmpty()) {
+                throw new IllegalArgumentException("Load AccessValidator failed");
+            }
+            serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
+        }
+
+        this.server = serverBuilder.intercept(new ContextInterceptor())
             .intercept(new HeaderInterceptor())
             .build();
 
