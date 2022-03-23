@@ -124,7 +124,7 @@ public class PlainPermissionManager {
             if (plainAclConfData == null || plainAclConfData.isEmpty()) {
                 throw new AclException(String.format("%s file is not data", fileList.get(i)));
             }
-            log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
+            log.info("Broker plain acl conf data is : %s", plainAclConfData.toString());
 
             List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategyList = new ArrayList<>();
             JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
@@ -187,7 +187,7 @@ public class PlainPermissionManager {
         if (plainAclConfData == null || plainAclConfData.isEmpty()) {
             throw new AclException(String.format("%s file is not data", aclFilePath));
         }
-        log.info("Broker plain acl conf data is : ", plainAclConfData.toString());
+        log.info("Broker plain acl conf data is : %s", plainAclConfData.toString());
         JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray("globalWhiteRemoteAddresses");
         if (globalWhiteRemoteAddressesList != null && !globalWhiteRemoteAddressesList.isEmpty()) {
             for (int i = 0; i < globalWhiteRemoteAddressesList.size(); i++) {
@@ -213,9 +213,10 @@ public class PlainPermissionManager {
                 PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);
                 //AccessKey can not be defined in multiple ACL files
                 if (this.accessKeyTable.get(plainAccessResource.getAccessKey()) == null) {
-                    plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
                     this.accessKeyTable.put(plainAccessResource.getAccessKey(), aclFilePath);
                 }
+                // update always
+                plainAccessResourceMap.put(plainAccessResource.getAccessKey(), plainAccessResource);
             }
         }
 
