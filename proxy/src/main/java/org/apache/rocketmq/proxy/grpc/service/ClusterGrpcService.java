@@ -124,10 +124,11 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
-        final HealthCheckResponse response = HealthCheckResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-            .build();
-        return CompletableFuture.completedFuture(response);
+        return CompletableFuture.completedFuture(
+            HealthCheckResponse.newBuilder()
+                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                .build()
+        );
     }
 
     @Override

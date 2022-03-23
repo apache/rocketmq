@@ -18,7 +18,7 @@ package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
-import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
+import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -40,7 +40,7 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
     }
 
     @Override
-    protected MQClientAPIExtImpl createNewClient(ForwardClientFactory clientFactory, String name) {
+    protected MQClientAPIExt createNewClient(ForwardClientFactory clientFactory, String name) {
         double workerFactor = ConfigurationManager.getProxyConfig().getForwardConsumerWorkerFactor();
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 

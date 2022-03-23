@@ -17,14 +17,14 @@
 package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.ThreadLocalRandom;
-import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
-import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 
 public abstract class AbstractForwardClient implements StartAndShutdown {
 
     private final ForwardClientFactory forwardClientFactory;
-    private MQClientAPIExtImpl[] clients;
+    private MQClientAPIExt[] clients;
 
     public AbstractForwardClient(ForwardClientFactory forwardClientFactory) {
         this.forwardClientFactory = forwardClientFactory;
@@ -32,11 +32,11 @@ public abstract class AbstractForwardClient implements StartAndShutdown {
 
     protected abstract int getClientNum();
 
-    protected abstract MQClientAPIExtImpl createNewClient(ForwardClientFactory forwardClientFactory, String name);
+    protected abstract MQClientAPIExt createNewClient(ForwardClientFactory forwardClientFactory, String name);
 
     protected abstract String getNamePrefix();
 
-    protected MQClientAPIExtImpl getClient() {
+    protected MQClientAPIExt getClient() {
         if (clients.length == 1) {
             return this.clients[0];
         }
@@ -46,7 +46,8 @@ public abstract class AbstractForwardClient implements StartAndShutdown {
     @Override
     public void start() throws Exception {
         int clientCount = getClientNum();
-        this.clients = new MQClientAPIExtImpl[clientCount];
+        this.clients = new MQClientAPIExt[clientCount];
+
         for (int i = 0; i < clientCount; i++) {
             String name = getNamePrefix() + "N_" + i;
             clients[i] = createNewClient(forwardClientFactory, name);

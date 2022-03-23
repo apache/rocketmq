@@ -20,10 +20,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
-import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
+import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public abstract class AbstractMQClientFactory extends AbstractClientFactory<MQClientAPIExtImpl> {
+public abstract class AbstractMQClientFactory extends AbstractClientFactory<MQClientAPIExt> {
 
     public AbstractMQClientFactory(ScheduledExecutorService scheduledExecutorService,
         RPCHook rpcHook) {
@@ -33,20 +33,20 @@ public abstract class AbstractMQClientFactory extends AbstractClientFactory<MQCl
     protected abstract ClientRemotingProcessor createClientRemotingProcessor();
 
     @Override
-    protected MQClientAPIExtImpl newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
+    protected MQClientAPIExt newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setInstanceName(instanceName);
 
-        return new MQClientAPIExtImpl(
+        return new MQClientAPIExt(
+            clientConfig,
             createNettyClientConfig(bootstrapWorkerThreads),
             createClientRemotingProcessor(),
-            rpcHook,
-            clientConfig
+            rpcHook
         );
     }
 
     @Override
-    protected boolean tryStart(MQClientAPIExtImpl client) {
+    protected boolean tryStart(MQClientAPIExt client) {
         if (!client.updateNameServerAddressList()) {
             this.scheduledExecutorService.scheduleAtFixedRate(
                 client::fetchNameServerAddr,
@@ -60,7 +60,7 @@ public abstract class AbstractMQClientFactory extends AbstractClientFactory<MQCl
     }
 
     @Override
-    protected void shutdown(MQClientAPIExtImpl client) {
+    protected void shutdown(MQClientAPIExt client) {
         client.shutdown();
     }
 }

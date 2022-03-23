@@ -17,7 +17,7 @@
 package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
+import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
@@ -46,7 +46,7 @@ public class ForwardProducer extends AbstractForwardClient {
     }
 
     @Override
-    protected MQClientAPIExtImpl createNewClient(ForwardClientFactory clientFactory, String name) {
+    protected MQClientAPIExt createNewClient(ForwardClientFactory clientFactory, String name) {
         double sendClientWorkerFactor = ConfigurationManager.getProxyConfig().getForwardProducerWorkerFactor();
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * sendClientWorkerFactor);
 

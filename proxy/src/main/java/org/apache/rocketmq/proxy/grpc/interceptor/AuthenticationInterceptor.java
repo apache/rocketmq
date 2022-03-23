@@ -37,11 +37,11 @@ public class AuthenticationInterceptor implements ServerInterceptor {
     }
 
     @Override
-    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers,
-        ServerCallHandler<ReqT, RespT> next) {
-        return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(next.startCall(call, headers)) {
+    public <R, W> ServerCall.Listener<R> interceptCall(ServerCall<R, W> call, Metadata headers,
+        ServerCallHandler<R, W> next) {
+        return new ForwardingServerCallListener.SimpleForwardingServerCallListener<R>(next.startCall(call, headers)) {
             @Override
-            public void onMessage(ReqT message) {
+            public void onMessage(R message) {
                 GeneratedMessageV3 messageV3 = (GeneratedMessageV3) message;
                 MetadataHeader metadataHeader = MetadataHeader.builder()
                     .remoteAddress(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS))
