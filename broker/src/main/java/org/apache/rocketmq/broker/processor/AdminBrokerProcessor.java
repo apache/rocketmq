@@ -1607,9 +1607,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 response.setRemark("Put message back to RMQ_SYS_TRANS_HALF_TOPIC failed.");
             }
         } catch (Exception e) {
-            log.error("Exception was thrown when putting message back to RMQ_SYS_TRANS_HALF_TOPIC.",e);
+            log.error("Exception was thrown when putting message back to RMQ_SYS_TRANS_HALF_TOPIC.");
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("Exception was thrown when putting message back to RMQ_SYS_TRANS_HALF_TOPIC.");
+            response.setRemark("Exception was thrown when putting message back to RMQ_SYS_TRANS_HALF_TOPIC. " + e);
         } finally {
             if (selectMappedBufferResult != null) {
                 selectMappedBufferResult.release();
