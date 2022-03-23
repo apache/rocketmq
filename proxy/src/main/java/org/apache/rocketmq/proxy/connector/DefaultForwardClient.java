@@ -19,7 +19,7 @@ package org.apache.rocketmq.proxy.connector;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.impl.MQClientAPIExtImpl;
+import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -39,7 +39,7 @@ public class DefaultForwardClient extends AbstractForwardClient {
     }
 
     @Override
-    protected MQClientAPIExtImpl createNewClient(ForwardClientFactory clientFactory, String name) {
+    protected MQClientAPIExt createNewClient(ForwardClientFactory clientFactory, String name) {
         double workerFactor = ConfigurationManager.getProxyConfig().getDefaultForwardClientWorkerFactor();
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
