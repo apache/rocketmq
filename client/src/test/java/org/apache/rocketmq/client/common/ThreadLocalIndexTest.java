@@ -22,11 +22,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ThreadLocalIndexTest {
     @Test
-    public void testGetAndIncrement() throws Exception {
+    public void testIncrementAndGet() throws Exception {
         ThreadLocalIndex localIndex = new ThreadLocalIndex();
-        int initialVal = localIndex.getAndIncrement();
+        int initialVal = localIndex.incrementAndGet();
 
-        assertThat(localIndex.getAndIncrement()).isEqualTo(initialVal + 1);
+        assertThat(localIndex.incrementAndGet()).isEqualTo(initialVal + 1);
+    }
+
+    @Test
+    public void testIncrementAndGet2() throws Exception {
+        ThreadLocalIndex localIndex = new ThreadLocalIndex();
+        int initialVal = localIndex.incrementAndGet();
+        assertThat(initialVal >= 0);
     }
 
 }

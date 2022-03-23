@@ -45,6 +45,8 @@ import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class ReplyMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
@@ -125,7 +127,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
         if (queueIdInt < 0) {
-            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
+            queueIdInt = ThreadLocalRandom.current().nextInt(99999999) % topicConfig.getWriteQueueNums();
         }
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
@@ -251,28 +253,29 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
 
             // Failed
             case CREATE_MAPEDFILE_FAILED:
-                log.info("create mapped file failed, server is busy or broken.");
+                log.warn("create mapped file failed, server is busy or broken.");
                 break;
             case MESSAGE_ILLEGAL:
-                log.info(
+                log.warn(
                     "the message is illegal, maybe msg properties length limit 32k.");
                 break;
             case PROPERTIES_SIZE_EXCEEDED:
-                log.info(
+                log.warn(
                     "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k.");
                 break;
             case SERVICE_NOT_AVAILABLE:
-                log.info(
-                    "service not available now, maybe disk full, maybe your broker machine memory too small.");
+                log.warn(
+                    "service not available now. It may be caused by one of the following reasons: " +
+                        "the broker's disk is full, messages are put to the slave, message store has been shut down, etc.");
                 break;
             case OS_PAGECACHE_BUSY:
-                log.info("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
+                log.warn("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
                 break;
             case UNKNOWN_ERROR:
-                log.info("UNKNOWN_ERROR");
+                log.warn("UNKNOWN_ERROR");
                 break;
             default:
-                log.info("UNKNOWN_ERROR DEFAULT");
+                log.warn("UNKNOWN_ERROR DEFAULT");
                 break;
         }
 

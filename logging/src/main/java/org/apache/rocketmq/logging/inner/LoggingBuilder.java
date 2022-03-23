@@ -1201,7 +1201,7 @@ public class LoggingBuilder {
         public String format(LoggingEvent event) {
 
             StringBuilder sb = new StringBuilder();
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,sss");
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
             String format = simpleDateFormat.format(new Date(event.timeStamp));
             sb.append(format);
             sb.append(" ");
@@ -1209,7 +1209,7 @@ public class LoggingBuilder {
             sb.append(" ");
             sb.append(event.getLoggerName());
             sb.append(" - ");
-            sb.append(event.getMessage());
+            sb.append(event.getRenderedMessage());
             String[] throwableStr = event.getThrowableStr();
             if (throwableStr != null) {
                 sb.append("\r\n");

@@ -245,9 +245,11 @@ public interface MessageStore {
      *
      * @param startOffset starting offset.
      * @param data data to append.
+     * @param dataStart the start index of data array
+     * @param dataLength the length of data array
      * @return true if success; false otherwise.
      */
-    boolean appendToCommitLog(final long startOffset, final byte[] data);
+    boolean appendToCommitLog(final long startOffset, final byte[] data, int dataStart, int dataLength);
 
     /**
      * Execute file deletion manually.
@@ -395,4 +397,14 @@ public interface MessageStore {
      * @param brokerRole
      */
     void handleScheduleMessageService(BrokerRole brokerRole);
+
+    /**
+     * Clean unused lmq topic.
+     * When calling to clean up the lmq topic,
+     * the lmq topic cannot be used to write messages at the same time,
+     * otherwise the messages of the cleaning lmq topic may be lost,
+     * please call this method with caution
+     * @param topic lmq topic
+     */
+    void cleanUnusedLmqTopic(String topic);
 }

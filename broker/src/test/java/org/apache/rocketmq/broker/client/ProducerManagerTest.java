@@ -110,20 +110,20 @@ public class ProducerManagerTest {
     }
 
     @Test
-    public void testGetAvaliableChannel() {
+    public void testGetAvailableChannel() {
         producerManager.registerProducer(group, clientInfo);
 
         when(channel.isActive()).thenReturn(true);
         when(channel.isWritable()).thenReturn(true);
-        Channel c = producerManager.getAvaliableChannel(group);
+        Channel c = producerManager.getAvailableChannel(group);
         assertThat(c).isSameAs(channel);
 
         when(channel.isWritable()).thenReturn(false);
-        c = producerManager.getAvaliableChannel(group);
+        c = producerManager.getAvailableChannel(group);
         assertThat(c).isSameAs(channel);
 
         when(channel.isActive()).thenReturn(false);
-        c = producerManager.getAvaliableChannel(group);
+        c = producerManager.getAvailableChannel(group);
         assertThat(c).isNull();
     }
 

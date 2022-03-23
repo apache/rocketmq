@@ -180,8 +180,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public boolean appendToCommitLog(long startOffset, byte[] data) {
-        return next.appendToCommitLog(startOffset, data);
+    public boolean appendToCommitLog(long startOffset, byte[] data, int dataStart, int dataLength) {
+        return next.appendToCommitLog(startOffset, data, dataStart, dataLength);
     }
 
     @Override
@@ -263,5 +263,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public BrokerStatsManager getBrokerStatsManager() {
         return next.getBrokerStatsManager();
-    };
+    }
+
+    @Override
+    public void cleanUnusedLmqTopic(String topic) {
+        next.cleanUnusedLmqTopic(topic);
+    }
 }

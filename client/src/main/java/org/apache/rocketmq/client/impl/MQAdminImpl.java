@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -268,17 +269,23 @@ public class MQAdminImpl {
             messageId.getOffset(), timeoutMillis);
     }
 
-    public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
-        long end) throws MQClientException,
-        InterruptedException {
+    public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
         return queryMessage(topic, key, maxNum, begin, end, false);
+    }
+
+    public QueryResult queryMessageByUniqKey(String topic, String uniqKey, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
+        return queryMessage(topic, uniqKey, maxNum, begin, end, true);
     }
 
     public MessageExt queryMessageByUniqKey(String topic,
         String uniqKey) throws InterruptedException, MQClientException {
 
-        QueryResult qr = this.queryMessage(topic, uniqKey, 32,
-            MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE, true);
+        QueryResult qr = queryMessageByUniqKey(topic, uniqKey, 32,
+                MessageClientIDSetter.getNearlyTimeFromID(uniqKey).getTime() - 1000, Long.MAX_VALUE);
         if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
             return qr.getMessageList().get(0);
         } else {
@@ -400,12 +407,14 @@ public class MQAdminImpl {
                             }
                         } else {
                             String keys = msgExt.getKeys();
+                            String msgTopic = msgExt.getTopic();
                             if (keys != null) {
                                 boolean matched = false;
                                 String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
                                 if (keyArray != null) {
                                     for (String k : keyArray) {
-                                        if (key.equals(k)) {
+                                        // both topic and key must be equal at the same time
+                                        if (Objects.equals(key, k) && Objects.equals(topic, msgTopic)) {
                                             matched = true;
                                             break;
                                         }
