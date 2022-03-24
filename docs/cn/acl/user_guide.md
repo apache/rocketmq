@@ -155,7 +155,7 @@ sh mqadmin clusterAclConfigVersion -n 192.168.1.2:9876 -c DefaultCluster
 ### 7.5 查询集群/Broker的ACL配置文件全部内容
 该命令的示例如下：
 
-sh mqadmin getAccessConfigSubCommand -n 192.168.1.2:9876 -c DefaultCluster
+sh mqadmin getAclConfig -n 192.168.1.2:9876 -c DefaultCluster
 
 说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
 
