@@ -257,11 +257,11 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
                 break;
             case MESSAGE_ILLEGAL:
                 log.warn(
-                    "the message is illegal, maybe msg properties length limit 32k.");
+                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k.");
                 break;
             case PROPERTIES_SIZE_EXCEEDED:
                 log.warn(
-                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k.");
+                    "the message is illegal, maybe msg properties length limit 32k.");
                 break;
             case SERVICE_NOT_AVAILABLE:
                 log.warn(
