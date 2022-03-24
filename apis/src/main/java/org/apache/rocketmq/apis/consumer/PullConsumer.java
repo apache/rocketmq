@@ -27,7 +27,7 @@ import org.apache.rocketmq.apis.exception.*;
 import org.apache.rocketmq.apis.message.MessageView;
 
 /**
- * PullConsumer is a thread-safe rocketmq client which is used to consume message by queue.
+ * <p>PullConsumer is a thread-safe rocketmq client which is used to consume message by queue.
  * Unlike push consumer and simple consumer, pull consumer implement load balance based on queue granularity.
  *
  * <p>Pull consumer is lightweight consumer that better suited to streaming scenarios.
@@ -41,7 +41,7 @@ import org.apache.rocketmq.apis.message.MessageView;
  * Firstly, determine whether to continue processing from the last consumption or reset the consumption starting point by call seek method;
  * Then, pull message from servers.
  * At last, pull consumer no need to commit message by offset meta.
- * If there is a consumption error, consumer just call seek api to reset the offset for reconsume message again.
+ * <p> If there is a consumption error, consumer just call seek api to reset the offset for reconsume message again.
  */
 public interface PullConsumer extends Closeable {
     /**
@@ -68,7 +68,7 @@ public interface PullConsumer extends Closeable {
 
     /**
      * Manually assign messageQueue collections to this consumer.
-     * This interface does not allow for incremental assignment and will replace the previous assignment.
+     * <p> This interface does not allow for incremental assignment and will replace the previous assignment.
      * If the given collection is empty, it's treated same as unsubscribe().
      * Manual assignment through this interface will disable the consumerGroup management functionality
      * and there will be no rebalance operation triggered when group membership or cluster and topic metadata change.
@@ -113,10 +113,12 @@ public interface PullConsumer extends Closeable {
      * Get the collection of messageQueues currently assigned to current consumer.
      * @return the collection of messageQueues currently assigned to current consumer
      */
-    Collection<MessageQueue> assignment();
+    Collection<MessageQueue> assignments();
 
     /**
-     * Fetch messages from server synchronously. This method returns immediately if there are messages available.
+     * Fetch messages from server synchronously.
+     *
+     * <p> This method returns immediately if there are messages available.
      * Otherwise, it will await the passed timeout. If the timeout expires, an empty map will be returned.
      * An error occurs if you do not subscribe or assign messageQueues before polling for data.
      * @param messageQueue the target messageQueue to pull message.

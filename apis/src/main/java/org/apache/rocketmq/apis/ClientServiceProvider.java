@@ -59,7 +59,7 @@ public interface ClientServiceProvider {
      *
      * @return the pull consumer builder instance.
      */
-    PullConsumerBuilder newPollConsumerBuilder();
+    PullConsumerBuilder newPullConsumerBuilder();
 
     /**
      * Get the push consumer builder by current provider.

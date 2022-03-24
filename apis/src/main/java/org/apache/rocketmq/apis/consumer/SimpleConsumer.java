@@ -19,6 +19,7 @@ package org.apache.rocketmq.apis.consumer;
 
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -78,7 +79,15 @@ public interface SimpleConsumer extends Closeable {
     SimpleConsumer unsubscribe(String topic) throws ClientException;
 
     /**
-     * Fetch messages from server synchronously. This method returns immediately if there are messages available.
+     * List the existed subscription expressions in simple consumer.
+     *
+     * @return collections of subscription expression.
+     */
+    Collection<SubscriptionExpression> subscriptionExpressions();
+
+    /**
+     * Fetch messages from server synchronously.
+     * <p> This method returns immediately if there are messages available.
      * Otherwise, it will await the passed timeout. If the timeout expires, an empty map will be returned.
      * @param topic special topic want to get messages.
      * @param maxMessageNum max message num when server returns.
@@ -89,22 +98,27 @@ public interface SimpleConsumer extends Closeable {
 
     /**
      * Ack message to server synchronously, server commit this message.
-     * Duplicate ack request does not take effect and throw exception.
+     *
+     * <p> Duplicate ack request does not take effect and throw exception.
      * @param messageView special messageView with handle want to ack.
      */
     void ack(MessageView messageView) throws ClientException;
 
     /**
      * Ack message to server asynchronously, server commit this message.
-     * Duplicate ack request does not take effect and throw exception.
+     *
+     * <p> Duplicate ack request does not take effect and throw exception.
      * @param messageView special messageView with handle want to ack.
      * @return CompletableFuture of this request.
      */
     CompletableFuture<Void> ackAsync(MessageView messageView);
 
     /**
-     * Changes the invisible duration of a specified message synchronously. The origin invisible duration for a message decide by ack request.
-     * You must call change request before the origin invisible duration timeout.
+     * Changes the invisible duration of a specified message synchronously.
+     *
+     * <p> The origin invisible duration for a message decide by ack request.
+     *
+     * <p>You must call change request before the origin invisible duration timeout.
      * If called change request later than the origin invisible duration, this request does not take effect and throw exception.
      * Duplicate change request will refresh the next visible time of this message to other consumers.
      * @param messageView special messageView with handle want to change.
@@ -113,8 +127,11 @@ public interface SimpleConsumer extends Closeable {
     void changeInvisibleDuration(MessageView messageView, Duration invisibleDuration) throws ClientException;
 
     /**
-     * Changes the invisible duration of a specified message asynchronously. The origin invisible duration for a message decide by ack request.
-     * You must call change request before the origin invisible duration timeout.
+     * Changes the invisible duration of a specified message asynchronously.
+     *
+     * <p> The origin invisible duration for a message decide by ack request.
+     *
+     * <p> You must call change request before the origin invisible duration timeout.
      * If called change request later than the origin invisible duration, this request does not take effect and throw exception.
      * Duplicate change request will refresh the next visible time of this message to other consumers.
      * @param messageView special messageView with handle want to change.

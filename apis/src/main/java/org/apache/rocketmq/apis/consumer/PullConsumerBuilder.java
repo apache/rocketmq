@@ -41,15 +41,15 @@ public interface PullConsumerBuilder {
 
     /**
      * Enable manual messageQueue assignment consumption mode.
-     * The default mode is subscription mode which manage the rebalance operation triggered when group membership or cluster and topic metadata change.
+     * <p> The default mode is subscription mode which manage the rebalance operation triggered when group membership or cluster and topic metadata change.
      * When pull consumer manual queue assignment mode, must invoke assign method before pull message.
      * @return the consumer builder instance.
      */
-    PushConsumerBuilder enableManualQueueAssignment();
+    PushConsumerBuilder enableManualAssignment();
 
     /**
      * Set the max await time when receive message from server.
-     * The simple consumer will hold this long-polling receive requests until  a message is returned or a timeout occurs.
+     * <p> The simple consumer will hold this long-polling receive requests until  a message is returned or a timeout occurs.
      * @param awaitDuration The maximum time to block when no message available.
      * @return the consumer builder instance.
      */

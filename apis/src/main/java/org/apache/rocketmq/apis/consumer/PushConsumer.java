@@ -53,11 +53,11 @@ public interface PushConsumer extends Closeable {
     String getConsumerGroup();
 
     /**
-     * Get the existed subscription expression in push consumer.
+     * List the existed subscription expressions in push consumer.
      *
      * @return collections of subscription expression.
      */
-    Collection<SubscriptionExpression> listSubscriptionExpression();
+    Collection<SubscriptionExpression> subscriptionExpressions();
 
     /**
      * Add subscription expression dynamically.
