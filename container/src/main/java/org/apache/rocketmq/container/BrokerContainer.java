@@ -66,6 +66,7 @@ public class BrokerContainer implements IBrokerContainer {
 
     private final ConcurrentMap<BrokerIdentity, InnerSalveBrokerController> slaveBrokerControllers = new ConcurrentHashMap<>();
     private final ConcurrentMap<BrokerIdentity, InnerBrokerController> masterBrokerControllers = new ConcurrentHashMap<>();
+    private final ConcurrentMap<BrokerIdentity, InnerBrokerController> dLedgerBrokerControllers = new ConcurrentHashMap<>();
     private final List<BrokerBootHook> brokerBootHookList = new ArrayList<>();
     private final BrokerContainerProcessor brokerContainerProcessor;
     private final Configuration configuration;
@@ -221,6 +222,10 @@ public class BrokerContainer implements IBrokerContainer {
 
         masterBrokerControllers.clear();
 
+        // Shutdown dLedger brokers
+        dLedgerBrokerControllers.values().forEach(InnerBrokerController::shutdown);
+        dLedgerBrokerControllers.clear();
+
         // Shutdown the remoting server with a high priority to avoid further traffic
         if (this.remotingServer != null) {
             this.remotingServer.shutdown();
@@ -258,14 +263,49 @@ public class BrokerContainer implements IBrokerContainer {
     @Override
     public InnerBrokerController addBroker(final BrokerConfig brokerConfig,
         final MessageStoreConfig storeConfig) throws Exception {
-        if (brokerConfig.getBrokerId() == MixAll.MASTER_ID && storeConfig.getBrokerRole() != BrokerRole.SLAVE) {
-            return this.addMasterBroker(brokerConfig, storeConfig);
-        }
-        if (brokerConfig.getBrokerId() != MixAll.MASTER_ID && storeConfig.getBrokerRole() == BrokerRole.SLAVE) {
-            return this.addSlaveBroker(brokerConfig, storeConfig);
+        if (storeConfig.isEnableDLegerCommitLog()) {
+            return this.addDLedgerBroker(brokerConfig, storeConfig);
+        } else {
+            if (brokerConfig.getBrokerId() == MixAll.MASTER_ID && storeConfig.getBrokerRole() != BrokerRole.SLAVE) {
+                return this.addMasterBroker(brokerConfig, storeConfig);
+            }
+            if (brokerConfig.getBrokerId() != MixAll.MASTER_ID && storeConfig.getBrokerRole() == BrokerRole.SLAVE) {
+                return this.addSlaveBroker(brokerConfig, storeConfig);
+            }
         }
 
         return null;
+    }
+
+    public InnerBrokerController addDLedgerBroker(final BrokerConfig brokerConfig, final MessageStoreConfig storeConfig) throws Exception {
+        brokerConfig.setInBrokerContainer(true);
+        if (storeConfig.isDuplicationEnable()) {
+            LOG.error("Can not add broker to container when duplicationEnable is true currently");
+            throw new Exception("Can not add broker to container when duplicationEnable is true currently");
+        }
+        InnerBrokerController brokerController = new InnerBrokerController(this, brokerConfig, storeConfig);
+        BrokerIdentity brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
+                brokerConfig.getBrokerName(), Integer.parseInt(storeConfig.getdLegerSelfId().substring(1)));
+        final BrokerController previousBroker = dLedgerBrokerControllers.putIfAbsent(brokerIdentity, brokerController);
+        if (previousBroker == null) {
+            // New master broker added, start it
+            try {
+                BrokerLogbackConfigurator.doConfigure(brokerConfig);
+                final boolean initResult = brokerController.initialize();
+                if (!initResult) {
+                    brokerController.shutdown();
+                    dLedgerBrokerControllers.remove(brokerIdentity);
+                    throw new Exception("Failed to init dLedger broker " + brokerConfig.getCanonicalName());
+                }
+            } catch (Exception e) {
+                // Remove the failed dLedger broker and throw the exception
+                brokerController.shutdown();
+                dLedgerBrokerControllers.remove(brokerIdentity);
+                throw new Exception("Failed to initialize dLedger broker " + brokerConfig.getCanonicalName(), e);
+            }
+            return brokerController;
+        }
+        throw new Exception(brokerConfig.getCanonicalName() + " has already been added to current broker");
     }
 
     public InnerBrokerController addMasterBroker(final BrokerConfig masterBrokerConfig,
