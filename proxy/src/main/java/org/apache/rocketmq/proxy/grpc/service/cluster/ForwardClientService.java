@@ -29,6 +29,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
+import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MQVersion;
@@ -65,8 +67,12 @@ public class ForwardClientService extends BaseService {
         this.channelManager = channelManager;
         this.pollCommandResponseManager = pollCommandResponseManager;
 
-        this.consumerManager = new ConsumerManager((event, group, args) -> {
-            // nothing to do in handler.
+        this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListener() {
+            @Override public void handle(ConsumerGroupEvent event, String group, Object... args) {
+            }
+
+            @Override public void shutdown() {
+            }
         });
         this.producerManager = new ProducerManager();
         this.producerManager.setProducerOfflineListener(connectorManager.getTransactionHeartbeatRegisterService()::onProducerGroupOffline);

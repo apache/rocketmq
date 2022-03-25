@@ -82,6 +82,7 @@ import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -113,6 +114,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPullMessageProcessor()).thenReturn(pullMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         localGrpcService = new LocalGrpcService(brokerControllerMock);
         metadata = new Metadata();
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, "1.1.1.1");
@@ -168,9 +170,8 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     public void testSendMessageError() throws Exception {
         String remark = "store putMessage return null";
         RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, remark);
-        CompletableFuture<RemotingCommand> future = CompletableFuture.completedFuture(response);
-        Mockito.when(sendMessageProcessorMock.asyncProcessRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
-            .thenReturn(future);
+        Mockito.when(sendMessageProcessorMock.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
+            .thenReturn(response);
         SendMessageRequest request = SendMessageRequest.newBuilder()
             .setMessage(Message.newBuilder()
                 .setSystemAttribute(SystemAttribute.newBuilder()
@@ -188,9 +189,8 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
 
     @Test
     public void testSendMessageWriteAndFlush() throws Exception {
-        CompletableFuture<RemotingCommand> future = CompletableFuture.completedFuture(null);
-        Mockito.when(sendMessageProcessorMock.asyncProcessRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
-            .thenReturn(future);
+        Mockito.when(sendMessageProcessorMock.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
+            .thenReturn(null);
         SendMessageRequest request = SendMessageRequest.newBuilder()
             .setMessage(Message.newBuilder()
                 .setSystemAttribute(SystemAttribute.newBuilder()
@@ -206,7 +206,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
 
     @Test
     public void testSendMessageWithException() throws Exception {
-        Mockito.when(sendMessageProcessorMock.asyncProcessRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
+        Mockito.when(sendMessageProcessorMock.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
             .thenThrow(new RemotingCommandException("test"));
         SendMessageRequest request = SendMessageRequest.newBuilder()
             .setMessage(Message.newBuilder()
@@ -256,9 +256,9 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         CompletableFuture<ReceiveMessageResponse> grpcFuture = localGrpcService.receiveMessage(
             Context.current()
                 .withValue(InterceptorConstants.METADATA, metadata)
+                .attach()
                 .withDeadlineAfter(20, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryImpl("test")))
-                .attach(), request);
+                    new ThreadFactoryImpl("test"))), request);
         ReceiveMessageResponse r = grpcFuture.get();
         assertThat(r.getCommon().getStatus().getCode()).isEqualTo(Code.OK.getNumber());
         assertThat(r.getMessagesCount()).isEqualTo(1);
@@ -275,9 +275,9 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         CompletableFuture<ReceiveMessageResponse> grpcFuture = localGrpcService.receiveMessage(
             Context.current()
                 .withValue(InterceptorConstants.METADATA, metadata)
+                .attach()
                 .withDeadlineAfter(20, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryImpl("test")))
-                .attach(), request);
+                    new ThreadFactoryImpl("test"))), request);
         assertThat(grpcFuture.isDone()).isFalse();
     }
 
@@ -345,11 +345,10 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     @Test
     public void testForwardMessageToDeadLetterQueue() throws Exception {
         RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
-        CompletableFuture<RemotingCommand> future = CompletableFuture.completedFuture(response);
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
-        Mockito.when(sendMessageProcessorMock.asyncProcessRequest(Mockito.any(ChannelHandlerContext.class),
+        Mockito.when(sendMessageProcessorMock.processRequest(Mockito.any(ChannelHandlerContext.class),
             Mockito.argThat(argument -> argument.getCode() == RequestCode.CONSUMER_SEND_MSG_BACK)))
-            .thenReturn(future);
+            .thenReturn(response);
         ForwardMessageToDeadLetterQueueRequest request = ForwardMessageToDeadLetterQueueRequest.newBuilder()
             .setReceiptHandle(ReceiptHandle.builder()
                 .startOffset(0L)
@@ -557,9 +556,9 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         CompletableFuture<PullMessageResponse> grpcFuture = localGrpcService.pullMessage(
             Context.current()
                 .withValue(InterceptorConstants.METADATA, metadata)
+                .attach()
                 .withDeadlineAfter(20, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryImpl("test")))
-                .attach(), request);
+                    new ThreadFactoryImpl("test"))), request);
         PullMessageResponse r = grpcFuture.get();
         assertThat(r.getCommon().getStatus().getCode()).isEqualTo(Code.OK.getNumber());
         assertThat(r.getMessagesCount()).isEqualTo(1);
