@@ -43,7 +43,6 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
-import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

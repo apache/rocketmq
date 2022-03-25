@@ -23,18 +23,18 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
+import org.apache.rocketmq.proxy.grpc.adapter.PollResponseManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
-import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class ClientServiceTest extends BaseServiceTest {
+public class ForwardClientServiceTest extends BaseServiceTest {
 
     private ChannelManager channelManager = new ChannelManager();
-    private PollCommandResponseManager pollCommandResponseManager = new PollCommandResponseManager();
+    private PollResponseManager pollResponseManager = new PollResponseManager();
 
     @Override
     public void beforeEach() throws Throwable {
@@ -43,11 +43,11 @@ public class ClientServiceTest extends BaseServiceTest {
 
     @Test
     public void testProducerHeartbeat() {
-        ClientService clientService = new ClientService(
+        ForwardClientService clientService = new ForwardClientService(
             this.connectorManager,
             Executors.newSingleThreadScheduledExecutor(),
             this.channelManager,
-            this.pollCommandResponseManager);
+            this.pollResponseManager);
 
         Metadata metadata = new Metadata();
         metadata.put(InterceptorConstants.LANGUAGE, "JAVA");
@@ -79,11 +79,11 @@ public class ClientServiceTest extends BaseServiceTest {
 
     @Test
     public void testConsumerHeartbeat() {
-        ClientService clientService = new ClientService(
+        ForwardClientService clientService = new ForwardClientService(
             this.connectorManager,
             Executors.newSingleThreadScheduledExecutor(),
             this.channelManager,
-            this.pollCommandResponseManager);
+            this.pollResponseManager);
 
         List<SubscriptionEntry> subscriptionEntryList = new ArrayList<>();
         subscriptionEntryList.add(SubscriptionEntry.newBuilder()
