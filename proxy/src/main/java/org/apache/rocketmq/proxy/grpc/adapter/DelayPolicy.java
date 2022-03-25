@@ -51,11 +51,12 @@ public class DelayPolicy {
     private static List<Long> buildList(String messageDelayLevel) {
         List<String> delayLevelList = Lists.newArrayList(Splitter.on(" ").split(messageDelayLevel));
         List<Long> delayIntervalList = new ArrayList<>();
+        // the index of messageDelayLevel start from 1, so add a default value
+        delayIntervalList.add(0L);
         for (String delayLevel : delayLevelList) {
             final Pattern p = Pattern.compile("(\\d+)([smhd])");
             final Matcher m = p.matcher(delayLevel);
-            while (m.find())
-            {
+            while (m.find()) {
                 final int duration = Integer.parseInt(m.group(1));
                 final String timeUnitString = m.group(2);
                 final long interval = toInterval(duration, timeUnitString);

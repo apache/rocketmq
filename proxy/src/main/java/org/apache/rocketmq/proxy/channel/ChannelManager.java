@@ -105,9 +105,13 @@ public class ChannelManager {
     }
 
     public static SimpleChannel createSimpleChannelDirectly() {
-        final String clientHost = InterceptorConstants.METADATA.get(Context.current())
+        return createSimpleChannelDirectly(Context.current());
+    }
+
+    public static SimpleChannel createSimpleChannelDirectly(Context ctx) {
+        final String clientHost = InterceptorConstants.METADATA.get(ctx)
             .get(InterceptorConstants.REMOTE_ADDRESS);
-        final String localAddress = InterceptorConstants.METADATA.get(Context.current())
+        final String localAddress = InterceptorConstants.METADATA.get(ctx)
             .get(InterceptorConstants.LOCAL_ADDRESS);
         return new SimpleChannel(null, clientHost, localAddress, ConfigurationManager.getProxyConfig().getChannelExpiredInSeconds());
     }

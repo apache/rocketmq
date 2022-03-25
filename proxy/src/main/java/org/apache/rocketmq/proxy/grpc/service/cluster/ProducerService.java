@@ -68,7 +68,7 @@ public class ProducerService extends BaseService {
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (sendMessageHook != null) {
-                sendMessageHook.beforeResponse(request, response, throwable);
+                sendMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
 
@@ -140,7 +140,7 @@ public class ProducerService extends BaseService {
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (forwardMessageToDLQHook != null) {
-                forwardMessageToDLQHook.beforeResponse(request, response, throwable);
+                forwardMessageToDLQHook.beforeResponse(ctx, request, response, throwable);
             }
         });
         try {

@@ -50,13 +50,19 @@ import apache.rocketmq.v1.ReportMessageConsumptionResultRequest;
 import apache.rocketmq.v1.ReportMessageConsumptionResultResponse;
 import apache.rocketmq.v1.ReportThreadStackTraceRequest;
 import apache.rocketmq.v1.ReportThreadStackTraceResponse;
+import apache.rocketmq.v1.ResponseCommon;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
+import com.google.rpc.Code;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseWriter;
+import org.apache.rocketmq.proxy.grpc.common.ProxyException;
+import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.common.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,12 +75,25 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         this.grpcForwardService = grpcForwardService;
     }
 
+    public ResponseCommon convertExceptionToResponseCommon(Throwable t) {
+        if (t instanceof CompletionException) {
+            if (t.getCause() instanceof ProxyException) {
+                ProxyException proxyException = (ProxyException) t.getCause();
+                return ResponseBuilder.buildCommon(proxyException.getCode(), proxyException.getMessage());
+            }
+        }
+        return ResponseBuilder.buildCommon(Code.INTERNAL, "internal error");
+    }
+
     @Override
     public void queryRoute(QueryRouteRequest request, StreamObserver<QueryRouteResponse> responseObserver) {
         CompletableFuture<QueryRouteResponse> future = grpcForwardService.queryRoute(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    QueryRouteResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -84,7 +103,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<HeartbeatResponse> future = grpcForwardService.heartbeat(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    HeartbeatResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -94,7 +116,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<HealthCheckResponse> future = grpcForwardService.healthCheck(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    HealthCheckResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -104,7 +129,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<SendMessageResponse> future = grpcForwardService.sendMessage(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    SendMessageResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -114,7 +142,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<QueryAssignmentResponse> future = grpcForwardService.queryAssignment(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    QueryAssignmentResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -124,7 +155,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<ReceiveMessageResponse> future = grpcForwardService.receiveMessage(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    ReceiveMessageResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -134,7 +168,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<AckMessageResponse> future = grpcForwardService.ackMessage(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    AckMessageResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -144,7 +181,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<NackMessageResponse> future = grpcForwardService.nackMessage(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    NackMessageResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -154,7 +194,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = grpcForwardService.forwardMessageToDeadLetterQueue(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    ForwardMessageToDeadLetterQueueResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -164,7 +207,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<EndTransactionResponse> future = grpcForwardService.endTransaction(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    EndTransactionResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -174,7 +220,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<QueryOffsetResponse> future = grpcForwardService.queryOffset(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    QueryOffsetResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -184,7 +233,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<PullMessageResponse> future = grpcForwardService.pullMessage(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    PullMessageResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -204,7 +256,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<ReportThreadStackTraceResponse> future = grpcForwardService.reportThreadStackTrace(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    ReportThreadStackTraceResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -214,7 +269,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<ReportMessageConsumptionResultResponse> future = grpcForwardService.reportMessageConsumptionResult(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    ReportMessageConsumptionResultResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -224,7 +282,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<NotifyClientTerminationResponse> future = grpcForwardService.notifyClientTermination(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    NotifyClientTerminationResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }
@@ -234,7 +295,10 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
         CompletableFuture<ChangeInvisibleDurationResponse> future = grpcForwardService.changeInvisibleDuration(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
-                ResponseWriter.writeException(responseObserver, e);
+                ResponseWriter.write(
+                    responseObserver,
+                    ChangeInvisibleDurationResponse.newBuilder().setCommon(convertExceptionToResponseCommon(e)).build()
+                );
                 return null;
             });
     }

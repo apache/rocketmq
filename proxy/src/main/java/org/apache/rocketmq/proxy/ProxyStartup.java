@@ -66,6 +66,7 @@ public class ProxyStartup {
             final HealthCheckServer healthCheckServer = new HealthCheckServer();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(healthCheckServer);
 
+            PROXY_START_AND_SHUTDOWN.start();
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 LOGGER.info("try to shutdown server");
                 try {

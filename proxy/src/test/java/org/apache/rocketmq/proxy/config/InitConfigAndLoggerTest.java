@@ -32,7 +32,7 @@ public class InitConfigAndLoggerTest {
     public static String mockProxyHome = "/mock/rmq/proxy/home";
 
     @Before
-    public void before() throws Exception {
+    public void before() throws Throwable {
         URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
         if (mockProxyHomeURL != null) {
             mockProxyHome = mockProxyHomeURL.toURI().getPath();

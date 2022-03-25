@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.adapter.channel;
 import apache.rocketmq.v1.PollCommandResponse;
 import apache.rocketmq.v1.PrintThreadStackTraceCommand;
 import apache.rocketmq.v1.RecoverOrphanedTransactionCommand;
+import io.grpc.Context;
 import io.netty.channel.ChannelFuture;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
@@ -42,7 +43,11 @@ public class GrpcClientChannel extends SimpleChannel {
     private final PollResponseManager manager;
 
     private GrpcClientChannel(String group, String clientId, PollResponseManager manager) {
-        super(ChannelManager.createSimpleChannelDirectly());
+        this(Context.current(), group, clientId, manager);
+    }
+
+    private GrpcClientChannel(Context ctx, String group, String clientId, PollResponseManager manager) {
+        super(ChannelManager.createSimpleChannelDirectly(ctx));
         this.group = group;
         this.clientId = clientId;
         this.manager = manager;
@@ -58,9 +63,19 @@ public class GrpcClientChannel extends SimpleChannel {
         String clientId,
         PollResponseManager manager
     ) {
+        return create(Context.current(), channelManager, group, clientId, manager);
+    }
+
+    public static GrpcClientChannel create(
+        Context ctx,
+        ChannelManager channelManager,
+        String group,
+        String clientId,
+        PollCommandResponseManager manager
+    ) {
         GrpcClientChannel channel = channelManager.createChannel(
             buildKey(group, clientId),
-            () -> new GrpcClientChannel(group, clientId, manager),
+            () -> new GrpcClientChannel(ctx, group, clientId, manager),
             GrpcClientChannel.class
         );
 
@@ -78,6 +93,14 @@ public class GrpcClientChannel extends SimpleChannel {
 
     private static String buildKey(String group, String clientId) {
         return group + "@" + clientId;
+    }
+
+    @Override
+    public boolean isWritable() {
+        if (this.pollCommandResponseFutureRef.get() == null) {
+            return false;
+        }
+        return !this.pollCommandResponseFutureRef.get().isDone();
     }
 
     /**

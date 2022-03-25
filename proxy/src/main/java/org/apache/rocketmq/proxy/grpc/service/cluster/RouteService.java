@@ -97,7 +97,7 @@ public class RouteService extends BaseService {
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (queryRouteHook != null) {
-                queryRouteHook.beforeResponse(request, response, throwable);
+                queryRouteHook.beforeResponse(ctx, request, response, throwable);
             }
         });
 
@@ -209,7 +209,7 @@ public class RouteService extends BaseService {
         CompletableFuture<QueryAssignmentResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (queryAssignmentHook != null) {
-                queryAssignmentHook.beforeResponse(request, response, throwable);
+                queryAssignmentHook.beforeResponse(ctx, request, response, throwable);
             }
         });
 

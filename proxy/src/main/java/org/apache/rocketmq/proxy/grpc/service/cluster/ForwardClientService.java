@@ -72,14 +72,14 @@ public class ForwardClientService extends BaseService {
         this.producerManager.setProducerOfflineListener(connectorManager.getTransactionHeartbeatRegisterService()::onProducerGroupOffline);
     }
 
-    public void heartbeat(Context ctx, HeartbeatRequest request, ChannelManager channelManager) {
-        String language = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE);
+    public void heartbeat(Context ctx, HeartbeatRequest request) {
+        String language = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LANGUAGE);
         LanguageCode languageCode = LanguageCode.valueOf(language);
         String clientId = request.getClientId();
 
         if (request.hasProducerData()) {
             String producerGroup = GrpcConverter.wrapResourceWithNamespace(request.getProducerData().getGroup());
-            GrpcClientChannel channel = GrpcClientChannel.create(channelManager, producerGroup, clientId, pollCommandResponseManager);
+            GrpcClientChannel channel = GrpcClientChannel.create(ctx, channelManager, producerGroup, clientId, pollCommandResponseManager);
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
             producerManager.registerProducer(producerGroup, clientChannelInfo);
         }
@@ -87,7 +87,7 @@ public class ForwardClientService extends BaseService {
         if (request.hasConsumerData()) {
             ConsumerData consumerData = request.getConsumerData();
             String consumerGroup = GrpcConverter.wrapResourceWithNamespace(consumerData.getGroup());
-            GrpcClientChannel channel = GrpcClientChannel.create(channelManager, consumerGroup, clientId, pollCommandResponseManager);
+            GrpcClientChannel channel = GrpcClientChannel.create(ctx, channelManager, consumerGroup, clientId, pollCommandResponseManager);
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
 
             consumerManager.registerConsumer(
@@ -102,7 +102,7 @@ public class ForwardClientService extends BaseService {
         }
     }
 
-    public void unregister(Context ctx, NotifyClientTerminationRequest request, ChannelManager channelManager) {
+    public void unregister(Context ctx, NotifyClientTerminationRequest request) {
         String clientId = request.getClientId();
 
         if (request.hasProducerGroup()) {
@@ -163,5 +163,13 @@ public class ForwardClientService extends BaseService {
         } catch (Exception e) {
             LOGGER.error("error occurred when scan not active client channels.", e);
         }
+    }
+
+    public ConsumerManager getConsumerManager() {
+        return consumerManager;
+    }
+
+    public ProducerManager getProducerManager() {
+        return producerManager;
     }
 }

@@ -58,19 +58,7 @@ public class ForwardProducer extends AbstractForwardClient {
         return this.getClient().sendHeartbeat(heartbeatAddr, heartbeatData, timeout);
     }
 
-    public void endTransaction(EndTransactionRequestHeader request, long timeoutMillis) throws Exception {
-        TransactionId transactionId = TransactionId.decode(request.getTransactionId());
-
-        EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
-        requestHeader.setProducerGroup(request.getProducerGroup());
-        requestHeader.setTranStateTableOffset(transactionId.getTranStateTableOffset());
-        requestHeader.setCommitLogOffset(transactionId.getCommitLogOffset());
-        requestHeader.setFromTransactionCheck(request.getFromTransactionCheck());
-        requestHeader.setMsgId(request.getMsgId());
-        requestHeader.setTransactionId(transactionId.getBrokerTransactionId());
-        requestHeader.setCommitOrRollback(request.getCommitOrRollback());
-
-        String brokerAddr = RemotingHelper.parseSocketAddressAddr(transactionId.getBrokerAddr());
+    public void endTransaction(String brokerAddr, EndTransactionRequestHeader requestHeader, long timeoutMillis) throws Exception {
         this.getClient().endTransactionOneway(
             brokerAddr,
             requestHeader,
