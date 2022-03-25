@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
@@ -52,18 +53,21 @@ public class ForwardProducer extends AbstractForwardClient {
         return clientFactory.getTransactionalProducer(name, threadCount);
     }
 
-
     public CompletableFuture<Integer> heartBeat(String heartbeatAddr, HeartbeatData heartbeatData, long timeout) throws Exception {
         return this.getClient().sendHeartbeat(heartbeatAddr, heartbeatData, timeout);
     }
 
     public void endTransaction(String brokerAddr, EndTransactionRequestHeader requestHeader, long timeoutMillis) throws Exception {
-        this.getClient().endTransactionOneway(
-            brokerAddr,
-            requestHeader,
-            "end transaction from rmq proxy",
-            timeoutMillis
-        );
+        this.getClient().endTransactionOneway(brokerAddr, requestHeader, "end transaction from rmq proxy", timeoutMillis);
+    }
+
+    public CompletableFuture<SendResult> sendMessage(
+        String address,
+        String brokerName,
+        Message msg,
+        SendMessageRequestHeader requestHeader
+    ) {
+        return this.sendMessage(address, brokerName, msg, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<SendResult> sendMessage(
@@ -82,6 +86,10 @@ public class ForwardProducer extends AbstractForwardClient {
             }
             return sendResult;
         });
+    }
+
+    public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader) {
+        return this.sendMessageBack(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {

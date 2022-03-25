@@ -56,11 +56,11 @@ public class RouteService extends BaseService {
     private final ProxyMode mode;
 
     private volatile ParameterConverter<Endpoints, Endpoints> queryRouteEndpointConverter;
-    private volatile ResponseHook<QueryRouteRequest, QueryRouteResponse> queryRouteHook = null;
+    private volatile ResponseHook<QueryRouteRequest, QueryRouteResponse> queryRouteHook;
 
     private volatile ParameterConverter<Endpoints, Endpoints> queryAssignmentEndpointConverter;
     private volatile AssignmentQueueSelector assignmentQueueSelector;
-    private volatile ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook = null;
+    private volatile ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook;
 
     public RouteService(ProxyMode mode, ConnectorManager connectorManager) {
         super(connectorManager);
@@ -79,8 +79,7 @@ public class RouteService extends BaseService {
         this.queryRouteHook = queryRouteHook;
     }
 
-    public void setQueryAssignmentEndpointConverter(
-        ParameterConverter<Endpoints, Endpoints> queryAssignmentEndpointConverter) {
+    public void setQueryAssignmentEndpointConverter(ParameterConverter<Endpoints, Endpoints> queryAssignmentEndpointConverter) {
         this.queryAssignmentEndpointConverter = queryAssignmentEndpointConverter;
     }
 
@@ -88,8 +87,7 @@ public class RouteService extends BaseService {
         this.assignmentQueueSelector = assignmentQueueSelector;
     }
 
-    public void setQueryAssignmentHook(
-        ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook) {
+    public void setQueryAssignmentHook(ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook) {
         this.queryAssignmentHook = queryAssignmentHook;
     }
 
@@ -102,8 +100,8 @@ public class RouteService extends BaseService {
         });
 
         try {
-            MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache()
-                .getMessageQueue(GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
+            String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
+            MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache().getMessageQueue(topicName);
             TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
             List<QueueData> queueDataList = topicRouteData.getQueueDatas();
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
@@ -217,8 +215,8 @@ public class RouteService extends BaseService {
             List<Assignment> assignments = new ArrayList<>();
             List<SelectableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(ctx, request);
             if (ProxyMode.isLocalMode(mode)) {
-                MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache()
-                    .getMessageQueue(GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
+                String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
+                MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache().getMessageQueue(topicName);
                 TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
                 Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(topicRouteData.getBrokerDatas());
                 for (SelectableMessageQueue messageQueue : messageQueueList) {

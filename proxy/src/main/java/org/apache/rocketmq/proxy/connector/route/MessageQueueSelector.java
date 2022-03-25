@@ -153,10 +153,10 @@ public class MessageQueueSelector {
     }
 
     public final SelectableMessageQueue selectOne(String brokerName, int queueId) {
-        for (SelectableMessageQueue addressableMessageQueue : queues) {
-            String queueBrokerName = addressableMessageQueue.getBrokerName();
-            if (queueBrokerName.equals(brokerName) && addressableMessageQueue.getQueueId() == queueId) {
-                return addressableMessageQueue;
+        for (SelectableMessageQueue targetMessageQueue : queues) {
+            String queueBrokerName = targetMessageQueue.getBrokerName();
+            if (queueBrokerName.equals(brokerName) && targetMessageQueue.getQueueId() == queueId) {
+                return targetMessageQueue;
             }
         }
         return null;

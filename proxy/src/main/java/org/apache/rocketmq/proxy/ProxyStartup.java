@@ -58,15 +58,17 @@ public class ProxyStartup {
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
 
-            // create and start grpcServer
+            // create grpcServer
             GrpcServer grpcServer = createGrpcServer();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
-            // health check server
+            // create health check server
             final HealthCheckServer healthCheckServer = new HealthCheckServer();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(healthCheckServer);
 
+            // start servers one by one.
             PROXY_START_AND_SHUTDOWN.start();
+
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 LOGGER.info("try to shutdown server");
                 try {

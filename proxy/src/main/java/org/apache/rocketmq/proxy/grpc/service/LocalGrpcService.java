@@ -88,9 +88,14 @@ import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.grpc.adapter.DelayPolicy;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
+import org.apache.rocketmq.proxy.grpc.adapter.PollResponseFuture;
+import org.apache.rocketmq.proxy.grpc.adapter.PollResponseManager;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.PullMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.ReceiveMessageChannel;
@@ -98,12 +103,6 @@ import org.apache.rocketmq.proxy.grpc.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.PullMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.adapter.DelayPolicy;
-import org.apache.rocketmq.proxy.grpc.adapter.PollResponseFuture;
-import org.apache.rocketmq.proxy.grpc.adapter.PollResponseManager;
-import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -226,13 +225,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        long timeRemaining = Context.current()
-            .getDeadline()
-            .timeRemaining(TimeUnit.MILLISECONDS);
-        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
-        if (pollTime <= 0) {
-            pollTime = timeRemaining;
-        }
+        long pollTime = GrpcConverter.buildPollTimeFromContext(ctx);
         PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
@@ -392,13 +385,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
-        long timeRemaining = Context.current()
-            .getDeadline()
-            .timeRemaining(TimeUnit.MILLISECONDS);
-        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
-        if (pollTime <= 0) {
-            pollTime = timeRemaining;
-        }
+        long pollTime = GrpcConverter.buildPollTimeFromContext(ctx);
         PullMessageRequestHeader requestHeader = GrpcConverter.buildPullMessageRequestHeader(request, pollTime);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();

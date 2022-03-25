@@ -22,8 +22,9 @@ import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class ForwardWriteConsumer extends AbstractForwardClient {
@@ -47,12 +48,24 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         return clientFactory.getMQClient(name, threadCount);
     }
 
+    public CompletableFuture<AckResult> ackMessage(String address, AckMessageRequestHeader requestHeader) {
+        return this.ackMessage(address, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+    }
+
     public CompletableFuture<AckResult> ackMessage(
         String address,
         AckMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        return getClient().ackMessage(address, requestHeader, timeoutMillis);
+        return this.getClient().ackMessage(address, requestHeader, timeoutMillis);
+    }
+
+    public CompletableFuture<AckResult> changeInvisibleTimeAsync(
+        String address,
+        String brokerName,
+        ChangeInvisibleTimeRequestHeader requestHeader
+    ) {
+        return this.changeInvisibleTimeAsync(address, brokerName, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<AckResult> changeInvisibleTimeAsync(
@@ -61,7 +74,7 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         ChangeInvisibleTimeRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        return getClient().changeInvisibleTimeAsync(address, brokerName, requestHeader, timeoutMillis);
+        return this.getClient().changeInvisibleTimeAsync(address, brokerName, requestHeader, timeoutMillis);
     }
 
     public void updateConsumerOffsetOneWay(
@@ -69,6 +82,6 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         UpdateConsumerOffsetRequestHeader header,
         long timeoutMillis
     ) throws RemotingException, InterruptedException {
-        getClient().updateConsumerOffsetOneWay(brokerAddr, header, timeoutMillis);
+        this.getClient().updateConsumerOffsetOneWay(brokerAddr, header, timeoutMillis);
     }
 }

@@ -46,8 +46,8 @@ public class TransactionService extends BaseService implements TransactionStateC
     private final ChannelManager channelManager;
     private final ForwardProducer forwardProducer;
 
-    private volatile ResponseHook<TransactionStateCheckRequest, PollCommandResponse> checkTransactionStateHook = null;
-    private volatile ResponseHook<EndTransactionRequest, EndTransactionResponse> endTransactionHook = null;
+    private volatile ResponseHook<TransactionStateCheckRequest, PollCommandResponse> checkTransactionStateHook;
+    private volatile ResponseHook<EndTransactionRequest, EndTransactionResponse> endTransactionHook;
 
     public TransactionService(ConnectorManager connectorManager, ChannelManager channelManager) {
         super(connectorManager);
@@ -63,11 +63,11 @@ public class TransactionService extends BaseService implements TransactionStateC
             if (CollectionUtils.isEmpty(clientIdList)) {
                 return;
             }
+
             String clientId = clientIdList.get(ThreadLocalRandom.current().nextInt(clientIdList.size()));
-
             GrpcClientChannel channel = GrpcClientChannel.getChannel(this.channelManager, checkData.getGroupId(), clientId);
-            String transactionId = checkData.getTransactionId().getProxyTransactionId();
 
+            String transactionId = checkData.getTransactionId().getProxyTransactionId();
             Message message = GrpcConverter.buildMessage(checkData.getMessageExt());
             PollCommandResponse response = PollCommandResponse.newBuilder()
                 .setRecoverOrphanedTransactionCommand(
@@ -76,6 +76,7 @@ public class TransactionService extends BaseService implements TransactionStateC
                         .setTransactionId(transactionId)
                         .build()
                 ).build();
+
             channel.writeAndFlush(response);
             if (this.checkTransactionStateHook != null) {
                 this.checkTransactionStateHook.beforeResponse(ctx, checkData, response, null);
@@ -97,10 +98,9 @@ public class TransactionService extends BaseService implements TransactionStateC
 
         try {
             TransactionId handle = TransactionId.decode(request.getTransactionId());
+            String brokerAddr = RemotingHelper.parseSocketAddressAddr(handle.getBrokerAddr());
             EndTransactionRequestHeader requestHeader = this.toEndTransactionRequestHeader(ctx, request);
-            this.forwardProducer.endTransaction(
-                RemotingHelper.parseSocketAddressAddr(handle.getBrokerAddr()),
-                requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+            this.forwardProducer.endTransaction(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
             future.complete(EndTransactionResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
                 .build());
