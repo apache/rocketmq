@@ -64,10 +64,10 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
-import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
-import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.service.cluster.ClientService;
+import org.apache.rocketmq.proxy.grpc.adapter.PollResponseManager;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.service.cluster.ForwardClientService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ConsumerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.PullMessageService;
@@ -87,19 +87,19 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private final ProducerService producerService;
     private final ConsumerService receiveMessageService;
     private final RouteService routeService;
-    private final ClientService clientService;
+    private final ForwardClientService clientService;
     private final PullMessageService pullMessageService;
     private final TransactionService transactionService;
-    private final PollCommandResponseManager pollCommandResponseManager;
+    private final PollResponseManager pollCommandResponseManager;
 
     public ClusterGrpcService() {
         this.channelManager = new ChannelManager();
-        this.pollCommandResponseManager = new PollCommandResponseManager();
+        this.pollCommandResponseManager = new PollResponseManager();
         this.connectorManager = new ConnectorManager(new GrpcTransactionStateChecker());
         this.receiveMessageService = new ConsumerService(connectorManager);
         this.producerService = new ProducerService(connectorManager);
         this.routeService = new RouteService(ProxyMode.CLUSTER, connectorManager);
-        this.clientService = new ClientService(connectorManager, scheduledExecutorService, channelManager, pollCommandResponseManager);
+        this.clientService = new ForwardClientService(connectorManager, scheduledExecutorService, channelManager, pollCommandResponseManager);
         this.pullMessageService = new PullMessageService(connectorManager);
         this.transactionService = new TransactionService(connectorManager, channelManager);
 

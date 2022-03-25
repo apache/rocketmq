@@ -56,7 +56,7 @@ import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.grpc.common.ResponseWriter;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

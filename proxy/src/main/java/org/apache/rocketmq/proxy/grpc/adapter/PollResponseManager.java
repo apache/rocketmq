@@ -14,11 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.common;
 
-import io.grpc.Context;
+package org.apache.rocketmq.proxy.grpc.adapter;
 
-@FunctionalInterface
-public interface ParameterConverter<T, R> {
-    R convert(Context ctx, T parameter) throws Throwable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+
+public class PollResponseManager {
+    private final ConcurrentMap<String, PollResponseFuture> futureTable = new ConcurrentHashMap<>();
+    private final AtomicLong commandIdGenerator = new AtomicLong(0);
+
+    public String putResponse(int opaque) {
+        String commandId = String.valueOf(commandIdGenerator.incrementAndGet());
+        futureTable.put(commandId, new PollResponseFuture(commandId, opaque));
+        return commandId;
+    }
+
+    public PollResponseFuture getResponse(String commandId) {
+        return futureTable.get(commandId);
+    }
 }

@@ -24,6 +24,7 @@ import apache.rocketmq.v1.PollCommandRequest;
 import apache.rocketmq.v1.PollCommandResponse;
 import apache.rocketmq.v1.Resource;
 import io.grpc.Context;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,35 +34,40 @@ import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.PollResponseManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClientService extends BaseService {
-
-    private static final Logger log = LoggerFactory.getLogger(ClientService.class);
+public class ForwardClientService extends BaseService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ForwardClientService.class);
 
     private final ChannelManager channelManager;
-    private final ConsumerManager consumerManager = new ConsumerManager((event, group, args) -> {
-    });
+    private final ConsumerManager consumerManager;
     private final ProducerManager producerManager;
-    private final PollCommandResponseManager pollCommandResponseManager;
+    private final PollResponseManager pollCommandResponseManager;
 
-    public ClientService(
+    public ForwardClientService(
         ConnectorManager connectorManager,
         ScheduledExecutorService scheduledExecutorService,
         ChannelManager channelManager,
-        PollCommandResponseManager pollCommandResponseManager
+        PollResponseManager pollCommandResponseManager
     ) {
         super(connectorManager);
-        scheduledExecutorService.scheduleWithFixedDelay(this::scanNotActiveChannel, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+        scheduledExecutorService.scheduleWithFixedDelay(
+            this::scanNotActiveChannel,
+            Duration.ofSeconds(10).toMillis(),
+            Duration.ofSeconds(10).toMillis(),
+            TimeUnit.MILLISECONDS);
         this.channelManager = channelManager;
         this.pollCommandResponseManager = pollCommandResponseManager;
 
+        this.consumerManager = new ConsumerManager((event, group, args) -> {
+            // nothing to do in handler.
+        });
         this.producerManager = new ProducerManager();
         this.producerManager.setProducerOfflineListener(connectorManager.getTransactionHeartbeatRegisterService()::onProducerGroupOffline);
     }
@@ -72,7 +78,7 @@ public class ClientService extends BaseService {
         String clientId = request.getClientId();
 
         if (request.hasProducerData()) {
-            String producerGroup = Converter.getResourceNameWithNamespace(request.getProducerData().getGroup());
+            String producerGroup = GrpcConverter.wrapResourceWithNamespace(request.getProducerData().getGroup());
             GrpcClientChannel channel = GrpcClientChannel.create(channelManager, producerGroup, clientId, pollCommandResponseManager);
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
             producerManager.registerProducer(producerGroup, clientChannelInfo);
@@ -80,17 +86,17 @@ public class ClientService extends BaseService {
 
         if (request.hasConsumerData()) {
             ConsumerData consumerData = request.getConsumerData();
-            String consumerGroup = Converter.getResourceNameWithNamespace(consumerData.getGroup());
+            String consumerGroup = GrpcConverter.wrapResourceWithNamespace(consumerData.getGroup());
             GrpcClientChannel channel = GrpcClientChannel.create(channelManager, consumerGroup, clientId, pollCommandResponseManager);
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
 
             consumerManager.registerConsumer(
                 consumerGroup,
                 clientChannelInfo,
-                Converter.buildConsumeType(consumerData.getConsumeType()),
-                Converter.buildMessageModel(consumerData.getConsumeModel()),
-                Converter.buildConsumeFromWhere(consumerData.getConsumePolicy()),
-                Converter.buildSubscriptionDataSet(consumerData.getSubscriptionsList()),
+                GrpcConverter.buildConsumeType(consumerData.getConsumeType()),
+                GrpcConverter.buildMessageModel(consumerData.getConsumeModel()),
+                GrpcConverter.buildConsumeFromWhere(consumerData.getConsumePolicy()),
+                GrpcConverter.buildSubscriptionDataSet(consumerData.getSubscriptionsList()),
                 false
             );
         }
@@ -100,7 +106,7 @@ public class ClientService extends BaseService {
         String clientId = request.getClientId();
 
         if (request.hasProducerGroup()) {
-            String producerGroup = Converter.getResourceNameWithNamespace(request.getProducerGroup());
+            String producerGroup = GrpcConverter.wrapResourceWithNamespace(request.getProducerGroup());
             GrpcClientChannel channel = GrpcClientChannel.removeChannel(channelManager, producerGroup, clientId);
             if (channel != null) {
                 producerManager.doChannelCloseEvent(producerGroup, channel);
@@ -108,7 +114,7 @@ public class ClientService extends BaseService {
         }
 
         if (request.hasConsumerGroup()) {
-            String consumerGroup = Converter.getResourceNameWithNamespace(request.getConsumerGroup());
+            String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getConsumerGroup());
             GrpcClientChannel channel = GrpcClientChannel.removeChannel(channelManager, consumerGroup, clientId);
             if (channel != null) {
                 consumerManager.doChannelCloseEvent(consumerGroup, channel);
@@ -118,13 +124,15 @@ public class ClientService extends BaseService {
 
     public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
         CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
-        String clientId = request.getClientId();
-        PollCommandResponse noopCommandResponse = PollCommandResponse.newBuilder().setNoopCommand(NoopCommand.newBuilder().build()).build();
+        PollCommandResponse noopCommandResponse = PollCommandResponse.newBuilder().setNoopCommand(
+            NoopCommand.newBuilder().build()
+        ).build();
 
+        String clientId = request.getClientId();
         switch (request.getGroupCase()) {
             case PRODUCER_GROUP:
                 Resource producerGroup = request.getProducerGroup();
-                String producerGroupName = Converter.getResourceNameWithNamespace(producerGroup);
+                String producerGroupName = GrpcConverter.wrapResourceWithNamespace(producerGroup);
                 GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(this.channelManager, producerGroupName, clientId);
                 if (producerChannel == null) {
                     future.complete(noopCommandResponse);
@@ -134,7 +142,7 @@ public class ClientService extends BaseService {
                 break;
             case CONSUMER_GROUP:
                 Resource consumerGroup = request.getConsumerGroup();
-                String consumerGroupName = Converter.getResourceNameWithNamespace(consumerGroup);
+                String consumerGroupName = GrpcConverter.wrapResourceWithNamespace(consumerGroup);
                 GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(this.channelManager, consumerGroupName, clientId);
                 if (consumerChannel == null) {
                     future.complete(noopCommandResponse);
@@ -153,7 +161,7 @@ public class ClientService extends BaseService {
             this.consumerManager.scanNotActiveChannel();
             this.producerManager.scanNotActiveChannel();
         } catch (Exception e) {
-            log.error("error occurred when scan not active client channels.", e);
+            LOGGER.error("error occurred when scan not active client channels.", e);
         }
     }
 }

@@ -37,8 +37,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
@@ -122,7 +122,7 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                     Resource topic = context.getRequest()
                         .getPartition()
                         .getTopic();
-                    String topicName = Converter.getResourceNameWithNamespace(topic);
+                    String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                     messageExt.setTopic(topicName);
                     messageExt.setBrokerName(brokerName);
                     messageExt.getProperties().computeIfAbsent(MessageConst.PROPERTY_FIRST_POP_TIME,
@@ -130,7 +130,7 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                 }
 
                 for (MessageExt messageExt : msgFoundList) {
-                    builder.addMessages(Converter.buildMessage(messageExt));
+                    builder.addMessages(GrpcConverter.buildMessage(messageExt));
                 }
             }
             response = builder.build();

@@ -30,7 +30,7 @@ public class ForwardReadConsumer extends AbstractForwardClient {
     private static final String CID_PREFIX = "CID_RMQ_PROXY_CONSUME_MESSAGE_";
 
     public ForwardReadConsumer(ForwardClientFactory clientFactory) {
-        super(clientFactory);
+        super(clientFactory, CID_PREFIX);
     }
 
     @Override
@@ -44,11 +44,6 @@ public class ForwardReadConsumer extends AbstractForwardClient {
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
         return clientFactory.getMQClient(name, threadCount);
-    }
-
-    @Override
-    protected String getNamePrefix() {
-        return CID_PREFIX;
     }
 
     public CompletableFuture<PopResult> popMessage(String address,  String brokerName, PopMessageRequestHeader requestHeader,

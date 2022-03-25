@@ -26,12 +26,13 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class PullMessageResponseHandler implements ResponseHandler<PullMessageRequest, PullMessageResponse> {
-    @Override public void handle(RemotingCommand responseCommand,
+    @Override
+    public void handle(RemotingCommand responseCommand,
         InvocationContext<PullMessageRequest, PullMessageResponse> context) {
         try {
             PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) responseCommand.readCustomHeader();
@@ -40,7 +41,7 @@ public class PullMessageResponseHandler implements ResponseHandler<PullMessageRe
                 ByteBuffer byteBuffer = ByteBuffer.wrap(responseCommand.getBody());
                 List<MessageExt> msgFoundList = MessageDecoder.decodes(byteBuffer);
                 for (MessageExt messageExt : msgFoundList) {
-                    builder.addMessages(Converter.buildMessage(messageExt));
+                    builder.addMessages(GrpcConverter.buildMessage(messageExt));
                 }
             }
             PullMessageResponse response = builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()))

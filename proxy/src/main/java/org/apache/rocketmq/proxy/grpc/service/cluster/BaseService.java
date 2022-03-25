@@ -21,7 +21,7 @@ import io.grpc.Context;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
-import org.apache.rocketmq.proxy.grpc.common.ProxyException;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
 
 public class BaseService {
 

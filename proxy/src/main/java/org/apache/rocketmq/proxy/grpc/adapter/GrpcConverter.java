@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.common;
+package org.apache.rocketmq.proxy.grpc.adapter;
 
 import apache.rocketmq.v1.AckMessageRequest;
 import apache.rocketmq.v1.ChangeInvisibleDurationRequest;
@@ -94,10 +94,10 @@ import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Converter {
+public class GrpcConverter {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
-    public static String getResourceNameWithNamespace(Resource resource) {
+    public static String wrapResourceWithNamespace(Resource resource) {
         return NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
     }
 
@@ -108,8 +108,8 @@ public class Converter {
         SystemAttribute systemAttribute = message.getSystemAttribute();
 
         Map<String, String> property = buildMessageProperty(message);
-        requestHeader.setProducerGroup(getResourceNameWithNamespace(systemAttribute.getProducerGroup()));
-        requestHeader.setTopic(getResourceNameWithNamespace(message.getTopic()));
+        requestHeader.setProducerGroup(wrapResourceWithNamespace(systemAttribute.getProducerGroup()));
+        requestHeader.setTopic(wrapResourceWithNamespace(message.getTopic()));
         requestHeader.setDefaultTopic("");
         requestHeader.setDefaultTopicQueueNums(0);
         requestHeader.setQueueId(systemAttribute.getPartitionId());
@@ -135,10 +135,10 @@ public class Converter {
 
     public static PopMessageRequestHeader buildPopMessageRequestHeader(ReceiveMessageRequest request, long pollTime) {
         Resource group = request.getGroup();
-        String groupName = Converter.getResourceNameWithNamespace(group);
+        String groupName = GrpcConverter.wrapResourceWithNamespace(group);
         Partition partition = request.getPartition();
         Resource topic = partition.getTopic();
-        String topicName = Converter.getResourceNameWithNamespace(topic);
+        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
         int queueId = partition.getId();
         int maxMessageNumbers = request.getBatchSize();
         if (maxMessageNumbers > ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST) {
@@ -149,11 +149,11 @@ public class Converter {
         long invisibleTime = Durations.toMillis(request.getInvisibleDuration());
         long bornTime = Timestamps.toMillis(request.getInitializationTimestamp());
         ConsumePolicy policy = request.getConsumePolicy();
-        int initMode = Converter.buildConsumeInitMode(policy);
+        int initMode = GrpcConverter.buildConsumeInitMode(policy);
 
         FilterExpression filterExpression = request.getFilterExpression();
         String expression = filterExpression.getExpression();
-        String expressionType = Converter.buildExpressionType(filterExpression.getType());
+        String expressionType = GrpcConverter.buildExpressionType(filterExpression.getType());
 
         PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
         requestHeader.setConsumerGroup(groupName);
@@ -172,8 +172,8 @@ public class Converter {
     }
 
     public static AckMessageRequestHeader buildAckMessageRequestHeader(AckMessageRequest request) {
-        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
-        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         String receiptHandleStr = request.getReceiptHandle();
         ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
 
@@ -188,8 +188,8 @@ public class Converter {
 
     public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(NackMessageRequest request,
         DelayPolicy delayPolicy) {
-        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
-        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         String receiptHandleStr = request.getReceiptHandle();
         ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
 
@@ -206,8 +206,8 @@ public class Converter {
 
     public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(
         ChangeInvisibleDurationRequest request) {
-        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
-        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         String receiptHandleStr = request.getReceiptHandle();
         ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
 
@@ -223,8 +223,8 @@ public class Converter {
 
     public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(
         ForwardMessageToDeadLetterQueueRequest request) {
-        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
-        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         String receiptHandleStr = request.getReceiptHandle();
         ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
 
@@ -240,8 +240,8 @@ public class Converter {
 
     public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(
         NackMessageRequest request) {
-        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
-        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         String receiptHandleStr = request.getReceiptHandle();
         ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
 
@@ -256,7 +256,7 @@ public class Converter {
     }
 
     public static EndTransactionRequestHeader buildEndTransactionRequestHeader(EndTransactionRequest request) {
-        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         String messageId = request.getMessageId();
         String transactionId = request.getTransactionId();
         TransactionId handle;
@@ -268,7 +268,7 @@ public class Converter {
         long transactionStateTableOffset = handle.getTranStateTableOffset();
         long commitLogOffset = handle.getCommitLogOffset();
         boolean fromTransactionCheck = request.getSource() == EndTransactionRequest.Source.SERVER_CHECK;
-        int commitOrRollback = Converter.buildTransactionCommitOrRollback(request.getResolution());
+        int commitOrRollback = GrpcConverter.buildTransactionCommitOrRollback(request.getResolution());
 
         EndTransactionRequestHeader endTransactionRequestHeader = new EndTransactionRequestHeader();
         endTransactionRequestHeader.setProducerGroup(groupName);
@@ -284,13 +284,13 @@ public class Converter {
 
     public static PullMessageRequestHeader buildPullMessageRequestHeader(PullMessageRequest request, long pollTimeoutInMillis) {
         Partition partition = request.getPartition();
-        String groupName = Converter.getResourceNameWithNamespace(request.getGroup());
-        String topicName = Converter.getResourceNameWithNamespace(partition.getTopic());
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(partition.getTopic());
 
         int queueId = partition.getId();
         int sysFlag = PullSysFlag.buildSysFlag(false, true, true, false, false);
         String expression = request.getFilterExpression().getExpression();
-        String expressionType = Converter.buildExpressionType(request.getFilterExpression().getType());
+        String expressionType = GrpcConverter.buildExpressionType(request.getFilterExpression().getType());
 
         PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
         requestHeader.setConsumerGroup(groupName);
@@ -370,7 +370,7 @@ public class Converter {
         MessageAccessor.setReconsumeTime(messageWithHeader, String.valueOf(reconsumeTimes));
         // set producer group
         Resource producerGroup = message.getSystemAttribute().getProducerGroup();
-        String producerGroupName = getResourceNameWithNamespace(producerGroup);
+        String producerGroupName = wrapResourceWithNamespace(producerGroup);
         MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_PRODUCER_GROUP, producerGroupName);
         // set message group
         String messageGroup = message.getSystemAttribute().getMessageGroup();
@@ -386,7 +386,7 @@ public class Converter {
     }
 
     public static org.apache.rocketmq.common.message.Message buildMessage(Message protoMessage) {
-        String topic = getResourceNameWithNamespace(protoMessage.getTopic());
+        String topic = wrapResourceWithNamespace(protoMessage.getTopic());
 
         org.apache.rocketmq.common.message.Message message =
             new org.apache.rocketmq.common.message.Message(topic, protoMessage.getBody().toByteArray());
@@ -420,13 +420,13 @@ public class Converter {
 
     public static org.apache.rocketmq.common.protocol.heartbeat.ProducerData buildProducerData(ProducerData producerData) {
         org.apache.rocketmq.common.protocol.heartbeat.ProducerData buildProducerData = new org.apache.rocketmq.common.protocol.heartbeat.ProducerData();
-        buildProducerData.setGroupName(getResourceNameWithNamespace(producerData.getGroup()));
+        buildProducerData.setGroupName(wrapResourceWithNamespace(producerData.getGroup()));
         return buildProducerData;
     }
 
     public static org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData(ConsumerData consumerData) {
         org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData = new org.apache.rocketmq.common.protocol.heartbeat.ConsumerData();
-        buildConsumerData.setGroupName(getResourceNameWithNamespace(consumerData.getGroup()));
+        buildConsumerData.setGroupName(wrapResourceWithNamespace(consumerData.getGroup()));
         buildConsumerData.setConsumeType(buildConsumeType(consumerData.getConsumeType()));
         buildConsumerData.setMessageModel(buildMessageModel(consumerData.getConsumeModel()));
         buildConsumerData.setConsumeFromWhere(buildConsumeFromWhere(consumerData.getConsumePolicy()));
@@ -472,7 +472,7 @@ public class Converter {
     public static Set<SubscriptionData> buildSubscriptionDataSet(List<SubscriptionEntry> subscriptionEntryList) {
         Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
         for (SubscriptionEntry sub : subscriptionEntryList) {
-            String topicName = Converter.getResourceNameWithNamespace(sub.getTopic());
+            String topicName = GrpcConverter.wrapResourceWithNamespace(sub.getTopic());
             FilterExpression filterExpression = sub.getExpression();
             subscriptionDataSet.add(buildSubscriptionData(topicName, filterExpression));
         }
@@ -481,7 +481,7 @@ public class Converter {
 
     public static SubscriptionData buildSubscriptionData(String topicName, FilterExpression filterExpression) {
         String expression = filterExpression.getExpression();
-        String expressionType = Converter.buildExpressionType(filterExpression.getType());
+        String expressionType = GrpcConverter.buildExpressionType(filterExpression.getType());
         try {
             return FilterAPI.build(topicName, expression, expressionType);
         } catch (Exception e) {
@@ -693,10 +693,10 @@ public class Converter {
         UnregisterClientRequestHeader header = new UnregisterClientRequestHeader();
         header.setClientID(request.getClientId());
         if (request.hasProducerGroup()) {
-            header.setProducerGroup(getResourceNameWithNamespace(request.getProducerGroup()));
+            header.setProducerGroup(wrapResourceWithNamespace(request.getProducerGroup()));
         }
         if (request.hasConsumerGroup()) {
-            header.setConsumerGroup(getResourceNameWithNamespace(request.getConsumerGroup()));
+            header.setConsumerGroup(wrapResourceWithNamespace(request.getConsumerGroup()));
         }
         return header;
     }

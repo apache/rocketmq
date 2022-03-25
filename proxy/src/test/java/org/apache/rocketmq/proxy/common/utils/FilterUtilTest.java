@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.common.utils;
 
-import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.junit.Test;
@@ -26,25 +25,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class FilterUtilTest {
     @Test
-    public void testIsTagMatched() throws Exception {
+    public void testTagMatched() throws Exception {
         SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("", "tagA");
         assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), "tagA")).isTrue();
     }
 
     @Test
-    public void testIsTagNotMatched() throws Exception {
+    public void testTagNotMatched() throws Exception {
         SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("", "tagA");
         assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), "tagB")).isFalse();
     }
 
     @Test
-    public void testIsTagMatchedStar() throws Exception {
+    public void testTagMatchedStar() throws Exception {
         SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("", "*");
         assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), "tagA")).isTrue();
     }
 
     @Test
-    public void testIsTagNotMatchedNull() throws Exception {
+    public void testTagNotMatchedNull() throws Exception {
         SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("", "tagA");
         assertThat(FilterUtils.isTagMatched(subscriptionData.getTagsSet(), null)).isFalse();
     }
