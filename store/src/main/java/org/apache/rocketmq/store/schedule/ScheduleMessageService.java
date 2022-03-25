@@ -686,14 +686,7 @@ public class ScheduleMessageService extends ConfigManager {
         private void handleResult(PutMessageResult result) {
             if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                 onSuccess(result);
-            } else if (result != null
-                && PutMessageStatus.SERVICE_NOT_AVAILABLE.equals(result.getPutMessageStatus())
-                && need2Skip()) {
-                log.warn(ScheduleMessageService.this.getClass().getSimpleName() +
-                    " put message failed, service not available skip this message.\n {}", this.toString());
-                this.status = ProcessStatus.SKIP;
-            }
-            else {
+            } else {
                 log.warn("ScheduleMessageService put message failed. info: {}.", result);
                 onException();
             }
@@ -734,6 +727,9 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         private void resend() {
+            if (ScheduleMessageService.this.deliverExecutorService.isShutdown()) {
+                return;
+            }
             log.info("Resend message, info: {}", this.toString());
 
             // Gradually increase the resend interval.
