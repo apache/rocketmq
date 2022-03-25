@@ -96,7 +96,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GrpcConverter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     public static String wrapResourceWithNamespace(Resource resource) {
         return NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
@@ -143,7 +143,7 @@ public class GrpcConverter {
         int queueId = partition.getId();
         int maxMessageNumbers = request.getBatchSize();
         if (maxMessageNumbers > ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST) {
-            LOGGER.warn("change maxNums from {} to {} for pop request, with info: topic:{}, group:{}",
+            log.warn("change maxNums from {} to {} for pop request, with info: topic:{}, group:{}",
                 maxMessageNumbers, ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST, topicName, groupName);
             maxMessageNumbers = ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST;
         }

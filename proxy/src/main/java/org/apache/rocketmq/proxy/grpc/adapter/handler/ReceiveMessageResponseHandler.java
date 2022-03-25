@@ -45,9 +45,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMessageRequest, ReceiveMessageResponse> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
-    @Override public void handle(RemotingCommand responseCommand,
+    @Override
+    public void handle(RemotingCommand responseCommand,
         InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context) {
         ReceiveMessageRequest request = context.getRequest();
         CompletableFuture<ReceiveMessageResponse> future = context.getResponse();
@@ -103,7 +104,7 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                         int index = sortMap.get(key).indexOf(messageExt.getQueueOffset());
                         Long msgQueueOffset = msgOffsetInfo.get(key).get(index);
                         if (msgQueueOffset != messageExt.getQueueOffset()) {
-                            LOGGER.warn("Queue offset[{}] of msg is strange, not equal to the stored in msg, {}",
+                            log.warn("Queue offset[{}] of msg is strange, not equal to the stored in msg, {}",
                                 msgQueueOffset, messageExt);
                         }
                         String extraInfo = ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(key),
@@ -135,11 +136,11 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
             }
             response = builder.build();
             long elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
-            LOGGER.debug("Translating remoting response to gRPC response costs {}ms. Duration request received: {}",
+            log.debug("Translating remoting response to gRPC response costs {}ms. Duration request received: {}",
                 elapsed, popCosts);
             future.complete(response);
         } catch (Exception e) {
-            LOGGER.error("Unexpected exception raised when handle pop remoting command", e);
+            log.error("Unexpected exception raised when handle pop remoting command", e);
             future.completeExceptionally(e);
         }
     }

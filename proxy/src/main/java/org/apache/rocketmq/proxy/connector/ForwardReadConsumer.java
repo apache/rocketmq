@@ -47,6 +47,11 @@ public class ForwardReadConsumer extends AbstractForwardClient {
         return clientFactory.getMQClient(name, threadCount);
     }
 
+    public CompletableFuture<PopResult> popMessage(String address, String brokerName,
+        PopMessageRequestHeader requestHeader) {
+        return this.popMessage(address, brokerName, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+    }
+
     public CompletableFuture<PopResult> popMessage(
         String address,
         String brokerName,

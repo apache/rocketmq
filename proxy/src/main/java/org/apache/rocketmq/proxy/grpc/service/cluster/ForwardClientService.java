@@ -45,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ForwardClientService extends BaseService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ForwardClientService.class);
+    private static final Logger log = LoggerFactory.getLogger(ForwardClientService.class);
 
     private final ChannelManager channelManager;
     private final ConsumerManager consumerManager;
@@ -167,7 +167,7 @@ public class ForwardClientService extends BaseService {
             this.consumerManager.scanNotActiveChannel();
             this.producerManager.scanNotActiveChannel();
         } catch (Exception e) {
-            LOGGER.error("error occurred when scan not active client channels.", e);
+            log.error("error occurred when scan not active client channels.", e);
         }
     }
 

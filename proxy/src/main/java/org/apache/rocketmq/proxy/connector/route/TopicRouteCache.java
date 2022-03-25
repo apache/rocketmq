@@ -37,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TopicRouteCache {
-
     private static final Logger log = LoggerFactory.getLogger(TopicRouteCache.class);
 
     private final LoadingCache<String /* topicName */, MessageQueueWrapper> topicCache;

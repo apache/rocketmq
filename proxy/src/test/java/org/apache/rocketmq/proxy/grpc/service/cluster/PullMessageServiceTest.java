@@ -10,7 +10,6 @@ import apache.rocketmq.v1.QueryOffsetPolicy;
 import apache.rocketmq.v1.QueryOffsetRequest;
 import apache.rocketmq.v1.QueryOffsetResponse;
 import apache.rocketmq.v1.Resource;
-import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Timestamps;
 import com.google.rpc.Code;
 import io.grpc.Context;
@@ -23,10 +22,8 @@ import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -48,8 +45,8 @@ public class PullMessageServiceTest extends BaseServiceTest {
     public void testQueryOffset() throws Exception {
         Context ctx = Context.current();
 
-        when(defaultClient.getMaxOffset(anyString(), anyString(), anyInt(), anyLong())).thenReturn(CompletableFuture.completedFuture(100L));
-        when(defaultClient.searchOffset(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(CompletableFuture.completedFuture(50L));
+        when(defaultClient.getMaxOffset(anyString(), anyString(), anyInt())).thenReturn(CompletableFuture.completedFuture(100L));
+        when(defaultClient.searchOffset(anyString(), anyString(), anyInt(), anyLong())).thenReturn(CompletableFuture.completedFuture(50L));
 
         QueryOffsetResponse response = pullMessageService.queryOffset(ctx, QueryOffsetRequest.newBuilder()
             .setPartition(Partition.newBuilder()
@@ -108,7 +105,7 @@ public class PullMessageServiceTest extends BaseServiceTest {
         doAnswer(mock -> {
             headerRef.set(mock.getArgument(1));
             return CompletableFuture.completedFuture(pullResult);
-        }).when(readConsumerClient).pullMessage(anyString(), any(), anyLong());
+        }).when(readConsumerClient).pullMessage(anyString(), any());
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
         PullMessageResponse response = pullMessageService.pullMessage(ctx, PullMessageRequest.newBuilder()

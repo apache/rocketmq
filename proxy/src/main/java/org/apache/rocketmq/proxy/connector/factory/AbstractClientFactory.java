@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractClientFactory<T>  {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClientFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractClientFactory.class);
 
     protected final ScheduledExecutorService scheduledExecutorService;
     protected Map<String, T> cacheTable = new ConcurrentHashMap<>();
@@ -78,7 +78,7 @@ public abstract class AbstractClientFactory<T>  {
             try {
                 this.shutdown(v);
             } catch (Exception e) {
-                LOGGER.warn("try to shutdown client err.", e);
+                log.warn("try to shutdown client err.", e);
             }
         });
     }

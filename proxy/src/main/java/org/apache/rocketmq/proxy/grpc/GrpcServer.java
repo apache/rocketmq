@@ -44,7 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GrpcServer implements StartAndShutdown {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     private final io.grpc.Server server;
     private final ThreadPoolExecutor executor;
@@ -68,7 +68,7 @@ public class GrpcServer implements StartAndShutdown {
                 .build();
             serverBuilder.sslContext(sslContext);
         } catch (IOException e) {
-            LOGGER.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
+            log.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
             throw new RuntimeException("grpc tls set failed: " + e.getMessage());
         }
 
@@ -109,7 +109,7 @@ public class GrpcServer implements StartAndShutdown {
             .intercept(new HeaderInterceptor())
             .build();
 
-        LOGGER.info(
+        log.info(
             "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
                 + "boosLoop: {}, workerLoop: {}, maxInboundMessageSize: {}",
             port, tlsKeyPath, tlsCertPath, threadPoolNums, threadPoolQueueCapacity,
@@ -122,7 +122,7 @@ public class GrpcServer implements StartAndShutdown {
         this.grpcForwardService.start();
 
         this.server.start();
-        LOGGER.info("grpc server has started");
+        log.info("grpc server has started");
     }
 
     public void shutdown() {
@@ -132,7 +132,7 @@ public class GrpcServer implements StartAndShutdown {
 
             this.grpcForwardService.shutdown();
 
-            LOGGER.info("grpc server has stopped");
+            log.info("grpc server has stopped");
         } catch (Exception e) {
             e.printStackTrace();
         }

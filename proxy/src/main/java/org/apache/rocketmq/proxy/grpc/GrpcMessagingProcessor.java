@@ -67,7 +67,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServiceImplBase {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
     private final GrpcForwardService grpcForwardService;
 
     public GrpcMessagingProcessor(GrpcForwardService grpcForwardService) {

@@ -38,8 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ProxyStartup {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProxyStartup.class);
+    private static final Logger log = LoggerFactory.getLogger(ProxyStartup.class);
     private static final ProxyStartAndShutdown PROXY_START_AND_SHUTDOWN = new ProxyStartAndShutdown();
 
     private static class ProxyStartAndShutdown extends AbstractStartAndShutdown {
@@ -70,22 +69,22 @@ public class ProxyStartup {
             PROXY_START_AND_SHUTDOWN.start();
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                LOGGER.info("try to shutdown server");
+                log.info("try to shutdown server");
                 try {
                     PROXY_START_AND_SHUTDOWN.shutdown();
                 } catch (Exception e) {
-                    LOGGER.error("err when shutdown proxy", e);
+                    log.error("err when shutdown proxy", e);
                 }
             }));
         } catch (Exception e) {
             System.err.println("find a unexpect err." + e);
             e.printStackTrace();
-            LOGGER.error("find a unexpect err.", e);
+            log.error("find a unexpect err.", e);
             System.exit(1);
         }
 
         System.out.printf("%s%n", new Date() + " rmq-proxy startup successfully");
-        LOGGER.info(new Date() + "rmq-proxy startup successfully");
+        log.info(new Date() + "rmq-proxy startup successfully");
     }
 
     private static GrpcServer createGrpcServer() throws Exception {

@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ResponseWriter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     public static <T> void write(StreamObserver<T> observer, final T response) {
         if (observer instanceof ServerCallStreamObserver) {
@@ -34,11 +34,11 @@ public class ResponseWriter {
 
             final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
             if (serverCallStreamObserver.isCancelled()) {
-                LOGGER.warn("client has cancelled the request. response to write: {}", response);
+                log.warn("client has cancelled the request. response to write: {}", response);
                 return;
             }
 
-            LOGGER.debug("start to write response. response: {}", response);
+            log.debug("start to write response. response: {}", response);
             serverCallStreamObserver.onNext(response);
             serverCallStreamObserver.onCompleted();
         }
@@ -52,7 +52,7 @@ public class ResponseWriter {
             }
 
             if (serverCallStreamObserver.isCancelled()) {
-                LOGGER.warn("Client has cancelled the request. Exception to write", e);
+                log.warn("Client has cancelled the request. Exception to write", e);
                 return;
             }
 
@@ -65,7 +65,7 @@ public class ResponseWriter {
 //                }
 //            }
 
-            LOGGER.debug("Start to write error response", e);
+            log.debug("Start to write error response", e);
             serverCallStreamObserver.onError(e);
             serverCallStreamObserver.onCompleted();
         }

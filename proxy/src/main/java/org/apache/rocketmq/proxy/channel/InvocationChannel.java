@@ -81,12 +81,12 @@ public abstract class InvocationChannel<R, W> extends SimpleChannel implements C
             if (entry.getValue().expired(expiredTimeSec)) {
                 iterator.remove();
                 count++;
-                LOGGER.debug("An expired request is found, created time-point: {}, Request: {}",
+                log.debug("An expired request is found, created time-point: {}, Request: {}",
                     entry.getValue().getTimestamp(), entry.getValue().getRequest());
             }
         }
         if (count > 0) {
-            LOGGER.warn("[BUG] {} expired in-flight requests is cleaned.", count);
+            log.warn("[BUG] {} expired in-flight requests is cleaned.", count);
         }
     }
 }
