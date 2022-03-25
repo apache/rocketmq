@@ -21,6 +21,7 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.rocketmq.apis.MessageQueue;
 import org.apache.rocketmq.apis.exception.*;
@@ -45,19 +46,6 @@ import org.apache.rocketmq.apis.message.MessageView;
  */
 public interface PullConsumer extends Closeable {
     /**
-     * Listener that listens for changes of message queues when use manual assignment mode.
-     */
-    interface MessageQueuesChangeListener {
-        /**
-         * This method will be invoked in the condition of message queues changed, These scenarios occur when the
-         * topic is expanded or shrunk.
-         *
-         * @param messageQueues {@link MessageQueue} of topic.
-         */
-        void onChanged(Collection<MessageQueue> messageQueues);
-    }
-
-    /**
      * Get metadata about the message queues for a given topic. This method will issue a remote call to the server if it
      * does not already have any metadata about the given topic.
      *
@@ -76,16 +64,6 @@ public interface PullConsumer extends Closeable {
      * @throws ClientException when assign
      */
     void assign(Collection<MessageQueue> messageQueues) throws ClientException;
-
-    /**
-     * Pull consumer query and update metadata about message queues periodically, listener is triggered once metadata
-     * is updated. The listener is required only in manual assignment mode.
-     * When use the subscription mode, no need to care the messageQueue change events.
-     *
-     * @param topic    topic to query and update metadata.
-     * @param listener listener to receive changes of metadata by topic.
-     */
-    void registerMessageQueuesChangeListener(String topic, MessageQueuesChangeListener listener);
 
     /**
      * Add subscription expression dynamically when use subscription mode.
@@ -116,23 +94,56 @@ public interface PullConsumer extends Closeable {
     Collection<MessageQueue> assignments();
 
     /**
-     * Fetch messages from server synchronously.
+     * Pull messages for the topics specified by subscribe or assign api synchronously.
      *
      * <p> This method returns immediately if there are messages available.
      * Otherwise, it will await the passed timeout. If the timeout expires, an empty map will be returned.
-     * An error occurs if you do not subscribe or assign messageQueues before polling for data.
-     * @param messageQueue the target messageQueue to pull message.
+     * An error occurs if you do not subscribe or assign messageQueues before pulling for data.
      * @param maxMessageNum max message num when server returns.
-     * @return collection of messageViews of this queue.
+     * @return map of messageQueue to messageViews.
      */
-    Collection<MessageView> pull(MessageQueue messageQueue, int maxMessageNum) throws ClientException;
+    Map<MessageQueue, Collection<MessageView>> pull(int maxMessageNum) throws ClientException;
 
     /**
-     * Commit the offsets for the specified messageQueue.
+     * Pull messages for the topics specified by subscribe or assign api asynchronously.
+     *
+     * <p> This method returns immediately if there are messages available.
+     * Otherwise, it will await the passed timeout. If the timeout expires, an empty map will be returned.
+     * An error occurs if you do not subscribe or assign messageQueues before pulling for data.
+     * @param maxMessageNum max message num when server returns.
+     * @return future of messageViews.
+     */
+    CompletableFuture<Map<MessageQueue, Collection<MessageView>>> pullAsync(int maxMessageNum) throws ClientException;
+
+    /**
+     * Commit offsets synchronously which returned by the last pull api for all the subscribed topic and messageQueues.
+     *
+     * <p> This offsets meta maintained by kafka, which used for rebalance processing or next startup.
+     * If you store the offsets in your own storage, you may need call seek api before pull and no need to call commit.
+     */
+    void commit() throws ClientException;
+
+    /**
+     * Commit offsets asynchronously which returned by the last pull api for all the subscribed topic and messageQueues.
+     *
+     * <p> This offsets meta maintained by kafka, which used for rebalance processing or next startup.
+     * If you store the offsets in your own storage, you may need call seek api before pull and no need to call commit.
+     */
+    CompletableFuture<Void> commitAsync() throws ClientException;
+
+    /**
+     * Commit specified offset for the specified messageQueue synchronously.
      * @param messageQueue the specified messageQueue to commit offset
      * @param committedOffset the specified offset commit to server
      */
     void commit(MessageQueue messageQueue, long committedOffset) throws ClientException;
+
+    /**
+     * Commit specified offset for the specified messageQueue asynchronously.
+     * @param messageQueue the specified messageQueue to commit offset
+     * @param committedOffset the specified offset commit to server
+     */
+    CompletableFuture<Void> commitAsync(MessageQueue messageQueue, long committedOffset) throws ClientException;
 
     /**
      * Overrides the fetch offsets that the consumer will use on the next pull operation.

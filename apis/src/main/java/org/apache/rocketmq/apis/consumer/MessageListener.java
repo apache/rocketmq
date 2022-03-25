@@ -32,7 +32,7 @@ public interface MessageListener {
      * and put committed messageViews to committedList. Push consumer will commit the committedList to server.
      * If consume message throw unexpected exception, Push consumer also commit the committedList.
      * @param messageViews are batch of messages which need consume. this message in the collection may come from different topics and the collection size control by setBatchSize(int batchSize) in {@link PushConsumerBuilder}
-     * @param committedList are collection of messages which already consume success and need commit to server.
+     * @param ackList are collection of messages which already consume success and need ack to server.
      */
-    void consume(Collection<MessageView> messageViews, Collection<MessageView> committedList);
+    void consume(Collection<MessageView> messageViews, Collection<MessageView> ackList);
 }

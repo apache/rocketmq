@@ -89,12 +89,21 @@ public interface SimpleConsumer extends Closeable {
      * Fetch messages from server synchronously.
      * <p> This method returns immediately if there are messages available.
      * Otherwise, it will await the passed timeout. If the timeout expires, an empty map will be returned.
-     * @param topic special topic want to get messages.
      * @param maxMessageNum max message num when server returns.
      * @param invisibleDuration set the invisibleDuration of messages return from server. These messages will be invisible to other consumer unless timout.
      * @return list of messageView
      */
-    List<MessageView> receive(String topic, int maxMessageNum, Duration invisibleDuration) throws ClientException;
+    List<MessageView> receive(int maxMessageNum, Duration invisibleDuration) throws ClientException;
+
+    /**
+     * Fetch messages from server asynchronously.
+     * <p> This method returns immediately if there are messages available.
+     * Otherwise, it will await the passed timeout. If the timeout expires, an empty map will be returned.
+     * @param maxMessageNum max message num when server returns.
+     * @param invisibleDuration set the invisibleDuration of messages return from server. These messages will be invisible to other consumer unless timout.
+     * @return list of messageView
+     */
+    CompletableFuture<List<MessageView>>receiveAsync(int maxMessageNum, Duration invisibleDuration) throws ClientException;
 
     /**
      * Ack message to server synchronously, server commit this message.
