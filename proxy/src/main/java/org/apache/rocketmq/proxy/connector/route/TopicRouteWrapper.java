@@ -37,13 +37,13 @@ public class TopicRouteWrapper {
 
         if (this.topicRouteData.getBrokerDatas() != null) {
             for (BrokerData brokerData : this.topicRouteData.getBrokerDatas()) {
-                brokerNameRouteData.put(brokerData.getBrokerName(), brokerData);
+                this.brokerNameRouteData.put(brokerData.getBrokerName(), brokerData);
             }
         }
     }
 
     public String getMasterAddr(String brokerName) {
-        return brokerNameRouteData.get(brokerName).getBrokerAddrs().get(MixAll.MASTER_ID);
+        return this.brokerNameRouteData.get(brokerName).getBrokerAddrs().get(MixAll.MASTER_ID);
     }
 
     public String getMasterAddrPrefer(String brokerName) {

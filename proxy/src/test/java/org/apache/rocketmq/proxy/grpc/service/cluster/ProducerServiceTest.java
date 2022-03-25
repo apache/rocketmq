@@ -33,8 +33,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -42,9 +40,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class ProducerServiceTest extends BaseServiceTest {
@@ -69,7 +65,7 @@ public class ProducerServiceTest extends BaseServiceTest {
     @Test
     public void testSendMessage() {
         CompletableFuture<SendResult> sendResultFuture = new CompletableFuture<>();
-        when(producerClient.sendMessage(anyString(), anyString(), any(), any(), anyLong()))
+        when(producerClient.sendMessage(anyString(), anyString(), any(), any()))
             .thenReturn(sendResultFuture);
         sendResultFuture.complete(new SendResult(SendStatus.SEND_OK, "msgId", new MessageQueue(),
             1L, "txId", "offsetMsgId", "regionId"));
@@ -124,7 +120,7 @@ public class ProducerServiceTest extends BaseServiceTest {
         RuntimeException ex = new RuntimeException();
 
         CompletableFuture<SendResult> sendResultFuture = new CompletableFuture<>();
-        when(producerClient.sendMessage(anyString(), anyString(), any(), any(), anyLong()))
+        when(producerClient.sendMessage(anyString(), anyString(), any(), any()))
             .thenReturn(sendResultFuture);
         sendResultFuture.completeExceptionally(ex);
 

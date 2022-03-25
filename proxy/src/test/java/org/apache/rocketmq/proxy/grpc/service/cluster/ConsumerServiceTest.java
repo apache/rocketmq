@@ -61,12 +61,13 @@ public class ConsumerServiceTest extends BaseServiceTest {
 
         List<MessageExt> messageExtList = Lists.newArrayList(
             createMessageExt("msg1", "msg1"),
-            createMessageExt("msg2", "msg2"));
+            createMessageExt("msg2", "msg2")
+        );
         PopResult popResult = new PopResult(PopStatus.FOUND, messageExtList);
         when(readConsumerClient.popMessage(anyString(), anyString(), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(popResult));
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
-        when(writeConsumerClient.ackMessage(anyString(), any(), anyLong()))
+        when(writeConsumerClient.ackMessage(anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(new AckResult()));
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
@@ -98,7 +99,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
         AckResult ackResult = new AckResult();
         ackResult.setStatus(AckStatus.OK);
-        when(writeConsumerClient.ackMessage(anyString(), any(), anyLong())).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(writeConsumerClient.ackMessage(anyString(), any())).thenReturn(CompletableFuture.completedFuture(ackResult));
 
         AckMessageResponse response = consumerService.ackMessage(Context.current(), AckMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -121,7 +122,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         doAnswer(mock -> {
             headerRef.set(mock.getArgument(1));
             return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, ""));
-        }).when(producerClient).sendMessageBack(anyString(), any(), anyLong());
+        }).when(producerClient).sendMessageBack(anyString(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
@@ -150,7 +151,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
             AckResult ackResult = new AckResult();
             ackResult.setStatus(AckStatus.OK);
             return CompletableFuture.completedFuture(ackResult);
-        }).when(writeConsumerClient).changeInvisibleTimeAsync(anyString(), anyString(), any(), anyLong());
+        }).when(writeConsumerClient).changeInvisibleTimeAsync(anyString(), anyString(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()

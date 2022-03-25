@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ChannelManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
     private final ConcurrentMap<String, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String /* group */, Set<String>/* clientId */> groupClientIdMap = new ConcurrentHashMap<>();
 
@@ -55,7 +55,7 @@ public class ChannelManager {
 
     public <T extends SimpleChannel> T createChannel(String clientId, Supplier<T> creator, Class<T> clazz) {
         if (Strings.isNullOrEmpty(clientId)) {
-            LOGGER.warn("ClientId is unexpected null or empty");
+            log.warn("ClientId is unexpected null or empty");
             return creator.get();
         }
 
@@ -153,7 +153,7 @@ public class ChannelManager {
                 }
             }
         } catch (Throwable e) {
-            LOGGER.error("Unexpected exception", e);
+            log.error("Unexpected exception", e);
         }
     }
 }

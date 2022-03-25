@@ -113,7 +113,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     private final BrokerController brokerController;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
@@ -181,7 +181,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
-        LOGGER.trace("Received health check request from client: {}", request.getClientHost());
+        log.trace("Received health check request from client: {}", request.getClientHost());
         final HealthCheckResponse response = HealthCheckResponse.newBuilder()
             .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
             .build();
@@ -211,7 +211,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 channel.eraseInvocationContext(command.getOpaque());
             }
         } catch (final Exception e) {
-            LOGGER.error("Failed to process send message command", e);
+            log.error("Failed to process send message command", e);
             channel.eraseInvocationContext(command.getOpaque());
             future.completeExceptionally(e);
         }
@@ -244,7 +244,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 channel.eraseInvocationContext(command.getOpaque());
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to process pop message command", e);
+            log.error("Failed to process pop message command", e);
             channel.eraseInvocationContext(command.getOpaque());
             future.completeExceptionally(e);
         }
@@ -272,7 +272,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             AckMessageResponse response = builder.build();
             future.complete(response);
         } catch (Exception e) {
-            LOGGER.error("Exception raised when ack message", e);
+            log.error("Exception raised when ack message", e);
         }
         return future;
     }
@@ -295,7 +295,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 .build();
             future.complete(response);
         } catch (Exception e) {
-            LOGGER.error("Exception raised while nackMessage", e);
+            log.error("Exception raised while nackMessage", e);
             future.completeExceptionally(e);
         }
         return future;
@@ -320,7 +320,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 .setCommon(ResponseBuilder.buildCommon(response.getCode(), response.getRemark()))
                 .build());
         } catch (Exception e) {
-            LOGGER.error("Exception raised when forwardMessageToDeadLetterQueue", e);
+            log.error("Exception raised when forwardMessageToDeadLetterQueue", e);
             future.completeExceptionally(e);
         }
         return future;
@@ -348,7 +348,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             EndTransactionResponse response = builder.build();
             future.complete(response);
         } catch (Exception e) {
-            LOGGER.error("Exception raised while endTransaction", e);
+            log.error("Exception raised while endTransaction", e);
             future.completeExceptionally(e);
         }
         return future;
@@ -398,7 +398,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 channel.eraseInvocationContext(command.getOpaque());
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to process pull message command", e);
+            log.error("Failed to process pull message command", e);
             channel.eraseInvocationContext(command.getOpaque());
             future.completeExceptionally(e);
         }
@@ -535,7 +535,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
             future.complete(builder.build());
         } catch (Exception e) {
-            LOGGER.error("Exception raised while changeInvisibleDuration", e);
+            log.error("Exception raised while changeInvisibleDuration", e);
             future.completeExceptionally(e);
         }
         return future;

@@ -39,8 +39,7 @@ import org.slf4j.LoggerFactory;
  * @see io.netty.channel.Channel#writeAndFlush
  */
 public class SimpleChannel extends AbstractChannel {
-
-    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     protected final String remoteAddress;
     protected final String localAddress;

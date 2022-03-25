@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Configuration {
-    private final static Logger LOGGER = LoggerFactory.getLogger(Configuration.class);
+    private final static Logger log = LoggerFactory.getLogger(Configuration.class);
     private final AtomicReference<ProxyConfig> proxyConfigReference = new AtomicReference<>();
 
     public void init() throws Exception {
@@ -43,12 +43,12 @@ public class Configuration {
 
         File file = new File(filePath);
         if (!file.exists()) {
-            LOGGER.warn("the config file {} not exist", filePath);
+            log.warn("the config file {} not exist", filePath);
             return null;
         }
         long fileLength = file.length();
         if (fileLength <= 0) {
-            LOGGER.warn("the config file {} length is zero", filePath);
+            log.warn("the config file {} length is zero", filePath);
             return null;
         }
 
