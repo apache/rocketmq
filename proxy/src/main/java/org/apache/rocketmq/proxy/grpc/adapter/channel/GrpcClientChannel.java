@@ -71,7 +71,7 @@ public class GrpcClientChannel extends SimpleChannel {
         ChannelManager channelManager,
         String group,
         String clientId,
-        PollCommandResponseManager manager
+        PollResponseManager manager
     ) {
         GrpcClientChannel channel = channelManager.createChannel(
             buildKey(group, clientId),

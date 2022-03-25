@@ -46,6 +46,7 @@ import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.adapter.DelayPolicy;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
