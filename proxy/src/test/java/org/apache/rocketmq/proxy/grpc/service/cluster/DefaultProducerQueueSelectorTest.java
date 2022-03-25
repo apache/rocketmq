@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -61,8 +61,8 @@ public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
             .build();
         WriteQueueSelector queueSelector = new DefaultWriteQueueSelector(this.topicRouteCache);
         SelectableMessageQueue queue = queueSelector.selectQueue(Context.current(), request,
-            Converter.buildSendMessageRequestHeader(request),
-            Converter.buildMessage(request.getMessage()));
+            GrpcConverter.buildSendMessageRequestHeader(request),
+            GrpcConverter.buildMessage(request.getMessage()));
 
         assertEquals("selectOrderQueue", queue.getBrokerName());
         assertEquals("selectOrderQueueAddr", queue.getBrokerAddr());
@@ -85,8 +85,8 @@ public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
             .build();
         WriteQueueSelector queueSelector = new DefaultWriteQueueSelector(this.topicRouteCache);
         SelectableMessageQueue queue = queueSelector.selectQueue(Context.current(), request,
-            Converter.buildSendMessageRequestHeader(request),
-            Converter.buildMessage(request.getMessage()));
+            GrpcConverter.buildSendMessageRequestHeader(request),
+            GrpcConverter.buildMessage(request.getMessage()));
 
         assertEquals("selectOrderQueue", queue.getBrokerName());
         assertEquals("selectOrderQueueAddr", queue.getBrokerAddr());
@@ -108,8 +108,8 @@ public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
             .build();
         WriteQueueSelector queueSelector = new DefaultWriteQueueSelector(this.topicRouteCache);
         SelectableMessageQueue queue = queueSelector.selectQueue(Context.current(), request,
-            Converter.buildSendMessageRequestHeader(request),
-            Converter.buildMessage(request.getMessage()));
+            GrpcConverter.buildSendMessageRequestHeader(request),
+            GrpcConverter.buildMessage(request.getMessage()));
 
         assertEquals("selectNormalQueue", queue.getBrokerName());
         assertEquals("selectNormalQueueAddr", queue.getBrokerAddr());
@@ -136,8 +136,8 @@ public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
             .build();
         WriteQueueSelector queueSelector = new DefaultWriteQueueSelector(this.topicRouteCache);
         SelectableMessageQueue queue = queueSelector.selectQueue(Context.current(), request,
-            Converter.buildSendMessageRequestHeader(request),
-            Converter.buildMessage(request.getMessage()));
+            GrpcConverter.buildSendMessageRequestHeader(request),
+            GrpcConverter.buildMessage(request.getMessage()));
 
         assertEquals("selectTargetQueue", queue.getBrokerName());
         assertEquals("selectTargetQueueAddr", queue.getBrokerAddr());

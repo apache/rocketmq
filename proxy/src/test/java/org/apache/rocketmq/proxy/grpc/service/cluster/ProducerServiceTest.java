@@ -31,7 +31,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.grpc.common.ProxyException;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

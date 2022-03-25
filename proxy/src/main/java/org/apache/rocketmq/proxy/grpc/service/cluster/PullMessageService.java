@@ -39,10 +39,10 @@ import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.DefaultForwardClient;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.ProxyException;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
 public class PullMessageService extends BaseService {
 
@@ -66,7 +66,7 @@ public class PullMessageService extends BaseService {
         });
         try {
             Partition partition = request.getPartition();
-            String topic = Converter.getResourceNameWithNamespace(partition.getTopic());
+            String topic = GrpcConverter.wrapResourceWithNamespace(partition.getTopic());
 
             String brokerName = partition.getBroker().getName();
             int queueId = partition.getId();
@@ -133,14 +133,14 @@ public class PullMessageService extends BaseService {
 
     protected PullMessageRequestHeader convertToPullMessageRequestHeader(Context ctx, PullMessageRequest request) {
         // check filterExpression is correct or not
-        Converter.buildSubscriptionData(Converter.getResourceNameWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
+        GrpcConverter.buildSubscriptionData(GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
 
         long pollTime = ctx.getDeadline()
             .timeRemaining(TimeUnit.MILLISECONDS) - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
         if (pollTime <= 0) {
             throw new ProxyException(Code.DEADLINE_EXCEEDED, "request has been canceled due to timeout");
         }
-        return Converter.buildPullMessageRequestHeader(request, pollTime);
+        return GrpcConverter.buildPullMessageRequestHeader(request, pollTime);
     }
 
     protected PullMessageResponse convertToPullMessageResponse(Context ctx, PullMessageRequest request, PullResult result) {
@@ -150,14 +150,14 @@ public class PullMessageService extends BaseService {
             .setMaxOffset(result.getMaxOffset())
             .setNextOffset(result.getNextBeginOffset());
 
-        SubscriptionData subscriptionData =  Converter.buildSubscriptionData(
-            Converter.getResourceNameWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
+        SubscriptionData subscriptionData =  GrpcConverter.buildSubscriptionData(
+            GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
 
         PullStatus status = result.getPullStatus();
         if (status.equals(PullStatus.FOUND)) {
             List<Message> messageList = result.getMsgFoundList().stream()
                 .filter(msg -> FilterUtils.isTagMatched(subscriptionData.getTagsSet(), msg.getTags())) // only return tag matched messages.
-                .map(Converter::buildMessage)
+                .map(GrpcConverter::buildMessage)
                 .collect(Collectors.toList());
 
             return responseBuilder.addAllMessages(messageList).build();

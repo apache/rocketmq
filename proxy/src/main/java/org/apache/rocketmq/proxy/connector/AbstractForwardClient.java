@@ -23,18 +23,22 @@ import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 
 public abstract class AbstractForwardClient implements StartAndShutdown {
 
-    private final ForwardClientFactory forwardClientFactory;
+    private final ForwardClientFactory clientFactory;
     private MQClientAPIExt[] clients;
+    private final String gidPrefix;
 
-    public AbstractForwardClient(ForwardClientFactory forwardClientFactory) {
-        this.forwardClientFactory = forwardClientFactory;
+    public AbstractForwardClient(ForwardClientFactory clientFactory, String gidPrefix) {
+        this.clientFactory = clientFactory;
+        this.gidPrefix = gidPrefix;
     }
 
     protected abstract int getClientNum();
 
     protected abstract MQClientAPIExt createNewClient(ForwardClientFactory forwardClientFactory, String name);
 
-    protected abstract String getNamePrefix();
+    protected String getNamePrefix() {
+        return this.gidPrefix;
+    }
 
     protected MQClientAPIExt getClient() {
         if (clients.length == 1) {
@@ -50,7 +54,7 @@ public abstract class AbstractForwardClient implements StartAndShutdown {
 
         for (int i = 0; i < clientCount; i++) {
             String name = getNamePrefix() + "N_" + i;
-            clients[i] = createNewClient(forwardClientFactory, name);
+            clients[i] = createNewClient(clientFactory, name);
         }
     }
 

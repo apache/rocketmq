@@ -15,23 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.common;
+package org.apache.rocketmq.proxy.grpc.adapter;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+public class PollResponseFuture {
+    private final String commandId;
+    private final Integer opaque;
 
-public class PollCommandResponseManager {
-    private final ConcurrentMap<String, PollCommandResponseFuture> futureTable = new ConcurrentHashMap<>();
-    private final AtomicLong commandIdGenerator = new AtomicLong(0);
+    public PollResponseFuture(String commandId, int opaque) {
+        this.commandId = commandId;
+        this.opaque = opaque;
+    }
 
-    public String putResponse(int opaque) {
-        String commandId = String.valueOf(commandIdGenerator.incrementAndGet());
-        futureTable.put(commandId, new PollCommandResponseFuture(commandId, opaque));
+    public PollResponseFuture(String commandId) {
+        this.commandId = commandId;
+        this.opaque = null;
+    }
+
+    public String getCommandId() {
         return commandId;
     }
 
-    public PollCommandResponseFuture getResponse(String commandId) {
-        return futureTable.get(commandId);
+    public Integer getOpaque() {
+        return opaque;
     }
 }

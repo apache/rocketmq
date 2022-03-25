@@ -34,9 +34,9 @@ import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
 public class TransactionService extends BaseService implements TransactionStateChecker {
 
@@ -62,7 +62,7 @@ public class TransactionService extends BaseService implements TransactionStateC
             GrpcClientChannel channel = GrpcClientChannel.getChannel(this.channelManager, checkData.getGroupId(), clientId);
             String transactionId = checkData.getTransactionId().getProxyTransactionId();
 
-            Message message = Converter.buildMessage(checkData.getMessageExt());
+            Message message = GrpcConverter.buildMessage(checkData.getMessageExt());
             PollCommandResponse response = PollCommandResponse.newBuilder()
                 .setRecoverOrphanedTransactionCommand(
                     RecoverOrphanedTransactionCommand.newBuilder()
@@ -102,7 +102,7 @@ public class TransactionService extends BaseService implements TransactionStateC
     }
 
     protected EndTransactionRequestHeader toEndTransactionRequestHeader(Context ctx, EndTransactionRequest request) {
-        return Converter.buildEndTransactionRequestHeader(request);
+        return GrpcConverter.buildEndTransactionRequestHeader(request);
     }
 
     public void setCheckTransactionStateHook(

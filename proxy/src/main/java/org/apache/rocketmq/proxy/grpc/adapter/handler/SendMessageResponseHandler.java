@@ -20,7 +20,7 @@ package org.apache.rocketmq.proxy.grpc.adapter.handler;
 import apache.rocketmq.v1.SendMessageRequest;
 import apache.rocketmq.v1.SendMessageResponse;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class SendMessageResponseHandler implements ResponseHandler<SendMessageRequest, SendMessageResponse> {

@@ -37,7 +37,7 @@ public class ForwardProducer extends AbstractForwardClient {
     private static final String PID_PREFIX = "PID_RMQ_PROXY_PUBLISH_MESSAGE_";
 
     public ForwardProducer(ForwardClientFactory clientFactory) {
-        super(clientFactory);
+        super(clientFactory, PID_PREFIX);
     }
 
     @Override
@@ -47,16 +47,12 @@ public class ForwardProducer extends AbstractForwardClient {
 
     @Override
     protected MQClientAPIExt createNewClient(ForwardClientFactory clientFactory, String name) {
-        double sendClientWorkerFactor = ConfigurationManager.getProxyConfig().getForwardProducerWorkerFactor();
-        final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * sendClientWorkerFactor);
+        double workerFactor = ConfigurationManager.getProxyConfig().getForwardProducerWorkerFactor();
+        final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
         return clientFactory.getTransactionalProducer(name, threadCount);
     }
 
-    @Override
-    protected String getNamePrefix() {
-        return PID_PREFIX;
-    }
 
     public CompletableFuture<Integer> heartBeat(String heartbeatAddr, HeartbeatData heartbeatData, long timeout) throws Exception {
         return this.getClient().sendHeartbeat(heartbeatAddr, heartbeatData, timeout);
@@ -83,8 +79,13 @@ public class ForwardProducer extends AbstractForwardClient {
         );
     }
 
-    public CompletableFuture<SendResult> sendMessage(String address, String brokerName, Message msg,
-        SendMessageRequestHeader requestHeader, long timeoutMillis) {
+    public CompletableFuture<SendResult> sendMessage(
+        String address,
+        String brokerName,
+        Message msg,
+        SendMessageRequestHeader requestHeader,
+        long timeoutMillis
+    ) {
         CompletableFuture<SendResult> future = this.getClient().sendMessage(address, brokerName, msg, requestHeader, timeoutMillis);
         return future.thenApply(sendResult -> {
             int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());

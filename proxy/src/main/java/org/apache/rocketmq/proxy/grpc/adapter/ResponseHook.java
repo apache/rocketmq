@@ -14,16 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.common;
+package org.apache.rocketmq.proxy.grpc.adapter;
 
-public enum ProxyResponseCode {
-    SYS_ERR,
-    PARAMETER_ERR,
-    AUTH_PERMISSION_CHECK_ERROR,
+public interface ResponseHook<T, R> {
 
-    NO_TOPIC_ROUTE,
-    SUBSCRIPTION_NOT_CONSISTENT,
-    BROKER_NOT_EXIST,
-    QUERY_NOT_FOUND,
-    SEND_MSG_FAILED;
+    void beforeResponse(T request, R response, Throwable t);
 }

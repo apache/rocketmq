@@ -77,7 +77,7 @@ import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -263,7 +263,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         assertThat(r.getCommon().getStatus().getCode()).isEqualTo(Code.OK.getNumber());
         assertThat(r.getMessagesCount()).isEqualTo(1);
         assertThat(Durations.toMillis(r.getInvisibleDuration())).isEqualTo(invisibleTime);
-        assertThat(Converter.getResourceNameWithNamespace(r.getMessages(0).getTopic())).isEqualTo(topic);
+        assertThat(GrpcConverter.wrapResourceWithNamespace(r.getMessages(0).getTopic())).isEqualTo(topic);
         assertThat(r.getMessages(0).getBody().toByteArray()).isEqualTo(body);
     }
 
@@ -563,7 +563,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         PullMessageResponse r = grpcFuture.get();
         assertThat(r.getCommon().getStatus().getCode()).isEqualTo(Code.OK.getNumber());
         assertThat(r.getMessagesCount()).isEqualTo(1);
-        assertThat(Converter.getResourceNameWithNamespace(r.getMessages(0).getTopic())).isEqualTo(topic);
+        assertThat(GrpcConverter.wrapResourceWithNamespace(r.getMessages(0).getTopic())).isEqualTo(topic);
         assertThat(r.getMessages(0).getBody().toByteArray()).isEqualTo(body);
         assertThat(r.getMinOffset()).isEqualTo(minOffset);
         assertThat(r.getNextOffset()).isEqualTo(nextOffset);

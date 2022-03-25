@@ -78,7 +78,7 @@ public abstract class AbstractClientFactory<T>  {
             try {
                 this.shutdown(v);
             } catch (Exception e) {
-                LOGGER.warn("RocketMQClientConstructor shutdown all err.", e);
+                LOGGER.warn("try to shutdown client err.", e);
             }
         });
     }

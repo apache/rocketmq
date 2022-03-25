@@ -29,8 +29,8 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 public class DefaultForwardClient extends AbstractForwardClient {
     private static final String CID_PREFIX = "CID_RMQ_PROXY_DEFAULT_";
 
-    public DefaultForwardClient(ForwardClientFactory forwardClientFactory) {
-        super(forwardClientFactory);
+    public DefaultForwardClient(ForwardClientFactory clientFactory) {
+        super(clientFactory, CID_PREFIX);
     }
 
     @Override
@@ -41,14 +41,9 @@ public class DefaultForwardClient extends AbstractForwardClient {
     @Override
     protected MQClientAPIExt createNewClient(ForwardClientFactory clientFactory, String name) {
         double workerFactor = ConfigurationManager.getProxyConfig().getDefaultForwardClientWorkerFactor();
-        final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
+        int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
         return clientFactory.getMQClient(name, threadCount);
-    }
-
-    @Override
-    protected String getNamePrefix() {
-        return CID_PREFIX;
     }
 
     public CompletableFuture<List<String>> getConsumerListByGroup(
@@ -56,12 +51,12 @@ public class DefaultForwardClient extends AbstractForwardClient {
         GetConsumerListByGroupRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        return getClient().getConsumerListByGroup(brokerAddr, requestHeader, timeoutMillis);
+        return this.getClient().getConsumerListByGroup(brokerAddr, requestHeader, timeoutMillis);
     }
 
     public TopicRouteData getTopicRouteInfoFromNameServer(String topic, long timeoutMillis)
         throws RemotingException, InterruptedException, MQClientException {
-        return getClient().getTopicRouteInfoFromNameServer(topic, timeoutMillis);
+        return this.getClient().getTopicRouteInfoFromNameServer(topic, timeoutMillis);
     }
 
     public CompletableFuture<Long> getMaxOffset(
@@ -70,7 +65,7 @@ public class DefaultForwardClient extends AbstractForwardClient {
         int queueId,
         long timeoutMillis
     ) {
-        return getClient().getMaxOffset(brokerAddr, topic, queueId, timeoutMillis);
+        return this.getClient().getMaxOffset(brokerAddr, topic, queueId, timeoutMillis);
     }
 
     public CompletableFuture<Long> searchOffset(
@@ -80,6 +75,6 @@ public class DefaultForwardClient extends AbstractForwardClient {
         long timestamp,
         long timeoutMillis
     ) {
-        return getClient().searchOffset(brokerAddr, topic, queueId, timestamp, timeoutMillis);
+        return this.getClient().searchOffset(brokerAddr, topic, queueId, timestamp, timeoutMillis);
     }
 }

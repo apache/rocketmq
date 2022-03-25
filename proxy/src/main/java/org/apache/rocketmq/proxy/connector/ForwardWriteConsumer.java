@@ -31,7 +31,7 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
     private static final String CID_PREFIX = "CID_RMQ_PROXY_DELETE_MESSAGE_";
 
     public ForwardWriteConsumer(ForwardClientFactory clientFactory) {
-        super(clientFactory);
+        super(clientFactory, CID_PREFIX);
     }
 
     @Override
@@ -45,11 +45,6 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
         return clientFactory.getMQClient(name, threadCount);
-    }
-
-    @Override
-    protected String getNamePrefix() {
-        return CID_PREFIX;
     }
 
     public CompletableFuture<AckResult> ackMessage(

@@ -38,7 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

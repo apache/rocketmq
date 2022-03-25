@@ -22,7 +22,7 @@ import java.util.List;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 
 public class DefaultAssignmentQueueSelector implements AssignmentQueueSelector {
 
@@ -34,7 +34,7 @@ public class DefaultAssignmentQueueSelector implements AssignmentQueueSelector {
 
     @Override
     public List<SelectableMessageQueue> getAssignment(Context ctx, QueryAssignmentRequest request) throws Exception {
-        String topicName = Converter.getResourceNameWithNamespace(request.getTopic());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         MessageQueueWrapper messageQueueWrapper = topicRouteCache.getMessageQueue(topicName);
         return messageQueueWrapper.getReadSelector().getBrokerActingQueues();
     }

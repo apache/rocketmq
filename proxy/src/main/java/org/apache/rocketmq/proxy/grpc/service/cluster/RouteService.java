@@ -46,11 +46,11 @@ import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteHelper;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.ParameterConverter;
-import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.ParameterConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
 public class RouteService extends BaseService {
     private final ProxyMode mode;
@@ -103,7 +103,7 @@ public class RouteService extends BaseService {
 
         try {
             MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache()
-                .getMessageQueue(Converter.getResourceNameWithNamespace(request.getTopic()));
+                .getMessageQueue(GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
             TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
             List<QueueData> queueDataList = topicRouteData.getQueueDatas();
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
@@ -218,7 +218,7 @@ public class RouteService extends BaseService {
             List<SelectableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(ctx, request);
             if (ProxyMode.isLocalMode(mode)) {
                 MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache()
-                    .getMessageQueue(Converter.getResourceNameWithNamespace(request.getTopic()));
+                    .getMessageQueue(GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
                 TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
                 Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(topicRouteData.getBrokerDatas());
                 for (SelectableMessageQueue messageQueue : messageQueueList) {

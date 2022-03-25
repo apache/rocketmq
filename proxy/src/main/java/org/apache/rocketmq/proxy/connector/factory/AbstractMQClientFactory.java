@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.connector.factory;
 
+import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.ClientConfig;
@@ -25,8 +26,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public abstract class AbstractMQClientFactory extends AbstractClientFactory<MQClientAPIExt> {
 
-    public AbstractMQClientFactory(ScheduledExecutorService scheduledExecutorService,
-        RPCHook rpcHook) {
+    public AbstractMQClientFactory(ScheduledExecutorService scheduledExecutorService, RPCHook rpcHook) {
         super(scheduledExecutorService, rpcHook);
     }
 
@@ -50,8 +50,8 @@ public abstract class AbstractMQClientFactory extends AbstractClientFactory<MQCl
         if (!client.updateNameServerAddressList()) {
             this.scheduledExecutorService.scheduleAtFixedRate(
                 client::fetchNameServerAddr,
-                1000 * 10,
-                1000 * 60 * 2,
+                Duration.ofSeconds(10).toMillis(),
+                Duration.ofMinutes(2).toMillis(),
                 TimeUnit.MILLISECONDS
             );
         }

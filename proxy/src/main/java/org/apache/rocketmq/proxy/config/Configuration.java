@@ -25,11 +25,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Configuration {
-    private final static Logger log = LoggerFactory.getLogger(Configuration.class);
+    private final static Logger LOGGER = LoggerFactory.getLogger(Configuration.class);
     private final AtomicReference<ProxyConfig> proxyConfigReference = new AtomicReference<>();
 
     public void init() throws Exception {
         String proxyConfigData = loadJsonConfig(ProxyConfig.CONFIG_FILE_NAME);
+        if (null == proxyConfigData) {
+            throw new RuntimeException(String.format("load configuration from file: %s error.", ProxyConfig.CONFIG_FILE_NAME));
+        }
+
         ProxyConfig proxyConfig = JSON.parseObject(proxyConfigData, ProxyConfig.class);
         setProxyConfig(proxyConfig);
     }
@@ -39,12 +43,12 @@ public class Configuration {
 
         File file = new File(filePath);
         if (!file.exists()) {
-            log.warn("the config file {} not exist", filePath);
+            LOGGER.warn("the config file {} not exist", filePath);
             return null;
         }
         long fileLength = file.length();
         if (fileLength <= 0) {
-            log.warn("the config file {} length is zero", filePath);
+            LOGGER.warn("the config file {} length is zero", filePath);
             return null;
         }
 

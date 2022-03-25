@@ -44,10 +44,10 @@ import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.DelayPolicy;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.DelayPolicy;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -115,7 +115,7 @@ public class ConsumerService extends BaseService {
 
     protected PopMessageRequestHeader convertToPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
         // check filterExpression is correct or not
-        Converter.buildSubscriptionData(Converter.getResourceNameWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
+        GrpcConverter.buildSubscriptionData(GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
 
         long timeRemaining = ctx.getDeadline()
             .timeRemaining(TimeUnit.MILLISECONDS);
@@ -124,12 +124,12 @@ public class ConsumerService extends BaseService {
             pollTime = timeRemaining;
         }
 
-        return Converter.buildPopMessageRequestHeader(request, pollTime);
+        return GrpcConverter.buildPopMessageRequestHeader(request, pollTime);
     }
 
     protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request, PopResult result) {
-        SubscriptionData subscriptionData =  Converter.buildSubscriptionData(
-            Converter.getResourceNameWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
+        SubscriptionData subscriptionData =  GrpcConverter.buildSubscriptionData(
+            GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
         PopStatus status = result.getPopStatus();
         switch (status) {
             case FOUND:
@@ -152,7 +152,7 @@ public class ConsumerService extends BaseService {
                 this.ackNoMatchedMessage(ctx, request, messageExt);
                 continue;
             }
-            messages.add(Converter.buildMessage(messageExt));
+            messages.add(GrpcConverter.buildMessage(messageExt));
         }
 
         return ReceiveMessageResponse.newBuilder()
@@ -170,7 +170,7 @@ public class ConsumerService extends BaseService {
                 return;
             }
             String brokerAddr = this.getBrokerAddr(ctx, handle.getBrokerName());
-            ackMessageRequestHeader.setConsumerGroup(Converter.getResourceNameWithNamespace(request.getGroup()));
+            ackMessageRequestHeader.setConsumerGroup(GrpcConverter.wrapResourceWithNamespace(request.getGroup()));
             ackMessageRequestHeader.setTopic(messageExt.getTopic());
             ackMessageRequestHeader.setQueueId(handle.getQueueId());
             ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
@@ -219,7 +219,7 @@ public class ConsumerService extends BaseService {
     }
 
     protected AckMessageRequestHeader convertToAckMessageRequestHeader(Context ctx, AckMessageRequest request) {
-        return Converter.buildAckMessageRequestHeader(request);
+        return GrpcConverter.buildAckMessageRequestHeader(request);
     }
 
     protected AckMessageResponse convertToAckMessageResponse(Context ctx, AckMessageRequest request, AckResult ackResult) {
@@ -286,11 +286,11 @@ public class ConsumerService extends BaseService {
     }
 
     protected ChangeInvisibleTimeRequestHeader convertToChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
-        return Converter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
+        return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
     }
 
     protected ConsumerSendMsgBackRequestHeader convertToConsumerSendMsgBackToDLQRequestHeader(Context ctx, NackMessageRequest request) {
-        return Converter.buildConsumerSendMsgBackToDLQRequestHeader(request);
+        return GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request);
     }
 
     protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, AckResult ackResult) {

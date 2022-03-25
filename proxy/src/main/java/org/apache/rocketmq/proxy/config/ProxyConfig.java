@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.proxy.config;
 
-import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
 
 public class ProxyConfig {
     public final static String CONFIG_FILE_NAME = "rmq-proxy.json";

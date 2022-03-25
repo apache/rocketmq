@@ -28,24 +28,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ForwardClientManagerTest extends InitConfigAndLoggerTest {
 
     @Test
-    public void testClientManager() throws Exception {
+    public void testConnectorManager() throws Exception {
         TransactionStateChecker mockedTransactionStateChecker = Mockito.mock(TransactionStateChecker.class);
-        ConnectorManager clientManager = new ConnectorManager(mockedTransactionStateChecker);
-        clientManager.start();
+        ConnectorManager connectorManager = new ConnectorManager(mockedTransactionStateChecker);
+        connectorManager.start();
 
-        assertThat(clientManager.getDefaultForwardClient()).isNotNull();
-        assertThat(clientManager.getDefaultForwardClient().getClientNum())
+        assertThat(connectorManager.getDefaultForwardClient()).isNotNull();
+        assertThat(connectorManager.getDefaultForwardClient().getClientNum())
             .isEqualTo(ConfigurationManager.getProxyConfig().getDefaultForwardClientNum());
 
-        assertThat(clientManager.getForwardProducer()).isNotNull();
-        assertThat(clientManager.getForwardProducer().getClientNum())
+        assertThat(connectorManager.getForwardProducer()).isNotNull();
+        assertThat(connectorManager.getForwardProducer().getClientNum())
             .isEqualTo(ConfigurationManager.getProxyConfig().getForwardProducerNum());
 
-        assertThat(clientManager.getForwardReadConsumer()).isNotNull();
-        assertThat(clientManager.getForwardReadConsumer().getClientNum())
+        assertThat(connectorManager.getForwardReadConsumer()).isNotNull();
+        assertThat(connectorManager.getForwardReadConsumer().getClientNum())
             .isEqualTo(ConfigurationManager.getProxyConfig().getForwardConsumerNum());
 
-
+        assertThat(connectorManager.getForwardWriteConsumer()).isNotNull();
+        assertThat(connectorManager.getForwardWriteConsumer().getClientNum())
+            .isEqualTo(ConfigurationManager.getProxyConfig().getForwardConsumerNum());
 
     }
 }

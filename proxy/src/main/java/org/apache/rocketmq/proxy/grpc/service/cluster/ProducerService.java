@@ -34,10 +34,10 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.ProxyException;
-import org.apache.rocketmq.proxy.grpc.common.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.common.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ProducerService extends BaseService {
@@ -110,7 +110,7 @@ public class ProducerService extends BaseService {
 
     protected Pair<SendMessageRequestHeader, org.apache.rocketmq.common.message.Message> convertSendMessageRequest(
         Context ctx, SendMessageRequest request) {
-        return Pair.of(Converter.buildSendMessageRequestHeader(request), Converter.buildMessage(request.getMessage()));
+        return Pair.of(GrpcConverter.buildSendMessageRequestHeader(request), GrpcConverter.buildMessage(request.getMessage()));
     }
 
     protected SendMessageResponse convertToSendMessageResponse(Context ctx, SendMessageRequest request,
@@ -123,8 +123,8 @@ public class ProducerService extends BaseService {
 
         if (StringUtils.isNotBlank(sendResult.getTransactionId())) {
             Message message = request.getMessage();
-            String group = Converter.getResourceNameWithNamespace(message.getSystemAttribute().getProducerGroup());
-            String topic = Converter.getResourceNameWithNamespace(message.getTopic());
+            String group = GrpcConverter.wrapResourceWithNamespace(message.getSystemAttribute().getProducerGroup());
+            String topic = GrpcConverter.wrapResourceWithNamespace(message.getTopic());
             this.connectorManager.getTransactionHeartbeatRegisterService().addProducerGroup(group, topic);
         }
 
@@ -169,6 +169,6 @@ public class ProducerService extends BaseService {
 
     protected ConsumerSendMsgBackRequestHeader convertToConsumerSendMsgBackRequestHeader(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
-        return Converter.buildConsumerSendMsgBackRequestHeader(request);
+        return GrpcConverter.buildConsumerSendMsgBackRequestHeader(request);
     }
 }

@@ -30,8 +30,8 @@ import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
-import org.apache.rocketmq.proxy.grpc.common.Converter;
-import org.apache.rocketmq.proxy.grpc.common.PollCommandResponseManager;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.PollResponseManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class GrpcClientChannel extends SimpleChannel {
@@ -39,9 +39,9 @@ public class GrpcClientChannel extends SimpleChannel {
 
     private final String group;
     private final String clientId;
-    private final PollCommandResponseManager manager;
+    private final PollResponseManager manager;
 
-    private GrpcClientChannel(String group, String clientId, PollCommandResponseManager manager) {
+    private GrpcClientChannel(String group, String clientId, PollResponseManager manager) {
         super(ChannelManager.createSimpleChannelDirectly());
         this.group = group;
         this.clientId = clientId;
@@ -56,7 +56,7 @@ public class GrpcClientChannel extends SimpleChannel {
         ChannelManager channelManager,
         String group,
         String clientId,
-        PollCommandResponseManager manager
+        PollResponseManager manager
     ) {
         GrpcClientChannel channel = channelManager.createChannel(
             buildKey(group, clientId),
@@ -103,7 +103,7 @@ public class GrpcClientChannel extends SimpleChannel {
                         future.complete(PollCommandResponse.newBuilder()
                             .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
                                 .setTransactionId(requestHeader.getTransactionId())
-                                .setOrphanedTransactionalMessage(Converter.buildMessage(messageExt))
+                                .setOrphanedTransactionalMessage(GrpcConverter.buildMessage(messageExt))
                                 .build())
                             .build());
                         break;
@@ -123,7 +123,7 @@ public class GrpcClientChannel extends SimpleChannel {
                         break;
                     }
                 }
-            } catch (Exception e) {
+            } catch (Exception ignore) {
 
             }
         }

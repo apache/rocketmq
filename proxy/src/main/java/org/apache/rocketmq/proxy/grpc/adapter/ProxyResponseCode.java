@@ -14,28 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.proxy.grpc.adapter;
 
-package org.apache.rocketmq.proxy.grpc.common;
+public enum ProxyResponseCode {
+    SYS_ERR,
+    PARAMETER_ERR,
+    AUTH_PERMISSION_CHECK_ERROR,
 
-public class PollCommandResponseFuture {
-    private final String commandId;
-    private final Integer opaque;
-
-    public PollCommandResponseFuture(String commandId, int opaque) {
-        this.commandId = commandId;
-        this.opaque = opaque;
-    }
-
-    public PollCommandResponseFuture(String commandId) {
-        this.commandId = commandId;
-        this.opaque = null;
-    }
-
-    public String getCommandId() {
-        return commandId;
-    }
-
-    public Integer getOpaque() {
-        return opaque;
-    }
+    NO_TOPIC_ROUTE,
+    SUBSCRIPTION_NOT_CONSISTENT,
+    BROKER_NOT_EXIST,
+    QUERY_NOT_FOUND,
+    SEND_MSG_FAILED;
 }

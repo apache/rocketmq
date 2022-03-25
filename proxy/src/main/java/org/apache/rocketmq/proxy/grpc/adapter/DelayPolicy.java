@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.common;
+package org.apache.rocketmq.proxy.grpc.adapter;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;

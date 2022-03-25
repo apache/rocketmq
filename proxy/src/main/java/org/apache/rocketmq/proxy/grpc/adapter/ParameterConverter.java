@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.common;
+package org.apache.rocketmq.proxy.grpc.adapter;
 
-public interface ResponseHook<T, R> {
+import io.grpc.Context;
 
-    void beforeResponse(T request, R response, Throwable t);
+@FunctionalInterface
+public interface ParameterConverter<T, R> {
+    R convert(Context ctx, T parameter) throws Throwable;
 }
