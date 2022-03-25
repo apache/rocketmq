@@ -204,12 +204,12 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             = new InvocationContext<>(request, future);
         channel.registerInvocationContext(command.getOpaque(), context);
         try {
-            CompletableFuture<RemotingCommand> processorFuture = brokerController.getSendMessageProcessor()
-                .asyncProcessRequest(channelHandlerContext, command);
-            processorFuture.thenAccept(r -> {
-                handler.handle(r, context);
+            RemotingCommand response = brokerController.getSendMessageProcessor()
+                .processRequest(channelHandlerContext, command);
+            if (response != null) {
+                handler.handle(response, context);
                 channel.eraseInvocationContext(command.getOpaque());
-            });
+            }
         } catch (final Exception e) {
             LOGGER.error("Failed to process send message command", e);
             channel.eraseInvocationContext(command.getOpaque());
@@ -313,18 +313,12 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = new CompletableFuture<>();
         try {
-            CompletableFuture<RemotingCommand> processorFuture = brokerController.getSendMessageProcessor()
-                .asyncProcessRequest(channelHandlerContext, command);
-            processorFuture.thenAccept(r -> {
-                ForwardMessageToDeadLetterQueueResponse.Builder builder = ForwardMessageToDeadLetterQueueResponse.newBuilder();
-                if (null != r) {
-                    builder.setCommon(ResponseBuilder.buildCommon(r.getCode(), r.getRemark()));
-                } else {
-                    builder.setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "Response command is null"));
-                }
-                ForwardMessageToDeadLetterQueueResponse response = builder.build();
-                future.complete(response);
-            });
+            RemotingCommand response = brokerController.getSendMessageProcessor()
+                .processRequest(channelHandlerContext, command);
+
+            future.complete(ForwardMessageToDeadLetterQueueResponse.newBuilder()
+                .setCommon(ResponseBuilder.buildCommon(response.getCode(), response.getRemark()))
+                .build());
         } catch (Exception e) {
             LOGGER.error("Exception raised when forwardMessageToDeadLetterQueue", e);
             future.completeExceptionally(e);
