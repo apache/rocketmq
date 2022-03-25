@@ -51,6 +51,7 @@ import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import com.google.rpc.Code;
+import io.grpc.Context;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -700,4 +701,16 @@ public class GrpcConverter {
         }
         return header;
     }
+
+    public static long buildPollTimeFromContext(Context ctx) {
+        long timeRemaining = ctx.getDeadline()
+            .timeRemaining(TimeUnit.MILLISECONDS);
+        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
+        if (pollTime <= 0) {
+            pollTime = timeRemaining;
+        }
+
+        return pollTime;
+    }
+
 }

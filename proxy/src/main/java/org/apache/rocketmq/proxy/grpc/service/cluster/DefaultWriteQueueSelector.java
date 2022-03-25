@@ -27,8 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DefaultWriteQueueSelector implements WriteQueueSelector {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWriteQueueSelector.class);
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultWriteQueueSelector.class);
     protected final TopicRouteCache topicRouteCache;
 
     public DefaultWriteQueueSelector(TopicRouteCache topicRouteCache) {
@@ -36,9 +36,12 @@ public class DefaultWriteQueueSelector implements WriteQueueSelector {
     }
 
     @Override
-    public SelectableMessageQueue selectQueue(Context ctx, SendMessageRequest request,
+    public SelectableMessageQueue selectQueue(
+        Context ctx,
+        SendMessageRequest request,
         SendMessageRequestHeader requestHeader,
-        org.apache.rocketmq.common.message.Message message) {
+        org.apache.rocketmq.common.message.Message message
+    ) {
         try {
             String topic = requestHeader.getTopic();
             String brokerName = "";
@@ -47,19 +50,19 @@ public class DefaultWriteQueueSelector implements WriteQueueSelector {
             }
             Integer queueId = requestHeader.getQueueId();
             String shardingKey = message.getProperty(MessageConst.PROPERTY_SHARDING_KEY);
-            SelectableMessageQueue addressableMessageQueue;
-            if (!StringUtils.isBlank(brokerName) && queueId != null) {
+            SelectableMessageQueue targetMessageQueue;
+            if (StringUtils.isNotBlank(brokerName) && queueId != null) {
                 // Grpc client sendSelect situation
-                addressableMessageQueue = selectTargetQueue(topic, brokerName, queueId);
+                targetMessageQueue = selectTargetQueue(topic, brokerName, queueId);
             } else if (shardingKey != null) {
                 // With shardingKey
-                addressableMessageQueue = selectOrderQueue(topic, shardingKey);
+                targetMessageQueue = selectOrderQueue(topic, shardingKey);
             } else {
-                addressableMessageQueue = selectNormalQueue(topic);
+                targetMessageQueue = selectNormalQueue(topic);
             }
-            return addressableMessageQueue;
+            return targetMessageQueue;
         } catch (Exception e) {
-            log.error("error when select queue in DefaultMessageQueueSelector. request: {}", request, e);
+            LOGGER.error("error when select queue in DefaultMessageQueueSelector. request: {}", request, e);
             return null;
         }
     }
@@ -68,8 +71,7 @@ public class DefaultWriteQueueSelector implements WriteQueueSelector {
         return this.topicRouteCache.selectOneWriteQueue(topic, null);
     }
 
-    protected SelectableMessageQueue selectTargetQueue(String topic, String brokerName,
-        int queueId) throws Exception {
+    protected SelectableMessageQueue selectTargetQueue(String topic, String brokerName, int queueId) throws Exception {
         return this.topicRouteCache.selectOneWriteQueue(topic, brokerName, queueId);
     }
 

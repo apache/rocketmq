@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
+import apache.rocketmq.v1.FilterExpression;
+import apache.rocketmq.v1.Resource;
 import com.google.rpc.Code;
 import io.grpc.Context;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
 
 public class BaseService {
@@ -48,5 +51,11 @@ public class BaseService {
             throw new ProxyException(Code.NOT_FOUND, brokerName + " not exist");
         }
         return addr;
+    }
+
+    protected void checkSubscriptionData(Resource topic, FilterExpression filterExpression) {
+        // for checking filterExpression.
+        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+        GrpcConverter.buildSubscriptionData(topicName, filterExpression);
     }
 }

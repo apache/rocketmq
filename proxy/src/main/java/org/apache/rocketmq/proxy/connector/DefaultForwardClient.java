@@ -22,6 +22,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -59,6 +60,10 @@ public class DefaultForwardClient extends AbstractForwardClient {
         return this.getClient().getTopicRouteInfoFromNameServer(topic, timeoutMillis);
     }
 
+    public CompletableFuture<Long> getMaxOffset(String brokerAddr, String topic, int queueId) {
+        return this.getMaxOffset(brokerAddr, topic, queueId, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+    }
+
     public CompletableFuture<Long> getMaxOffset(
         String brokerAddr,
         String topic,
@@ -66,6 +71,15 @@ public class DefaultForwardClient extends AbstractForwardClient {
         long timeoutMillis
     ) {
         return this.getClient().getMaxOffset(brokerAddr, topic, queueId, timeoutMillis);
+    }
+
+    public CompletableFuture<Long> searchOffset(
+        String brokerAddr,
+        String topic,
+        int queueId,
+        long timestamp
+    ) {
+        return this.searchOffset(brokerAddr, topic, queueId, timestamp, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<Long> searchOffset(

@@ -25,6 +25,9 @@ import apache.rocketmq.v1.ReceiveMessageRequest;
 import apache.rocketmq.v1.ReceiveMessageResponse;
 import com.google.rpc.Code;
 import io.grpc.Context;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -37,38 +40,33 @@ import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHead
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.utils.FilterUtils;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.adapter.DelayPolicy;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ConsumerService extends BaseService {
-
+    private final DelayPolicy delayPolicy;
     private final ForwardReadConsumer readConsumer;
     private final ForwardWriteConsumer writeConsumer;
+    /**
+     * For sending messages back to broker.
+     */
     private final ForwardProducer producer;
 
     private volatile ReadQueueSelector readQueueSelector;
-    private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook = null;
-    private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook = null;
-    private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook = null;
-    private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook = null;
-
-    private final DelayPolicy delayPolicy;
+    private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
+    private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook;
+    private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
+    private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook;
 
     public ConsumerService(ConnectorManager connectorManager) {
         super(connectorManager);
@@ -82,13 +80,15 @@ public class ConsumerService extends BaseService {
 
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
+        // register hook.
         future.whenComplete((response, throwable) -> {
             if (receiveMessageHook != null) {
                 receiveMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
+
         try {
-            PopMessageRequestHeader requestHeader = this.convertToPopMessageRequestHeader(ctx, request);
+            PopMessageRequestHeader requestHeader = this.buildPopMessageRequestHeader(ctx, request);
             SelectableMessageQueue messageQueue = this.readQueueSelector.select(ctx, request, requestHeader);
 
             if (messageQueue == null) {
@@ -118,27 +118,19 @@ public class ConsumerService extends BaseService {
         return future;
     }
 
-    protected PopMessageRequestHeader convertToPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
-        // check filterExpression is correct or not
-        GrpcConverter.buildSubscriptionData(GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
-
-        long timeRemaining = ctx.getDeadline()
-            .timeRemaining(TimeUnit.MILLISECONDS);
-        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
-        if (pollTime <= 0) {
-            pollTime = timeRemaining;
-        }
-
-        return GrpcConverter.buildPopMessageRequestHeader(request, pollTime);
+    protected PopMessageRequestHeader buildPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
+        checkSubscriptionData(request.getPartition().getTopic(), request.getFilterExpression());
+        return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx));
     }
 
     protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request, PopResult result) {
-        SubscriptionData subscriptionData =  GrpcConverter.buildSubscriptionData(
-            GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
         PopStatus status = result.getPopStatus();
         switch (status) {
             case FOUND:
-                break;
+                return ReceiveMessageResponse.newBuilder()
+                    .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                    .addAllMessages(checkAndGetMessagesFromPopResult(ctx, request, result))
+                    .build();
             case POLLING_FULL:
                 return ReceiveMessageResponse.newBuilder()
                     .setCommon(ResponseBuilder.buildCommon(Code.RESOURCE_EXHAUSTED, "polling full"))
@@ -150,6 +142,11 @@ public class ConsumerService extends BaseService {
                     .setCommon(ResponseBuilder.buildCommon(Code.OK, "no new message"))
                     .build();
         }
+    }
+
+    protected List<Message> checkAndGetMessagesFromPopResult(Context ctx, ReceiveMessageRequest request, PopResult result) {
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic());
+        SubscriptionData subscriptionData = GrpcConverter.buildSubscriptionData(topicName, request.getFilterExpression());
 
         List<Message> messages = new ArrayList<>();
         for (MessageExt messageExt : result.getMsgFoundList()) {
@@ -160,14 +157,12 @@ public class ConsumerService extends BaseService {
             messages.add(GrpcConverter.buildMessage(messageExt));
         }
 
-        return ReceiveMessageResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-            .addAllMessages(messages)
-            .build();
+        return messages;
     }
 
     protected void ackNoMatchedMessage(Context ctx, ReceiveMessageRequest request, MessageExt messageExt) {
         CompletableFuture<AckResult> future = new CompletableFuture<>();
+
         AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
         try {
             ReceiptHandle handle = ReceiptHandle.create(messageExt);
@@ -181,15 +176,17 @@ public class ConsumerService extends BaseService {
             ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
             ackMessageRequestHeader.setOffset(handle.getOffset());
 
-            future = this.writeConsumer.ackMessage(brokerAddr, ackMessageRequestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+            future = this.writeConsumer.ackMessage(brokerAddr, ackMessageRequestHeader);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
+
         future.whenComplete((ackResult, throwable) -> {
             if (ackNoMatchedMessageHook != null) {
                 ackNoMatchedMessageHook.beforeResponse(ctx, ackMessageRequestHeader, ackResult, throwable);
             }
         });
+
     }
 
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
@@ -199,31 +196,32 @@ public class ConsumerService extends BaseService {
                 ackMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
+
         try {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
-            AckMessageRequestHeader requestHeader = this.convertToAckMessageRequestHeader(ctx, request);
-            CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+            AckMessageRequestHeader requestHeader = this.buildAckMessageRequestHeader(ctx, request);
+            CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(brokerAddr, requestHeader);
             ackResultFuture
-                    .thenAccept(result -> {
-                        try {
-                            future.complete(convertToAckMessageResponse(ctx, request, result));
-                        } catch (Throwable throwable) {
-                            future.completeExceptionally(throwable);
-                        }
-                    })
-                    .exceptionally(throwable -> {
+                .thenAccept(result -> {
+                    try {
+                        future.complete(convertToAckMessageResponse(ctx, request, result));
+                    } catch (Throwable throwable) {
                         future.completeExceptionally(throwable);
-                        return null;
-                    });
+                    }
+                })
+                .exceptionally(throwable -> {
+                    future.completeExceptionally(throwable);
+                    return null;
+                });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
         return future;
     }
 
-    protected AckMessageRequestHeader convertToAckMessageRequestHeader(Context ctx, AckMessageRequest request) {
+    protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, AckMessageRequest request) {
         return GrpcConverter.buildAckMessageRequestHeader(request);
     }
 
@@ -252,8 +250,9 @@ public class ConsumerService extends BaseService {
             if (request.getDeliveryAttempt() >= request.getMaxDeliveryAttempts()) {
                 CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
                     brokerAddr,
-                    this.convertToConsumerSendMsgBackToDLQRequestHeader(ctx, request),
-                    ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+                    this.buildConsumerSendMsgBackToDLQRequestHeader(ctx, request)
+                );
+
                 resultFuture
                     .thenAccept(result -> {
                         try {
@@ -267,9 +266,8 @@ public class ConsumerService extends BaseService {
                         return null;
                     });
             } else {
-                ChangeInvisibleTimeRequestHeader requestHeader = this.convertToChangeInvisibleTimeRequestHeader(ctx, request);
-                CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader,
-                    ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+                ChangeInvisibleTimeRequestHeader requestHeader = this.buildChangeInvisibleTimeRequestHeader(ctx, request);
+                CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader);
                 resultFuture
                     .thenAccept(result -> {
                         try {
@@ -289,11 +287,11 @@ public class ConsumerService extends BaseService {
         return future;
     }
 
-    protected ChangeInvisibleTimeRequestHeader convertToChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
-        return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
+    protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
+        return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, this.delayPolicy);
     }
 
-    protected ConsumerSendMsgBackRequestHeader convertToConsumerSendMsgBackToDLQRequestHeader(Context ctx, NackMessageRequest request) {
+    protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx, NackMessageRequest request) {
         return GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request);
     }
 
@@ -318,23 +316,19 @@ public class ConsumerService extends BaseService {
         this.readQueueSelector = readQueueSelector;
     }
 
-    public void setReceiveMessageHook(
-        ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook) {
+    public void setReceiveMessageHook(ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook) {
         this.receiveMessageHook = receiveMessageHook;
     }
 
-    public void setAckNoMatchedMessageHook(
-        ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook) {
+    public void setAckNoMatchedMessageHook(ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook) {
         this.ackNoMatchedMessageHook = ackNoMatchedMessageHook;
     }
 
-    public void setAckMessageHook(
-        ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook) {
+    public void setAckMessageHook(ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook) {
         this.ackMessageHook = ackMessageHook;
     }
 
-    public void setNackMessageHook(
-        ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook) {
+    public void setNackMessageHook(ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook) {
         this.nackMessageHook = nackMessageHook;
     }
 }

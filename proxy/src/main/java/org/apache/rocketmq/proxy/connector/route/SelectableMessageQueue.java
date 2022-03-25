@@ -72,7 +72,7 @@ public class SelectableMessageQueue implements Comparable<SelectableMessageQueue
     }
 
     @Override public String toString() {
-        return "AddressableMessageQueue{" +
+        return "SelectableMessageQueue{" +
             "messageQueue=" + messageQueue +
             ", brokerAddr='" + brokerAddr + '\'' +
             '}';

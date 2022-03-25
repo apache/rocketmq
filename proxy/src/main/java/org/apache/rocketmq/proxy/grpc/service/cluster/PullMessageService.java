@@ -20,7 +20,6 @@ import apache.rocketmq.v1.Message;
 import apache.rocketmq.v1.Partition;
 import apache.rocketmq.v1.PullMessageRequest;
 import apache.rocketmq.v1.PullMessageResponse;
-import apache.rocketmq.v1.QueryOffsetPolicy;
 import apache.rocketmq.v1.QueryOffsetRequest;
 import apache.rocketmq.v1.QueryOffsetResponse;
 import com.google.protobuf.util.Timestamps;
@@ -28,32 +27,31 @@ import com.google.rpc.Code;
 import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.utils.FilterUtils;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.DefaultForwardClient;
+import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
 public class PullMessageService extends BaseService {
 
-    private final DefaultForwardClient defaultForwardClient;
+    private final DefaultForwardClient forwardClient;
+    private final ForwardReadConsumer readConsumer;
 
-    private volatile ResponseHook<QueryOffsetRequest, QueryOffsetResponse> queryOffsetHook = null;
-
-    private volatile ResponseHook<PullMessageRequest, PullMessageResponse> pullMessageHook = null;
+    private volatile ResponseHook<QueryOffsetRequest, QueryOffsetResponse> queryOffsetHook;
+    private volatile ResponseHook<PullMessageRequest, PullMessageResponse> pullMessageHook;
 
     public PullMessageService(ConnectorManager connectorManager) {
         super(connectorManager);
-        this.defaultForwardClient = connectorManager.getDefaultForwardClient();
+        this.forwardClient = connectorManager.getDefaultForwardClient();
+        this.readConsumer = connectorManager.getForwardReadConsumer();
     }
 
     public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
@@ -63,24 +61,28 @@ public class PullMessageService extends BaseService {
                 queryOffsetHook.beforeResponse(ctx, request, response, throwable);
             }
         });
+
         try {
             Partition partition = request.getPartition();
             String topic = GrpcConverter.wrapResourceWithNamespace(partition.getTopic());
-
             String brokerName = partition.getBroker().getName();
             int queueId = partition.getId();
+
             CompletableFuture<Long> offsetFuture;
-            if (request.getPolicy() == QueryOffsetPolicy.BEGINNING) {
-                offsetFuture = CompletableFuture.completedFuture(0L);
-            } else if (request.getPolicy() == QueryOffsetPolicy.END) {
-                String brokerAddr = this.getBrokerAddr(ctx, brokerName);
-                offsetFuture = this.defaultForwardClient.getMaxOffset(brokerAddr, topic, queueId, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
-            } else {
-                long timestamp = Timestamps.toMillis(request.getTimePoint());
-                String brokerAddr = this.getBrokerAddr(ctx, brokerName);
-                offsetFuture = this.defaultForwardClient.searchOffset(brokerAddr, topic, queueId, timestamp, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+            switch (request.getPolicy()) {
+                case BEGINNING:
+                    offsetFuture = CompletableFuture.completedFuture(0L);
+                    break;
+                case END:
+                    offsetFuture = this.forwardClient.getMaxOffset(this.getBrokerAddr(ctx, brokerName), topic, queueId);
+                    break;
+                default:
+                    long timestamp = Timestamps.toMillis(request.getTimePoint());
+                    offsetFuture = this.forwardClient.searchOffset(this.getBrokerAddr(ctx, brokerName), topic, queueId, timestamp);
             }
-            offsetFuture.thenAccept(result -> future.complete(
+
+            offsetFuture
+                .thenAccept(result -> future.complete(
                     QueryOffsetResponse.newBuilder()
                         .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
                         .setOffset(result)
@@ -104,13 +106,12 @@ public class PullMessageService extends BaseService {
         });
 
         try {
-            PullMessageRequestHeader requestHeader = this.convertToPullMessageRequestHeader(ctx, request);
+            PullMessageRequestHeader requestHeader = this.buildPullMessageRequestHeader(ctx, request);
 
             String brokerName = request.getPartition().getBroker().getName();
             String brokerAddr = this.getBrokerAddr(ctx, brokerName);
 
-            CompletableFuture<PullResult> pullResultFuture = this.connectorManager.getForwardReadConsumer()
-                .pullMessage(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+            CompletableFuture<PullResult> pullResultFuture = this.readConsumer.pullMessage(brokerAddr, requestHeader);
             pullResultFuture
                 .thenAccept(pullResult -> {
                     try {
@@ -130,17 +131,9 @@ public class PullMessageService extends BaseService {
         return future;
     }
 
-    protected PullMessageRequestHeader convertToPullMessageRequestHeader(Context ctx, PullMessageRequest request) {
-        // check filterExpression is correct or not
-        GrpcConverter.buildSubscriptionData(GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
-
-        long timeRemaining = ctx.getDeadline()
-            .timeRemaining(TimeUnit.MILLISECONDS);
-        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
-        if (pollTime <= 0) {
-            pollTime = timeRemaining;
-        }
-        return GrpcConverter.buildPullMessageRequestHeader(request, pollTime);
+    protected PullMessageRequestHeader buildPullMessageRequestHeader(Context ctx, PullMessageRequest request) {
+        checkSubscriptionData(request.getPartition().getTopic(), request.getFilterExpression());
+        return GrpcConverter.buildPullMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx));
     }
 
     protected PullMessageResponse convertToPullMessageResponse(Context ctx, PullMessageRequest request, PullResult result) {
