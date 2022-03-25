@@ -33,6 +33,8 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -42,6 +44,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class ProducerServiceTest extends BaseServiceTest {
@@ -71,7 +74,7 @@ public class ProducerServiceTest extends BaseServiceTest {
         sendResultFuture.complete(new SendResult(SendStatus.SEND_OK, "msgId", new MessageQueue(),
             1L, "txId", "offsetMsgId", "regionId"));
 
-        ProducerService producerService = new ProducerService(this.clientManager);
+        ProducerService producerService = new ProducerService(this.connectorManager);
         producerService.setWriteQueueSelector((ctx, request, requestHeader, message) ->
             new SelectableMessageQueue(new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr"));
 
@@ -88,7 +91,7 @@ public class ProducerServiceTest extends BaseServiceTest {
 
     @Test
     public void testSendMessageNoQueueSelect() {
-        ProducerService producerService = new ProducerService(this.clientManager);
+        ProducerService producerService = new ProducerService(this.connectorManager);
 
         producerService.setWriteQueueSelector((ctx, request, requestHeader, message) -> null);
 
@@ -125,7 +128,7 @@ public class ProducerServiceTest extends BaseServiceTest {
             .thenReturn(sendResultFuture);
         sendResultFuture.completeExceptionally(ex);
 
-        ProducerService producerService = new ProducerService(this.clientManager);
+        ProducerService producerService = new ProducerService(this.connectorManager);
         producerService.setWriteQueueSelector((ctx, request, requestHeader, message) ->
             new SelectableMessageQueue(new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr"));
 
@@ -145,11 +148,11 @@ public class ProducerServiceTest extends BaseServiceTest {
     public void testSendMessageWithErrorThrow() {
         RuntimeException ex = new RuntimeException();
 
-        ProducerService producerService = new ProducerService(this.clientManager);
+        ProducerService producerService = new ProducerService(this.connectorManager);
         producerService.setWriteQueueSelector((ctx, request, requestHeader, message) -> {
             throw ex;
         });
-        producerService.setSendMessageHook((request, response, t) ->  {
+        producerService.setSendMessageHook((ctx, request, response, t) ->  {
             assertSame(ex, t);
         });
 

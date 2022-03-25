@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.proxy.grpc.adapter;
 
+import io.grpc.Context;
+
 public interface ResponseHook<T, R> {
 
-    void beforeResponse(T request, R response, Throwable t);
+    void beforeResponse(Context ctx, T request, R response, Throwable t);
 }

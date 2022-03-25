@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
-public class DefaultProducerQueueSelectorTest extends BaseServiceTest {
+public class DefaultWriteQueueSelectorTest extends BaseServiceTest {
 
     @Override
     public void beforeEach() throws Throwable {

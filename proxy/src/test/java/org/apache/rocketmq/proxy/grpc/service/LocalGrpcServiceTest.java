@@ -107,7 +107,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     private Metadata metadata;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws Throwable {
         super.before();
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);

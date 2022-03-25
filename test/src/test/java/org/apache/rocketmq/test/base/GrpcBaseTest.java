@@ -49,6 +49,8 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
@@ -118,6 +120,24 @@ public class GrpcBaseTest extends BaseConf {
                 .setSystemAttribute(SystemAttribute.newBuilder()
                     .setMessageId(messageId)
                     .setPartitionId(0)
+                    .build())
+                .setBody(ByteString.copyFromUtf8("123"))
+                .build())
+            .build();
+    }
+
+    public SendMessageRequest buildSendDelayMessageRequest(String topic, String messageId, int delayLevel) {
+//        Message message;
+//        message.getSystemAttribute().getTimedDeliveryCase();
+        return SendMessageRequest.newBuilder()
+            .setMessage(Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(topic)
+                    .build())
+                .setSystemAttribute(SystemAttribute.newBuilder()
+                    .setMessageId(messageId)
+                    .setPartitionId(0)
+                    .setDelayLevel(delayLevel)
                     .build())
                 .setBody(ByteString.copyFromUtf8("123"))
                 .build())

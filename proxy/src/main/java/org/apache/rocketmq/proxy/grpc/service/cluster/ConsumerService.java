@@ -83,12 +83,16 @@ public class ConsumerService extends BaseService {
         CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (receiveMessageHook != null) {
-                receiveMessageHook.beforeResponse(request, response, throwable);
+                receiveMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
         try {
             PopMessageRequestHeader requestHeader = this.convertToPopMessageRequestHeader(ctx, request);
             SelectableMessageQueue messageQueue = this.readQueueSelector.select(ctx, request, requestHeader);
+
+            if (messageQueue == null) {
+                throw new ProxyException(Code.NOT_FOUND, "no readable topic route for topic " + requestHeader.getTopic());
+            }
 
             CompletableFuture<PopResult> popResultFuture = this.readConsumer.popMessage(
                 messageQueue.getBrokerAddr(),
@@ -182,7 +186,7 @@ public class ConsumerService extends BaseService {
         }
         future.whenComplete((ackResult, throwable) -> {
             if (ackNoMatchedMessageHook != null) {
-                ackNoMatchedMessageHook.beforeResponse(ackMessageRequestHeader, ackResult, throwable);
+                ackNoMatchedMessageHook.beforeResponse(ctx, ackMessageRequestHeader, ackResult, throwable);
             }
         });
     }
@@ -191,7 +195,7 @@ public class ConsumerService extends BaseService {
         CompletableFuture<AckMessageResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (ackMessageHook != null) {
-                ackMessageHook.beforeResponse(request, response, throwable);
+                ackMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
         try {
@@ -237,7 +241,7 @@ public class ConsumerService extends BaseService {
         CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (nackMessageHook != null) {
-                nackMessageHook.beforeResponse(request, response, throwable);
+                nackMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
         try {
@@ -258,7 +262,6 @@ public class ConsumerService extends BaseService {
                         }
                     })
                     .exceptionally(throwable -> {
-                        throwable.printStackTrace();
                         future.completeExceptionally(throwable);
                         return null;
                     });

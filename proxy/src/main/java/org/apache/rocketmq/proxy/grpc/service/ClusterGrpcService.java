@@ -114,7 +114,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
-        this.clientService.heartbeat(ctx, request, channelManager);
+        this.clientService.heartbeat(ctx, request);
         return CompletableFuture.completedFuture(
             HeartbeatResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
@@ -196,8 +196,8 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
-                                                                                      NotifyClientTerminationRequest request) {
-        this.clientService.unregister(ctx, request, channelManager);
+        NotifyClientTerminationRequest request) {
+        this.clientService.unregister(ctx, request);
         return CompletableFuture.completedFuture(
             NotifyClientTerminationResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))

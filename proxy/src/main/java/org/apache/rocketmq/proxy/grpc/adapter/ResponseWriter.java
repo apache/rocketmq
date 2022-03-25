@@ -44,9 +44,9 @@ public class ResponseWriter {
         }
     }
 
-    public static <T> void writeException(StreamObserver<T> observer, final Throwable e) {
+    public static <T> void writeException(StreamObserver<?> observer, final Throwable e) {
         if (observer instanceof ServerCallStreamObserver) {
-            final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
+            final ServerCallStreamObserver serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
             if (null == e) {
                 return;
             }
@@ -55,6 +55,15 @@ public class ResponseWriter {
                 LOGGER.warn("Client has cancelled the request. Exception to write", e);
                 return;
             }
+
+//            if (e instanceof CompletionException) {
+//                if (e.getCause() instanceof ProxyException) {
+//                    ProxyException proxyException = (ProxyException) e.getCause();
+//                    serverCallStreamObserver.onNext(ResponseBuilder.buildCommon(proxyException.getCode(), proxyException.getMessage()));
+//                    serverCallStreamObserver.onCompleted();
+//                    return;
+//                }
+//            }
 
             LOGGER.debug("Start to write error response", e);
             serverCallStreamObserver.onError(e);

@@ -263,7 +263,7 @@ public class GrpcConverter {
         try {
             handle = TransactionId.decode(transactionId);
         } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Parse transaction id failed", e);
+            throw new ProxyException(Code.INVALID_ARGUMENT, "Parse transaction id failed", e);
         }
         long transactionStateTableOffset = handle.getTranStateTableOffset();
         long commitLogOffset = handle.getCommitLogOffset();
@@ -273,7 +273,7 @@ public class GrpcConverter {
         EndTransactionRequestHeader endTransactionRequestHeader = new EndTransactionRequestHeader();
         endTransactionRequestHeader.setProducerGroup(groupName);
         endTransactionRequestHeader.setMsgId(messageId);
-        endTransactionRequestHeader.setTransactionId(transactionId);
+        endTransactionRequestHeader.setTransactionId(handle.getBrokerTransactionId());
         endTransactionRequestHeader.setTranStateTableOffset(transactionStateTableOffset);
         endTransactionRequestHeader.setCommitLogOffset(commitLogOffset);
         endTransactionRequestHeader.setCommitOrRollback(commitOrRollback);
@@ -313,7 +313,7 @@ public class GrpcConverter {
         Map<String, String> userProperties = message.getUserAttributeMap();
         for (String key : userProperties.keySet()) {
             if (MessageConst.STRING_HASH_SET.contains(key)) {
-                throw new IllegalArgumentException("Property is used by system: " + key);
+                throw new ProxyException(Code.INVALID_ARGUMENT, "property is used by system: " + key);
             }
         }
         MessageAccessor.setProperties(messageWithHeader, Maps.newHashMap(userProperties));
@@ -333,7 +333,7 @@ public class GrpcConverter {
         // set message id
         String messageId = message.getSystemAttribute().getMessageId();
         if ("".equals(messageId)) {
-            throw new IllegalArgumentException("message id is empty");
+            throw new ProxyException(Code.INVALID_ARGUMENT, "message id is empty");
         }
         MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, messageId);
 
@@ -363,7 +363,7 @@ public class GrpcConverter {
             case TIMEDDELIVERY_NOT_SET:
                 break;
             default:
-                throw new IllegalStateException("Unexpected value: " + message.getSystemAttribute().getTimedDeliveryCase());
+                throw new ProxyException(Code.INVALID_ARGUMENT, "unexpected value: " + message.getSystemAttribute().getTimedDeliveryCase());
         }
         // set reconsume times
         int reconsumeTimes = message.getSystemAttribute().getDeliveryAttempt();

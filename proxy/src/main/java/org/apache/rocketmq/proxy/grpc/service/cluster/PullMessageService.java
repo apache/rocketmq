@@ -61,7 +61,7 @@ public class PullMessageService extends BaseService {
         CompletableFuture<QueryOffsetResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (queryOffsetHook != null) {
-                queryOffsetHook.beforeResponse(request, response, throwable);
+                queryOffsetHook.beforeResponse(ctx, request, response, throwable);
             }
         });
         try {
@@ -100,7 +100,7 @@ public class PullMessageService extends BaseService {
         CompletableFuture<PullMessageResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (pullMessageHook != null) {
-                pullMessageHook.beforeResponse(request, response, throwable);
+                pullMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
 
@@ -135,10 +135,11 @@ public class PullMessageService extends BaseService {
         // check filterExpression is correct or not
         GrpcConverter.buildSubscriptionData(GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
 
-        long pollTime = ctx.getDeadline()
-            .timeRemaining(TimeUnit.MILLISECONDS) - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
+        long timeRemaining = ctx.getDeadline()
+            .timeRemaining(TimeUnit.MILLISECONDS);
+        long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
         if (pollTime <= 0) {
-            throw new ProxyException(Code.DEADLINE_EXCEEDED, "request has been canceled due to timeout");
+            pollTime = timeRemaining;
         }
         return GrpcConverter.buildPullMessageRequestHeader(request, pollTime);
     }

@@ -26,11 +26,13 @@ import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.ForwardProducer;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
@@ -54,9 +56,12 @@ public class TransactionService extends BaseService implements TransactionStateC
 
     @Override
     public void checkTransactionState(TransactionStateCheckRequest checkData) {
+        Context ctx = Context.current();
         try {
             List<String> clientIdList = this.channelManager.getClientIdList(checkData.getGroupId());
-            // if clientIdList's size is 0, here will throw: java.lang.IllegalArgumentException: bound must be positive
+            if (CollectionUtils.isEmpty(clientIdList)) {
+                return;
+            }
             String clientId = clientIdList.get(ThreadLocalRandom.current().nextInt(clientIdList.size()));
 
             GrpcClientChannel channel = GrpcClientChannel.getChannel(this.channelManager, checkData.getGroupId(), clientId);
@@ -72,11 +77,11 @@ public class TransactionService extends BaseService implements TransactionStateC
                 ).build();
             channel.writeAndFlush(response);
             if (this.checkTransactionStateHook != null) {
-                this.checkTransactionStateHook.beforeResponse(checkData, response, null);
+                this.checkTransactionStateHook.beforeResponse(ctx, checkData, response, null);
             }
         } catch (Throwable t) {
             if (this.checkTransactionStateHook != null) {
-                this.checkTransactionStateHook.beforeResponse(checkData, null, t);
+                this.checkTransactionStateHook.beforeResponse(ctx, checkData, null, t);
             }
         }
     }
@@ -85,13 +90,16 @@ public class TransactionService extends BaseService implements TransactionStateC
         CompletableFuture<EndTransactionResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
             if (endTransactionHook != null) {
-                endTransactionHook.beforeResponse(request, response, throwable);
+                endTransactionHook.beforeResponse(ctx, request, response, throwable);
             }
         });
 
         try {
+            TransactionId handle = TransactionId.decode(request.getTransactionId());
             EndTransactionRequestHeader requestHeader = this.toEndTransactionRequestHeader(ctx, request);
-            this.forwardProducer.endTransaction(requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+            this.forwardProducer.endTransaction(
+                RemotingHelper.parseSocketAddressAddr(handle.getBrokerAddr()),
+                requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
             future.complete(EndTransactionResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
                 .build());

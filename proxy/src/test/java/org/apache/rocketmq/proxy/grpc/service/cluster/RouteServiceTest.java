@@ -35,15 +35,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
+import org.apache.rocketmq.proxy.grpc.common.ProxyMode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.when;
 
 public class RouteServiceTest extends BaseServiceTest {
     private String brokerAddress = "127.0.0.1:10911";
@@ -57,7 +62,9 @@ public class RouteServiceTest extends BaseServiceTest {
         .build();
 
     @Override
-    public void beforeEach() {
+    public void beforeEach() throws Exception {
+        TopicRouteData routeData = new TopicRouteData();
+
         List<BrokerData> brokerDataList = new ArrayList<>();
         BrokerData brokerData = new BrokerData();
         brokerData.setCluster("cluster");
@@ -75,13 +82,21 @@ public class RouteServiceTest extends BaseServiceTest {
         queueData.setReadQueueNums(8);
         queueData.setBrokerName("brokerName");
         queueDataList.add(queueData);
+
+        routeData.setBrokerDatas(brokerDataList);
+        routeData.setQueueDatas(queueDataList);
+
+        MessageQueueWrapper messageQueueWrapper = new MessageQueueWrapper("topic", routeData);
+        when(this.topicRouteCache.getMessageQueue("topic")).thenReturn(messageQueueWrapper);
+
+        when(this.topicRouteCache.getMessageQueue("notExistTopic")).thenThrow(new MQClientException(ResponseCode.TOPIC_NOT_EXIST, ""));
     }
 
     @Test
     public void testGenPartitionFromQueueData() throws Exception {
         // test queueData with 8 read queues, 8 write queues, and rw permission, expect 8 rw queues.
         QueueData queueDataWith8R8WPermRW = mockQueueData(8, 8, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<Partition> partitionWith8R8WPermRW =  RouteService.genPartitionFromQueueData(queueDataWith8R8WPermRW, MOCK_TOPIC, MOCK_BROKER);
+        List<Partition> partitionWith8R8WPermRW = RouteService.genPartitionFromQueueData(queueDataWith8R8WPermRW, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith8R8WPermRW.size()).isEqualTo(8);
         assertThat(partitionWith8R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(8);
         assertThat(partitionWith8R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count()).isEqualTo(0);
@@ -89,7 +104,7 @@ public class RouteServiceTest extends BaseServiceTest {
 
         // test queueData with 8 read queues, 8 write queues, and read only permission, expect 8 read only queues.
         QueueData queueDataWith8R8WPermR = mockQueueData(8, 8, PermName.PERM_READ);
-        List<Partition> partitionWith8R8WPermR =  RouteService.genPartitionFromQueueData(queueDataWith8R8WPermR, MOCK_TOPIC, MOCK_BROKER);
+        List<Partition> partitionWith8R8WPermR = RouteService.genPartitionFromQueueData(queueDataWith8R8WPermR, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith8R8WPermR.size()).isEqualTo(8);
         assertThat(partitionWith8R8WPermR.stream().filter(a -> a.getPermission() == Permission.READ).count()).isEqualTo(8);
         assertThat(partitionWith8R8WPermR.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(0);
@@ -97,7 +112,7 @@ public class RouteServiceTest extends BaseServiceTest {
 
         // test queueData with 8 read queues, 8 write queues, and write only permission, expect 8 write only queues.
         QueueData queueDataWith8R8WPermW = mockQueueData(8, 8, PermName.PERM_WRITE);
-        List<Partition> partitionWith8R8WPermW =  RouteService.genPartitionFromQueueData(queueDataWith8R8WPermW, MOCK_TOPIC, MOCK_BROKER);
+        List<Partition> partitionWith8R8WPermW = RouteService.genPartitionFromQueueData(queueDataWith8R8WPermW, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith8R8WPermW.size()).isEqualTo(8);
         assertThat(partitionWith8R8WPermW.stream().filter(a -> a.getPermission() == Permission.WRITE).count()).isEqualTo(8);
         assertThat(partitionWith8R8WPermW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(0);
@@ -105,7 +120,7 @@ public class RouteServiceTest extends BaseServiceTest {
 
         // test queueData with 8 read queues, 0 write queues, and rw permission, expect 8 read only queues.
         QueueData queueDataWith8R0WPermRW = mockQueueData(8, 0, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<Partition> partitionWith8R0WPermRW =  RouteService.genPartitionFromQueueData(queueDataWith8R0WPermRW, MOCK_TOPIC, MOCK_BROKER);
+        List<Partition> partitionWith8R0WPermRW = RouteService.genPartitionFromQueueData(queueDataWith8R0WPermRW, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith8R0WPermRW.size()).isEqualTo(8);
         assertThat(partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count()).isEqualTo(8);
         assertThat(partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(0);
@@ -113,7 +128,7 @@ public class RouteServiceTest extends BaseServiceTest {
 
         // test queueData with 4 read queues, 8 write queues, and rw permission, expect 4 rw queues and  4 write only queues.
         QueueData queueDataWith4R8WPermRW = mockQueueData(4, 8, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<Partition> partitionWith4R8WPermRW =  RouteService.genPartitionFromQueueData(queueDataWith4R8WPermRW, MOCK_TOPIC, MOCK_BROKER);
+        List<Partition> partitionWith4R8WPermRW = RouteService.genPartitionFromQueueData(queueDataWith4R8WPermRW, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith4R8WPermRW.size()).isEqualTo(8);
         assertThat(partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count()).isEqualTo(4);
         assertThat(partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(4);
@@ -131,8 +146,8 @@ public class RouteServiceTest extends BaseServiceTest {
     }
 
     @Test
-    public void testLocalModeQueryRoute() {
-        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.clientManager);
+    public void testLocalModeQueryRoute() throws Exception {
+        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.connectorManager);
         CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setEndpoints(Endpoints.newBuilder()
                 .addAddresses(Address.newBuilder()
@@ -145,20 +160,16 @@ public class RouteServiceTest extends BaseServiceTest {
                 .setName("topic")
                 .build())
             .build());
-        try {
-            QueryRouteResponse response = future.get();
-            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
-            assertEquals(8, response.getPartitionsCount());
-            assertEquals(HostAndPort.fromString(brokerAddress).getHost(), response.getPartitions(0).getBroker()
-                .getEndpoints().getAddresses(0).getHost());
-        } catch (Exception e) {
-            assertNull(e);
-        }
+        QueryRouteResponse response = future.get();
+        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(8, response.getPartitionsCount());
+        assertEquals(HostAndPort.fromString(brokerAddress).getHost(), response.getPartitions(0).getBroker()
+            .getEndpoints().getAddresses(0).getHost());
     }
 
     @Test
-    public void testQueryRouteWithInvalidEndpoints() {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+    public void testQueryRouteWithInvalidEndpoints() throws Exception {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
 
         CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -166,17 +177,13 @@ public class RouteServiceTest extends BaseServiceTest {
                 .build())
             .build());
 
-        try {
-            QueryRouteResponse response = future.get();
-            assertEquals(Code.INVALID_ARGUMENT.getNumber(), response.getCommon().getStatus().getCode());
-        } catch (Exception e) {
-            assertNull(e);
-        }
+        QueryRouteResponse response = future.get();
+        assertEquals(Code.INVALID_ARGUMENT.getNumber(), response.getCommon().getStatus().getCode());
     }
 
     @Test
-    public void testQueryRoute() {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+    public void testQueryRoute() throws Exception {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
 
         CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setEndpoints(Endpoints.newBuilder()
@@ -191,20 +198,16 @@ public class RouteServiceTest extends BaseServiceTest {
                 .build())
             .build());
 
-        try {
-            QueryRouteResponse response = future.get();
-            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
-            assertEquals(8, response.getPartitionsCount());
-            assertEquals("host", response.getPartitions(0).getBroker()
-                .getEndpoints().getAddresses(0).getHost());
-        } catch (Exception e) {
-            assertNull(e);
-        }
+        QueryRouteResponse response = future.get();
+        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(8, response.getPartitionsCount());
+        assertEquals("host", response.getPartitions(0).getBroker()
+            .getEndpoints().getAddresses(0).getHost());
     }
 
     @Test
-    public void testQueryRouteWhenTopicNotExist() {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+    public void testQueryRouteWhenTopicNotExist() throws Exception {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
 
         CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setEndpoints(Endpoints.newBuilder()
@@ -219,17 +222,13 @@ public class RouteServiceTest extends BaseServiceTest {
                 .build())
             .build());
 
-        try {
-            QueryRouteResponse response = future.get();
-            assertEquals(Code.NOT_FOUND.getNumber(), response.getCommon().getStatus().getCode());
-        } catch (Exception e) {
-            assertNull(e);
-        }
+        QueryRouteResponse response = future.get();
+        assertEquals(Code.NOT_FOUND.getNumber(), response.getCommon().getStatus().getCode());
     }
 
     @Test
-    public void testQueryAssignmentInvalidEndpoints() {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+    public void testQueryAssignmentInvalidEndpoints() throws Exception {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
 
         CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
             .setTopic(
@@ -239,17 +238,13 @@ public class RouteServiceTest extends BaseServiceTest {
             )
             .build());
 
-        try {
-            QueryAssignmentResponse response = future.get();
-            assertEquals(Code.INVALID_ARGUMENT.getNumber(), response.getCommon().getStatus().getCode());
-        } catch (Exception e) {
-            assertNull(e);
-        }
+        QueryAssignmentResponse response = future.get();
+        assertEquals(Code.INVALID_ARGUMENT.getNumber(), response.getCommon().getStatus().getCode());
     }
 
     @Test
-    public void testLocalModeQueryAssignment() {
-        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.clientManager);
+    public void testLocalModeQueryAssignment() throws Exception {
+        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.connectorManager);
 
         CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
             .setEndpoints(Endpoints.newBuilder()
@@ -268,20 +263,16 @@ public class RouteServiceTest extends BaseServiceTest {
             .setClientId("clientId")
             .build());
 
-        try {
-            QueryAssignmentResponse response = future.get();
-            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
-            assertEquals(1, response.getAssignmentsCount());
-            assertEquals("brokerName", response.getAssignments(0).getPartition().getBroker().getName());
-            assertEquals(HostAndPort.fromString(brokerAddress).getHost(), response.getAssignments(0).getPartition().getBroker().getEndpoints().getAddresses(0).getHost());
-        } catch (Exception e) {
-            assertNull(e);
-        }
+        QueryAssignmentResponse response = future.get();
+        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(1, response.getAssignmentsCount());
+        assertEquals("brokerName", response.getAssignments(0).getPartition().getBroker().getName());
+        assertEquals(HostAndPort.fromString(brokerAddress).getHost(), response.getAssignments(0).getPartition().getBroker().getEndpoints().getAddresses(0).getHost());
     }
 
     @Test
-    public void testQueryAssignment() {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.clientManager);
+    public void testQueryAssignment() throws Exception {
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
 
         CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
             .setEndpoints(Endpoints.newBuilder()
@@ -300,15 +291,11 @@ public class RouteServiceTest extends BaseServiceTest {
             .setClientId("clientId")
             .build());
 
-        try {
-            QueryAssignmentResponse response = future.get();
-            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
-            assertEquals(1, response.getAssignmentsCount());
-            assertEquals("brokerName", response.getAssignments(0).getPartition().getBroker().getName());
-            assertEquals("host", response.getAssignments(0).getPartition().getBroker().getEndpoints().getAddresses(0).getHost());
-        } catch (Exception e) {
-            assertNull(e);
-        }
+        QueryAssignmentResponse response = future.get();
+        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(1, response.getAssignmentsCount());
+        assertEquals("brokerName", response.getAssignments(0).getPartition().getBroker().getName());
+        assertEquals("host", response.getAssignments(0).getPartition().getBroker().getEndpoints().getAddresses(0).getHost());
     }
 
 } 
