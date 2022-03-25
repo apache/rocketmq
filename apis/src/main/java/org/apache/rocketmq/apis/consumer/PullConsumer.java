@@ -56,6 +56,7 @@ public interface PullConsumer extends Closeable {
 
     /**
      * Manually assign messageQueue collections to this consumer.
+     * <p> Pull consumer must enable manual assignment mode in {@link PullConsumerBuilder} first, then call assign api.
      * <p> This interface does not allow for incremental assignment and will replace the previous assignment.
      * If the given collection is empty, it's treated same as unsubscribe().
      * Manual assignment through this interface will disable the consumerGroup management functionality
