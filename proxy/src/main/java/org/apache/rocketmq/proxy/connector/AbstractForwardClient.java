@@ -46,7 +46,8 @@ public abstract class AbstractForwardClient implements StartAndShutdown {
         if (clients.length == 1) {
             return this.clients[0];
         }
-        return this.clients[ThreadLocalRandom.current().nextInt(this.clients.length)];
+        int index = ThreadLocalRandom.current().nextInt(this.clients.length);
+        return this.clients[index];
     }
 
     @Override

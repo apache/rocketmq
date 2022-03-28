@@ -381,7 +381,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
             .thenReturn(response);
         EndTransactionRequest request = EndTransactionRequest.newBuilder()
             .setMessageId("123")
-            .setTransactionId(TransactionId.genFromBrokerTransactionId(
+            .setTransactionId(TransactionId.genByBrokerTransactionId(
                 new InetSocketAddress("0.0.0.0", 80), "123", 123, 123
                 ).getProxyTransactionId()
             )

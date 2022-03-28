@@ -48,7 +48,7 @@ public class TransactionServiceTest extends BaseServiceTest {
             return null;
         }).when(channel).writeAndFlush(any());
 
-        TransactionId transactionId = TransactionId.genFromBrokerTransactionId(
+        TransactionId transactionId = TransactionId.genByBrokerTransactionId(
             RemotingHelper.string2SocketAddress("127.0.0.1:8080"),
             "71F99B78B6E261357FA259CCA6456118", 1234, 5678);
         transactionService.checkTransactionState(new TransactionStateCheckRequest(
@@ -69,7 +69,7 @@ public class TransactionServiceTest extends BaseServiceTest {
     public void testEndTransaction() throws Exception {
         AtomicReference<EndTransactionRequestHeader> headerRef = new AtomicReference<>();
         AtomicReference<String> brokerAddrRef = new AtomicReference<>();
-        TransactionId transactionId = TransactionId.genFromBrokerTransactionId(
+        TransactionId transactionId = TransactionId.genByBrokerTransactionId(
             RemotingHelper.string2SocketAddress("127.0.0.1:8080"),
             "71F99B78B6E261357FA259CCA6456118", 1234, 5678);
         doAnswer(mock -> {

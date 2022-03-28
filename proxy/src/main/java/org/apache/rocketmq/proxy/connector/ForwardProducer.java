@@ -87,7 +87,7 @@ public class ForwardProducer extends AbstractForwardClient {
         return future.thenApply(sendResult -> {
             int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
             if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) && tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE) {
-                TransactionId transactionId = TransactionId.genFromBrokerTransactionId(address, sendResult);
+                TransactionId transactionId = TransactionId.genByBrokerTransactionId(address, sendResult);
                 sendResult.setTransactionId(transactionId.getProxyTransactionId());
             }
             return sendResult;

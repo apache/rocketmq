@@ -97,6 +97,7 @@ public class GrpcServer implements StartAndShutdown {
             .addService(messagingProcessor)
             .executor(this.executor);
 
+        // grpc interceptors, including acl, logging etc.
         if (ConfigurationManager.getProxyConfig().isEnableACL()) {
             List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
             if (accessValidators.isEmpty()) {
@@ -122,7 +123,7 @@ public class GrpcServer implements StartAndShutdown {
         this.grpcForwardService.start();
 
         this.server.start();
-        log.info("grpc server has started");
+        log.info("grpc server start successfully.");
     }
 
     public void shutdown() {
@@ -132,7 +133,7 @@ public class GrpcServer implements StartAndShutdown {
 
             this.grpcForwardService.shutdown();
 
-            log.info("grpc server has stopped");
+            log.info("grpc server shutdown successfully.");
         } catch (Exception e) {
             e.printStackTrace();
         }

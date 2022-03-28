@@ -10,7 +10,7 @@ public class TransactionIdTest {
 
     @Test
     public void test() throws UnknownHostException {
-        TransactionId transactionId = TransactionId.genFromBrokerTransactionId(
+        TransactionId transactionId = TransactionId.genByBrokerTransactionId(
             RemotingHelper.string2SocketAddress("127.0.0.1:8080"),
             "71F99B78B6E261357FA259CCA6456118", 1234, 5678);
 
@@ -24,7 +24,7 @@ public class TransactionIdTest {
 
     @Test
     public void testEmptyTransactionId() throws UnknownHostException {
-        TransactionId transactionId = TransactionId.genFromBrokerTransactionId(
+        TransactionId transactionId = TransactionId.genByBrokerTransactionId(
             RemotingHelper.string2SocketAddress("127.0.0.1:8080"),
             "", 1234, 5678);
 
@@ -38,7 +38,7 @@ public class TransactionIdTest {
 
     @Test
     public void testNullTransactionId() throws UnknownHostException {
-        TransactionId transactionId = TransactionId.genFromBrokerTransactionId(
+        TransactionId transactionId = TransactionId.genByBrokerTransactionId(
             RemotingHelper.string2SocketAddress("127.0.0.1:8080"),
             null, 1234, 5678);
 

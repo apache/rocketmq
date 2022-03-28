@@ -189,7 +189,8 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
     }
 
     @Override
-    public void forwardMessageToDeadLetterQueue(ForwardMessageToDeadLetterQueueRequest request, StreamObserver<ForwardMessageToDeadLetterQueueResponse> responseObserver) {
+    public void forwardMessageToDeadLetterQueue(ForwardMessageToDeadLetterQueueRequest request,
+        StreamObserver<ForwardMessageToDeadLetterQueueResponse> responseObserver) {
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = grpcForwardService.forwardMessageToDeadLetterQueue(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
@@ -251,7 +252,8 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
     }
 
     @Override
-    public void reportThreadStackTrace(ReportThreadStackTraceRequest request, StreamObserver<ReportThreadStackTraceResponse> responseObserver) {
+    public void reportThreadStackTrace(ReportThreadStackTraceRequest request,
+        StreamObserver<ReportThreadStackTraceResponse> responseObserver) {
         CompletableFuture<ReportThreadStackTraceResponse> future = grpcForwardService.reportThreadStackTrace(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
@@ -264,7 +266,8 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
     }
 
     @Override
-    public void reportMessageConsumptionResult(ReportMessageConsumptionResultRequest request, StreamObserver<ReportMessageConsumptionResultResponse> responseObserver) {
+    public void reportMessageConsumptionResult(ReportMessageConsumptionResultRequest request,
+        StreamObserver<ReportMessageConsumptionResultResponse> responseObserver) {
         CompletableFuture<ReportMessageConsumptionResultResponse> future = grpcForwardService.reportMessageConsumptionResult(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
@@ -277,7 +280,8 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
     }
 
     @Override
-    public void notifyClientTermination(NotifyClientTerminationRequest request, StreamObserver<NotifyClientTerminationResponse> responseObserver) {
+    public void notifyClientTermination(NotifyClientTerminationRequest request,
+        StreamObserver<NotifyClientTerminationResponse> responseObserver) {
         CompletableFuture<NotifyClientTerminationResponse> future = grpcForwardService.notifyClientTermination(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
@@ -290,7 +294,8 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
     }
 
     @Override
-    public void changeInvisibleDuration(ChangeInvisibleDurationRequest request, StreamObserver<ChangeInvisibleDurationResponse> responseObserver) {
+    public void changeInvisibleDuration(ChangeInvisibleDurationRequest request,
+        StreamObserver<ChangeInvisibleDurationResponse> responseObserver) {
         CompletableFuture<ChangeInvisibleDurationResponse> future = grpcForwardService.changeInvisibleDuration(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
