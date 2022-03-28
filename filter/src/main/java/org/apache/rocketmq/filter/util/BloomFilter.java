@@ -145,7 +145,7 @@ public class BloomFilter {
         if (!isValid(filterData)) {
             throw new IllegalArgumentException(
                 String.format("Bloom filter data may not belong to this filter! %s, %s",
-                    filterData, this.toString())
+                    filterData, this)
             );
         }
         hashTo(filterData.getBitPos(), bits);
@@ -183,7 +183,7 @@ public class BloomFilter {
         if (!isValid(filterData)) {
             throw new IllegalArgumentException(
                 String.format("Bloom filter data may not belong to this filter! %s, %s",
-                    filterData, this.toString())
+                    filterData, this)
             );
         }
         return isHit(filterData.getBitPos(), bits);
