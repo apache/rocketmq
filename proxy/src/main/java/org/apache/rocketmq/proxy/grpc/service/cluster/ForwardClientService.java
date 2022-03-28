@@ -68,10 +68,12 @@ public class ForwardClientService extends BaseService {
         this.pollCommandResponseManager = pollCommandResponseManager;
 
         this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListener() {
-            @Override public void handle(ConsumerGroupEvent event, String group, Object... args) {
+            @Override
+            public void handle(ConsumerGroupEvent event, String group, Object... args) {
             }
 
-            @Override public void shutdown() {
+            @Override
+            public void shutdown() {
             }
         });
         this.producerManager = new ProducerManager();

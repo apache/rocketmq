@@ -54,7 +54,7 @@ public class TransactionId {
     public TransactionId() {
     }
 
-    public static TransactionId genFromBrokerTransactionId(String brokerAddr, SendResult sendResult) {
+    public static TransactionId genByBrokerTransactionId(String brokerAddr, SendResult sendResult) {
         MessageId id = new MessageId(null, 0);
         try {
             if (sendResult.getOffsetMsgId() != null) {
@@ -65,11 +65,11 @@ public class TransactionId {
         } catch (Exception e) {
             log.warn("genFromBrokerTransactionId failed. brokerAddr: {}, sendResult: {}", brokerAddr, sendResult, e);
         }
-        return genFromBrokerTransactionId(RemotingUtil.string2SocketAddress(brokerAddr), sendResult.getTransactionId(),
+        return genByBrokerTransactionId(RemotingUtil.string2SocketAddress(brokerAddr), sendResult.getTransactionId(),
             id.getOffset(), sendResult.getQueueOffset());
     }
 
-    public static TransactionId genFromBrokerTransactionId(SocketAddress brokerAddr, String orgTransactionId,
+    public static TransactionId genByBrokerTransactionId(SocketAddress brokerAddr, String orgTransactionId,
         long commitLogOffset, long tranStateTableOffset) {
         byte[] orgTransactionIdByte = new byte[0];
         if (StringUtils.isNotBlank(orgTransactionId)) {

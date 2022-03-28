@@ -63,7 +63,7 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
                         requestHeader.getTranStateTableOffset(),
                         requestHeader.getCommitLogOffset(),
                         requestHeader.getMsgId(),
-                        TransactionId.genFromBrokerTransactionId(
+                        TransactionId.genByBrokerTransactionId(
                             ctx.channel().remoteAddress(),
                             requestHeader.getTransactionId(),
                             requestHeader.getCommitLogOffset(),

@@ -30,7 +30,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public class ForwardClientManager implements StartAndShutdown {
 
-    private RPCHook rpcHook = null;
+    private RPCHook rpcHook;
 
     private final MQClientFactory mqClientFactory;
     private final TransactionProducerFactory transactionalProducerFactory;

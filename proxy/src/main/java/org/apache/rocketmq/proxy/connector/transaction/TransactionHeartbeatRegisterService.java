@@ -40,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TransactionHeartbeatRegisterService implements StartAndShutdown {
-
     private static final Logger log = LoggerFactory.getLogger(TransactionHeartbeatRegisterService.class);
 
     private static final String TRANS_HEARTBEAT_CLIENT_ID = "rmq-proxy-producer-client";

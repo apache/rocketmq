@@ -23,8 +23,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public class MQClientFactory extends AbstractMQClientFactory {
 
-    public MQClientFactory(ScheduledExecutorService scheduledExecutorService,
-        RPCHook rpcHook) {
+    public MQClientFactory(ScheduledExecutorService scheduledExecutorService, RPCHook rpcHook) {
         super(scheduledExecutorService, rpcHook);
     }
 

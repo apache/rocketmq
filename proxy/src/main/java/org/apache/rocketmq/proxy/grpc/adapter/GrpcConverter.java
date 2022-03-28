@@ -175,8 +175,7 @@ public class GrpcConverter {
     public static AckMessageRequestHeader buildAckMessageRequestHeader(AckMessageRequest request) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
-        String receiptHandleStr = request.getReceiptHandle();
-        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
 
         AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
         ackMessageRequestHeader.setConsumerGroup(groupName);
@@ -191,8 +190,7 @@ public class GrpcConverter {
         DelayPolicy delayPolicy) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
-        String receiptHandleStr = request.getReceiptHandle();
-        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
 
         ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
         changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
@@ -209,8 +207,7 @@ public class GrpcConverter {
         ChangeInvisibleDurationRequest request) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
-        String receiptHandleStr = request.getReceiptHandle();
-        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
 
         ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
         changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
@@ -226,8 +223,7 @@ public class GrpcConverter {
         ForwardMessageToDeadLetterQueueRequest request) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
-        String receiptHandleStr = request.getReceiptHandle();
-        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
 
         ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
         consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());
@@ -243,8 +239,7 @@ public class GrpcConverter {
         NackMessageRequest request) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
-        String receiptHandleStr = request.getReceiptHandle();
-        ReceiptHandle handle = ReceiptHandle.decode(receiptHandleStr);
+        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
 
         ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
         consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());

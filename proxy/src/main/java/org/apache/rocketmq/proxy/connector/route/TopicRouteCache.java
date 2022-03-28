@@ -81,7 +81,8 @@ public class TopicRouteCache {
     }
 
     public SelectableMessageQueue selectOneWriteQueue(String topic, String brokerName, int queueId) throws Exception {
-        return getMessageQueue(topic).getWriteSelector().selectOne(brokerName, queueId);
+        return getMessageQueue(topic).getWriteSelector()
+            .selectOne(brokerName, queueId);
     }
 
     public SelectableMessageQueue selectOneWriteQueueByKey(String topic, String shardingKey) throws Exception {
