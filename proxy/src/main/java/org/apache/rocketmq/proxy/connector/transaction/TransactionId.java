@@ -42,8 +42,13 @@ public class TransactionId {
     private long tranStateTableOffset;
     private String proxyTransactionId;
 
-    public TransactionId(SocketAddress brokerAddr, String brokerTransactionId, long commitLogOffset,
-        long tranStateTableOffset, String proxyTransactionId) {
+    public TransactionId(
+        SocketAddress brokerAddr,
+        String brokerTransactionId,
+        long commitLogOffset,
+        long tranStateTableOffset,
+        String proxyTransactionId
+    ) {
         this.brokerAddr = brokerAddr;
         this.brokerTransactionId = brokerTransactionId;
         this.commitLogOffset = commitLogOffset;

@@ -23,7 +23,7 @@ public enum ChannelType {
      */
     LOCAL,
     /**
-     * The channel sync from other proxy
+     * The channel synced from other proxy
      */
     REMOTE
 }

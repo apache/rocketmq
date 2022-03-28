@@ -41,7 +41,6 @@ import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
 public class PullMessageService extends BaseService {
-
     private final DefaultForwardClient forwardClient;
     private final ForwardReadConsumer readConsumer;
 

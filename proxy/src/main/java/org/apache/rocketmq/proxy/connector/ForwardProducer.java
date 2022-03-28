@@ -32,7 +32,6 @@ import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ForwardProducer extends AbstractForwardClient {
-
     private static final String PID_PREFIX = "PID_RMQ_PROXY_PUBLISH_MESSAGE_";
 
     public ForwardProducer(ForwardClientManager clientFactory) {
