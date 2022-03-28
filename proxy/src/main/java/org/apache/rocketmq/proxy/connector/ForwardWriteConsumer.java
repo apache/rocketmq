@@ -22,16 +22,15 @@ import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientManager;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class ForwardWriteConsumer extends AbstractForwardClient {
 
     private static final String CID_PREFIX = "CID_RMQ_PROXY_DELETE_MESSAGE_";
 
-    public ForwardWriteConsumer(ForwardClientFactory clientFactory) {
+    public ForwardWriteConsumer(ForwardClientManager clientFactory) {
         super(clientFactory, CID_PREFIX);
     }
 
@@ -41,7 +40,7 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
     }
 
     @Override
-    protected MQClientAPIExt createNewClient(ForwardClientFactory clientFactory, String name) {
+    protected MQClientAPIExt createNewClient(ForwardClientManager clientFactory, String name) {
         double workerFactor = ConfigurationManager.getProxyConfig().getForwardConsumerWorkerFactor();
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
@@ -49,7 +48,7 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
     }
 
     public CompletableFuture<AckResult> ackMessage(String address, AckMessageRequestHeader requestHeader) {
-        return this.ackMessage(address, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.ackMessage(address, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<AckResult> ackMessage(
@@ -65,7 +64,7 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         String brokerName,
         ChangeInvisibleTimeRequestHeader requestHeader
     ) {
-        return this.changeInvisibleTimeAsync(address, brokerName, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.changeInvisibleTimeAsync(address, brokerName, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<AckResult> changeInvisibleTimeAsync(

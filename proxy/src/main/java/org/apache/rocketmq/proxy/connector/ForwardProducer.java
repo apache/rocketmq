@@ -26,9 +26,8 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -36,7 +35,7 @@ public class ForwardProducer extends AbstractForwardClient {
 
     private static final String PID_PREFIX = "PID_RMQ_PROXY_PUBLISH_MESSAGE_";
 
-    public ForwardProducer(ForwardClientFactory clientFactory) {
+    public ForwardProducer(ForwardClientManager clientFactory) {
         super(clientFactory, PID_PREFIX);
     }
 
@@ -46,15 +45,22 @@ public class ForwardProducer extends AbstractForwardClient {
     }
 
     @Override
-    protected MQClientAPIExt createNewClient(ForwardClientFactory clientFactory, String name) {
+    protected MQClientAPIExt createNewClient(ForwardClientManager clientFactory, String name) {
         double workerFactor = ConfigurationManager.getProxyConfig().getForwardProducerWorkerFactor();
         final int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
         return clientFactory.getTransactionalProducer(name, threadCount);
     }
 
-    public CompletableFuture<Integer> heartBeat(String heartbeatAddr, HeartbeatData heartbeatData, long timeout) throws Exception {
-        return this.getClient().sendHeartbeat(heartbeatAddr, heartbeatData, timeout);
+    public CompletableFuture<Integer> heartBeat(String brokerAddr, HeartbeatData heartbeatData) throws Exception {
+        return this.heartBeat(brokerAddr, heartbeatData, DEFAULT_MQ_CLIENT_TIMEOUT);
+    }
+    public CompletableFuture<Integer> heartBeat(String brokerAddr, HeartbeatData heartbeatData, long timeout) throws Exception {
+        return this.getClient().sendHeartbeat(brokerAddr, heartbeatData, timeout);
+    }
+
+    public void endTransaction(String brokerAddr, EndTransactionRequestHeader requestHeader) throws Exception {
+        this.endTransaction(brokerAddr, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public void endTransaction(String brokerAddr, EndTransactionRequestHeader requestHeader, long timeoutMillis) throws Exception {
@@ -67,7 +73,7 @@ public class ForwardProducer extends AbstractForwardClient {
         Message msg,
         SendMessageRequestHeader requestHeader
     ) {
-        return this.sendMessage(address, brokerName, msg, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.sendMessage(address, brokerName, msg, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<SendResult> sendMessage(
@@ -89,7 +95,7 @@ public class ForwardProducer extends AbstractForwardClient {
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader) {
-        return this.sendMessageBack(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.sendMessageBack(brokerAddr, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {

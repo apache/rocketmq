@@ -29,16 +29,15 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
-import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class TransactionService extends BaseService implements TransactionStateChecker {
@@ -100,7 +99,7 @@ public class TransactionService extends BaseService implements TransactionStateC
             TransactionId handle = TransactionId.decode(request.getTransactionId());
             String brokerAddr = RemotingHelper.parseSocketAddressAddr(handle.getBrokerAddr());
             EndTransactionRequestHeader requestHeader = this.toEndTransactionRequestHeader(ctx, request);
-            this.forwardProducer.endTransaction(brokerAddr, requestHeader, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+            this.forwardProducer.endTransaction(brokerAddr, requestHeader);
             future.complete(EndTransactionResponse.newBuilder()
                 .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
                 .build());

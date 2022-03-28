@@ -22,15 +22,14 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientManager;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class DefaultForwardClient extends AbstractForwardClient {
     private static final String CID_PREFIX = "CID_RMQ_PROXY_DEFAULT_";
 
-    public DefaultForwardClient(ForwardClientFactory clientFactory) {
+    public DefaultForwardClient(ForwardClientManager clientFactory) {
         super(clientFactory, CID_PREFIX);
     }
 
@@ -40,7 +39,7 @@ public class DefaultForwardClient extends AbstractForwardClient {
     }
 
     @Override
-    protected MQClientAPIExt createNewClient(ForwardClientFactory clientFactory, String name) {
+    protected MQClientAPIExt createNewClient(ForwardClientManager clientFactory, String name) {
         double workerFactor = ConfigurationManager.getProxyConfig().getDefaultForwardClientWorkerFactor();
         int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
 
@@ -55,13 +54,18 @@ public class DefaultForwardClient extends AbstractForwardClient {
         return this.getClient().getConsumerListByGroup(brokerAddr, requestHeader, timeoutMillis);
     }
 
+    public TopicRouteData getTopicRouteInfoFromNameServer(String topic)
+        throws RemotingException, InterruptedException, MQClientException {
+        return this.getTopicRouteInfoFromNameServer(topic, DEFAULT_MQ_CLIENT_TIMEOUT);
+    }
+
     public TopicRouteData getTopicRouteInfoFromNameServer(String topic, long timeoutMillis)
         throws RemotingException, InterruptedException, MQClientException {
         return this.getClient().getTopicRouteInfoFromNameServer(topic, timeoutMillis);
     }
 
     public CompletableFuture<Long> getMaxOffset(String brokerAddr, String topic, int queueId) {
-        return this.getMaxOffset(brokerAddr, topic, queueId, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.getMaxOffset(brokerAddr, topic, queueId, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<Long> getMaxOffset(
@@ -79,7 +83,7 @@ public class DefaultForwardClient extends AbstractForwardClient {
         int queueId,
         long timestamp
     ) {
-        return this.searchOffset(brokerAddr, topic, queueId, timestamp, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.searchOffset(brokerAddr, topic, queueId, timestamp, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<Long> searchOffset(

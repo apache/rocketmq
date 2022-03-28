@@ -29,7 +29,6 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.AbstractCacheLoader;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.connector.DefaultForwardClient;
@@ -160,7 +159,7 @@ public class TopicRouteCache {
 
         @Override
         protected TopicRouteData loadTopicRouteData(String topic) throws Exception {
-            return defaultClient.getTopicRouteInfoFromNameServer(topic, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+            return defaultClient.getTopicRouteInfoFromNameServer(topic);
         }
     }
 }

@@ -16,25 +16,27 @@
  */
 package org.apache.rocketmq.proxy.connector;
 
+import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.client.impl.MQClientAPIExt;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientManager;
 
 public abstract class AbstractForwardClient implements StartAndShutdown {
+    public static final long DEFAULT_MQ_CLIENT_TIMEOUT = Duration.ofSeconds(3).toMillis();
 
-    private final ForwardClientFactory clientFactory;
+    private final ForwardClientManager clientFactory;
     private MQClientAPIExt[] clients;
     private final String gidPrefix;
 
-    public AbstractForwardClient(ForwardClientFactory clientFactory, String gidPrefix) {
+    public AbstractForwardClient(ForwardClientManager clientFactory, String gidPrefix) {
         this.clientFactory = clientFactory;
         this.gidPrefix = gidPrefix;
     }
 
     protected abstract int getClientNum();
 
-    protected abstract MQClientAPIExt createNewClient(ForwardClientFactory forwardClientFactory, String name);
+    protected abstract MQClientAPIExt createNewClient(ForwardClientManager forwardClientFactory, String name);
 
     protected String getNamePrefix() {
         return this.gidPrefix;

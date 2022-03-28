@@ -16,14 +16,14 @@
  */
 package org.apache.rocketmq.proxy.connector;
 
-import org.apache.rocketmq.proxy.connector.factory.ForwardClientFactory;
+import org.apache.rocketmq.proxy.connector.factory.ForwardClientManager;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionHeartbeatRegisterService;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 
 public class ConnectorManager extends AbstractStartAndShutdown {
-    private final ForwardClientFactory forwardClientFactory;
+    private final ForwardClientManager forwardClientManager;
     private final DefaultForwardClient defaultForwardClient;
     private final ForwardProducer forwardProducer;
     private final ForwardReadConsumer forwardReadConsumer;
@@ -33,16 +33,16 @@ public class ConnectorManager extends AbstractStartAndShutdown {
     private final TransactionHeartbeatRegisterService transactionHeartbeatRegisterService;
 
     public ConnectorManager(TransactionStateChecker transactionStateChecker) {
-        this.forwardClientFactory = new ForwardClientFactory(transactionStateChecker);
-        this.defaultForwardClient = new DefaultForwardClient(this.forwardClientFactory);
-        this.forwardProducer = new ForwardProducer(this.forwardClientFactory);
-        this.forwardReadConsumer = new ForwardReadConsumer(this.forwardClientFactory);
-        this.forwardWriteConsumer = new ForwardWriteConsumer(this.forwardClientFactory);
+        this.forwardClientManager = new ForwardClientManager(transactionStateChecker);
+        this.defaultForwardClient = new DefaultForwardClient(this.forwardClientManager);
+        this.forwardProducer = new ForwardProducer(this.forwardClientManager);
+        this.forwardReadConsumer = new ForwardReadConsumer(this.forwardClientManager);
+        this.forwardWriteConsumer = new ForwardWriteConsumer(this.forwardClientManager);
 
         this.topicRouteCache = new TopicRouteCache(this.defaultForwardClient);
         this.transactionHeartbeatRegisterService = new TransactionHeartbeatRegisterService(this.forwardProducer, this.topicRouteCache);
 
-        this.appendStartAndShutdown(this.forwardClientFactory);
+        this.appendStartAndShutdown(this.forwardClientManager);
         this.appendStartAndShutdown(this.defaultForwardClient);
         this.appendStartAndShutdown(this.forwardProducer);
         this.appendStartAndShutdown(this.forwardReadConsumer);
@@ -50,8 +50,8 @@ public class ConnectorManager extends AbstractStartAndShutdown {
         this.appendStartAndShutdown(this.transactionHeartbeatRegisterService);
     }
 
-    public ForwardClientFactory getForwardClientFactory() {
-        return forwardClientFactory;
+    public ForwardClientManager getForwardClientManager() {
+        return forwardClientManager;
     }
 
     public DefaultForwardClient getDefaultForwardClient() {
