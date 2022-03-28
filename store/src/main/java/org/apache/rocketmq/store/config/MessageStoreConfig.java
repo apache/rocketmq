@@ -31,8 +31,7 @@ public class MessageStoreConfig {
 
     //The directory in which the commitlog is kept
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "commitlog";
+    private String storePathCommitLog = storePathRootDir + File.separator + "commitlog";
 
     private String readOnlyCommitLogStorePaths = null;
 
