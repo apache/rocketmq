@@ -399,7 +399,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (info != null && topic != null) {
             TopicPublishInfo prev = this.topicPublishInfoTable.put(topic, info);
             if (prev != null) {
-                log.info("updateTopicPublishInfo prev is not null, " + prev.toString());
+                log.info("updateTopicPublishInfo prev is not null, " + prev);
             }
         }
     }
