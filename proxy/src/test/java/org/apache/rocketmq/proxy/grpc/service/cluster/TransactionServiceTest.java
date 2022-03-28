@@ -20,7 +20,6 @@ import org.mockito.Mock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -77,7 +76,7 @@ public class TransactionServiceTest extends BaseServiceTest {
             brokerAddrRef.set(mock.getArgument(0));
             headerRef.set(mock.getArgument(1));
             return null;
-        }).when(producerClient).endTransaction(anyString(), any(), anyLong());
+        }).when(producerClient).endTransaction(anyString(), any());
 
         EndTransactionResponse response = transactionService.endTransaction(Context.current(), EndTransactionRequest.newBuilder()
             .setGroup(Resource.newBuilder()

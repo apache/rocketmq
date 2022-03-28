@@ -31,7 +31,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.connector.ForwardProducer;
@@ -156,7 +155,7 @@ public class TransactionHeartbeatRegisterService implements StartAndShutdown {
                 heartbeatExecutors.submit(() -> {
                     String brokerAddr = brokerData.selectBrokerAddr();
                     try {
-                        this.forwardProducer.heartBeat(brokerAddr, heartbeatData, ProxyUtils.DEFAULT_MQ_CLIENT_TIMEOUT);
+                        this.forwardProducer.heartBeat(brokerAddr, heartbeatData);
                     } catch (Exception e) {
                         log.error("Send transactionHeartbeat to broker err. brokerAddr: {}", brokerAddr, e);
                     }

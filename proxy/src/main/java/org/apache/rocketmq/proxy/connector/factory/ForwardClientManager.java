@@ -28,14 +28,14 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class ForwardClientFactory implements StartAndShutdown {
+public class ForwardClientManager implements StartAndShutdown {
 
     private RPCHook rpcHook = null;
 
     private final MQClientFactory mqClientFactory;
     private final TransactionProducerFactory transactionalProducerFactory;
 
-    public ForwardClientFactory(TransactionStateChecker transactionStateChecker) {
+    public ForwardClientManager(TransactionStateChecker transactionStateChecker) {
         this.init();
 
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(

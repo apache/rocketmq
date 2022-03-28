@@ -16,10 +16,6 @@
  */
 package org.apache.rocketmq.proxy.common.utils;
 
-import java.time.Duration;
-
 public class ProxyUtils {
-    public static final long DEFAULT_MQ_CLIENT_TIMEOUT = Duration.ofSeconds(3).toMillis();
-
     public static final int MAX_MSG_NUMS_FOR_POP_REQUEST = 32;
 }
