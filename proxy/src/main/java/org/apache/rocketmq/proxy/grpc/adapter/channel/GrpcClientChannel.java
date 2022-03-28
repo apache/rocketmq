@@ -120,8 +120,7 @@ public class GrpcClientChannel extends SimpleChannel {
             try {
                 switch (command.getCode()) {
                     case RequestCode.CHECK_TRANSACTION_STATE: {
-                        final CheckTransactionStateRequestHeader requestHeader =
-                            (CheckTransactionStateRequestHeader) command.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
+                        final CheckTransactionStateRequestHeader requestHeader = command.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
                         MessageExt messageExt = MessageDecoder.decode(ByteBuffer.wrap(command.getBody()), true, false, false);
                         future.complete(PollCommandResponse.newBuilder()
                             .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()

@@ -180,9 +180,10 @@ public class MQClientAPIExt {
         ConsumerSendMsgBackRequestHeader requestHeader,
         long timeoutMillis
     ) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
+
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
             this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
@@ -357,19 +358,19 @@ public class MQClientAPIExt {
     }
 
     public CompletableFuture<Long> getMaxOffset(String brokerAddr, String topic, int queueId, long timeoutMillis) {
+        GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
+
         CompletableFuture<Long> future = new CompletableFuture<>();
         try {
-            GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
-            requestHeader.setTopic(topic);
-            requestHeader.setQueueId(queueId);
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
             this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     if (ResponseCode.SUCCESS == response.getCode()) {
                         try {
-                            GetMaxOffsetResponseHeader responseHeader =
-                                (GetMaxOffsetResponseHeader) response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
+                            GetMaxOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
                             future.complete(responseHeader.getOffset());
                         } catch (Throwable t) {
                             future.completeExceptionally(t);
@@ -387,20 +388,20 @@ public class MQClientAPIExt {
     }
 
     public CompletableFuture<Long> searchOffset(String brokerAddr, String topic, int queueId , long timestamp, long timeoutMillis) {
+        SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setTimestamp(timestamp);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
+
         CompletableFuture<Long> future = new CompletableFuture<>();
         try {
-            SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
-            requestHeader.setTopic(topic);
-            requestHeader.setQueueId(queueId);
-            requestHeader.setTimestamp(timestamp);
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
             this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     if (response.getCode() == ResponseCode.SUCCESS) {
                         try {
-                            SearchOffsetResponseHeader responseHeader =
-                                (SearchOffsetResponseHeader) response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+                            SearchOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
                             future.complete(responseHeader.getOffset());
                         } catch (Throwable t) {
                             future.completeExceptionally(t);
