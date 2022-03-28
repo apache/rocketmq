@@ -90,7 +90,7 @@ public class DuplicateMessageInfo<T> {
                 getFloatNumString(msgQueueInnerDupRate) + "%\r\n");
         }
 
-        System.out.print(strBuilder.toString());
+        System.out.print(strBuilder);
         String titleString = "queue\tdupQueue\tdupMsg\r\n";
         System.out.print(titleString);
 
@@ -104,7 +104,7 @@ public class DuplicateMessageInfo<T> {
 
             String strToWrite;
             byte[] byteToWrite;
-            strToWrite = strBuilder.toString() + titleString;
+            strToWrite = strBuilder + titleString;
             for (int i = 0; i < msgListSize; i++)
                 strToWrite += strBQueue.get(i).toString() + "\r\n";
 
