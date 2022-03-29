@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class RebalancePushImpl extends RebalanceImpl {
     private final static long UNLOCK_DELAY_TIME_MILLS = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
@@ -139,7 +140,7 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Deprecated
     @Override
-    public long computePullFromWhere(MessageQueue mq) {
+    public long computePullFromWhere(MessageQueue mq) throws RemotingException {
         long result = -1L;
         try {
             result = computePullFromWhereWithException(mq);
@@ -150,7 +151,7 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     @Override
-    public long computePullFromWhereWithException(MessageQueue mq) throws MQClientException {
+    public long computePullFromWhereWithException(MessageQueue mq) throws MQClientException, RemotingException {
         long result = -1;
         final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
         final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();

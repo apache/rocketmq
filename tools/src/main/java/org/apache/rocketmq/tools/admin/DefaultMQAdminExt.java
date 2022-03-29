@@ -102,22 +102,22 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException, RemotingException {
         return defaultMQAdminExtImpl.searchOffset(mq, timestamp);
     }
 
     @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return defaultMQAdminExtImpl.maxOffset(mq);
     }
 
     @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return defaultMQAdminExtImpl.minOffset(mq);
     }
 
     @Override
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException, RemotingException {
         return defaultMQAdminExtImpl.earliestMsgStoreTime(mq);
     }
 
@@ -129,13 +129,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
 
         return defaultMQAdminExtImpl.queryMessage(topic, key, maxNum, begin, end);
     }
 
     public QueryResult queryMessageByUniqKey(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
 
         return defaultMQAdminExtImpl.queryMessageByUniqKey(topic, key, maxNum, begin, end);
     }

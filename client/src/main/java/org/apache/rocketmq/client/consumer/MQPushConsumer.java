@@ -20,6 +20,7 @@ import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Push consumer
@@ -28,7 +29,7 @@ public interface MQPushConsumer extends MQConsumer {
     /**
      * Start the consumer
      */
-    void start() throws MQClientException;
+    void start() throws MQClientException, RemotingException;
 
     /**
      * Shutdown the consumer

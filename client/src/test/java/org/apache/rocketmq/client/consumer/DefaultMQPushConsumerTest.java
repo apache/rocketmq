@@ -219,7 +219,7 @@ public class DefaultMQPushConsumerTest {
     }
 
     @Test
-    public void testCheckConfig() {
+    public void testCheckConfig() throws RemotingException {
         DefaultMQPushConsumer pushConsumer = createPushConsumer();
 
         pushConsumer.setPullThresholdForQueue(65535 + 1);

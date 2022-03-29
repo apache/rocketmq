@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -51,7 +52,7 @@ public class RebalanceLitePullImplTest {
     }
 
     @Test
-    public void testComputePullFromWhereWithException_ne_minus1() throws MQClientException {
+    public void testComputePullFromWhereWithException_ne_minus1() throws MQClientException, RemotingException {
         for (ConsumeFromWhere where : new ConsumeFromWhere[]{
                 ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
                 ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET,
@@ -67,7 +68,7 @@ public class RebalanceLitePullImplTest {
     }
 
     @Test
-    public void testComputePullFromWhereWithException_eq_minus1_last() throws MQClientException {
+    public void testComputePullFromWhereWithException_eq_minus1_last() throws MQClientException, RemotingException {
         when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         when(admin.maxOffset(any(MessageQueue.class))).thenReturn(12345L);
@@ -78,14 +79,14 @@ public class RebalanceLitePullImplTest {
     }
 
     @Test
-    public void testComputePullFromWhereWithException_eq_minus1_first() throws MQClientException {
+    public void testComputePullFromWhereWithException_eq_minus1_first() throws MQClientException, RemotingException {
         when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         assertEquals(0, rebalanceImpl.computePullFromWhereWithException(mq));
     }
 
     @Test
-    public void testComputePullFromWhereWithException_eq_minus1_timestamp() throws MQClientException {
+    public void testComputePullFromWhereWithException_eq_minus1_timestamp() throws MQClientException, RemotingException {
         when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
         when(admin.searchOffset(any(MessageQueue.class), anyLong())).thenReturn(12345L);

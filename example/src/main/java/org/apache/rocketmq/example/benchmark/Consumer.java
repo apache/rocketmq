@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.io.IOException;
@@ -48,7 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Consumer {
 
-    public static void main(String[] args) throws MQClientException, IOException {
+    public static void main(String[] args) throws MQClientException, IOException, RemotingException {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkConsumer", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {

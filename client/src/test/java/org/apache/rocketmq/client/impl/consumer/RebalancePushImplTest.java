@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -74,7 +75,7 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testMessageQueueChanged_CountThreshold() {
+    public void testMessageQueueChanged_CountThreshold() throws RemotingException {
         RebalancePushImpl rebalancePush = new RebalancePushImpl(consumerGroup, MessageModel.CLUSTERING,
             new AllocateMessageQueueAveragely(), mqClientInstance, defaultMQPushConsumer);
         init(rebalancePush);
@@ -104,7 +105,7 @@ public class RebalancePushImplTest {
         rebalancePush.messageQueueChanged(topic, allocateResultSet, allocateResultSet);
     }
 
-    private void init(final RebalancePushImpl rebalancePush) {
+    private void init(final RebalancePushImpl rebalancePush) throws RemotingException {
         rebalancePush.getSubscriptionInner().putIfAbsent(topic, new SubscriptionData());
 
         rebalancePush.subscriptionInner.putIfAbsent(topic, new SubscriptionData());
@@ -122,7 +123,7 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testMessageQueueChanged_SizeThreshold() {
+    public void testMessageQueueChanged_SizeThreshold() throws RemotingException {
         RebalancePushImpl rebalancePush = new RebalancePushImpl(consumerGroup, MessageModel.CLUSTERING,
             new AllocateMessageQueueAveragely(), mqClientInstance, defaultMQPushConsumer);
         init(rebalancePush);
@@ -147,7 +148,7 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testMessageQueueChanged_ConsumerRuntimeInfo() throws MQClientException {
+    public void testMessageQueueChanged_ConsumerRuntimeInfo() throws MQClientException, RemotingException {
         RebalancePushImpl rebalancePush = new RebalancePushImpl(consumerGroup, MessageModel.CLUSTERING,
             new AllocateMessageQueueAveragely(), mqClientInstance, defaultMQPushConsumer);
         init(rebalancePush);
@@ -183,7 +184,7 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testComputePullFromWhereWithException_ne_minus1() throws MQClientException {
+    public void testComputePullFromWhereWithException_ne_minus1() throws MQClientException, RemotingException {
         for (ConsumeFromWhere where : new ConsumeFromWhere[]{
                 ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
                 ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET,
@@ -199,7 +200,7 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testComputePullFromWhereWithException_eq_minus1_last() throws MQClientException {
+    public void testComputePullFromWhereWithException_eq_minus1_last() throws MQClientException, RemotingException {
         when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         when(admin.maxOffset(any(MessageQueue.class))).thenReturn(12345L);
@@ -210,14 +211,14 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testComputePullFromWhereWithException_eq_minus1_first() throws MQClientException {
+    public void testComputePullFromWhereWithException_eq_minus1_first() throws MQClientException, RemotingException {
         when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         assertEquals(0, rebalanceImpl.computePullFromWhereWithException(mq));
     }
 
     @Test
-    public void testComputePullFromWhereWithException_eq_minus1_timestamp() throws MQClientException {
+    public void testComputePullFromWhereWithException_eq_minus1_timestamp() throws MQClientException, RemotingException {
         when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
         when(admin.searchOffset(any(MessageQueue.class), anyLong())).thenReturn(12345L);

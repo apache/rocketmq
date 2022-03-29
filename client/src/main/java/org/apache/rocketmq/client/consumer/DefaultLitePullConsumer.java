@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
@@ -223,7 +224,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
-    public void start() throws MQClientException {
+    public void start() throws MQClientException, RemotingException {
         setTraceDispatcher();
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
@@ -280,7 +281,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
-    public void seek(MessageQueue messageQueue, long offset) throws MQClientException {
+    public void seek(MessageQueue messageQueue, long offset) throws MQClientException, RemotingException {
         this.defaultLitePullConsumerImpl.seek(queueWithNamespace(messageQueue), offset);
     }
 
@@ -300,7 +301,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
-    public Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException {
+    public Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException, RemotingException {
         return this.defaultLitePullConsumerImpl.searchOffset(queueWithNamespace(messageQueue), timestamp);
     }
 
@@ -326,12 +327,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
-    public void seekToBegin(MessageQueue messageQueue) throws MQClientException {
+    public void seekToBegin(MessageQueue messageQueue) throws MQClientException, RemotingException {
         this.defaultLitePullConsumerImpl.seekToBegin(queueWithNamespace(messageQueue));
     }
 
     @Override
-    public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
+    public void seekToEnd(MessageQueue messageQueue) throws MQClientException, RemotingException {
         this.defaultLitePullConsumerImpl.seekToEnd(queueWithNamespace(messageQueue));
     }
 

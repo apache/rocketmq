@@ -33,7 +33,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class ResponseConsumer {
-    public static void main(String[] args) throws InterruptedException, MQClientException {
+    public static void main(String[] args) throws InterruptedException, MQClientException, RemotingException {
         String producerGroup = "please_rename_unique_group_name";
         String consumerGroup = "please_rename_unique_group_name";
         String topic = "RequestTopic";

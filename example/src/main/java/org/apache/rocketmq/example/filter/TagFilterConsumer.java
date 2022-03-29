@@ -24,10 +24,11 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class TagFilterConsumer {
 
-    public static void main(String[] args) throws InterruptedException, MQClientException, IOException {
+    public static void main(String[] args) throws InterruptedException, MQClientException, IOException, RemotingException {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 

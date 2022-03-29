@@ -143,7 +143,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     @Deprecated
     @Override
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException, RemotingException {
         return this.defaultMQPullConsumerImpl.searchOffset(queueWithNamespace(mq), timestamp);
     }
 
@@ -152,7 +152,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     @Deprecated
     @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQPullConsumerImpl.maxOffset(queueWithNamespace(mq));
     }
 
@@ -161,7 +161,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     @Deprecated
     @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQPullConsumerImpl.minOffset(queueWithNamespace(mq));
     }
 
@@ -170,7 +170,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     @Deprecated
     @Override
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQPullConsumerImpl.earliestMsgStoreTime(queueWithNamespace(mq));
     }
 
@@ -190,7 +190,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     @Deprecated
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
         return this.defaultMQPullConsumerImpl.queryMessage(withNamespace(topic), key, maxNum, begin, end);
     }
 

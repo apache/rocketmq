@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class RebalanceLitePullImpl extends RebalanceImpl {
 
@@ -82,12 +83,14 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
             result = computePullFromWhereWithException(mq);
         } catch (MQClientException e) {
             log.warn("Compute consume offset exception, mq={}", mq);
+        } catch (RemotingException e) {
+            log.warn("Compute consume offset exception, mq={}", mq);
         }
         return result;
     }
 
     @Override
-    public long computePullFromWhereWithException(MessageQueue mq) throws MQClientException {
+    public long computePullFromWhereWithException(MessageQueue mq) throws MQClientException, RemotingException {
         ConsumeFromWhere consumeFromWhere = litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeFromWhere();
         long result = -1;
         switch (consumeFromWhere) {

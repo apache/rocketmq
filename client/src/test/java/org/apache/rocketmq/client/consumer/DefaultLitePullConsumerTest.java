@@ -52,6 +52,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -437,7 +438,7 @@ public class DefaultLitePullConsumerTest {
     }
 
     @Test
-    public void testCheckConfig_Exception() {
+    public void testCheckConfig_Exception() throws RemotingException {
         DefaultLitePullConsumer litePullConsumer = new DefaultLitePullConsumer(MixAll.DEFAULT_CONSUMER_GROUP);
         try {
             litePullConsumer.start();
@@ -663,7 +664,7 @@ public class DefaultLitePullConsumerTest {
     }
 
     private static void suppressUpdateTopicRouteInfoFromNameServer(
-        DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
+        DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException, RemotingException {
         DefaultLitePullConsumerImpl defaultLitePullConsumerImpl = (DefaultLitePullConsumerImpl) FieldUtils.readDeclaredField(litePullConsumer, "defaultLitePullConsumerImpl", true);
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
             litePullConsumer.changeInstanceNameToPID();

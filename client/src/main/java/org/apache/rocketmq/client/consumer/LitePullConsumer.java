@@ -22,13 +22,14 @@ import java.util.List;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public interface LitePullConsumer {
 
     /**
      * Start the consumer
      */
-    void start() throws MQClientException;
+    void start() throws MQClientException, RemotingException;
 
     /**
      * Shutdown the consumer
@@ -98,7 +99,7 @@ public interface LitePullConsumer {
      * @param messageQueue
      * @param offset
      */
-    void seek(MessageQueue messageQueue, long offset) throws MQClientException;
+    void seek(MessageQueue messageQueue, long offset) throws MQClientException, RemotingException;
 
     /**
      * Suspend pulling from the requested message queues.
@@ -153,7 +154,7 @@ public interface LitePullConsumer {
      * @return offset
      * @throws MQClientException if there is any client error.
      */
-    Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException;
+    Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException, RemotingException;
 
     /**
      * Manually commit consume offset.
@@ -192,7 +193,7 @@ public interface LitePullConsumer {
      *
      * @param messageQueue
      */
-    void seekToBegin(MessageQueue messageQueue)throws MQClientException;
+    void seekToBegin(MessageQueue messageQueue) throws MQClientException, RemotingException;
 
     /**
      * Overrides the fetch offsets with the end offset that the consumer will use on the next poll. If this API is
@@ -201,5 +202,5 @@ public interface LitePullConsumer {
      *
      * @param messageQueue
      */
-    void seekToEnd(MessageQueue messageQueue)throws MQClientException;
+    void seekToEnd(MessageQueue messageQueue) throws MQClientException, RemotingException;
 }

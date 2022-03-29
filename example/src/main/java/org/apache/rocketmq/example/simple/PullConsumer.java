@@ -117,7 +117,7 @@ public class PullConsumer {
                     }
                 }
 
-                public long consumeFromOffset(MessageQueue messageQueue) throws MQClientException {
+                public long consumeFromOffset(MessageQueue messageQueue) throws MQClientException, RemotingException {
                     //-1 when started
                     long offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
                     if (offset < 0) {

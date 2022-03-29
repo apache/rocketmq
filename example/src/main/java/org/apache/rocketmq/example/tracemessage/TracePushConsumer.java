@@ -25,9 +25,10 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class TracePushConsumer {
-    public static void main(String[] args) throws InterruptedException, MQClientException {
+    public static void main(String[] args) throws InterruptedException, MQClientException, RemotingException {
         // Here,we use the default message track trace topic name
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true);
         consumer.subscribe("TopicTest", "*");

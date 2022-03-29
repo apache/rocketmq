@@ -322,7 +322,7 @@ public class MQClientInstance {
         return clientId;
     }
 
-    public void updateTopicRouteInfoFromNameServer() {
+    public void updateTopicRouteInfoFromNameServer() throws RemotingException {
         Set<String> topicList = new HashSet<String>();
 
         // Consumer
@@ -506,7 +506,7 @@ public class MQClientInstance {
         }
     }
 
-    public boolean updateTopicRouteInfoFromNameServer(final String topic) {
+    public boolean updateTopicRouteInfoFromNameServer(final String topic) throws RemotingException {
         return updateTopicRouteInfoFromNameServer(topic, false, null);
     }
 
@@ -604,7 +604,7 @@ public class MQClientInstance {
     }
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
-        DefaultMQProducer defaultMQProducer) {
+        DefaultMQProducer defaultMQProducer) throws RemotingException {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
@@ -677,7 +677,7 @@ public class MQClientInstance {
                     }
                 } catch (RemotingException e) {
                     log.error("updateTopicRouteInfoFromNameServer Exception", e);
-                    throw new IllegalStateException(e);
+                    throw e;
                 } finally {
                     this.lockNamesrv.unlock();
                 }
@@ -1026,7 +1026,7 @@ public class MQClientInstance {
         return 0;
     }
 
-    public List<String> findConsumerIdList(final String topic, final String group) {
+    public List<String> findConsumerIdList(final String topic, final String group) throws RemotingException {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
         if (null == brokerAddr) {
             this.updateTopicRouteInfoFromNameServer(topic);

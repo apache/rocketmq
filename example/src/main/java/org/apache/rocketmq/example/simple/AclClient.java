@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 
 public class AclClient {
@@ -49,7 +50,7 @@ public class AclClient {
 
     private static final String ACL_SECRET_KEY = "1234567";
 
-    public static void main(String[] args) throws MQClientException, InterruptedException {
+    public static void main(String[] args) throws MQClientException, InterruptedException, RemotingException {
         producer();
         pushConsumer();
         pullConsumer();
@@ -78,7 +79,7 @@ public class AclClient {
         producer.shutdown();
     }
 
-    public static void pushConsumer() throws MQClientException {
+    public static void pushConsumer() throws MQClientException, RemotingException {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_5", getAclRPCHook(), new AllocateMessageQueueAveragely());
         consumer.setNamesrvAddr("127.0.0.1:9876");

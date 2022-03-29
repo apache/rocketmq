@@ -162,7 +162,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
-    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException, RemotingException {
         Set<MessageQueue> result = this.rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
         if (null == result) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
@@ -190,15 +190,15 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return defaultMQPushConsumer;
     }
 
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException, RemotingException {
         return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
 
-    public long maxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
     }
 
-    public long minOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
     }
 
@@ -490,12 +490,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
     public MessageExt queryMessageByUniqKey(String topic, String uniqKey) throws MQClientException,
-        InterruptedException {
+            InterruptedException, RemotingException {
         return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
     }
 
@@ -571,7 +571,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public synchronized void start() throws MQClientException {
+    public synchronized void start() throws MQClientException, RemotingException {
         switch (this.serviceState) {
             case CREATE_JUST:
                 log.info("the consumer [{}] start beginning. messageModel={}, isUnitMode={}", this.defaultMQPushConsumer.getConsumerGroup(),
@@ -863,7 +863,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         return messageListenerInner;
     }
 
-    private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
+    private void updateTopicSubscribeInfoWhenSubscriptionChanged() throws RemotingException {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
@@ -973,7 +973,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException, RemotingException {
         return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 

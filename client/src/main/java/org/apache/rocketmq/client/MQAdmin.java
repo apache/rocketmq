@@ -55,7 +55,7 @@ public interface MQAdmin {
      * @param timestamp from when in milliseconds.
      * @return offset
      */
-    long searchOffset(final MessageQueue mq, final long timestamp) throws MQClientException;
+    long searchOffset(final MessageQueue mq, final long timestamp) throws MQClientException, RemotingException;
 
     /**
      * Gets the max offset
@@ -63,7 +63,7 @@ public interface MQAdmin {
      * @param mq Instance of MessageQueue
      * @return the max offset
      */
-    long maxOffset(final MessageQueue mq) throws MQClientException;
+    long maxOffset(final MessageQueue mq) throws MQClientException, RemotingException;
 
     /**
      * Gets the minimum offset
@@ -71,7 +71,7 @@ public interface MQAdmin {
      * @param mq Instance of MessageQueue
      * @return the minimum offset
      */
-    long minOffset(final MessageQueue mq) throws MQClientException;
+    long minOffset(final MessageQueue mq) throws MQClientException, RemotingException;
 
     /**
      * Gets the earliest stored message time
@@ -79,7 +79,7 @@ public interface MQAdmin {
      * @param mq Instance of MessageQueue
      * @return the time in microseconds
      */
-    long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
+    long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException, RemotingException;
 
     /**
      * Query message according to message id
@@ -101,7 +101,7 @@ public interface MQAdmin {
      * @return Instance of QueryResult
      */
     QueryResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
-        final long end) throws MQClientException, InterruptedException;
+        final long end) throws MQClientException, InterruptedException, RemotingException;
 
     /**
      * @return The {@code MessageExt} of given msgId

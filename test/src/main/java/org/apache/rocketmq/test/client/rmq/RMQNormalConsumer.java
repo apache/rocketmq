@@ -20,6 +20,7 @@ package org.apache.rocketmq.test.client.rmq;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.test.clientinterface.AbstractMQConsumer;
 import org.apache.rocketmq.test.listener.AbstractListener;
 import org.apache.rocketmq.test.util.RandomUtil;
@@ -65,6 +66,8 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
             logger.info(String.format("consumer[%s] started!", consumer.getConsumerGroup()));
         } catch (MQClientException e) {
             logger.error("consumer start failed!");
+            e.printStackTrace();
+        } catch (RemotingException e) {
             e.printStackTrace();
         }
     }

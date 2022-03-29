@@ -23,6 +23,7 @@ import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -71,7 +72,7 @@ public class QueryMsgByKeySubCommand implements SubCommand {
     }
 
     private void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
         admin.start();
 
         QueryResult queryResult = admin.queryMessage(topic, key, 64, 0, Long.MAX_VALUE);

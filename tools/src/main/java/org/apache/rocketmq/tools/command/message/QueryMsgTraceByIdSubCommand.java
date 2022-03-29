@@ -27,6 +27,7 @@ import org.apache.rocketmq.client.trace.TraceView;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -80,7 +81,7 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
     }
 
     private void queryTraceByMsgId(final DefaultMQAdminExt admin, String traceTopic, String msgId)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
         admin.start();
         QueryResult queryResult = admin.queryMessage(traceTopic, msgId, 64, 0, System.currentTimeMillis());
         List<MessageExt> messageList = queryResult.getMessageList();

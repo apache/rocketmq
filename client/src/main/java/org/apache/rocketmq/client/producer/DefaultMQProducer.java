@@ -789,7 +789,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws MQClientException if there is any client error.
      */
     @Override
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException, RemotingException {
         return this.defaultMQProducerImpl.searchOffset(queueWithNamespace(mq), timestamp);
     }
 
@@ -804,7 +804,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Deprecated
     @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQProducerImpl.maxOffset(queueWithNamespace(mq));
     }
 
@@ -819,7 +819,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Deprecated
     @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQProducerImpl.minOffset(queueWithNamespace(mq));
     }
 
@@ -834,7 +834,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     @Deprecated
     @Override
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQProducerImpl.earliestMsgStoreTime(queueWithNamespace(mq));
     }
 
@@ -874,7 +874,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Deprecated
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
         return this.defaultMQProducerImpl.queryMessage(withNamespace(topic), key, maxNum, begin, end);
     }
 

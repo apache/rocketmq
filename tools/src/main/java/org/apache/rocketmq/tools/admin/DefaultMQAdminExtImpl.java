@@ -1053,22 +1053,22 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException, RemotingException {
         return this.mqClientInstance.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
     @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.mqClientInstance.getMQAdminImpl().maxOffset(mq);
     }
 
     @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.mqClientInstance.getMQAdminImpl().minOffset(mq);
     }
 
     @Override
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException, RemotingException {
         return this.mqClientInstance.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
 
@@ -1080,13 +1080,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
 
         return this.mqClientInstance.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
     public QueryResult queryMessageByUniqKey(String topic, String key, int maxNum, long begin,
-        long end) throws MQClientException, InterruptedException {
+        long end) throws MQClientException, InterruptedException, RemotingException {
 
         return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(topic, key, maxNum, begin, end);
     }

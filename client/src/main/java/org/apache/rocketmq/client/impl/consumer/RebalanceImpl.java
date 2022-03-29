@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
@@ -236,7 +237,7 @@ public abstract class RebalanceImpl {
         return subscriptionInner;
     }
 
-    private void rebalanceByTopic(final String topic, final boolean isOrder) {
+    private void rebalanceByTopic(final String topic, final boolean isOrder) throws RemotingException {
         switch (messageModel) {
             case BROADCASTING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
@@ -424,9 +425,9 @@ public abstract class RebalanceImpl {
      * @return offset
      */
     @Deprecated
-    public abstract long computePullFromWhere(final MessageQueue mq);
+    public abstract long computePullFromWhere(final MessageQueue mq) throws RemotingException;
 
-    public abstract long computePullFromWhereWithException(final MessageQueue mq) throws MQClientException;
+    public abstract long computePullFromWhereWithException(final MessageQueue mq) throws MQClientException, RemotingException;
 
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
 

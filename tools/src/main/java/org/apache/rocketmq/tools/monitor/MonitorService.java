@@ -109,11 +109,11 @@ public class MonitorService {
         }
     }
 
-    public static void main(String[] args) throws MQClientException {
+    public static void main(String[] args) throws MQClientException, RemotingException {
         main0(args, null);
     }
 
-    public static void main0(String[] args, RPCHook rpcHook) throws MQClientException {
+    public static void main0(String[] args, RPCHook rpcHook) throws MQClientException, RemotingException {
         final MonitorService monitorService =
             new MonitorService(new MonitorConfig(), new DefaultMonitorListener(), rpcHook);
         monitorService.start();
@@ -140,7 +140,7 @@ public class MonitorService {
         return "MonitorService_" + name.hashCode();
     }
 
-    public void start() throws MQClientException {
+    public void start() throws MQClientException, RemotingException {
         this.defaultMQPullConsumer.start();
         this.defaultMQAdminExt.start();
         this.defaultMQPushConsumer.start();

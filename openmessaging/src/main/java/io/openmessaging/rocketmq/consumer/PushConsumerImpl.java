@@ -39,6 +39,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public class PushConsumerImpl implements PushConsumer {
@@ -147,6 +148,8 @@ public class PushConsumerImpl implements PushConsumer {
             try {
                 this.rocketmqPushConsumer.start();
             } catch (MQClientException e) {
+                throw new OMSRuntimeException("-1", e);
+            } catch (RemotingException e) {
                 throw new OMSRuntimeException("-1", e);
             }
         }

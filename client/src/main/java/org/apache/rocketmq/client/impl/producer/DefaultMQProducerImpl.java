@@ -435,22 +435,22 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.mQClientFactory.getMQAdminImpl().fetchPublishMessageQueues(topic);
     }
 
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException, RemotingException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
-    public long maxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException, RemotingException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
     }
 
-    public long minOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException, RemotingException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().minOffset(mq);
     }
 
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException, RemotingException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
@@ -463,13 +463,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().queryMessage(topic, key, maxNum, begin, end);
     }
 
     public MessageExt queryMessageByUniqKey(String topic, String uniqKey)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
         this.makeSureStateOK();
         return this.mQClientFactory.getMQAdminImpl().queryMessageByUniqKey(topic, uniqKey);
     }
@@ -673,7 +673,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
     }
 
-    private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
+    private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) throws RemotingException {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
@@ -1559,7 +1559,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
-    private void prepareSendRequest(final Message msg, long timeout) {
+    private void prepareSendRequest(final Message msg, long timeout) throws RemotingException {
         String correlationId = CorrelationIdUtil.createCorrelationId();
         String requestClientId = this.getmQClientFactory().getClientId();
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CORRELATION_ID, correlationId);

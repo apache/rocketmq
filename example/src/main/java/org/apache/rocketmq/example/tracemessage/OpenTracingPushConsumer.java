@@ -29,11 +29,12 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageOpenTracingHookImpl;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 import java.util.List;
 
 public class OpenTracingPushConsumer {
-    public static void main(String[] args) throws InterruptedException, MQClientException {
+    public static void main(String[] args) throws InterruptedException, MQClientException, RemotingException {
         Tracer tracer = initTracer();
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1");

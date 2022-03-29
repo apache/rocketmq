@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,7 +35,7 @@ public class DefaultMQPushConsumerImplTest {
     public ExpectedException thrown = ExpectedException.none();
 
     @Test
-    public void checkConfigTest() throws MQClientException {
+    public void checkConfigTest() throws MQClientException, RemotingException {
 
         //test type
         thrown.expect(MQClientException.class);

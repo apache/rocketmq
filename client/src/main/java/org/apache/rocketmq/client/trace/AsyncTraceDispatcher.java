@@ -49,6 +49,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAME;
 
@@ -408,7 +409,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             }
         }
 
-        private Set<String> tryGetMessageQueueBrokerSet(DefaultMQProducerImpl producer, String topic) {
+        private Set<String> tryGetMessageQueueBrokerSet(DefaultMQProducerImpl producer, String topic) throws RemotingException {
             Set<String> brokerSet = new HashSet<String>();
             TopicPublishInfo topicPublishInfo = producer.getTopicPublishInfoTable().get(topic);
             if (null == topicPublishInfo || !topicPublishInfo.ok()) {

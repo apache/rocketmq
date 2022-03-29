@@ -271,7 +271,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return this.serviceState == ServiceState.RUNNING;
     }
 
-    public synchronized void start() throws MQClientException {
+    public synchronized void start() throws MQClientException, RemotingException {
         switch (this.serviceState) {
             case CREATE_JUST:
                 this.serviceState = ServiceState.START_FAILED;
@@ -372,7 +372,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             }, 1000 * 10, this.getDefaultLitePullConsumer().getTopicMetadataCheckIntervalMillis(), TimeUnit.MILLISECONDS);
     }
 
-    private void operateAfterRunning() throws MQClientException {
+    private void operateAfterRunning() throws MQClientException, RemotingException {
         // If subscribe function invoke before start function, then update topic subscribe info after initialization.
         if (subscriptionType == SubscriptionType.SUBSCRIBE) {
             updateTopicSubscribeInfoWhenSubscriptionChanged();
@@ -454,7 +454,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         startPullTask(mqNewSet);
     }
 
-    private void updateTopicSubscribeInfoWhenSubscriptionChanged() {
+    private void updateTopicSubscribeInfoWhenSubscriptionChanged() throws RemotingException {
         Map<String, SubscriptionData> subTable = rebalanceImpl.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
@@ -578,7 +578,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         assignedMessageQueue.resume(messageQueues);
     }
 
-    public synchronized void seek(MessageQueue messageQueue, long offset) throws MQClientException {
+    public synchronized void seek(MessageQueue messageQueue, long offset) throws MQClientException, RemotingException {
         if (!assignedMessageQueue.messageQueues().contains(messageQueue)) {
             if (subscriptionType == SubscriptionType.SUBSCRIBE) {
                 throw new MQClientException("The message queue is not in assigned list, may be rebalancing, message queue: " + messageQueue, null);
@@ -609,22 +609,22 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    public void seekToBegin(MessageQueue messageQueue) throws MQClientException {
+    public void seekToBegin(MessageQueue messageQueue) throws MQClientException, RemotingException {
         long begin = minOffset(messageQueue);
         this.seek(messageQueue, begin);
     }
 
-    public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
+    public void seekToEnd(MessageQueue messageQueue) throws MQClientException, RemotingException {
         long end = maxOffset(messageQueue);
         this.seek(messageQueue, end);
     }
 
-    private long maxOffset(MessageQueue messageQueue) throws MQClientException {
+    private long maxOffset(MessageQueue messageQueue) throws MQClientException, RemotingException {
         checkServiceState();
         return this.mQClientFactory.getMQAdminImpl().maxOffset(messageQueue);
     }
 
-    private long minOffset(MessageQueue messageQueue) throws MQClientException {
+    private long minOffset(MessageQueue messageQueue) throws MQClientException, RemotingException {
         checkServiceState();
         return this.mQClientFactory.getMQAdminImpl().minOffset(messageQueue);
     }
@@ -677,7 +677,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private long fetchConsumeOffset(MessageQueue messageQueue) throws MQClientException {
+    private long fetchConsumeOffset(MessageQueue messageQueue) throws MQClientException, RemotingException {
         checkServiceState();
         long offset = this.rebalanceImpl.computePullFromWhereWithException(messageQueue);
         return offset;
@@ -705,7 +705,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private long nextPullOffset(MessageQueue messageQueue) throws MQClientException {
+    private long nextPullOffset(MessageQueue messageQueue) throws MQClientException, RemotingException {
         long offset = -1;
         long seekOffset = assignedMessageQueue.getSeekOffset(messageQueue);
         if (seekOffset != -1) {
@@ -721,7 +721,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return offset;
     }
 
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException, RemotingException {
         checkServiceState();
         return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }

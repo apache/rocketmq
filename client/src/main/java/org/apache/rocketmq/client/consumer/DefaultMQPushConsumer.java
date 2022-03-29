@@ -436,7 +436,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+    public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException, RemotingException {
         return this.defaultMQPushConsumerImpl.searchOffset(queueWithNamespace(mq), timestamp);
     }
 
@@ -445,7 +445,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public long maxOffset(MessageQueue mq) throws MQClientException {
+    public long maxOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQPushConsumerImpl.maxOffset(queueWithNamespace(mq));
     }
 
@@ -454,7 +454,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public long minOffset(MessageQueue mq) throws MQClientException {
+    public long minOffset(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQPushConsumerImpl.minOffset(queueWithNamespace(mq));
     }
 
@@ -463,7 +463,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException {
+    public long earliestMsgStoreTime(MessageQueue mq) throws MQClientException, RemotingException {
         return this.defaultMQPushConsumerImpl.earliestMsgStoreTime(queueWithNamespace(mq));
     }
 
@@ -483,7 +483,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
-        throws MQClientException, InterruptedException {
+            throws MQClientException, InterruptedException, RemotingException {
         return this.defaultMQPushConsumerImpl.queryMessage(withNamespace(topic), key, maxNum, begin, end);
     }
 
@@ -692,7 +692,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     @Override
-    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException {
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic) throws MQClientException, RemotingException {
         return this.defaultMQPushConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic));
     }
 
@@ -702,7 +702,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @throws MQClientException if there is any client error.
      */
     @Override
-    public void start() throws MQClientException {
+    public void start() throws MQClientException, RemotingException {
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultMQPushConsumerImpl.start();
         if (null != traceDispatcher) {

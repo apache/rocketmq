@@ -47,5 +47,5 @@ public interface MQConsumer extends MQAdmin {
      * @param topic message topic
      * @return queue set
      */
-    Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException;
+    Set<MessageQueue> fetchSubscribeMessageQueues(final String topic) throws MQClientException, RemotingException;
 }
