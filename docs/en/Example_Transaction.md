@@ -4,7 +4,7 @@
 There are three states for transaction message:  
 - LocalTransactionState.COMMIT_MESSAGE: commit transaction, it means that allow consumers to consume this message.  
 - LocalTransactionState.ROLLBACK_MESSAGE: rollback transaction, it means that the message will be deleted and not allowed to consume.  
-- LocalTransactionState.UNKNOW: intermediate state, it means that MQ is needed to check back to determine the status.
+- LocalTransactionState.UNKNOWN: intermediate state, it means that MQ is needed to check back to determine the status.
 
 ## 2 Send transactional message example
 
@@ -66,7 +66,7 @@ public class TransactionListenerImpl implements TransactionListener {
       int value = transactionIndex.getAndIncrement();
       int status = value % 3;
       localTrans.put(msg.getTransactionId(), status);
-      return LocalTransactionState.UNKNOW;
+      return LocalTransactionState.UNKNOWN;
   }
   @Override
   public LocalTransactionState checkLocalTransaction(MessageExt msg) {
@@ -74,7 +74,7 @@ public class TransactionListenerImpl implements TransactionListener {
       if (null != status) {
           switch (status) {
               case 0:
-                  return LocalTransactionState.UNKNOW;
+                  return LocalTransactionState.UNKNOWN;
               case 1:
                   return LocalTransactionState.COMMIT_MESSAGE;
               case 2:

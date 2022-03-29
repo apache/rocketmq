@@ -84,7 +84,7 @@ public class TransactionalMsgIT extends BaseConf {
                 return new Pair<>(false, LocalTransactionState.ROLLBACK_MESSAGE);
             case 4:
             default:
-                return new Pair<>(false, LocalTransactionState.UNKNOW);
+                return new Pair<>(false, LocalTransactionState.UNKNOWN);
 
         }
     }
@@ -99,7 +99,7 @@ public class TransactionalMsgIT extends BaseConf {
                 return transactionHandle.getObject2();
             } else {
                 checkStatus.put(msg.getTransactionId(), transactionHandle.getObject2());
-                return LocalTransactionState.UNKNOW;
+                return LocalTransactionState.UNKNOWN;
             }
         }
 
@@ -107,7 +107,7 @@ public class TransactionalMsgIT extends BaseConf {
         public LocalTransactionState checkLocalTransaction(MessageExt msg) {
             LocalTransactionState state = checkStatus.get(msg.getTransactionId());
             if (state == null) {
-                return LocalTransactionState.UNKNOW;
+                return LocalTransactionState.UNKNOWN;
             } else {
                 return state;
             }

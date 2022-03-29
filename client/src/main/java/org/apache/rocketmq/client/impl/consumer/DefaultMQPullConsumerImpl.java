@@ -522,7 +522,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
                     }
                 });
         } catch (MQBrokerException e) {
-            throw new MQClientException("pullAsync unknow exception", e);
+            throw new MQClientException("pullAsync unknown exception", e);
         }
     }
 

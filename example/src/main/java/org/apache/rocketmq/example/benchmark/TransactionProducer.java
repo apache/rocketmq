@@ -211,7 +211,7 @@ public class TransactionProducer {
         if (r.nextDouble() < config.sendRollbackRate) {
             buf.put((byte) LocalTransactionState.ROLLBACK_MESSAGE.ordinal());
         } else if (r.nextDouble() < config.sendUnknownRate) {
-            buf.put((byte) LocalTransactionState.UNKNOW.ordinal());
+            buf.put((byte) LocalTransactionState.UNKNOWN.ordinal());
         } else {
             buf.put((byte) LocalTransactionState.COMMIT_MESSAGE.ordinal());
         }
@@ -221,7 +221,7 @@ public class TransactionProducer {
             if (r.nextDouble() < config.checkRollbackRate) {
                 buf.put((byte) LocalTransactionState.ROLLBACK_MESSAGE.ordinal());
             } else if (r.nextDouble() < config.checkUnknownRate) {
-                buf.put((byte) LocalTransactionState.UNKNOW.ordinal());
+                buf.put((byte) LocalTransactionState.UNKNOWN.ordinal());
             } else {
                 buf.put((byte) LocalTransactionState.COMMIT_MESSAGE.ordinal());
             }
@@ -359,7 +359,7 @@ class TransactionListenerImpl implements TransactionListener {
         if (dup) {
             statBenchmark.getDuplicatedCheckCount().increment();
         }
-        if (msgMeta.sendResult != LocalTransactionState.UNKNOW) {
+        if (msgMeta.sendResult != LocalTransactionState.UNKNOWN) {
             System.out.printf("%s unexpected check: msgId=%s,txId=%s,checkTimes=%s,sendResult=%s\n",
                     new SimpleDateFormat("HH:mm:ss,SSS").format(new Date()),
                     msg.getMsgId(), msg.getTransactionId(),
@@ -371,7 +371,7 @@ class TransactionListenerImpl implements TransactionListener {
 
         for (int i = 0; i < times - 1; i++) {
             LocalTransactionState s = msgMeta.checkResult.get(i);
-            if (s != LocalTransactionState.UNKNOW) {
+            if (s != LocalTransactionState.UNKNOWN) {
                 System.out.printf("%s unexpected check: msgId=%s,txId=%s,checkTimes=%s,sendResult,lastCheckResult=%s\n",
                         new SimpleDateFormat("HH:mm:ss,SSS").format(new Date()),
                         msg.getMsgId(), msg.getTransactionId(),
