@@ -23,6 +23,7 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.connector.factory.ForwardClientManager;
 
 public abstract class AbstractForwardClient implements StartAndShutdown {
+    public static final long MAX_CONSUMER_TIMEOUT_MILLIS = Duration.ofSeconds(20).toMillis();
     public static final long DEFAULT_MQ_CLIENT_TIMEOUT = Duration.ofSeconds(3).toMillis();
 
     private final ForwardClientManager clientFactory;
