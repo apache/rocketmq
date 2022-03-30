@@ -435,17 +435,31 @@ public class DLedgerCommitLog extends CommitLog {
         // Back to Results
         AppendMessageResult appendResult;
         AppendFuture<AppendEntryResponse> dledgerFuture;
-        EncodeResult encodeResult;
+        EncodeResult encodeResult = null;
 
-        encodeResult = this.messageSerializer.serialize(msg);
-        if (encodeResult.status != AppendMessageStatus.PUT_OK) {
-            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+        boolean isMultiDispatch = multiDispatch.isMultiDispatchMsg(msg);
+        if (!isMultiDispatch) {
+            encodeResult = this.messageSerializer.serialize(msg);
+            if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+            }
         }
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         long elapsedTimeInLock;
         long queueOffset;
         try {
             beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
+            if (isMultiDispatch) {
+                boolean multiDispatchWrapResult = multiDispatch.wrapMultiDispatch(msg);
+                if (!multiDispatchWrapResult) {
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+                } else {
+                    encodeResult = this.messageSerializer.serialize(msg);
+                    if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+                    }
+                }
+            }
             queueOffset = getQueueOffsetByKey(encodeResult.queueOffsetKey, tranType);
             encodeResult.setQueueOffsetKey(queueOffset, false);
             AppendEntryRequest request = new AppendEntryRequest();
@@ -472,6 +486,7 @@ public class DLedgerCommitLog extends CommitLog {
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
                     // The next update ConsumeQueue information
                     DLedgerCommitLog.this.topicQueueTable.put(encodeResult.queueOffsetKey, queueOffset + 1);
+                    multiDispatch.updateMultiQueueOffset(msg);
                     break;
                 default:
                     break;
