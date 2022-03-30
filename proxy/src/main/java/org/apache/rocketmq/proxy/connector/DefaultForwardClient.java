@@ -19,7 +19,7 @@ package org.apache.rocketmq.proxy.connector;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.impl.MQClientAPIExt;
+import org.apache.rocketmq.proxy.connector.client.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -51,7 +51,7 @@ public class DefaultForwardClient extends AbstractForwardClient {
         GetConsumerListByGroupRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        return this.getClient().getConsumerListByGroup(brokerAddr, requestHeader, timeoutMillis);
+        return this.getClient().getConsumerListByGroupAsync(brokerAddr, requestHeader, timeoutMillis);
     }
 
     public TopicRouteData getTopicRouteInfoFromNameServer(String topic)
@@ -74,7 +74,7 @@ public class DefaultForwardClient extends AbstractForwardClient {
         int queueId,
         long timeoutMillis
     ) {
-        return this.getClient().getMaxOffset(brokerAddr, topic, queueId, timeoutMillis);
+        return this.getClient().getMaxOffsetAsync(brokerAddr, topic, queueId, timeoutMillis);
     }
 
     public CompletableFuture<Long> searchOffset(
@@ -93,6 +93,6 @@ public class DefaultForwardClient extends AbstractForwardClient {
         long timestamp,
         long timeoutMillis
     ) {
-        return this.getClient().searchOffset(brokerAddr, topic, queueId, timestamp, timeoutMillis);
+        return this.getClient().searchOffsetAsync(brokerAddr, topic, queueId, timestamp, timeoutMillis);
     }
 }

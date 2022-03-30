@@ -18,7 +18,7 @@ package org.apache.rocketmq.proxy.connector;
 
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
-import org.apache.rocketmq.client.impl.MQClientAPIExt;
+import org.apache.rocketmq.proxy.connector.client.MQClientAPIExt;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.connector.factory.ForwardClientManager;
 

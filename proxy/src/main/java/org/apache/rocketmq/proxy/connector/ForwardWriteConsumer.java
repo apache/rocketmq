@@ -18,7 +18,7 @@ package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
-import org.apache.rocketmq.client.impl.MQClientAPIExt;
+import org.apache.rocketmq.proxy.connector.client.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -56,7 +56,7 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         AckMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        return this.getClient().ackMessage(address, requestHeader, timeoutMillis);
+        return this.getClient().ackMessageAsync(address, requestHeader, timeoutMillis);
     }
 
     public CompletableFuture<AckResult> changeInvisibleTimeAsync(

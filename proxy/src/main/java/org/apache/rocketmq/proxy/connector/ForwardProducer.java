@@ -17,7 +17,7 @@
 package org.apache.rocketmq.proxy.connector;
 
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.client.impl.MQClientAPIExt;
+import org.apache.rocketmq.proxy.connector.client.MQClientAPIExt;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
@@ -55,7 +55,7 @@ public class ForwardProducer extends AbstractForwardClient {
         return this.heartBeat(brokerAddr, heartbeatData, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
     public CompletableFuture<Integer> heartBeat(String brokerAddr, HeartbeatData heartbeatData, long timeout) throws Exception {
-        return this.getClient().sendHeartbeat(brokerAddr, heartbeatData, timeout);
+        return this.getClient().sendHeartbeatAsync(brokerAddr, heartbeatData, timeout);
     }
 
     public void endTransaction(String brokerAddr, EndTransactionRequestHeader requestHeader) throws Exception {
@@ -82,7 +82,7 @@ public class ForwardProducer extends AbstractForwardClient {
         SendMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        CompletableFuture<SendResult> future = this.getClient().sendMessage(address, brokerName, msg, requestHeader, timeoutMillis);
+        CompletableFuture<SendResult> future = this.getClient().sendMessageAsync(address, brokerName, msg, requestHeader, timeoutMillis);
         return future.thenApply(sendResult -> {
             int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
             if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) && tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE) {
@@ -98,6 +98,6 @@ public class ForwardProducer extends AbstractForwardClient {
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {
-        return this.getClient().sendMessageBack(brokerAddr, requestHeader, timeoutMillis);
+        return this.getClient().sendMessageBackAsync(brokerAddr, requestHeader, timeoutMillis);
     }
 }

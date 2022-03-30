@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.impl;
+package org.apache.rocketmq.proxy.connector.client;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +28,9 @@ import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
+import org.apache.rocketmq.client.impl.CommunicationMode;
+import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -35,7 +38,6 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
@@ -47,9 +49,7 @@ import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
@@ -57,11 +57,10 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MQClientAPIExt {
+public class MQClientAPIExt extends MQClientAPIImpl {
     private static final Logger LOGGER = LoggerFactory.getLogger(MQClientAPIExt.class);
 
     private final ClientConfig clientConfig;
-    private final MQClientAPIImpl mqClientAPI;
 
     public MQClientAPIExt(
         ClientConfig clientConfig,
@@ -69,25 +68,13 @@ public class MQClientAPIExt {
         ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook
     ) {
+        super(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig);
         this.clientConfig = clientConfig;
-        this.mqClientAPI = new MQClientAPIImpl(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig);
-    }
-
-    public void start() {
-        this.mqClientAPI.start();
-    }
-
-    public void shutdown() {
-        this.mqClientAPI.shutdown();
-    }
-
-    public void fetchNameServerAddr() {
-        this.mqClientAPI.fetchNameServerAddr();
     }
 
     public boolean updateNameServerAddressList() {
         if (this.clientConfig.getNamesrvAddr() != null) {
-            this.mqClientAPI.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
+            this.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
             LOGGER.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
             return true;
         }
@@ -107,11 +94,7 @@ public class MQClientAPIExt {
         return ex;
     }
 
-    protected RemotingClient getRemotingClient() {
-        return this.mqClientAPI.getRemotingClient();
-    }
-
-    public CompletableFuture<Integer> sendHeartbeat(
+    public CompletableFuture<Integer> sendHeartbeatAsync(
         String brokerAddr,
         HeartbeatData heartbeatData,
         long timeoutMillis
@@ -140,12 +123,7 @@ public class MQClientAPIExt {
         return future;
     }
 
-    public void endTransactionOneway(String brokerAddr, EndTransactionRequestHeader requestHeader, String remark, long timeoutMillis)
-        throws MQBrokerException, RemotingException, InterruptedException {
-        this.mqClientAPI.endTransactionOneway(brokerAddr, requestHeader, remark, timeoutMillis);
-    }
-
-    public CompletableFuture<SendResult> sendMessage(
+    public CompletableFuture<SendResult> sendMessageAsync(
         String brokerAddr,
         String brokerName,
         Message msg,
@@ -161,7 +139,7 @@ public class MQClientAPIExt {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     try {
-                        future.complete(mqClientAPI.processSendResponse(brokerName, msg, response, brokerAddr));
+                        future.complete(this.processSendResponse(brokerName, msg, response, brokerAddr));
                     } catch (Exception e) {
                         future.completeExceptionally(e);
                     }
@@ -175,7 +153,7 @@ public class MQClientAPIExt {
         return future;
     }
 
-    public CompletableFuture<RemotingCommand> sendMessageBack(
+    public CompletableFuture<RemotingCommand> sendMessageBackAsync(
         String brokerAddr,
         ConsumerSendMsgBackRequestHeader requestHeader,
         long timeoutMillis
@@ -198,7 +176,7 @@ public class MQClientAPIExt {
         return future;
     }
 
-    public CompletableFuture<PopResult> popMessage(
+    public CompletableFuture<PopResult> popMessageAsync(
         String brokerAddr,
         String brokerName,
         PopMessageRequestHeader requestHeader,
@@ -206,7 +184,7 @@ public class MQClientAPIExt {
     ) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
         try {
-            this.mqClientAPI.popMessageAsync(brokerName, brokerAddr, requestHeader, timeoutMillis, new PopCallback() {
+            this.popMessageAsync(brokerName, brokerAddr, requestHeader, timeoutMillis, new PopCallback() {
                 @Override
                 public void onSuccess(PopResult popResult) {
                     future.complete(popResult);
@@ -223,14 +201,14 @@ public class MQClientAPIExt {
         return future;
     }
 
-    public CompletableFuture<AckResult> ackMessage(
+    public CompletableFuture<AckResult> ackMessageAsync(
         String brokerAddr,
         AckMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
         CompletableFuture<AckResult> future = new CompletableFuture<>();
         try {
-            this.mqClientAPI.ackMessageAsync(brokerAddr, timeoutMillis, new AckCallback() {
+            this.ackMessageAsync(brokerAddr, timeoutMillis, new AckCallback() {
                 @Override
                 public void onSuccess(AckResult ackResult) {
                     future.complete(ackResult);
@@ -255,7 +233,7 @@ public class MQClientAPIExt {
     ) {
         CompletableFuture<AckResult> future = new CompletableFuture<>();
         try {
-            this.mqClientAPI.changeInvisibleTimeAsync(brokerName, brokerAddr, requestHeader, timeoutMillis,
+            this.changeInvisibleTimeAsync(brokerName, brokerAddr, requestHeader, timeoutMillis,
                 new AckCallback() {
                     @Override
                     public void onSuccess(AckResult ackResult) {
@@ -274,14 +252,14 @@ public class MQClientAPIExt {
         return future;
     }
 
-    public CompletableFuture<PullResult> pullMessage(
+    public CompletableFuture<PullResult> pullMessageAsync(
         String brokerAddr,
         PullMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
         CompletableFuture<PullResult> future = new CompletableFuture<>();
         try {
-            this.mqClientAPI.pullMessage(brokerAddr, requestHeader, timeoutMillis, CommunicationMode.ASYNC,
+            this.pullMessage(brokerAddr, requestHeader, timeoutMillis, CommunicationMode.ASYNC,
                 new PullCallback() {
                     @Override
                     public void onSuccess(PullResult pullResult) {
@@ -309,7 +287,7 @@ public class MQClientAPIExt {
         this.getRemotingClient().invokeOneway(brokerAddr, request, timeoutMillis);
     }
 
-    public CompletableFuture<List<String>> getConsumerListByGroup(
+    public CompletableFuture<List<String>> getConsumerListByGroupAsync(
         String brokerAddr,
         GetConsumerListByGroupRequestHeader requestHeader,
         long timeoutMillis
@@ -352,12 +330,7 @@ public class MQClientAPIExt {
         return future;
     }
 
-    public TopicRouteData getTopicRouteInfoFromNameServer(String topic, long timeoutMillis)
-        throws RemotingException, InterruptedException, MQClientException {
-        return this.mqClientAPI.getTopicRouteInfoFromNameServer(topic, timeoutMillis);
-    }
-
-    public CompletableFuture<Long> getMaxOffset(String brokerAddr, String topic, int queueId, long timeoutMillis) {
+    public CompletableFuture<Long> getMaxOffsetAsync(String brokerAddr, String topic, int queueId, long timeoutMillis) {
         GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
@@ -387,7 +360,7 @@ public class MQClientAPIExt {
         return future;
     }
 
-    public CompletableFuture<Long> searchOffset(String brokerAddr, String topic, int queueId , long timestamp, long timeoutMillis) {
+    public CompletableFuture<Long> searchOffsetAsync(String brokerAddr, String topic, int queueId , long timestamp, long timeoutMillis) {
         SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
