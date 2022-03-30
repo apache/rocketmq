@@ -19,7 +19,7 @@ package org.apache.rocketmq.proxy.connector;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.impl.MQClientAPIExt;
+import org.apache.rocketmq.proxy.connector.client.MQClientAPIExt;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -57,7 +57,7 @@ public class ForwardReadConsumer extends AbstractForwardClient {
         PopMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        return this.getClient().popMessage(address, brokerName, requestHeader, timeoutMillis);
+        return this.getClient().popMessageAsync(address, brokerName, requestHeader, timeoutMillis);
     }
 
     public CompletableFuture<PullResult> pullMessage(String address, PullMessageRequestHeader requestHeader) {
@@ -66,6 +66,6 @@ public class ForwardReadConsumer extends AbstractForwardClient {
 
     public CompletableFuture<PullResult> pullMessage(String address, PullMessageRequestHeader requestHeader,
         long timeoutMillis) {
-        return this.getClient().pullMessage(address, requestHeader, timeoutMillis);
+        return this.getClient().pullMessageAsync(address, requestHeader, timeoutMillis);
     }
 }

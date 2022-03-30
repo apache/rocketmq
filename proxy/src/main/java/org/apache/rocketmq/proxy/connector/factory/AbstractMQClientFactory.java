@@ -21,7 +21,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
-import org.apache.rocketmq.client.impl.MQClientAPIExt;
+import org.apache.rocketmq.proxy.connector.client.MQClientAPIExt;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public abstract class AbstractMQClientFactory extends AbstractClientManager<MQClientAPIExt> {
