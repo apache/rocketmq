@@ -1113,6 +1113,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         messageExt.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(responseHeader.getPopTime()));
                     }
                 }
+                messageExt.setBrokerName(brokerName);
                 messageExt.setTopic(NamespaceUtil.withoutNamespace(topic, this.clientConfig.getNamespace()));
             }
         }
