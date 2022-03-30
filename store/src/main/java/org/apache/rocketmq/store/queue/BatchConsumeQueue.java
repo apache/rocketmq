@@ -710,6 +710,10 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
         try {
             ByteBuffer byteBuffer = sbr.getByteBuffer();
             int left = targetMinOffset.getIndexPos(), right = targetMaxOffset.getIndexPos();
+            long maxQueueTimestamp = byteBuffer.getLong(right + MSG_STORE_TIME_OFFSET_INDEX);
+            if (timestamp >= maxQueueTimestamp) {
+                return byteBuffer.getLong(right + MSG_BASE_OFFSET_INDEX);
+            }
             int mid = binarySearchRight(byteBuffer, left, right, CQ_STORE_UNIT_SIZE, MSG_STORE_TIME_OFFSET_INDEX, timestamp);
             if (mid != -1) {
                 return byteBuffer.getLong(mid + MSG_BASE_OFFSET_INDEX);
