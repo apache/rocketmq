@@ -61,7 +61,7 @@ public class ForwardReadConsumer extends AbstractForwardClient {
     }
 
     public CompletableFuture<PullResult> pullMessage(String address, PullMessageRequestHeader requestHeader) {
-        return this.pullMessage(address, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.pullMessage(address, requestHeader, ProxyUtils.MAX_CONSUMER_TIMEOUT_MILLIS);
     }
 
     public CompletableFuture<PullResult> pullMessage(String address, PullMessageRequestHeader requestHeader,
