@@ -53,7 +53,7 @@ public class GrpcClientChannel extends SimpleChannel {
         this.manager = manager;
     }
 
-    public void addClientObserver(CompletableFuture<PollCommandResponse> future) {
+    public void setClientObserver(CompletableFuture<PollCommandResponse> future) {
         this.pollCommandResponseFutureRef.set(future);
     }
 
@@ -131,8 +131,7 @@ public class GrpcClientChannel extends SimpleChannel {
                         break;
                     }
                     case RequestCode.GET_CONSUMER_RUNNING_INFO: {
-                        final GetConsumerRunningInfoRequestHeader requestHeader =
-                            (GetConsumerRunningInfoRequestHeader) command.decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
+                        final GetConsumerRunningInfoRequestHeader requestHeader = command.decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
                         if (!requestHeader.isJstackEnable()) {
                             break;
                         }

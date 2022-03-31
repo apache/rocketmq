@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.channel;
 
-import com.google.common.base.Strings;
 import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,9 +27,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.common.Cleaner;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.slf4j.Logger;
@@ -54,14 +54,12 @@ public class ChannelManager {
     }
 
     public <T extends SimpleChannel> T createChannel(String clientId, Supplier<T> creator, Class<T> clazz) {
-        if (Strings.isNullOrEmpty(clientId)) {
+        if (StringUtils.isBlank(clientId)) {
             log.warn("ClientId is unexpected null or empty");
             return creator.get();
         }
 
-        if (!clientIdChannelMap.containsKey(clientId)) {
-            clientIdChannelMap.putIfAbsent(clientId, creator.get());
-        }
+        clientIdChannelMap.computeIfAbsent(clientId, key -> creator.get());
 
         T channel = clazz.cast(clientIdChannelMap.get(clientId));
         channel.updateLastAccessTime();

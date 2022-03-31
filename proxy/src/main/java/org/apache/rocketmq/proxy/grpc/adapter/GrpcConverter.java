@@ -678,10 +678,10 @@ public class GrpcConverter {
         return consumeMessageDirectlyResult;
     }
 
-    public static Resource buildResource(String resourceNameWithNamespace) {
+    public static Resource buildResource(String resourceStr) {
         return Resource.newBuilder()
-            .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(resourceNameWithNamespace))
-            .setName(NamespaceUtil.withoutNamespace(resourceNameWithNamespace))
+            .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(resourceStr))
+            .setName(NamespaceUtil.withoutNamespace(resourceStr))
             .build();
     }
 

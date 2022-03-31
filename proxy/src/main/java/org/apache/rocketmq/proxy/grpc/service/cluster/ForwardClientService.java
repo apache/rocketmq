@@ -145,7 +145,7 @@ public class ForwardClientService extends BaseService {
                 if (producerChannel == null) {
                     future.complete(noopCommandResponse);
                 } else {
-                    producerChannel.addClientObserver(future);
+                    producerChannel.setClientObserver(future);
                 }
                 break;
             case CONSUMER_GROUP:
@@ -155,7 +155,7 @@ public class ForwardClientService extends BaseService {
                 if (consumerChannel == null) {
                     future.complete(noopCommandResponse);
                 } else {
-                    consumerChannel.addClientObserver(future);
+                    consumerChannel.setClientObserver(future);
                 }
                 break;
             default:
