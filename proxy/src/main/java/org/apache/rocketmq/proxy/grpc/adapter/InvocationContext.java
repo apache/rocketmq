@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.proxy.grpc.adapter;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public class InvocationContext<R, W> {
     private final R request;
@@ -31,7 +31,7 @@ public class InvocationContext<R, W> {
     }
 
     public boolean expired(long expiredTimeSec) {
-        return System.currentTimeMillis() - timestamp >= TimeUnit.SECONDS.toMillis(expiredTimeSec);
+        return System.currentTimeMillis() - timestamp >= Duration.ofSeconds(expiredTimeSec).toMillis();
     }
 
     public R getRequest() {

@@ -420,7 +420,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                         .build());
                     break;
                 }
-                producerChannel.addClientObserver(future);
+                producerChannel.setClientObserver(future);
                 break;
             case CONSUMER_GROUP:
                 Resource consumerGroup = request.getConsumerGroup();
@@ -432,7 +432,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                         .build());
                     break;
                 }
-                consumerChannel.addClientObserver(future);
+                consumerChannel.setClientObserver(future);
                 break;
             default:
                 break;
