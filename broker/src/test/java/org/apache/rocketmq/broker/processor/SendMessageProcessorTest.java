@@ -149,7 +149,7 @@ public class SendMessageProcessorTest {
     @Test
     public void testProcessRequest_CreateMappedFileFailed() throws RemotingCommandException {
         when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class)))
-                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
+                .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPEDFILE_FAILED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.SYSTEM_ERROR);
     }
 

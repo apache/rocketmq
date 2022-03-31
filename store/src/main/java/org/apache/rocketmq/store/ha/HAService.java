@@ -82,7 +82,7 @@ public class HAService {
         result =
             result
                 && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore
-                .getMessageStoreConfig().getHaSlaveFallbehindMax());
+                .getMessageStoreConfig().getHaSlaveFallBehindMax());
         return result;
     }
 

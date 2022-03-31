@@ -252,7 +252,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
                 break;
 
             // Failed
-            case CREATE_MAPEDFILE_FAILED:
+            case CREATE_MAPPEDFILE_FAILED:
                 log.warn("create mapped file failed, server is busy or broken.");
                 break;
             case MESSAGE_ILLEGAL:

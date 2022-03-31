@@ -125,7 +125,7 @@ public class AllocateMappedFileService extends ServiceThread {
         super.shutdown(true);
         for (AllocateRequest req : this.requestTable.values()) {
             if (req.mappedFile != null) {
-                log.info("delete pre allocated maped file, {}", req.mappedFile.getFileName());
+                log.info("delete pre allocated mapped file, {}", req.mappedFile.getFileName());
                 req.mappedFile.destroy(1000);
             }
         }
@@ -187,9 +187,9 @@ public class AllocateMappedFileService extends ServiceThread {
                 if (mappedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
                     .getMappedFileSizeCommitLog()
                     &&
-                    this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+                    this.messageStore.getMessageStoreConfig().isWarmMappedFileEnable()) {
                     mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
-                        this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
+                        this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMappedFile());
                 }
 
                 req.setMappedFile(mappedFile);

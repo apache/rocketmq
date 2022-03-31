@@ -74,7 +74,7 @@ public class MessageStoreConfig {
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
     private int deleteConsumeQueueFilesInterval = 100;
-    private int destroyMapedFileIntervalForcibly = 1000 * 120;
+    private int destroyMappedFileIntervalForcibly = 1000 * 120;
     private int redeleteHangedFileInterval = 1000 * 120;
     // When to delete,default is at 4 am
     @ImportantField
@@ -84,7 +84,7 @@ public class MessageStoreConfig {
     @ImportantField
     private int fileReservedTime = 72;
     // Flow control for ConsumeQueue
-    private int putMsgIndexHightWater = 600000;
+    private int putMsgIndexHighWater = 600000;
     // The maximum size of message,default is 4M
     private int maxMessageSize = 1024 * 1024 * 4;
     // Whether check the CRC32 of the records consumed.
@@ -96,7 +96,7 @@ public class MessageStoreConfig {
     // How many pages are to be committed when commit data to file
     private int commitCommitLogLeastPages = 4;
     // Flush page size when the disk in warming state
-    private int flushLeastPagesWhenWarmMapedFile = 1024 / 4 * 16;
+    private int flushLeastPagesWhenWarmMappedFile = 1024 / 4 * 16;
     // How many pages are to be flushed when flush ConsumeQueue
     private int flushConsumeQueueLeastPages = 2;
     private int flushCommitLogThoroughInterval = 1000 * 10;
@@ -125,7 +125,7 @@ public class MessageStoreConfig {
     private int haTransferBatchSize = 1024 * 32;
     @ImportantField
     private String haMasterAddress = null;
-    private int haSlaveFallbehindMax = 1024 * 1024 * 256;
+    private int haSlaveFallBehindMax = 1024 * 1024 * 256;
     @ImportantField
     private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
     @ImportantField
@@ -136,7 +136,7 @@ public class MessageStoreConfig {
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
-    private boolean warmMapedFileEnable = false;
+    private boolean warmMappedFileEnable = false;
     private boolean offsetCheckInSlave = false;
     private boolean debugLockEnable = false;
     private boolean duplicationEnable = false;
@@ -200,12 +200,12 @@ public class MessageStoreConfig {
         this.diskFallRecorded = diskFallRecorded;
     }
 
-    public boolean isWarmMapedFileEnable() {
-        return warmMapedFileEnable;
+    public boolean isWarmMappedFileEnable() {
+        return warmMappedFileEnable;
     }
 
-    public void setWarmMapedFileEnable(boolean warmMapedFileEnable) {
-        this.warmMapedFileEnable = warmMapedFileEnable;
+    public void setWarmMappedFileEnable(boolean warmMappedFileEnable) {
+        this.warmMappedFileEnable = warmMappedFileEnable;
     }
 
     public int getMappedFileSizeCommitLog() {
@@ -219,7 +219,7 @@ public class MessageStoreConfig {
     public int getMappedFileSizeConsumeQueue() {
 
         int factor = (int) Math.ceil(this.mappedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
-        return (int) (factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        return factor * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     }
 
     public void setMappedFileSizeConsumeQueue(int mappedFileSizeConsumeQueue) {
@@ -266,12 +266,12 @@ public class MessageStoreConfig {
         this.flushIntervalConsumeQueue = flushIntervalConsumeQueue;
     }
 
-    public int getPutMsgIndexHightWater() {
-        return putMsgIndexHightWater;
+    public int getPutMsgIndexHighWater() {
+        return putMsgIndexHighWater;
     }
 
-    public void setPutMsgIndexHightWater(int putMsgIndexHightWater) {
-        this.putMsgIndexHightWater = putMsgIndexHightWater;
+    public void setPutMsgIndexHighWater(int putMsgIndexHighWater) {
+        this.putMsgIndexHighWater = putMsgIndexHighWater;
     }
 
     public int getCleanResourceInterval() {
@@ -412,12 +412,12 @@ public class MessageStoreConfig {
         this.flushConsumeQueueThoroughInterval = flushConsumeQueueThoroughInterval;
     }
 
-    public int getDestroyMapedFileIntervalForcibly() {
-        return destroyMapedFileIntervalForcibly;
+    public int getDestroyMappedFileIntervalForcibly() {
+        return destroyMappedFileIntervalForcibly;
     }
 
-    public void setDestroyMapedFileIntervalForcibly(int destroyMapedFileIntervalForcibly) {
-        this.destroyMapedFileIntervalForcibly = destroyMapedFileIntervalForcibly;
+    public void setDestroyMappedFileIntervalForcibly(int destroyMappedFileIntervalForcibly) {
+        this.destroyMappedFileIntervalForcibly = destroyMappedFileIntervalForcibly;
     }
 
     public int getFileReservedTime() {
@@ -520,12 +520,12 @@ public class MessageStoreConfig {
         this.haTransferBatchSize = haTransferBatchSize;
     }
 
-    public int getHaSlaveFallbehindMax() {
-        return haSlaveFallbehindMax;
+    public int getHaSlaveFallBehindMax() {
+        return haSlaveFallBehindMax;
     }
 
-    public void setHaSlaveFallbehindMax(int haSlaveFallbehindMax) {
-        this.haSlaveFallbehindMax = haSlaveFallbehindMax;
+    public void setHaSlaveFallBehindMax(int haSlaveFallBehindMax) {
+        this.haSlaveFallBehindMax = haSlaveFallBehindMax;
     }
 
     public FlushDiskType getFlushDiskType() {
@@ -612,12 +612,12 @@ public class MessageStoreConfig {
         this.storePathRootDir = storePathRootDir;
     }
 
-    public int getFlushLeastPagesWhenWarmMapedFile() {
-        return flushLeastPagesWhenWarmMapedFile;
+    public int getFlushLeastPagesWhenWarmMappedFile() {
+        return flushLeastPagesWhenWarmMappedFile;
     }
 
-    public void setFlushLeastPagesWhenWarmMapedFile(int flushLeastPagesWhenWarmMapedFile) {
-        this.flushLeastPagesWhenWarmMapedFile = flushLeastPagesWhenWarmMapedFile;
+    public void setFlushLeastPagesWhenWarmMappedFile(int flushLeastPagesWhenWarmMappedFile) {
+        this.flushLeastPagesWhenWarmMappedFile = flushLeastPagesWhenWarmMappedFile;
     }
 
     public boolean isOffsetCheckInSlave() {

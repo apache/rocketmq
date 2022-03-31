@@ -23,7 +23,7 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class GetMessageResult {
 
-    private final List<SelectMappedBufferResult> messageMapedList;
+    private final List<SelectMappedBufferResult> messageMappedList;
     private final List<ByteBuffer> messageBufferList;
 
     private GetMessageStatus status;
@@ -38,12 +38,12 @@ public class GetMessageResult {
     private int msgCount4Commercial = 0;
 
     public GetMessageResult() {
-        messageMapedList = new ArrayList<>(100);
+        messageMappedList = new ArrayList<>(100);
         messageBufferList = new ArrayList<>(100);
     }
 
     public GetMessageResult(int resultSize) {
-        messageMapedList = new ArrayList<>(resultSize);
+        messageMappedList = new ArrayList<>(resultSize);
         messageBufferList = new ArrayList<>(resultSize);
     }
 
@@ -79,24 +79,24 @@ public class GetMessageResult {
         this.maxOffset = maxOffset;
     }
 
-    public List<SelectMappedBufferResult> getMessageMapedList() {
-        return messageMapedList;
+    public List<SelectMappedBufferResult> getMessageMappedList() {
+        return messageMappedList;
     }
 
     public List<ByteBuffer> getMessageBufferList() {
         return messageBufferList;
     }
 
-    public void addMessage(final SelectMappedBufferResult mapedBuffer) {
-        this.messageMapedList.add(mapedBuffer);
-        this.messageBufferList.add(mapedBuffer.getByteBuffer());
-        this.bufferTotalSize += mapedBuffer.getSize();
+    public void addMessage(final SelectMappedBufferResult mappedBuffer) {
+        this.messageMappedList.add(mappedBuffer);
+        this.messageBufferList.add(mappedBuffer.getByteBuffer());
+        this.bufferTotalSize += mappedBuffer.getSize();
         this.msgCount4Commercial += (int) Math.ceil(
-            mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
+            mappedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
     }
 
     public void release() {
-        for (SelectMappedBufferResult select : this.messageMapedList) {
+        for (SelectMappedBufferResult select : this.messageMappedList) {
             select.release();
         }
     }
@@ -110,7 +110,7 @@ public class GetMessageResult {
     }
 
     public int getMessageCount() {
-        return this.messageMapedList.size();
+        return this.messageMappedList.size();
     }
 
     public boolean isSuggestPullingFromSlave() {

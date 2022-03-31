@@ -494,7 +494,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 break;
 
             // Failed
-            case CREATE_MAPEDFILE_FAILED:
+            case CREATE_MAPPEDFILE_FAILED:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("create mapped file failed, server is busy or broken.");
                 break;

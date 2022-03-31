@@ -231,7 +231,7 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
                     response.setRemark(null);
                     break;
                 // Failed
-                case CREATE_MAPEDFILE_FAILED:
+                case CREATE_MAPPEDFILE_FAILED:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("Create mapped file failed.");
                     break;
