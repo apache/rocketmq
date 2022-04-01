@@ -271,6 +271,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return this.serviceState == ServiceState.RUNNING;
     }
 
+    public synchronized boolean isCreateJust() {
+        return this.serviceState == ServiceState.CREATE_JUST;
+    }
+
+    public synchronized ServiceState getServiceState() {
+        return this.serviceState;
+    }
+
     public synchronized void start() throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
