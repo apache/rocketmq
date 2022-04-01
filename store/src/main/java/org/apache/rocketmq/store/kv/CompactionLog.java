@@ -675,7 +675,7 @@ public class CompactionLog {
             final int msgLen = bbSrc.getInt(0);
             MappedFile bcqMappedFile = bcq.getMappedFileQueue().getLastMappedFile();
             if (bcqMappedFile.getWrotePosition() + BatchConsumeQueue.CQ_STORE_UNIT_SIZE >= bcqMappedFile.getFileSize()
-                || (msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank ) {      //bcq will full or log will full
+                || (msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {      //bcq will full or log will full
 
                 bcq.putEndPositionInfo(bcqMappedFile);
 
@@ -737,7 +737,7 @@ public class CompactionLog {
             hashInto(key, hash1);
             int tryNum = 0;
             int index = indexOf(hash1, tryNum);
-            while(!isEmpty(index)) {
+            while (!isEmpty(index)) {
                 dataBytes.position(index);
                 dataBytes.get(hash2);
                 if (Arrays.equals(hash1, hash2)) {
@@ -799,9 +799,9 @@ public class CompactionLog {
 
         private int readInt(byte[] buf, int offset) {
             return ((buf[offset] & 0xFF) << 24) |
-                ((buf[offset+1] & 0xFF) << 16) |
-                ((buf[offset+2] & 0xFF) << 8) |
-                ((buf[offset+3] & 0xFF));
+                ((buf[offset + 1] & 0xFF) << 16) |
+                ((buf[offset + 2] & 0xFF) << 8) |
+                ((buf[offset + 3] & 0xFF));
         }
     }
 

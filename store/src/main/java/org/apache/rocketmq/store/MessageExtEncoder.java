@@ -190,13 +190,17 @@ public class MessageExtEncoder {
             short propertiesLen = messagesByteBuff.getShort();
             int propertiesPos = messagesByteBuff.position();
             messagesByteBuff.position(propertiesPos + propertiesLen);
+            boolean needAppendLastPropertySeparator = propertiesLen > 0 && batchPropLen > 0
+                && messagesByteBuff.get(messagesByteBuff.position() - 1) != MessageDecoder.PROPERTY_SEPARATOR;
+
 
             final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
 
             final int topicLength = topicData.length;
 
-            final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength,
-                propertiesLen + batchPropLen);
+            int totalPropLen = needAppendLastPropertySeparator ? propertiesLen + batchPropLen + 1
+                : propertiesLen + batchPropLen;
+            final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, totalPropLen);
 
             // Exceeds the maximum message
             if (msgLen > this.maxMessageSize) {
@@ -249,11 +253,14 @@ public class MessageExtEncoder {
             this.encoderBuffer.put((byte) topicLength);
             this.encoderBuffer.put(topicData);
             // 17 PROPERTIES
-            this.encoderBuffer.putShort((short) (propertiesLen + batchPropLen));
+            this.encoderBuffer.putShort((short) totalPropLen);
             if (propertiesLen > 0) {
                 this.encoderBuffer.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
             }
             if (batchPropLen > 0) {
+                if (needAppendLastPropertySeparator) {
+                    this.encoderBuffer.put((byte) MessageDecoder.PROPERTY_SEPARATOR);
+                }
                 this.encoderBuffer.put(batchPropData, 0, batchPropLen);
             }
         }
