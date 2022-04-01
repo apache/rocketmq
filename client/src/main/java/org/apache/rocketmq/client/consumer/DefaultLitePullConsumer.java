@@ -225,9 +225,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void start() throws MQClientException {
-        this.checkServiceState();
-        this.setTraceDispatcher();
-        this.setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
+        checkServiceState();
+        setTraceDispatcher();
+        setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
         if (null != this.traceDispatcher) {
             try {
