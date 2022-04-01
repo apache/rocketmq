@@ -18,7 +18,9 @@ package org.apache.rocketmq.proxy.connector.transaction;
 
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,25 +58,51 @@ public class TransactionHeartbeatRegisterService implements StartAndShutdown {
         this.topicRouteCache = topicRouteCache;
     }
 
+    public void addProducerGroup(String group, List<String> topicList) {
+        for (String topic : topicList) {
+            addProducerGroup(group, topic);
+        }
+    }
+
     public void addProducerGroup(String group, String topic) {
+        try {
+            groupClusterData.compute(group, (groupName, clusterDataSet) -> {
+                if (clusterDataSet == null) {
+                    clusterDataSet = Sets.newHashSet();
+                }
+                clusterDataSet.addAll(getClusterDataFromTopic(topic));
+                return clusterDataSet;
+            });
+        } catch (Exception e) {
+            log.error("add producer group err in txHeartBeat. groupId: {}, err: {}", group, e);
+        }
+    }
+
+    public void replaceProducerGroup(String group, List<String> topicList) {
+        Set<ClusterData> clusterDataSet = new HashSet<>();
+        for (String topic : topicList) {
+            clusterDataSet.addAll(getClusterDataFromTopic(topic));
+        }
+        groupClusterData.put(group, clusterDataSet);
+    }
+
+    private Set<ClusterData> getClusterDataFromTopic(String topic) {
         try {
             MessageQueueWrapper messageQueue = this.topicRouteCache.getMessageQueue(topic);
             List<BrokerData> brokerDataList = messageQueue.getTopicRouteData().getBrokerDatas();
 
-            if (brokerDataList != null) {
-                for (BrokerData brokerData : brokerDataList) {
-                    groupClusterData.compute(group, (groupName, clusterDataSet) -> {
-                        if (clusterDataSet == null) {
-                            clusterDataSet = Sets.newHashSet();
-                        }
-                        clusterDataSet.add(new ClusterData(brokerData.getCluster()));
-                        return clusterDataSet;
-                    });
-                }
+            if (brokerDataList == null) {
+                return Collections.emptySet();
             }
-        } catch (Exception e) {
-            log.error("add producer group err in txHeartBeat. groupId: {}, err: {}", group, e);
+            Set<ClusterData> res = Sets.newHashSet();
+            for (BrokerData brokerData : brokerDataList) {
+                res.add(new ClusterData(brokerData.getCluster()));
+            }
+            return res;
+        } catch (Throwable t) {
+            log.error("get cluster data failed in txHeartBeat. topic: {}, err: {}", topic, t);
         }
+        return Collections.emptySet();
     }
 
     public void onProducerGroupOffline(String group) {

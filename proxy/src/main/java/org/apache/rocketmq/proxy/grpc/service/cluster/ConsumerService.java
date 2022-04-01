@@ -16,14 +16,15 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.AckMessageRequest;
-import apache.rocketmq.v1.AckMessageResponse;
-import apache.rocketmq.v1.Message;
-import apache.rocketmq.v1.NackMessageRequest;
-import apache.rocketmq.v1.NackMessageResponse;
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.ReceiveMessageResponse;
-import com.google.rpc.Code;
+import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
+import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.ReceiveMessageRequest;
+import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,10 +48,11 @@ import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.grpc.adapter.DelayPolicy;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyExceptionV2;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ConsumerService extends BaseService {
@@ -66,7 +68,7 @@ public class ConsumerService extends BaseService {
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
     private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
-    private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook;
+    private volatile ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> changeInvisibleDurationMessageHook;
 
     public ConsumerService(ConnectorManager connectorManager) {
         super(connectorManager);
@@ -92,7 +94,7 @@ public class ConsumerService extends BaseService {
             SelectableMessageQueue messageQueue = this.readQueueSelector.select(ctx, request, requestHeader);
 
             if (messageQueue == null) {
-                throw new ProxyException(Code.NOT_FOUND, "no readable topic route for topic " + requestHeader.getTopic());
+                throw new ProxyExceptionV2(Code.FORBIDDEN, "no readable topic route for topic " + requestHeader.getTopic());
             }
 
             CompletableFuture<PopResult> popResultFuture = this.readConsumer.popMessage(
@@ -119,8 +121,8 @@ public class ConsumerService extends BaseService {
     }
 
     protected PopMessageRequestHeader buildPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
-        checkSubscriptionData(request.getPartition().getTopic(), request.getFilterExpression());
-        return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx));
+        checkSubscriptionData(request.getMessageQueue().getTopic(), request.getFilterExpression());
+        return GrpcConverterV2.buildPopMessageRequestHeader(request, GrpcConverterV2.buildPollTimeFromContext(ctx));
     }
 
     protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request, PopResult result) {
@@ -128,25 +130,25 @@ public class ConsumerService extends BaseService {
         switch (status) {
             case FOUND:
                 return ReceiveMessageResponse.newBuilder()
-                    .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                    .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
                     .addAllMessages(checkAndGetMessagesFromPopResult(ctx, request, result))
                     .build();
             case POLLING_FULL:
                 return ReceiveMessageResponse.newBuilder()
-                    .setCommon(ResponseBuilder.buildCommon(Code.RESOURCE_EXHAUSTED, "polling full"))
+                    .setStatus(ResponseBuilderV2.buildStatus(Code.TOO_MANY_REQUESTS, "polling full"))
                     .build();
             case NO_NEW_MSG:
             case POLLING_NOT_FOUND:
             default:
                 return ReceiveMessageResponse.newBuilder()
-                    .setCommon(ResponseBuilder.buildCommon(Code.OK, "no new message"))
+                    .setStatus(ResponseBuilderV2.buildStatus(Code.OK, "no new message"))
                     .build();
         }
     }
 
     protected List<Message> checkAndGetMessagesFromPopResult(Context ctx, ReceiveMessageRequest request, PopResult result) {
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic());
-        SubscriptionData subscriptionData = GrpcConverter.buildSubscriptionData(topicName, request.getFilterExpression());
+        String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+        SubscriptionData subscriptionData = GrpcConverterV2.buildSubscriptionData(topicName, request.getFilterExpression());
 
         List<Message> messages = new ArrayList<>();
         for (MessageExt messageExt : result.getMsgFoundList()) {
@@ -154,7 +156,7 @@ public class ConsumerService extends BaseService {
                 this.ackNoMatchedMessage(ctx, request, messageExt);
                 continue;
             }
-            messages.add(GrpcConverter.buildMessage(messageExt));
+            messages.add(GrpcConverterV2.buildMessage(messageExt));
         }
 
         return messages;
@@ -170,7 +172,7 @@ public class ConsumerService extends BaseService {
                 return;
             }
             String brokerAddr = this.getBrokerAddr(ctx, handle.getBrokerName());
-            ackMessageRequestHeader.setConsumerGroup(GrpcConverter.wrapResourceWithNamespace(request.getGroup()));
+            ackMessageRequestHeader.setConsumerGroup(GrpcConverterV2.wrapResourceWithNamespace(request.getGroup()));
             ackMessageRequestHeader.setTopic(messageExt.getTopic());
             ackMessageRequestHeader.setQueueId(handle.getQueueId());
             ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
@@ -222,31 +224,32 @@ public class ConsumerService extends BaseService {
     }
 
     protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, AckMessageRequest request) {
-        return GrpcConverter.buildAckMessageRequestHeader(request);
+        return GrpcConverterV2.buildAckMessageRequestHeader(request);
     }
 
     protected AckMessageResponse convertToAckMessageResponse(Context ctx, AckMessageRequest request, AckResult ackResult) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
             return AckMessageResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
                 .build();
         }
         return AckMessageResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "ack failed: status is abnormal"))
+            .setStatus(ResponseBuilderV2.buildStatus(Code.INTERNAL_SERVER_ERROR, "ack failed: status is abnormal"))
             .build();
     }
 
-    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
-        CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
+    public CompletableFuture<ChangeInvisibleDurationResponse> nackMessage(Context ctx, ChangeInvisibleDurationRequest request) {
+        CompletableFuture<ChangeInvisibleDurationResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
-            if (nackMessageHook != null) {
-                nackMessageHook.beforeResponse(ctx, request, response, throwable);
+            if (changeInvisibleDurationMessageHook != null) {
+                changeInvisibleDurationMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
         try {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
+            Settings settings = GrpcClientManager.getClientSettings(ctx);
             if (request.getDeliveryAttempt() >= request.getMaxDeliveryAttempts()) {
                 CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
                     brokerAddr,
@@ -287,28 +290,28 @@ public class ConsumerService extends BaseService {
         return future;
     }
 
-    protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
-        return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, this.delayPolicy);
+    protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx, ChangeInvisibleDurationRequest request) {
+        return GrpcConverterV2.buildChangeInvisibleTimeRequestHeader(request, this.delayPolicy);
     }
 
-    protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx, NackMessageRequest request) {
-        return GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request);
+    protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx, ChangeInvisibleDurationRequest request) {
+        return GrpcConverterV2.buildConsumerSendMsgBackToDLQRequestHeader(request);
     }
 
     protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, AckResult ackResult) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
             return NackMessageResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                .setCommon(ResponseBuilderV2.buildCommon(Code.OK, Code.OK.name()))
                 .build();
         }
         return NackMessageResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "nack failed: status is abnormal"))
+            .setCommon(ResponseBuilderV2.buildCommon(Code.INTERNAL, "nack failed: status is abnormal"))
             .build();
     }
 
     protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, RemotingCommand sendMsgBackToDLQResult) {
         return NackMessageResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(sendMsgBackToDLQResult.getCode(), sendMsgBackToDLQResult.getRemark()))
+            .setCommon(ResponseBuilderV2.buildCommon(sendMsgBackToDLQResult.getCode(), sendMsgBackToDLQResult.getRemark()))
             .build();
     }
 
@@ -326,9 +329,5 @@ public class ConsumerService extends BaseService {
 
     public void setAckMessageHook(ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook) {
         this.ackMessageHook = ackMessageHook;
-    }
-
-    public void setNackMessageHook(ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook) {
-        this.nackMessageHook = nackMessageHook;
     }
 }

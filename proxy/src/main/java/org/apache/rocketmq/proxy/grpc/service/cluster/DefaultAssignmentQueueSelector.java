@@ -16,13 +16,13 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.QueryAssignmentRequest;
+import apache.rocketmq.v2.QueryAssignmentRequest;
 import io.grpc.Context;
 import java.util.List;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
 
 public class DefaultAssignmentQueueSelector implements AssignmentQueueSelector {
 
@@ -34,7 +34,7 @@ public class DefaultAssignmentQueueSelector implements AssignmentQueueSelector {
 
     @Override
     public List<SelectableMessageQueue> getAssignment(Context ctx, QueryAssignmentRequest request) throws Exception {
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
+        String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
         MessageQueueWrapper messageQueueWrapper = topicRouteCache.getMessageQueue(topicName);
         return messageQueueWrapper.getReadSelector().getBrokerActingQueues();
     }

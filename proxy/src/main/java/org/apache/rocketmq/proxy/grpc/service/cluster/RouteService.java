@@ -16,21 +16,21 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.Address;
-import apache.rocketmq.v1.AddressScheme;
-import apache.rocketmq.v1.Assignment;
-import apache.rocketmq.v1.Broker;
-import apache.rocketmq.v1.Endpoints;
-import apache.rocketmq.v1.Partition;
-import apache.rocketmq.v1.Permission;
-import apache.rocketmq.v1.QueryAssignmentRequest;
-import apache.rocketmq.v1.QueryAssignmentResponse;
-import apache.rocketmq.v1.QueryRouteRequest;
-import apache.rocketmq.v1.QueryRouteResponse;
-import apache.rocketmq.v1.Resource;
+import apache.rocketmq.v2.Address;
+import apache.rocketmq.v2.AddressScheme;
+import apache.rocketmq.v2.Assignment;
+import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Endpoints;
+import apache.rocketmq.v2.MessageQueue;
+import apache.rocketmq.v2.Permission;
+import apache.rocketmq.v2.QueryAssignmentRequest;
+import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.QueryRouteResponse;
+import apache.rocketmq.v2.Resource;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
-import com.google.rpc.Code;
 import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,10 +46,10 @@ import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteHelper;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
 import org.apache.rocketmq.proxy.grpc.adapter.ParameterConverter;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
 public class RouteService extends BaseService {
@@ -100,18 +100,18 @@ public class RouteService extends BaseService {
         });
 
         try {
-            String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
+            String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
             MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache().getMessageQueue(topicName);
             TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
             List<QueueData> queueDataList = topicRouteData.getQueueDatas();
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
 
-            List<Partition> partitionList = new ArrayList<>();
+            List<MessageQueue> messageQueueList = new ArrayList<>();
             if (ProxyMode.isClusterMode(mode.name())) {
                 Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, request.getEndpoints());
                 if (resEndpoints == null || resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
                     future.complete(QueryRouteResponse.newBuilder()
-                        .setCommon(ResponseBuilder.buildCommon(Code.INVALID_ARGUMENT, "endpoint " +
+                        .setStatus(ResponseBuilderV2.buildStatus(Code.ILLEGAL_ACCESS_POINT, "endpoint " +
                             request.getEndpoints() + " is invalidate"))
                         .build());
                     return future;
@@ -123,7 +123,7 @@ public class RouteService extends BaseService {
                         .setEndpoints(resEndpoints)
                         .build();
 
-                    partitionList.addAll(genPartitionFromQueueData(queueData, request.getTopic(), broker));
+                    messageQueueList.addAll(genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
                 }
             }
             if (ProxyMode.isLocalMode(mode.name())) {
@@ -136,20 +136,20 @@ public class RouteService extends BaseService {
                         break;
                     }
                     for (Broker broker : brokerIdMap.values()) {
-                        partitionList.addAll(genPartitionFromQueueData(queueData, request.getTopic(), broker));
+                        messageQueueList.addAll(genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
                     }
                 }
             }
 
             QueryRouteResponse response = QueryRouteResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-                .addAllPartitions(partitionList)
+                .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
+                .addAllMessageQueues(messageQueueList)
                 .build();
             future.complete(response);
         } catch (Throwable t) {
             if (TopicRouteHelper.isTopicNotExistError(t)) {
                 future.complete(QueryRouteResponse.newBuilder()
-                    .setCommon(ResponseBuilder.buildCommon(Code.NOT_FOUND, t.getMessage()))
+                    .setStatus(ResponseBuilderV2.buildStatus(Code.TOPIC_NOT_FOUND, t.getMessage()))
                     .build());
             } else {
                 future.completeExceptionally(t);
@@ -158,8 +158,8 @@ public class RouteService extends BaseService {
         return future;
     }
 
-    protected static List<Partition> genPartitionFromQueueData(QueueData queueData, Resource topic, Broker broker) {
-        List<Partition> partitionList = new ArrayList<>();
+    protected static List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic, Broker broker) {
+        List<MessageQueue> messageQueueList = new ArrayList<>();
 
         int r = 0;
         int w = 0;
@@ -177,30 +177,30 @@ public class RouteService extends BaseService {
         // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
         int queueIdIndex = 0;
         for (int i = 0; i < r; i++) {
-            Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ)
                 .build();
-            partitionList.add(partition);
+            messageQueueList.add(messageQueue);
         }
 
         for (int i = 0; i < w; i++) {
-            Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.WRITE)
                 .build();
-            partitionList.add(partition);
+            messageQueueList.add(messageQueue);
         }
 
         for (int i = 0; i < rw; i++) {
-            Partition partition = Partition.newBuilder().setBroker(broker).setTopic(topic)
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ_WRITE)
                 .build();
-            partitionList.add(partition);
+            messageQueueList.add(messageQueue);
         }
 
-        return partitionList;
+        return messageQueueList;
     }
 
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
@@ -215,7 +215,7 @@ public class RouteService extends BaseService {
             List<Assignment> assignments = new ArrayList<>();
             List<SelectableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(ctx, request);
             if (ProxyMode.isLocalMode(mode)) {
-                String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
+                String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
                 MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache().getMessageQueue(topicName);
                 TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
                 Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(topicRouteData.getBrokerDatas());
@@ -224,7 +224,7 @@ public class RouteService extends BaseService {
                     if (brokerIdMap != null) {
                         Broker broker = brokerIdMap.get(0L);
 
-                        Partition defaultPartition = Partition.newBuilder()
+                        MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
                             .setTopic(request.getTopic())
                             .setId(-1)
                             .setPermission(Permission.READ_WRITE)
@@ -232,7 +232,7 @@ public class RouteService extends BaseService {
                             .build();
 
                         assignments.add(Assignment.newBuilder()
-                            .setPartition(defaultPartition)
+                            .setMessageQueue(defaultMessageQueue)
                             .build());
                     }
                 }
@@ -241,7 +241,7 @@ public class RouteService extends BaseService {
                 Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, request.getEndpoints());
                 if (resEndpoints == null || Endpoints.getDefaultInstance().equals(resEndpoints)) {
                     future.complete(QueryAssignmentResponse.newBuilder()
-                        .setCommon(ResponseBuilder.buildCommon(Code.INVALID_ARGUMENT, "endpoint " +
+                        .setStatus(ResponseBuilderV2.buildStatus(Code.ILLEGAL_ACCESS_POINT, "endpoint " +
                             request.getEndpoints() + " is invalidate"))
                         .build());
                     return future;
@@ -253,7 +253,7 @@ public class RouteService extends BaseService {
                         .setEndpoints(resEndpoints)
                         .build();
 
-                    Partition defaultPartition = Partition.newBuilder()
+                    MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
                         .setTopic(request.getTopic())
                         .setId(-1)
                         .setPermission(Permission.READ_WRITE)
@@ -261,14 +261,14 @@ public class RouteService extends BaseService {
                         .build();
 
                     assignments.add(Assignment.newBuilder()
-                        .setPartition(defaultPartition)
+                        .setMessageQueue(defaultMessageQueue)
                         .build());
                 }
             }
 
             QueryAssignmentResponse response = QueryAssignmentResponse.newBuilder()
                 .addAllAssignments(assignments)
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
                 .build();
             future.complete(response);
         } catch (Throwable t) {

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.connector;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.connector.client.MQClientAPIExt;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -69,7 +70,7 @@ public class ForwardProducer extends AbstractForwardClient {
     public CompletableFuture<SendResult> sendMessage(
         String address,
         String brokerName,
-        Message msg,
+        List<Message> msg,
         SendMessageRequestHeader requestHeader
     ) {
         return this.sendMessage(address, brokerName, msg, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
@@ -78,11 +79,23 @@ public class ForwardProducer extends AbstractForwardClient {
     public CompletableFuture<SendResult> sendMessage(
         String address,
         String brokerName,
-        Message msg,
+        List<Message> msg,
         SendMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        CompletableFuture<SendResult> future = this.getClient().sendMessageAsync(address, brokerName, msg, requestHeader, timeoutMillis);
+        CompletableFuture<SendResult> future;
+        if (msg.size() == 1) {
+            future = this.getClient().sendMessageAsync(address, brokerName, msg.get(0), requestHeader, timeoutMillis);
+        } else {
+            future = this.getClient().sendMessageAsync(address, brokerName, msg, requestHeader, timeoutMillis);
+        }
+        return processSendMessageResponseFuture(address, requestHeader, future);
+    }
+
+    private CompletableFuture<SendResult> processSendMessageResponseFuture(
+        String address,
+        SendMessageRequestHeader requestHeader,
+        CompletableFuture<SendResult> future) {
         return future.thenApply(sendResult -> {
             int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
             if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) && tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE) {

@@ -33,6 +33,8 @@ import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
@@ -140,6 +142,40 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 if (response != null) {
                     try {
                         future.complete(this.processSendResponse(brokerName, msg, response, brokerAddr));
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                } else {
+                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public CompletableFuture<SendResult> sendMessageAsync(
+        String brokerAddr,
+        String brokerName,
+        List<Message> msgList,
+        SendMessageRequestHeader requestHeader,
+        long timeoutMillis
+    ) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, requestHeader);
+
+        CompletableFuture<SendResult> future = new CompletableFuture<>();
+        try {
+            requestHeader.setBatch(true);
+            MessageBatch msgBatch = MessageBatch.generateFromList(msgList);
+            MessageClientIDSetter.setUniqID(msgBatch);
+            msgBatch.setBody(msgBatch.encode());
+
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    try {
+                        future.complete(this.processSendResponse(brokerName, msgBatch, response, brokerAddr));
                     } catch (Exception e) {
                         future.completeExceptionally(e);
                     }

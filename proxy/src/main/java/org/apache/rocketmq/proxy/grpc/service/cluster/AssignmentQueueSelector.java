@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.QueryAssignmentRequest;
+import apache.rocketmq.v2.QueryAssignmentRequest;
 import io.grpc.Context;
 import java.util.List;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;

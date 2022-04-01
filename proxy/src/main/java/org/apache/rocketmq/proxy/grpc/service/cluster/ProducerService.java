@@ -16,13 +16,15 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueRequest;
-import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueResponse;
-import apache.rocketmq.v1.Message;
-import apache.rocketmq.v1.SendMessageRequest;
-import apache.rocketmq.v1.SendMessageResponse;
-import com.google.rpc.Code;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
+import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.SendMessageRequest;
+import apache.rocketmq.v2.SendMessageResponse;
+import apache.rocketmq.v2.SendReceipt;
+import com.beust.jcommander.internal.Lists;
 import io.grpc.Context;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -34,9 +36,9 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyExceptionV2;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -76,14 +78,14 @@ public class ProducerService extends BaseService {
         });
 
         try {
-            Pair<SendMessageRequestHeader, org.apache.rocketmq.common.message.Message> requestPair = this.buildSendMessageRequest(ctx, request);
+            Pair<SendMessageRequestHeader, List<org.apache.rocketmq.common.message.Message>> requestPair = this.buildSendMessageRequest(ctx, request);
             SendMessageRequestHeader requestHeader = requestPair.getLeft();
-            org.apache.rocketmq.common.message.Message message = requestPair.getRight();
+            List<org.apache.rocketmq.common.message.Message> message = requestPair.getRight();
             SelectableMessageQueue selectableMessageQueue = writeQueueSelector.selectQueue(ctx, request, requestHeader, message);
 
             String topic = requestHeader.getTopic();
             if (selectableMessageQueue == null) {
-                throw new ProxyException(Code.NOT_FOUND, "no writeable topic route for topic: " + topic);
+                throw new ProxyExceptionV2(Code.FORBIDDEN, "no writeable topic route for topic: " + topic);
             }
 
             // send message to broker.
@@ -112,31 +114,30 @@ public class ProducerService extends BaseService {
         return future;
     }
 
-    protected Pair<SendMessageRequestHeader, org.apache.rocketmq.common.message.Message> buildSendMessageRequest(
+    protected Pair<SendMessageRequestHeader, List<org.apache.rocketmq.common.message.Message>> buildSendMessageRequest(
         Context ctx, SendMessageRequest request) {
-        SendMessageRequestHeader requestHeader = GrpcConverter.buildSendMessageRequestHeader(request);
-        org.apache.rocketmq.common.message.Message message = GrpcConverter.buildMessage(request.getMessage());
+        String topic = GrpcConverterV2.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+        // use topic name as group
+        SendMessageRequestHeader requestHeader = GrpcConverterV2.buildSendMessageRequestHeader(request, topic);
+        List<org.apache.rocketmq.common.message.Message> message = GrpcConverterV2.buildMessage(request.getMessagesList(), topic);
         return Pair.of(requestHeader, message);
     }
 
     protected SendMessageResponse convertToSendMessageResponse(Context ctx, SendMessageRequest request, SendResult result) {
         if (result.getSendStatus() != SendStatus.SEND_OK) {
             return SendMessageResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "send message failed, sendStatus=" + result.getSendStatus()))
+                .setStatus(ResponseBuilderV2.buildStatus(Code.INTERNAL_SERVER_ERROR, "send message failed, sendStatus=" + result.getSendStatus()))
                 .build();
         }
 
-        if (StringUtils.isNotBlank(result.getTransactionId())) {
-            Message message = request.getMessage();
-            String group = GrpcConverter.wrapResourceWithNamespace(message.getSystemAttribute().getProducerGroup());
-            String topic = GrpcConverter.wrapResourceWithNamespace(message.getTopic());
-            this.connectorManager.getTransactionHeartbeatRegisterService().addProducerGroup(group, topic);
-        }
-
-        return SendMessageResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+        List<SendReceipt> sendReceiptList = Lists.newArrayList();
+        sendReceiptList.add(SendReceipt.newBuilder()
             .setMessageId(StringUtils.defaultString(result.getMsgId()))
-            .setTransactionId(StringUtils.defaultString(result.getTransactionId())) // use "" if transactionID is null.
+            .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
+            .build());
+        return SendMessageResponse.newBuilder()
+            .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
+            .addAllReceipts(sendReceiptList)
             .build();
     }
 
@@ -158,7 +159,7 @@ public class ProducerService extends BaseService {
                 .thenAccept(result ->
                     future.complete(
                         ForwardMessageToDeadLetterQueueResponse.newBuilder()
-                            .setCommon(ResponseBuilder.buildCommon(result.getCode(), result.getRemark()))
+                            .setStatus(ResponseBuilderV2.buildStatus(result.getCode(), result.getRemark()))
                             .build()
                     )
                 )
@@ -174,6 +175,6 @@ public class ProducerService extends BaseService {
 
     protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
-        return GrpcConverter.buildConsumerSendMsgBackRequestHeader(request);
+        return GrpcConverterV2.buildConsumerSendMsgBackRequestHeader(request);
     }
 }

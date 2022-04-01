@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.EndTransactionRequest;
-import apache.rocketmq.v1.EndTransactionResponse;
-import apache.rocketmq.v1.Message;
-import apache.rocketmq.v1.PollCommandResponse;
-import apache.rocketmq.v1.RecoverOrphanedTransactionCommand;
-import com.google.rpc.Code;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.EndTransactionRequest;
+import apache.rocketmq.v2.EndTransactionResponse;
+import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
+import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -34,8 +34,8 @@ import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -45,7 +45,7 @@ public class TransactionService extends BaseService implements TransactionStateC
     private final ChannelManager channelManager;
     private final ForwardProducer forwardProducer;
 
-    private volatile ResponseHook<TransactionStateCheckRequest, PollCommandResponse> checkTransactionStateHook;
+    private volatile ResponseHook<TransactionStateCheckRequest, TelemetryCommand> checkTransactionStateHook;
     private volatile ResponseHook<EndTransactionRequest, EndTransactionResponse> endTransactionHook;
 
     public TransactionService(ConnectorManager connectorManager, ChannelManager channelManager) {
@@ -67,8 +67,8 @@ public class TransactionService extends BaseService implements TransactionStateC
             GrpcClientChannel channel = GrpcClientChannel.getChannel(this.channelManager, checkData.getGroupId(), clientId);
 
             String transactionId = checkData.getTransactionId().getProxyTransactionId();
-            Message message = GrpcConverter.buildMessage(checkData.getMessageExt());
-            PollCommandResponse response = PollCommandResponse.newBuilder()
+            Message message = GrpcConverterV2.buildMessage(checkData.getMessageExt());
+            TelemetryCommand response = TelemetryCommand.newBuilder()
                 .setRecoverOrphanedTransactionCommand(
                     RecoverOrphanedTransactionCommand.newBuilder()
                         .setOrphanedTransactionalMessage(message)
@@ -101,7 +101,7 @@ public class TransactionService extends BaseService implements TransactionStateC
             EndTransactionRequestHeader requestHeader = this.toEndTransactionRequestHeader(ctx, request);
             this.forwardProducer.endTransaction(brokerAddr, requestHeader);
             future.complete(EndTransactionResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
                 .build());
         } catch (Throwable t) {
             future.completeExceptionally(t);
@@ -110,11 +110,13 @@ public class TransactionService extends BaseService implements TransactionStateC
     }
 
     protected EndTransactionRequestHeader toEndTransactionRequestHeader(Context ctx, EndTransactionRequest request) {
-        return GrpcConverter.buildEndTransactionRequestHeader(request);
+        String topic = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
+        // use topic name as producerGroup
+        return GrpcConverterV2.buildEndTransactionRequestHeader(request, topic);
     }
 
     public void setCheckTransactionStateHook(
-        ResponseHook<TransactionStateCheckRequest, PollCommandResponse> checkTransactionStateHook) {
+        ResponseHook<TransactionStateCheckRequest, TelemetryCommand> checkTransactionStateHook) {
         this.checkTransactionStateHook = checkTransactionStateHook;
     }
 

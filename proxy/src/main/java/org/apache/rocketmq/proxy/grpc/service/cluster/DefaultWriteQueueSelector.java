@@ -16,9 +16,11 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.SendMessageRequest;
+import apache.rocketmq.v2.SendMessageRequest;
 import io.grpc.Context;
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
@@ -40,16 +42,19 @@ public class DefaultWriteQueueSelector implements WriteQueueSelector {
         Context ctx,
         SendMessageRequest request,
         SendMessageRequestHeader requestHeader,
-        org.apache.rocketmq.common.message.Message message
+        List<Message> messageList
     ) {
         try {
             String topic = requestHeader.getTopic();
             String brokerName = "";
-            if (request.hasPartition()) {
-                brokerName = request.getPartition().getBroker().getName();
+            if (request.hasMessageQueue()) {
+                brokerName = request.getMessageQueue().getBroker().getName();
             }
             Integer queueId = requestHeader.getQueueId();
-            String shardingKey = message.getProperty(MessageConst.PROPERTY_SHARDING_KEY);
+            String shardingKey = null;
+            if (messageList.size() == 1) {
+                shardingKey = messageList.get(0).getProperty(MessageConst.PROPERTY_SHARDING_KEY);
+            }
             SelectableMessageQueue targetMessageQueue;
             if (StringUtils.isNotBlank(brokerName) && queueId != null) {
                 // Grpc client sendSelect situation

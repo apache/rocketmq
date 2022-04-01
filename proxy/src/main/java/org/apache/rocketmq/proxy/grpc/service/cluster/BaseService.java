@@ -16,15 +16,15 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.FilterExpression;
-import apache.rocketmq.v1.Resource;
-import com.google.rpc.Code;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.FilterExpression;
+import apache.rocketmq.v2.Resource;
 import io.grpc.Context;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.adapter.ProxyException;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
+import org.apache.rocketmq.proxy.grpc.adapter.ProxyExceptionV2;
 
 public class BaseService {
 
@@ -37,25 +37,25 @@ public class BaseService {
     protected ReceiptHandle resolveReceiptHandle(Context ctx, String receiptHandleStr) {
         ReceiptHandle receiptHandle = ReceiptHandle.decode(receiptHandleStr);
         if (receiptHandle.isExpired()) {
-            throw new ProxyException(Code.INVALID_ARGUMENT, "handle has expired");
+            throw new ProxyExceptionV2(Code.RECEIPT_HANDLE_EXPIRED, "handle has expired");
         }
         return receiptHandle;
     }
 
     protected String getBrokerAddr(Context ctx, String brokerName) throws Exception {
         if (StringUtils.isBlank(brokerName)) {
-            throw new ProxyException(Code.INVALID_ARGUMENT, "broker name is empty");
+            throw new ProxyExceptionV2(Code.INVALID_ARGUMENT, "broker name is empty");
         }
         String addr = this.connectorManager.getTopicRouteCache().getBrokerAddr(brokerName);
         if (StringUtils.isBlank(addr)) {
-            throw new ProxyException(Code.NOT_FOUND, brokerName + " not exist");
+            throw new ProxyExceptionV2(Code.NOT_FOUND, brokerName + " not exist");
         }
         return addr;
     }
 
     protected void checkSubscriptionData(Resource topic, FilterExpression filterExpression) {
         // for checking filterExpression.
-        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-        GrpcConverter.buildSubscriptionData(topicName, filterExpression);
+        String topicName = GrpcConverterV2.wrapResourceWithNamespace(topic);
+        GrpcConverterV2.buildSubscriptionData(topicName, filterExpression);
     }
 }

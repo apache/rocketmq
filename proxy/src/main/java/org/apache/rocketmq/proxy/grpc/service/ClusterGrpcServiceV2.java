@@ -17,41 +17,31 @@
 
 package org.apache.rocketmq.proxy.grpc.service;
 
-import apache.rocketmq.v1.AckMessageRequest;
-import apache.rocketmq.v1.AckMessageResponse;
-import apache.rocketmq.v1.ChangeInvisibleDurationRequest;
-import apache.rocketmq.v1.ChangeInvisibleDurationResponse;
-import apache.rocketmq.v1.EndTransactionRequest;
-import apache.rocketmq.v1.EndTransactionResponse;
-import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueRequest;
-import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueResponse;
-import apache.rocketmq.v1.HealthCheckRequest;
-import apache.rocketmq.v1.HealthCheckResponse;
-import apache.rocketmq.v1.HeartbeatRequest;
-import apache.rocketmq.v1.HeartbeatResponse;
-import apache.rocketmq.v1.NackMessageRequest;
-import apache.rocketmq.v1.NackMessageResponse;
-import apache.rocketmq.v1.NotifyClientTerminationRequest;
-import apache.rocketmq.v1.NotifyClientTerminationResponse;
-import apache.rocketmq.v1.PollCommandRequest;
-import apache.rocketmq.v1.PollCommandResponse;
-import apache.rocketmq.v1.PullMessageRequest;
-import apache.rocketmq.v1.PullMessageResponse;
-import apache.rocketmq.v1.QueryAssignmentRequest;
-import apache.rocketmq.v1.QueryAssignmentResponse;
-import apache.rocketmq.v1.QueryOffsetRequest;
-import apache.rocketmq.v1.QueryOffsetResponse;
-import apache.rocketmq.v1.QueryRouteRequest;
-import apache.rocketmq.v1.QueryRouteResponse;
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.ReceiveMessageResponse;
-import apache.rocketmq.v1.ReportMessageConsumptionResultRequest;
-import apache.rocketmq.v1.ReportMessageConsumptionResultResponse;
-import apache.rocketmq.v1.ReportThreadStackTraceRequest;
-import apache.rocketmq.v1.ReportThreadStackTraceResponse;
-import apache.rocketmq.v1.SendMessageRequest;
-import apache.rocketmq.v1.SendMessageResponse;
-import com.google.rpc.Code;
+import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
+import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
+import apache.rocketmq.v2.EndTransactionRequest;
+import apache.rocketmq.v2.EndTransactionResponse;
+import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
+import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.HeartbeatRequest;
+import apache.rocketmq.v2.HeartbeatResponse;
+import apache.rocketmq.v2.NotifyClientTerminationRequest;
+import apache.rocketmq.v2.NotifyClientTerminationResponse;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
+import apache.rocketmq.v2.QueryAssignmentRequest;
+import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
+import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.QueryRouteResponse;
+import apache.rocketmq.v2.ReceiveMessageRequest;
+import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.SendMessageRequest;
+import apache.rocketmq.v2.SendMessageResponse;
+import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -66,9 +56,8 @@ import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequ
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.grpc.adapter.PollResponseManager;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.service.cluster.ForwardClientService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ConsumerService;
+import org.apache.rocketmq.proxy.grpc.service.cluster.ForwardClientService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.PullMessageService;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
@@ -76,7 +65,7 @@ import org.apache.rocketmq.proxy.grpc.service.cluster.TransactionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
+public class ClusterGrpcServiceV2 extends AbstractStartAndShutdown implements GrpcForwardServiceV2 {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
@@ -92,7 +81,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private final TransactionService transactionService;
     private final PollResponseManager pollCommandResponseManager;
 
-    public ClusterGrpcService() {
+    public ClusterGrpcServiceV2() {
         this.channelManager = new ChannelManager();
         this.pollCommandResponseManager = new PollResponseManager();
         this.connectorManager = new ConnectorManager(new GrpcTransactionStateChecker());
@@ -114,21 +103,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
-        this.clientService.heartbeat(ctx, request);
-        return CompletableFuture.completedFuture(
-            HeartbeatResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-                .build()
-        );
-    }
-
-    @Override
-    public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
-        return CompletableFuture.completedFuture(
-            HealthCheckResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-                .build()
-        );
+        return null;
     }
 
     @Override
@@ -143,70 +118,42 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        return this.receiveMessageService.receiveMessage(ctx, request);
+        return null;
     }
 
-    @Override
-    public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
-        return this.receiveMessageService.ackMessage(ctx, request);
-    }
-
-    @Override
-    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
-        return this.receiveMessageService.nackMessage(ctx, request);
+    @Override public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
+        return null;
     }
 
     @Override
     public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
-                                                                                                      ForwardMessageToDeadLetterQueueRequest request) {
+        ForwardMessageToDeadLetterQueueRequest request) {
         return null;
     }
 
     @Override
     public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
-        return this.transactionService.endTransaction(ctx, request);
-    }
-
-    @Override
-    public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
-        return this.pullMessageService.queryOffset(ctx, request);
-    }
-
-    @Override
-    public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
-        return this.pullMessageService.pullMessage(ctx, request);
-    }
-
-    @Override
-    public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
-        return this.clientService.pollCommand(ctx, request);
-    }
-
-    @Override
-    public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
-        ReportThreadStackTraceRequest request) {
         return null;
     }
 
-    @Override
-    public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
-                                                                                                    ReportMessageConsumptionResultRequest request) {
+    @Override public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
         return null;
     }
 
-    @Override
-    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    @Override public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
+        return null;
+    }
+
+    @Override public CompletableFuture<TelemetryCommand> telemetry(Context ctx, TelemetryCommand request) {
+        return null;
+    }
+
+    @Override public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request) {
-        this.clientService.unregister(ctx, request);
-        return CompletableFuture.completedFuture(
-            NotifyClientTerminationResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
-                .build()
-        );
+        return null;
     }
 
-    @Override
-    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+    @Override public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         return null;
     }

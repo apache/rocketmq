@@ -65,4 +65,7 @@ public class InterceptorConstants {
 
     public static final Metadata.Key<String> SESSION_TOKEN
         = Metadata.Key.of("x-mq-session-token", Metadata.ASCII_STRING_MARSHALLER);
+
+    public static final Metadata.Key<String> CLIENT_ID
+        = Metadata.Key.of("x-mq-client-id", Metadata.ASCII_STRING_MARSHALLER);
 }
