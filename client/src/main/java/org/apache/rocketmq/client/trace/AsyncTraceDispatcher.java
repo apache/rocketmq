@@ -58,6 +58,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private final static AtomicInteger COUNTER = new AtomicInteger();
     private final int queueSize;
     private final int batchSize;
+    private final long maxWaitTimeMil;
     private final int maxMsgSize;
     private final DefaultMQProducer traceProducer;
     private final ThreadPoolExecutor traceExecutor;
@@ -82,6 +83,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         // queueSize is greater than or equal to the n power of 2 of value
         this.queueSize = 2048;
         this.batchSize = 100;
+        this.maxWaitTimeMil = 500L;
         this.maxMsgSize = 128000;
         this.discardCount = new AtomicLong(0L);
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
@@ -245,16 +247,21 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             while (!stopped) {
                 List<TraceContext> contexts = new ArrayList<TraceContext>(batchSize);
                 synchronized (traceContextQueue) {
+
+                    long endTime = System.currentTimeMillis() + maxWaitTimeMil;
+
                     for (int i = 0; i < batchSize; i++) {
                         TraceContext context = null;
                         try {
                             //get trace data element from blocking Queue - traceContextQueue
-                            context = traceContextQueue.poll(5, TimeUnit.MILLISECONDS);
+                            context = traceContextQueue.poll(endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                         } catch (InterruptedException e) {
                         }
                         if (context != null) {
                             contexts.add(context);
-                        } else {
+                        }
+
+                        if (System.currentTimeMillis() >= endTime) {
                             break;
                         }
                     }
