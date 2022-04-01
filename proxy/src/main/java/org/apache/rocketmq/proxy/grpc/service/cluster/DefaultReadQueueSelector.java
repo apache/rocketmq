@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.ReceiveMessageRequest;
+import apache.rocketmq.v2.ReceiveMessageRequest;
 import io.grpc.Context;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
@@ -37,8 +37,8 @@ public class DefaultReadQueueSelector implements ReadQueueSelector {
         try {
             String topic = requestHeader.getTopic();
 
-            if (request.hasPartition() && request.getPartition().hasBroker()) {
-                String brokerName = request.getPartition().getBroker().getName();
+            if (request.hasMessageQueue() && request.getMessageQueue().hasBroker()) {
+                String brokerName = request.getMessageQueue().getBroker().getName();
                 if (StringUtils.isNotBlank(brokerName)) {
                     messageQueue = topicRouteCache.selectReadBrokerByName(topic, brokerName);
                 }

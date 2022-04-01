@@ -16,14 +16,14 @@
  */
 package org.apache.rocketmq.proxy.grpc.service.cluster;
 
-import apache.rocketmq.v1.Message;
-import apache.rocketmq.v1.Partition;
-import apache.rocketmq.v1.PullMessageRequest;
-import apache.rocketmq.v1.PullMessageResponse;
-import apache.rocketmq.v1.QueryOffsetRequest;
-import apache.rocketmq.v1.QueryOffsetResponse;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.MessageQueue;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
 import com.google.protobuf.util.Timestamps;
-import com.google.rpc.Code;
 import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -36,8 +36,8 @@ import org.apache.rocketmq.proxy.common.utils.FilterUtils;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.DefaultForwardClient;
 import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.proxy.grpc.adapter.ResponseHook;
 
 public class PullMessageService extends BaseService {
@@ -62,8 +62,8 @@ public class PullMessageService extends BaseService {
         });
 
         try {
-            Partition partition = request.getPartition();
-            String topic = GrpcConverter.wrapResourceWithNamespace(partition.getTopic());
+            MessageQueue partition = request.getMessageQueue();
+            String topic = GrpcConverterV2.wrapResourceWithNamespace(partition.getTopic());
             String brokerName = partition.getBroker().getName();
             int queueId = partition.getId();
 
@@ -83,7 +83,7 @@ public class PullMessageService extends BaseService {
             offsetFuture
                 .thenAccept(result -> future.complete(
                     QueryOffsetResponse.newBuilder()
-                        .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+                        .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
                         .setOffset(result)
                         .build()))
                 .exceptionally(throwable -> {
@@ -107,7 +107,7 @@ public class PullMessageService extends BaseService {
         try {
             PullMessageRequestHeader requestHeader = this.buildPullMessageRequestHeader(ctx, request);
 
-            String brokerName = request.getPartition().getBroker().getName();
+            String brokerName = request.getMessageQueue().getBroker().getName();
             String brokerAddr = this.getBrokerAddr(ctx, brokerName);
 
             CompletableFuture<PullResult> pullResultFuture = this.readConsumer.pullMessage(brokerAddr, requestHeader);
@@ -131,25 +131,25 @@ public class PullMessageService extends BaseService {
     }
 
     protected PullMessageRequestHeader buildPullMessageRequestHeader(Context ctx, PullMessageRequest request) {
-        checkSubscriptionData(request.getPartition().getTopic(), request.getFilterExpression());
-        return GrpcConverter.buildPullMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx));
+        checkSubscriptionData(request.getMessageQueue().getTopic(), request.getFilterExpression());
+        return GrpcConverterV2.buildPullMessageRequestHeader(request, GrpcConverterV2.buildPollTimeFromContext(ctx));
     }
 
     protected PullMessageResponse convertToPullMessageResponse(Context ctx, PullMessageRequest request, PullResult result) {
         PullMessageResponse.Builder responseBuilder = PullMessageResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.OK, Code.OK.name()))
+            .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
             .setMinOffset(result.getMinOffset())
             .setMaxOffset(result.getMaxOffset())
             .setNextOffset(result.getNextBeginOffset());
 
-        SubscriptionData subscriptionData =  GrpcConverter.buildSubscriptionData(
-            GrpcConverter.wrapResourceWithNamespace(request.getPartition().getTopic()), request.getFilterExpression());
+        SubscriptionData subscriptionData =  GrpcConverterV2.buildSubscriptionData(
+            GrpcConverterV2.wrapResourceWithNamespace(request.getMessageQueue().getTopic()), request.getFilterExpression());
 
         PullStatus status = result.getPullStatus();
         if (status.equals(PullStatus.FOUND)) {
             List<Message> messageList = result.getMsgFoundList().stream()
                 .filter(msg -> FilterUtils.isTagMatched(subscriptionData.getTagsSet(), msg.getTags())) // only return tag matched messages.
-                .map(GrpcConverter::buildMessage)
+                .map(GrpcConverterV2::buildMessage)
                 .collect(Collectors.toList());
 
             return responseBuilder.addAllMessages(messageList).build();

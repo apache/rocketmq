@@ -14,14 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.service.cluster;
+package org.apache.rocketmq.proxy.grpc.adapter;
 
-import apache.rocketmq.v2.ReceiveMessageRequest;
-import io.grpc.Context;
-import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
-import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
+import apache.rocketmq.v2.Code;
 
-public interface ReadQueueSelector {
+public class ProxyExceptionV2 extends RuntimeException {
 
-    SelectableMessageQueue select(Context ctx, ReceiveMessageRequest request, PopMessageRequestHeader requestHeader);
+    private final Code code;
+
+    public ProxyExceptionV2(Code code, String errorMessage) {
+        super(errorMessage);
+        this.code = code;
+    }
+
+    public ProxyExceptionV2(Code code, String message, Throwable cause) {
+        super(message, cause);
+        this.code = code;
+    }
+
+    public Code getCode() {
+        return code;
+    }
 }
