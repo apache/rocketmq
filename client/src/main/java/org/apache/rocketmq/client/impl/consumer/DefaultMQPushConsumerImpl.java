@@ -1097,7 +1097,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.mQClientFactory = mQClientFactory;
     }
 
-    public ServiceState getServiceState() {
+    public synchronized ServiceState getServiceState() {
         return serviceState;
     }
 
