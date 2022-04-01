@@ -18,6 +18,8 @@
 package org.apache.rocketmq.proxy.grpc;
 
 import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.NackMessageRequest;
+import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
@@ -133,6 +135,19 @@ public class GrpcMessagingProcessorV2 extends MessagingServiceGrpc.MessagingServ
                 ResponseWriter.write(
                     responseObserver,
                     ReceiveMessageResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                );
+                return null;
+            });
+    }
+
+    @Override
+    public void nackMessage(NackMessageRequest request, StreamObserver<NackMessageResponse> responseObserver) {
+        CompletableFuture<NackMessageResponse> future = grpcForwardService.nackMessage(Context.current(), request);
+        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+            .exceptionally(e -> {
+                ResponseWriter.write(
+                    responseObserver,
+                    NackMessageResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
                 );
                 return null;
             });

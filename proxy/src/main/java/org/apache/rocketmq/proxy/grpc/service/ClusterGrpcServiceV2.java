@@ -27,6 +27,8 @@ import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
+import apache.rocketmq.v2.NackMessageRequest;
+import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.PullMessageRequest;
@@ -74,7 +76,7 @@ public class ClusterGrpcServiceV2 extends AbstractStartAndShutdown implements Gr
     private final ChannelManager channelManager;
     private final ConnectorManager connectorManager;
     private final ProducerService producerService;
-    private final ConsumerService receiveMessageService;
+    private final ConsumerService consumerService;
     private final RouteService routeService;
     private final ForwardClientService clientService;
     private final PullMessageService pullMessageService;
@@ -85,7 +87,7 @@ public class ClusterGrpcServiceV2 extends AbstractStartAndShutdown implements Gr
         this.channelManager = new ChannelManager();
         this.pollCommandResponseManager = new PollResponseManager();
         this.connectorManager = new ConnectorManager(new GrpcTransactionStateChecker());
-        this.receiveMessageService = new ConsumerService(connectorManager);
+        this.consumerService = new ConsumerService(connectorManager);
         this.producerService = new ProducerService(connectorManager);
         this.routeService = new RouteService(ProxyMode.CLUSTER, connectorManager);
         this.clientService = new ForwardClientService(connectorManager, scheduledExecutorService, channelManager, pollCommandResponseManager);
@@ -98,7 +100,7 @@ public class ClusterGrpcServiceV2 extends AbstractStartAndShutdown implements Gr
 
     @Override
     public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
-        return null;
+        return routeService.queryRoute(ctx, request);
     }
 
     @Override
@@ -108,52 +110,63 @@ public class ClusterGrpcServiceV2 extends AbstractStartAndShutdown implements Gr
 
     @Override
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
-        return null;
+        return producerService.sendMessage(ctx, request);
     }
 
     @Override
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
-        return null;
+        return routeService.queryAssignment(ctx, request);
     }
 
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        return null;
+        return consumerService.receiveMessage(ctx, request);
     }
 
-    @Override public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
-        return null;
+    @Override
+    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
+        return consumerService.nackMessage(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
+        return consumerService.ackMessage(ctx, request);
     }
 
     @Override
     public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
-        return null;
+        return producerService.forwardMessageToDeadLetterQueue(ctx, request);
     }
 
     @Override
     public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
+        return transactionService.endTransaction(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
+        return pullMessageService.queryOffset(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
+        return pullMessageService.pullMessage(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<TelemetryCommand> telemetry(Context ctx, TelemetryCommand request) {
         return null;
     }
 
-    @Override public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
-        return null;
-    }
-
-    @Override public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
-        return null;
-    }
-
-    @Override public CompletableFuture<TelemetryCommand> telemetry(Context ctx, TelemetryCommand request) {
-        return null;
-    }
-
-    @Override public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    @Override
+    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request) {
         return null;
     }
 
-    @Override public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+    @Override
+    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         return null;
     }
