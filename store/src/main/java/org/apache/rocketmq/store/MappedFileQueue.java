@@ -356,7 +356,7 @@ public class MappedFileQueue {
         if (null == mfs)
             return 0;
 
-        int mfsLength = mfs.length - 1;
+        int mfsLength = mfs.length;
         int deleteCount = 0;
         List<MappedFile> files = new ArrayList<MappedFile>();
         if (null != mfs) {
@@ -372,7 +372,7 @@ public class MappedFileQueue {
                             break;
                         }
 
-                        if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
+                        if (deleteFilesInterval > 0 && i < mfsLength - 1) {
                             try {
                                 Thread.sleep(deleteFilesInterval);
                             } catch (InterruptedException e) {
@@ -400,7 +400,7 @@ public class MappedFileQueue {
         int deleteCount = 0;
         if (null != mfs) {
 
-            int mfsLength = mfs.length - 1;
+            int mfsLength = mfs.length;
 
             for (int i = 0; i < mfsLength; i++) {
                 boolean destroy;
