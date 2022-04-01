@@ -101,7 +101,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 TimeUnit.MILLISECONDS, //
                 this.appenderQueue, //
                 new ThreadFactoryImpl("MQTraceSendThread_"));
-        this.traceProducer = this.initTraceProducer(rpcHook);
+        this.traceProducer = initTraceProducer(rpcHook);
     }
 
     public AccessChannel getAccessChannel() {
