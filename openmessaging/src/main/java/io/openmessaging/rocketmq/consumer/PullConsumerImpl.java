@@ -47,7 +47,7 @@ public class PullConsumerImpl implements PullConsumer {
     private final LocalMessageCache localMessageCache;
     private final ClientConfig clientConfig;
 
-    private final static InternalLogger log = ClientLogger.getLog();
+    private static final InternalLogger log = ClientLogger.getLog();
 
     public PullConsumerImpl(final KeyValue properties) {
         this.properties = properties;

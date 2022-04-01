@@ -48,7 +48,7 @@ public class BatchPutMessageTest {
 
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    public static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
     @Before
     public void init() throws Exception {

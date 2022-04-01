@@ -25,12 +25,12 @@ public class Level implements Serializable {
     transient String levelStr;
     transient int syslogEquivalent;
 
-    public final static int OFF_INT = Integer.MAX_VALUE;
-    public final static int ERROR_INT = 40000;
-    public final static int WARN_INT = 30000;
-    public final static int INFO_INT = 20000;
-    public final static int DEBUG_INT = 10000;
-    public final static int ALL_INT = Integer.MIN_VALUE;
+    public static final int OFF_INT = Integer.MAX_VALUE;
+    public static final int ERROR_INT = 40000;
+    public static final int WARN_INT = 30000;
+    public static final int INFO_INT = 20000;
+    public static final int DEBUG_INT = 10000;
+    public static final int ALL_INT = Integer.MIN_VALUE;
 
 
     private static final String ALL_NAME = "ALL";
@@ -45,17 +45,17 @@ public class Level implements Serializable {
 
     private static final String OFF_NAME = "OFF";
 
-    final static public Level OFF = new Level(OFF_INT, OFF_NAME, 0);
+    static final public Level OFF = new Level(OFF_INT, OFF_NAME, 0);
 
-    final static public Level ERROR = new Level(ERROR_INT, ERROR_NAME, 3);
+    static final public Level ERROR = new Level(ERROR_INT, ERROR_NAME, 3);
 
-    final static public Level WARN = new Level(WARN_INT, WARN_NAME, 4);
+    static final public Level WARN = new Level(WARN_INT, WARN_NAME, 4);
 
-    final static public Level INFO = new Level(INFO_INT, INFO_NAME, 6);
+    static final public Level INFO = new Level(INFO_INT, INFO_NAME, 6);
 
-    final static public Level DEBUG = new Level(DEBUG_INT, DEBUG_NAME, 7);
+    static final public Level DEBUG = new Level(DEBUG_INT, DEBUG_NAME, 7);
 
-    final static public Level ALL = new Level(ALL_INT, ALL_NAME, 7);
+    static final public Level ALL = new Level(ALL_INT, ALL_NAME, 7);
 
     static final long serialVersionUID = 3491141966387921974L;
 
