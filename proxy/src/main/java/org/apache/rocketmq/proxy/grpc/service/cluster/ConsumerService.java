@@ -18,10 +18,10 @@ package org.apache.rocketmq.proxy.grpc.service.cluster;
 
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
-import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
-import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.NackMessageRequest;
+import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Settings;
@@ -68,7 +68,7 @@ public class ConsumerService extends BaseService {
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
     private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
-    private volatile ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> changeInvisibleDurationMessageHook;
+    private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageResponseResponseHook;
 
     public ConsumerService(ConnectorManager connectorManager) {
         super(connectorManager);
@@ -238,11 +238,11 @@ public class ConsumerService extends BaseService {
             .build();
     }
 
-    public CompletableFuture<ChangeInvisibleDurationResponse> nackMessage(Context ctx, ChangeInvisibleDurationRequest request) {
-        CompletableFuture<ChangeInvisibleDurationResponse> future = new CompletableFuture<>();
+    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
+        CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
-            if (changeInvisibleDurationMessageHook != null) {
-                changeInvisibleDurationMessageHook.beforeResponse(ctx, request, response, throwable);
+            if (nackMessageResponseResponseHook != null) {
+                nackMessageResponseResponseHook.beforeResponse(ctx, request, response, throwable);
             }
         });
         try {
@@ -250,10 +250,11 @@ public class ConsumerService extends BaseService {
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
             Settings settings = GrpcClientManager.getClientSettings(ctx);
-            if (request.getDeliveryAttempt() >= request.getMaxDeliveryAttempts()) {
+            int maxDeliveryAttempts = settings.getSubscription().getDeadLetterPolicy().getMaxDeliveryAttempts();
+            if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
                 CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
                     brokerAddr,
-                    this.buildConsumerSendMsgBackToDLQRequestHeader(ctx, request)
+                    this.buildConsumerSendMsgBackToDLQRequestHeader(ctx, request, maxDeliveryAttempts)
                 );
 
                 resultFuture
@@ -290,28 +291,29 @@ public class ConsumerService extends BaseService {
         return future;
     }
 
-    protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx, ChangeInvisibleDurationRequest request) {
+    protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
         return GrpcConverterV2.buildChangeInvisibleTimeRequestHeader(request, this.delayPolicy);
     }
 
-    protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx, ChangeInvisibleDurationRequest request) {
-        return GrpcConverterV2.buildConsumerSendMsgBackToDLQRequestHeader(request);
+    protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx, NackMessageRequest request,
+        int maxReconsumeTimes) {
+        return GrpcConverterV2.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
     }
 
     protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, AckResult ackResult) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
             return NackMessageResponse.newBuilder()
-                .setCommon(ResponseBuilderV2.buildCommon(Code.OK, Code.OK.name()))
+                .setStatus(ResponseBuilderV2.buildStatus(Code.OK, Code.OK.name()))
                 .build();
         }
         return NackMessageResponse.newBuilder()
-            .setCommon(ResponseBuilderV2.buildCommon(Code.INTERNAL, "nack failed: status is abnormal"))
+            .setStatus(ResponseBuilderV2.buildStatus(Code.INTERNAL_SERVER_ERROR, "nack failed: status is abnormal"))
             .build();
     }
 
     protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, RemotingCommand sendMsgBackToDLQResult) {
         return NackMessageResponse.newBuilder()
-            .setCommon(ResponseBuilderV2.buildCommon(sendMsgBackToDLQResult.getCode(), sendMsgBackToDLQResult.getRemark()))
+            .setStatus(ResponseBuilderV2.buildStatus(sendMsgBackToDLQResult.getCode(), sendMsgBackToDLQResult.getRemark()))
             .build();
     }
 

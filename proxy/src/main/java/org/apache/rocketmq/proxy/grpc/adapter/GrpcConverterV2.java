@@ -30,6 +30,7 @@ import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
+import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.PullMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
@@ -178,8 +179,8 @@ public class GrpcConverterV2 {
         return ackMessageRequestHeader;
     }
 
-    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(
-        ChangeInvisibleDurationRequest request) {
+    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(NackMessageRequest request,
+        DelayPolicy delayPolicy) {
         String groupName = GrpcConverterV2.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
         ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
@@ -190,8 +191,24 @@ public class GrpcConverterV2 {
         changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
         changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
-        changeInvisibleTimeRequestHeader.setInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
+        changeInvisibleTimeRequestHeader.setInvisibleTime(
+            delayPolicy.getDelayInterval(ConfigurationManager.getProxyConfig().getRetryDelayLevelDelta() + request.getDeliveryAttempt()));
         return changeInvisibleTimeRequestHeader;
+    }
+
+    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(NackMessageRequest request, int maxReconsumeTimes) {
+        String groupName = GrpcConverterV2.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
+        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
+
+        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
+        consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());
+        consumerSendMsgBackRequestHeader.setGroup(groupName);
+        consumerSendMsgBackRequestHeader.setDelayLevel(-1);
+        consumerSendMsgBackRequestHeader.setOriginMsgId(request.getMessageId());
+        consumerSendMsgBackRequestHeader.setOriginTopic(handle.getRealTopic(topicName, groupName));
+        consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(maxReconsumeTimes);
+        return consumerSendMsgBackRequestHeader;
     }
 
     public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(
@@ -207,22 +224,6 @@ public class GrpcConverterV2 {
         consumerSendMsgBackRequestHeader.setOriginMsgId(request.getMessageId());
         consumerSendMsgBackRequestHeader.setOriginTopic(handle.getRealTopic(topicName, groupName));
         consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(request.getMaxDeliveryAttempts());
-        return consumerSendMsgBackRequestHeader;
-    }
-
-    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(
-        ChangeInvisibleDurationRequest request, String messageId, int maxReconsumeTimes) {
-        String groupName = GrpcConverterV2.wrapResourceWithNamespace(request.getGroup());
-        String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
-        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
-
-        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
-        consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());
-        consumerSendMsgBackRequestHeader.setGroup(groupName);
-        consumerSendMsgBackRequestHeader.setDelayLevel(-1);
-        consumerSendMsgBackRequestHeader.setOriginMsgId(messageId);
-        consumerSendMsgBackRequestHeader.setOriginTopic(handle.getRealTopic(topicName, groupName));
-        consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(maxReconsumeTimes);
         return consumerSendMsgBackRequestHeader;
     }
 

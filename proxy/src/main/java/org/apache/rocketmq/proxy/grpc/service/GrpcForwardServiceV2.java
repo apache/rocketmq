@@ -27,6 +27,8 @@ import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
+import apache.rocketmq.v2.NackMessageRequest;
+import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.PullMessageRequest;
@@ -57,6 +59,8 @@ public interface GrpcForwardServiceV2 extends StartAndShutdown {
     CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request);
 
     CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request);
+
+    CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request);
 
     CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request);
 
