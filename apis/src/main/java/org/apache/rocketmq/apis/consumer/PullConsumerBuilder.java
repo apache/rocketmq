@@ -40,12 +40,19 @@ public interface PullConsumerBuilder {
     PullConsumerBuilder setConsumerGroup(String consumerGroup);
 
     /**
+     * Set the subscriptionRebalanceListener for consumer. The listener only worked in subscription mode.
+     * @param rebalanceListener the user-defined callback interface.
+     * @return the consumer builder instance.
+     */
+    PullConsumerBuilder setSubscriptionRebalanceListener(PullConsumer.RebalanceListener rebalanceListener);
+
+    /**
      * Enable manual messageQueue assignment consumption mode.
      * <p> The default mode is subscription mode which manage the rebalance operation triggered when group membership or cluster and topic metadata change.
      * When pull consumer manual queue assignment mode, must invoke assign method before pull message.
      * @return the consumer builder instance.
      */
-    PushConsumerBuilder enableManualAssignment();
+    PullConsumerBuilder enableManualAssignment();
 
     /**
      * Set the max await time when receive message from server.
@@ -53,7 +60,14 @@ public interface PullConsumerBuilder {
      * @param awaitDuration The maximum time to block when no message available.
      * @return the consumer builder instance.
      */
-    PushConsumerBuilder setAwaitDuration(Duration awaitDuration);
+    PullConsumerBuilder setAwaitDuration(Duration awaitDuration);
+
+    /**
+     * Set the max batch size for pull api.
+     * @param maxPullSize
+     * @return the consumer builder instance.
+     */
+    PullConsumerBuilder setMaxPullSize(int maxPullSize);
 
     /**
      * Finalize the build of the {@link PullConsumer} instance and start.

@@ -35,7 +35,7 @@ import org.apache.rocketmq.apis.message.MessageView;
  * If you want fully control the message consumption operation by yourself like scan by offset or reconsume repeatedly,
  * pull consumer should be your first consideration.
  *
- * <p>Pull consumer support two load balance mode. First is subscription mode, which full manage the rebalance
+ * <p>Pull consumer support two load balance modes. First is subscription mode, which full manage the rebalance
  * operation triggered when group membership or cluster and topic metadata change.Another mode is manual assignment mode,which manage the load balance by yourself.
  *
  * <p> Pull consumer divide message consumption to 3 parts.
@@ -45,6 +45,31 @@ import org.apache.rocketmq.apis.message.MessageView;
  * <p> If there is a consumption error, consumer just call seek api to reset the offset for reconsume message again.
  */
 public interface PullConsumer extends Closeable {
+    /**
+     * A callback interface be triggered by set of messageQueues assigned to the consumer changes.
+     * User can that implement custom actions like init metadata or persist states.
+     *
+     * <p>This callback interface only worked in subscription mode which full manage the rebalance operation
+     * triggered when group membership or cluster and topic metadata change.
+     *
+     * <p>If the consumer directly assigns messageQueues, this callback will never be triggered.
+     */
+    interface RebalanceListener {
+        /**
+         * The callback method be called after the last pull action to removed messageQueues.
+         * You can implement some persist state action like commit Offset to your custom persistStore.
+         * @param messageQueues
+         */
+        void onMessageQueuesRevoked(Collection<MessageQueue> messageQueues);
+
+        /**
+         * The callback method be called before messageQueues added to pull action.
+         * You can implement some init action like getPullOffset before next pull action.
+         * @param messageQueues
+         */
+        void onMessageQueuesAssigned(Collection<MessageQueue> messageQueues);
+    }
+
     /**
      * Get metadata about the message queues for a given topic. This method will issue a remote call to the server if it
      * does not already have any metadata about the given topic.
@@ -100,10 +125,9 @@ public interface PullConsumer extends Closeable {
      * <p> This method returns immediately if there are messages available.
      * Otherwise, it will await the passed timeout. If the timeout expires, an empty map will be returned.
      * An error occurs if you do not subscribe or assign messageQueues before pulling for data.
-     * @param maxMessageNum max message num when server returns.
      * @return map of messageQueue to messageViews.
      */
-    Map<MessageQueue, Collection<MessageView>> pull(int maxMessageNum) throws ClientException;
+    Map<MessageQueue, Collection<MessageView>> pull() throws ClientException;
 
     /**
      * Pull messages for the topics specified by subscribe or assign api asynchronously.
@@ -111,10 +135,9 @@ public interface PullConsumer extends Closeable {
      * <p> This method returns immediately if there are messages available.
      * Otherwise, it will await the passed timeout. If the timeout expires, an empty map will be returned.
      * An error occurs if you do not subscribe or assign messageQueues before pulling for data.
-     * @param maxMessageNum max message num when server returns.
      * @return future of messageViews.
      */
-    CompletableFuture<Map<MessageQueue, Collection<MessageView>>> pullAsync(int maxMessageNum) throws ClientException;
+    CompletableFuture<Map<MessageQueue, Collection<MessageView>>> pullAsync();
 
     /**
      * Commit offsets synchronously which returned by the last pull api for all the subscribed topic and messageQueues.
@@ -130,21 +153,19 @@ public interface PullConsumer extends Closeable {
      * <p> This offsets meta maintained by kafka, which used for rebalance processing or next startup.
      * If you store the offsets in your own storage, you may need call seek api before pull and no need to call commit.
      */
-    CompletableFuture<Void> commitAsync() throws ClientException;
+    CompletableFuture<Void> commitAsync();
 
     /**
      * Commit specified offset for the specified messageQueue synchronously.
-     * @param messageQueue the specified messageQueue to commit offset
-     * @param committedOffset the specified offset commit to server
+     * @param committedOffsetData the Map for specified messageQueue to commit offset
      */
-    void commit(MessageQueue messageQueue, long committedOffset) throws ClientException;
+    void commit(Map<MessageQueue,Long> committedOffsetData) throws ClientException;
 
     /**
      * Commit specified offset for the specified messageQueue asynchronously.
-     * @param messageQueue the specified messageQueue to commit offset
-     * @param committedOffset the specified offset commit to server
+     * @param committedOffsetData the map for specified messageQueue to commit offset
      */
-    CompletableFuture<Void> commitAsync(MessageQueue messageQueue, long committedOffset) throws ClientException;
+    CompletableFuture<Void> commitAsync(Map<MessageQueue,Long> committedOffsetData);
 
     /**
      * Overrides the fetch offsets that the consumer will use on the next pull operation.
@@ -177,7 +198,7 @@ public interface PullConsumer extends Closeable {
      *
      * @param messageQueue the message queue to seek for.
      * @param timestamp
-     * @return
+     * @return offset of target timestamp.
      */
     long seekToTimestamp(MessageQueue messageQueue, long timestamp) throws ClientException;
 
