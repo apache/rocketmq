@@ -166,4 +166,4 @@ sh mqadmin getAclConfig -n 192.168.1.2:9876 -c DefaultCluster
 | b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
 
 **特别注意**开启Acl鉴权认证后导致Master/Slave和Dledger模式下Broker同步数据异常的问题，
-在社区[4.5.1]版本中已经修复，具体的PR链接为：https://github.com/apache/rocketmq/pull/1149；
+在社区[4.5.1]版本中已经修复，具体的PR链接为：#1149。
