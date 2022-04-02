@@ -35,7 +35,7 @@ public interface TraceDispatcher {
 
     /**
      * Append the transfering data
-     * @param ctx data infomation
+     * @param ctx data information
      * @return
      */
     boolean append(Object ctx);
