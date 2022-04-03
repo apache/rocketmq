@@ -24,7 +24,7 @@ import org.junit.Test;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class TopicValidatorTest {
 
@@ -134,9 +134,9 @@ public class TopicValidatorTest {
     public void testNOT_ALLOWED_SEND_TOPIC_SETIsUnmodifiableSet() {
         Set<String> notAllowedSendTopicSet = TopicValidator.getNotAllowedSendTopicSet();
         // test for typical operation, not all
-        assertThrows(UnsupportedOperationException.class, () -> notAllowedSendTopicSet.add("illegalTopic"));
-        assertThrows(UnsupportedOperationException.class, () -> notAllowedSendTopicSet.remove("someTopic"));
-        assertThrows(UnsupportedOperationException.class, () -> notAllowedSendTopicSet.clear());
+        assertThatThrownBy(() -> notAllowedSendTopicSet.add("illegalTopic")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> notAllowedSendTopicSet.remove("someTopic")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> notAllowedSendTopicSet.clear()).isInstanceOf(UnsupportedOperationException.class);
     }
 
     private static void clearResponse(RemotingCommand response) {
