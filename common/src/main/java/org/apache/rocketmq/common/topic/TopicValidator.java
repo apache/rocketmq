@@ -20,6 +20,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -153,6 +154,6 @@ public class TopicValidator {
     }
 
     public static Set<String> getNotAllowedSendTopicSet() {
-        return NOT_ALLOWED_SEND_TOPIC_SET;
+        return Collections.unmodifiableSet(NOT_ALLOWED_SEND_TOPIC_SET);
     }
 }
