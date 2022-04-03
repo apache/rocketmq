@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.stats.Stats;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.stats.MomentStatsItemSet;
@@ -29,37 +30,37 @@ import org.apache.rocketmq.common.stats.StatsItemSet;
 
 public class BrokerStatsManager {
 
-    public static final String QUEUE_PUT_NUMS = "QUEUE_PUT_NUMS";
-    public static final String QUEUE_PUT_SIZE = "QUEUE_PUT_SIZE";
-    public static final String QUEUE_GET_NUMS = "QUEUE_GET_NUMS";
-    public static final String QUEUE_GET_SIZE = "QUEUE_GET_SIZE";
-    public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
-    public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
-    public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";
-    public static final String GROUP_GET_SIZE = "GROUP_GET_SIZE";
-    public static final String SNDBCK_PUT_NUMS = "SNDBCK_PUT_NUMS";
-    public static final String BROKER_PUT_NUMS = "BROKER_PUT_NUMS";
-    public static final String BROKER_GET_NUMS = "BROKER_GET_NUMS";
-    public static final String GROUP_GET_FROM_DISK_NUMS = "GROUP_GET_FROM_DISK_NUMS";
-    public static final String GROUP_GET_FROM_DISK_SIZE = "GROUP_GET_FROM_DISK_SIZE";
-    public static final String BROKER_GET_FROM_DISK_NUMS = "BROKER_GET_FROM_DISK_NUMS";
-    public static final String BROKER_GET_FROM_DISK_SIZE = "BROKER_GET_FROM_DISK_SIZE";
+    public static final String QUEUE_PUT_NUMS = Stats.QUEUE_PUT_NUMS;
+    public static final String QUEUE_PUT_SIZE = Stats.QUEUE_PUT_SIZE;
+    public static final String QUEUE_GET_NUMS = Stats.QUEUE_GET_NUMS;
+    public static final String QUEUE_GET_SIZE = Stats.QUEUE_GET_SIZE;
+    public static final String TOPIC_PUT_NUMS = Stats.TOPIC_PUT_NUMS;
+    public static final String TOPIC_PUT_SIZE = Stats.TOPIC_PUT_SIZE;
+    public static final String GROUP_GET_NUMS = Stats.GROUP_GET_NUMS;
+    public static final String GROUP_GET_SIZE = Stats.GROUP_GET_SIZE;
+    public static final String SNDBCK_PUT_NUMS = Stats.SNDBCK_PUT_NUMS;
+    public static final String BROKER_PUT_NUMS = Stats.BROKER_PUT_NUMS;
+    public static final String BROKER_GET_NUMS = Stats.BROKER_GET_NUMS;
+    public static final String GROUP_GET_FROM_DISK_NUMS = Stats.GROUP_GET_FROM_DISK_NUMS;
+    public static final String GROUP_GET_FROM_DISK_SIZE = Stats.GROUP_GET_FROM_DISK_SIZE;
+    public static final String BROKER_GET_FROM_DISK_NUMS = Stats.BROKER_GET_FROM_DISK_NUMS;
+    public static final String BROKER_GET_FROM_DISK_SIZE = Stats.BROKER_GET_FROM_DISK_SIZE;
     // For commercial
-    public static final String COMMERCIAL_SEND_TIMES = "COMMERCIAL_SEND_TIMES";
-    public static final String COMMERCIAL_SNDBCK_TIMES = "COMMERCIAL_SNDBCK_TIMES";
-    public static final String COMMERCIAL_RCV_TIMES = "COMMERCIAL_RCV_TIMES";
-    public static final String COMMERCIAL_RCV_EPOLLS = "COMMERCIAL_RCV_EPOLLS";
-    public static final String COMMERCIAL_SEND_SIZE = "COMMERCIAL_SEND_SIZE";
-    public static final String COMMERCIAL_RCV_SIZE = "COMMERCIAL_RCV_SIZE";
-    public static final String COMMERCIAL_PERM_FAILURES = "COMMERCIAL_PERM_FAILURES";
+    public static final String COMMERCIAL_SEND_TIMES = Stats.COMMERCIAL_SEND_TIMES;
+    public static final String COMMERCIAL_SNDBCK_TIMES = Stats.COMMERCIAL_SNDBCK_TIMES;
+    public static final String COMMERCIAL_RCV_TIMES = Stats.COMMERCIAL_RCV_TIMES;
+    public static final String COMMERCIAL_RCV_EPOLLS = Stats.COMMERCIAL_RCV_EPOLLS;
+    public static final String COMMERCIAL_SEND_SIZE = Stats.COMMERCIAL_SEND_SIZE;
+    public static final String COMMERCIAL_RCV_SIZE = Stats.COMMERCIAL_RCV_SIZE;
+    public static final String COMMERCIAL_PERM_FAILURES = Stats.COMMERCIAL_PERM_FAILURES;
     public static final String COMMERCIAL_OWNER = "Owner";
     // Message Size limit for one api-calling count.
     public static final double SIZE_PER_COUNT = 64 * 1024;
 
-    public static final String GROUP_GET_FALL_SIZE = "GROUP_GET_FALL_SIZE";
-    public static final String GROUP_GET_FALL_TIME = "GROUP_GET_FALL_TIME";
+    public static final String GROUP_GET_FALL_SIZE = Stats.GROUP_GET_FALL_SIZE;
+    public static final String GROUP_GET_FALL_TIME = Stats.GROUP_GET_FALL_TIME;
     // Pull Message Latency
-    public static final String GROUP_GET_LATENCY = "GROUP_GET_LATENCY";
+    public static final String GROUP_GET_LATENCY = Stats.GROUP_GET_LATENCY;
 
     /**
      * read disk follow stats
