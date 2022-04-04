@@ -29,11 +29,9 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -108,6 +106,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private long timeoutMillis = 20000;
     private Random random = new Random();
     private ExecutorService executors;
+    private Boolean needConcurrent =
+        Boolean.parseBoolean(System.getProperty("rocketmq.admin.need.concurrent", "true"));
 
     private static final Set<String> SYSTEM_GROUP_SET = new HashSet<String>();
 
@@ -157,8 +157,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
                 mqClientInstance.start();
 
-                executors = new ThreadPoolExecutor(10, 20, 1000 * 30, TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("MQAdminThread_"), new ThreadPoolExecutor.CallerRunsPolicy());
+                executors = Executors.newCachedThreadPool(new ThreadFactoryImpl("MQAdminThread_"));
 
                 log.info("the adminExt [{}] start OK", this.defaultMQAdminExt.getAdminExtGroup());
 
@@ -268,12 +267,40 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
         TopicStatsTable topicStatsTable = new TopicStatsTable();
 
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-            String addr = bd.selectBrokerAddr();
-            if (addr != null) {
-                TopicStatsTable tst = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
-                topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+        if (!needConcurrent) {
+            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                String addr = bd.selectBrokerAddr();
+                if (addr != null) {
+                    TopicStatsTable tst = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
+                    topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+                }
             }
+        } else {
+            Function<BrokerData, CompletableFuture<TopicStatsTable>> func = bd -> {
+                CompletableFuture<TopicStatsTable> future = new CompletableFuture<>();
+                executors.submit(() -> {
+                    try {
+                        String addr = bd.selectBrokerAddr();
+                        TopicStatsTable tst = null;
+                        if (addr != null) {
+                            tst = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
+                        }
+                        future.complete(tst);
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                });
+                return future;
+            };
+            List<CompletableFuture<TopicStatsTable>> futures = topicRouteData.getBrokerDatas().stream()
+                .map(func).collect(Collectors.toList());
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]))
+                .whenComplete((v, t) -> futures.forEach(future -> {
+                    TopicStatsTable tst = future.getNow(null);
+                    if (tst != null) {
+                        topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+                    }
+                })).join();
         }
 
         if (topicStatsTable.getOffsetTable().isEmpty()) {
@@ -709,16 +736,27 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         List<QueueTimeSpan> spanSet = new ArrayList<QueueTimeSpan>();
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
 
+        if (!needConcurrent) {
+            for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                String addr = bd.selectBrokerAddr();
+                if (addr != null) {
+                    spanSet.addAll(this.mqClientInstance.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, group, timeoutMillis));
+                }
+            }
+            return spanSet;
+        }
+
         Function<BrokerData, CompletableFuture<List<QueueTimeSpan>>> func = bd -> {
             CompletableFuture<List<QueueTimeSpan>> future = new CompletableFuture<>();
             executors.submit(() -> {
                 try {
                     String addr = bd.selectBrokerAddr();
+                    List<QueueTimeSpan> queueTimeSpans = null;
                     if (addr != null) {
-                        List<QueueTimeSpan> queueTimeSpans = this.mqClientInstance.getMQClientAPIImpl()
+                        queueTimeSpans = this.mqClientInstance.getMQClientAPIImpl()
                             .queryConsumeTimeSpan(addr, topic, group, timeoutMillis);
-                        future.complete(queueTimeSpans);
                     }
+                    future.complete(queueTimeSpans);
                 } catch (Exception e) {
                     future.completeExceptionally(e);
                 }

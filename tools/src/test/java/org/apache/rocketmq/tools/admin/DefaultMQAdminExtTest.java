@@ -28,6 +28,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -94,12 +97,14 @@ public class DefaultMQAdminExtTest {
     private static TopicRouteData topicRouteData = new TopicRouteData();
     private static KVTable kvTable = new KVTable();
     private static ClusterInfo clusterInfo = new ClusterInfo();
+    private static ExecutorService executors;
 
     @BeforeClass
     public static void init() throws Exception {
         mQClientAPIImpl = mock(MQClientAPIImpl.class);
         defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
+        executors = Executors.newCachedThreadPool();
 
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
         field.setAccessible(true);
@@ -110,6 +115,9 @@ public class DefaultMQAdminExtTest {
         field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
         field.setAccessible(true);
         field.set(defaultMQAdminExt, defaultMQAdminExtImpl);
+        field = DefaultMQAdminExtImpl.class.getDeclaredField("executors");
+        field.setAccessible(true);
+        field.set(defaultMQAdminExtImpl, executors);
 
         properties.setProperty("maxMessageSize", "5000000");
         properties.setProperty("flushDelayOffsetInterval", "15000");
