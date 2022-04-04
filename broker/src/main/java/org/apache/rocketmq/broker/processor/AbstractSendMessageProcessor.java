@@ -221,7 +221,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,
-                topicConfig.toString(),
+                topicConfig,
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
             log.warn(errorInfo);

@@ -32,6 +32,11 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
+        return "deleteAclConfig";
+    }
+
+    @Override
+    public String commandAlias() {
         return "deleteAccessConfig";
     }
 
