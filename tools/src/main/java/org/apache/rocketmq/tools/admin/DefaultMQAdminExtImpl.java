@@ -29,6 +29,14 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -40,6 +48,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.ServiceState;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -98,6 +107,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     private RPCHook rpcHook;
     private long timeoutMillis = 20000;
     private Random random = new Random();
+    private ExecutorService executors;
 
     private static final Set<String> SYSTEM_GROUP_SET = new HashSet<String>();
 
@@ -147,6 +157,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
                 mqClientInstance.start();
 
+                executors = new ThreadPoolExecutor(10, 20, 1000 * 30, TimeUnit.MILLISECONDS,
+                    new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("MQAdminThread_"), new ThreadPoolExecutor.CallerRunsPolicy());
+
                 log.info("the adminExt [{}] start OK", this.defaultMQAdminExt.getAdminExtGroup());
 
                 this.serviceState = ServiceState.RUNNING;
@@ -170,6 +183,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             case RUNNING:
                 this.mqClientInstance.unregisterAdminExt(this.defaultMQAdminExt.getAdminExtGroup());
                 this.mqClientInstance.shutdown();
+                this.executors.shutdown();
 
                 log.info("the adminExt [{}] shutdown OK", this.defaultMQAdminExt.getAdminExtGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
@@ -694,12 +708,28 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         RemotingException, MQClientException {
         List<QueueTimeSpan> spanSet = new ArrayList<QueueTimeSpan>();
         TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-            String addr = bd.selectBrokerAddr();
-            if (addr != null) {
-                spanSet.addAll(this.mqClientInstance.getMQClientAPIImpl().queryConsumeTimeSpan(addr, topic, group, timeoutMillis));
-            }
-        }
+
+        Function<BrokerData, CompletableFuture<List<QueueTimeSpan>>> func = bd -> {
+            CompletableFuture<List<QueueTimeSpan>> future = new CompletableFuture<>();
+            executors.submit(() -> {
+                try {
+                    String addr = bd.selectBrokerAddr();
+                    if (addr != null) {
+                        List<QueueTimeSpan> queueTimeSpans = this.mqClientInstance.getMQClientAPIImpl()
+                            .queryConsumeTimeSpan(addr, topic, group, timeoutMillis);
+                        future.complete(queueTimeSpans);
+                    }
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            });
+            return future;
+        };
+        List<CompletableFuture<List<QueueTimeSpan>>> futures = topicRouteData.getBrokerDatas().stream()
+            .map(func).collect(Collectors.toList());
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]))
+            .whenComplete((v, t) -> futures.forEach(future ->
+                spanSet.addAll(future.getNow(new ArrayList<>(1))))).join();
         return spanSet;
     }
 

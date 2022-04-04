@@ -144,11 +144,7 @@ class LocalMessageCache implements ServiceLifecycle {
         this.cleanExpireMsgExecutors.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                try {
-                    cleanExpireMsg();
-                } catch (Throwable e) {
-                    log.error("scheduleAtFixedRate cleanExpireMsg exception", e);
-                }
+                cleanExpireMsg();
             }
         }, clientConfig.getRmqMessageConsumeTimeout(), clientConfig.getRmqMessageConsumeTimeout(), TimeUnit.MINUTES);
     }
