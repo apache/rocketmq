@@ -15,12 +15,7 @@
 
 ## suggested format
 
-date 2015-02-01
-accounts:
-  - name: Jai
-accounts:
-- accessKey: RocketMQ
-  secretKey: 12345678
-  whiteRemoteAddress: 192.168.0.*
-  admin: false
+globalWhiteRemoteAddresses:
+  - 10.10.103.*
+  - 192.168.0.*
 

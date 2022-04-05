@@ -399,7 +399,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (info != null && topic != null) {
             TopicPublishInfo prev = this.topicPublishInfoTable.put(topic, info);
             if (prev != null) {
-                log.info("updateTopicPublishInfo prev is not null, " + prev.toString());
+                log.info("updateTopicPublishInfo prev is not null, " + prev);
             }
         }
     }
@@ -629,9 +629,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         log.warn(String.format("sendKernelImpl exception, throw exception, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq), e);
-                        log.warn(msg.toString());
-
-                        log.warn("sendKernelImpl exception", e);
                         log.warn(msg.toString());
                         throw e;
                     }
