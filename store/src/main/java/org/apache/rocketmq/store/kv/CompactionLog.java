@@ -688,12 +688,12 @@ public class CompactionLog {
             //get logic offset and physical offset
             int logicOffsetPos = 4 + 4 + 4 + 4 + 4;
             long logicOffset = bbSrc.getLong(logicOffsetPos);
+            int destPos = bbDest.position();
             long physicalOffset = fileFromOffset + bbDest.position();
-            int physicalOffsetPos = logicOffsetPos + 8;
-            bbSrc.putLong(physicalOffsetPos, physicalOffset);
             bbSrc.rewind();
             bbSrc.limit(msgLen);
             bbDest.put(bbSrc);
+            bbDest.putLong(destPos + logicOffsetPos + 8, physicalOffset);       //replace physical offset
 
             boolean result = bcq.putBatchMessagePositionInfo(physicalOffset, msgLen,
                 MessageExtBrokerInner.tagsString2tagsCode(tags), storeTimestamp, logicOffset, (short)1);
