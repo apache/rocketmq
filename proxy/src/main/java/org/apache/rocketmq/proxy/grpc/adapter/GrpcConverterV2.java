@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.adapter;
 
 import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ClientSettings;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
@@ -59,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -267,7 +269,23 @@ public class GrpcConverterV2 {
         return changeInvisibleTimeRequestHeader;
     }
 
-    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(NackMessageRequest request, int maxReconsumeTimes) {
+    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(ChangeInvisibleDurationRequest request) {
+        String groupName = GrpcConverterV2.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
+        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
+
+        ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
+        changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
+        changeInvisibleTimeRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
+        changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
+        changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
+        changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
+        changeInvisibleTimeRequestHeader.setInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
+        return changeInvisibleTimeRequestHeader;
+    }
+
+    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(
+        NackMessageRequest request, int maxReconsumeTimes) {
         String groupName = GrpcConverterV2.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
         ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());

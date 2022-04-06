@@ -18,37 +18,24 @@
 package org.apache.rocketmq.proxy.grpc.service;
 
 import apache.rocketmq.v2.ClientSettings;
-import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
-import io.grpc.stub.StreamObserver;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 
 public class GrpcClientManager {
 
-    private static final Map<String, ClientData> CLIENT_DATA = new ConcurrentHashMap<>();
+    private static final Map<String, ClientSettings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
 
     public static ClientSettings getClientSettings(Context ctx) {
-        return CLIENT_DATA.get(getClientId(ctx)).clientSettings;
+        return CLIENT_SETTINGS_MAP.get(getClientId(ctx));
     }
 
-    public static void updateClientData(Context ctx, ClientSettings clientSettings, StreamObserver<TelemetryCommand> responseStreamObserver) {
-        CLIENT_DATA.put(getClientId(ctx), new ClientData(clientSettings, responseStreamObserver));
+    public static void updateClientSettings(Context ctx, ClientSettings clientSettings) {
+        CLIENT_SETTINGS_MAP.put(getClientId(ctx), clientSettings);
     }
 
     public static String getClientId(Context ctx) {
         return InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
-    }
-
-    public static class ClientData {
-        private final ClientSettings clientSettings;
-        private final StreamObserver<TelemetryCommand> responseStreamObserver;
-
-        public ClientData(ClientSettings clientSettings,
-            StreamObserver<TelemetryCommand> responseStreamObserver) {
-            this.clientSettings = clientSettings;
-            this.responseStreamObserver = responseStreamObserver;
-        }
     }
 }
