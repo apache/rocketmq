@@ -257,52 +257,52 @@ public abstract class RebalanceImpl {
             }
             case CLUSTERING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
-                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
                     }
+                    break;
                 }
 
+                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == cidAll) {
                     log.warn("doRebalance, {} {}, get consumer id list failed", consumerGroup, topic);
+                    break;
                 }
 
-                if (mqSet != null && cidAll != null) {
-                    List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
-                    mqAll.addAll(mqSet);
+                List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+                mqAll.addAll(mqSet);
 
-                    Collections.sort(mqAll);
-                    Collections.sort(cidAll);
+                Collections.sort(mqAll);
+                Collections.sort(cidAll);
 
-                    AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
+                AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
-                    List<MessageQueue> allocateResult = null;
-                    try {
-                        allocateResult = strategy.allocate(
-                            this.consumerGroup,
-                            this.mQClientFactory.getClientId(),
-                            mqAll,
-                            cidAll);
-                    } catch (Throwable e) {
-                        log.error("AllocateMessageQueueStrategy.allocate Exception. allocateMessageQueueStrategyName={}", strategy.getName(),
-                            e);
-                        return;
-                    }
+                List<MessageQueue> allocateResult = null;
+                try {
+                    allocateResult = strategy.allocate(
+                        this.consumerGroup,
+                        this.mQClientFactory.getClientId(),
+                        mqAll,
+                        cidAll);
+                } catch (Throwable e) {
+                    log.error("AllocateMessageQueueStrategy.allocate Exception. allocateMessageQueueStrategyName={}", strategy.getName(),
+                        e);
+                    return;
+                }
 
-                    Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
-                    if (allocateResult != null) {
-                        allocateResultSet.addAll(allocateResult);
-                    }
+                Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
+                if (allocateResult != null) {
+                    allocateResultSet.addAll(allocateResult);
+                }
 
-                    boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
-                    if (changed) {
-                        log.info(
-                            "rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}",
-                            strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(), mqSet.size(), cidAll.size(),
-                            allocateResultSet.size(), allocateResultSet);
-                        this.messageQueueChanged(topic, mqSet, allocateResultSet);
-                    }
+                boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
+                if (changed) {
+                    log.info(
+                        "rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}",
+                        strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(), mqSet.size(), cidAll.size(),
+                        allocateResultSet.size(), allocateResultSet);
+                    this.messageQueueChanged(topic, mqSet, allocateResultSet);
                 }
                 break;
             }
