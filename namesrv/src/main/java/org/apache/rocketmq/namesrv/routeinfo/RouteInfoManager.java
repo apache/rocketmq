@@ -120,7 +120,7 @@ public class RouteInfoManager {
 
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
                 if (null == brokerNames) {
-                    brokerNames = new HashSet<String>();
+                    brokerNames = new HashSet<>();
                     this.clusterAddrTable.put(clusterName, brokerNames);
                 }
                 brokerNames.add(brokerName);
@@ -130,7 +130,7 @@ public class RouteInfoManager {
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null == brokerData) {
                     registerFirst = true;
-                    brokerData = new BrokerData(clusterName, brokerName, new HashMap<Long, String>());
+                    brokerData = new BrokerData(clusterName, brokerName, new HashMap<>());
                     this.brokerAddrTable.put(brokerName, brokerData);
                 }
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
@@ -383,11 +383,11 @@ public class RouteInfoManager {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
-        Set<String> brokerNameSet = new HashSet<String>();
-        List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
+        Set<String> brokerNameSet = new HashSet<>();
+        List<BrokerData> brokerDataList = new LinkedList<>();
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
+        HashMap<String, List<String>> filterServerMap = new HashMap<>();
         topicRouteData.setFilterServerTable(filterServerMap);
 
         try {
