@@ -17,17 +17,17 @@
 
 package org.apache.rocketmq.proxy.grpc.adapter.handler;
 
-import apache.rocketmq.v1.SendMessageRequest;
-import apache.rocketmq.v1.SendMessageResponse;
+import apache.rocketmq.v2.SendMessageRequest;
+import apache.rocketmq.v2.SendMessageResponse;
+import apache.rocketmq.v2.SendReceipt;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class SendMessageResponseHandler implements ResponseHandler<SendMessageRequest, SendMessageResponse> {
-    private final String messageId;
-
-    public SendMessageResponseHandler(String messageId) {
-        this.messageId = messageId;
+    public SendMessageResponseHandler() {
     }
 
     @Override public void handle(RemotingCommand responseCommand,
@@ -36,9 +36,19 @@ public class SendMessageResponseHandler implements ResponseHandler<SendMessageRe
         // org.apache.rocketmq.broker.processor.SendMessageProcessor#handlePutMessageResult
         // org.apache.rocketmq.broker.processor.AbstractSendMessageProcessor#doResponse
         if (null != responseCommand) {
-            SendMessageResponse response = ResponseBuilder.buildSendMessageResponse(responseCommand);
-            response = response.toBuilder()
-                .setMessageId(messageId)
+            SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) responseCommand.readCustomHeader();
+            String messageId = "";
+            String transactionId = "";
+            if (responseHeader != null) {
+                messageId = responseHeader.getMsgId();
+                transactionId = responseHeader.getTransactionId();
+            }
+            SendMessageResponse response = SendMessageResponse.newBuilder()
+                .setStatus(ResponseBuilderV2.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
+                .addReceipts(SendReceipt.newBuilder()
+                    .setMessageId(StringUtils.defaultString(messageId))
+                    .setTransactionId(StringUtils.defaultString(transactionId))
+                    .build())
                 .build();
             context.getResponse().complete(response);
         }

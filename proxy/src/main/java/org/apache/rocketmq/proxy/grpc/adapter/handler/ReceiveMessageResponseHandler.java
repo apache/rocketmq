@@ -17,9 +17,9 @@
 
 package org.apache.rocketmq.proxy.grpc.adapter.handler;
 
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.ReceiveMessageResponse;
-import apache.rocketmq.v1.Resource;
+import apache.rocketmq.v2.ReceiveMessageRequest;
+import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.Resource;
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
@@ -36,9 +36,9 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.slf4j.Logger;
@@ -46,6 +46,11 @@ import org.slf4j.LoggerFactory;
 
 public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMessageRequest, ReceiveMessageResponse> {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private final boolean fifo;
+
+    public ReceiveMessageResponseHandler(boolean fifo) {
+        this.fifo = fifo;
+    }
 
     @Override
     public void handle(RemotingCommand responseCommand,
@@ -53,14 +58,14 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
         ReceiveMessageRequest request = context.getRequest();
         CompletableFuture<ReceiveMessageResponse> future = context.getResponse();
 
-        String brokerName = request.getPartition().getBroker().getName();
+        String brokerName = request.getMessageQueue().getBroker().getName();
         long currentTimeInMillis = System.currentTimeMillis();
         long popCosts = currentTimeInMillis - context.getTimestamp();
         try {
             Stopwatch stopWatch = Stopwatch.createStarted();
             ReceiveMessageResponse.Builder builder = ReceiveMessageResponse.newBuilder();
             PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) responseCommand.readCustomHeader();
-            builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
+            builder.setStatus(ResponseBuilderV2.buildStatus(responseCommand.getCode(), responseCommand.getRemark()));
             builder.setInvisibleDuration(Durations.fromMillis(responseHeader.getInvisibleTime()))
                 .setDeliveryTimestamp(Timestamps.fromMillis(responseHeader.getPopTime()));
 
@@ -113,7 +118,7 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                             brokerName, messageExt.getQueueId(), msgQueueOffset);
                         messageExt.setQueueOffset(msgQueueOffset);
                         messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK, extraInfo);
-                        if (context.getRequest().getFifoFlag() && orderCountInfo != null) {
+                        if (fifo && orderCountInfo != null) {
                             Integer count = orderCountInfo.get(key);
                             if (count != null && count > 0) {
                                 messageExt.setReconsumeTimes(count);
@@ -121,9 +126,9 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                         }
                     }
                     Resource topic = context.getRequest()
-                        .getPartition()
+                        .getMessageQueue()
                         .getTopic();
-                    String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                    String topicName = GrpcConverterV2.wrapResourceWithNamespace(topic);
                     messageExt.setTopic(topicName);
                     messageExt.setBrokerName(brokerName);
                     messageExt.getProperties().computeIfAbsent(MessageConst.PROPERTY_FIRST_POP_TIME,
@@ -131,7 +136,7 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                 }
 
                 for (MessageExt messageExt : msgFoundList) {
-                    builder.addMessages(GrpcConverter.buildMessage(messageExt));
+                    builder.addMessages(GrpcConverterV2.buildMessage(messageExt));
                 }
             }
             response = builder.build();

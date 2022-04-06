@@ -43,7 +43,6 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
-import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
@@ -64,6 +63,8 @@ public interface GrpcForwardServiceV2 extends StartAndShutdown {
 
     CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request);
 
+    CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request);
+
     CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx, ForwardMessageToDeadLetterQueueRequest request);
 
     CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request);
@@ -71,8 +72,6 @@ public interface GrpcForwardServiceV2 extends StartAndShutdown {
     CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request);
 
     CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request);
-
-    CompletableFuture<TelemetryCommand> telemetry(Context ctx, TelemetryCommand request);
 
     CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx, NotifyClientTerminationRequest request);
 

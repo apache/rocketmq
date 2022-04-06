@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.proxy.grpc.adapter.channel;
 
-import apache.rocketmq.v1.SendMessageRequest;
-import apache.rocketmq.v1.SendMessageResponse;
+import apache.rocketmq.v2.SendMessageRequest;
+import apache.rocketmq.v2.SendMessageResponse;
 import org.apache.rocketmq.proxy.channel.InvocationChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 

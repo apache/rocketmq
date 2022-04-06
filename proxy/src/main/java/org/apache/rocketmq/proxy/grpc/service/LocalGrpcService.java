@@ -17,49 +17,39 @@
 
 package org.apache.rocketmq.proxy.grpc.service;
 
-import apache.rocketmq.v1.AckMessageRequest;
-import apache.rocketmq.v1.AckMessageResponse;
-import apache.rocketmq.v1.ChangeInvisibleDurationRequest;
-import apache.rocketmq.v1.ChangeInvisibleDurationResponse;
-import apache.rocketmq.v1.EndTransactionRequest;
-import apache.rocketmq.v1.EndTransactionResponse;
-import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueRequest;
-import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueResponse;
-import apache.rocketmq.v1.HealthCheckRequest;
-import apache.rocketmq.v1.HealthCheckResponse;
-import apache.rocketmq.v1.HeartbeatRequest;
-import apache.rocketmq.v1.HeartbeatResponse;
-import apache.rocketmq.v1.Message;
-import apache.rocketmq.v1.NackMessageRequest;
-import apache.rocketmq.v1.NackMessageResponse;
-import apache.rocketmq.v1.NoopCommand;
-import apache.rocketmq.v1.NotifyClientTerminationRequest;
-import apache.rocketmq.v1.NotifyClientTerminationResponse;
-import apache.rocketmq.v1.Partition;
-import apache.rocketmq.v1.PollCommandRequest;
-import apache.rocketmq.v1.PollCommandResponse;
-import apache.rocketmq.v1.PullMessageRequest;
-import apache.rocketmq.v1.PullMessageResponse;
-import apache.rocketmq.v1.QueryAssignmentRequest;
-import apache.rocketmq.v1.QueryAssignmentResponse;
-import apache.rocketmq.v1.QueryOffsetPolicy;
-import apache.rocketmq.v1.QueryOffsetRequest;
-import apache.rocketmq.v1.QueryOffsetResponse;
-import apache.rocketmq.v1.QueryRouteRequest;
-import apache.rocketmq.v1.QueryRouteResponse;
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.ReceiveMessageResponse;
-import apache.rocketmq.v1.ReportMessageConsumptionResultRequest;
-import apache.rocketmq.v1.ReportMessageConsumptionResultResponse;
-import apache.rocketmq.v1.ReportThreadStackTraceRequest;
-import apache.rocketmq.v1.ReportThreadStackTraceResponse;
-import apache.rocketmq.v1.Resource;
-import apache.rocketmq.v1.SendMessageRequest;
-import apache.rocketmq.v1.SendMessageResponse;
+import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
+import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
+import apache.rocketmq.v2.ClientSettings;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.EndTransactionRequest;
+import apache.rocketmq.v2.EndTransactionResponse;
+import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
+import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.HeartbeatRequest;
+import apache.rocketmq.v2.HeartbeatResponse;
+import apache.rocketmq.v2.NackMessageRequest;
+import apache.rocketmq.v2.NackMessageResponse;
+import apache.rocketmq.v2.NotifyClientTerminationRequest;
+import apache.rocketmq.v2.NotifyClientTerminationResponse;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
+import apache.rocketmq.v2.QueryAssignmentRequest;
+import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryOffsetPolicy;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
+import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.QueryRouteResponse;
+import apache.rocketmq.v2.ReceiveMessageRequest;
+import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.SendMessageRequest;
+import apache.rocketmq.v2.SendMessageResponse;
 import com.google.protobuf.util.Timestamps;
-import com.google.rpc.Code;
 import io.grpc.Context;
 import io.netty.channel.Channel;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -69,10 +59,10 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.message.MessageBatch;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
@@ -91,11 +81,11 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.adapter.DelayPolicy;
 import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.adapter.PollResponseFuture;
 import org.apache.rocketmq.proxy.grpc.adapter.PollResponseManager;
 import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.PullMessageChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.channel.ReceiveMessageChannel;
@@ -105,14 +95,12 @@ import org.apache.rocketmq.proxy.grpc.adapter.handler.ReceiveMessageResponseHand
 import org.apache.rocketmq.proxy.grpc.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.service.cluster.RouteService;
-import org.apache.rocketmq.remoting.RemotingServer;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
+public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcForwardServiceV2 {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     private final BrokerController brokerController;
@@ -145,26 +133,15 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         LanguageCode languageCode;
         String language = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE);
         languageCode = LanguageCode.valueOf(language);
-        HeartbeatData heartbeatData = GrpcConverter.buildHeartbeatData(request);
+        String clientId = GrpcClientManager.getClientId(ctx);
+
+        ClientSettings clientSettings = GrpcClientManager.getClientSettings(ctx);
+        HeartbeatData heartbeatData = GrpcConverterV2.buildHeartbeatData(clientId, request, clientSettings);
 
         CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
-        String groupName;
-        switch (request.getClientDataCase()) {
-            case PRODUCER_DATA: {
-                groupName = GrpcConverter.wrapResourceWithNamespace(request.getProducerData().getGroup());
-                break;
-            }
-            case CONSUMER_DATA: {
-                groupName = GrpcConverter.wrapResourceWithNamespace(request.getConsumerData().getGroup());
-                break;
-            }
-            default: {
-                future.completeExceptionally(new IllegalArgumentException("Wrong client data type"));
-                return future;
-            }
-        }
+        String groupName = GrpcConverterV2.wrapResourceWithNamespace(request.getGroup());
 
-        GrpcClientChannel channel = GrpcClientChannel.create(channelManager, groupName, request.getClientId(), pollCommandResponseManager);
+        GrpcClientChannel channel = GrpcClientChannel.create(channelManager, groupName, clientId, pollCommandResponseManager);
         SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         command.setLanguage(languageCode);
@@ -174,29 +151,26 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
         RemotingCommand response = this.brokerController.getClientManageProcessor()
             .heartBeat(simpleChannelHandlerContext, command);
-        HeartbeatResponse heartbeatResponse = ResponseBuilder.buildHeartbeatResponse(response);
+        HeartbeatResponse heartbeatResponse = HeartbeatResponse.newBuilder()
+            .setStatus(ResponseBuilderV2.buildStatus(response.getCode(), response.getRemark()))
+            .build();
         future.complete(heartbeatResponse);
         return future;
     }
 
     @Override
-    public CompletableFuture<HealthCheckResponse> healthCheck(Context ctx, HealthCheckRequest request) {
-        log.trace("Received health check request from client: {}", request.getClientHost());
-        final HealthCheckResponse response = HealthCheckResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
-            .build();
-        return CompletableFuture.completedFuture(response);
-    }
-
-    @Override
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
-        SendMessageRequestHeader requestHeader = GrpcConverter.buildSendMessageRequestHeader(request);
+        String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+        SendMessageRequestHeader requestHeader = GrpcConverterV2.buildSendMessageRequestHeader(request, topicName);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
-        Message message = request.getMessage();
-        command.setBody(message.getBody().toByteArray());
+        List<org.apache.rocketmq.common.message.Message> messageList = GrpcConverterV2.buildMessage(request.getMessagesList(), topicName);
+        MessageBatch messageBatch = MessageBatch.generateFromList(messageList);
+        MessageClientIDSetter.setUniqID(messageBatch);
+        messageBatch.setBody(messageBatch.encode());
+        command.setBody(messageBatch.encode());
         command.makeCustomHeaderToNet();
 
-        SendMessageResponseHandler handler = new SendMessageResponseHandler(message.getSystemAttribute().getMessageId());
+        SendMessageResponseHandler handler = new SendMessageResponseHandler();
         SendMessageChannel channel = channelManager.createChannel(() -> new SendMessageChannel(handler), SendMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
@@ -225,12 +199,13 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        long pollTime = GrpcConverter.buildPollTimeFromContext(ctx);
-        PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime);
+        long pollTime = GrpcConverterV2.buildPollTimeFromContext(ctx);
+        ClientSettings clientSettings = GrpcClientManager.getClientSettings(ctx);
+        PopMessageRequestHeader requestHeader = GrpcConverterV2.buildPopMessageRequestHeader(request, pollTime);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
 
-        ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler();
+        ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(clientSettings.getSettings().getSubscription().getFifo());
         ReceiveMessageChannel channel = channelManager.createChannel(() -> new ReceiveMessageChannel(handler), ReceiveMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
@@ -255,7 +230,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
-        AckMessageRequestHeader requestHeader = GrpcConverter.buildAckMessageRequestHeader(request);
+        AckMessageRequestHeader requestHeader = GrpcConverterV2.buildAckMessageRequestHeader(request);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.ACK_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
 
@@ -264,11 +239,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             RemotingCommand responseCommand = brokerController.getAckMessageProcessor()
                 .processRequest(channelHandlerContext, command);
             AckMessageResponse.Builder builder = AckMessageResponse.newBuilder();
-            if (null != responseCommand) {
-                builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
-            } else {
-                builder.setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "Response command is null"));
-            }
+            builder.setStatus(ResponseBuilderV2.buildStatus(responseCommand.getCode(), responseCommand.getRemark()));
             AckMessageResponse response = builder.build();
             future.complete(response);
         } catch (Exception e) {
@@ -282,7 +253,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
-        ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
+        ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverterV2.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
         command.makeCustomHeaderToNet();
 
@@ -291,7 +262,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             RemotingCommand responseCommand = brokerController.getChangeInvisibleTimeProcessor()
                 .processRequest(channelHandlerContext, command);
             NackMessageResponse response = NackMessageResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()))
+                .setStatus(ResponseBuilderV2.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
                 .build();
             future.complete(response);
         } catch (Exception e) {
@@ -307,7 +278,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         SimpleChannel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
-        ConsumerSendMsgBackRequestHeader requestHeader = GrpcConverter.buildConsumerSendMsgBackRequestHeader(request);
+        ConsumerSendMsgBackRequestHeader requestHeader = GrpcConverterV2.buildConsumerSendMsgBackRequestHeader(request);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
         command.makeCustomHeaderToNet();
 
@@ -317,7 +288,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 .processRequest(channelHandlerContext, command);
 
             future.complete(ForwardMessageToDeadLetterQueueResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(response.getCode(), response.getRemark()))
+                .setStatus(ResponseBuilderV2.buildStatus(response.getCode(), response.getRemark()))
                 .build());
         } catch (Exception e) {
             log.error("Exception raised when forwardMessageToDeadLetterQueue", e);
@@ -331,7 +302,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
-        EndTransactionRequestHeader requestHeader = GrpcConverter.buildEndTransactionRequestHeader(request);
+        String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getTopic());
+        EndTransactionRequestHeader requestHeader = GrpcConverterV2.buildEndTransactionRequestHeader(request, topicName);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
         command.makeCustomHeaderToNet();
 
@@ -341,9 +313,9 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 .processRequest(channelHandlerContext, command);
             EndTransactionResponse.Builder builder = EndTransactionResponse.newBuilder();
             if (null != responseCommand) {
-                builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
+                builder.setStatus(ResponseBuilderV2.buildStatus(responseCommand.getCode(), responseCommand.getRemark()));
             } else {
-                builder.setCommon(ResponseBuilder.buildCommon(Code.INTERNAL, "Response command is null"));
+                builder.setStatus(ResponseBuilderV2.buildStatus(Code.INTERNAL_SERVER_ERROR, "Response command is null"));
             }
             EndTransactionResponse response = builder.build();
             future.complete(response);
@@ -356,9 +328,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
-        Partition partition = request.getPartition();
-        String topicName = GrpcConverter.wrapResourceWithNamespace(partition.getTopic());
-        int queueId = partition.getId();
+        String topicName = GrpcConverterV2.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+        int queueId = request.getMessageQueue().getId();
 
         long offset;
         if (request.getPolicy() == QueryOffsetPolicy.BEGINNING) {
@@ -372,7 +343,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 .getOffsetInQueueByTime(topicName, queueId, timestamp);
         }
         return CompletableFuture.completedFuture(QueryOffsetResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildCommon(Code.OK, "ok"))
+            .setStatus(ResponseBuilderV2.buildStatus(Code.OK, "ok"))
             .setOffset(offset)
             .build());
     }
@@ -380,7 +351,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     @Override
     public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
         long pollTime = GrpcConverter.buildPollTimeFromContext(ctx);
-        PullMessageRequestHeader requestHeader = GrpcConverter.buildPullMessageRequestHeader(request, pollTime);
+        PullMessageRequestHeader requestHeader = GrpcConverterV2.buildPullMessageRequestHeader(request, pollTime);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
 
@@ -405,92 +376,94 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         return future;
     }
 
-    @Override
-    public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
-        String clientId = request.getClientId();
-        CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
-        switch (request.getGroupCase()) {
-            case PRODUCER_GROUP:
-                Resource producerGroup = request.getProducerGroup();
-                String producerGroupName = GrpcConverter.wrapResourceWithNamespace(producerGroup);
-                GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(channelManager, producerGroupName, clientId);
-                if (producerChannel == null) {
-                    future.complete(PollCommandResponse.newBuilder()
-                        .setNoopCommand(NoopCommand.newBuilder().build())
-                        .build());
-                    break;
-                }
-                producerChannel.setClientObserver(future);
-                break;
-            case CONSUMER_GROUP:
-                Resource consumerGroup = request.getConsumerGroup();
-                String consumerGroupName = GrpcConverter.wrapResourceWithNamespace(consumerGroup);
-                GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(channelManager, consumerGroupName, clientId);
-                if (consumerChannel == null) {
-                    future.complete(PollCommandResponse.newBuilder()
-                        .setNoopCommand(NoopCommand.newBuilder().build())
-                        .build());
-                    break;
-                }
-                consumerChannel.setClientObserver(future);
-                break;
-            default:
-                break;
-        }
-        return future;
-    }
-
-    @Override
-    public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
-        ReportThreadStackTraceRequest request) {
-        String commandId = request.getCommandId();
-        String threadStack = request.getThreadStackTrace();
-        PollResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(commandId);
-        if (pollCommandResponseFuture != null) {
-            RemotingServer remotingServer = this.brokerController.getRemotingServer();
-            if (remotingServer instanceof NettyRemotingAbstract) {
-                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
-                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "From gRPC client");
-                remotingCommand.setOpaque(pollCommandResponseFuture.getOpaque());
-                ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
-                runningInfo.setJstack(threadStack);
-                remotingCommand.setBody(runningInfo.encode());
-                nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel()), remotingCommand);
-            }
-        }
-        return CompletableFuture.completedFuture(ReportThreadStackTraceResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildSuccessCommon())
-            .build());
-    }
-
-    @Override
-    public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
-        ReportMessageConsumptionResultRequest request) {
-
-        String commandId = request.getCommandId();
-        PollResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(commandId);
-        if (pollCommandResponseFuture != null) {
-            RemotingServer remotingServer = this.brokerController.getRemotingServer();
-            if (remotingServer instanceof NettyRemotingAbstract) {
-                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
-                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "From gRPC client");
-                remotingCommand.setOpaque(pollCommandResponseFuture.getOpaque());
-                ConsumeMessageDirectlyResult result = GrpcConverter.buildConsumeMessageDirectlyResult(request);
-                remotingCommand.setBody(result.encode());
-                nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel()), remotingCommand);
-            }
-        }
-        return CompletableFuture.completedFuture(ReportMessageConsumptionResultResponse.newBuilder()
-            .setCommon(ResponseBuilder.buildSuccessCommon())
-            .build());
-    }
+//    @Override
+//    public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
+//        String clientId = request.getClientId();
+//        CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
+//        switch (request.getGroupCase()) {
+//            case PRODUCER_GROUP:
+//                Resource producerGroup = request.getProducerGroup();
+//                String producerGroupName = GrpcConverter.wrapResourceWithNamespace(producerGroup);
+//                GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(channelManager, producerGroupName, clientId);
+//                if (producerChannel == null) {
+//                    future.complete(PollCommandResponse.newBuilder()
+//                        .setNoopCommand(NoopCommand.newBuilder().build())
+//                        .build());
+//                    break;
+//                }
+//                producerChannel.setClientObserver(future);
+//                break;
+//            case CONSUMER_GROUP:
+//                Resource consumerGroup = request.getConsumerGroup();
+//                String consumerGroupName = GrpcConverter.wrapResourceWithNamespace(consumerGroup);
+//                GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(channelManager, consumerGroupName, clientId);
+//                if (consumerChannel == null) {
+//                    future.complete(PollCommandResponse.newBuilder()
+//                        .setNoopCommand(NoopCommand.newBuilder().build())
+//                        .build());
+//                    break;
+//                }
+//                consumerChannel.setClientObserver(future);
+//                break;
+//            default:
+//                break;
+//        }
+//        return future;
+//    }
+//
+//    @Override
+//    public CompletableFuture<ReportThreadStackTraceResponse> reportThreadStackTrace(Context ctx,
+//        ReportThreadStackTraceRequest request) {
+//        String commandId = request.getCommandId();
+//        String threadStack = request.getThreadStackTrace();
+//        PollResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(commandId);
+//        if (pollCommandResponseFuture != null) {
+//            RemotingServer remotingServer = this.brokerController.getRemotingServer();
+//            if (remotingServer instanceof NettyRemotingAbstract) {
+//                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+//                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "From gRPC client");
+//                remotingCommand.setOpaque(pollCommandResponseFuture.getOpaque());
+//                ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
+//                runningInfo.setJstack(threadStack);
+//                remotingCommand.setBody(runningInfo.encode());
+//                nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel()), remotingCommand);
+//            }
+//        }
+//        return CompletableFuture.completedFuture(ReportThreadStackTraceResponse.newBuilder()
+//            .setCommon(ResponseBuilder.buildSuccessCommon())
+//            .build());
+//    }
+//
+//    @Override
+//    public CompletableFuture<ReportMessageConsumptionResultResponse> reportMessageConsumptionResult(Context ctx,
+//        ReportMessageConsumptionResultRequest request) {
+//
+//        String commandId = request.getCommandId();
+//        PollResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(commandId);
+//        if (pollCommandResponseFuture != null) {
+//            RemotingServer remotingServer = this.brokerController.getRemotingServer();
+//            if (remotingServer instanceof NettyRemotingAbstract) {
+//                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+//                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "From gRPC client");
+//                remotingCommand.setOpaque(pollCommandResponseFuture.getOpaque());
+//                ConsumeMessageDirectlyResult result = GrpcConverter.buildConsumeMessageDirectlyResult(request);
+//                remotingCommand.setBody(result.encode());
+//                nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel()), remotingCommand);
+//            }
+//        }
+//        return CompletableFuture.completedFuture(ReportMessageConsumptionResultResponse.newBuilder()
+//            .setCommon(ResponseBuilder.buildSuccessCommon())
+//            .build());
+//    }
 
     @Override
     public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
-        UnregisterClientRequestHeader header = GrpcConverter.buildUnregisterClientRequestHeader(request);
+        String clientId = GrpcClientManager.getClientId(ctx);
+        ClientSettings clientSettings = GrpcClientManager.getClientSettings(ctx);
+        UnregisterClientRequestHeader header = GrpcConverterV2.buildUnregisterClientRequestHeader(clientId, clientSettings.getClientType(), request);
 
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, header);
         remotingCommand.makeCustomHeaderToNet();
@@ -507,7 +480,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
 
-        ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverter.buildChangeInvisibleTimeRequestHeader(request);
+        ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverterV2.buildChangeInvisibleTimeRequestHeader(request);
         ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
         command.makeCustomHeaderToNet();
@@ -518,7 +491,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 .processRequest(channelHandlerContext, command);
             ChangeInvisibleTimeResponseHeader responseHeader = (ChangeInvisibleTimeResponseHeader) responseCommand.readCustomHeader();
             ChangeInvisibleDurationResponse.Builder builder = ChangeInvisibleDurationResponse.newBuilder()
-                .setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()));
+                .setStatus(ResponseBuilderV2.buildStatus(responseCommand.getCode(), responseCommand.getRemark()));
             if (responseCommand.getCode() == ResponseCode.SUCCESS) {
                 builder.setReceiptHandle(ReceiptHandle.builder()
                     .startOffset(requestHeader.getOffset())

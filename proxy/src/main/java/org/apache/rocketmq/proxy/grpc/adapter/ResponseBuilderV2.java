@@ -22,7 +22,6 @@ import apache.rocketmq.v2.Status;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 
 public class ResponseBuilderV2 {
-
     public static Status buildStatus(Code code, String message) {
         return Status.newBuilder()
             .setCode(code)
@@ -55,7 +54,7 @@ public class ResponseBuilderV2 {
                 break;
             }
             case ResponseCode.REQUEST_CODE_NOT_SUPPORTED: {
-                code = Code.NOT_IMPLEMENTED;
+                code = Code.UNRECOGNIZED;
                 break;
             }
             case ResponseCode.MESSAGE_ILLEGAL:
