@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.proxy.grpc.adapter.channel;
 
-import apache.rocketmq.v1.PullMessageRequest;
-import apache.rocketmq.v1.PullMessageResponse;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
 import org.apache.rocketmq.proxy.channel.InvocationChannel;
 import org.apache.rocketmq.proxy.grpc.adapter.handler.PullMessageResponseHandler;
 

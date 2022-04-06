@@ -18,7 +18,8 @@
 package org.apache.rocketmq.proxy.grpc.adapter;
 
 import apache.rocketmq.v2.AckMessageRequest;
-import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
+import apache.rocketmq.v2.ClientSettings;
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Digest;
 import apache.rocketmq.v2.DigestType;
@@ -27,10 +28,12 @@ import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
+import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.NackMessageRequest;
+import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.PullMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
@@ -58,6 +61,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.filter.FilterAPI;
@@ -75,6 +79,10 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
@@ -92,13 +100,76 @@ public class GrpcConverterV2 {
         return NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
     }
 
-    public static SendMessageRequestHeader buildSendMessageRequestHeader(SendMessageRequest request, String producerGroup) {
+    public static HeartbeatData buildHeartbeatData(String clientId, HeartbeatRequest request,
+        ClientSettings clientSettings) {
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setClientID(clientId);
+        String groupName = wrapResourceWithNamespace(request.getGroup());
+        switch (clientSettings.getClientType()) {
+            case PRODUCER: {
+                Set<org.apache.rocketmq.common.protocol.heartbeat.ProducerData> producerDataSet = new HashSet<>();
+                producerDataSet.add(buildProducerData(groupName));
+                heartbeatData.setProducerDataSet(producerDataSet);
+                break;
+            }
+            case PULL_CONSUMER:
+            case PUSH_CONSUMER:
+            case SIMPLE_CONSUMER: {
+                Set<org.apache.rocketmq.common.protocol.heartbeat.ConsumerData> consumerDataSet = new HashSet<>();
+                consumerDataSet.add(buildConsumerData(groupName, clientSettings));
+                heartbeatData.setConsumerDataSet(consumerDataSet);
+                break;
+            }
+        }
+        return heartbeatData;
+    }
+
+    public static org.apache.rocketmq.common.protocol.heartbeat.ProducerData buildProducerData(String groupName) {
+        org.apache.rocketmq.common.protocol.heartbeat.ProducerData buildProducerData
+            = new org.apache.rocketmq.common.protocol.heartbeat.ProducerData();
+        buildProducerData.setGroupName(groupName);
+        return buildProducerData;
+    }
+
+    public static org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData(String groupName,
+        ClientSettings clientSettings) {
+        org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData = new org.apache.rocketmq.common.protocol.heartbeat.ConsumerData();
+        buildConsumerData.setGroupName(groupName);
+        buildConsumerData.setConsumeType(buildConsumeType(clientSettings.getClientType()));
+
+        buildConsumerData.setMessageModel(MessageModel.CLUSTERING);
+        buildConsumerData.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        Set<SubscriptionData> subscriptionDataSet =
+            buildSubscriptionDataSet(clientSettings.getSettings()
+                .getSubscription()
+                .getSubscriptionsList());
+        buildConsumerData.setSubscriptionDataSet(subscriptionDataSet);
+        return buildConsumerData;
+    }
+
+    public static ConsumeType buildConsumeType(ClientType clientType) {
+        switch (clientType) {
+            case PULL_CONSUMER:
+            case SIMPLE_CONSUMER:
+                return ConsumeType.CONSUME_ACTIVELY;
+            case PUSH_CONSUMER:
+                return ConsumeType.CONSUME_PASSIVELY;
+            default:
+                throw new IllegalArgumentException("Client type is not consumer, type: " + clientType);
+        }
+    }
+
+    public static SendMessageRequestHeader buildSendMessageRequestHeader(SendMessageRequest request,
+        String producerGroup) {
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
 
         MessageQueue messageQueue = request.getMessageQueue();
 
         if (request.getMessagesCount() <= 0) {
             throw new ProxyExceptionV2(Code.MESSAGE_CORRUPTED, "no message to send");
+        }
+        if (request.getMessagesCount() > 1) {
+            requestHeader.setBatch(true);
         }
         Message message = request.getMessages(0);
         SystemProperties systemProperties = message.getSystemProperties();
@@ -227,7 +298,8 @@ public class GrpcConverterV2 {
         return consumerSendMsgBackRequestHeader;
     }
 
-    public static EndTransactionRequestHeader buildEndTransactionRequestHeader(EndTransactionRequest request, String producerGroup) {
+    public static EndTransactionRequestHeader buildEndTransactionRequestHeader(EndTransactionRequest request,
+        String producerGroup) {
         String messageId = request.getMessageId();
         String transactionId = request.getTransactionId();
         TransactionId handle;
@@ -253,7 +325,8 @@ public class GrpcConverterV2 {
         return endTransactionRequestHeader;
     }
 
-    public static PullMessageRequestHeader buildPullMessageRequestHeader(PullMessageRequest request, long pollTimeoutInMillis) {
+    public static PullMessageRequestHeader buildPullMessageRequestHeader(PullMessageRequest request,
+        long pollTimeoutInMillis) {
         MessageQueue messageQueue = request.getMessageQueue();
         String groupName = GrpcConverterV2.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverterV2.wrapResourceWithNamespace(messageQueue.getTopic());
@@ -276,6 +349,26 @@ public class GrpcConverterV2 {
         requestHeader.setSubVersion(0L);
         requestHeader.setExpressionType(expressionType);
         return requestHeader;
+    }
+
+    public static UnregisterClientRequestHeader buildUnregisterClientRequestHeader(String clientId,
+        ClientType clientType, NotifyClientTerminationRequest request) {
+        UnregisterClientRequestHeader header = new UnregisterClientRequestHeader();
+        String groupName = GrpcConverterV2.wrapResourceWithNamespace(request.getGroup());
+        header.setClientID(clientId);
+        switch (clientType) {
+            case PRODUCER: {
+                header.setProducerGroup(groupName);
+                break;
+            }
+            case PULL_CONSUMER:
+            case PUSH_CONSUMER:
+            case SIMPLE_CONSUMER: {
+                header.setConsumerGroup(groupName);
+                break;
+            }
+        }
+        return header;
     }
 
     public static Map<String, String> buildMessageProperty(Message message, String producerGroup) {
@@ -344,7 +437,8 @@ public class GrpcConverterV2 {
         return messageWithHeader.getProperties();
     }
 
-    public static List<org.apache.rocketmq.common.message.Message> buildMessage(List<Message> protoMessageList, String producerGroup) {
+    public static List<org.apache.rocketmq.common.message.Message> buildMessage(List<Message> protoMessageList,
+        String producerGroup) {
         List<org.apache.rocketmq.common.message.Message> messages = new ArrayList<>();
         for (Message protoMessage : protoMessageList) {
             messages.add(buildMessage(protoMessage, producerGroup));

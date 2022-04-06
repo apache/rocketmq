@@ -17,17 +17,17 @@
 
 package org.apache.rocketmq.proxy.grpc.adapter.handler;
 
-import apache.rocketmq.v1.PullMessageRequest;
-import apache.rocketmq.v1.PullMessageResponse;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverterV2;
 import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.adapter.ResponseBuilderV2;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class PullMessageResponseHandler implements ResponseHandler<PullMessageRequest, PullMessageResponse> {
@@ -41,10 +41,10 @@ public class PullMessageResponseHandler implements ResponseHandler<PullMessageRe
                 ByteBuffer byteBuffer = ByteBuffer.wrap(responseCommand.getBody());
                 List<MessageExt> msgFoundList = MessageDecoder.decodes(byteBuffer);
                 for (MessageExt messageExt : msgFoundList) {
-                    builder.addMessages(GrpcConverter.buildMessage(messageExt));
+                    builder.addMessages(GrpcConverterV2.buildMessage(messageExt));
                 }
             }
-            PullMessageResponse response = builder.setCommon(ResponseBuilder.buildCommon(responseCommand.getCode(), responseCommand.getRemark()))
+            PullMessageResponse response = builder.setStatus(ResponseBuilderV2.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
                 .setMinOffset(responseHeader.getMinOffset())
                 .setNextOffset(responseHeader.getNextBeginOffset())
                 .setMaxOffset(responseHeader.getMaxOffset())
