@@ -194,13 +194,11 @@ public class RouteInfoManager {
                         }
                     }
                 }
-            } catch (Exception e) {
-                log.error("registerBroker Exception", e);
-            }finally {
+            } finally {
                 this.lock.writeLock().unlock();
             }
-        } catch (InterruptedException e) {
-            log.error("registerBroker fail due to an InterruptedException", e);
+        } catch (Exception e) {
+            log.error("registerBroker Exception", e);
         }
 
         return result;

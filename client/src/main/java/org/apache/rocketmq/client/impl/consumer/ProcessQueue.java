@@ -425,11 +425,10 @@ public class ProcessQueue {
                 info.setDroped(this.dropped);
                 info.setLastPullTimestamp(this.lastPullTimestamp);
                 info.setLastConsumeTimestamp(this.lastConsumeTimestamp);
-            } catch (Exception e) {
             } finally {
                 this.treeMapLock.readLock().unlock();
             }
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             log.error("fillProcessQueueInfo exception", e);
         }
     }
