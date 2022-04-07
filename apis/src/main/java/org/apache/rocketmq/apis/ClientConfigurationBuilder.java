@@ -17,18 +17,13 @@
 
 package org.apache.rocketmq.apis;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.time.Duration;
+
 
 /**
  * Builder to set {@link ClientConfiguration}.
  */
-public class ClientConfigurationBuilder {
-    private String endpoints;
-    private SessionCredentialsProvider sessionCredentialsProvider;
-    private Duration requestTimeout;
-    private boolean enableTracing;
+public interface ClientConfigurationBuilder {
 
     /**
      * Configure the endpoints with which the SDK should communicate.
@@ -44,29 +39,11 @@ public class ClientConfigurationBuilder {
      * @param endpoints address of service.
      * @return the client configuration builder instance.
      */
-    public ClientConfigurationBuilder setEndpoints(String endpoints) {
-        checkNotNull(endpoints, "endpoints should not be not null");
-        this.endpoints = endpoints;
-        return this;
-    }
+    ClientConfigurationBuilder endpoints(String endpoints);
 
-    public ClientConfigurationBuilder setCredentialProvider(SessionCredentialsProvider sessionCredentialsProvider) {
-        this.sessionCredentialsProvider = checkNotNull(sessionCredentialsProvider, "credentialsProvider should not be "
-            + "null");
-        return this;
-    }
+    ClientConfigurationBuilder sessionCredentialsProvider(SessionCredentialsProvider sessionCredentialsProvider);
 
-    public ClientConfigurationBuilder setRequestTimeout(Duration requestTimeout) {
-        this.requestTimeout = checkNotNull(requestTimeout, "requestTimeout should not be not null");
-        return this;
-    }
+    ClientConfigurationBuilder requestTimeout(Duration duration);
 
-    public ClientConfigurationBuilder enableTracing(boolean enableTracing) {
-        this.enableTracing = enableTracing;
-        return this;
-    }
-
-    public ClientConfiguration build() {
-        return new ClientConfiguration(endpoints, sessionCredentialsProvider, requestTimeout, enableTracing);
-    }
+    ClientConfigurationBuilder enableTracing(boolean isEnableTracing);
 }

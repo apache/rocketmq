@@ -17,22 +17,14 @@
 
 package org.apache.rocketmq.apis.producer;
 
-import org.apache.rocketmq.apis.ClientConfiguration;
 import org.apache.rocketmq.apis.exception.ClientException;
 import org.apache.rocketmq.apis.message.Message;
-import org.apache.rocketmq.apis.retry.BackoffRetryPolicy;
+import org.apache.rocketmq.apis.retry.RetryPolicy;
 
 /**
  * Builder to config and start {@link Producer}.
  */
 public interface ProducerBuilder {
-    /**
-     * Set the client configuration for producer.
-     *
-     * @param clientConfiguration client's configuration.
-     * @return the producer builder instance.
-     */
-    ProducerBuilder setClientConfiguration(ClientConfiguration clientConfiguration);
 
     /**
      * Declare topics ahead of message sending/preparation.
@@ -58,7 +50,7 @@ public interface ProducerBuilder {
      * @param retryPolicy policy to re-send message when failure encountered.
      * @return the producer builder instance.
      */
-    ProducerBuilder setRetryPolicy(BackoffRetryPolicy retryPolicy);
+    ProducerBuilder setRetryPolicy(RetryPolicy retryPolicy);
 
     /**
      * Set the transaction checker for producer.

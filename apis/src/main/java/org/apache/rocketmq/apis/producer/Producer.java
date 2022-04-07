@@ -19,7 +19,8 @@ package org.apache.rocketmq.apis.producer;
 
 import java.io.Closeable;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+
 import org.apache.rocketmq.apis.exception.ClientException;
 import org.apache.rocketmq.apis.message.Message;
 
@@ -52,12 +53,12 @@ public interface Producer extends Closeable {
     /**
      * Sends a message asynchronously.
      *
-     * <p>This method returns immediately, the result is included in the {@link CompletableFuture};
+     * <p>This method returns immediately, the result is included in the {@link Future};
      *
      * @param message message to send.
      * @return a future that indicates the result.
      */
-    CompletableFuture<SendReceipt> sendAsync(Message message);
+    Future<SendReceipt> sendAsync(Message message);
 
     /**
      * Sends batch messages synchronously.

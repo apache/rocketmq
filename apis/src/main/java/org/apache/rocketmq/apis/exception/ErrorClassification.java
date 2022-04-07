@@ -15,21 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.apis;
+package org.apache.rocketmq.apis.exception;
 
-import java.time.Duration;
-
-/**
- * Common client configuration.
- */
-public interface ClientConfiguration {
-
-    String getEndpoints();
-
-    SessionCredentialsProvider getCredentialsProvider();
-
-    Duration getRequestTimeout();
-
-    boolean isEnableTracing();
-
+public interface ErrorClassification {
 }

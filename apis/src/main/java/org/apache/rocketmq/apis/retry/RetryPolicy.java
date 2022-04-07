@@ -22,7 +22,7 @@ import java.time.Duration;
 /**
  * Internal interface for retry policy.
  */
-interface RetryPolicy {
+public interface RetryPolicy {
     /**
      * Get the max attempt times for retry.
      *
