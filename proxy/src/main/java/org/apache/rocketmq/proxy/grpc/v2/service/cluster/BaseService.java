@@ -44,11 +44,11 @@ public class BaseService {
 
     protected String getBrokerAddr(Context ctx, String brokerName) throws Exception {
         if (StringUtils.isBlank(brokerName)) {
-            throw new ProxyException(Code.INVALID_ARGUMENT, "broker name is empty");
+            throw new ProxyException(Code.UNRECOGNIZED, "broker name is empty");
         }
         String addr = this.connectorManager.getTopicRouteCache().getBrokerAddr(brokerName);
         if (StringUtils.isBlank(addr)) {
-            throw new ProxyException(Code.NOT_FOUND, brokerName + " not exist");
+            throw new ProxyException(Code.UNRECOGNIZED, brokerName + " not exist");
         }
         return addr;
     }
