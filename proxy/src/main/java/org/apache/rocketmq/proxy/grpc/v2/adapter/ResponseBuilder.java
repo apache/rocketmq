@@ -37,69 +37,50 @@ public class ResponseBuilder {
     }
     
     public static Code buildCode(int remotingResponseCode) {
-        Code code;
         switch (remotingResponseCode) {
             case ResponseCode.SUCCESS:
-            case ResponseCode.NO_MESSAGE: {
-                code = Code.OK;
-                break;
-            }
-            case ResponseCode.SYSTEM_ERROR: {
-                code = Code.INTERNAL_SERVER_ERROR;
-                break;
+            case ResponseCode.NO_MESSAGE:
+            case ResponseCode.PULL_RETRY_IMMEDIATELY: {
+                return Code.OK;
             }
             case ResponseCode.SYSTEM_BUSY:
             case ResponseCode.POLLING_FULL: {
-                code = Code.TOO_MANY_REQUESTS;
-                break;
+                return Code.TOO_MANY_REQUESTS;
             }
             case ResponseCode.REQUEST_CODE_NOT_SUPPORTED: {
-                code = Code.UNRECOGNIZED;
-                break;
+                return Code.UNRECOGNIZED;
             }
-            case ResponseCode.MESSAGE_ILLEGAL:
-            case ResponseCode.VERSION_NOT_SUPPORTED:
-            case ResponseCode.SUBSCRIPTION_PARSE_FAILED:
-            case ResponseCode.FILTER_DATA_NOT_EXIST: {
-                code = Code.INVALID_ARGUMENT;
-                break;
+            case ResponseCode.MESSAGE_ILLEGAL: {
+                return Code.ILLEGAL_MESSAGE;
             }
-            case ResponseCode.SERVICE_NOT_AVAILABLE:
-            case ResponseCode.SLAVE_NOT_AVAILABLE:
-            case ResponseCode.PULL_RETRY_IMMEDIATELY:
-            case ResponseCode.PULL_OFFSET_MOVED:
-            case ResponseCode.SUBSCRIPTION_NOT_LATEST:
-            case ResponseCode.FILTER_DATA_NOT_LATEST: {
-                code = Code.UNAVAILABLE;
-                break;
+            case ResponseCode.VERSION_NOT_SUPPORTED: {
+                return Code.VERSION_UNSUPPORTED;
+            }
+            case ResponseCode.SLAVE_NOT_AVAILABLE: {
+                return Code.HA_NOT_AVAILABLE;
+            }
+            case ResponseCode.PULL_OFFSET_MOVED: {
+                return Code.ILLEGAL_MESSAGE_OFFSET;
             }
             case ResponseCode.NO_PERMISSION: {
-                code = Code.PERMISSION_DENIED;
-                break;
+                return Code.FORBIDDEN;
             }
-            case ResponseCode.TOPIC_NOT_EXIST:
-                code = Code.TOPIC_NOT_FOUND;
-                break;
-            case ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST:
-            case ResponseCode.SUBSCRIPTION_NOT_EXIST:
-            case ResponseCode.PULL_NOT_FOUND:
-            case ResponseCode.QUERY_NOT_FOUND:
-            case ResponseCode.CONSUMER_NOT_ONLINE: {
-                code = Code.NOT_FOUND;
-                break;
+            case ResponseCode.TOPIC_NOT_EXIST: {
+                return Code.TOPIC_NOT_FOUND;
             }
-            case ResponseCode.POLLING_TIMEOUT:
-            case ResponseCode.FLUSH_DISK_TIMEOUT:
+            case ResponseCode.PULL_NOT_FOUND: {
+                return Code.MESSAGE_NOT_FOUND;
+            }
+            case ResponseCode.FLUSH_DISK_TIMEOUT: {
+                return Code.MASTER_PERSISTENCE_TIMEOUT;
+            }
             case ResponseCode.FLUSH_SLAVE_TIMEOUT: {
-                code = Code.DEADLINE_EXCEEDED;
-                break;
+                return Code.SLAVE_PERSISTENCE_TIMEOUT;
             }
             default: {
-                code = Code.INTERNAL_SERVER_ERROR;
+                return Code.INTERNAL_SERVER_ERROR;
             }
-
         }
-        return code;
     }
 
     public static String buildMessage(int responseCode, String remark) {

@@ -15,20 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.test.proxy;
+package org.apache.rocketmq.test.grpc.v2;
 
-import apache.rocketmq.v1.AckMessageResponse;
-import apache.rocketmq.v1.MessagingServiceGrpc;
-import apache.rocketmq.v1.QueryRouteResponse;
-import apache.rocketmq.v1.ReceiveMessageResponse;
-import apache.rocketmq.v1.SendMessageResponse;
+import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.MessagingServiceGrpc;
+import apache.rocketmq.v2.QueryRouteResponse;
+import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.SendMessageResponse;
 import io.grpc.Channel;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.v1.GrpcMessagingProcessor;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingProcessor;
 import org.apache.rocketmq.proxy.grpc.v2.service.LocalGrpcService;
-import org.apache.rocketmq.test.base.GrpcBaseTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,7 +81,7 @@ public class LocalGrpcTest extends GrpcBaseTest {
         ReceiveMessageResponse receiveResponse = blockingStub.withDeadlineAfter(3, TimeUnit.SECONDS)
             .receiveMessage(buildReceiveMessageRequest(group, broker1Name));
         assertReceiveMessage(receiveResponse, messageId);
-        String receiptHandle = receiveResponse.getMessages(0).getSystemAttribute().getReceiptHandle();
+        String receiptHandle = receiveResponse.getMessages(0).getSystemProperties().getReceiptHandle();
         AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(group, broker1Name, receiptHandle));
         assertAck(ackMessageResponse);
     }

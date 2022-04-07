@@ -249,7 +249,7 @@ public class ConsumerService extends BaseService {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
-            Settings settings = GrpcClientManager.getClientSettings(ctx);
+            Settings settings = GrpcClientManager.getClientSettings(ctx).getSettings();
             int maxDeliveryAttempts = settings.getSubscription().getDeadLetterPolicy().getMaxDeliveryAttempts();
             if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
                 CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(

@@ -20,6 +20,7 @@ import apache.rocketmq.v2.Address;
 import apache.rocketmq.v2.AddressScheme;
 import apache.rocketmq.v2.Assignment;
 import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.ClientSettings;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.MessageQueue;
@@ -51,6 +52,7 @@ import org.apache.rocketmq.proxy.common.ParameterConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 
 public class RouteService extends BaseService {
     private final ProxyMode mode;
@@ -238,11 +240,12 @@ public class RouteService extends BaseService {
                 }
             }
             if (ProxyMode.isClusterMode(mode)) {
-                Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, request.getEndpoints());
+                ClientSettings clientSettings = GrpcClientManager.getClientSettings(ctx);
+                Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
                 if (resEndpoints == null || Endpoints.getDefaultInstance().equals(resEndpoints)) {
                     future.complete(QueryAssignmentResponse.newBuilder()
                         .setStatus(ResponseBuilder.buildStatus(Code.ILLEGAL_ACCESS_POINT, "endpoint " +
-                            request.getEndpoints() + " is invalidate"))
+                            clientSettings.getAccessPoint() + " is invalidate"))
                         .build());
                     return future;
                 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.test.base;
+package org.apache.rocketmq.test.grpc.v1;
 
 import apache.rocketmq.v1.AckMessageRequest;
 import apache.rocketmq.v1.AckMessageResponse;
@@ -49,11 +49,10 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
+import org.apache.rocketmq.test.base.BaseConf;
 import org.junit.Rule;
 
 import static org.assertj.core.api.Assertions.assertThat;
