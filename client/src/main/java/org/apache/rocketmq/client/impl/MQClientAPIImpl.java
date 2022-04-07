@@ -528,7 +528,7 @@ public class MQClientAPIImpl {
         final AtomicInteger times,
         final SendMessageContext context,
         final DefaultMQProducerImpl producer
-    ) throws InterruptedException, RemotingException {
+    ) {
         final long beginStartTime = System.currentTimeMillis();
         try {
             this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
@@ -621,22 +621,10 @@ public class MQClientAPIImpl {
             }
             String addr = instance.findBrokerAddressInPublish(retryBrokerName);
             log.warn("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
-                retryBrokerName, e);
-            try {
-                request.setOpaque(RemotingCommand.createNewRequestId());
-                sendMessageAsync(addr, retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
+                    retryBrokerName, e);
+            request.setOpaque(RemotingCommand.createNewRequestId());
+            sendMessageAsync(addr, retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
                     timesTotal, curTimes, context, producer);
-            } catch (InterruptedException e1) {
-                onExceptionImpl(retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                    context, false, producer);
-            } catch (RemotingTooMuchRequestException e1) {
-                onExceptionImpl(retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                    context, false, producer);
-            } catch (RemotingException e1) {
-                producer.updateFaultItem(brokerName, 3000, true);
-                onExceptionImpl(retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                    context, true, producer);
-            }
         } else {
 
             if (context != null) {
