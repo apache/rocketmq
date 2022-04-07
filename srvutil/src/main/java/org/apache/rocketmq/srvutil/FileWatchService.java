@@ -89,7 +89,7 @@ public class FileWatchService extends ServiceThread {
         log.info(this.getServiceName() + " service end");
     }
 
-    private String hash(String filePath) throws IOException, NoSuchAlgorithmException {
+    private String hash(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         md.update(Files.readAllBytes(path));
         byte[] hash = md.digest();
