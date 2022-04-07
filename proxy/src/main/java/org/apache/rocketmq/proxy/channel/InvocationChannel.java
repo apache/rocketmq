@@ -24,8 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.proxy.common.Cleaner;
-import org.apache.rocketmq.proxy.grpc.adapter.InvocationContext;
-import org.apache.rocketmq.proxy.grpc.adapter.handler.ResponseHandler;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.ResponseHandler;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public abstract class InvocationChannel<R, W> extends SimpleChannel implements Cleaner {

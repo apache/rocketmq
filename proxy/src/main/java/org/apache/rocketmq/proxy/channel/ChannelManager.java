@@ -31,7 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.common.Cleaner;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v1.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
