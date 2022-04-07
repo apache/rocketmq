@@ -200,7 +200,7 @@ public class RouteInfoManager {
                 this.lock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            log.error("registerBroker fail due to an InterruptedException");
+            log.error("registerBroker fail due to an InterruptedException", e);
         }
 
         return result;
