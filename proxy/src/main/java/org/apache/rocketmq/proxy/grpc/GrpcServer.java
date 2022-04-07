@@ -39,7 +39,8 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
-import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
+import org.apache.rocketmq.proxy.grpc.v2.service.GrpcForwardService;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

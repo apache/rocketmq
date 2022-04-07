@@ -30,10 +30,10 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
-import org.apache.rocketmq.proxy.grpc.adapter.ProxyMode;
-import org.apache.rocketmq.proxy.grpc.service.ClusterGrpcService;
-import org.apache.rocketmq.proxy.grpc.service.GrpcForwardService;
-import org.apache.rocketmq.proxy.grpc.service.LocalGrpcService;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
+import org.apache.rocketmq.proxy.grpc.v2.service.ClusterGrpcService;
+import org.apache.rocketmq.proxy.grpc.v2.service.GrpcForwardService;
+import org.apache.rocketmq.proxy.grpc.v2.service.LocalGrpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
