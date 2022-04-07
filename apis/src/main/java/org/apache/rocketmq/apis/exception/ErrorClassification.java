@@ -15,26 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.apis.retry;
+package org.apache.rocketmq.apis.exception;
 
-import java.time.Duration;
-
-/**
- * Internal interface for retry policy.
- */
-public interface RetryPolicy {
-    /**
-     * Get the max attempt times for retry.
-     *
-     * @return max attempt times.
-     */
-    int getMaxAttempts();
-
-    /**
-     * Get await time after current attempts, the attempt index starts at 1.
-     *
-     * @param attempt current attempt.
-     * @return await time.
-     */
-    Duration getNextAttemptDelay(int attempt);
+public interface ErrorClassification {
 }

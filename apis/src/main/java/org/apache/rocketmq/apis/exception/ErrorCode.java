@@ -45,7 +45,7 @@ package org.apache.rocketmq.apis.exception;
  *
  * </blockquote>
  */
-public enum ErrorCode {
+public enum ErrorCode implements ErrorClassification {
     /**
      * Format of topic is illegal.
      */
