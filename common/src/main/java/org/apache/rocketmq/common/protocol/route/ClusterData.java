@@ -15,32 +15,35 @@
  * limitations under the License.
  */
 
-/**
- * $Id: GetRouteInfoRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.common.protocol.header.namesrv;
+package org.apache.rocketmq.common.protocol.route;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-public class GetRouteInfoRequestHeader implements CommandCustomHeader {
-    @CFNotNull
+public class ClusterData {
+
     private String cluster;
+    private String brokerName;
 
-    @CFNotNull
-    private String topic;
+    public ClusterData(String cluster, String brokerName) {
+        this.cluster = cluster;
+        this.brokerName = brokerName;
+    }
 
     @Override
-    public void checkFields() throws RemotingCommandException {
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ClusterData that = (ClusterData) o;
+
+        return new EqualsBuilder().append(cluster, that.cluster).append(brokerName, that.brokerName).isEquals();
     }
 
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37).append(cluster).append(brokerName).toHashCode();
     }
 
     public String getCluster() {
@@ -49,5 +52,13 @@ public class GetRouteInfoRequestHeader implements CommandCustomHeader {
 
     public void setCluster(String cluster) {
         this.cluster = cluster;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 }

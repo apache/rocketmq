@@ -20,6 +20,7 @@ package org.apache.rocketmq.common.protocol;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import static org.junit.Assert.*;
@@ -37,16 +38,18 @@ public class ClusterInfoTest {
         ClusterInfo clusterInfo = buildClusterInfo();
         byte[] data = clusterInfo.encode();
         ClusterInfo json = RemotingSerializable.decode(data, ClusterInfo.class);
+        ClusterData clusterData = new ClusterData("DEFAULT_CLUSTER", "master");
 
         assertNotNull(json);
         assertNotNull(json.getClusterAddrTable());
         assertTrue(json.getClusterAddrTable().containsKey("DEFAULT_CLUSTER"));
         assertTrue(json.getClusterAddrTable().get("DEFAULT_CLUSTER").contains("master"));
         assertNotNull(json.getBrokerAddrTable());
-        assertTrue(json.getBrokerAddrTable().containsKey("master"));
-        assertEquals(json.getBrokerAddrTable().get("master").getBrokerName(), "master");
-        assertEquals(json.getBrokerAddrTable().get("master").getCluster(), "DEFAULT_CLUSTER");
-        assertEquals(json.getBrokerAddrTable().get("master").getBrokerAddrs().get(MixAll.MASTER_ID), MixAll.getLocalhostByNetworkInterface());
+        assertTrue(json.getBrokerAddrTable().containsKey(clusterData));
+
+        assertEquals(json.getBrokerAddrTable().get(clusterData).getBrokerName(), "master");
+        assertEquals(json.getBrokerAddrTable().get(clusterData).getCluster(), "DEFAULT_CLUSTER");
+        assertEquals(json.getBrokerAddrTable().get(clusterData).getBrokerAddrs().get(MixAll.MASTER_ID), MixAll.getLocalhostByNetworkInterface());
     }
 
     @Test
@@ -71,7 +74,7 @@ public class ClusterInfoTest {
 
     private ClusterInfo buildClusterInfo() throws Exception {
         ClusterInfo clusterInfo = new ClusterInfo();
-        HashMap<String, BrokerData> brokerAddrTable = new HashMap<String, BrokerData>();
+        HashMap<ClusterData, BrokerData> brokerAddrTable = new HashMap<ClusterData, BrokerData>();
         HashMap<String, Set<String>> clusterAddrTable = new HashMap<String, Set<String>>();
 
         //build brokerData
@@ -84,7 +87,8 @@ public class ClusterInfoTest {
         brokerAddrs.put(MixAll.MASTER_ID, MixAll.getLocalhostByNetworkInterface());
 
         brokerData.setBrokerAddrs(brokerAddrs);
-        brokerAddrTable.put("master", brokerData);
+        ClusterData clusterData = new ClusterData("DEFAULT_CLUSTER", "master");
+        brokerAddrTable.put(clusterData, brokerData);
 
         Set<String> brokerNames = new HashSet<String>();
         brokerNames.add("master");

@@ -30,6 +30,7 @@ import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -65,7 +66,7 @@ public class CommandUtilTest {
         field.set(mqClientInstance, mQClientAPIImpl);
 
         ClusterInfo clusterInfo = new ClusterInfo();
-        HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
+        HashMap<ClusterData, BrokerData> brokerAddrTable = new HashMap<>();
         HashMap<String, Set<String>> clusterAddrTable = new HashMap<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(1234l, "127.0.0.1:10911");
@@ -73,8 +74,10 @@ public class CommandUtilTest {
         brokerData.setBrokerName("default-broker");
         brokerData.setCluster("default-cluster");
         brokerData.setBrokerAddrs(brokerAddrs);
-        brokerAddrTable.put("default-broker", brokerData);
-        brokerAddrTable.put("broker-test", new BrokerData());
+        ClusterData clusterData = new ClusterData("default-cluster", "default-broker");
+        brokerAddrTable.put(clusterData, brokerData);
+        ClusterData clusterDataTest = new ClusterData("default-cluster", null);
+        brokerAddrTable.put(clusterDataTest, new BrokerData());
         Set<String> brokerSet = new HashSet<>();
         brokerSet.add("default-broker");
         brokerSet.add("default-broker-one");

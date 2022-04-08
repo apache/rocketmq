@@ -25,6 +25,7 @@ import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -123,8 +124,8 @@ public class MQAdmin {
         if (clusterInfo == null) {
             return false;
         } else {
-            HashMap<String, BrokerData> brokers = clusterInfo.getBrokerAddrTable();
-            for (Entry<String, BrokerData> brokerEntry : brokers.entrySet()) {
+            HashMap<ClusterData, BrokerData> brokers = clusterInfo.getBrokerAddrTable();
+            for (Entry<ClusterData, BrokerData> brokerEntry : brokers.entrySet()) {
                 HashMap<Long, String> brokerIps = brokerEntry.getValue().getBrokerAddrs();
                 for (Entry<Long, String> brokerIdEntry : brokerIps.entrySet()) {
                     if (brokerIdEntry.getValue().contains(ip))

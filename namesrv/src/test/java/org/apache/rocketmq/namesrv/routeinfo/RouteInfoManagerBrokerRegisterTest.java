@@ -84,7 +84,7 @@ public class RouteInfoManagerBrokerRegisterTest extends RouteInfoManagerTestBase
         String brokerName = getBrokerName(brokerPrefix, 0);
 
         String originMasterAddr = getBrokerAddr(clusterName, brokerName, MixAll.MASTER_ID);
-        TopicRouteData topicRouteData = routeInfoManager.pickupTopicRouteData(topicName);
+        TopicRouteData topicRouteData = routeInfoManager.pickupTopicRouteData(clusterName, topicName);
         BrokerData brokerDataOrigin = findBrokerDataByBrokerName(topicRouteData.getBrokerDatas(), brokerName);
 
         // check origin master address
@@ -101,7 +101,7 @@ public class RouteInfoManagerBrokerRegisterTest extends RouteInfoManagerTestBase
                 cluster.topicConfig,
                 new ArrayList<>());
 
-        topicRouteData = routeInfoManager.pickupTopicRouteData(topicName);
+        topicRouteData = routeInfoManager.pickupTopicRouteData(clusterName, topicName);
         brokerDataOrigin = findBrokerDataByBrokerName(topicRouteData.getBrokerDatas(), brokerName);
 
         // check new master address
@@ -116,7 +116,7 @@ public class RouteInfoManagerBrokerRegisterTest extends RouteInfoManagerTestBase
 
         unregisterBroker(routeInfoManager, cluster.brokerDataMap.get(brokerName), unregisterBrokerId);
 
-        TopicRouteData topicRouteData = routeInfoManager.pickupTopicRouteData(topicName);
+        TopicRouteData topicRouteData = routeInfoManager.pickupTopicRouteData(clusterName, topicName);
         HashMap<Long, String> brokerAddrs = findBrokerDataByBrokerName(topicRouteData.getBrokerDatas(), brokerName).getBrokerAddrs();
 
         assertFalse(brokerAddrs.containsKey(unregisterBrokerId));

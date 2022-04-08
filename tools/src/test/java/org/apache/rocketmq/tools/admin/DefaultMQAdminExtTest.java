@@ -61,6 +61,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -141,9 +142,11 @@ public class DefaultMQAdminExtTest {
         kvTable.setTable(result);
         when(mQClientAPIImpl.getBrokerRuntimeInfo(anyString(), anyLong())).thenReturn(kvTable);
 
-        HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
-        brokerAddrTable.put("default-broker", brokerData);
-        brokerAddrTable.put("broker-test", new BrokerData());
+        HashMap<ClusterData, BrokerData> brokerAddrTable = new HashMap<>();
+        ClusterData clusterData = new ClusterData("default-broker", "default-broker");
+        brokerAddrTable.put(clusterData, brokerData);
+        ClusterData clusterDataTest = new ClusterData("broker-test", null);
+        brokerAddrTable.put(clusterDataTest, new BrokerData());
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         clusterInfo.setClusterAddrTable(new HashMap<String, Set<String>>());
         when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
@@ -269,9 +272,11 @@ public class DefaultMQAdminExtTest {
     @Test
     public void testExamineBrokerClusterInfo() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-        HashMap<String, BrokerData> brokerList = clusterInfo.getBrokerAddrTable();
-        assertThat(brokerList.get("default-broker").getBrokerName()).isEqualTo("default-broker");
-        assertThat(brokerList.containsKey("broker-test")).isTrue();
+        HashMap<ClusterData, BrokerData> brokerList = clusterInfo.getBrokerAddrTable();
+        ClusterData clusterData = new ClusterData("default-broker", "default-broker");
+        assertThat(brokerList.get(clusterData).getBrokerName()).isEqualTo("default-broker");
+        ClusterData clusterDataTest = new ClusterData("broker-test", null);
+        assertThat(brokerList.containsKey(clusterDataTest)).isTrue();
 
         HashMap<String, Set<String>> clusterMap = new HashMap<>();
         Set<String> brokers = new HashSet<>();

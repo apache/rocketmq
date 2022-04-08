@@ -92,7 +92,7 @@ public class RouteInfoManagerStaticRegisterTest extends RouteInfoManagerTestBase
     public void testPickupTopicRouteData() {
         String topic = getTopicName(topicPrefix, 0);
 
-        TopicRouteData topicRouteData = routeInfoManager.pickupTopicRouteData(topic);
+        TopicRouteData topicRouteData = routeInfoManager.pickupTopicRouteData(clusterName, topic);
 
         TopicConfig topicConfig = cluster.topicConfig.get(topic);
 
@@ -123,7 +123,7 @@ public class RouteInfoManagerStaticRegisterTest extends RouteInfoManagerTestBase
         String topic = getTopicName(topicPrefix, 0);
         routeInfoManager.deleteTopic(topic);
 
-        assertNull(routeInfoManager.pickupTopicRouteData(topic));
+        assertNull(routeInfoManager.pickupTopicRouteData(clusterName, topic));
     }
 
     @Test

@@ -35,6 +35,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.*;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.ClusterData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -152,8 +153,9 @@ public class QueryMsgByUniqueKeySubCommandTest {
         when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), (String)isNull(), anyLong())).thenReturn(consumeStats);
 
         ClusterInfo clusterInfo = new ClusterInfo();
-        HashMap<String, BrokerData> brokerAddrTable = new HashMap<String, BrokerData>();
-        brokerAddrTable.put("key", brokerData);
+        HashMap<ClusterData, BrokerData> brokerAddrTable = new HashMap<ClusterData, BrokerData>();
+        ClusterData clusterData = new ClusterData("key", null);
+        brokerAddrTable.put(clusterData, brokerData);
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         HashMap<String, Set<String>> clusterAddrTable = new HashMap<String, Set<String>>();
         Set<String> addrSet = new HashSet<String>();
