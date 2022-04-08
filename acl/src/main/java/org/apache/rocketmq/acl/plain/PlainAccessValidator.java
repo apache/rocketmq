@@ -53,6 +53,7 @@ import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHea
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import static org.apache.rocketmq.acl.plain.PlainAccessResource.getRetryTopic;
@@ -156,7 +157,7 @@ public class PlainAccessValidator implements AccessValidator {
         PlainAccessResource accessResource = new PlainAccessResource();
         String remoteAddress = header.getRemoteAddress();
         if (remoteAddress != null && remoteAddress.contains(":")) {
-            accessResource.setWhiteRemoteAddress(remoteAddress.substring(0, remoteAddress.lastIndexOf(':')));
+            accessResource.setWhiteRemoteAddress(RemotingHelper.parseHostFromAddress(remoteAddress));
         } else {
             accessResource.setWhiteRemoteAddress(remoteAddress);
         }
