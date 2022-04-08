@@ -396,6 +396,12 @@ public class BrokerContainer implements IBrokerContainer {
     @Override
     public BrokerController removeBroker(final BrokerIdentity brokerIdentity) throws Exception {
 
+        InnerBrokerController dLedgerController = dLedgerBrokerControllers.remove(brokerIdentity);
+        if (dLedgerController != null) {
+            dLedgerController.shutdown();
+            return dLedgerController;
+        }
+
         InnerSalveBrokerController slaveBroker = slaveBrokerControllers.remove(brokerIdentity);
         if (slaveBroker != null) {
             slaveBroker.shutdown();
