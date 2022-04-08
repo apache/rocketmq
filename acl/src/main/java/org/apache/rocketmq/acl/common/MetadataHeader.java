@@ -122,21 +122,6 @@ public class MetadataHeader {
                 this.datetime, this.sessionToken, this.requestId, this.language, this.clientVersion, this.protocol,
                 this.requestCode);
         }
-
-        @Override public String toString() {
-            return "MetadataHeaderBuilder{" + "remoteAddress='" + remoteAddress + '\'' +
-                ", tenantId='" + tenantId + '\'' +
-                ", namespace='" + namespace + '\'' +
-                ", authorization='" + authorization + '\'' +
-                ", datetime='" + datetime + '\'' +
-                ", sessionToken='" + sessionToken + '\'' +
-                ", requestId='" + requestId + '\'' +
-                ", language='" + language + '\'' +
-                ", clientVersion='" + clientVersion + '\'' +
-                ", protocol='" + protocol + '\'' +
-                ", requestCode=" + requestCode +
-                '}';
-        }
     }
 
     public static MetadataHeader.MetadataHeaderBuilder builder() {
@@ -229,5 +214,22 @@ public class MetadataHeader {
 
     public void setRequestCode(int requestCode) {
         this.requestCode = requestCode;
+    }
+
+    @Override public String toString() {
+        final StringBuilder sb = new StringBuilder("MetadataHeader{");
+        sb.append("remoteAddress='").append(remoteAddress).append('\'');
+        sb.append(", tenantId='").append(tenantId).append('\'');
+        sb.append(", namespace='").append(namespace).append('\'');
+        sb.append(", authorization='").append(authorization).append('\'');
+        sb.append(", datetime='").append(datetime).append('\'');
+        sb.append(", sessionToken='").append(sessionToken).append('\'');
+        sb.append(", requestId='").append(requestId).append('\'');
+        sb.append(", language='").append(language).append('\'');
+        sb.append(", clientVersion='").append(clientVersion).append('\'');
+        sb.append(", protocol='").append(protocol).append('\'');
+        sb.append(", requestCode=").append(requestCode);
+        sb.append('}');
+        return sb.toString();
     }
 }

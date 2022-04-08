@@ -47,6 +47,7 @@ public class ProxyConfig {
     private String grpcTlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/gRPC.chain.cert.pem";
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = Runtime.getRuntime().availableProcessors() * 2;
+    private boolean enableGrpcEpoll = false;
     private int grpcThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int grpcThreadPoolQueueCapacity = 100000;
     private String brokerConfigPath = ConfigurationManager.getProxyHome() + "/conf/broker.conf";
@@ -194,6 +195,14 @@ public class ProxyConfig {
 
     public void setGrpcWorkerLoopNum(int grpcWorkerLoopNum) {
         this.grpcWorkerLoopNum = grpcWorkerLoopNum;
+    }
+
+    public boolean isEnableGrpcEpoll() {
+        return enableGrpcEpoll;
+    }
+
+    public void setEnableGrpcEpoll(boolean enableGrpcEpoll) {
+        this.enableGrpcEpoll = enableGrpcEpoll;
     }
 
     public int getGrpcThreadPoolNums() {

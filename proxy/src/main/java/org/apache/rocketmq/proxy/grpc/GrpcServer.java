@@ -19,6 +19,8 @@ package org.apache.rocketmq.proxy.grpc;
 
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
+import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
@@ -39,8 +41,8 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
-import org.apache.rocketmq.proxy.grpc.v2.service.GrpcForwardService;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingProcessor;
+import org.apache.rocketmq.proxy.grpc.v2.service.GrpcForwardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,12 +93,21 @@ public class GrpcServer implements StartAndShutdown {
         int workerLoopNum = ConfigurationManager.getProxyConfig().getGrpcWorkerLoopNum();
         int maxInboundMessageSize = ConfigurationManager.getProxyConfig().getGrpcMaxInboundMessageSize();
 
-        serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
-            .bossEventLoopGroup(new NioEventLoopGroup(bossLoopNum))
-            .workerEventLoopGroup(new NioEventLoopGroup(workerLoopNum))
-            .channelType(NioServerSocketChannel.class)
-            .addService(messagingProcessor)
-            .executor(this.executor);
+        if (ConfigurationManager.getProxyConfig().isEnableGrpcEpoll()) {
+            serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
+                .bossEventLoopGroup(new EpollEventLoopGroup(bossLoopNum))
+                .workerEventLoopGroup(new EpollEventLoopGroup(workerLoopNum))
+                .channelType(EpollServerSocketChannel.class)
+                .addService(messagingProcessor)
+                .executor(this.executor);
+        } else {
+            serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
+                .bossEventLoopGroup(new NioEventLoopGroup(bossLoopNum))
+                .workerEventLoopGroup(new NioEventLoopGroup(workerLoopNum))
+                .channelType(NioServerSocketChannel.class)
+                .addService(messagingProcessor)
+                .executor(this.executor);
+        }
 
         // grpc interceptors, including acl, logging etc.
         if (ConfigurationManager.getProxyConfig().isEnableACL()) {
