@@ -242,6 +242,36 @@ public class BrokerContainerTest {
     }
 
     @Test
+    public void testAddAndRemoveDLedgerBroker() throws Exception {
+        BrokerContainer brokerContainer = new BrokerContainer(
+                new BrokerContainerConfig(),
+                new NettyServerConfig(),
+                new NettyClientConfig());
+        assertThat(brokerContainer.initialize()).isTrue();
+        brokerContainer.start();
+
+        BrokerConfig dLedgerBrokerConfig = new BrokerConfig();
+        String baseDir = createBaseDir("unnittest-dLedger").getAbsolutePath();
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(baseDir);
+        messageStoreConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
+        messageStoreConfig.setEnableDLegerCommitLog(true);
+        messageStoreConfig.setdLegerSelfId("n0");
+        messageStoreConfig.setdLegerGroup("group");
+        messageStoreConfig.setdLegerPeers(String.format("n0-localhost:%d", generatePort(30900, 10000)));
+        InnerBrokerController dLedger = brokerContainer.addBroker(dLedgerBrokerConfig, messageStoreConfig);
+        assertThat(dLedger).isNotNull();
+        dLedger.start();
+        assertThat(dLedger.isIsolated()).isFalse();
+
+        brokerContainer.removeBroker(new BrokerIdentity(dLedgerBrokerConfig.getBrokerClusterName(), dLedgerBrokerConfig.getBrokerName(), Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1))));
+        assertThat(brokerContainer.getMasterBrokers().size()).isEqualTo(0);
+
+        brokerContainer.shutdown();
+        dLedger.getMessageStore().destroy();
+    }
+
+    @Test
     public void testAddAndRemoveSlaveSuccess() throws Exception {
         BrokerContainer brokerContainer = new BrokerContainer(
             new BrokerContainerConfig(),

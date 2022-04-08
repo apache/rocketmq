@@ -288,7 +288,7 @@ public class BrokerContainer implements IBrokerContainer {
                 brokerConfig.getBrokerName(), Integer.parseInt(storeConfig.getdLegerSelfId().substring(1)));
         final BrokerController previousBroker = dLedgerBrokerControllers.putIfAbsent(brokerIdentity, brokerController);
         if (previousBroker == null) {
-            // New master broker added, start it
+            // New dLedger broker added, start it
             try {
                 BrokerLogbackConfigurator.doConfigure(brokerIdentity);
                 final boolean initResult = brokerController.initialize();
