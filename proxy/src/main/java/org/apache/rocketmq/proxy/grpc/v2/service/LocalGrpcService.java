@@ -122,6 +122,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         new ThreadFactoryImpl("LocalGrpcServiceScheduledThread"));
     private final ChannelManager channelManager;
     private final PollResponseManager pollCommandResponseManager;
+    private final GrpcClientManager grpcClientManager;
     private final RouteService routeService;
     private final DelayPolicy delayPolicy;
 
@@ -131,7 +132,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         // TransactionStateChecker is not used in Local mode.
         ConnectorManager connectorManager = new ConnectorManager(null);
         this.pollCommandResponseManager = new PollResponseManager();
-        this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager);
+        this.grpcClientManager = new GrpcClientManager();
+        this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager, grpcClientManager);
         this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
         this.appendStartAndShutdown(connectorManager);
         this.appendStartAndShutdown(new LocalGrpcServiceStartAndShutdown());
@@ -146,10 +148,10 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
         LanguageCode languageCode;
         String language = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE);
+        String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
         languageCode = LanguageCode.valueOf(language);
-        String clientId = GrpcClientManager.getClientId(ctx);
 
-        ClientSettings clientSettings = GrpcClientManager.getClientSettings(ctx);
+        ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
         HeartbeatData heartbeatData = GrpcConverter.buildHeartbeatData(clientId, request, clientSettings);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         command.setLanguage(languageCode);
@@ -239,7 +241,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         long pollTime = GrpcConverter.buildPollTimeFromContext(ctx);
-        ClientSettings clientSettings = GrpcClientManager.getClientSettings(ctx);
+        String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
+        ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
         PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
@@ -457,8 +460,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         NotifyClientTerminationRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
-        String clientId = GrpcClientManager.getClientId(ctx);
-        ClientSettings clientSettings = GrpcClientManager.getClientSettings(ctx);
+        String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
+        ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
         UnregisterClientRequestHeader header = GrpcConverter.buildUnregisterClientRequestHeader(clientId, clientSettings.getClientType(), request);
 
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, header);
@@ -512,27 +515,27 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public StreamObserver<TelemetryCommand> telemetry(Context ctx, StreamObserver<TelemetryCommand> responseObserver) {
+        String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
         return new StreamObserver<TelemetryCommand>() {
             @Override
             public void onNext(TelemetryCommand request) {
                 switch (request.getCommandCase()) {
                     case CLIENT_SETTINGS: {
                         ClientSettings clientSettings = request.getClientSettings();
-                        GrpcClientManager.updateClientSettings(ctx, clientSettings);
-                        String clientId = GrpcClientManager.getClientId(ctx);
+                        grpcClientManager.updateClientSettings(clientId, clientSettings);
                         Settings settings = clientSettings.getSettings();
                         if (settings.hasPublishing()) {
                             Publishing publishing = settings.getPublishing();
                             for (Resource topic : publishing.getTopicsList()) {
                                 String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-                                GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(channelManager, topicName, clientId);
+                                GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, pollCommandResponseManager);
                                 producerChannel.setClientObserver(responseObserver);
                             }
                         }
                         if (settings.hasSubscription()) {
                             Subscription subscription = settings.getSubscription();
                             String groupName = GrpcConverter.wrapResourceWithNamespace(subscription.getGroup());
-                            GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(channelManager, groupName, clientId);
+                            GrpcClientChannel consumerChannel = GrpcClientChannel.create(channelManager, groupName, clientId, pollCommandResponseManager);
                             consumerChannel.setClientObserver(responseObserver);
                         }
                         responseObserver.onNext(TelemetryCommand.newBuilder()

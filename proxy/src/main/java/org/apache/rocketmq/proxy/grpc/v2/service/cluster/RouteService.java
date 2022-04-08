@@ -42,13 +42,14 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.proxy.common.ParameterConverter;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteHelper;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.common.ParameterConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
@@ -64,13 +65,16 @@ public class RouteService extends BaseService {
     private volatile AssignmentQueueSelector assignmentQueueSelector;
     private volatile ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook;
 
-    public RouteService(ProxyMode mode, ConnectorManager connectorManager) {
+    private GrpcClientManager grpcClientManager;
+
+    public RouteService(ProxyMode mode, ConnectorManager connectorManager, GrpcClientManager grpcClientManager) {
         super(connectorManager);
         Preconditions.checkArgument(ProxyMode.isClusterMode(mode) || ProxyMode.isLocalMode(mode));
         this.mode = mode;
         queryRouteEndpointConverter = (ctx, parameter) -> parameter;
         queryAssignmentEndpointConverter = (ctx, parameter) -> parameter;
         assignmentQueueSelector = new DefaultAssignmentQueueSelector(this.connectorManager.getTopicRouteCache());
+        this.grpcClientManager = grpcClientManager;
     }
 
     public void setQueryRouteEndpointConverter(ParameterConverter<Endpoints, Endpoints> queryRouteEndpointConverter) {
@@ -240,7 +244,8 @@ public class RouteService extends BaseService {
                 }
             }
             if (ProxyMode.isClusterMode(mode)) {
-                ClientSettings clientSettings = GrpcClientManager.getClientSettings(ctx);
+                String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
+                ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
                 Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
                 if (resEndpoints == null || Endpoints.getDefaultInstance().equals(resEndpoints)) {
                     future.complete(QueryAssignmentResponse.newBuilder()

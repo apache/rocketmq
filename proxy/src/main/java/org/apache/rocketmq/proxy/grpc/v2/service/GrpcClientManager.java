@@ -18,24 +18,18 @@
 package org.apache.rocketmq.proxy.grpc.v2.service;
 
 import apache.rocketmq.v2.ClientSettings;
-import io.grpc.Context;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 
 public class GrpcClientManager {
 
     private static final Map<String, ClientSettings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
 
-    public static ClientSettings getClientSettings(Context ctx) {
-        return CLIENT_SETTINGS_MAP.get(getClientId(ctx));
+    public ClientSettings getClientSettings(String clientId) {
+        return CLIENT_SETTINGS_MAP.get(clientId);
     }
 
-    public static void updateClientSettings(Context ctx, ClientSettings clientSettings) {
-        CLIENT_SETTINGS_MAP.put(getClientId(ctx), clientSettings);
-    }
-
-    public static String getClientId(Context ctx) {
-        return InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
+    public void updateClientSettings(String clientId, ClientSettings clientSettings) {
+        CLIENT_SETTINGS_MAP.put(clientId, clientSettings);
     }
 }
