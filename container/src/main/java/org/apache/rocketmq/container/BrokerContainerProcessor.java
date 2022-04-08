@@ -116,29 +116,31 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
             brokerConfig.setBrokerConfigPath(configPath);
         }
 
-        switch (messageStoreConfig.getBrokerRole()) {
-            case ASYNC_MASTER:
-            case SYNC_MASTER:
-                brokerConfig.setBrokerId(MixAll.MASTER_ID);
-                break;
-            case SLAVE:
-                if (brokerConfig.getBrokerId() <= 0) {
-                    response.setCode(ResponseCode.SYSTEM_ERROR);
-                    response.setRemark("slave broker id must be > 0");
-                    return response;
-                }
-                break;
-            default:
-                break;
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+            switch (messageStoreConfig.getBrokerRole()) {
+                case ASYNC_MASTER:
+                case SYNC_MASTER:
+                    brokerConfig.setBrokerId(MixAll.MASTER_ID);
+                    break;
+                case SLAVE:
+                    if (brokerConfig.getBrokerId() <= 0) {
+                        response.setCode(ResponseCode.SYSTEM_ERROR);
+                        response.setRemark("slave broker id must be > 0");
+                        return response;
+                    }
+                    break;
+                default:
+                    break;
 
-        }
+            }
 
-        if (messageStoreConfig.getTotalReplicas() < messageStoreConfig.getInSyncReplicas()
-            || messageStoreConfig.getTotalReplicas() < messageStoreConfig.getMinInSyncReplicas()
-            || messageStoreConfig.getInSyncReplicas() < messageStoreConfig.getMinInSyncReplicas()) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("invalid replicas number");
-            return response;
+            if (messageStoreConfig.getTotalReplicas() < messageStoreConfig.getInSyncReplicas()
+                    || messageStoreConfig.getTotalReplicas() < messageStoreConfig.getMinInSyncReplicas()
+                    || messageStoreConfig.getInSyncReplicas() < messageStoreConfig.getMinInSyncReplicas()) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("invalid replicas number");
+                return response;
+            }
         }
 
         BrokerController brokerController;
@@ -163,9 +165,14 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                 }
             } catch (Exception e) {
                 LOGGER.error("start broker exception {}", e);
-                BrokerIdentity brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
-                    brokerConfig.getBrokerName(),
-                    brokerConfig.getBrokerId());
+                BrokerIdentity brokerIdentity;
+                if (messageStoreConfig.isEnableDLegerCommitLog()) {
+                    brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
+                        brokerConfig.getBrokerName(), Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)));
+                } else {
+                    brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
+                        brokerConfig.getBrokerName(), brokerConfig.getBrokerId());
+                }
                 this.brokerContainer.removeBroker(brokerIdentity);
                 brokerController.shutdown();
                 response.setCode(ResponseCode.SYSTEM_ERROR);

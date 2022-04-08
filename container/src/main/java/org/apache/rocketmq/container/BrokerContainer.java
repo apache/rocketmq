@@ -295,17 +295,17 @@ public class BrokerContainer implements IBrokerContainer {
                 if (!initResult) {
                     brokerController.shutdown();
                     dLedgerBrokerControllers.remove(brokerIdentity);
-                    throw new Exception("Failed to init dLedger broker " + brokerConfig.getCanonicalName());
+                    throw new Exception("Failed to init dLedger broker " + brokerIdentity.getCanonicalName());
                 }
             } catch (Exception e) {
                 // Remove the failed dLedger broker and throw the exception
                 brokerController.shutdown();
                 dLedgerBrokerControllers.remove(brokerIdentity);
-                throw new Exception("Failed to initialize dLedger broker " + brokerConfig.getCanonicalName(), e);
+                throw new Exception("Failed to initialize dLedger broker " + brokerIdentity.getCanonicalName(), e);
             }
             return brokerController;
         }
-        throw new Exception(brokerConfig.getCanonicalName() + " has already been added to current broker");
+        throw new Exception(brokerIdentity.getCanonicalName() + " has already been added to current broker");
     }
 
     public InnerBrokerController addMasterBroker(final BrokerConfig masterBrokerConfig,
