@@ -30,9 +30,13 @@ public class ResponseBuilder {
     }
 
     public static Status buildStatus(int remotingResponseCode, String remark) {
+        String message = remark;
+        if (message == null) {
+            message = String.valueOf(remotingResponseCode);
+        }
         return Status.newBuilder()
             .setCode(buildCode(remotingResponseCode))
-            .setMessage(remark)
+            .setMessage(message)
             .build();
     }
     

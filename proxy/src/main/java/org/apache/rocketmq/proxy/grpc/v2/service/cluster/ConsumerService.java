@@ -48,6 +48,7 @@ import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.common.DelayPolicy;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
@@ -70,7 +71,9 @@ public class ConsumerService extends BaseService {
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
     private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageResponseResponseHook;
 
-    public ConsumerService(ConnectorManager connectorManager) {
+    private final GrpcClientManager grpcClientManager;
+
+    public ConsumerService(ConnectorManager connectorManager, GrpcClientManager grpcClientManager) {
         super(connectorManager);
         this.readConsumer = connectorManager.getForwardReadConsumer();
         this.writeConsumer = connectorManager.getForwardWriteConsumer();
@@ -78,6 +81,8 @@ public class ConsumerService extends BaseService {
 
         this.readQueueSelector = new DefaultReadQueueSelector(connectorManager.getTopicRouteCache());
         this.delayPolicy = DelayPolicy.build(ConfigurationManager.getProxyConfig().getMessageDelayLevel());
+
+        this.grpcClientManager = grpcClientManager;
     }
 
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
@@ -246,10 +251,11 @@ public class ConsumerService extends BaseService {
             }
         });
         try {
+            String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
-            Settings settings = GrpcClientManager.getClientSettings(ctx).getSettings();
+            Settings settings = grpcClientManager.getClientSettings(clientId).getSettings();
             int maxDeliveryAttempts = settings.getSubscription().getDeadLetterPolicy().getMaxDeliveryAttempts();
             if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
                 CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
