@@ -290,7 +290,7 @@ public class BrokerContainer implements IBrokerContainer {
         if (previousBroker == null) {
             // New master broker added, start it
             try {
-                BrokerLogbackConfigurator.doConfigure(brokerConfig);
+                BrokerLogbackConfigurator.doConfigure(brokerIdentity);
                 final boolean initResult = brokerController.initialize();
                 if (!initResult) {
                     brokerController.shutdown();
