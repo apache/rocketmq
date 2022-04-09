@@ -39,7 +39,7 @@ public class RemoveBrokerSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("b", "brokerIdentity", true, "Information to identify a broker: clusterName:brokerName:brokerId");
+        opt = new Option("b", "brokerIdentity", true, "Information to identify a broker: clusterName:brokerName:brokerId(dLedgerId for dLedger)");
         opt.setRequired(true);
         options.addOption(opt);
 

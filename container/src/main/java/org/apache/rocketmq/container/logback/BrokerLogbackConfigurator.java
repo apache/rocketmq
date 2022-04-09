@@ -36,7 +36,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import ch.qos.logback.core.util.FileSize;
-import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -53,8 +53,8 @@ public class BrokerLogbackConfigurator {
     public static final String SUFFIX_APPENDER = "Appender";
     public static final String SUFFIX_INNER_APPENDER = "_inner";
 
-    public static void doConfigure(BrokerConfig brokerConfig) {
-        if (!CONFIGURED_BROKER_LIST.contains(brokerConfig.getCanonicalName())) {
+    public static void doConfigure(BrokerIdentity brokerIdentity) {
+        if (!CONFIGURED_BROKER_LIST.contains(brokerIdentity.getCanonicalName())) {
             try {
                 LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
                 for (ch.qos.logback.classic.Logger tempLogger : lc.getLoggerList()) {
@@ -64,7 +64,7 @@ public class BrokerLogbackConfigurator {
                         && !loggerName.equals(LoggerName.ACCOUNT_LOGGER_NAME)
                         && !loggerName.equals(LoggerName.COMMERCIAL_LOGGER_NAME)
                         && !loggerName.equals(LoggerName.CONSUMER_STATS_LOGGER_NAME)) {
-                        ch.qos.logback.classic.Logger logger = lc.getLogger(brokerConfig.getLoggerIdentifier() + loggerName);
+                        ch.qos.logback.classic.Logger logger = lc.getLogger(brokerIdentity.getLoggerIdentifier() + loggerName);
                         logger.setAdditive(tempLogger.isAdditive());
                         logger.setLevel(tempLogger.getLevel());
                         String appenderName = loggerName + SUFFIX_APPENDER;
@@ -72,7 +72,7 @@ public class BrokerLogbackConfigurator {
                         if (tempAppender instanceof AsyncAppender) {
                             AsyncAppender tempAsyncAppender = (AsyncAppender) tempAppender;
                             AsyncAppender asyncAppender = new AsyncAppender();
-                            asyncAppender.setName(brokerConfig.getLoggerIdentifier() + appenderName);
+                            asyncAppender.setName(brokerIdentity.getLoggerIdentifier() + appenderName);
                             asyncAppender.setContext(tempAsyncAppender.getContext());
 
                             String innerAppenderName = appenderName + SUFFIX_INNER_APPENDER;
@@ -81,34 +81,34 @@ public class BrokerLogbackConfigurator {
                                 continue;
                             }
                             asyncAppender.addAppender(configureRollingFileAppender((RollingFileAppender<ILoggingEvent>) tempInnerAppender,
-                                brokerConfig, innerAppenderName));
+                                brokerIdentity, innerAppenderName));
                             asyncAppender.start();
                             logger.addAppender(asyncAppender);
                         } else if (tempAppender instanceof RollingFileAppender) {
                             logger.addAppender(configureRollingFileAppender((RollingFileAppender<ILoggingEvent>) tempAppender,
-                                brokerConfig, appenderName));
+                                brokerIdentity, appenderName));
                         }
                     }
                 }
             } catch (Exception e) {
-                LOG.error("Configure logback for broker {} failed, will use default broker log config instead. {}", brokerConfig.getCanonicalName(), e);
+                LOG.error("Configure logback for broker {} failed, will use default broker log config instead. {}", brokerIdentity.getCanonicalName(), e);
                 return;
             }
 
-            CONFIGURED_BROKER_LIST.add(brokerConfig.getCanonicalName());
+            CONFIGURED_BROKER_LIST.add(brokerIdentity.getCanonicalName());
         }
     }
 
     private static RollingFileAppender<ILoggingEvent> configureRollingFileAppender(
-        RollingFileAppender<ILoggingEvent> tempRollingFileAppender, BrokerConfig brokerConfig, String appenderName)
+        RollingFileAppender<ILoggingEvent> tempRollingFileAppender, BrokerIdentity brokerIdentity, String appenderName)
         throws NoSuchFieldException, IllegalAccessException {
         RollingFileAppender<ILoggingEvent> rollingFileAppender = new RollingFileAppender<>();
 
         // configure appender name
-        rollingFileAppender.setName(brokerConfig.getLoggerIdentifier() + appenderName);
+        rollingFileAppender.setName(brokerIdentity.getLoggerIdentifier() + appenderName);
 
         // configure file name
-        rollingFileAppender.setFile(tempRollingFileAppender.getFile().replaceAll(ROCKETMQ_LOGS, brokerConfig.getCanonicalName() + "_" + ROCKETMQ_LOGS));
+        rollingFileAppender.setFile(tempRollingFileAppender.getFile().replaceAll(ROCKETMQ_LOGS, brokerIdentity.getCanonicalName() + "_" + ROCKETMQ_LOGS));
 
         // configure append
         rollingFileAppender.setAppend(true);
@@ -144,7 +144,7 @@ public class BrokerLogbackConfigurator {
             FixedWindowRollingPolicy tempRollingPolicy = (FixedWindowRollingPolicy) originalRollingPolicy;
             FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();
             rollingPolicy.setContext(tempRollingPolicy.getContext());
-            rollingPolicy.setFileNamePattern(tempRollingPolicy.getFileNamePattern().replaceAll(ROCKETMQ_LOGS, brokerConfig.getCanonicalName() + "_" + ROCKETMQ_LOGS));
+            rollingPolicy.setFileNamePattern(tempRollingPolicy.getFileNamePattern().replaceAll(ROCKETMQ_LOGS, brokerIdentity.getCanonicalName() + "_" + ROCKETMQ_LOGS));
             rollingPolicy.setMaxIndex(tempRollingPolicy.getMaxIndex());
             rollingPolicy.setMinIndex(tempRollingPolicy.getMinIndex());
             rollingPolicy.setParent(rollingFileAppender);
