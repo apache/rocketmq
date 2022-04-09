@@ -292,37 +292,38 @@ public class RemotingCommand {
     }
 
     private Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
-        Field[] field = CLASS_HASH_MAP.get(classHeader);
-
-        if (field == null) {
-            field = classHeader.getDeclaredFields();
-            synchronized (CLASS_HASH_MAP) {
+        synchronized (CLASS_HASH_MAP) {
+            Field[] field = CLASS_HASH_MAP.get(classHeader);
+            if (field == null) {
+                field = classHeader.getDeclaredFields();
                 CLASS_HASH_MAP.put(classHeader, field);
             }
+
+            return field;
         }
-        return field;
     }
 
     private boolean isFieldNullable(Field field) {
-        if (!NULLABLE_FIELD_CACHE.containsKey(field)) {
-            Annotation annotation = field.getAnnotation(CFNotNull.class);
-            synchronized (NULLABLE_FIELD_CACHE) {
+        synchronized (NULLABLE_FIELD_CACHE) {
+            if (!NULLABLE_FIELD_CACHE.containsKey(field)) {
+                Annotation annotation = field.getAnnotation(CFNotNull.class);
                 NULLABLE_FIELD_CACHE.put(field, annotation == null);
             }
+
+            return NULLABLE_FIELD_CACHE.get(field);
         }
-        return NULLABLE_FIELD_CACHE.get(field);
     }
 
     private String getCanonicalName(Class clazz) {
-        String name = CANONICAL_NAME_CACHE.get(clazz);
-
-        if (name == null) {
-            name = clazz.getCanonicalName();
-            synchronized (CANONICAL_NAME_CACHE) {
+        synchronized (CANONICAL_NAME_CACHE) {
+            String name = CANONICAL_NAME_CACHE.get(clazz);
+            if (name == null) {
+                name = clazz.getCanonicalName();
                 CANONICAL_NAME_CACHE.put(clazz, name);
             }
+
+            return name;
         }
-        return name;
     }
 
     public ByteBuffer encode() {
