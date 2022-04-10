@@ -84,7 +84,7 @@ public class GroupTransferService extends ServiceThread {
 
                         int ackNums = 0;
                         for (HAConnection conn : haService.getConnectionList()) {
-                            // TODO: We must ensure every AutoRecoverHAConnection represents a different slave
+                            // TODO: We must ensure every HAConnection represents a different slave
                             // Solution: Consider assign a unique and fixed IP:ADDR for each different slave
                             if (conn.getSlaveAckOffset() >= req.getNextOffset()) {
                                 ackNums++;
