@@ -1,16 +1,19 @@
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v1.AckMessageRequest;
-import apache.rocketmq.v1.AckMessageResponse;
-import apache.rocketmq.v1.FilterExpression;
-import apache.rocketmq.v1.FilterType;
-import apache.rocketmq.v1.NackMessageRequest;
-import apache.rocketmq.v1.NackMessageResponse;
-import apache.rocketmq.v1.Partition;
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.ReceiveMessageResponse;
-import apache.rocketmq.v1.Resource;
-import com.google.rpc.Code;
+import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.ClientSettings;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.DeadLetterPolicy;
+import apache.rocketmq.v2.FilterExpression;
+import apache.rocketmq.v2.FilterType;
+import apache.rocketmq.v2.NackMessageRequest;
+import apache.rocketmq.v2.NackMessageResponse;
+import apache.rocketmq.v2.ReceiveMessageRequest;
+import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
 import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -49,7 +52,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
 
     @Override
     public void beforeEach() throws Throwable {
-        consumerService = new ConsumerService(this.connectorManager);
+        consumerService = new ConsumerService(this.connectorManager, this.grpcClientManager);
         consumerService.setReadQueueSelector(readQueueSelector);
     }
 
@@ -75,7 +78,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         consumerService.setAckNoMatchedMessageHook((ctx1, request, response, t) -> ackHandler.set(request.getExtraInfo()));
         ReceiveMessageResponse response = consumerService.receiveMessage(ctx,
             ReceiveMessageRequest.newBuilder()
-                .setPartition(Partition.newBuilder()
+                .setMessageQueue(apache.rocketmq.v2.MessageQueue.newBuilder()
                     .setTopic(Resource.newBuilder()
                         .setResourceNamespace("namespace")
                         .setName("topic")
@@ -88,9 +91,9 @@ public class ConsumerServiceTest extends BaseServiceTest {
                 .build()
         ).get();
 
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(1, response.getMessagesCount());
-        assertEquals("msg1", response.getMessages(0).getSystemAttribute().getMessageId());
+        assertEquals("msg1", response.getMessages(0).getSystemProperties().getMessageId());
         assertEquals(ReceiptHandle.create(messageExtList.get(1)).getReceiptHandle(), ackHandler.get());
     }
 
@@ -112,7 +115,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
             .build())
         .get();
 
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
     }
 
     @Test
@@ -125,6 +128,9 @@ public class ConsumerServiceTest extends BaseServiceTest {
         }).when(producerClient).sendMessageBack(anyString(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
+        ClientSettings clientSettings = createClientSettings(3);
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+
         NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName("topic")
@@ -134,11 +140,10 @@ public class ConsumerServiceTest extends BaseServiceTest {
                 .build())
             .setReceiptHandle(receiptHandle.encode())
             .setDeliveryAttempt(3)
-            .setMaxDeliveryAttempts(3)
             .build())
         .get();
 
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(receiptHandle.getCommitLogOffset(), headerRef.get().getOffset().longValue());
     }
 
@@ -154,6 +159,9 @@ public class ConsumerServiceTest extends BaseServiceTest {
         }).when(writeConsumerClient).changeInvisibleTimeAsync(anyString(), anyString(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
+        ClientSettings clientSettings = createClientSettings(3);
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+
         NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName("topic")
@@ -163,12 +171,23 @@ public class ConsumerServiceTest extends BaseServiceTest {
                 .build())
             .setReceiptHandle(receiptHandle.encode())
             .setDeliveryAttempt(1)
-            .setMaxDeliveryAttempts(3)
             .build())
             .get();
 
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(receiptHandle.getOffset(), headerRef.get().getOffset().longValue());
         assertEquals(receiptHandle.encode(), headerRef.get().getExtraInfo());
+    }
+
+    private ClientSettings createClientSettings(int maxDeliveryAttempts) {
+        return ClientSettings.newBuilder()
+            .setSettings(Settings.newBuilder()
+                .setSubscription(Subscription.newBuilder()
+                    .setDeadLetterPolicy(DeadLetterPolicy.newBuilder()
+                        .setMaxDeliveryAttempts(maxDeliveryAttempts)
+                        .build())
+                    .build())
+                .build())
+            .build();
     }
 }

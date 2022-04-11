@@ -1,17 +1,17 @@
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v1.Broker;
-import apache.rocketmq.v1.FilterExpression;
-import apache.rocketmq.v1.FilterType;
-import apache.rocketmq.v1.Partition;
-import apache.rocketmq.v1.PullMessageRequest;
-import apache.rocketmq.v1.PullMessageResponse;
-import apache.rocketmq.v1.QueryOffsetPolicy;
-import apache.rocketmq.v1.QueryOffsetRequest;
-import apache.rocketmq.v1.QueryOffsetResponse;
-import apache.rocketmq.v1.Resource;
+import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.FilterExpression;
+import apache.rocketmq.v2.FilterType;
+import apache.rocketmq.v2.MessageQueue;
+import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PullMessageResponse;
+import apache.rocketmq.v2.QueryOffsetPolicy;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
+import apache.rocketmq.v2.Resource;
 import com.google.protobuf.util.Timestamps;
-import com.google.rpc.Code;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -49,7 +49,7 @@ public class PullMessageServiceTest extends BaseServiceTest {
         when(defaultClient.searchOffset(anyString(), anyString(), anyInt(), anyLong())).thenReturn(CompletableFuture.completedFuture(50L));
 
         QueryOffsetResponse response = pullMessageService.queryOffset(ctx, QueryOffsetRequest.newBuilder()
-            .setPartition(Partition.newBuilder()
+            .setMessageQueue(MessageQueue.newBuilder()
                 .setTopic(Resource.newBuilder()
                     .setName("topic")
                     .build())
@@ -58,11 +58,11 @@ public class PullMessageServiceTest extends BaseServiceTest {
             .setPolicy(QueryOffsetPolicy.BEGINNING)
             .build()
         ).get();
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(0, response.getOffset());
 
         response = pullMessageService.queryOffset(ctx, QueryOffsetRequest.newBuilder()
-            .setPartition(Partition.newBuilder()
+            .setMessageQueue(MessageQueue.newBuilder()
                 .setTopic(Resource.newBuilder()
                     .setName("topic")
                     .build())
@@ -71,11 +71,11 @@ public class PullMessageServiceTest extends BaseServiceTest {
             .setPolicy(QueryOffsetPolicy.END)
             .build()
         ).get();
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(100, response.getOffset());
 
         response = pullMessageService.queryOffset(ctx, QueryOffsetRequest.newBuilder()
-            .setPartition(Partition.newBuilder()
+            .setMessageQueue(MessageQueue.newBuilder()
                 .setTopic(Resource.newBuilder()
                     .setName("topic")
                     .build())
@@ -85,7 +85,7 @@ public class PullMessageServiceTest extends BaseServiceTest {
             .setPolicy(QueryOffsetPolicy.TIME_POINT)
             .build()
         ).get();
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(50, response.getOffset());
     }
 
@@ -109,7 +109,7 @@ public class PullMessageServiceTest extends BaseServiceTest {
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
         PullMessageResponse response = pullMessageService.pullMessage(ctx, PullMessageRequest.newBuilder()
-            .setPartition(Partition.newBuilder()
+            .setMessageQueue(MessageQueue.newBuilder()
                 .setBroker(Broker.newBuilder()
                     .setName("brokerName")
                     .build())
@@ -124,8 +124,8 @@ public class PullMessageServiceTest extends BaseServiceTest {
             .build())
         .get();
 
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(1, response.getMessagesCount());
-        assertEquals("msg1", response.getMessages(0).getSystemAttribute().getMessageId());
+        assertEquals("msg1", response.getMessages(0).getSystemProperties().getMessageId());
     }
 }

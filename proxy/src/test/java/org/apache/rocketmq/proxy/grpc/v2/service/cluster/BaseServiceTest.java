@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
+import io.grpc.Context;
+import io.grpc.Metadata;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
@@ -32,6 +34,8 @@ import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionHeartbeatRegisterService;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -59,6 +63,13 @@ public abstract class BaseServiceTest extends InitConfigAndLoggerTest {
     protected TopicRouteCache topicRouteCache;
     @Mock
     protected TransactionHeartbeatRegisterService transactionHeartbeatRegisterService;
+    @Mock
+    protected GrpcClientManager grpcClientManager;
+
+    public static final String REMOTE_ADDRESS = "1.1.1.1";
+    public static final String LOCAL_ADDRESS = "0.0.0.0";
+    public static final String LANGUAGE = "JAVA";
+    public static final String CLIENT_ID = "client-id";
 
     @Before
     public void before() throws Throwable {
@@ -70,6 +81,7 @@ public abstract class BaseServiceTest extends InitConfigAndLoggerTest {
         when(connectorManager.getTopicRouteCache()).thenReturn(topicRouteCache);
         when(connectorManager.getTransactionHeartbeatRegisterService()).thenReturn(transactionHeartbeatRegisterService);
 
+        initContext();
         beforeEach();
     }
 
@@ -105,5 +117,16 @@ public abstract class BaseServiceTest extends InitConfigAndLoggerTest {
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, msgId);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_POP_CK, handler);
         return msg;
+    }
+
+    protected static Context initContext() {
+        Context ctx = Context.current();
+        Metadata metadata = new Metadata();
+        metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDRESS);
+        metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDRESS);
+        metadata.put(InterceptorConstants.LANGUAGE, LANGUAGE);
+        metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
+        ctx.withValue(InterceptorConstants.METADATA, metadata).attach();
+        return ctx;
     }
 }

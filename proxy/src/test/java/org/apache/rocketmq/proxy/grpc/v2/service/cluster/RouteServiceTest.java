@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 import apache.rocketmq.v2.Address;
 import apache.rocketmq.v2.AddressScheme;
 import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.ClientSettings;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.MessageQueue;
@@ -40,13 +41,14 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class RouteServiceTest extends BaseServiceTest {
@@ -146,15 +148,20 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testLocalModeQueryRoute() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.connectorManager);
-        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
-            .setEndpoints(Endpoints.newBuilder()
+        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.connectorManager, this.grpcClientManager);
+
+        ClientSettings clientSettings = ClientSettings.newBuilder()
+            .setAccessPoint(Endpoints.newBuilder()
                 .addAddresses(Address.newBuilder()
                     .setPort(80)
                     .setHost("host")
                     .build())
                 .setScheme(AddressScheme.DOMAIN_NAME)
                 .build())
+            .build();
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+
+        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName("topic")
                 .build())
@@ -168,8 +175,9 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testQueryRouteWithInvalidEndpoints() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
 
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(ClientSettings.getDefaultInstance());
         CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName("topic")
@@ -182,16 +190,20 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testQueryRoute() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
 
-        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
-            .setEndpoints(Endpoints.newBuilder()
+        ClientSettings clientSettings = ClientSettings.newBuilder()
+            .setAccessPoint(Endpoints.newBuilder()
                 .addAddresses(Address.newBuilder()
                     .setPort(80)
                     .setHost("host")
                     .build())
                 .setScheme(AddressScheme.DOMAIN_NAME)
                 .build())
+            .build();
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+
+        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName("topic")
                 .build())
@@ -206,16 +218,20 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testQueryRouteWhenTopicNotExist() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
 
-        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
-            .setEndpoints(Endpoints.newBuilder()
+        ClientSettings clientSettings = ClientSettings.newBuilder()
+            .setAccessPoint(Endpoints.newBuilder()
                 .addAddresses(Address.newBuilder()
                     .setPort(80)
                     .setHost("host")
                     .build())
                 .setScheme(AddressScheme.DOMAIN_NAME)
                 .build())
+            .build();
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+
+        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName("notExistTopic")
                 .build())
@@ -227,8 +243,9 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testQueryAssignmentInvalidEndpoints() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
 
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(ClientSettings.getDefaultInstance());
         CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
             .setTopic(
                 Resource.newBuilder()
@@ -243,23 +260,26 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testLocalModeQueryAssignment() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.connectorManager);
+        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.connectorManager, this.grpcClientManager);
 
-        CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
-            .setEndpoints(Endpoints.newBuilder()
+        ClientSettings clientSettings = ClientSettings.newBuilder()
+            .setAccessPoint(Endpoints.newBuilder()
                 .addAddresses(Address.newBuilder()
                     .setPort(80)
                     .setHost("host")
                     .build())
                 .setScheme(AddressScheme.DOMAIN_NAME)
                 .build())
+            .build();
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+
+        CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName("topic")
                 .build())
             .setGroup(Resource.newBuilder()
                 .setName("group")
                 .build())
-            .setClientId("clientId")
             .build());
 
         QueryAssignmentResponse response = future.get();
@@ -271,23 +291,26 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testQueryAssignment() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager);
+        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
 
-        CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
-            .setEndpoints(Endpoints.newBuilder()
+        ClientSettings clientSettings = ClientSettings.newBuilder()
+            .setAccessPoint(Endpoints.newBuilder()
                 .addAddresses(Address.newBuilder()
                     .setPort(80)
                     .setHost("host")
                     .build())
                 .setScheme(AddressScheme.DOMAIN_NAME)
                 .build())
+            .build();
+        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+
+        CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setName("topic")
                 .build())
             .setGroup(Resource.newBuilder()
                 .setName("group")
                 .build())
-            .setClientId("clientId")
             .build());
 
         QueryAssignmentResponse response = future.get();
@@ -297,4 +320,4 @@ public class RouteServiceTest extends BaseServiceTest {
         assertEquals("host", response.getAssignments(0).getMessageQueue().getBroker().getEndpoints().getAddresses(0).getHost());
     }
 
-} 
+}
