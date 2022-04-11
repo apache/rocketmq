@@ -106,17 +106,20 @@ public class GrpcConverter {
         ClientSettings clientSettings) {
         HeartbeatData heartbeatData = new HeartbeatData();
         heartbeatData.setClientID(clientId);
-        String groupName = wrapResourceWithNamespace(request.getGroup());
         switch (clientSettings.getClientType()) {
             case PRODUCER: {
                 Set<org.apache.rocketmq.common.protocol.heartbeat.ProducerData> producerDataSet = new HashSet<>();
-                producerDataSet.add(buildProducerData(groupName));
+                for (Resource topic : clientSettings.getSettings().getPublishing().getTopicsList()) {
+                    String topicName = wrapResourceWithNamespace(topic);
+                    producerDataSet.add(buildProducerData(topicName));
+                }
                 heartbeatData.setProducerDataSet(producerDataSet);
                 break;
             }
             case PULL_CONSUMER:
             case PUSH_CONSUMER:
             case SIMPLE_CONSUMER: {
+                String groupName = wrapResourceWithNamespace(request.getGroup());
                 Set<org.apache.rocketmq.common.protocol.heartbeat.ConsumerData> consumerDataSet = new HashSet<>();
                 consumerDataSet.add(buildConsumerData(groupName, clientSettings));
                 heartbeatData.setConsumerDataSet(consumerDataSet);
