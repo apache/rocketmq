@@ -44,8 +44,8 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
-import org.apache.rocketmq.proxy.common.PollResponseManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
@@ -62,15 +62,15 @@ public class ForwardClientService extends BaseService {
     private final ChannelManager channelManager;
     private final ConsumerManager consumerManager;
     private final ProducerManager producerManager;
-    private final PollResponseManager pollCommandResponseManager;
     private final GrpcClientManager grpcClientManager;
+    private final TelemetryCommandManager telemetryCommandManager;
 
     public ForwardClientService(
         ConnectorManager connectorManager,
         ScheduledExecutorService scheduledExecutorService,
         ChannelManager channelManager,
         GrpcClientManager grpcClientManager,
-        PollResponseManager pollCommandResponseManager
+        TelemetryCommandManager telemetryCommandManager
     ) {
         super(connectorManager);
         scheduledExecutorService.scheduleWithFixedDelay(
@@ -80,7 +80,7 @@ public class ForwardClientService extends BaseService {
             TimeUnit.MILLISECONDS);
         this.channelManager = channelManager;
         this.grpcClientManager = grpcClientManager;
-        this.pollCommandResponseManager = pollCommandResponseManager;
+        this.telemetryCommandManager = telemetryCommandManager;
 
         this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListener() {
             @Override
@@ -108,7 +108,7 @@ public class ForwardClientService extends BaseService {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getSettings().getPublishing().getTopicsList()) {
                         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-                        GrpcClientChannel channel = GrpcClientChannel.create(channelManager, topicName, clientId, pollCommandResponseManager);
+                        GrpcClientChannel channel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
                         // use topic name as producer group
                         producerManager.registerProducer(topicName, clientChannelInfo);
@@ -122,7 +122,7 @@ public class ForwardClientService extends BaseService {
                         throw new ProxyException(Code.ILLEGAL_CONSUMER_GROUP, "group cannot be empty for consumer");
                     }
                     String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-                    GrpcClientChannel channel = GrpcClientChannel.create(ctx, channelManager, consumerGroup, clientId, pollCommandResponseManager);
+                    GrpcClientChannel channel = GrpcClientChannel.create(ctx, channelManager, consumerGroup, clientId, telemetryCommandManager);
                     ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
 
                     consumerManager.registerConsumer(
@@ -207,14 +207,14 @@ public class ForwardClientService extends BaseService {
                         Publishing publishing = settings.getPublishing();
                         for (Resource topic : publishing.getTopicsList()) {
                             String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-                            GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, pollCommandResponseManager);
+                            GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
                             producerChannel.setClientObserver(responseObserver);
                         }
                     }
                     if (settings.hasSubscription()) {
                         Subscription subscription = settings.getSubscription();
                         String groupName = GrpcConverter.wrapResourceWithNamespace(subscription.getGroup());
-                        GrpcClientChannel consumerChannel = GrpcClientChannel.create(channelManager, groupName, clientId, pollCommandResponseManager);
+                        GrpcClientChannel consumerChannel = GrpcClientChannel.create(channelManager, groupName, clientId, telemetryCommandManager);
                         consumerChannel.setClientObserver(responseObserver);
                     }
                     responseObserver.onNext(TelemetryCommand.newBuilder()

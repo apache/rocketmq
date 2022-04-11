@@ -21,17 +21,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class PollResponseManager {
-    private final ConcurrentMap<String, PollResponseFuture> futureTable = new ConcurrentHashMap<>();
+public class TelemetryCommandManager {
+    private final ConcurrentMap<String, TelemetryCommandRecord> commandTable = new ConcurrentHashMap<>();
     private final AtomicLong commandIdGenerator = new AtomicLong(0);
 
-    public String putResponse(int opaque) {
-        String commandId = String.valueOf(commandIdGenerator.incrementAndGet());
-        futureTable.put(commandId, new PollResponseFuture(commandId, opaque));
-        return commandId;
+    public String putCommand(int opaque) {
+        String nonce = String.valueOf(commandIdGenerator.incrementAndGet());
+        commandTable.put(nonce, new TelemetryCommandRecord(nonce, opaque));
+        return nonce;
     }
 
-    public PollResponseFuture getResponse(String commandId) {
-        return futureTable.get(commandId);
+    public TelemetryCommandRecord getCommand(String commandId) {
+        return commandTable.get(commandId);
     }
 }

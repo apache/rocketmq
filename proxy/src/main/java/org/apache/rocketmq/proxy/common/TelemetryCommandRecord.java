@@ -17,22 +17,22 @@
 
 package org.apache.rocketmq.proxy.common;
 
-public class PollResponseFuture {
-    private final String commandId;
+public class TelemetryCommandRecord {
+    private final String nonce;
     private final Integer opaque;
 
-    public PollResponseFuture(String commandId, int opaque) {
-        this.commandId = commandId;
+    public TelemetryCommandRecord(String nonce, int opaque) {
+        this.nonce = nonce;
         this.opaque = opaque;
     }
 
-    public PollResponseFuture(String commandId) {
-        this.commandId = commandId;
+    public TelemetryCommandRecord(String nonce) {
+        this.nonce = nonce;
         this.opaque = null;
     }
 
-    public String getCommandId() {
-        return commandId;
+    public String getNonce() {
+        return nonce;
     }
 
     public Integer getOpaque() {

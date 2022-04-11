@@ -107,7 +107,6 @@ public class GrpcBaseTest extends BaseConf {
             .setTopic(Resource.newBuilder()
                 .setName(topic)
                 .build())
-            .setEndpoints(endpoints)
             .build();
     }
 
