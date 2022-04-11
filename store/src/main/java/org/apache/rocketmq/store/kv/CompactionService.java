@@ -24,9 +24,9 @@ import org.apache.rocketmq.common.utils.DeletePolicyUtils;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.CommitLog;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 import java.util.Objects;
@@ -38,11 +38,11 @@ public class CompactionService extends ServiceThread {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private final CompactionStore compactionStore;
-    private final MessageStore defaultMessageStore;
+    private final DefaultMessageStore defaultMessageStore;
     private final CommitLog commitLog;
     private final LinkedBlockingQueue<TopicPartitionOffset> compactionMsgQ = new LinkedBlockingQueue<>();
 
-    public CompactionService(CommitLog commitLog, MessageStore messageStore, CompactionStore compactionStore) {
+    public CompactionService(CommitLog commitLog, DefaultMessageStore messageStore, CompactionStore compactionStore) {
         this.commitLog = commitLog;
         this.defaultMessageStore = messageStore;
         this.compactionStore = compactionStore;
@@ -73,6 +73,9 @@ public class CompactionService extends ServiceThread {
 
     @Override
     public String getServiceName() {
+        if (defaultMessageStore != null && defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
+            return defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + CompactionService.class.getSimpleName();
+        }
         return CompactionService.class.getSimpleName();
     }
 
