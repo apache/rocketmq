@@ -16,14 +16,21 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v1.ConsumerData;
-import apache.rocketmq.v1.HeartbeatRequest;
-import apache.rocketmq.v1.NoopCommand;
-import apache.rocketmq.v1.NotifyClientTerminationRequest;
-import apache.rocketmq.v1.PollCommandRequest;
-import apache.rocketmq.v1.PollCommandResponse;
-import apache.rocketmq.v1.Resource;
+import apache.rocketmq.v2.ClientOverwrittenSettings;
+import apache.rocketmq.v2.ClientSettings;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Direction;
+import apache.rocketmq.v2.HeartbeatRequest;
+import apache.rocketmq.v2.HeartbeatResponse;
+import apache.rocketmq.v2.NotifyClientTerminationRequest;
+import apache.rocketmq.v2.NotifyClientTerminationResponse;
+import apache.rocketmq.v2.Publishing;
+import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
+import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
+import io.grpc.stub.StreamObserver;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,12 +41,17 @@ import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MQVersion;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
-import org.apache.rocketmq.proxy.grpc.v1.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.common.PollResponseManager;
-import org.apache.rocketmq.proxy.grpc.v1.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,11 +63,13 @@ public class ForwardClientService extends BaseService {
     private final ConsumerManager consumerManager;
     private final ProducerManager producerManager;
     private final PollResponseManager pollCommandResponseManager;
+    private final GrpcClientManager grpcClientManager;
 
     public ForwardClientService(
         ConnectorManager connectorManager,
         ScheduledExecutorService scheduledExecutorService,
         ChannelManager channelManager,
+        GrpcClientManager grpcClientManager,
         PollResponseManager pollCommandResponseManager
     ) {
         super(connectorManager);
@@ -65,6 +79,7 @@ public class ForwardClientService extends BaseService {
             Duration.ofSeconds(10).toMillis(),
             TimeUnit.MILLISECONDS);
         this.channelManager = channelManager;
+        this.grpcClientManager = grpcClientManager;
         this.pollCommandResponseManager = pollCommandResponseManager;
 
         this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListener() {
@@ -80,88 +95,148 @@ public class ForwardClientService extends BaseService {
         this.producerManager.setProducerOfflineListener(connectorManager.getTransactionHeartbeatRegisterService()::onProducerGroupOffline);
     }
 
-    public void heartbeat(Context ctx, HeartbeatRequest request) {
-        String language = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LANGUAGE);
-        LanguageCode languageCode = LanguageCode.valueOf(language);
-        String clientId = request.getClientId();
+    public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+        CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
 
-        if (request.hasProducerData()) {
-            String producerGroup = GrpcConverter.wrapResourceWithNamespace(request.getProducerData().getGroup());
-            GrpcClientChannel channel = GrpcClientChannel.create(ctx, channelManager, producerGroup, clientId, pollCommandResponseManager);
-            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
-            producerManager.registerProducer(producerGroup, clientChannelInfo);
-        }
+        try {
+            String language = InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE);
+            String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
+            LanguageCode languageCode = LanguageCode.valueOf(language);
 
-        if (request.hasConsumerData()) {
-            ConsumerData consumerData = request.getConsumerData();
-            String consumerGroup = GrpcConverter.wrapResourceWithNamespace(consumerData.getGroup());
-            GrpcClientChannel channel = GrpcClientChannel.create(ctx, channelManager, consumerGroup, clientId, pollCommandResponseManager);
-            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
-
-            consumerManager.registerConsumer(
-                consumerGroup,
-                clientChannelInfo,
-                GrpcConverter.buildConsumeType(consumerData.getConsumeType()),
-                GrpcConverter.buildMessageModel(consumerData.getConsumeModel()),
-                GrpcConverter.buildConsumeFromWhere(consumerData.getConsumePolicy()),
-                GrpcConverter.buildSubscriptionDataSet(consumerData.getSubscriptionsList()),
-                false
-            );
-        }
-    }
-
-    public void unregister(Context ctx, NotifyClientTerminationRequest request) {
-        String clientId = request.getClientId();
-
-        if (request.hasProducerGroup()) {
-            String producerGroup = GrpcConverter.wrapResourceWithNamespace(request.getProducerGroup());
-            GrpcClientChannel channel = GrpcClientChannel.removeChannel(channelManager, producerGroup, clientId);
-            if (channel != null) {
-                producerManager.doChannelCloseEvent(producerGroup, channel);
-            }
-        }
-
-        if (request.hasConsumerGroup()) {
-            String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getConsumerGroup());
-            GrpcClientChannel channel = GrpcClientChannel.removeChannel(channelManager, consumerGroup, clientId);
-            if (channel != null) {
-                consumerManager.doChannelCloseEvent(consumerGroup, channel);
-            }
-        }
-    }
-
-    public CompletableFuture<PollCommandResponse> pollCommand(Context ctx, PollCommandRequest request) {
-        CompletableFuture<PollCommandResponse> future = new CompletableFuture<>();
-        PollCommandResponse noopCommandResponse = PollCommandResponse.newBuilder().setNoopCommand(
-            NoopCommand.newBuilder().build()
-        ).build();
-
-        String clientId = request.getClientId();
-        switch (request.getGroupCase()) {
-            case PRODUCER_GROUP:
-                Resource producerGroup = request.getProducerGroup();
-                String producerGroupName = GrpcConverter.wrapResourceWithNamespace(producerGroup);
-                GrpcClientChannel producerChannel = GrpcClientChannel.getChannel(this.channelManager, producerGroupName, clientId);
-                if (producerChannel == null) {
-                    future.complete(noopCommandResponse);
-                } else {
-                    producerChannel.setClientObserver(future);
+            ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+            switch (clientSettings.getClientType()) {
+                case PRODUCER: {
+                    for (Resource topic : clientSettings.getSettings().getPublishing().getTopicsList()) {
+                        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                        GrpcClientChannel channel = GrpcClientChannel.create(channelManager, topicName, clientId, pollCommandResponseManager);
+                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                        // use topic name as producer group
+                        producerManager.registerProducer(topicName, clientChannelInfo);
+                    }
+                    break;
                 }
-                break;
-            case CONSUMER_GROUP:
-                Resource consumerGroup = request.getConsumerGroup();
-                String consumerGroupName = GrpcConverter.wrapResourceWithNamespace(consumerGroup);
-                GrpcClientChannel consumerChannel = GrpcClientChannel.getChannel(this.channelManager, consumerGroupName, clientId);
-                if (consumerChannel == null) {
-                    future.complete(noopCommandResponse);
-                } else {
-                    consumerChannel.setClientObserver(future);
+                case PULL_CONSUMER:
+                case PUSH_CONSUMER:
+                case SIMPLE_CONSUMER: {
+                    if (!request.hasGroup()) {
+                        throw new ProxyException(Code.ILLEGAL_CONSUMER_GROUP, "group cannot be empty for consumer");
+                    }
+                    String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+                    GrpcClientChannel channel = GrpcClientChannel.create(ctx, channelManager, consumerGroup, clientId, pollCommandResponseManager);
+                    ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+
+                    consumerManager.registerConsumer(
+                        consumerGroup,
+                        clientChannelInfo,
+                        GrpcConverter.buildConsumeType(clientSettings.getClientType()),
+                        MessageModel.CLUSTERING,
+                        ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+                        GrpcConverter.buildSubscriptionDataSet(clientSettings.getSettings()
+                            .getSubscription()
+                            .getSubscriptionsList()),
+                        false
+                    );
+                    break;
                 }
-                break;
-            default:
-                break;
+                default: {
+                    throw new IllegalArgumentException("ClientType not exist " + clientSettings.getClientType());
+                }
+            }
+            future.complete(HeartbeatResponse.newBuilder()
+                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .build());
+            return future;
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
         }
         return future;
+    }
+
+    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx, NotifyClientTerminationRequest request) {
+        CompletableFuture<NotifyClientTerminationResponse> future = new CompletableFuture<>();
+
+        try {
+            String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
+            ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+
+            switch (clientSettings.getClientType()) {
+                case PRODUCER:
+                    for (Resource topic : clientSettings.getSettings().getPublishing().getTopicsList()) {
+                        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                        // user topic name as producer group
+                        GrpcClientChannel channel = GrpcClientChannel.removeChannel(channelManager, topicName, clientId);
+                        if (channel != null) {
+                            producerManager.doChannelCloseEvent(topicName, channel);
+                        }
+                    }
+                    break;
+                case PULL_CONSUMER:
+                case PUSH_CONSUMER:
+                case SIMPLE_CONSUMER:
+                    if (!request.hasGroup()) {
+                        throw new ProxyException(Code.ILLEGAL_CONSUMER_GROUP, "group cannot be empty for consumer");
+                    }
+                    String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+                    GrpcClientChannel channel = GrpcClientChannel.removeChannel(channelManager, consumerGroup, clientId);
+                    if (channel != null) {
+                        consumerManager.doChannelCloseEvent(consumerGroup, channel);
+                    }
+                    break;
+                default:
+                    break;
+            }
+            future.complete(NotifyClientTerminationResponse.newBuilder()
+                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .build());
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public StreamObserver<TelemetryCommand> telemetry(Context ctx, StreamObserver<TelemetryCommand> responseObserver) {
+        String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
+        return new StreamObserver<TelemetryCommand>() {
+            @Override
+            public void onNext(TelemetryCommand request) {
+                if (request.getCommandCase() == TelemetryCommand.CommandCase.CLIENT_SETTINGS) {
+                    ClientSettings clientSettings = request.getClientSettings();
+                    grpcClientManager.updateClientSettings(clientId, clientSettings);
+                    Settings settings = clientSettings.getSettings();
+                    if (settings.hasPublishing()) {
+                        Publishing publishing = settings.getPublishing();
+                        for (Resource topic : publishing.getTopicsList()) {
+                            String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                            GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, pollCommandResponseManager);
+                            producerChannel.setClientObserver(responseObserver);
+                        }
+                    }
+                    if (settings.hasSubscription()) {
+                        Subscription subscription = settings.getSubscription();
+                        String groupName = GrpcConverter.wrapResourceWithNamespace(subscription.getGroup());
+                        GrpcClientChannel consumerChannel = GrpcClientChannel.create(channelManager, groupName, clientId, pollCommandResponseManager);
+                        consumerChannel.setClientObserver(responseObserver);
+                    }
+                    responseObserver.onNext(TelemetryCommand.newBuilder()
+                        .setClientOverwrittenSettings(ClientOverwrittenSettings.newBuilder()
+                            .setNonce(clientSettings.getNonce())
+                            .setDirection(Direction.RESPONSE)
+                            .setSettings(settings)
+                            .build())
+                        .build());
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+
+            }
+
+            @Override
+            public void onCompleted() {
+                responseObserver.onCompleted();
+            }
+        };
     }
 
     private void scanNotActiveChannel() {

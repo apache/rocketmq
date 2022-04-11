@@ -68,7 +68,7 @@ public class ForwardClientServiceTest extends BaseServiceTest {
         assertNotNull(channel);
         assertTrue(channel instanceof GrpcClientChannel);
 
-        clientService.unregister(ctx, NotifyClientTerminationRequest.newBuilder()
+        clientService.notifyClientTermination(ctx, NotifyClientTerminationRequest.newBuilder()
             .setClientId("clientId")
             .setProducerGroup(Resource.newBuilder()
                 .setName("producerGroup")
@@ -127,7 +127,7 @@ public class ForwardClientServiceTest extends BaseServiceTest {
         assertEquals("*", consumerGroupInfo.getSubscriptionTable().get("topic").getSubString());
 
 
-        clientService.unregister(ctx, NotifyClientTerminationRequest.newBuilder()
+        clientService.notifyClientTermination(ctx, NotifyClientTerminationRequest.newBuilder()
             .setClientId("clientId")
             .setConsumerGroup(Resource.newBuilder()
                 .setName("consumerGroup")

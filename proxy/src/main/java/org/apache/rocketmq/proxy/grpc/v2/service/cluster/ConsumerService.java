@@ -18,6 +18,8 @@ package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
+import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.NackMessageRequest;
@@ -69,7 +71,8 @@ public class ConsumerService extends BaseService {
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
     private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
-    private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageResponseResponseHook;
+    private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook;
+    private volatile ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> changeInvisibleDurationHook;
 
     private final GrpcClientManager grpcClientManager;
 
@@ -246,8 +249,8 @@ public class ConsumerService extends BaseService {
     public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
         CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
         future.whenComplete((response, throwable) -> {
-            if (nackMessageResponseResponseHook != null) {
-                nackMessageResponseResponseHook.beforeResponse(ctx, request, response, throwable);
+            if (nackMessageHook != null) {
+                nackMessageHook.beforeResponse(ctx, request, response, throwable);
             }
         });
         try {
@@ -323,19 +326,106 @@ public class ConsumerService extends BaseService {
             .build();
     }
 
+    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+        ChangeInvisibleDurationRequest request) {
+        CompletableFuture<ChangeInvisibleDurationResponse> future = new CompletableFuture<>();
+        future.whenComplete((response, throwable) -> {
+            if (changeInvisibleDurationHook != null) {
+                changeInvisibleDurationHook.beforeResponse(ctx, request, response, throwable);
+            }
+        });
+        try {
+            ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
+            String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
+
+            ChangeInvisibleTimeRequestHeader requestHeader = convertToChangeInvisibleTimeRequestHeader(ctx, request);
+            CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader);
+            resultFuture
+                .thenAccept(result -> {
+                    try {
+                        future.complete(convertToChangeInvisibleDurationResponse(ctx, request, result));
+                    } catch (Throwable throwable) {
+                        future.completeExceptionally(throwable);
+                    }
+                })
+                .exceptionally(throwable -> {
+                    future.completeExceptionally(throwable);
+                    return null;
+                });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    protected ChangeInvisibleTimeRequestHeader convertToChangeInvisibleTimeRequestHeader(Context ctx,
+        ChangeInvisibleDurationRequest request) {
+        return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request);
+    }
+
+    protected ChangeInvisibleDurationResponse convertToChangeInvisibleDurationResponse(Context ctx,
+        ChangeInvisibleDurationRequest request, AckResult ackResult) {
+        if (AckStatus.OK.equals(ackResult.getStatus())) {
+            return ChangeInvisibleDurationResponse.newBuilder()
+                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .setReceiptHandle(ackResult.getExtraInfo())
+                .build();
+        }
+        return ChangeInvisibleDurationResponse.newBuilder()
+            .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "changeInvisibleDuration failed: status is abnormal"))
+            .build();
+    }
+
+    public ReadQueueSelector getReadQueueSelector() {
+        return readQueueSelector;
+    }
+
     public void setReadQueueSelector(ReadQueueSelector readQueueSelector) {
         this.readQueueSelector = readQueueSelector;
     }
 
-    public void setReceiveMessageHook(ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook) {
+    public ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> getReceiveMessageHook() {
+        return receiveMessageHook;
+    }
+
+    public void setReceiveMessageHook(
+        ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook) {
         this.receiveMessageHook = receiveMessageHook;
     }
 
-    public void setAckNoMatchedMessageHook(ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook) {
+    public ResponseHook<AckMessageRequestHeader, AckResult> getAckNoMatchedMessageHook() {
+        return ackNoMatchedMessageHook;
+    }
+
+    public void setAckNoMatchedMessageHook(
+        ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook) {
         this.ackNoMatchedMessageHook = ackNoMatchedMessageHook;
     }
 
-    public void setAckMessageHook(ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook) {
+    public ResponseHook<AckMessageRequest, AckMessageResponse> getAckMessageHook() {
+        return ackMessageHook;
+    }
+
+    public void setAckMessageHook(
+        ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook) {
         this.ackMessageHook = ackMessageHook;
+    }
+
+    public ResponseHook<NackMessageRequest, NackMessageResponse> getNackMessageHook() {
+        return nackMessageHook;
+    }
+
+    public void setNackMessageHook(
+        ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook) {
+        this.nackMessageHook = nackMessageHook;
+    }
+
+    public ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> getChangeInvisibleDurationHook() {
+        return changeInvisibleDurationHook;
+    }
+
+    public void setChangeInvisibleDurationHook(
+        ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> changeInvisibleDurationHook) {
+        this.changeInvisibleDurationHook = changeInvisibleDurationHook;
     }
 }

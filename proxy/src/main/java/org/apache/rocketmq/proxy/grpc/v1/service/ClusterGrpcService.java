@@ -67,7 +67,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private final org.apache.rocketmq.proxy.grpc.v2.service.ClusterGrpcService clusterGrpcService;
 
     public ClusterGrpcService() {
-        this.clusterGrpcService = new org.apache.rocketmq.proxy.grpc.v2.service.ClusterGrpcService();;
+        this.clusterGrpcService = new org.apache.rocketmq.proxy.grpc.v2.service.ClusterGrpcService();
 
         this.appendStartAndShutdown(clusterGrpcService);
     }
