@@ -1,8 +1,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v1.Broker;
-import apache.rocketmq.v1.Partition;
-import apache.rocketmq.v1.ReceiveMessageRequest;
+import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.ReceiveMessageRequest;
 import io.grpc.Context;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
@@ -41,7 +40,7 @@ public class DefaultReadQueueSelectorTest extends BaseServiceTest {
             requestHeader.setTopic("readBrokerTopicByName");
             SelectableMessageQueue messageQueue = readQueueSelector.select(Context.current(),
                 ReceiveMessageRequest.newBuilder()
-                    .setPartition(Partition.newBuilder()
+                    .setMessageQueue(apache.rocketmq.v2.MessageQueue.newBuilder()
                         .setBroker(Broker.newBuilder()
                             .setName("brokerName")
                             .build())

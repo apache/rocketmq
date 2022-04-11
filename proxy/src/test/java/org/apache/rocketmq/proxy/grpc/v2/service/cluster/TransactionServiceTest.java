@@ -1,17 +1,16 @@
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v1.EndTransactionRequest;
-import apache.rocketmq.v1.EndTransactionResponse;
-import apache.rocketmq.v1.PollCommandResponse;
-import apache.rocketmq.v1.Resource;
-import com.google.rpc.Code;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.EndTransactionRequest;
+import apache.rocketmq.v2.EndTransactionResponse;
+import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
-import org.apache.rocketmq.proxy.grpc.v1.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
@@ -60,8 +59,8 @@ public class TransactionServiceTest extends BaseServiceTest {
             createMessageExt("msgId", "msgId")
         ));
 
-        assertTrue(writeDataRef.get() instanceof PollCommandResponse);
-        PollCommandResponse response = (PollCommandResponse) writeDataRef.get();
+        assertTrue(writeDataRef.get() instanceof TelemetryCommand);
+        TelemetryCommand response = (TelemetryCommand) writeDataRef.get();
         assertEquals(transactionId.getProxyTransactionId(), response.getRecoverOrphanedTransactionCommand().getTransactionId());
     }
 
@@ -79,14 +78,11 @@ public class TransactionServiceTest extends BaseServiceTest {
         }).when(producerClient).endTransaction(anyString(), any());
 
         EndTransactionResponse response = transactionService.endTransaction(Context.current(), EndTransactionRequest.newBuilder()
-            .setGroup(Resource.newBuilder()
-                .setName("group")
-                .build())
             .setTransactionId(transactionId.getProxyTransactionId())
             .build()
         ).get();
 
-        assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
+        assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(transactionId.getBrokerTransactionId(), headerRef.get().getTransactionId());
         assertEquals("127.0.0.1:8080", brokerAddrRef.get());
     }

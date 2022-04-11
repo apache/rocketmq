@@ -16,13 +16,14 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v1.Message;
-import apache.rocketmq.v1.Resource;
-import apache.rocketmq.v1.SendMessageRequest;
-import apache.rocketmq.v1.SendMessageResponse;
-import apache.rocketmq.v1.SystemAttribute;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
+import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.SendMessageRequest;
+import apache.rocketmq.v2.SendMessageResponse;
+import apache.rocketmq.v2.SystemProperties;
 import com.google.protobuf.ByteString;
-import com.google.rpc.Code;
 import io.grpc.Context;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +32,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.grpc.v1.adapter.ProxyException;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -46,12 +47,12 @@ import static org.mockito.Mockito.when;
 public class ProducerServiceTest extends BaseServiceTest {
 
     private static final SendMessageRequest REQUEST = SendMessageRequest.newBuilder()
-        .setMessage(Message.newBuilder()
+        .addMessages(Message.newBuilder()
             .setTopic(Resource.newBuilder()
                 .setResourceNamespace("namespace")
                 .setName("topic")
                 .build())
-            .setSystemAttribute(SystemAttribute.newBuilder()
+            .setSystemProperties(SystemProperties.newBuilder()
                 .setMessageId("msgId")
                 .build())
             .setBody(ByteString.copyFrom("hello", StandardCharsets.UTF_8))
@@ -78,8 +79,8 @@ public class ProducerServiceTest extends BaseServiceTest {
         try {
             SendMessageResponse response = future.get();
 
-            assertEquals(Code.OK.getNumber(), response.getCommon().getStatus().getCode());
-            assertEquals("msgId", response.getMessageId());
+            assertEquals(Code.OK, response.getStatus().getCode());
+            assertEquals("msgId", response.getReceipts(0).getMessageId());
         } catch (Exception e) {
             assertNull(e);
         }
@@ -92,12 +93,12 @@ public class ProducerServiceTest extends BaseServiceTest {
         producerService.setWriteQueueSelector((ctx, request, requestHeader, message) -> null);
 
         CompletableFuture<SendMessageResponse> future = producerService.sendMessage(Context.current(), SendMessageRequest.newBuilder()
-            .setMessage(Message.newBuilder()
+            .addMessages(Message.newBuilder()
                 .setTopic(Resource.newBuilder()
                     .setResourceNamespace("namespace")
                     .setName("topic")
                     .build())
-                .setSystemAttribute(SystemAttribute.newBuilder()
+                .setSystemProperties(SystemProperties.newBuilder()
                     .setMessageId("msgId")
                     .build())
                 .setBody(ByteString.copyFrom("hello", StandardCharsets.UTF_8))
@@ -111,7 +112,7 @@ public class ProducerServiceTest extends BaseServiceTest {
             assertNotNull(e);
             assertTrue(e instanceof ExecutionException);
             assertTrue(e.getCause() instanceof ProxyException);
-            assertEquals(Code.NOT_FOUND, ((ProxyException) e.getCause()).getCode());
+            assertEquals(Code.FORBIDDEN, ((ProxyException) e.getCause()).getCode());
         }
     }
 
@@ -163,4 +164,16 @@ public class ProducerServiceTest extends BaseServiceTest {
             assertSame(ex, e.getCause());
         }
     }
+
+//    @Test
+//    public void testForwardMessageToDeadLetterQueue() throws Exception {
+//        ProducerService producerService = new ProducerService(this.connectorManager);
+//
+//        when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
+//        producerService.forwardMessageToDeadLetterQueue(Context.current(), ForwardMessageToDeadLetterQueueRequest.newBuilder()
+//            .setMessageId("msgId")
+//            .setReceiptHandle(createReceiptHandle().encode())
+//            .set
+//            .build());
+//    }
 }
