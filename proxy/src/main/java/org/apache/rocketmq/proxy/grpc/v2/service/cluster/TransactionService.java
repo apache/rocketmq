@@ -37,7 +37,7 @@ import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
-import org.apache.rocketmq.proxy.grpc.v1.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class TransactionService extends BaseService implements TransactionStateChecker {

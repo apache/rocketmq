@@ -93,7 +93,8 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         this.consumerService = new ConsumerService(connectorManager, grpcClientManager);
         this.producerService = new ProducerService(connectorManager);
         this.routeService = new RouteService(ProxyMode.CLUSTER, connectorManager, grpcClientManager);
-        this.clientService = new ForwardClientService(connectorManager, scheduledExecutorService, channelManager, pollCommandResponseManager);
+        this.clientService = new ForwardClientService(connectorManager, scheduledExecutorService,
+            channelManager, grpcClientManager, pollCommandResponseManager);
         this.pullMessageService = new PullMessageService(connectorManager);
         this.transactionService = new TransactionService(connectorManager, channelManager);
 
@@ -108,7 +109,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
     @Override
     public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
-        return null;
+        return clientService.heartbeat(ctx, request);
     }
 
     @Override
@@ -160,18 +161,18 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     @Override
     public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
         NotifyClientTerminationRequest request) {
-        return null;
+        return clientService.notifyClientTermination(ctx, request);
     }
 
     @Override
     public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
-        return null;
+        return consumerService.changeInvisibleDuration(ctx, request);
     }
 
     @Override
     public StreamObserver<TelemetryCommand> telemetry(Context ctx, StreamObserver<TelemetryCommand> responseObserver) {
-        return null;
+        return clientService.telemetry(ctx, responseObserver);
     }
 
     private class ClusterGrpcServiceStartAndShutdown implements StartAndShutdown {
