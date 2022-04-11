@@ -114,11 +114,13 @@ public class RouteService extends BaseService {
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             if (ProxyMode.isClusterMode(mode.name())) {
-                Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, request.getEndpoints());
+                String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
+                ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+                Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
                 if (resEndpoints == null || resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
                     future.complete(QueryRouteResponse.newBuilder()
                         .setStatus(ResponseBuilder.buildStatus(Code.ILLEGAL_ACCESS_POINT, "endpoint " +
-                            request.getEndpoints() + " is invalidate"))
+                            clientSettings.getAccessPoint() + " is invalidate"))
                         .build());
                     return future;
                 }
