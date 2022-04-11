@@ -52,10 +52,12 @@ public class MessageConst {
     public static final String PROPERTY_PUSH_REPLY_TIME = "PUSH_REPLY_TIME";
     public static final String PROPERTY_CLUSTER = "CLUSTER";
     public static final String PROPERTY_MESSAGE_TYPE = "MSG_TYPE";
+    public static final String PROPERTY_INNER_MULTI_DISPATCH = "INNER_MULTI_DISPATCH";
+    public static final String PROPERTY_INNER_MULTI_QUEUE_OFFSET = "INNER_MULTI_QUEUE_OFFSET";
 
     public static final String KEY_SEPARATOR = " ";
 
-    public static final HashSet<String> STRING_HASH_SET = new HashSet<String>();
+    public static final HashSet<String> STRING_HASH_SET = new HashSet<>(64);
 
     static {
         STRING_HASH_SET.add(PROPERTY_TRACE_SWITCH);
@@ -88,5 +90,6 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_PUSH_REPLY_TIME);
         STRING_HASH_SET.add(PROPERTY_CLUSTER);
         STRING_HASH_SET.add(PROPERTY_MESSAGE_TYPE);
+        STRING_HASH_SET.add(PROPERTY_INNER_MULTI_QUEUE_OFFSET);
     }
 }

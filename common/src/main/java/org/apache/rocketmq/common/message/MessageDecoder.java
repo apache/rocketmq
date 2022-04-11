@@ -478,7 +478,10 @@ public class MessageDecoder {
         String properties = messageProperties2String(message.getProperties());
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         //note properties length must not more than Short.MAX
-        short propertiesLength = (short) propertiesBytes.length;
+        int propsLen = propertiesBytes.length;
+        if (propsLen > Short.MAX_VALUE)
+            throw new RuntimeException(String.format("Properties size of message exceeded, properties size: {}, maxSize: {}.", propsLen, Short.MAX_VALUE));
+        short propertiesLength = (short) propsLen;
         int sysFlag = message.getFlag();
         int storeSize = 4 // 1 TOTALSIZE
             + 4 // 2 MAGICCOD

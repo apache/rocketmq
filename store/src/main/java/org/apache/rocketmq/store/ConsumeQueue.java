@@ -19,7 +19,11 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
+
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -376,7 +380,7 @@ public class ConsumeQueue {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
-    public void putMessagePositionInfoWrapper(DispatchRequest request) {
+    public void putMessagePositionInfoWrapper(DispatchRequest request, boolean multiQueue) {
         final int maxRetries = 30;
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
@@ -403,6 +407,9 @@ public class ConsumeQueue {
                     this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
                 this.defaultMessageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                if (multiQueue) {
+                    multiDispatchLmqQueue(request, maxRetries);
+                }
                 return;
             } else {
                 // XXX: warn and notify me
@@ -420,6 +427,52 @@ public class ConsumeQueue {
         // XXX: warn and notify me
         log.error("[BUG]consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
+    }
+
+    private void multiDispatchLmqQueue(DispatchRequest request, int maxRetries) {
+        Map<String, String> prop = request.getPropertiesMap();
+        String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+        String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+        String[] queueOffsets = multiQueueOffset.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+        if (queues.length != queueOffsets.length) {
+            log.error("[bug] queues.length!=queueOffsets.length ", request.getTopic());
+            return;
+        }
+        for (int i = 0; i < queues.length; i++) {
+            String queueName = queues[i];
+            long queueOffset = Long.parseLong(queueOffsets[i]);
+            int queueId = request.getQueueId();
+            if (this.defaultMessageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
+                queueId = 0;
+            }
+            doDispatchLmqQueue(request, maxRetries, queueName, queueOffset, queueId);
+
+        }
+        return;
+    }
+
+    private void doDispatchLmqQueue(DispatchRequest request, int maxRetries, String queueName, long queueOffset,
+        int queueId) {
+        ConsumeQueue cq = this.defaultMessageStore.findConsumeQueue(queueName, queueId);
+        boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
+        for (int i = 0; i < maxRetries && canWrite; i++) {
+            boolean result = cq.putMessagePositionInfo(request.getCommitLogOffset(), request.getMsgSize(),
+                request.getTagsCode(),
+                queueOffset);
+            if (result) {
+                break;
+            } else {
+                log.warn("[BUG]put commit log position info to " + queueName + ":" + queueId + " " + request.getCommitLogOffset()
+                    + " failed, retry " + i + " times");
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    log.warn("", e);
+                }
+            }
+        }
     }
 
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
@@ -584,4 +637,5 @@ public class ConsumeQueue {
     public boolean isExtAddr(long tagsCode) {
         return ConsumeQueueExt.isExtAddr(tagsCode);
     }
+
 }

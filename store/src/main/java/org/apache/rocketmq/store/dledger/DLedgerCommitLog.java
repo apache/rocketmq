@@ -94,7 +94,7 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setPreferredLeaderId(defaultMessageStore.getMessageStoreConfig().getPreferredLeaderId());
         dLedgerConfig.setEnableBatchPush(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
 
-        id = Integer.valueOf(dLedgerConfig.getSelfId().substring(1)) + 1;
+        id = Integer.parseInt(dLedgerConfig.getSelfId().substring(1)) + 1;
         dLedgerServer = new DLedgerServer(dLedgerConfig);
         dLedgerFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
         DLedgerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -> {
@@ -629,7 +629,7 @@ public class DLedgerCommitLog extends CommitLog {
             PutMessageResult putMessageResult = new PutMessageResult(putMessageStatus, appendResult);
             if (putMessageStatus == PutMessageStatus.PUT_OK) {
                 // Statistics
-                storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(1);
+                storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(appendResult.getMsgNum());
                 storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).add(appendResult.getWroteBytes());
             }
             return putMessageResult;

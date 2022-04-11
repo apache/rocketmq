@@ -77,8 +77,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             return null;
         }
         String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
-        SendMessageContext mqtraceContext;
-        mqtraceContext = new SendMessageContext();
+        SendMessageContext mqtraceContext = new SendMessageContext();
         mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
         mqtraceContext.setNamespace(namespace);
         mqtraceContext.setTopic(requestHeader.getTopic());
