@@ -94,8 +94,8 @@ import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.channel.InvocationContext;
-import org.apache.rocketmq.proxy.common.PollResponseFuture;
-import org.apache.rocketmq.proxy.common.PollResponseManager;
+import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
+import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
@@ -121,17 +121,26 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryImpl("LocalGrpcServiceScheduledThread"));
     private final ChannelManager channelManager;
-    private final PollResponseManager pollCommandResponseManager;
+    private final TelemetryCommandManager telemetryCommandManager;
     private final GrpcClientManager grpcClientManager;
     private final RouteService routeService;
     private final DelayPolicy delayPolicy;
 
     public LocalGrpcService(BrokerController brokerController) {
+        this(brokerController, new TelemetryCommandManager());
+    }
+
+    /**
+     * For unit test
+     * @param brokerController BrokerController works in local mode
+     * @param telemetryCommandManager Used to manage telemetry command
+     */
+    LocalGrpcService(BrokerController brokerController, TelemetryCommandManager telemetryCommandManager) {
         this.brokerController = brokerController;
         this.channelManager = new ChannelManager();
         // TransactionStateChecker is not used in Local mode.
         ConnectorManager connectorManager = new ConnectorManager(null);
-        this.pollCommandResponseManager = new PollResponseManager();
+        this.telemetryCommandManager = telemetryCommandManager;
         this.grpcClientManager = new GrpcClientManager();
         this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager, grpcClientManager);
         this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
@@ -164,7 +173,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             case PRODUCER: {
                 for (Resource topic : clientSettings.getSettings().getPublishing().getTopicsList()) {
                     String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-                    GrpcClientChannel channel = GrpcClientChannel.create(channelManager, topicName, clientId, pollCommandResponseManager);
+                    GrpcClientChannel channel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
                     SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
 
                     this.brokerController.getClientManageProcessor()
@@ -180,7 +189,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             case PUSH_CONSUMER:
             case SIMPLE_CONSUMER: {
                 String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-                GrpcClientChannel channel = GrpcClientChannel.create(channelManager, groupName, clientId, pollCommandResponseManager);
+                GrpcClientChannel channel = GrpcClientChannel.create(channelManager, groupName, clientId, telemetryCommandManager);
                 SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
 
                 RemotingCommand response = this.brokerController.getClientManageProcessor()
@@ -421,24 +430,27 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     public void reportThreadStackTrace(ThreadStackTrace request) {
         String nonce = request.getNonce();
         String threadStack = request.getThreadStackTrace();
-        PollResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(nonce);
+        TelemetryCommandRecord pollCommandResponseFuture = telemetryCommandManager.getCommand(nonce);
         if (pollCommandResponseFuture != null) {
-            RemotingServer remotingServer = this.brokerController.getRemotingServer();
-            if (remotingServer instanceof NettyRemotingAbstract) {
-                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
-                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "From gRPC client");
-                remotingCommand.setOpaque(pollCommandResponseFuture.getOpaque());
-                ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
-                runningInfo.setJstack(threadStack);
-                remotingCommand.setBody(runningInfo.encode());
-                nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel()), remotingCommand);
+            Integer opaque = pollCommandResponseFuture.getOpaque();
+            if (opaque != null) {
+                RemotingServer remotingServer = this.brokerController.getRemotingServer();
+                if (remotingServer instanceof NettyRemotingAbstract) {
+                    NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+                    RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "From gRPC client");
+                    remotingCommand.setOpaque(pollCommandResponseFuture.getOpaque());
+                    ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
+                    runningInfo.setJstack(threadStack);
+                    remotingCommand.setBody(runningInfo.encode());
+                    nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel()), remotingCommand);
+                }
             }
         }
     }
 
     public void reportVerifyMessageResult(VerifyMessageResult request) {
         String nonce = request.getNonce();
-        PollResponseFuture pollCommandResponseFuture = pollCommandResponseManager.getResponse(nonce);
+        TelemetryCommandRecord pollCommandResponseFuture = telemetryCommandManager.getCommand(nonce);
         if (pollCommandResponseFuture != null) {
             Integer opaque = pollCommandResponseFuture.getOpaque();
             if (opaque != null) {
@@ -528,14 +540,14 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                             Publishing publishing = settings.getPublishing();
                             for (Resource topic : publishing.getTopicsList()) {
                                 String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-                                GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, pollCommandResponseManager);
+                                GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
                                 producerChannel.setClientObserver(responseObserver);
                             }
                         }
                         if (settings.hasSubscription()) {
                             Subscription subscription = settings.getSubscription();
                             String groupName = GrpcConverter.wrapResourceWithNamespace(subscription.getGroup());
-                            GrpcClientChannel consumerChannel = GrpcClientChannel.create(channelManager, groupName, clientId, pollCommandResponseManager);
+                            GrpcClientChannel consumerChannel = GrpcClientChannel.create(channelManager, groupName, clientId, telemetryCommandManager);
                             consumerChannel.setClientObserver(responseObserver);
                         }
                         responseObserver.onNext(TelemetryCommand.newBuilder()

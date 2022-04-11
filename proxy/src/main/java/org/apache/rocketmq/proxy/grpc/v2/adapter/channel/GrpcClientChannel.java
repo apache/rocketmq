@@ -32,7 +32,7 @@ import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestH
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.common.PollResponseManager;
+import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class GrpcClientChannel extends SimpleChannel {
@@ -40,9 +40,9 @@ public class GrpcClientChannel extends SimpleChannel {
 
     private final String group;
     private final String clientId;
-    private final PollResponseManager manager;
+    private final TelemetryCommandManager manager;
 
-    private GrpcClientChannel(Context ctx, String group, String clientId, PollResponseManager manager) {
+    private GrpcClientChannel(Context ctx, String group, String clientId, TelemetryCommandManager manager) {
         super(ChannelManager.createSimpleChannelDirectly(ctx));
         this.group = group;
         this.clientId = clientId;
@@ -57,7 +57,7 @@ public class GrpcClientChannel extends SimpleChannel {
         ChannelManager channelManager,
         String group,
         String clientId,
-        PollResponseManager manager
+        TelemetryCommandManager manager
     ) {
         return create(Context.current(), channelManager, group, clientId, manager);
     }
@@ -67,7 +67,7 @@ public class GrpcClientChannel extends SimpleChannel {
         ChannelManager channelManager,
         String group,
         String clientId,
-        PollResponseManager manager
+        TelemetryCommandManager manager
     ) {
         GrpcClientChannel channel = channelManager.createChannel(
             buildKey(group, clientId),
@@ -131,7 +131,7 @@ public class GrpcClientChannel extends SimpleChannel {
                         if (!requestHeader.isJstackEnable()) {
                             break;
                         }
-                        String nonce = manager.putResponse(command.getOpaque());
+                        String nonce = manager.putCommand(command.getOpaque());
                         streamObserver.onNext(TelemetryCommand.newBuilder()
                             .setPrintThreadStackTraceCommand(PrintThreadStackTraceCommand.newBuilder()
                                 .setNonce(nonce)

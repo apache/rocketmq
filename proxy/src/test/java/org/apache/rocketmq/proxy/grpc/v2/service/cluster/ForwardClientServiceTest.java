@@ -22,7 +22,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
-import org.apache.rocketmq.proxy.common.PollResponseManager;
+import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Test;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 public class ForwardClientServiceTest extends BaseServiceTest {
 
     private ChannelManager channelManager = new ChannelManager();
-    private PollResponseManager pollResponseManager = new PollResponseManager();
+    private TelemetryCommandManager telemetryCommandManager = new TelemetryCommandManager();
     private ForwardClientService clientService;
 
     @Override
@@ -47,7 +47,7 @@ public class ForwardClientServiceTest extends BaseServiceTest {
             Executors.newSingleThreadScheduledExecutor(),
             this.channelManager,
             this.grpcClientManager,
-            this.pollResponseManager);
+            this.telemetryCommandManager);
     }
 
     @Test

@@ -57,7 +57,7 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
-import org.apache.rocketmq.proxy.common.PollResponseManager;
+import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ConsumerService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ForwardClientService;
@@ -82,13 +82,13 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private final ForwardClientService clientService;
     private final PullMessageService pullMessageService;
     private final TransactionService transactionService;
-    private final PollResponseManager pollCommandResponseManager;
+    private final TelemetryCommandManager pollCommandResponseManager;
     private final GrpcClientManager grpcClientManager;
 
     public ClusterGrpcService() {
         this.channelManager = new ChannelManager();
         this.grpcClientManager = new GrpcClientManager();
-        this.pollCommandResponseManager = new PollResponseManager();
+        this.pollCommandResponseManager = new TelemetryCommandManager();
         this.connectorManager = new ConnectorManager(new GrpcTransactionStateChecker());
         this.consumerService = new ConsumerService(connectorManager, grpcClientManager);
         this.producerService = new ProducerService(connectorManager);

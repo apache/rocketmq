@@ -49,6 +49,8 @@ import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.ThreadStackTrace;
+import apache.rocketmq.v2.VerifyMessageResult;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import io.grpc.Context;
@@ -79,11 +81,15 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
+import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
+import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -109,6 +115,9 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     @Mock
     private BrokerController brokerControllerMock;
 
+    @Mock
+    private TelemetryCommandManager telemetryCommandManager;
+
     private Metadata metadata;
 
     private StreamObserver<TelemetryCommand> streamObserver;
@@ -121,7 +130,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         Mockito.when(brokerControllerMock.getPullMessageProcessor()).thenReturn(pullMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
         Mockito.when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
-        localGrpcService = new LocalGrpcService(brokerControllerMock);
+        localGrpcService = new LocalGrpcService(brokerControllerMock, telemetryCommandManager);
         metadata = new Metadata();
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, "1.1.1.1");
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, "0.0.0.0");
@@ -485,7 +494,39 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
 
     @Test
     public void testReportThreadStackTrace() throws Exception {
+        int opaque = 1;
+        String nonce = "123";
+        NettyRemotingServer remotingServerMock = Mockito.mock(NettyRemotingServer.class);
+        Mockito.when(brokerControllerMock.getRemotingServer()).thenReturn(remotingServerMock);
+        Mockito.doNothing().when(remotingServerMock).processResponseCommand(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class));
+        Mockito.when(telemetryCommandManager.getCommand(Mockito.eq(nonce))).thenReturn(new TelemetryCommandRecord(nonce, opaque));
+        String jstack = "jstack";
 
+        streamObserver.onNext(TelemetryCommand.newBuilder()
+            .setThreadStackTrace(ThreadStackTrace.newBuilder()
+                .setNonce(nonce)
+                .setThreadStackTrace(jstack).build())
+            .build());
+        Mockito.verify(remotingServerMock, Mockito.times(1))
+            .processResponseCommand(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class));
+    }
+
+    @Test
+    public void testReportVerifyMessageResult() {
+        int opaque = 1;
+        String nonce = "123";
+        NettyRemotingServer remotingServerMock = Mockito.mock(NettyRemotingServer.class);
+        Mockito.when(brokerControllerMock.getRemotingServer()).thenReturn(remotingServerMock);
+        Mockito.doNothing().when(remotingServerMock).processResponseCommand(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class));
+        Mockito.when(telemetryCommandManager.getCommand(Mockito.eq(nonce))).thenReturn(new TelemetryCommandRecord(nonce, opaque));
+
+        streamObserver.onNext(TelemetryCommand.newBuilder()
+            .setVerifyMessageResult(VerifyMessageResult.newBuilder()
+                .setNonce(nonce)
+                .setStatus(ResponseBuilder.buildStatus(Code.OK, "ok")).build())
+            .build());
+        Mockito.verify(remotingServerMock, Mockito.times(1))
+            .processResponseCommand(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class));
     }
 
     @Test
