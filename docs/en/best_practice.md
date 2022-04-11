@@ -43,7 +43,7 @@ To make sure nothing lost, you should also enable the SYNC_MASTER or SYNC_FLUSH.
 - **FLUSH_DISK_TIMEOUT**
 
 Message send successfully, but the server flush messages to disk timeout.At this point, the message has entered the server's memory, and the message will be lost only when the server is down.
-Flush mode and sync flush time interval can be set in the configuration parameters. It will return FLUSH_DISK_TIMEOUT when Broker server doesn't finish flush message to disk in timout(default is 5s
+Flush mode and sync flush time interval can be set in the configuration parameters. It will return FLUSH_DISK_TIMEOUT when Broker server doesn't finish flush message to disk in timeout(default is 5s
 ) when sets FlushDiskType=SYNC_FLUSH(default is async flush).
 
 - **FLUSH_SLAVE_TIMEOUT**

@@ -604,7 +604,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-i</td>
-  <td class=xl67 width=87 style='width:65pt'>uniqe msg id</td>
+  <td class=xl67 width=87 style='width:65pt'>unique msg id</td>
  </tr>
  <tr height=36 style='height:27.0pt'>
   <td height=36 class=xl67 width=87 style='height:27.0pt;width:65pt'>-g</td>
