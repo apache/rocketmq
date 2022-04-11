@@ -21,6 +21,7 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.rocketmq.apis.exception.*;
@@ -33,7 +34,7 @@ import org.apache.rocketmq.apis.message.MessageView;
  * simple consumer should be your first consideration.
  *
  * <p>Consumers belong to the same consumer group share messages from server,
- * so consumer in the same group must have the same {@link SubscriptionExpression}s, otherwise the behavior is
+ * so consumer in the same group must have the same subscriptionExpressions, otherwise the behavior is
  * undefined. If a new consumer group's consumer is started first time, it consumes from the latest position. Once
  * consumer is started, server records its consumption progress and derives it in subsequent startup.
  *
@@ -56,14 +57,15 @@ public interface SimpleConsumer extends Closeable {
     /**
      * Add subscription expression dynamically.
      *
-     * <p>If first {@link SubscriptionExpression} that contains topicA and tag1 is exists already in consumer, then
-     * second {@link SubscriptionExpression} which contains topicA and tag2, <strong>the result is that the second one
+     * <p>If first subscriptionExpression that contains topicA and tag1 is exists already in consumer, then
+     * second subscriptionExpression which contains topicA and tag2, <strong>the result is that the second one
      * replaces the first one instead of integrating them</strong>.
      *
-     * @param subscriptionExpression new subscription expression to add.
+     * @param topic  new topic that need to add or update.
+     * @param filterExpression new filter expression to add or update.
      * @return simple consumer instance.
      */
-    SimpleConsumer subscribe(SubscriptionExpression subscriptionExpression) throws ClientException;
+    SimpleConsumer subscribe(String topic, FilterExpression filterExpression) throws ClientException;
 
     /**
      * Remove subscription expression dynamically by topic.
@@ -81,9 +83,9 @@ public interface SimpleConsumer extends Closeable {
     /**
      * List the existed subscription expressions in simple consumer.
      *
-     * @return collections of subscription expression.
+     * @return map of topic to filter expression.
      */
-    Collection<SubscriptionExpression> subscriptionExpressions();
+    Map<String, FilterExpression> subscriptionExpressions();
 
     /**
      * Fetch messages from server synchronously.

@@ -18,6 +18,8 @@
 package org.apache.rocketmq.apis.consumer;
 
 import java.time.Duration;
+import java.util.Map;
+
 import org.apache.rocketmq.apis.ClientConfiguration;
 import org.apache.rocketmq.apis.exception.ClientException;
 
@@ -39,12 +41,12 @@ public interface SimpleConsumerBuilder {
     SimpleConsumerBuilder setConsumerGroup(String consumerGroup);
 
     /**
-     * Add {@link SubscriptionExpression} for simple consumer.
+     * Add subscriptionExpressions for simple consumer.
      *
-     * @param subscriptionExpressions subscriptions to add.
+     * @param subscriptionExpressions subscriptions to add which use the map of topic to filterExpression.
      * @return the consumer builder instance.
      */
-    SimpleConsumerBuilder setSubscriptionExpressions(SubscriptionExpression... subscriptionExpressions);
+    SimpleConsumerBuilder setSubscriptionExpressions(Map<String, FilterExpression> subscriptionExpressions);
 
     /**
      * Set the max await time when receive message from server.

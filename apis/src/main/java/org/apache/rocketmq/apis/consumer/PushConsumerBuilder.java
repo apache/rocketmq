@@ -17,9 +17,10 @@
 
 package org.apache.rocketmq.apis.consumer;
 
-import java.time.Duration;
 import org.apache.rocketmq.apis.ClientConfiguration;
 import org.apache.rocketmq.apis.exception.ClientException;
+
+import java.util.Map;
 
 public interface PushConsumerBuilder {
     /**
@@ -39,18 +40,12 @@ public interface PushConsumerBuilder {
     PushConsumerBuilder setConsumerGroup(String consumerGroup);
 
     /**
-     * Enable fifo consumption, message consumption will maintain the order by MessageGroup.
-     * @return
-     */
-    PushConsumerBuilder enableFifoConsumption();
-
-    /**
-     * Add {@link SubscriptionExpression} for consumer.
+     * Add subscriptionExpressions for consumer.
      *
-     * @param subscriptionExpressions subscriptions to add.
+     * @param subscriptionExpressions subscriptions to add which use the map of topic to filterExpression.
      * @return the consumer builder instance.
      */
-    PushConsumerBuilder setSubscriptionExpressions(SubscriptionExpression... subscriptionExpressions);
+    PushConsumerBuilder setSubscriptionExpressions(Map<String, FilterExpression> subscriptionExpressions);
 
     /**
      * Register message listener, all messages meet the subscription expression would across listener here.
