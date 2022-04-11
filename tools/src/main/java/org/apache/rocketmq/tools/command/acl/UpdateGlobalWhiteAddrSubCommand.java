@@ -55,6 +55,10 @@ public class UpdateGlobalWhiteAddrSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("p", "aclFileFullPath", true, "update global white address of specified acl file,eg: /xxx/plain_test.yml");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -68,12 +72,19 @@ public class UpdateGlobalWhiteAddrSubCommand implements SubCommand {
             // GlobalWhiteRemoteAddresses list value
             String globalWhiteRemoteAddresses = commandLine.getOptionValue('g').trim();
 
+            String aclFileFullPath;
+            if (commandLine.hasOption('p')) {
+                aclFileFullPath = commandLine.getOptionValue('p').trim();
+            } else {
+                aclFileFullPath = null;
+            }
+
 
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
 
                 defaultMQAdminExt.start();
-                defaultMQAdminExt.updateGlobalWhiteAddrConfig(addr, globalWhiteRemoteAddresses);
+                defaultMQAdminExt.updateGlobalWhiteAddrConfig(addr, globalWhiteRemoteAddresses, aclFileFullPath);
 
                 System.out.printf("update global white remote addresses to %s success.%n", addr);
                 return;
@@ -85,7 +96,7 @@ public class UpdateGlobalWhiteAddrSubCommand implements SubCommand {
                 Set<String> brokerAddrSet =
                     CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : brokerAddrSet) {
-                    defaultMQAdminExt.updateGlobalWhiteAddrConfig(addr, globalWhiteRemoteAddresses);
+                    defaultMQAdminExt.updateGlobalWhiteAddrConfig(addr, globalWhiteRemoteAddresses, aclFileFullPath);
                     System.out.printf("update global white remote addresses to %s success.%n", addr);
                 }
                 return;

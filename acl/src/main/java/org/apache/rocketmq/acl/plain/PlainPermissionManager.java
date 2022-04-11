@@ -466,11 +466,11 @@ public class PlainPermissionManager {
         return false;
     }
 
-    public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
-        return this.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList, this.defaultAclFile);
-    }
-
     public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList, String fileName) {
+        if (fileName == null) {
+            fileName = this.defaultAclFile;
+        }
+
         if (globalWhiteAddrsList == null) {
             log.error("Parameter value globalWhiteAddrsList is null,Please check your parameter");
             return false;
@@ -479,6 +479,16 @@ public class PlainPermissionManager {
         File file = new File(fileName);
         if (!file.exists() || file.isDirectory()) {
             log.error("Parameter value " + fileName + " is not exist or is a directory, please check your parameter");
+            return false;
+        }
+
+        if (!fileName.startsWith(fileHome)) {
+            log.error("Parameter value " + fileName + " is not in the directory rocketmq.home.dir");
+            return false;
+        }
+
+        if (!fileName.endsWith(".yml") && fileName.endsWith(".yaml")) {
+            log.error("Parameter value " + fileName + " is not a ACL configuration file");
             return false;
         }
 
