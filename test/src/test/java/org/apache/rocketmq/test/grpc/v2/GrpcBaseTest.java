@@ -192,9 +192,6 @@ public class GrpcBaseTest extends BaseConf {
             .setInvisibleDuration(Duration.newBuilder()
                 .setSeconds(3)
                 .build())
-            .setInitializationTimestamp(Timestamp.newBuilder()
-                .setSeconds(TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()))
-                .build())
             .build();
     }
 

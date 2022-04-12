@@ -205,7 +205,7 @@ public class GrpcConverter {
         return requestHeader;
     }
 
-    public static PopMessageRequestHeader buildPopMessageRequestHeader(ReceiveMessageRequest request, long pollTime) {
+    public static PopMessageRequestHeader buildPopMessageRequestHeader(ReceiveMessageRequest request, long pollTime, boolean isFifo) {
         Resource group = request.getGroup();
         String groupName = GrpcConverter.wrapResourceWithNamespace(group);
         MessageQueue messageQueue = request.getMessageQueue();
@@ -219,7 +219,7 @@ public class GrpcConverter {
             maxMessageNumbers = ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST;
         }
         long invisibleTime = Durations.toMillis(request.getInvisibleDuration());
-        long bornTime = Timestamps.toMillis(request.getInitializationTimestamp());
+        long bornTime = System.currentTimeMillis();
 
         FilterExpression filterExpression = request.getFilterExpression();
         String expression = filterExpression.getExpression();
@@ -236,7 +236,7 @@ public class GrpcConverter {
         requestHeader.setInitMode(ConsumeInitMode.MAX);
         requestHeader.setExpType(expressionType);
         requestHeader.setExp(expression);
-        requestHeader.setOrder(request.getFifo());
+        requestHeader.setOrder(isFifo);
 
         return requestHeader;
     }
@@ -602,13 +602,6 @@ public class GrpcConverter {
             systemPropertiesBuilder.setStoreHost(storeHost.toString());
         }
 
-        // delay_level
-        // TODO: delete
-//        String delayLevel = messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL);
-//        if (delayLevel != null) {
-//            systemAttributeBuilder.setDelayLevel(Integer.parseInt(delayLevel));
-//        }
-
         // delivery_timestamp
         String deliverMsString;
         long deliverMs;
@@ -644,13 +637,6 @@ public class GrpcConverter {
 
         // delivery_attempt
         systemPropertiesBuilder.setDeliveryAttempt(messageExt.getReconsumeTimes() + 1);
-
-        // publisher_group
-        // TODO: delete
-//        String producerGroup = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
-//        if (producerGroup != null) {
-//            systemAttributeBuilder.setProducerGroup(buildResource(producerGroup));
-//        }
 
         // trace context
         String traceContext = messageExt.getProperty(MessageConst.PROPERTY_TRACE_CONTEXT);

@@ -62,6 +62,15 @@ public class ConsumerServiceTest extends BaseServiceTest {
             new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr");
         when(readQueueSelector.select(any(), any(), any())).thenReturn(selectableMessageQueue);
 
+        ClientSettings clientSettings = ClientSettings.newBuilder()
+            .setSettings(Settings.newBuilder()
+                .setSubscription(Subscription.newBuilder()
+                    .setFifo(false)
+                    .build())
+                .build())
+            .build();
+        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
+
         List<MessageExt> messageExtList = Lists.newArrayList(
             createMessageExt("msg1", "msg1"),
             createMessageExt("msg2", "msg2")
@@ -129,7 +138,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         ClientSettings clientSettings = createClientSettings(3);
-        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
 
         NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -160,7 +169,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         ClientSettings clientSettings = createClientSettings(3);
-        when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
+        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
 
         NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()

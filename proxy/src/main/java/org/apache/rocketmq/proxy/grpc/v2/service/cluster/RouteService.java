@@ -114,8 +114,7 @@ public class RouteService extends BaseService {
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             if (ProxyMode.isClusterMode(mode.name())) {
-                String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
-                ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+                ClientSettings clientSettings = grpcClientManager.getClientSettings(ctx);
                 Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
                 if (resEndpoints == null || resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
                     future.complete(QueryRouteResponse.newBuilder()
@@ -246,8 +245,7 @@ public class RouteService extends BaseService {
                 }
             }
             if (ProxyMode.isClusterMode(mode)) {
-                String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
-                ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+                ClientSettings clientSettings = grpcClientManager.getClientSettings(ctx);
                 Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
                 if (resEndpoints == null || Endpoints.getDefaultInstance().equals(resEndpoints)) {
                     future.complete(QueryAssignmentResponse.newBuilder()
