@@ -46,6 +46,7 @@ import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.common.ServiceThread;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
@@ -523,7 +524,7 @@ public abstract class NettyRemotingAbstract {
             if (entry.getValue().getProcessChannel() == channel) {
                 Integer opaque = entry.getKey();
                 if (opaque != null) {
-                    requestFail(opaque, new RemotingSendRequestException("channel closed"));
+                    requestFail(opaque, new RemotingException("channel closed"));
                 }
             }
         }
