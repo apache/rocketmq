@@ -471,7 +471,7 @@ public abstract class NettyRemotingAbstract {
                             responseFuture.setSendRequestOK(true);
                             return;
                         }
-                        requestFail(opaque);
+                        requestFail(opaque, f.cause());
                         log.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
                     }
                 });
@@ -496,11 +496,12 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    private void requestFail(final int opaque) {
+    private void requestFail(final int opaque, Throwable cause) {
         ResponseFuture responseFuture = responseTable.remove(opaque);
         if (responseFuture != null) {
             responseFuture.setSendRequestOK(false);
             responseFuture.putResponse(null);
+            responseFuture.setCause(cause);
             try {
                 executeInvokeCallback(responseFuture);
             } catch (Throwable e) {
@@ -522,7 +523,7 @@ public abstract class NettyRemotingAbstract {
             if (entry.getValue().getProcessChannel() == channel) {
                 Integer opaque = entry.getKey();
                 if (opaque != null) {
-                    requestFail(opaque);
+                    requestFail(opaque, new RemotingSendRequestException("channel closed"));
                 }
             }
         }
