@@ -48,6 +48,7 @@ import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.AbstractListener;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.test.util.MQRandomUtils;
+import org.apache.rocketmq.test.util.RandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
 import org.junit.Assert;
@@ -140,8 +141,18 @@ public class BaseConf {
         return initTopicWithName(topic);
     }
 
+    public static String initTopicOnSampleTopicBroker(String sampleTopic) {
+        String topic = RandomUtils.getStringWithNumber(10);
+        return initTopicOnSampleTopicBroker(topic, sampleTopic);
+    }
+
     public static String initTopicWithName(String topicName) {
         IntegrationTestBase.initTopic(topicName, nsAddr, clusterName, CQType.SimpleCQ);
+        return topicName;
+    }
+
+    public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic) {
+        IntegrationTestBase.initTopic(topicName, nsAddr, sampleTopic, CQType.SimpleCQ);
         return topicName;
     }
 

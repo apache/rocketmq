@@ -252,7 +252,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         long pollTime = GrpcConverter.buildPollTimeFromContext(ctx);
         String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
         ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
-        PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime);
+        PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime,
+            clientSettings.getSettings().getSubscription().getFifo());
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
 

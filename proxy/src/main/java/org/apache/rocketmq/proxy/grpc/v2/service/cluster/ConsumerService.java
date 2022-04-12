@@ -130,7 +130,8 @@ public class ConsumerService extends BaseService {
 
     protected PopMessageRequestHeader buildPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
         checkSubscriptionData(request.getMessageQueue().getTopic(), request.getFilterExpression());
-        return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx));
+        boolean isFifo = grpcClientManager.getClientSettings(ctx).getSettings().getSubscription().getFifo();
+        return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), isFifo);
     }
 
     protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request, PopResult result) {
@@ -254,11 +255,10 @@ public class ConsumerService extends BaseService {
             }
         });
         try {
-            String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
-            Settings settings = grpcClientManager.getClientSettings(clientId).getSettings();
+            Settings settings = grpcClientManager.getClientSettings(ctx).getSettings();
             int maxDeliveryAttempts = settings.getSubscription().getDeadLetterPolicy().getMaxDeliveryAttempts();
             if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
                 CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
@@ -280,6 +280,7 @@ public class ConsumerService extends BaseService {
                     });
             } else {
                 ChangeInvisibleTimeRequestHeader requestHeader = this.buildChangeInvisibleTimeRequestHeader(ctx, request);
+                System.out.println(requestHeader);
                 CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader);
                 resultFuture
                     .thenAccept(result -> {

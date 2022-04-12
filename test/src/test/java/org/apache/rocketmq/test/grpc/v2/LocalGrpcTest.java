@@ -22,7 +22,6 @@ import apache.rocketmq.v2.MessagingServiceGrpc;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageResponse;
-import io.grpc.Channel;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -37,10 +36,12 @@ import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HO
 
 public class LocalGrpcTest extends GrpcBaseTest {
     private MessagingServiceGrpc.MessagingServiceBlockingStub blockingStub;
+    private MessagingServiceGrpc.MessagingServiceStub stub;
     private LocalGrpcService localGrpcService;
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         String mockProxyHome = "/mock/rmq/proxy/home";
         URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
         if (mockProxyHomeURL != null) {
@@ -54,8 +55,9 @@ public class LocalGrpcTest extends GrpcBaseTest {
         localGrpcService = new LocalGrpcService(brokerController1);
         localGrpcService.start();
         GrpcMessagingProcessor processor = new GrpcMessagingProcessor(localGrpcService);
-        Channel channel = setUpServer(processor, ConfigurationManager.getProxyConfig().getGrpcServerPort(), true);
-        blockingStub = MessagingServiceGrpc.newBlockingStub(channel);
+        setUpServer(processor, ConfigurationManager.getProxyConfig().getGrpcServerPort(), true);
+        blockingStub = createBlockingStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
+        stub = createStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
     }
 
     @After
