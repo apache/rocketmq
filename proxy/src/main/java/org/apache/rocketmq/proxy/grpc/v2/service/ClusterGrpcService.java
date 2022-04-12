@@ -72,7 +72,8 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
-        new ThreadFactoryImpl("ClusterGrpcServiceScheduledThread"));
+        new ThreadFactoryImpl("ClusterGrpcServiceScheduledThread")
+    );
 
     private final ChannelManager channelManager;
     private final ConnectorManager connectorManager;
@@ -179,7 +180,6 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
 
         @Override
         public void start() throws Exception {
-
         }
 
         @Override
