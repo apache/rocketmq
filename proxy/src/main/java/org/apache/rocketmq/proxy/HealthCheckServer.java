@@ -23,9 +23,9 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import java.time.Duration;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 
 public class HealthCheckServer implements StartAndShutdown {
 
@@ -34,7 +34,8 @@ public class HealthCheckServer implements StartAndShutdown {
     @Override
     public void start() throws Exception {
         this.healthChecker = HttpServer.create(
-            new InetSocketAddress(ConfigurationManager.getProxyConfig().getHealthCheckPort()), 0);
+            new InetSocketAddress(ConfigurationManager.getProxyConfig().getHealthCheckPort()), 0
+        );
         this.healthChecker.createContext("/status", new HealthCheckHandler());
         this.healthChecker.setExecutor(null);
         this.healthChecker.start();
@@ -43,7 +44,8 @@ public class HealthCheckServer implements StartAndShutdown {
     @Override
     public void shutdown() throws InterruptedException {
         this.healthChecker.stop(0);
-        Thread.sleep(TimeUnit.SECONDS.toMillis(ConfigurationManager.getProxyConfig().getWaitAfterStopHealthCheckInSeconds()));
+        long waitAfterStopHealthCheckInSeconds = ConfigurationManager.getProxyConfig().getWaitAfterStopHealthCheckInSeconds();
+        Thread.sleep(Duration.ofSeconds(waitAfterStopHealthCheckInSeconds).toMillis());
     }
 
     static class HealthCheckHandler implements HttpHandler {

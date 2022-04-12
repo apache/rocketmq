@@ -73,7 +73,7 @@ public class ProxyStartup {
                 try {
                     PROXY_START_AND_SHUTDOWN.shutdown();
                 } catch (Exception e) {
-                    log.error("err when shutdown proxy", e);
+                    log.error("err when shutdown rmq-proxy", e);
                 }
             }));
         } catch (Exception e) {
