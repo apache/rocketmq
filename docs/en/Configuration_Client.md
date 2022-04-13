@@ -18,7 +18,7 @@ consumer.setNamesrvAddr("192.168.0.1:9876;192.168.0.2:9876");
 ```text
 -Drocketmq.namesrv.addr=192.168.0.1:9876;192.168.0.2:9876  
 ```
-- Specified ```Name Server``` address in the envionment variables
+- Specified ```Name Server``` address in the environment variables
 
 ```text
 export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876   
