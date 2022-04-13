@@ -255,6 +255,20 @@ public class GrpcConverter {
         return ackMessageRequestHeader;
     }
 
+    public static AckMessageRequestHeader buildAckMessageRequestHeader(NackMessageRequest request) {
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
+        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
+
+        AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
+        ackMessageRequestHeader.setConsumerGroup(groupName);
+        ackMessageRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
+        ackMessageRequestHeader.setQueueId(handle.getQueueId());
+        ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
+        ackMessageRequestHeader.setOffset(handle.getOffset());
+        return ackMessageRequestHeader;
+    }
+
     public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(NackMessageRequest request,
         DelayPolicy delayPolicy) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());

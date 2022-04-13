@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.connector.client;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -26,15 +27,19 @@ import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
+import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
@@ -299,6 +304,16 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 new PullCallback() {
                     @Override
                     public void onSuccess(PullResult pullResult) {
+                        PullResultExt pullResultExt = (PullResultExt) pullResult;
+                        if (PullStatus.FOUND.equals(pullResult.getPullStatus())) {
+                            List<MessageExt> messageExtList = MessageDecoder.decodesBatch(
+                                ByteBuffer.wrap(pullResultExt.getMessageBinary()),
+                                true,
+                                false,
+                                true
+                            );
+                            pullResult.setMsgFoundList(messageExtList);
+                        }
                         future.complete(pullResult);
                     }
 
