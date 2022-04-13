@@ -58,6 +58,7 @@ public class AuthenticationInterceptor implements ServerInterceptor {
                 for (AccessValidator accessValidator : accessValidatorList) {
                     accessValidator.validate(accessValidator.parse(messageV3, metadataHeader));
                 }
+                super.onMessage(message);
             }
         };
     }
