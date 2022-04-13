@@ -142,7 +142,7 @@ public class BaseConf {
     }
 
     public static String initTopicOnSampleTopicBroker(String sampleTopic) {
-        String topic = RandomUtils.getStringWithNumber(10);
+        String topic = MQRandomUtils.getRandomTopic();
         return initTopicOnSampleTopicBroker(topic, sampleTopic);
     }
 

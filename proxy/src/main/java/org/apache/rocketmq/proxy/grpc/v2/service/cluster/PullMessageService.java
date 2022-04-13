@@ -62,10 +62,10 @@ public class PullMessageService extends BaseService {
         });
 
         try {
-            MessageQueue partition = request.getMessageQueue();
-            String topic = GrpcConverter.wrapResourceWithNamespace(partition.getTopic());
-            String brokerName = partition.getBroker().getName();
-            int queueId = partition.getId();
+            MessageQueue messageQueue = request.getMessageQueue();
+            String topic = GrpcConverter.wrapResourceWithNamespace(messageQueue.getTopic());
+            String brokerName = messageQueue.getBroker().getName();
+            int queueId = messageQueue.getId();
 
             CompletableFuture<Long> offsetFuture;
             switch (request.getPolicy()) {

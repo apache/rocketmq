@@ -207,6 +207,8 @@ public class ForwardClientService extends BaseService {
                         Publishing publishing = settings.getPublishing();
                         for (Resource topic : publishing.getTopicsList()) {
                             String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                            // use topic name as producer group
+                            connectorManager.getTransactionHeartbeatRegisterService().addProducerGroup(topicName, topicName);
                             GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
                             producerChannel.setClientObserver(responseObserver);
                         }

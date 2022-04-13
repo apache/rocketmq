@@ -37,11 +37,13 @@ import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.common.utils.FilterUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
@@ -49,8 +51,6 @@ import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
-import org.apache.rocketmq.proxy.common.DelayPolicy;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
@@ -270,6 +270,11 @@ public class ConsumerService extends BaseService {
                     .thenAccept(result -> {
                         try {
                             future.complete(convertToNackMessageResponse(ctx, request, result));
+                            if (result.getCode() == ResponseCode.SUCCESS) {
+                                writeConsumer.ackMessage(
+                                    brokerAddr,
+                                    this.buildAckMessageRequestHeader(ctx, request));
+                            }
                         } catch (Throwable throwable) {
                             future.completeExceptionally(throwable);
                         }
@@ -280,7 +285,6 @@ public class ConsumerService extends BaseService {
                     });
             } else {
                 ChangeInvisibleTimeRequestHeader requestHeader = this.buildChangeInvisibleTimeRequestHeader(ctx, request);
-                System.out.println(requestHeader);
                 CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader);
                 resultFuture
                     .thenAccept(result -> {
@@ -303,6 +307,10 @@ public class ConsumerService extends BaseService {
 
     protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
         return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, this.delayPolicy);
+    }
+
+    protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, NackMessageRequest request) {
+        return GrpcConverter.buildAckMessageRequestHeader(request);
     }
 
     protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx, NackMessageRequest request,

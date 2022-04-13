@@ -78,7 +78,7 @@ public class ProxyConfig {
     private int transactionHeartbeatPeriodSecond = 20;
     private int transactionHeartbeatBatchNum = 100;
 
-    private int longPollingReserveTimeInMillis = 10000;
+    private long longPollingReserveTimeInMillis = 10000;
 
     private int retryDelayLevelDelta = 2;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
@@ -373,11 +373,11 @@ public class ProxyConfig {
         this.transactionHeartbeatBatchNum = transactionHeartbeatBatchNum;
     }
 
-    public int getLongPollingReserveTimeInMillis() {
+    public long getLongPollingReserveTimeInMillis() {
         return longPollingReserveTimeInMillis;
     }
 
-    public void setLongPollingReserveTimeInMillis(int longPollingReserveTimeInMillis) {
+    public void setLongPollingReserveTimeInMillis(long longPollingReserveTimeInMillis) {
         this.longPollingReserveTimeInMillis = longPollingReserveTimeInMillis;
     }
 
