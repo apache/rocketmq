@@ -555,7 +555,7 @@ public class ScheduleMessageService extends ConfigManager {
                                 return;
                             }
                             log.warn("putResultProcess error, info={}", putResultProcess.toString());
-                            putResultProcess.onException();
+                            putResultProcess.doResend();
                             break;
                         case SKIP:
                             log.warn("putResultProcess skip, info={}", putResultProcess.toString());
@@ -564,7 +564,7 @@ public class ScheduleMessageService extends ConfigManager {
                     }
                 } catch (Exception e) {
                     log.error("HandlePutResultTask exception. info={}", putResultProcess.toString(), e);
-                    putResultProcess.onException();
+                    putResultProcess.doResend();
                 }
             }
 
@@ -708,7 +708,7 @@ public class ScheduleMessageService extends ConfigManager {
         public void onException() {
             log.warn("ScheduleMessageService onException, info: {}", this.toString());
             if (this.autoResend) {
-                this.resend();
+                this.status = ProcessStatus.EXCEPTION;
             } else {
                 this.status = ProcessStatus.SKIP;
             }
@@ -726,7 +726,7 @@ public class ScheduleMessageService extends ConfigManager {
             }
         }
 
-        private void resend() {
+        public void doResend() {
             log.info("Resend message, info: {}", this.toString());
 
             // Gradually increase the resend interval.
