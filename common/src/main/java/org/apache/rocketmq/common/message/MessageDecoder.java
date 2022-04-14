@@ -82,20 +82,17 @@ public class MessageDecoder {
     }
 
     public static MessageId decodeMessageId(final String msgId) throws UnknownHostException {
-        SocketAddress address;
-        long offset;
-        int ipLength = msgId.length() == 32 ? 4 * 2 : 16 * 2;
+        byte[] bytes = UtilAll.string2bytes(msgId);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
 
-        byte[] ip = UtilAll.string2bytes(msgId.substring(0, ipLength));
-        byte[] port = UtilAll.string2bytes(msgId.substring(ipLength, ipLength + 8));
-        ByteBuffer bb = ByteBuffer.wrap(port);
-        int portInt = bb.getInt(0);
-        address = new InetSocketAddress(InetAddress.getByAddress(ip), portInt);
+        // address(ip+port)
+        byte[] ip = new byte[msgId.length() == 32 ? 4 : 16];
+        byteBuffer.get(ip);
+        int port = byteBuffer.getInt();
+        SocketAddress address = new InetSocketAddress(InetAddress.getByAddress(ip), port);
 
         // offset
-        byte[] data = UtilAll.string2bytes(msgId.substring(ipLength + 8, ipLength + 8 + 16));
-        bb = ByteBuffer.wrap(data);
-        offset = bb.getLong(0);
+        long offset = byteBuffer.getLong();
 
         return new MessageId(address, offset);
     }
