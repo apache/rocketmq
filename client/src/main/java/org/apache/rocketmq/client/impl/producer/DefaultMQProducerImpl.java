@@ -1047,7 +1047,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     @Deprecated
     public void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback, final long timeout)
         throws MQClientException, RemotingException, InterruptedException {
-        final long beginStartTime = System.currentTimeMillis();
         ExecutorService executor = this.getAsyncSenderExecutor();
         try {
             executor.submit(new Runnable() {
@@ -1060,28 +1059,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         if (!msg.getTopic().equals(mq.getTopic())) {
                             throw new MQClientException("message's topic not equal mq's topic", null);
                         }
-                        long costTime = System.currentTimeMillis() - beginStartTime;
-                        if (timeout > costTime) {
-                            try {
-                                sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null,
-                                    timeout - costTime);
-                            } catch (MQBrokerException e) {
-                                throw new MQClientException("unknown exception", e);
-                            }
-                        } else {
-                            sendCallback.onException(new RemotingTooMuchRequestException("call timeout"));
+                        try {
+                            sendKernelImpl(msg, mq, CommunicationMode.ASYNC, sendCallback, null, timeout);
+                        } catch (MQBrokerException e) {
+                            throw new MQClientException("unknown exception", e);
                         }
                     } catch (Exception e) {
                         sendCallback.onException(e);
                     }
-
                 }
-
             });
         } catch (RejectedExecutionException e) {
             throw new MQClientException("executor rejected ", e);
         }
-
     }
 
     /**
