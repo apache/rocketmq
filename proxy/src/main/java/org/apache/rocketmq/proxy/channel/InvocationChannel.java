@@ -20,7 +20,6 @@ package org.apache.rocketmq.proxy.channel;
 import io.netty.channel.ChannelFuture;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.proxy.common.Cleaner;
@@ -50,17 +49,9 @@ public abstract class InvocationChannel<R, W> extends SimpleChannel implements C
         return super.writeAndFlush(msg);
     }
 
-    public boolean isWritable(int opaque) {
-        if (!inFlightRequestMap.containsKey(opaque)) {
-            return false;
-        }
-
-        InvocationContext<R, W> invocationContext = inFlightRequestMap.get(opaque);
-        if (null != invocationContext) {
-            CompletableFuture<?> future = invocationContext.getResponse();
-            return null != future && !future.isCancelled() && !future.isCompletedExceptionally() && !future.isDone();
-        }
-        return false;
+    @Override
+    public boolean isWritable() {
+        return inFlightRequestMap.size() > 0;
     }
 
     public void registerInvocationContext(int opaque, InvocationContext<R, W> context) {

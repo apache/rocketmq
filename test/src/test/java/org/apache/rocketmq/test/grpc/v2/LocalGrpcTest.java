@@ -51,4 +51,24 @@ public class LocalGrpcTest extends GrpcBaseTest {
         QueryRouteResponse response = blockingStub.queryRoute(buildQueryRouteRequest(topic));
         assertQueryRoute(response, brokerControllerList.size() * defaultQueueNums);
     }
+
+    @Test
+    public void testSendReceiveMessage() throws Exception {
+        super.testSendReceiveMessage();
+    }
+
+    @Test
+    public void testTransactionCheckThenCommit() {
+        super.testTransactionCheckThenCommit();
+    }
+
+    @Test
+    public void testSendReceiveMessageThenToDLQ() throws Exception {
+        super.testSendReceiveMessageThenToDLQ();
+    }
+
+    @Test
+    public void testPullMessage() throws Exception {
+        super.testPullMessage();
+    }
 }

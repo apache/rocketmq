@@ -76,4 +76,24 @@ public class ClusterGrpcTest extends GrpcBaseTest {
 
         assertQueryAssignment(response, brokerNum);
     }
+
+    @Test
+    public void testSendReceiveMessage() throws Exception {
+        super.testSendReceiveMessage();
+    }
+
+    @Test
+    public void testTransactionCheckThenCommit() {
+        super.testTransactionCheckThenCommit();
+    }
+
+    @Test
+    public void testSendReceiveMessageThenToDLQ() throws Exception {
+        super.testSendReceiveMessageThenToDLQ();
+    }
+
+    @Test
+    public void testPullMessage() throws Exception {
+        super.testPullMessage();
+    }
 }

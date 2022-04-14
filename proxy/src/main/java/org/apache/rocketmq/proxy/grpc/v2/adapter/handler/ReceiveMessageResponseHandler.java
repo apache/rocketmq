@@ -36,8 +36,8 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.channel.InvocationContext;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
@@ -46,9 +46,11 @@ import org.slf4j.LoggerFactory;
 
 public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMessageRequest, ReceiveMessageResponse> {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private final String brokerName;
     private final boolean fifo;
 
-    public ReceiveMessageResponseHandler(boolean fifo) {
+    public ReceiveMessageResponseHandler(String brokerName, boolean fifo) {
+        this.brokerName = brokerName;
         this.fifo = fifo;
     }
 
@@ -58,7 +60,6 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
         ReceiveMessageRequest request = context.getRequest();
         CompletableFuture<ReceiveMessageResponse> future = context.getResponse();
 
-        String brokerName = request.getMessageQueue().getBroker().getName();
         long currentTimeInMillis = System.currentTimeMillis();
         long popCosts = currentTimeInMillis - context.getTimestamp();
         try {

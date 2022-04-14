@@ -31,8 +31,10 @@ import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
+import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class GrpcClientChannel extends SimpleChannel {
@@ -116,19 +118,21 @@ public class GrpcClientChannel extends SimpleChannel {
             try {
                 switch (command.getCode()) {
                     case RequestCode.CHECK_TRANSACTION_STATE: {
-                        final CheckTransactionStateRequestHeader requestHeader = command.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
+                        final CheckTransactionStateRequestHeader header = (CheckTransactionStateRequestHeader) command.readCustomHeader();
                         MessageExt messageExt = MessageDecoder.decode(ByteBuffer.wrap(command.getBody()), true, false, false);
+                        TransactionId transactionId = TransactionId.genByBrokerTransactionId(RemotingUtil.string2SocketAddress(localAddress),
+                            header.getTransactionId(), messageExt.getCommitLogOffset(), messageExt.getQueueOffset());
                         streamObserver.onNext(TelemetryCommand.newBuilder()
                             .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
-                                .setTransactionId(requestHeader.getTransactionId())
+                                .setTransactionId(transactionId.getProxyTransactionId())
                                 .setOrphanedTransactionalMessage(GrpcConverter.buildMessage(messageExt))
                                 .build())
                             .build());
                         break;
                     }
                     case RequestCode.GET_CONSUMER_RUNNING_INFO: {
-                        final GetConsumerRunningInfoRequestHeader requestHeader = command.decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
-                        if (!requestHeader.isJstackEnable()) {
+                        final GetConsumerRunningInfoRequestHeader header = (GetConsumerRunningInfoRequestHeader) command.readCustomHeader();
+                        if (!header.isJstackEnable()) {
                             break;
                         }
                         String nonce = manager.putCommand(command.getOpaque());
@@ -141,7 +145,6 @@ public class GrpcClientChannel extends SimpleChannel {
                     }
                 }
             } catch (Exception ignore) {
-
             }
         }
         if (msg instanceof TelemetryCommand) {

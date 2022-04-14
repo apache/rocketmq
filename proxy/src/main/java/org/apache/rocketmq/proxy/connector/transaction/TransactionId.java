@@ -60,18 +60,18 @@ public class TransactionId {
     }
 
     public static TransactionId genByBrokerTransactionId(String brokerAddr, SendResult sendResult) {
-        MessageId id = new MessageId(null, 0);
+        long commitLogOffset = 0L;
         try {
             if (sendResult.getOffsetMsgId() != null) {
-                id = MessageDecoder.decodeMessageId(sendResult.getOffsetMsgId());
+                commitLogOffset = generateCommitLogOffset(sendResult.getOffsetMsgId());
             } else {
-                id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
+                commitLogOffset = generateCommitLogOffset(sendResult.getMsgId());
             }
         } catch (Exception e) {
             log.warn("genFromBrokerTransactionId failed. brokerAddr: {}, sendResult: {}", brokerAddr, sendResult, e);
         }
         return genByBrokerTransactionId(RemotingUtil.string2SocketAddress(brokerAddr), sendResult.getTransactionId(),
-            id.getOffset(), sendResult.getQueueOffset());
+            commitLogOffset, sendResult.getQueueOffset());
     }
 
     public static TransactionId genByBrokerTransactionId(SocketAddress brokerAddr, String orgTransactionId,
@@ -125,6 +125,11 @@ public class TransactionId {
             .tranStateTableOffset(tranStateTableOffset)
             .proxyTransactionId(transactionId)
             .build();
+    }
+
+    public static long generateCommitLogOffset(String messageId) throws UnknownHostException {
+        MessageId id = MessageDecoder.decodeMessageId(messageId);
+        return id.getOffset();
     }
 
     @Override
