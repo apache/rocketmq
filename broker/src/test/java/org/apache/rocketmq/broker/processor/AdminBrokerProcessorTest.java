@@ -63,6 +63,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStats;
@@ -185,6 +186,22 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateTopicOnSlave() throws Exception {
+        // setup
+        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
+        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+
+        // test on slave
+        String topic = "TEST_CREATE_TOPIC";
+        RemotingCommand request = buildCreateTopicRequest(topic);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).isEqualTo("Can't modify topic from slave broker, please execute it from master broker.");
+    }
+
+    @Test
     public void testDeleteTopic() throws Exception {
         //test system topic
         for (String topic : systemTopicSet) {
@@ -198,6 +215,21 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = buildDeleteTopicRequest(topic);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteTopicOnSlave() throws Exception {
+        // setup
+        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
+        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+
+        String topic = "TEST_DELETE_TOPIC";
+        RemotingCommand request = buildDeleteTopicRequest(topic);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).isEqualTo("Can't modify topic from slave broker, please execute it from master broker.");
     }
 
     @Test

@@ -138,6 +138,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -248,6 +249,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
     private synchronized RemotingCommand updateAndCreateTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (validateSlave(response)) {
+            return response;
+        }
         final CreateTopicRequestHeader requestHeader =
             (CreateTopicRequestHeader) request.decodeCommandCustomHeader(CreateTopicRequestHeader.class);
         log.info("updateAndCreateTopic called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
@@ -279,6 +283,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
     private synchronized RemotingCommand deleteTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (validateSlave(response)) {
+            return response;
+        }
         DeleteTopicRequestHeader requestHeader =
             (DeleteTopicRequestHeader) request.decodeCommandCustomHeader(DeleteTopicRequestHeader.class);
 
@@ -1635,5 +1642,14 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         inner.setMsgId(msgExt.getMsgId());
         inner.setWaitStoreMsgOK(false);
         return inner;
+    }
+
+    private boolean validateSlave(RemotingCommand response) {
+        if (this.brokerController.getMessageStoreConfig().getBrokerRole().equals(BrokerRole.SLAVE)) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Can't modify topic from slave broker, please execute it from master broker.");
+            return true;
+        }
+        return false;
     }
 }
