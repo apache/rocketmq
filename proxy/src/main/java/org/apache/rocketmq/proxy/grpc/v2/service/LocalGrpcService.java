@@ -86,16 +86,17 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
+import org.apache.rocketmq.proxy.channel.InvocationContext;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.common.DelayPolicy;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.channel.InvocationContext;
-import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
+import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
+import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
@@ -105,7 +106,6 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.PullMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.SendMessageResponseHandler;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.RouteService;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
@@ -214,13 +214,21 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         SendMessageRequestHeader requestHeader = GrpcConverter.buildSendMessageRequestHeader(request, topicName);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         List<org.apache.rocketmq.common.message.Message> messageList = GrpcConverter.buildMessage(request.getMessagesList(), topicName);
-        MessageBatch messageBatch = MessageBatch.generateFromList(messageList);
-        MessageClientIDSetter.setUniqID(messageBatch);
-        messageBatch.setBody(messageBatch.encode());
-        command.setBody(messageBatch.encode());
+        String messageId;
+        if (messageList.size() == 1) {
+            org.apache.rocketmq.common.message.Message message = messageList.get(0);
+            command.setBody(message.getBody());
+            messageId = MessageClientIDSetter.getUniqID(message);
+        } else {
+            MessageBatch messageBatch = MessageBatch.generateFromList(messageList);
+            MessageClientIDSetter.setUniqID(messageBatch);
+            messageBatch.setBody(messageBatch.encode());
+            command.setBody(messageBatch.encode());
+            messageId = MessageClientIDSetter.getUniqID(messageBatch);
+        }
         command.makeCustomHeaderToNet();
 
-        SendMessageResponseHandler handler = new SendMessageResponseHandler();
+        SendMessageResponseHandler handler = new SendMessageResponseHandler(messageId, requestHeader.getSysFlag(), brokerController.getBrokerAddr());
         SendMessageChannel channel = channelManager.createChannel(() -> new SendMessageChannel(handler), SendMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
@@ -249,7 +257,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        long pollTime = GrpcConverter.buildPollTimeFromContext(ctx);
+        long pollTime = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
         String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
         ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
         PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime,
@@ -257,7 +265,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
 
-        ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(clientSettings.getSettings().getSubscription().getFifo());
+        ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(brokerController.getBrokerConfig().getBrokerName(),
+            clientSettings.getSettings().getSubscription().getFifo());
         ReceiveMessageChannel channel = channelManager.createChannel(() -> new ReceiveMessageChannel(handler), ReceiveMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
@@ -304,22 +313,42 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
-
-        ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
-        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
-        command.makeCustomHeaderToNet();
-
         CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
-        try {
-            RemotingCommand responseCommand = brokerController.getChangeInvisibleTimeProcessor()
-                .processRequest(channelHandlerContext, command);
-            NackMessageResponse response = NackMessageResponse.newBuilder()
-                .setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
-                .build();
-            future.complete(response);
-        } catch (Exception e) {
-            log.error("Exception raised while nackMessage", e);
-            future.completeExceptionally(e);
+
+        ClientSettings clientSettings = grpcClientManager.getClientSettings(ctx);
+        int maxReconsumeTimes = clientSettings.getSettings().getSubscription().getDeadLetterPolicy().getMaxDeliveryAttempts();
+        if (request.getDeliveryAttempt() >= maxReconsumeTimes) {
+            ConsumerSendMsgBackRequestHeader requestHeader = GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
+            RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
+            command.makeCustomHeaderToNet();
+
+            try {
+                RemotingCommand responseCommand = brokerController.getSendMessageProcessor()
+                    .processRequest(channelHandlerContext, command);
+                NackMessageResponse response = NackMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
+                    .build();
+                future.complete(response);
+            }  catch (Exception e) {
+                log.error("Exception raised while nackMessage", e);
+                future.completeExceptionally(e);
+            }
+        } else {
+            ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
+            RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+            command.makeCustomHeaderToNet();
+
+            try {
+                RemotingCommand responseCommand = brokerController.getChangeInvisibleTimeProcessor()
+                    .processRequest(channelHandlerContext, command);
+                NackMessageResponse response = NackMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
+                    .build();
+                future.complete(response);
+            } catch (Exception e) {
+                log.error("Exception raised while nackMessage", e);
+                future.completeExceptionally(e);
+            }
         }
         return future;
     }
@@ -402,7 +431,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
-        long pollTime = org.apache.rocketmq.proxy.grpc.v1.adapter.GrpcConverter.buildPollTimeFromContext(ctx);
+        long pollTime = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
         PullMessageRequestHeader requestHeader = GrpcConverter.buildPullMessageRequestHeader(request, pollTime);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();

@@ -454,6 +454,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     response = null;
                 }
                 break;
+            case ResponseCode.POLLING_TIMEOUT:
+                return response;
             default:
                 assert false;
         }

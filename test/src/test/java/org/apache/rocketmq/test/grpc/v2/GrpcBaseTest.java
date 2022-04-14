@@ -30,6 +30,7 @@ import apache.rocketmq.v2.DeadLetterPolicy;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.Endpoints;
+import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
@@ -60,7 +61,6 @@ import apache.rocketmq.v2.TransactionResolution;
 import apache.rocketmq.v2.TransactionSource;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Duration;
-import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Timestamps;
 import io.grpc.Channel;
 import io.grpc.Metadata;
@@ -125,6 +125,7 @@ public class GrpcBaseTest extends BaseConf {
 
     public void setUp() throws Exception {
         header.put(InterceptorConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
+        header.put(InterceptorConstants.LANGUAGE, "JAVA");
 
         String mockProxyHome = "/mock/rmq/proxy/home";
         URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
@@ -202,7 +203,6 @@ public class GrpcBaseTest extends BaseConf {
             .build());
     }
 
-    @Test
     public void testSendReceiveMessage() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = "group";
@@ -229,7 +229,6 @@ public class GrpcBaseTest extends BaseConf {
         assertAck(ackMessageResponse);
     }
 
-    @Test
     public void testSendReceiveMessageThenToDLQ() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         this.sendClientSettings(stub, ClientSettings.newBuilder()
@@ -260,7 +259,7 @@ public class GrpcBaseTest extends BaseConf {
 
         AtomicReference<ReceiveMessageResponse> receiveRetryResponseRef = new AtomicReference<>();
         await().atMost(java.time.Duration.ofSeconds(30)).until(() -> {
-            ReceiveMessageResponse receiveRetryResponse = receiveMessage(blockingStub, topic, group);
+            ReceiveMessageResponse receiveRetryResponse = receiveMessage(blockingStub, topic, group, 1);
             if (receiveRetryResponse.getMessagesCount() <= 0) {
                 return false;
             }
@@ -307,17 +306,48 @@ public class GrpcBaseTest extends BaseConf {
 
         try {
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setClientSettings(buildProducerClientSettings(topic))
+                .setClientSettings(buildPushConsumerClientSettings())
                 .build());
-
+            await().atMost(java.time.Duration.ofSeconds(3)).until(() -> {
+                if (telemetryCommandRef.get() == null) {
+                    return false;
+                }
+                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.CLIENT_OVERWRITTEN_SETTINGS) {
+                    return false;
+                }
+                return telemetryCommandRef.get() != null;
+            });
+            telemetryCommandRef.set(null);
             // init consumer offset
             receiveMessage(blockingStub, topic, group);
+
+            requestStreamObserver.onNext(TelemetryCommand.newBuilder()
+                .setClientSettings(buildProducerClientSettings(topic))
+                .build());
+            blockingStub.heartbeat(HeartbeatRequest.newBuilder()
+                .setGroup(Resource.newBuilder()
+                    .setName(group)
+                    .build())
+                .build());
+            await().atMost(java.time.Duration.ofSeconds(3)).until(() -> {
+                if (telemetryCommandRef.get() == null) {
+                    return false;
+                }
+                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.CLIENT_OVERWRITTEN_SETTINGS) {
+                    return false;
+                }
+                return telemetryCommandRef.get() != null;
+            });
+            telemetryCommandRef.set(null);
 
             String messageId = createUniqID();
             SendMessageResponse sendResponse = blockingStub.sendMessage(buildTransactionSendMessageRequest(topic, messageId));
             assertSendMessage(sendResponse, messageId);
 
             await().atMost(java.time.Duration.ofSeconds(60)).until(() -> {
+                if (telemetryCommandRef.get() == null) {
+                    return false;
+                }
                 if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.RECOVER_ORPHANED_TRANSACTION_COMMAND) {
                     return false;
                 }
@@ -347,7 +377,6 @@ public class GrpcBaseTest extends BaseConf {
         }
     }
 
-    @Test
     public void testPullMessage() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = "group";
@@ -376,6 +405,11 @@ public class GrpcBaseTest extends BaseConf {
 
     public ReceiveMessageResponse receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group) {
         return stub.withDeadlineAfter(15, TimeUnit.SECONDS)
+            .receiveMessage(buildReceiveMessageRequest(group, topic));
+    }
+
+    public ReceiveMessageResponse receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group, int timeSeconds) {
+        return stub.withDeadlineAfter(timeSeconds, TimeUnit.SECONDS)
             .receiveMessage(buildReceiveMessageRequest(group, topic));
     }
 
