@@ -17,12 +17,12 @@
 package org.apache.rocketmq.client.trace;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -64,7 +64,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private AtomicLong discardCount;
     private Thread worker;
     private final ArrayBlockingQueue<TraceContext> traceContextQueue;
-    private final ConcurrentHashMap<String, TraceDataSegment> taskQueueByTopic;
+    private final HashMap<String, TraceDataSegment> taskQueueByTopic;
     private ArrayBlockingQueue<Runnable> appenderQueue;
     private volatile Thread shutDownHook;
     private volatile boolean stopped = false;
@@ -86,7 +86,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.waitTimeThreshold = 500;
         this.discardCount = new AtomicLong(0L);
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
-        this.taskQueueByTopic = new ConcurrentHashMap(32);
+        this.taskQueueByTopic = new HashMap(32);
         this.group = group;
         this.type = type;
 
