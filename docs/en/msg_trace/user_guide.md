@@ -104,7 +104,7 @@ Adjusting instantiation of DefaultMQProducer and DefaultMQPushConsumer as follow
 ### 4.4 Send and query message trace by mqadmin command
 - send message
 ```shell
-./mqadmin sendMessage -m true --topic some-topic-name -n 127.0.0.1:9876 -p "your meesgae content"
+./mqadmin sendMessage -m true --topic some-topic-name -n 127.0.0.1:9876 -p "your message content"
 ```
 - query trace
 ```shell
