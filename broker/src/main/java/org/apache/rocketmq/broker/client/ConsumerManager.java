@@ -18,12 +18,14 @@ package org.apache.rocketmq.broker.client;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import io.netty.channel.Channel;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -40,16 +42,17 @@ public class ConsumerManager {
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
     private final ConcurrentMap<String, ConsumerGroupInfo> consumerTable =
         new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
-    private final ConsumerIdsChangeListener consumerIdsChangeListener;
+    private final List<ConsumerIdsChangeListener> consumerIdsChangeListenerList = new CopyOnWriteArrayList<>();
     protected final BrokerStatsManager brokerStatsManager;
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener) {
-        this.consumerIdsChangeListener = consumerIdsChangeListener;
+        this.consumerIdsChangeListenerList.add(consumerIdsChangeListener);
         this.brokerStatsManager = null;
     }
 
-    public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener, final BrokerStatsManager brokerStatsManager) {
-        this.consumerIdsChangeListener = consumerIdsChangeListener;
+    public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener,
+        final BrokerStatsManager brokerStatsManager) {
+        this.consumerIdsChangeListenerList.add(consumerIdsChangeListener);
         this.brokerStatsManager = brokerStatsManager;
     }
 
@@ -93,18 +96,19 @@ public class ConsumerManager {
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> next = it.next();
             ConsumerGroupInfo info = next.getValue();
-            removed = info.doChannelCloseEvent(remoteAddr, channel);
-            if (removed) {
+            ClientChannelInfo clientChannelInfo = info.doChannelCloseEvent(remoteAddr, channel);
+            if (clientChannelInfo != null) {
+                callConsumerIdsChangeListener(ConsumerGroupEvent.CLIENT_UNREGISTER, next.getKey(), clientChannelInfo);
                 if (info.getChannelInfoTable().isEmpty()) {
                     ConsumerGroupInfo remove = this.consumerTable.remove(next.getKey());
                     if (remove != null) {
                         LOGGER.info("unregister consumer ok, no any connection, and remove consumer group, {}",
                             next.getKey());
-                        this.consumerIdsChangeListener.handle(ConsumerGroupEvent.UNREGISTER, next.getKey());
+                        callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, next.getKey());
                     }
                 }
 
-                this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, next.getKey(), info.getAllChannel());
+                callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, next.getKey(), info.getAllChannel());
             }
         }
         return removed;
@@ -128,14 +132,14 @@ public class ConsumerManager {
 
         if (r1 || r2) {
             if (isNotifyConsumerIdsChangedEnable) {
-                this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
+                callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
         if (null != this.brokerStatsManager) {
             this.brokerStatsManager.incConsumerRegisterTime((int) (System.currentTimeMillis() - start));
         }
 
-        this.consumerIdsChangeListener.handle(ConsumerGroupEvent.REGISTER, group, subList);
+        callConsumerIdsChangeListener(ConsumerGroupEvent.REGISTER, group, subList);
 
         return r1 || r2;
     }
@@ -144,17 +148,20 @@ public class ConsumerManager {
         boolean isNotifyConsumerIdsChangedEnable) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null != consumerGroupInfo) {
-            consumerGroupInfo.unregisterChannel(clientChannelInfo);
+            boolean removed = consumerGroupInfo.unregisterChannel(clientChannelInfo);
+            if (removed) {
+                callConsumerIdsChangeListener(ConsumerGroupEvent.CLIENT_UNREGISTER, group, clientChannelInfo);
+            }
             if (consumerGroupInfo.getChannelInfoTable().isEmpty()) {
                 ConsumerGroupInfo remove = this.consumerTable.remove(group);
                 if (remove != null) {
                     LOGGER.info("unregister consumer ok, no any connection, and remove consumer group, {}", group);
 
-                    this.consumerIdsChangeListener.handle(ConsumerGroupEvent.UNREGISTER, group);
+                    callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, group);
                 }
             }
             if (isNotifyConsumerIdsChangedEnable) {
-                this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
+                callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
     }
@@ -177,6 +184,7 @@ public class ConsumerManager {
                     LOGGER.warn(
                         "SCAN: remove expired channel from ConsumerManager consumerTable. channel={}, consumerGroup={}",
                         RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()), group);
+                    callConsumerIdsChangeListener(ConsumerGroupEvent.CLIENT_UNREGISTER, group, clientChannelInfo);
                     RemotingUtil.closeChannel(clientChannelInfo.getChannel());
                     itChannel.remove();
                 }
@@ -203,5 +211,19 @@ public class ConsumerManager {
             }
         }
         return groups;
+    }
+
+    public void appendConsumerIdsChangeListener(ConsumerIdsChangeListener listener) {
+        consumerIdsChangeListenerList.add(listener);
+    }
+
+    protected void callConsumerIdsChangeListener(ConsumerGroupEvent event, String group, Object... args) {
+        for (ConsumerIdsChangeListener listener : consumerIdsChangeListenerList) {
+            try {
+                listener.handle(event, group, args);
+            } catch (Throwable t) {
+                LOGGER.error("err when call consumerIdsChangeListener", t);
+            }
+        }
     }
 }

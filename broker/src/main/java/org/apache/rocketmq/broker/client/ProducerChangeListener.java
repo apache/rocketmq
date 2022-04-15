@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.broker.client;
 
-public interface ProducerGroupOfflineListener {
+public interface ProducerChangeListener {
 
-    void onOffline(String group);
+    void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo);
 }

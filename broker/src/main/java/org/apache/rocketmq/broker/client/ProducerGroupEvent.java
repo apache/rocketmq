@@ -16,22 +16,13 @@
  */
 package org.apache.rocketmq.broker.client;
 
-public enum ConsumerGroupEvent {
-
+public enum ProducerGroupEvent {
     /**
-     * Some consumers in the group are changed.
+     * The group of producer is unregistered.
      */
-    CHANGE,
+    GROUP_UNREGISTER,
     /**
-     * The group of consumer is unregistered.
-     */
-    UNREGISTER,
-    /**
-     * The group of consumer is registered.
-     */
-    REGISTER,
-    /**
-     * The client of this consumer is unregistered.
+     * The client of this producer is unregistered.
      */
     CLIENT_UNREGISTER
 }

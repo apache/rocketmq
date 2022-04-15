@@ -52,7 +52,19 @@ public class ProducerManagerTest {
     public void scanNotActiveChannel() throws Exception {
         producerManager.registerProducer(group, clientInfo);
         AtomicReference<String> groupRef = new AtomicReference<>();
-        producerManager.setProducerOfflineListener(groupRef::set);
+        AtomicReference<ClientChannelInfo> clientChannelInfoRef = new AtomicReference<>();
+        producerManager.appendProducerChangeListener((event, group, clientChannelInfo) -> {
+            switch (event) {
+                case GROUP_UNREGISTER:
+                    groupRef.set(group);
+                    break;
+                case CLIENT_UNREGISTER:
+                    clientChannelInfoRef.set(clientChannelInfo);
+                    break;
+                default:
+                    break;
+            }
+        });
         assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNotNull();
         assertThat(producerManager.findChannel("clientId")).isNotNull();
         Field field = ProducerManager.class.getDeclaredField("CHANNEL_EXPIRED_TIMEOUT");
@@ -63,6 +75,7 @@ public class ProducerManagerTest {
         producerManager.scanNotActiveChannel();
         assertThat(producerManager.getGroupChannelTable().get(group)).isNull();
         assertThat(groupRef.get()).isEqualTo(group);
+        assertThat(clientChannelInfoRef.get()).isSameAs(clientInfo);
         assertThat(producerManager.findChannel("clientId")).isNull();
     }
 
@@ -70,12 +83,25 @@ public class ProducerManagerTest {
     public void doChannelCloseEvent() throws Exception {
         producerManager.registerProducer(group, clientInfo);
         AtomicReference<String> groupRef = new AtomicReference<>();
-        producerManager.setProducerOfflineListener(groupRef::set);
+        AtomicReference<ClientChannelInfo> clientChannelInfoRef = new AtomicReference<>();
+        producerManager.appendProducerChangeListener((event, group, clientChannelInfo) -> {
+            switch (event) {
+                case GROUP_UNREGISTER:
+                    groupRef.set(group);
+                    break;
+                case CLIENT_UNREGISTER:
+                    clientChannelInfoRef.set(clientChannelInfo);
+                    break;
+                default:
+                    break;
+            }
+        });
         assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNotNull();
         assertThat(producerManager.findChannel("clientId")).isNotNull();
         producerManager.doChannelCloseEvent("127.0.0.1", channel);
         assertThat(producerManager.getGroupChannelTable().get(group)).isNull();
         assertThat(groupRef.get()).isEqualTo(group);
+        assertThat(clientChannelInfoRef.get()).isSameAs(clientInfo);
         assertThat(producerManager.findChannel("clientId")).isNull();
     }
 
@@ -94,7 +120,19 @@ public class ProducerManagerTest {
     public void unregisterProducer() throws Exception {
         producerManager.registerProducer(group, clientInfo);
         AtomicReference<String> groupRef = new AtomicReference<>();
-        producerManager.setProducerOfflineListener(groupRef::set);
+        AtomicReference<ClientChannelInfo> clientChannelInfoRef = new AtomicReference<>();
+        producerManager.appendProducerChangeListener((event, group, clientChannelInfo) -> {
+            switch (event) {
+                case GROUP_UNREGISTER:
+                    groupRef.set(group);
+                    break;
+                case CLIENT_UNREGISTER:
+                    clientChannelInfoRef.set(clientChannelInfo);
+                    break;
+                default:
+                    break;
+            }
+        });
         Map<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
         assertThat(channelMap).isNotNull();
         assertThat(channelMap.get(channel)).isEqualTo(clientInfo);
@@ -105,6 +143,7 @@ public class ProducerManagerTest {
         channelMap = producerManager.getGroupChannelTable().get(group);
         channel1 = producerManager.findChannel("clientId");
         assertThat(groupRef.get()).isEqualTo(group);
+        assertThat(clientChannelInfoRef.get()).isSameAs(clientInfo);
         assertThat(channelMap).isNull();
         assertThat(channel1).isNull();
 
