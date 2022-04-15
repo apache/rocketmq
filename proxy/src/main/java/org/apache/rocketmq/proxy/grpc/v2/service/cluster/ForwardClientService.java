@@ -39,13 +39,15 @@ import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
+import org.apache.rocketmq.broker.client.ProducerChangeListener;
+import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
-import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
+import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
@@ -82,17 +84,49 @@ public class ForwardClientService extends BaseService {
         this.grpcClientManager = grpcClientManager;
         this.telemetryCommandManager = telemetryCommandManager;
 
-        this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListener() {
-            @Override
-            public void handle(ConsumerGroupEvent event, String group, Object... args) {
-            }
-
-            @Override
-            public void shutdown() {
-            }
-        });
+        this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl());
         this.producerManager = new ProducerManager();
-        this.producerManager.setProducerOfflineListener(connectorManager.getTransactionHeartbeatRegisterService()::onProducerGroupOffline);
+        this.producerManager.appendProducerChangeListener(new ProducerChangeListenerImpl());
+    }
+
+    protected class ConsumerIdsChangeListenerImpl implements ConsumerIdsChangeListener {
+
+        @Override
+        public void handle(ConsumerGroupEvent event, String group, Object... args) {
+            if (event == ConsumerGroupEvent.CLIENT_UNREGISTER) {
+                if (args == null || args.length < 1) {
+                    return;
+                }
+                if (args[0] instanceof ClientChannelInfo) {
+                    ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
+                    channelManager.onClientOffline(clientChannelInfo.getClientId());
+                    grpcClientManager.removeClientSettings(clientChannelInfo.getClientId());
+                }
+            }
+        }
+
+        @Override
+        public void shutdown() {
+
+        }
+    }
+
+    protected class ProducerChangeListenerImpl implements ProducerChangeListener {
+
+        @Override
+        public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
+            switch (event) {
+                case GROUP_UNREGISTER:
+                    connectorManager.getTransactionHeartbeatRegisterService().onProducerGroupOffline(group);
+                    break;
+                case CLIENT_UNREGISTER:
+                    channelManager.onClientOffline(clientChannelInfo.getClientId());
+                    grpcClientManager.removeClientSettings(clientChannelInfo.getClientId());
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {

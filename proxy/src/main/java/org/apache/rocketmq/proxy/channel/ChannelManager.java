@@ -20,25 +20,22 @@ package org.apache.rocketmq.proxy.channel;
 import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.common.Cleaner;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.v1.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.v1.adapter.channel.GrpcClientChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ChannelManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
-    private final ConcurrentMap<String, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String /* clientId */, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String /* group */, Set<String>/* clientId */> groupClientIdMap = new ConcurrentHashMap<>();
 
     public SimpleChannel createChannel() {
@@ -123,35 +120,20 @@ public class ChannelManager {
         return new ArrayList<>(groupClientIdMap.get(group));
     }
 
-    /**
-     * Scan and remove inactive mocking channels; Scan and clean expired requests;
-     */
-    public void scanAndCleanChannels() {
-        try {
-            Iterator<Map.Entry<String, SimpleChannel>> iterator = clientIdChannelMap.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, SimpleChannel> entry = iterator.next();
-                if (!entry.getValue().isActive()) {
-                    iterator.remove();
-                    if (entry.getValue() instanceof GrpcClientChannel) {
-                        GrpcClientChannel grpcClientChannel = (GrpcClientChannel) entry.getValue();
-                        groupClientIdMap.computeIfPresent(grpcClientChannel.getGroup(), (group, clientIds) -> {
-                            clientIds.remove(grpcClientChannel.getClientId());
-                            if (clientIds.isEmpty()) {
-                                return null;
-                            }
-                            return clientIds;
-                        });
-                    }
-                } else {
-                    if (entry.getValue() instanceof Cleaner) {
-                        Cleaner cleaner = (Cleaner) entry.getValue();
-                        cleaner.clean();
-                    }
+    public void onClientOffline(String clientId) {
+        SimpleChannel simpleChannel = clientIdChannelMap.remove(clientId);
+        if (simpleChannel == null) {
+            return;
+        }
+        if (simpleChannel instanceof GrpcClientChannel) {
+            GrpcClientChannel grpcClientChannel = (GrpcClientChannel) simpleChannel;
+            groupClientIdMap.computeIfPresent(grpcClientChannel.getGroup(), (group, clientIds) -> {
+                clientIds.remove(grpcClientChannel.getClientId());
+                if (clientIds.isEmpty()) {
+                    return null;
                 }
-            }
-        } catch (Throwable e) {
-            log.error("Unexpected exception", e);
+                return clientIds;
+            });
         }
     }
 }

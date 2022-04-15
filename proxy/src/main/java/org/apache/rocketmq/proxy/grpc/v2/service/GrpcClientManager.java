@@ -39,4 +39,8 @@ public class GrpcClientManager {
     public void updateClientSettings(String clientId, ClientSettings clientSettings) {
         CLIENT_SETTINGS_MAP.put(clientId, clientSettings);
     }
+
+    public ClientSettings removeClientSettings(String clientId) {
+        return CLIENT_SETTINGS_MAP.remove(clientId);
+    }
 }

@@ -65,6 +65,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
+import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
+import org.apache.rocketmq.broker.client.ProducerChangeListener;
+import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -91,7 +96,6 @@ import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.DelayPolicy;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
@@ -144,8 +148,11 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         this.grpcClientManager = new GrpcClientManager();
         this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager, grpcClientManager);
         this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
+
+        this.brokerController.getConsumerManager().appendConsumerIdsChangeListener(new ConsumerIdsChangeListenerImpl());
+        this.brokerController.getProducerManager().appendProducerChangeListener(new ProducerChangeListenerImpl());
+
         this.appendStartAndShutdown(connectorManager);
-        this.appendStartAndShutdown(new LocalGrpcServiceStartAndShutdown());
     }
 
     @Override
@@ -615,17 +622,36 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         };
     }
 
-    private class LocalGrpcServiceStartAndShutdown implements StartAndShutdown {
-        @Override public void start() throws Exception {
-            LocalGrpcService.this.scheduledExecutorService.scheduleWithFixedDelay(LocalGrpcService.this::scanAndCleanChannels, 5, 5, TimeUnit.MINUTES);
+    protected class ConsumerIdsChangeListenerImpl implements ConsumerIdsChangeListener {
+
+        @Override
+        public void handle(ConsumerGroupEvent event, String group, Object... args) {
+            if (event == ConsumerGroupEvent.CLIENT_UNREGISTER) {
+                if (args == null || args.length < 1) {
+                    return;
+                }
+                if (args[0] instanceof ClientChannelInfo) {
+                    ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
+                    channelManager.onClientOffline(clientChannelInfo.getClientId());
+                    grpcClientManager.removeClientSettings(clientChannelInfo.getClientId());
+                }
+            }
         }
 
-        @Override public void shutdown() throws Exception {
-            LocalGrpcService.this.scheduledExecutorService.shutdown();
+        @Override
+        public void shutdown() {
+
         }
     }
 
-    private void scanAndCleanChannels() {
-        this.channelManager.scanAndCleanChannels();
+    protected class ProducerChangeListenerImpl implements ProducerChangeListener {
+
+        @Override
+        public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
+            if (event == ProducerGroupEvent.CLIENT_UNREGISTER) {
+                channelManager.onClientOffline(clientChannelInfo.getClientId());
+                grpcClientManager.removeClientSettings(clientChannelInfo.getClientId());
+            }
+        }
     }
 }
