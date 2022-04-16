@@ -18,7 +18,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaI
  * @email 642256541@qq.com
  * @date 2022/4/15 14:57
  */
-public interface ControllerApi {
+public interface Controller {
 
     /**
      * Alter ISR of broker replicas.

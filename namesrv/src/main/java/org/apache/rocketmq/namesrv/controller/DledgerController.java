@@ -17,10 +17,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaI
  * @email 642256541@qq.com
  * @date 2022/4/15 14:58
  */
-public class DledgerController implements ControllerApi {
-
-
-
+public class DledgerController implements Controller {
 
 
     @Override
