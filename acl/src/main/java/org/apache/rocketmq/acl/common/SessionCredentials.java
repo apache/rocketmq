@@ -148,12 +148,8 @@ public class SessionCredentials {
             return false;
 
         if (signature == null) {
-            if (other.signature != null)
-                return false;
-        } else if (!signature.equals(other.signature))
-            return false;
-
-        return true;
+            return other.signature == null;
+        } else return signature.equals(other.signature);
     }
 
     @Override
