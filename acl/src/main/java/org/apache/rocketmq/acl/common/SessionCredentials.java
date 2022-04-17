@@ -19,11 +19,12 @@ package org.apache.rocketmq.acl.common;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import org.apache.rocketmq.common.MixAll;
 
 public class SessionCredentials {
-    public static final Charset CHARSET = Charset.forName("UTF-8");
+    public static final Charset CHARSET = StandardCharsets.UTF_8;
     public static final String ACCESS_KEY = "AccessKey";
     public static final String SECRET_KEY = "SecretKey";
     public static final String SIGNATURE = "Signature";
