@@ -57,8 +57,8 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private final int queueSize;
     private final int batchSize;
     private final int maxMsgSize;
-    private final long waitTimeThreshold;
-    private final long pollingTime;
+    private final long pollingTimeMil;
+    private final long waitTimeThresholdMil;
     private final DefaultMQProducer traceProducer;
     private final ThreadPoolExecutor traceExecutor;
     // The last discard number of log
@@ -84,11 +84,11 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.queueSize = 2048;
         this.batchSize = 100;
         this.maxMsgSize = 128000;
-        this.waitTimeThreshold = 500;
-        this.pollingTime = 100;
+        this.pollingTimeMil = 100;
+        this.waitTimeThresholdMil = 500;
         this.discardCount = new AtomicLong(0L);
         this.traceContextQueue = new ArrayBlockingQueue<TraceContext>(1024);
-        this.taskQueueByTopic = new HashMap(32);
+        this.taskQueueByTopic = new HashMap();
         this.group = group;
         this.type = type;
 
@@ -248,7 +248,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         public void run() {
             while (!stopped) {
                 synchronized (traceContextQueue) {
-                    long endTime = System.currentTimeMillis() + pollingTime;
+                    long endTime = System.currentTimeMillis() + pollingTimeMil;
                     while (System.currentTimeMillis() < endTime) {
                         try {
                             TraceContext traceContext = traceContextQueue.poll(
@@ -292,7 +292,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         private void sendDataByTimeThreshold() {
             long now = System.currentTimeMillis();
             for (TraceDataSegment taskInfo : taskQueueByTopic.values()) {
-                if (now - taskInfo.firstBeanAddTime >= waitTimeThreshold) {
+                if (now - taskInfo.firstBeanAddTime >= waitTimeThresholdMil) {
                     taskInfo.sendAllData();
                 }
             }
