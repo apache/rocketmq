@@ -69,16 +69,17 @@ public class MQFaultStrategy {
                 }
 
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
-                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
-                if (writeQueueNums > 0) {
-                    final MessageQueue mq = tpInfo.selectOneMessageQueue();
-                    if (notBestBroker != null) {
+                if (notBestBroker != null) {
+                    int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
+                    if (writeQueueNums > 0) {
+                        MessageQueue mq = new MessageQueue();
+                        mq.setTopic(tpInfo.getMessageQueueList().get(0).getTopic());
                         mq.setBrokerName(notBestBroker);
                         mq.setQueueId(tpInfo.getSendWhichQueue().incrementAndGet() % writeQueueNums);
+                        return mq;
+                    } else {
+                        latencyFaultTolerance.remove(notBestBroker);
                     }
-                    return mq;
-                } else {
-                    latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {
                 log.error("Error occurred when selecting message queue", e);
