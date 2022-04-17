@@ -37,7 +37,7 @@ namesrvAddr=XX.XX.XX.XX:9876
 Each Broker node in the RocketMQ cluster is used to store message trace data collected and sent from the Client.Therefore, there are no requirements or restrictions on the number of Broker nodes in the RocketMQ cluster.
 
 ### 2.3 Physical IO Isolation Mode
-For scenarios with large amount of trace message data , one of the Broker nodes in the RocketMQ cluster can be selected to store the trace message , so that the common message data of the user and the physical IO of the trace message data are completely isolated from each other.In this mode, there are at least two Broker nodes in the RockeMQ cluster, one of which is defined as the server on which message trace data is stored.
+For scenarios with large amount of trace message data , one of the Broker nodes in the RocketMQ cluster can be selected to store the trace message , so that the common message data of the user and the physical IO of the trace message data are completely isolated from each other.In this mode, there are at least two Broker nodes in the RocketMQ cluster, one of which is defined as the server on which message trace data is stored.
 
 ### 2.4 Start the Broker that Starts the MessageTrace
 `nohup sh mqbroker -c ../conf/2m-noslave/broker-a.properties &`
@@ -92,7 +92,7 @@ In order to reduce as much as possible the transformation work of RocketMQ messa
 ```
 
 ### 4.3 Support for Custom Storage Message Trace Topic
-The initialization of `DefaultMQProducer` and `DefaultMQPushConsumer` instances can be changed to support the custom storage message trace Topic as follows when sending and subscriving messages above.
+The initialization of `DefaultMQProducer` and `DefaultMQPushConsumer` instances can be changed to support the custom storage message trace Topic as follows when sending and subscribing messages above.
 
 ```
         ##Where Topic_test11111 needs to be pre-created by the user to save the message trace；

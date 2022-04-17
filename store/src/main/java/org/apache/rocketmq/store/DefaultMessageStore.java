@@ -1554,7 +1554,7 @@ public class DefaultMessageStore implements MessageStore {
             return false;
         }
         Map<String, String> prop = dispatchRequest.getPropertiesMap();
-        if (prop == null && prop.isEmpty()) {
+        if (prop == null || prop.isEmpty()) {
             return false;
         }
         String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);

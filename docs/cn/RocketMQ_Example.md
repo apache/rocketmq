@@ -566,7 +566,7 @@ public class ListSplitter implements Iterator<List<Message>> {
         int tmpSize = calcMessageSize(currMessage); 
         while(tmpSize > SIZE_LIMIT) {
             currIndex += 1;
-            Message message = messages.get(curIndex); 
+            Message message = messages.get(currIndex); 
             tmpSize = calcMessageSize(message);
         }
         return currIndex; 
