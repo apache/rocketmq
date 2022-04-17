@@ -685,6 +685,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
     private RemotingCommand updateAndCreateSubscriptionGroup(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (validateSlave(response)) {
+            return response;
+        }
 
         log.info("updateAndCreateSubscriptionGroup called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
@@ -728,6 +731,9 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
     private RemotingCommand deleteSubscriptionGroup(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (validateSlave(response)) {
+            return response;
+        }
         DeleteSubscriptionGroupRequestHeader requestHeader =
             (DeleteSubscriptionGroupRequestHeader) request.decodeCommandCustomHeader(DeleteSubscriptionGroupRequestHeader.class);
 
@@ -1647,7 +1653,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
     private boolean validateSlave(RemotingCommand response) {
         if (this.brokerController.getMessageStoreConfig().getBrokerRole().equals(BrokerRole.SLAVE)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("Can't modify topic from slave broker, please execute it from master broker.");
+            response.setRemark("Can't modify topic or subscription group from slave broker, " +
+                "please execute it from master broker.");
             return true;
         }
         return false;
