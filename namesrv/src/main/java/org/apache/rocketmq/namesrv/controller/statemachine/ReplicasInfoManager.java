@@ -22,7 +22,6 @@ import org.apache.rocketmq.namesrv.controller.event.ControllerResult;
 import org.apache.rocketmq.namesrv.controller.event.ElectMasterEvent;
 import org.apache.rocketmq.namesrv.controller.event.EventMessage;
 import org.apache.rocketmq.namesrv.controller.event.EventType;
-import org.apache.rocketmq.namesrv.controller.event.TryToBeMasterEvent;
 
 /**
  * The manager that manages the replicas info for all brokers.
@@ -126,7 +125,7 @@ public class ReplicasInfoManager {
                     }
                     // todo: check whether the replicas is active
                     response.setNewMasterAddress(replicas);
-                    response.setMasterEpoch(replicasInfo.getMasterEpoch());
+                    response.setMasterEpoch(replicasInfo.getMasterEpoch() + 1);
 
                     final ElectMasterEvent event = new ElectMasterEvent(brokerName, replicas);
                     result.addEvent(event);
@@ -135,7 +134,7 @@ public class ReplicasInfoManager {
             }
             // If elect failed, we still need to apply an ElectMasterEvent to tell the statemachine
             // that the master was shutdown and no new master was elected.
-            final ElectMasterEvent event = new ElectMasterEvent(false);
+            final ElectMasterEvent event = new ElectMasterEvent(brokerName, false);
             result.addEvent(event);
             response.setErrorCode(ErrorCodes.MASTER_NOT_AVAILABLE.getCode());
             return result;
@@ -176,21 +175,19 @@ public class ReplicasInfoManager {
                 canBeElectedAsMaster = replicasInfo.getSyncStateSet().contains(brokerAddress) || this.enableElectUncleanMaster;
             }
         } else {
-            // If the broker's metadata does not exist in the state machine, the replicas can be elected as master directly.
             canBeElectedAsMaster = true;
         }
-
         if (canBeElectedAsMaster) {
-            // If the broker's metadata does not exist in the state machine,
-            // the tryToBeMaster event is directly generated to make the replicas to be master
+            // If the broker's metadata does not exist in the state machine, the replicas can be elected as master directly.
             response.setMasterAddress(request.getBrokerAddress());
-            response.setMasterEpoch(1);
+            int masterEpoch = this.inSyncReplicasInfoTable.containsKey(brokerName) ?
+                this.inSyncReplicasInfoTable.get(brokerName).getMasterEpoch() + 1 : 1;
+            response.setMasterEpoch(masterEpoch);
 
-            final TryToBeMasterEvent event = new TryToBeMasterEvent(request.getClusterName(), request.getBrokerName(), request.getBrokerAddress());
+            final ElectMasterEvent event = new ElectMasterEvent(brokerName, brokerAddress);
             result.addEvent(event);
             return result;
         }
-
         result.getResponse().setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
         return result;
     }
@@ -215,7 +212,7 @@ public class ReplicasInfoManager {
     /********************************    The following methods will update statemachine   ********************************/
 
     // Apply events to memory statemachine.
-    public void ApplyEvent(final EventMessage event) {
+    public void applyEvent(final EventMessage event) {
         final EventType type = event.eventType();
         switch (type) {
             case ALTER_SYNC_STATE_SET_EVENT:
@@ -226,9 +223,6 @@ public class ReplicasInfoManager {
                 break;
             case ELECT_MASTER_EVENT:
                 handleElectMaster((ElectMasterEvent) event);
-                break;
-            case TRY_TO_BE_MASTER_EVENT:
-                handleTryToBeMaster((TryToBeMasterEvent) event);
                 break;
             default:
                 break;
@@ -256,6 +250,7 @@ public class ReplicasInfoManager {
 
     private void handleElectMaster(final ElectMasterEvent event) {
         final String brokerName = event.getBrokerName();
+        final String newMaster = event.getNewMasterAddress();
         if (isContainsBroker(brokerName)) {
             final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
             final BrokerIdInfo brokerInfo = this.replicaInfoTable.get(brokerName);
@@ -270,7 +265,6 @@ public class ReplicasInfoManager {
                 }
 
                 // Step2, record new master
-                final String newMaster = event.getNewMasterAddress();
                 final Long newMasterOriginId = brokerIdTable.get(newMaster);
                 brokerIdTable.put(newMaster, LEADER_ID);
                 replicasInfo.updateMasterInfo(newMaster, newMasterOriginId);
@@ -290,21 +284,14 @@ public class ReplicasInfoManager {
 
                 replicasInfo.updateMasterInfo("", -1);
             }
-        }
-    }
-
-    private void handleTryToBeMaster(final TryToBeMasterEvent event) {
-        final String brokerName = event.getBrokerName();
-        final String clusterName = event.getClusterName();
-        final String masterAddress = event.getBrokerAddress();
-
-        if (!isContainsBroker(brokerName)) {
+        } else {
             // When the first replicas of a broker come online,
-            // we can create memory meta information for the broker
+            // we can create memory meta information for the broker, and regard it as master
+            final String clusterName = event.getClusterName();
             final BrokerIdInfo brokerInfo = new BrokerIdInfo(clusterName, brokerName);
             final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
-            final InSyncReplicasInfo replicasInfo = new InSyncReplicasInfo(clusterName, brokerName, masterAddress);
-            brokerIdTable.put(masterAddress, LEADER_ID);
+            final InSyncReplicasInfo replicasInfo = new InSyncReplicasInfo(clusterName, brokerName, newMaster);
+            brokerIdTable.put(newMaster, LEADER_ID);
             this.inSyncReplicasInfoTable.put(brokerName, replicasInfo);
             this.replicaInfoTable.put(brokerName, brokerInfo);
         }

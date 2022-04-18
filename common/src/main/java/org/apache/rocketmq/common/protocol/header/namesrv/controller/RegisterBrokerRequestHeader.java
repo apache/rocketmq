@@ -3,7 +3,7 @@ package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 public class RegisterBrokerRequestHeader {
     private String clusterName;
     private String brokerName;
-    private String brokerAddress;;
+    private String brokerAddress;
 
     public RegisterBrokerRequestHeader(String clusterName, String brokerName, String brokerAddress) {
         this.clusterName = clusterName;

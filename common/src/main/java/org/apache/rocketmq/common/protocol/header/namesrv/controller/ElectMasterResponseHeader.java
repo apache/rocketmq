@@ -1,6 +1,5 @@
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-
 public class ElectMasterResponseHeader {
     private short errorCode = ErrorCodes.NONE.getCode();
     private String newMasterAddress;

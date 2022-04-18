@@ -13,7 +13,6 @@ public enum ErrorCodes {
     INVALID_REQUEST((short) 3, "The request is invalid"),
     MASTER_NOT_AVAILABLE((short) 4, "There is no available master for this broker.");
 
-
     short code;
     String description;
 
