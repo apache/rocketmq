@@ -1,4 +1,4 @@
-package org.apache.rocketmq.namesrv.controller.event;
+package org.apache.rocketmq.namesrv.controller.manager.event;
 
 /**
  * The event trys to apply a new id for a new broker.

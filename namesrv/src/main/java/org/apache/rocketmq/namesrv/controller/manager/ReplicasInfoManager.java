@@ -1,4 +1,4 @@
-package org.apache.rocketmq.namesrv.controller.statemachine;
+package org.apache.rocketmq.namesrv.controller.manager;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,12 +16,12 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBro
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.namesrv.controller.event.AlterSyncStateSetEvent;
-import org.apache.rocketmq.namesrv.controller.event.ApplyBrokerIdEvent;
-import org.apache.rocketmq.namesrv.controller.event.ControllerResult;
-import org.apache.rocketmq.namesrv.controller.event.ElectMasterEvent;
-import org.apache.rocketmq.namesrv.controller.event.EventMessage;
-import org.apache.rocketmq.namesrv.controller.event.EventType;
+import org.apache.rocketmq.namesrv.controller.manager.event.AlterSyncStateSetEvent;
+import org.apache.rocketmq.namesrv.controller.manager.event.ApplyBrokerIdEvent;
+import org.apache.rocketmq.namesrv.controller.manager.event.ControllerResult;
+import org.apache.rocketmq.namesrv.controller.manager.event.ElectMasterEvent;
+import org.apache.rocketmq.namesrv.controller.manager.event.EventMessage;
+import org.apache.rocketmq.namesrv.controller.manager.event.EventType;
 
 /**
  * The manager that manages the replicas info for all brokers.
@@ -192,7 +192,7 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<GetReplicaInfoResponseHeader> getReplicasInfo(final GetReplicaInfoRequestHeader request) {
+    public ControllerResult<GetReplicaInfoResponseHeader> getReplicaInfo(final GetReplicaInfoRequestHeader request) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<GetReplicaInfoResponseHeader> result = new ControllerResult<>(new GetReplicaInfoResponseHeader());
         final GetReplicaInfoResponseHeader response = result.getResponse();
@@ -298,14 +298,6 @@ public class ReplicasInfoManager {
     }
 
     /********************************    Util methods   ********************************/
-
-    private boolean isExistMaster(final String brokerName) {
-        if (this.inSyncReplicasInfoTable.containsKey(brokerName)) {
-            final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
-            return !replicasInfo.getMasterAddress().isEmpty();
-        }
-        return false;
-    }
 
     private boolean isContainsBroker(final String brokerName) {
         return this.replicaInfoTable.containsKey(brokerName) && this.inSyncReplicasInfoTable.containsKey(brokerName);

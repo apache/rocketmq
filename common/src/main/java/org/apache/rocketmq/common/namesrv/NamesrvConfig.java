@@ -73,6 +73,13 @@ public class NamesrvConfig {
 
     private volatile boolean enableAllTopicList = false;
 
+    private String controllerDLegerGroup = "ControllerGroup";
+    private String controllerDLegerPeers = String.format("n0-localhost:%d", 9000);;
+    private String controllerDLegerSelfId = "n0";
+    private String controllerStrorePath = System.getProperty("user.home") + File.separator + "DledgerController";
+    // Whether the controller can elect a master which is not in the syncStateSet.
+    private boolean enableElectUncleanMaster = false;
+
     public void setRemoteFaultTolerance(boolean remoteFaultTolerance) {
         this.remoteFaultTolerance = remoteFaultTolerance;
     }
@@ -199,5 +206,45 @@ public class NamesrvConfig {
 
     public void setEnableAllTopicList(boolean enableAllTopicList) {
         this.enableAllTopicList = enableAllTopicList;
+    }
+
+    public String getControllerDLegerGroup() {
+        return controllerDLegerGroup;
+    }
+
+    public void setControllerDLegerGroup(String controllerDLegerGroup) {
+        this.controllerDLegerGroup = controllerDLegerGroup;
+    }
+
+    public String getControllerDLegerPeers() {
+        return controllerDLegerPeers;
+    }
+
+    public void setControllerDLegerPeers(String controllerDLegerPeers) {
+        this.controllerDLegerPeers = controllerDLegerPeers;
+    }
+
+    public String getControllerDLegerSelfId() {
+        return controllerDLegerSelfId;
+    }
+
+    public void setControllerDLegerSelfId(String controllerDLegerSelfId) {
+        this.controllerDLegerSelfId = controllerDLegerSelfId;
+    }
+
+    public String getControllerStrorePath() {
+        return controllerStrorePath;
+    }
+
+    public void setControllerStrorePath(String controllerStrorePath) {
+        this.controllerStrorePath = controllerStrorePath;
+    }
+
+    public boolean isEnableElectUncleanMaster() {
+        return enableElectUncleanMaster;
+    }
+
+    public void setEnableElectUncleanMaster(boolean enableElectUncleanMaster) {
+        this.enableElectUncleanMaster = enableElectUncleanMaster;
     }
 }

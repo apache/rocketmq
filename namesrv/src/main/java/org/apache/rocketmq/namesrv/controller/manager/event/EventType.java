@@ -1,4 +1,4 @@
-package org.apache.rocketmq.namesrv.controller.event;
+package org.apache.rocketmq.namesrv.controller.manager.event;
 
 /**
  * @author hzh
@@ -9,8 +9,7 @@ public enum EventType {
     ALTER_SYNC_STATE_SET_EVENT("AlterSyncStateSetEvent", (short) 1),
     APPLY_BROKER_ID_EVENT("ApplyBrokerIdEvent", (short) 2),
     ELECT_MASTER_EVENT("ElectMasterEvent", (short) 3),
-    TRY_TO_BE_MASTER_EVENT("TryToBeMasterEvent", (short) 4),
-    READ_EVENT("ReadEvent", (short) 5);
+    READ_EVENT("ReadEvent", (short) 4);
 
     private final String name;
     private final short id;

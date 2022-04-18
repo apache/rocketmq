@@ -1,4 +1,4 @@
-package org.apache.rocketmq.namesrv.controller.event;
+package org.apache.rocketmq.namesrv.controller.manager.event;
 
 import java.util.ArrayList;
 import java.util.List;

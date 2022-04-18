@@ -1,4 +1,4 @@
-package org.apache.rocketmq.namesrv.controller.event;
+package org.apache.rocketmq.namesrv.controller.manager.event;
 
 /**
  * The event trys to elect a new master for target broker.

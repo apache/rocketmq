@@ -1,4 +1,4 @@
-package org.apache.rocketmq.namesrv.controller.statemachine;
+package org.apache.rocketmq.namesrv.controller.manager;
 
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;

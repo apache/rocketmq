@@ -1,4 +1,4 @@
-package org.apache.rocketmq.namesrv.controller.statemachine;
+package org.apache.rocketmq.namesrv.controller.manager;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -11,7 +11,6 @@ import java.util.Set;
  * @date 2022/4/15 15:33
  */
 public class InSyncReplicasInfo {
-
     private final String clusterName;
     private final String brokerName;
 

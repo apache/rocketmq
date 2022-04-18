@@ -1,4 +1,4 @@
-package org.apache.rocketmq.namesrv.controller.statemachine;
+package org.apache.rocketmq.namesrv.controller.manager;
 
 import java.util.HashSet;
 import java.util.List;
@@ -12,9 +12,9 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaI
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerResponseHeader;
-import org.apache.rocketmq.namesrv.controller.event.ControllerResult;
-import org.apache.rocketmq.namesrv.controller.event.ElectMasterEvent;
-import org.apache.rocketmq.namesrv.controller.event.EventMessage;
+import org.apache.rocketmq.namesrv.controller.manager.event.ControllerResult;
+import org.apache.rocketmq.namesrv.controller.manager.event.ElectMasterEvent;
+import org.apache.rocketmq.namesrv.controller.manager.event.EventMessage;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ public class ReplicasInfoManagerTest {
         apply(registerResult.getEvents());
 
         if (isFirstRegisteredBroker) {
-            final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult = this.replicasInfoManager.getReplicasInfo(new GetReplicaInfoRequestHeader(brokerName));
+            final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
             final GetReplicaInfoResponseHeader replicaInfo = getInfoResult.getResponse();
             if (replicaInfo.getErrorCode() != ErrorCodes.NONE.getCode()) {
                 return false;
@@ -61,7 +61,7 @@ public class ReplicasInfoManagerTest {
         final ControllerResult<AlterInSyncReplicasResponseHeader> result = this.replicasInfoManager.alterSyncStateSet(alterRequest);
         apply(result.getEvents());
 
-        final GetReplicaInfoResponseHeader replicaInfo = this.replicasInfoManager.getReplicasInfo(new GetReplicaInfoRequestHeader(brokerName)).getResponse();
+        final GetReplicaInfoResponseHeader replicaInfo = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).getResponse();
         if (replicaInfo.getErrorCode() != ErrorCodes.NONE.getCode()) {
             return false;
         }
@@ -118,7 +118,7 @@ public class ReplicasInfoManagerTest {
 
         apply(cResult.getEvents());
 
-        final GetReplicaInfoResponseHeader replicaInfo = this.replicasInfoManager.getReplicasInfo(new GetReplicaInfoRequestHeader("broker1")).getResponse();
+        final GetReplicaInfoResponseHeader replicaInfo = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).getResponse();
         assertEquals(replicaInfo.getMasterAddress(), "");
         assertEquals(replicaInfo.getMasterEpoch(), 2);
     }
