@@ -10,9 +10,9 @@ package org.apache.rocketmq.namesrv.controller.event;
  * @date 2022/4/15 15:04
  */
 public class ApplyBrokerIdEvent implements EventMessage {
-    private String brokerName;
-    private String brokerAddress;
-    private long newBrokerId;
+    private final String brokerName;
+    private final String brokerAddress;
+    private final long newBrokerId;
 
     public ApplyBrokerIdEvent(String brokerName, String brokerAddress, long newBrokerId) {
         this.brokerName = brokerName;

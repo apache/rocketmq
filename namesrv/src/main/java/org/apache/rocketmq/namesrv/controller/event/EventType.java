@@ -6,13 +6,11 @@ package org.apache.rocketmq.namesrv.controller.event;
  * @date 2022/4/16 10:13
  */
 public enum EventType {
-    ALTER_ISR_EVENT("AlterInSyncReplicaEvent", (short) 1),
+    ALTER_SYNC_STATE_SET_EVENT("AlterSyncStateSetEvent", (short) 1),
     APPLY_BROKER_ID_EVENT("ApplyBrokerIdEvent", (short) 2),
-    ELECT_MASTER_EVENT("ElectMasterEvent", (short)3),
-    TRY_TO_BE_MASTER_EVENT("TryToBeMasterEvent", (short)4),
-    READ_EVENT("ReadEvent", (short)5);
-
-
+    ELECT_MASTER_EVENT("ElectMasterEvent", (short) 3),
+    TRY_TO_BE_MASTER_EVENT("TryToBeMasterEvent", (short) 4),
+    READ_EVENT("ReadEvent", (short) 5);
 
     private final String name;
     private final short id;

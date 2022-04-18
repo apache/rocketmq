@@ -8,10 +8,19 @@ package org.apache.rocketmq.namesrv.controller.event;
  * @date 2022/4/15 15:04
  */
 public class ElectMasterEvent implements EventMessage {
-    private String brokerName;
-    private String newMasterAddress;
+    // Mark whether a new master was elected.
+    private final boolean isNewMasterElected;
+    private final String brokerName;
+    private final String newMasterAddress;
+
+    public ElectMasterEvent(boolean isNewMasterElected) {
+        this.isNewMasterElected = isNewMasterElected;
+        this.brokerName = "";
+        this.newMasterAddress = "";
+    }
 
     public ElectMasterEvent(String brokerName, String newMasterAddress) {
+        this.isNewMasterElected = true;
         this.brokerName = brokerName;
         this.newMasterAddress = newMasterAddress;
     }
@@ -19,6 +28,10 @@ public class ElectMasterEvent implements EventMessage {
     @Override
     public EventType eventType() {
         return EventType.ELECT_MASTER_EVENT;
+    }
+
+    public boolean isNewMasterElected() {
+        return isNewMasterElected;
     }
 
     public String getBrokerName() {
