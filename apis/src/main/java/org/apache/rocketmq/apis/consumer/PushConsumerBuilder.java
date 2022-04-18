@@ -56,13 +56,6 @@ public interface PushConsumerBuilder {
     PushConsumerBuilder setMessageListener(MessageListener listener);
 
     /**
-     * Set the max batch size for {@link MessageListener}
-     * @param batchSize max batch size count by number of messages
-     * @return the consumer builder instance.
-     */
-    PushConsumerBuilder setMaxBatchSize(int batchSize);
-
-    /**
      * Set the maximum number of messages cached locally.
      *
      * @param count message count.

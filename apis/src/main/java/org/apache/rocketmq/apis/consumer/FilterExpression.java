@@ -23,8 +23,8 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class FilterExpression {
-    public static String TAG_EXPRESSION_SUB_ALL = "*";
-    public static String TAG_EXPRESSION_SPLITTER = "\\|\\|";
+    public static final String TAG_EXPRESSION_SUB_ALL = "*";
+    public static final String TAG_EXPRESSION_SPLITTER = "\\|\\|";
     private final String expression;
     private final FilterExpressionType filterExpressionType;
 
