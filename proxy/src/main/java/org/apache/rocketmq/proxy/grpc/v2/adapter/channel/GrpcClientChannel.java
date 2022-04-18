@@ -109,6 +109,12 @@ public class GrpcClientChannel extends SimpleChannel {
      * <p>
      * Case {@link RequestCode#CHECK_TRANSACTION_STATE}
      * @see org.apache.rocketmq.broker.client.net.Broker2Client#checkProducerTransactionState
+     * </p>
+     * <p>
+     * Case {@link RequestCode#GET_CONSUMER_RUNNING_INFO}
+     * @see org.apache.rocketmq.broker.processor.AdminBrokerProcessor
+     * getConsumerRunningInfo
+     * </p>
      */
     @Override
     public ChannelFuture writeAndFlush(Object msg) {

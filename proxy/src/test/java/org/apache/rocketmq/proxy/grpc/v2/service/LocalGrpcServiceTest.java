@@ -24,6 +24,7 @@ import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.ClientSettings;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.DeadLetterPolicy;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
@@ -47,6 +48,7 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
@@ -79,6 +81,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
+import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
@@ -148,7 +151,10 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
             }
         });
         streamObserver.onNext(TelemetryCommand.newBuilder()
-            .setClientSettings(ClientSettings.newBuilder().setSettings(Settings.getDefaultInstance()))
+            .setClientSettings(ClientSettings.newBuilder().setSettings(Settings.newBuilder()
+                .setSubscription(Subscription.newBuilder()
+                    .setDeadLetterPolicy(DeadLetterPolicy.newBuilder()
+                        .setMaxDeliveryAttempts(3).build()).build()).build()))
             .build());
     }
 
@@ -218,7 +224,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
             .build();
 
         CompletableFuture<SendMessageResponse> grpcFuture = localGrpcService.sendMessage(
-            Context.current().withValue(InterceptorConstants.METADATA, metadata).attach(), request);
+            Context.current(), request);
         SendMessageResponse r = grpcFuture.get();
         assertThat(r.getStatus().getCode())
             .isEqualTo(Code.INTERNAL_SERVER_ERROR);
@@ -237,7 +243,29 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
             .build();
 
         CompletableFuture<SendMessageResponse> grpcFuture = localGrpcService.sendMessage(
-            Context.current().withValue(InterceptorConstants.METADATA, metadata).attach(), request);
+            Context.current(), request);
+        assertThat(grpcFuture.isDone()).isFalse();
+    }
+
+    @Test
+    public void testSendMessageBatchWithWriteAndFlush() throws Exception {
+        Mockito.when(sendMessageProcessorMock.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
+            .thenReturn(null);
+        SendMessageRequest request = SendMessageRequest.newBuilder()
+            .addMessages(Message.newBuilder()
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId("123")
+                    .build())
+                .build())
+            .addMessages(Message.newBuilder()
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId("124")
+                    .build())
+                .build())
+            .build();
+
+        CompletableFuture<SendMessageResponse> grpcFuture = localGrpcService.sendMessage(
+            Context.current(), request);
         assertThat(grpcFuture.isDone()).isFalse();
     }
 
@@ -254,7 +282,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
             .build();
 
         CompletableFuture<SendMessageResponse> grpcFuture = localGrpcService.sendMessage(
-            Context.current().withValue(InterceptorConstants.METADATA, metadata).attach(), request);
+            Context.current(), request);
         assertThatThrownBy(() -> {
             try {
                 grpcFuture.get();
@@ -368,6 +396,38 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
                 .offset(0L)
                 .build().encode()
         ).build();
+        CompletableFuture<NackMessageResponse> grpcFuture = localGrpcService.nackMessage(
+            Context.current()
+                .withValue(InterceptorConstants.METADATA, metadata)
+                .attach(), request);
+        NackMessageResponse r = grpcFuture.get();
+        assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
+    }
+
+    @Test
+    public void testNackMessageWhenDLQ() throws Exception {
+        ConsumerSendMsgBackRequestHeader responseHeader = new ConsumerSendMsgBackRequestHeader();
+        RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, responseHeader);
+
+        SendMessageProcessor sendMessageProcessor = Mockito.mock(SendMessageProcessor.class);
+        Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessor);
+        Mockito.when(sendMessageProcessor.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
+            .thenReturn(response);
+        NackMessageRequest request = NackMessageRequest.newBuilder()
+            .setDeliveryAttempt(3)
+            .setReceiptHandle(
+                ReceiptHandle.builder()
+                    .startOffset(0L)
+                    .retrieveTime(0L)
+                    .invisibleTime(1000L)
+                    .nextVisibleTime(1000L)
+                    .reviveQueueId(0)
+                    .topicType("topic")
+                    .brokerName("brokerName")
+                    .queueId(0)
+                    .offset(0L)
+                    .build().encode()
+            ).build();
         CompletableFuture<NackMessageResponse> grpcFuture = localGrpcService.nackMessage(
             Context.current()
                 .withValue(InterceptorConstants.METADATA, metadata)
