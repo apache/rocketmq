@@ -18,13 +18,14 @@
 
 package org.apache.rocketmq.apis.consumer;
 
-public enum ConsumeStatus {
+public enum ConsumeResult {
     /**
      * Consume message success and need commit this message.
      */
     SUCCESS,
+
     /**
-     * Consume message failed and need reconsume later.
+     * Failed to consume the message, expecting potential delivery after configured backoff.
      */
     FAILURE
 }
