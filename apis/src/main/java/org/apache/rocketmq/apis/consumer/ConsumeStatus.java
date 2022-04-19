@@ -26,5 +26,5 @@ public enum ConsumeStatus {
     /**
      * Consume message failed and need reconsume later.
      */
-    FAILED
+    FAILURE
 }
