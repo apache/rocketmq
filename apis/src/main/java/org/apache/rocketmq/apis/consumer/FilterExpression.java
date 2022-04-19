@@ -30,7 +30,7 @@ public class FilterExpression {
 
     public FilterExpression(String expression, FilterExpressionType filterExpressionType) {
         this.expression = checkNotNull(expression, "expression should not be null");
-        this.filterExpressionType = checkNotNull(filterExpressionType, "filterExpressionType should not be null");;
+        this.filterExpressionType = checkNotNull(filterExpressionType, "filterExpressionType should not be null");
     }
 
     public String getExpression() {

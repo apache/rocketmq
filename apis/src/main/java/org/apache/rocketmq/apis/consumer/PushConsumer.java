@@ -17,12 +17,11 @@
 
 package org.apache.rocketmq.apis.consumer;
 
-import com.google.common.util.concurrent.Service;
+import org.apache.rocketmq.apis.exception.ClientException;
+
 import java.io.Closeable;
-import java.util.Collection;
 import java.util.Map;
 
-import org.apache.rocketmq.apis.exception.*;
 
 /**
  * PushConsumer is a thread-safe rocketmq client which is used to consume message by group.
@@ -91,7 +90,6 @@ public interface PushConsumer extends Closeable {
      *
      * <p>Once push consumer is closed, <strong>it could not be started once again.</strong> we maintained an FSM
      * (finite-state machine) to record the different states for each producer, which is similar to
-     * {@link Service.State}.
      */
     @Override
     void close();
