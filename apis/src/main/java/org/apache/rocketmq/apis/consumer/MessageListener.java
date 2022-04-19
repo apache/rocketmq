@@ -38,13 +38,14 @@ public interface MessageListener {
    * business requirements through processing <code>message</code> and return
    * <code>ConsumeResult</code> accordingly.
    *
-   * Push consumer will, on behalf of its group, acknowledge the message to
-   * broker on SUCCESS; In case of FAILURE returned or unexpected exceptions
+   * PushConsumer will, on behalf of its group, acknowledge the message to
+   * broker on success; In case of failure or unexpected exceptions
    * were raised, it will negatively acknowledge <code>message</code>, which
-   * would potentially get re-delivered after configured back off period.
+   * would potentially get re-delivered after the configured back off period.
    *
-   * @param messageView is message which need consume.
-   * @return ConsumeResult which defined in {@link ConsumeResult}
+   * @param message Message to process.
+   * @return {@link ConsumeResult#SUCCESS} if <code>message</code> is properly processed; {@link ConsumeResult#FAILURE}
+   *         otherwise.
    */
   ConsumeResult consume(MessageView message);
 }
