@@ -342,11 +342,11 @@ public class Producer {
         return options;
     }
 
-    public static Message buildMessage(final String topic) {
+    private static Message buildMessage(final String topic) {
         return new Message(topic, msgBody);
     }
 
-    public static void doPrintStats(final LinkedList<Long[]> snapshotList, final StatsBenchmarkProducer statsBenchmark, boolean done) {
+    private static void doPrintStats(final LinkedList<Long[]> snapshotList, final StatsBenchmarkProducer statsBenchmark, boolean done) {
         Long[] begin = snapshotList.getFirst();
         Long[] end = snapshotList.getLast();
 
