@@ -564,6 +564,7 @@ public class HAService {
                         boolean ok = this.processReadEvent();
                         if (!ok) {
                             this.closeMaster();
+                            continue;
                         }
 
                         if (!reportSlaveMaxOffsetPlus()) {
