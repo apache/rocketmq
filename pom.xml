@@ -455,6 +455,7 @@
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-proto</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
+                <classifier>compatible</classifier>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>

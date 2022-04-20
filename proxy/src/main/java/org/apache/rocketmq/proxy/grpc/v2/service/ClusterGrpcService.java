@@ -31,12 +31,8 @@ import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
-import apache.rocketmq.v2.PullMessageRequest;
-import apache.rocketmq.v2.PullMessageResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
-import apache.rocketmq.v2.QueryOffsetRequest;
-import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
@@ -54,15 +50,14 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
-import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ConsumerService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ForwardClientService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ProducerService;
-import org.apache.rocketmq.proxy.grpc.v2.service.cluster.PullMessageService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.RouteService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.TransactionService;
 import org.slf4j.Logger;
@@ -81,7 +76,6 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     private final ConsumerService consumerService;
     private final RouteService routeService;
     private final ForwardClientService clientService;
-    private final PullMessageService pullMessageService;
     private final TransactionService transactionService;
     private final TelemetryCommandManager pollCommandResponseManager;
     private final GrpcClientManager grpcClientManager;
@@ -96,7 +90,6 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         this.routeService = new RouteService(ProxyMode.CLUSTER, connectorManager, grpcClientManager);
         this.clientService = new ForwardClientService(connectorManager, scheduledExecutorService,
             channelManager, grpcClientManager, pollCommandResponseManager);
-        this.pullMessageService = new PullMessageService(connectorManager);
         this.transactionService = new TransactionService(connectorManager, channelManager);
 
         this.appendStartAndShutdown(new ClusterGrpcServiceStartAndShutdown());
@@ -147,16 +140,6 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     @Override
     public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
         return transactionService.endTransaction(ctx, request);
-    }
-
-    @Override
-    public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
-        return pullMessageService.queryOffset(ctx, request);
-    }
-
-    @Override
-    public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
-        return pullMessageService.pullMessage(ctx, request);
     }
 
     @Override
