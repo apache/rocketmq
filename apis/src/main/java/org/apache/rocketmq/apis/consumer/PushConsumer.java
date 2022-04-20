@@ -24,25 +24,24 @@ import java.util.Map;
 
 
 /**
- * PushConsumer is a thread-safe rocketmq client which is used to consume message by group.
+ * PushConsumer is a managed client which delivers messages to application through {@link MessageListener}.
  *
- * <p>Push consumer is fully-managed consumer, if you are confused to choose your consumer, push consumer should be
- * your first consideration.
+ * <p>Consumers of the same group are designed to share messages from broker servers. As a result, consumers of the same
+ * group must have <strong>exactly identical subscription expressions</strong>, otherwise the behavior is undefined.
  *
- * <p>Consumers belong to the same consumer group share messages from server,
- * so consumer in the same group must have the same subscriptionExpressions, otherwise the behavior is
- * undefined. If a new consumer group's consumer is started first time, it consumes from the latest position. Once
- * consumer is started, server records its consumption progress and derives it in subsequent startup.
+ * <p>For a brand-new group, consumers consume messages from head of underlying queues, ignoring existing messages
+ * completely. In addition to delivering messages to clients, broker servers also maintain progress in perspective of
+ * group. Thus, consumers can safely restart and resume their progress automatically.</p>
  *
- * <p>You may intend to maintain different consumption progress for different consumer, different consumer group
- * should be set in this case.
+ * <p>There are scenarios where <a href="https://en.wikipedia.org/wiki/Fan-out_(software)">fan-out</a> is preferred,
+ * recommended solution is to use dedicated group of each client.
  *
- * <p>To accelerate the message consumption, push consumer applies
- * <a href="https://en.wikipedia.org/wiki/Reactive_Streams">reactive streams</a>
- * . Messages received from server is cached locally before consumption,
+ * <p>To mitigate latency, PushConsumer adopts
+ * <a href="https://en.wikipedia.org/wiki/Reactive_Streams">reactive streams</a> pattern. Namely,
+ * messages received from broker servers are first cached locally, amount of which is controlled by
  * {@link PushConsumerBuilder#setMaxCacheMessageCount(int)} and
- * {@link PushConsumerBuilder#setMaxCacheMessageSizeInBytes(int)} could be used to set the cache threshold in
- * different dimension.
+ * {@link PushConsumerBuilder#setMaxCacheMessageSizeInBytes(int)}, and then dispatched to thread pool to achieve
+ * desirable concurrency.
  */
 public interface PushConsumer extends Closeable {
     /**

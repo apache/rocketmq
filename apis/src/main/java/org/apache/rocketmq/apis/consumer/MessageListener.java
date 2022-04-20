@@ -28,6 +28,11 @@ import org.apache.rocketmq.apis.message.MessageView;
  * desirable processing concurrency.
  *
  * <p>Refer to {@link PushConsumer} for more further specs.
+ *
+ * <p>
+ *     <strong>Thread Safety</strong>
+ *     This class may be called concurrently by multiple threads. Implementation should be thread safe.
+ * </p>
  */
 public interface MessageListener {
 
@@ -43,9 +48,9 @@ public interface MessageListener {
    * were raised, it will negatively acknowledge <code>message</code>, which
    * would potentially get re-delivered after the configured back off period.
    *
-   * @param message Message to process.
+   * @param message The message passed to the listener.
    * @return {@link ConsumeResult#SUCCESS} if <code>message</code> is properly processed; {@link ConsumeResult#FAILURE}
    *         otherwise.
    */
-  ConsumeResult consume(MessageView message);
+  ConsumeResult onMessage(MessageView message);
 }
