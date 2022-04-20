@@ -38,7 +38,12 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.security.cert.CertificateException;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -156,7 +161,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     return new Thread(r, "NettyClientWorkerThread_" + this.threadIndex.incrementAndGet());
                 }
             });
-        final ConcurrentMap<Integer, ResponseFuture> responseTable = super.responseTable;
+
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)
             .option(ChannelOption.SO_KEEPALIVE, false)
@@ -178,7 +183,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         new NettyEncoder(),
                         new NettyDecoder(),
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
-                        new NettyConnectManageHandler(responseTable),
+                        new NettyConnectManageHandler(),
                         new NettyClientHandler());
                 }
             });
@@ -636,15 +641,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     class NettyConnectManageHandler extends ChannelDuplexHandler {
-        private ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable;
-
-        public NettyConnectManageHandler() {
-        }
-
-        public NettyConnectManageHandler(ConcurrentMap<Integer, ResponseFuture> responseTable) {
-            this.responseTable = responseTable;
-        }
-
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,
             ChannelPromise promise) throws Exception {
@@ -714,22 +710,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-            Channel channel = ctx.channel();
-            if (null == channel) {
-                return;
-            }
-            if (responseTable != null) {
-                Iterator<Map.Entry<Integer, ResponseFuture>> it = responseTable.entrySet().iterator();
-                while (it.hasNext()) {
-                    Map.Entry<Integer, ResponseFuture> entry = it.next();
-                    if (channel == entry.getValue().getProcessChannel()) {
-                        final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                        log.warn("NETTY CLIENT PIPELINE: channelInactive, so wakeup response, the channel[{}]", remoteAddress);
-                        entry.getValue().wakeupResponse();
-                    }
-                }
-            }
-            super.channelInactive(ctx);
+            NettyRemotingClient.this.wakeup(ctx.channel());
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            log.warn("NETTY CLIENT PIPELINE: channelInactive, so wakeup client's waiting, the channel[{}]", remoteAddress);
+            super.channelInactive(ctx);           
         }
     }
 }
