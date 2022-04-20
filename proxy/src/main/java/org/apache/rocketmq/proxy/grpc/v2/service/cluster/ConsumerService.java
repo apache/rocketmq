@@ -16,8 +16,10 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
+import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.AckMessageResultEntry;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
@@ -26,7 +28,6 @@ import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
-import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,8 +131,8 @@ public class ConsumerService extends BaseService {
 
     protected PopMessageRequestHeader buildPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
         checkSubscriptionData(request.getMessageQueue().getTopic(), request.getFilterExpression());
-        boolean isFifo = grpcClientManager.getClientSettings(ctx).getSettings().getSubscription().getFifo();
-        return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), isFifo);
+        // TODO: get fifo config from subscriptionGroupManager
+        return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), false);
     }
 
     protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request, PopResult result) {
@@ -209,40 +210,70 @@ public class ConsumerService extends BaseService {
         });
 
         try {
-            ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
-            String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
-
-            AckMessageRequestHeader requestHeader = this.buildAckMessageRequestHeader(ctx, request);
-            CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(brokerAddr, requestHeader);
-            ackResultFuture
-                .thenAccept(result -> {
-                    try {
-                        future.complete(convertToAckMessageResponse(ctx, request, result));
-                    } catch (Throwable throwable) {
-                        future.completeExceptionally(throwable);
-                    }
-                })
-                .exceptionally(throwable -> {
+            CompletableFuture<AckMessageResultEntry>[] futures = new CompletableFuture[request.getEntriesCount()];
+            for (int i = 0; i < request.getEntriesCount(); i++) {
+                futures[i] = processAckMessage(ctx, request, request.getEntries(i));
+            }
+            CompletableFuture.allOf(futures).whenComplete((val, throwable) -> {
+                if (throwable != null) {
                     future.completeExceptionally(throwable);
-                    return null;
-                });
+                    return;
+                }
+                List<AckMessageResultEntry> entryList = new ArrayList<>();
+                for (CompletableFuture<AckMessageResultEntry> entryFuture : futures) {
+                    entryFuture.thenAccept(entryList::add);
+                }
+                AckMessageResponse.Builder responseBuilder = AckMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                    .addAllEntries(entryList);
+                future.complete(responseBuilder.build());
+            });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
         return future;
     }
 
-    protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, AckMessageRequest request) {
-        return GrpcConverter.buildAckMessageRequestHeader(request);
+    protected CompletableFuture<AckMessageResultEntry> processAckMessage(Context ctx, AckMessageRequest request, AckMessageEntry ackMessageEntry) {
+        CompletableFuture<AckMessageResultEntry> future = new CompletableFuture<>();
+        AckMessageResultEntry.Builder failResult = AckMessageResultEntry.newBuilder()
+            .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "ack message failed"))
+            .setMessageId(ackMessageEntry.getMessageId())
+            .setReceiptHandle(ackMessageEntry.getReceiptHandle());
+
+        try {
+            ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, ackMessageEntry.getReceiptHandle());
+            String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
+
+            AckMessageRequestHeader requestHeader = this.buildAckMessageRequestHeader(ctx, request, receiptHandle);
+            CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(brokerAddr, requestHeader);
+            ackResultFuture
+                .thenAccept(result -> future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result)))
+                .exceptionally(throwable -> {
+                    future.complete(failResult.setStatus(ResponseBuilder.buildStatus(throwable)).build());
+                    return null;
+                });
+        } catch (Throwable t) {
+            future.complete(failResult.setStatus(ResponseBuilder.buildStatus(t)).build());
+        }
+        return future;
     }
 
-    protected AckMessageResponse convertToAckMessageResponse(Context ctx, AckMessageRequest request, AckResult ackResult) {
+    protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, AckMessageRequest request, ReceiptHandle handle) {
+        return GrpcConverter.buildAckMessageRequestHeader(request, handle);
+    }
+
+    protected AckMessageResultEntry convertToAckMessageResultEntry(Context ctx, AckMessageEntry ackMessageEntry, AckResult ackResult) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
-            return AckMessageResponse.newBuilder()
+            return AckMessageResultEntry.newBuilder()
+                .setMessageId(ackMessageEntry.getMessageId())
+                .setReceiptHandle(ackMessageEntry.getReceiptHandle())
                 .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
                 .build();
         }
-        return AckMessageResponse.newBuilder()
+        return AckMessageResultEntry.newBuilder()
+            .setMessageId(ackMessageEntry.getMessageId())
+            .setReceiptHandle(ackMessageEntry.getReceiptHandle())
             .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "ack failed: status is abnormal"))
             .build();
     }
@@ -258,8 +289,7 @@ public class ConsumerService extends BaseService {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
-            Settings settings = grpcClientManager.getClientSettings(ctx).getSettings();
-            int maxDeliveryAttempts = settings.getSubscription().getDeadLetterPolicy().getMaxDeliveryAttempts();
+            int maxDeliveryAttempts = ConfigurationManager.getProxyConfig().getDefaultMaxDeliveryAttempts();
             if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
                 CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
                     brokerAddr,

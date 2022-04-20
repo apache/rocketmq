@@ -19,9 +19,22 @@ package org.apache.rocketmq.proxy.grpc.v2.adapter;
 
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 
 public class ResponseBuilder {
+
+    public static Status buildStatus(Throwable t) {
+        if (t instanceof CompletionException) {
+            t = t.getCause();
+        }
+        if (t instanceof ProxyException) {
+            ProxyException proxyException = (ProxyException) t.getCause();
+            return ResponseBuilder.buildStatus(proxyException.getCode(), proxyException.getMessage());
+        }
+        return ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "internal error");
+    }
+
     public static Status buildStatus(Code code, String message) {
         return Status.newBuilder()
             .setCode(code)

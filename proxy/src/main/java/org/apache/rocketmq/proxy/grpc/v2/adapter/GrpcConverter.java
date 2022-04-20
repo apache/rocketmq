@@ -18,14 +18,15 @@
 package org.apache.rocketmq.proxy.grpc.v2.adapter;
 
 import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.ApplyPassiveSettingsCommand;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
-import apache.rocketmq.v2.ClientSettings;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Digest;
 import apache.rocketmq.v2.DigestType;
 import apache.rocketmq.v2.Encoding;
 import apache.rocketmq.v2.EndTransactionRequest;
+import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
@@ -35,7 +36,8 @@ import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
-import apache.rocketmq.v2.PullMessageRequest;
+import apache.rocketmq.v2.PassivePublishingSettings;
+import apache.rocketmq.v2.PassiveSubscriptionSettings;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -78,7 +80,6 @@ import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHead
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
@@ -86,12 +87,13 @@ import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
+import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,13 +105,13 @@ public class GrpcConverter {
     }
 
     public static HeartbeatData buildHeartbeatData(String clientId, HeartbeatRequest request,
-        ClientSettings clientSettings) {
+        GrpcClientManager.ActiveClientSettings clientSettings) {
         HeartbeatData heartbeatData = new HeartbeatData();
         heartbeatData.setClientID(clientId);
         switch (clientSettings.getClientType()) {
             case PRODUCER: {
                 Set<org.apache.rocketmq.common.protocol.heartbeat.ProducerData> producerDataSet = new HashSet<>();
-                for (Resource topic : clientSettings.getSettings().getPublishing().getTopicsList()) {
+                for (Resource topic : clientSettings.getActivePublishingSettings().getPublishingTopicsList()) {
                     String topicName = wrapResourceWithNamespace(topic);
                     producerDataSet.add(buildProducerData(topicName));
                 }
@@ -137,7 +139,7 @@ public class GrpcConverter {
     }
 
     public static org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData(String groupName,
-        ClientSettings clientSettings) {
+        GrpcClientManager.ActiveClientSettings clientSettings) {
         org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData = new org.apache.rocketmq.common.protocol.heartbeat.ConsumerData();
         buildConsumerData.setGroupName(groupName);
         buildConsumerData.setConsumeType(buildConsumeType(clientSettings.getClientType()));
@@ -145,9 +147,7 @@ public class GrpcConverter {
         buildConsumerData.setMessageModel(MessageModel.CLUSTERING);
         buildConsumerData.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         Set<SubscriptionData> subscriptionDataSet =
-            buildSubscriptionDataSet(clientSettings.getSettings()
-                .getSubscription()
-                .getSubscriptionsList());
+            buildSubscriptionDataSet(clientSettings.getActiveSubscriptionSettings().getSubscriptionsList());
         buildConsumerData.setSubscriptionDataSet(subscriptionDataSet);
         return buildConsumerData;
     }
@@ -241,10 +241,9 @@ public class GrpcConverter {
         return requestHeader;
     }
 
-    public static AckMessageRequestHeader buildAckMessageRequestHeader(AckMessageRequest request) {
+    public static AckMessageRequestHeader buildAckMessageRequestHeader(AckMessageRequest request, ReceiptHandle handle) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
-        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
 
         AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
         ackMessageRequestHeader.setConsumerGroup(groupName);
@@ -358,32 +357,6 @@ public class GrpcConverter {
         endTransactionRequestHeader.setFromTransactionCheck(fromTransactionCheck);
 
         return endTransactionRequestHeader;
-    }
-
-    public static PullMessageRequestHeader buildPullMessageRequestHeader(PullMessageRequest request,
-        long pollTimeoutInMillis) {
-        MessageQueue messageQueue = request.getMessageQueue();
-        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-        String topicName = GrpcConverter.wrapResourceWithNamespace(messageQueue.getTopic());
-
-        int queueId = messageQueue.getId();
-        int sysFlag = PullSysFlag.buildSysFlag(false, true, true, false, false);
-        String expression = request.getFilterExpression().getExpression();
-        String expressionType = GrpcConverter.buildExpressionType(request.getFilterExpression().getType());
-
-        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-        requestHeader.setConsumerGroup(groupName);
-        requestHeader.setTopic(topicName);
-        requestHeader.setQueueId(queueId);
-        requestHeader.setQueueOffset(request.getOffset());
-        requestHeader.setMaxMsgNums(request.getBatchSize());
-        requestHeader.setSysFlag(sysFlag);
-        requestHeader.setCommitOffset(0L);
-        requestHeader.setSuspendTimeoutMillis(pollTimeoutInMillis);
-        requestHeader.setSubscription(expression);
-        requestHeader.setSubVersion(0L);
-        requestHeader.setExpressionType(expressionType);
-        return requestHeader;
     }
 
     public static UnregisterClientRequestHeader buildUnregisterClientRequestHeader(String clientId,
@@ -532,6 +505,30 @@ public class GrpcConverter {
             .putAllUserProperties(userProperties)
             .setSystemProperties(systemProperties)
             .setBody(ByteString.copyFrom(messageExt.getBody()))
+            .build();
+    }
+
+    public static ApplyPassiveSettingsCommand buildDefaultPublishingSettings(String nonce, Endpoints traceEndpoint) {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        return ApplyPassiveSettingsCommand.newBuilder()
+            .setNonce(nonce)
+            .setTraceAccessPoint(traceEndpoint)
+            .setPassivePublishingSettings(PassivePublishingSettings.newBuilder()
+                .setMaxMessageBodyBytes(proxyConfig.getMaxMessageBodyBytes())
+                .setMessageBodyCompressionBytesThreshold(proxyConfig.getDefaultMessageBodyCompressionBytesThreshold())
+                .setOrphanedTransactionRecoveryDuration(Durations.fromSeconds(proxyConfig.getDefaultTransactionRecoverySecond()))
+                .build())
+            .build();
+    }
+
+    public static ApplyPassiveSettingsCommand buildDefaultSubscriptionSettings(String nonce, Endpoints traceEndpoint) {
+        // TODO: read config from subscriptionGroupManager
+        return ApplyPassiveSettingsCommand.newBuilder()
+            .setNonce(nonce)
+            .setTraceAccessPoint(traceEndpoint)
+            .setPassiveSubscriptionSettings(PassiveSubscriptionSettings.newBuilder()
+                .setFifo(false)
+                .build())
             .build();
     }
 

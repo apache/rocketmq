@@ -98,6 +98,7 @@ import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
@@ -128,6 +129,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     private final TelemetryCommandManager telemetryCommandManager;
     private final GrpcClientManager grpcClientManager;
     private final RouteService routeService;
+    private final ReportActiveSettingsService reportActiveSettingsService;
     private final DelayPolicy delayPolicy;
 
     public LocalGrpcService(BrokerController brokerController) {
@@ -147,6 +149,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         this.telemetryCommandManager = telemetryCommandManager;
         this.grpcClientManager = new GrpcClientManager();
         this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager, grpcClientManager);
+        this.reportActiveSettingsService = new ReportActiveSettingsService(this.channelManager, this.grpcClientManager, this.telemetryCommandManager);
         this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
 
         this.brokerController.getConsumerManager().appendConsumerIdsChangeListener(new ConsumerIdsChangeListenerImpl());
@@ -167,7 +170,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
         languageCode = LanguageCode.valueOf(language);
 
-        ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+        GrpcClientManager.ActiveClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
         HeartbeatData heartbeatData = GrpcConverter.buildHeartbeatData(clientId, request, clientSettings);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         command.setLanguage(languageCode);
@@ -178,7 +181,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
         switch (clientSettings.getClientType()) {
             case PRODUCER: {
-                for (Resource topic : clientSettings.getSettings().getPublishing().getTopicsList()) {
+                for (Resource topic : clientSettings.getActivePublishingSettings().getPublishingTopicsList()) {
                     String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                     GrpcClientChannel channel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
                     SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
@@ -266,14 +269,14 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         long pollTime = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
         String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
-        ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
-        PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime,
-            clientSettings.getSettings().getSubscription().getFifo());
+        // TODO: get fifo config from subscriptionGroupManager
+        boolean fifo = false;
+        PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime, fifo);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
 
         ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(brokerController.getBrokerConfig().getBrokerName(),
-            clientSettings.getSettings().getSubscription().getFifo());
+            fifo);
         ReceiveMessageChannel channel = channelManager.createChannel(() -> new ReceiveMessageChannel(handler), ReceiveMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
@@ -322,8 +325,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
 
-        ClientSettings clientSettings = grpcClientManager.getClientSettings(ctx);
-        int maxReconsumeTimes = clientSettings.getSettings().getSubscription().getDeadLetterPolicy().getMaxDeliveryAttempts();
+        int maxReconsumeTimes = ConfigurationManager.getProxyConfig().getDefaultMaxDeliveryAttempts();
         if (request.getDeliveryAttempt() >= maxReconsumeTimes) {
             ConsumerSendMsgBackRequestHeader requestHeader = GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
             RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
@@ -414,56 +416,6 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         return future;
     }
 
-    @Override
-    public CompletableFuture<QueryOffsetResponse> queryOffset(Context ctx, QueryOffsetRequest request) {
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
-        int queueId = request.getMessageQueue().getId();
-
-        long offset;
-        if (request.getPolicy() == QueryOffsetPolicy.BEGINNING) {
-            offset = 0L;
-        } else if (request.getPolicy() == QueryOffsetPolicy.END) {
-            offset = brokerController.getMessageStore()
-                .getMaxOffsetInQueue(topicName, queueId);
-        } else {
-            long timestamp = Timestamps.toMillis(request.getTimePoint());
-            offset = brokerController.getMessageStore()
-                .getOffsetInQueueByTime(topicName, queueId, timestamp);
-        }
-        return CompletableFuture.completedFuture(QueryOffsetResponse.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(Code.OK, "ok"))
-            .setOffset(offset)
-            .build());
-    }
-
-    @Override
-    public CompletableFuture<PullMessageResponse> pullMessage(Context ctx, PullMessageRequest request) {
-        long pollTime = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
-        PullMessageRequestHeader requestHeader = GrpcConverter.buildPullMessageRequestHeader(request, pollTime);
-        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
-        command.makeCustomHeaderToNet();
-
-        PullMessageResponseHandler handler = new PullMessageResponseHandler();
-        PullMessageChannel channel = channelManager.createChannel(() -> new PullMessageChannel(handler), PullMessageChannel.class);
-        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
-        CompletableFuture<PullMessageResponse> future = new CompletableFuture<>();
-        InvocationContext<PullMessageRequest, PullMessageResponse> context = new InvocationContext<>(request, future);
-        channel.registerInvocationContext(command.getOpaque(), context);
-        try {
-            RemotingCommand response = brokerController.getPullMessageProcessor()
-                .processRequest(channelHandlerContext, command);
-            if (response != null) {
-                handler.handle(response, context);
-                channel.eraseInvocationContext(command.getOpaque());
-            }
-        } catch (Exception e) {
-            log.error("Failed to process pull message command", e);
-            channel.eraseInvocationContext(command.getOpaque());
-            future.completeExceptionally(e);
-        }
-        return future;
-    }
-
     public void reportThreadStackTrace(ThreadStackTrace request) {
         String nonce = request.getNonce();
         String threadStack = request.getThreadStackTrace();
@@ -510,7 +462,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
         String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
-        ClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+        GrpcClientManager.ActiveClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
         UnregisterClientRequestHeader header = GrpcConverter.buildUnregisterClientRequestHeader(clientId, clientSettings.getClientType(), request);
 
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, header);
@@ -569,31 +521,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             @Override
             public void onNext(TelemetryCommand request) {
                 switch (request.getCommandCase()) {
-                    case CLIENT_SETTINGS: {
-                        ClientSettings clientSettings = request.getClientSettings();
-                        grpcClientManager.updateClientSettings(clientId, clientSettings);
-                        Settings settings = clientSettings.getSettings();
-                        if (settings.hasPublishing()) {
-                            Publishing publishing = settings.getPublishing();
-                            for (Resource topic : publishing.getTopicsList()) {
-                                String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-                                GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
-                                producerChannel.setClientObserver(responseObserver);
-                            }
-                        }
-                        if (settings.hasSubscription()) {
-                            Subscription subscription = settings.getSubscription();
-                            String groupName = GrpcConverter.wrapResourceWithNamespace(subscription.getGroup());
-                            GrpcClientChannel consumerChannel = GrpcClientChannel.create(channelManager, groupName, clientId, telemetryCommandManager);
-                            consumerChannel.setClientObserver(responseObserver);
-                        }
-                        responseObserver.onNext(TelemetryCommand.newBuilder()
-                            .setClientOverwrittenSettings(ClientOverwrittenSettings.newBuilder()
-                                .setNonce(clientSettings.getNonce())
-                                .setDirection(Direction.RESPONSE)
-                                .setSettings(settings)
-                                .build())
-                            .build());
+                    case REPORT_ACTIVE_SETTINGS_COMMAND: {
+                        responseObserver.onNext(reportActiveSettingsService.processReportActiveSettingsCommand(ctx, request, responseObserver));
                         break;
                     }
                     case THREAD_STACK_TRACE: {
