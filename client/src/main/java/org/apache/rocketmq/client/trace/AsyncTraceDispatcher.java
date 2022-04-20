@@ -322,7 +322,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             initFirstBeanAddTime();
             this.traceTransferBeanList.add(traceTransferBean);
             this.currentMsgSize += traceTransferBean.getTransData().length();
-            if (currentMsgSize >= maxMsgSize) {
+            if (currentMsgSize >= traceProducer.getMaxMessageSize()) {
                 List<TraceTransferBean> dataToSend = new ArrayList(traceTransferBeanList);
                 AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(regionId, dataToSend);
                 traceExecutor.submit(asyncDataSendTask);
