@@ -17,16 +17,16 @@
 
 package org.apache.rocketmq.test.grpc.v2;
 
+import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.ActivePublishingSettings;
+import apache.rocketmq.v2.ActiveSubscriptionSettings;
 import apache.rocketmq.v2.Address;
 import apache.rocketmq.v2.AddressScheme;
-import apache.rocketmq.v2.Broker;
-import apache.rocketmq.v2.ClientOverwrittenSettings;
-import apache.rocketmq.v2.ClientSettings;
+import apache.rocketmq.v2.ApplyPassiveSettingsCommand;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
-import apache.rocketmq.v2.DeadLetterPolicy;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.Endpoints;
@@ -37,24 +37,17 @@ import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.MessagingServiceGrpc;
 import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NackMessageResponse;
-import apache.rocketmq.v2.Publishing;
-import apache.rocketmq.v2.PullMessageRequest;
-import apache.rocketmq.v2.PullMessageResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
-import apache.rocketmq.v2.QueryOffsetPolicy;
-import apache.rocketmq.v2.QueryOffsetRequest;
-import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
+import apache.rocketmq.v2.ReportActiveSettingsCommand;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
-import apache.rocketmq.v2.Settings;
-import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.TransactionResolution;
@@ -80,7 +73,9 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.io.IOException;
 import java.net.URL;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -101,7 +96,6 @@ import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.junit.Rule;
-import org.junit.Test;
 
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
@@ -137,6 +131,7 @@ public class GrpcBaseTest extends BaseConf {
         ConfigurationManager.intConfig();
         ConfigurationManager.getProxyConfig().setGrpcServerPort(PORT);
         ConfigurationManager.getProxyConfig().setNameSrvAddr(nsAddr);
+        ConfigurationManager.getProxyConfig().setDefaultMaxDeliveryAttempts(2);
 
         blockingStub = createBlockingStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
         stub = createStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
@@ -152,19 +147,20 @@ public class GrpcBaseTest extends BaseConf {
         return MetadataUtils.attachHeaders(stub, header);
     }
 
-    protected CompletableFuture<ClientOverwrittenSettings> sendClientSettings(MessagingServiceGrpc.MessagingServiceStub stub, ClientSettings clientSettings) {
-        CompletableFuture<ClientOverwrittenSettings> future = new CompletableFuture<>();
+    protected CompletableFuture<ApplyPassiveSettingsCommand> sendClientSettings(MessagingServiceGrpc.MessagingServiceStub stub,
+        ReportActiveSettingsCommand clientSettings) {
+        CompletableFuture<ApplyPassiveSettingsCommand> future = new CompletableFuture<>();
         StreamObserver<TelemetryCommand> requestStreamObserver = stub.telemetry(new DefaultTelemetryCommandStreamObserver() {
             @Override
             public void onNext(TelemetryCommand value) {
                 TelemetryCommand.CommandCase commandCase = value.getCommandCase();
-                if (TelemetryCommand.CommandCase.CLIENT_OVERWRITTEN_SETTINGS.equals(commandCase)) {
-                    future.complete(value.getClientOverwrittenSettings());
+                if (TelemetryCommand.CommandCase.APPLY_PASSIVE_SETTINGS_COMMAND.equals(commandCase)) {
+                    future.complete(value.getApplyPassiveSettingsCommand());
                 }
             }
         });
         requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-            .setClientSettings(clientSettings)
+            .setReportActiveSettingsCommand(clientSettings)
             .build());
         requestStreamObserver.onCompleted();
         return future;
@@ -207,7 +203,7 @@ public class GrpcBaseTest extends BaseConf {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = "group";
 
-        this.sendClientSettings(stub, ClientSettings.newBuilder()
+        this.sendClientSettings(stub, ReportActiveSettingsCommand.newBuilder()
             .setNonce(UUID.randomUUID().toString())
             .setClientType(ClientType.PRODUCER)
             .build())
@@ -222,19 +218,16 @@ public class GrpcBaseTest extends BaseConf {
 
         this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
 
-        ReceiveMessageResponse response = receiveMessage(blockingStub, topic, group);
+        ReceiveMessageResponse response = receiveMessage(blockingStub, topic, group).get(0);
         assertReceiveMessage(response, messageId);
         String receiptHandle = response.getMessages(0).getSystemProperties().getReceiptHandle();
-        AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(group, topic, receiptHandle));
+        AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(group, topic, messageId, receiptHandle));
         assertAck(ackMessageResponse);
     }
 
     public void testSendReceiveMessageThenToDLQ() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
-        this.sendClientSettings(stub, ClientSettings.newBuilder()
-            .setNonce(UUID.randomUUID().toString())
-            .setClientType(ClientType.PRODUCER)
-            .build())
+        this.sendClientSettings(stub, buildProducerClientSettings(topic))
             .get();
 
         String group = "group";
@@ -248,7 +241,7 @@ public class GrpcBaseTest extends BaseConf {
 
         this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
 
-        ReceiveMessageResponse receiveResponse = receiveMessage(blockingStub, topic, group);
+        ReceiveMessageResponse receiveResponse = receiveMessage(blockingStub, topic, group).get(0);
         assertReceiveMessage(receiveResponse, messageId);
 
         Message message = receiveResponse.getMessages(0);
@@ -259,7 +252,7 @@ public class GrpcBaseTest extends BaseConf {
 
         AtomicReference<ReceiveMessageResponse> receiveRetryResponseRef = new AtomicReference<>();
         await().atMost(java.time.Duration.ofSeconds(30)).until(() -> {
-            ReceiveMessageResponse receiveRetryResponse = receiveMessage(blockingStub, topic, group, 1);
+            ReceiveMessageResponse receiveRetryResponse = receiveMessage(blockingStub, topic, group, 1).get(0);
             if (receiveRetryResponse.getMessagesCount() <= 0) {
                 return false;
             }
@@ -291,7 +284,6 @@ public class GrpcBaseTest extends BaseConf {
         });
     }
 
-    @Test
     public void testTransactionCheckThenCommit() {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = "group";
@@ -306,13 +298,13 @@ public class GrpcBaseTest extends BaseConf {
 
         try {
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setClientSettings(buildPushConsumerClientSettings())
+                .setReportActiveSettingsCommand(buildPushConsumerClientSettings())
                 .build());
             await().atMost(java.time.Duration.ofSeconds(3)).until(() -> {
                 if (telemetryCommandRef.get() == null) {
                     return false;
                 }
-                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.CLIENT_OVERWRITTEN_SETTINGS) {
+                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.APPLY_PASSIVE_SETTINGS_COMMAND) {
                     return false;
                 }
                 return telemetryCommandRef.get() != null;
@@ -322,7 +314,7 @@ public class GrpcBaseTest extends BaseConf {
             receiveMessage(blockingStub, topic, group);
 
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setClientSettings(buildProducerClientSettings(topic))
+                .setReportActiveSettingsCommand(buildProducerClientSettings(topic))
                 .build());
             blockingStub.heartbeat(HeartbeatRequest.newBuilder()
                 .setGroup(Resource.newBuilder()
@@ -333,7 +325,7 @@ public class GrpcBaseTest extends BaseConf {
                 if (telemetryCommandRef.get() == null) {
                     return false;
                 }
-                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.CLIENT_OVERWRITTEN_SETTINGS) {
+                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.APPLY_PASSIVE_SETTINGS_COMMAND) {
                     return false;
                 }
                 return telemetryCommandRef.get() != null;
@@ -361,11 +353,11 @@ public class GrpcBaseTest extends BaseConf {
             assertEndTransactionResponse(endTransactionResponse);
 
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setClientSettings(buildPushConsumerClientSettings())
+                .setReportActiveSettingsCommand(buildPushConsumerClientSettings())
                 .build());
 
             await().atMost(java.time.Duration.ofSeconds(30)).until(() -> {
-                ReceiveMessageResponse receiveRetryResponse = receiveMessage(blockingStub, topic, group);
+                ReceiveMessageResponse receiveRetryResponse = receiveMessage(blockingStub, topic, group).get(0);
                 if (receiveRetryResponse.getMessagesCount() <= 0) {
                     return false;
                 }
@@ -377,40 +369,24 @@ public class GrpcBaseTest extends BaseConf {
         }
     }
 
-    public void testPullMessage() throws Exception {
-        String topic = initTopicOnSampleTopicBroker(broker1Name);
-        String group = "group";
-        String messageId = createUniqID();
-
-        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
-        assertSendMessage(blockingStub.sendMessage(buildSendMessageRequest(topic, messageId)), messageId);
-
-        this.sendClientSettings(stub, buildPullConsumerClientSettings()).get();
-
-        QueryOffsetResponse queryOffsetResponse = blockingStub.queryOffset(buildQueryOffsetRequest(broker1Name, topic, QueryOffsetPolicy.BEGINNING));
-        assertQueryOffsetResponse(queryOffsetResponse, 0L);
-
-        queryOffsetResponse = blockingStub.queryOffset(buildQueryOffsetRequest(broker1Name, topic, QueryOffsetPolicy.END));
-        assertQueryOffsetResponse(queryOffsetResponse, 1L);
-
-        await().atMost(java.time.Duration.ofSeconds(10)).until(() -> {
-            PullMessageResponse response = blockingStub.withDeadlineAfter(20, TimeUnit.SECONDS)
-                .pullMessage(buildPullMessageRequest(broker1Name, group, topic, 0L));
-            if (response.getMessagesCount() <= 0) {
-                return false;
-            }
-            return response.getMessages(0).getSystemProperties().getMessageId().equals(messageId);
-        });
+    public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group) {
+        List<ReceiveMessageResponse> responseList = new ArrayList<>();
+        Iterator<ReceiveMessageResponse> responseIterator = stub.withDeadlineAfter(15, TimeUnit.SECONDS)
+            .receiveMessage(buildReceiveMessageRequest(group, topic));
+        while (responseIterator.hasNext()) {
+            responseList.add(responseIterator.next());
+        }
+        return responseList;
     }
 
-    public ReceiveMessageResponse receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group) {
-        return stub.withDeadlineAfter(15, TimeUnit.SECONDS)
+    public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group, int timeSeconds) {
+        List<ReceiveMessageResponse> responseList = new ArrayList<>();
+        Iterator<ReceiveMessageResponse> responseIterator =  stub.withDeadlineAfter(timeSeconds, TimeUnit.SECONDS)
             .receiveMessage(buildReceiveMessageRequest(group, topic));
-    }
-
-    public ReceiveMessageResponse receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group, int timeSeconds) {
-        return stub.withDeadlineAfter(timeSeconds, TimeUnit.SECONDS)
-            .receiveMessage(buildReceiveMessageRequest(group, topic));
+        while (responseIterator.hasNext()) {
+            responseList.add(responseIterator.next());
+        }
+        return responseList;
     }
 
     public QueryRouteRequest buildQueryRouteRequest(String topic) {
@@ -493,7 +469,7 @@ public class GrpcBaseTest extends BaseConf {
             .build();
     }
 
-    public AckMessageRequest buildAckMessageRequest(String group, String topic, String receiptHandle) {
+    public AckMessageRequest buildAckMessageRequest(String group, String topic, String messageId, String receiptHandle) {
         return AckMessageRequest.newBuilder()
             .setGroup(Resource.newBuilder()
                 .setName(group)
@@ -501,7 +477,10 @@ public class GrpcBaseTest extends BaseConf {
             .setTopic(Resource.newBuilder()
                 .setName(topic)
                 .build())
-            .setReceiptHandle(receiptHandle)
+            .addEntries(AckMessageEntry.newBuilder()
+                .setMessageId(messageId)
+                .setReceiptHandle(receiptHandle)
+                .build())
             .build();
     }
 
@@ -529,30 +508,6 @@ public class GrpcBaseTest extends BaseConf {
             .setTransactionId(transactionId)
             .setResolution(resolution)
             .setSource(TransactionSource.SOURCE_SERVER_CHECK)
-            .build();
-    }
-
-    public QueryOffsetRequest buildQueryOffsetRequest(String brokerName, String topic, QueryOffsetPolicy queryOffsetPolicy) {
-        return QueryOffsetRequest.newBuilder()
-            .setMessageQueue(MessageQueue.newBuilder()
-                .setTopic(Resource.newBuilder().setName(topic).build())
-                .setBroker(Broker.newBuilder().setName(brokerName).build())
-                .setId(0)
-                .build())
-            .setPolicy(queryOffsetPolicy)
-            .build();
-    }
-
-    public PullMessageRequest buildPullMessageRequest(String brokerName, String group, String topic, long offset) {
-        return PullMessageRequest.newBuilder()
-            .setGroup(Resource.newBuilder().setName(group).build())
-            .setMessageQueue(MessageQueue.newBuilder()
-                .setTopic(Resource.newBuilder().setName(topic).build())
-                .setBroker(Broker.newBuilder().setName(brokerName).build())
-                .setId(0)
-                .build())
-            .setBatchSize(32)
-            .setOffset(offset)
             .build();
     }
 
@@ -602,13 +557,8 @@ public class GrpcBaseTest extends BaseConf {
         assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
     }
 
-    public void assertQueryOffsetResponse(QueryOffsetResponse response, long offset) {
-        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
-        assertThat(response.getOffset()).isEqualTo(offset);
-    }
-
-    public ClientSettings buildAccessPointClientSettings(int port) {
-        return ClientSettings.newBuilder()
+    public ReportActiveSettingsCommand buildAccessPointClientSettings(int port) {
+        return ReportActiveSettingsCommand.newBuilder()
             .setNonce(UUID.randomUUID().toString())
             .setAccessPoint(Endpoints.newBuilder()
                 .setScheme(AddressScheme.IPv4)
@@ -620,53 +570,27 @@ public class GrpcBaseTest extends BaseConf {
             .build();
     }
 
-    public ClientSettings buildPushConsumerClientSettings() {
+    public ReportActiveSettingsCommand buildPushConsumerClientSettings() {
         return buildPushConsumerClientSettings(2, false);
     }
 
-    public ClientSettings buildPushConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
-        return ClientSettings.newBuilder()
+    public ReportActiveSettingsCommand buildPushConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
+        return ReportActiveSettingsCommand.newBuilder()
             .setNonce(UUID.randomUUID().toString())
             .setClientType(ClientType.PUSH_CONSUMER)
-            .setSettings(Settings.newBuilder()
-                .setSubscription(Subscription.newBuilder()
-                    .setDeadLetterPolicy(DeadLetterPolicy.newBuilder()
-                        .setMaxDeliveryAttempts(maxDeliveryAttempts)
-                        .build())
-                    .setFifo(fifo)
-                    .build())
+            .setActiveSubscriptionSettings(ActiveSubscriptionSettings.newBuilder()
                 .build())
             .build();
     }
 
-    public ClientSettings buildPullConsumerClientSettings() {
-        return ClientSettings.newBuilder()
-            .setNonce(UUID.randomUUID().toString())
-            .setClientType(ClientType.PULL_CONSUMER)
-            .setSettings(Settings.newBuilder()
-                .build())
-            .build();
-    }
-
-    public ClientSettings buildSimpleConsumerClientSettings() {
-        return ClientSettings.newBuilder()
-            .setNonce(UUID.randomUUID().toString())
-            .setClientType(ClientType.SIMPLE_CONSUMER)
-            .setSettings(Settings.newBuilder()
-                .build())
-            .build();
-    }
-
-    public ClientSettings buildProducerClientSettings(String... topics) {
+    public ReportActiveSettingsCommand buildProducerClientSettings(String... topics) {
         List<Resource> topicResources = Arrays.stream(topics).map(topic -> Resource.newBuilder().setName(topic).build())
             .collect(Collectors.toList());
-        return ClientSettings.newBuilder()
+        return ReportActiveSettingsCommand.newBuilder()
             .setNonce(UUID.randomUUID().toString())
             .setClientType(ClientType.PRODUCER)
-            .setSettings(Settings.newBuilder()
-                .setPublishing(Publishing.newBuilder()
-                    .addAllTopics(topicResources)
-                    .build())
+            .setActivePublishingSettings(ActivePublishingSettings.newBuilder()
+                .addAllPublishingTopics(topicResources)
                 .build())
             .build();
     }
