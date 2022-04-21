@@ -59,4 +59,14 @@ public class GetReplicaInfoResponseHeader {
     public void setSyncStateSetEpoch(int syncStateSetEpoch) {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
+
+    @Override public String toString() {
+        return "GetReplicaInfoResponseHeader{" +
+            "errorCode=" + errorCode +
+            ", masterAddress='" + masterAddress + '\'' +
+            ", masterEpoch=" + masterEpoch +
+            ", syncStateSet=" + syncStateSet +
+            ", syncStateSetEpoch=" + syncStateSetEpoch +
+            '}';
+    }
 }

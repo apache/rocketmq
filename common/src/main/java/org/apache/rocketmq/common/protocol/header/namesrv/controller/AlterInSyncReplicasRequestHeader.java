@@ -57,4 +57,14 @@ public class AlterInSyncReplicasRequestHeader {
     public void setSyncStateSetEpoch(int syncStateSetEpoch) {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
+
+    @Override public String toString() {
+        return "AlterInSyncReplicasRequestHeader{" +
+            "brokerName='" + brokerName + '\'' +
+            ", masterAddress='" + masterAddress + '\'' +
+            ", masterEpoch=" + masterEpoch +
+            ", newSyncStateSet=" + newSyncStateSet +
+            ", syncStateSetEpoch=" + syncStateSetEpoch +
+            '}';
+    }
 }

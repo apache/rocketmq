@@ -13,7 +13,7 @@ public class ReadEvent implements EventMessage {
     }
 
     @Override
-    public EventType eventType() {
+    public EventType getEventType() {
         return EventType.READ_EVENT;
     }
 }

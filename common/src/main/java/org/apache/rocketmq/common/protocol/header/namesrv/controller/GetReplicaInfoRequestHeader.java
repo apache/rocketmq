@@ -15,4 +15,9 @@ public class GetReplicaInfoRequestHeader {
         this.brokerName = brokerName;
     }
 
+    @Override public String toString() {
+        return "GetReplicaInfoRequestHeader{" +
+            "brokerName='" + brokerName + '\'' +
+            '}';
+    }
 }

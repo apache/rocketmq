@@ -21,6 +21,44 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBro
  */
 public interface Controller {
 
+    interface EventHandler<T> {
+        /**
+         * Run the controller event
+         */
+        void run() throws Throwable;
+
+        /**
+         * Return the completableFuture
+         */
+        CompletableFuture<T> future();
+
+        /**
+         * Handle Exception.
+         */
+        void handleException(final Throwable t);
+    }
+
+
+    /**
+     * Startup controller
+     */
+    void startup();
+
+    /**
+     * Shutdown controller
+     */
+    void shutdown();
+
+    /**
+     * Start scheduling controller events, this function only will be triggered when the controller becomes leader.
+     */
+    void startScheduling();
+
+    /**
+     * Stop scheduling controller events, this function only will be triggered when the controller shutdown leaderShip.
+     */
+    void stopScheduling();
+
     /**
      * Alter ISR of broker replicas.
      *
@@ -59,5 +97,5 @@ public interface Controller {
      * @param request GetMetaDataRequest
      * @return GetMetaDataResponse
      */
-    CompletableFuture<GetMetaDataResponseHeader> getMetadata(final GetMetaDataRequestHeader request);
+    GetMetaDataResponseHeader getMetadata(final GetMetaDataRequestHeader request);
 }

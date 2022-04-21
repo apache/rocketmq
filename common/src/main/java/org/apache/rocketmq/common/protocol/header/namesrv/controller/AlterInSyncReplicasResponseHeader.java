@@ -38,4 +38,12 @@ public class AlterInSyncReplicasResponseHeader {
     public void setNewSyncStateSetEpoch(int newSyncStateSetEpoch) {
         this.newSyncStateSetEpoch = newSyncStateSetEpoch;
     }
+
+    @Override public String toString() {
+        return "AlterInSyncReplicasResponseHeader{" +
+            "errorCode=" + errorCode +
+            ", newSyncStateSet=" + newSyncStateSet +
+            ", newSyncStateSetEpoch=" + newSyncStateSetEpoch +
+            '}';
+    }
 }

@@ -36,4 +36,12 @@ public class ElectMasterResponseHeader {
     public void setMasterEpoch(int masterEpoch) {
         this.masterEpoch = masterEpoch;
     }
+
+    @Override public String toString() {
+        return "ElectMasterResponseHeader{" +
+            "errorCode=" + errorCode +
+            ", newMasterAddress='" + newMasterAddress + '\'' +
+            ", masterEpoch=" + masterEpoch +
+            '}';
+    }
 }

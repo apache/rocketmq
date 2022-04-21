@@ -34,4 +34,12 @@ public class RegisterBrokerRequestHeader {
     public void setBrokerAddress(String brokerAddress) {
         this.brokerAddress = brokerAddress;
     }
+
+    @Override public String toString() {
+        return "RegisterBrokerRequestHeader{" +
+            "clusterName='" + clusterName + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
+            '}';
+    }
 }

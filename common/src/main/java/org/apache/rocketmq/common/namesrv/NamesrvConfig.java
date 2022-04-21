@@ -73,10 +73,10 @@ public class NamesrvConfig {
 
     private volatile boolean enableAllTopicList = false;
 
-    private String controllerDLegerGroup = "ControllerGroup";
-    private String controllerDLegerPeers = String.format("n0-localhost:%d", 9000);;
-    private String controllerDLegerSelfId = "n0";
-    private String controllerStrorePath = System.getProperty("user.home") + File.separator + "DledgerController";
+    private String controllerDLegerGroup;
+    private String controllerDLegerPeers;
+    private String controllerDLegerSelfId;
+    private String controllerStorePath = System.getProperty("user.home") + File.separator + "DledgerController";
     // Whether the controller can elect a master which is not in the syncStateSet.
     private boolean enableElectUncleanMaster = false;
 
@@ -232,12 +232,12 @@ public class NamesrvConfig {
         this.controllerDLegerSelfId = controllerDLegerSelfId;
     }
 
-    public String getControllerStrorePath() {
-        return controllerStrorePath;
+    public String getControllerStorePath() {
+        return controllerStorePath;
     }
 
-    public void setControllerStrorePath(String controllerStrorePath) {
-        this.controllerStrorePath = controllerStrorePath;
+    public void setControllerStorePath(String controllerStorePath) {
+        this.controllerStorePath = controllerStorePath;
     }
 
     public boolean isEnableElectUncleanMaster() {

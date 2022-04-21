@@ -21,7 +21,7 @@ public class ApplyBrokerIdEvent implements EventMessage {
     }
 
     @Override
-    public EventType eventType() {
+    public EventType getEventType() {
         return EventType.APPLY_BROKER_ID_EVENT;
     }
 
@@ -33,8 +33,15 @@ public class ApplyBrokerIdEvent implements EventMessage {
         return brokerAddress;
     }
 
-
     public long getNewBrokerId() {
         return newBrokerId;
+    }
+
+    @Override public String toString() {
+        return "ApplyBrokerIdEvent{" +
+            "brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
+            ", newBrokerId=" + newBrokerId +
+            '}';
     }
 }

@@ -1,14 +1,21 @@
 package org.apache.rocketmq.namesrv.controller.impl;
 
+import io.openmessaging.storage.dledger.AppendFuture;
 import io.openmessaging.storage.dledger.DLedgerConfig;
+import io.openmessaging.storage.dledger.DLedgerLeaderElector;
 import io.openmessaging.storage.dledger.DLedgerServer;
+import io.openmessaging.storage.dledger.MemberState;
+import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
+import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
+import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
@@ -24,6 +31,8 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.controller.Controller;
 import org.apache.rocketmq.namesrv.controller.manager.ReplicasInfoManager;
 import org.apache.rocketmq.namesrv.controller.manager.event.ControllerResult;
+import org.apache.rocketmq.namesrv.controller.manager.event.EventMessage;
+import org.apache.rocketmq.namesrv.controller.manager.event.EventSerializer;
 import org.apache.rocketmq.remoting.common.ServiceThread;
 
 /**
@@ -33,156 +42,306 @@ import org.apache.rocketmq.remoting.common.ServiceThread;
  * @email 642256541@qq.com
  * @date 2022/4/15 14:58
  */
-public class DledgerController extends ServiceThread implements Controller {
+public class DledgerController implements Controller {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final DLedgerServer dLedgerServer;
     private final DLedgerConfig dLedgerConfig;
     private final ReplicasInfoManager replicasInfoManager;
+    private final EventScheduler scheduler;
+    private final EventSerializer eventSerializer;
+    private final RoleChangeHandler roleHandler;
     private final DledgerControllerStateMachine statemachine;
-    private final BlockingQueue<ControllerEvent> eventQueue;
-    public DledgerController(final NamesrvConfig namesrvConfig) {
-        this.dLedgerConfig = new DLedgerConfig();
-        dLedgerConfig.setEnableDiskForceClean(true);
-        dLedgerConfig.setStoreType(DLedgerConfig.FILE);
-        dLedgerConfig.setGroup(namesrvConfig.getControllerDLegerGroup());
-        dLedgerConfig.setPeers(namesrvConfig.getControllerDLegerPeers());
-        dLedgerConfig.setSelfId(namesrvConfig.getControllerDLegerSelfId());
-        dLedgerConfig.setStoreBaseDir(namesrvConfig.getControllerStrorePath());
+    private volatile boolean isScheduling = false;
 
-        this.replicasInfoManager = new ReplicasInfoManager(namesrvConfig.isEnableElectUncleanMaster());
-        this.statemachine = new DledgerControllerStateMachine(replicasInfoManager);
+    public DledgerController(final DLedgerConfig dLedgerConfig, final boolean isEnableElectUncleanMaster) {
+        this.dLedgerConfig = dLedgerConfig;
 
-        this.dLedgerServer = new DLedgerServer(this.dLedgerConfig);
+        this.eventSerializer = new EventSerializer();
+
+        this.scheduler = new EventScheduler();
+        this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
+        this.replicasInfoManager = new ReplicasInfoManager(isEnableElectUncleanMaster);
+        this.statemachine = new DledgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getSelfId());
+
+        // Register statemachine and role handler.
+        this.dLedgerServer = new DLedgerServer(dLedgerConfig);
         this.dLedgerServer.registerStateMachine(this.statemachine);
-
-        this.eventQueue = new LinkedBlockingQueue<>(1024);
+        this.dLedgerServer.getdLedgerLeaderElector().addRoleChangeHandler(this.roleHandler);
     }
 
     @Override
-    public String getServiceName() {
-        return DledgerController.class.getName();
+    public void startup() {
+        this.dLedgerServer.startup();
     }
 
     @Override
-    public void run() {
-        while (!isStopped()) {
-            try {
-                final ControllerEvent event = this.eventQueue.poll(5, TimeUnit.SECONDS);
-                if (event != null) {
-                    event.run();
-                }
-            } catch (final InterruptedException e) {
-                log.error("Error happen in {} when pull event from event queue", getServiceName(), e);
-            }
+    public void shutdown() {
+        this.dLedgerServer.shutdown();
+    }
+
+    @Override
+    public void startScheduling() {
+        if (!this.isScheduling) {
+            log.info("Start scheduling controller events");
+            this.isScheduling = true;
+            this.scheduler.start();
         }
     }
 
-    private <T> CompletableFuture<T> appendEvent(final String name, final Supplier<ControllerResult<T>> supplier,
-        boolean isWriteEvent) {
-        final ControllerEvent<T> event = isWriteEvent ? new ControllerWriteEvent<>(name, supplier) :
-            new ControllerReadEvent<>(name, supplier);
-        int tryTimes = 0;
-        while (true) {
-            try {
-                if (!this.eventQueue.offer(event, 10, TimeUnit.SECONDS)) {
-                    continue;
-                }
-                return event.future();
-            } catch (final InterruptedException e) {
-                log.error("Error happen in {} when append read event", getServiceName(), e);
-                tryTimes++;
-                if (tryTimes > 3) {
-                    event.future().cancel(true);
-                    return event.future();
-                }
-            }
+    @Override
+    public void stopScheduling() {
+        if (this.isScheduling) {
+            log.info("Stop scheduling controller events");
+            this.isScheduling = false;
+            this.scheduler.shutdown(true);
         }
     }
 
     @Override
     public CompletableFuture<AlterInSyncReplicasResponseHeader> alterInSyncReplicas(
         AlterInSyncReplicasRequestHeader request) {
-        return appendEvent("alterInSyncReplicas",
+        if (!this.roleHandler.isLeaderState()) {
+            log.warn("Current controller {} is not leader, reject alterInSyncReplicas request", this.dLedgerConfig.getSelfId());
+            return null;
+        }
+        return this.scheduler.appendEvent("alterInSyncReplicas",
             () -> this.replicasInfoManager.alterSyncStateSet(request), true);
     }
 
     @Override
     public CompletableFuture<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request) {
-        return appendEvent("electMaster",
+        if (!this.roleHandler.isLeaderState()) {
+            log.warn("Current controller {} is not leader, reject electMaster request", this.dLedgerConfig.getSelfId());
+            return null;
+        }
+        return this.scheduler.appendEvent("electMaster",
             () -> this.replicasInfoManager.electMaster(request), true);
     }
 
     @Override
     public CompletableFuture<RegisterBrokerResponseHeader> registerBroker(RegisterBrokerRequestHeader request) {
-        return appendEvent("registerBroker",
+        if (!this.roleHandler.isLeaderState()) {
+            log.warn("Current controller {} is not leader, reject registerBroker request", this.dLedgerConfig.getSelfId());
+            return null;
+        }
+        return this.scheduler.appendEvent("registerBroker",
             () -> this.replicasInfoManager.registerBroker(request), true);
     }
 
     @Override
     public CompletableFuture<GetReplicaInfoResponseHeader> getReplicaInfo(final GetReplicaInfoRequestHeader request) {
-        return appendEvent("getReplicaInfo",
+        if (!this.roleHandler.isLeaderState()) {
+            log.warn("Current controller {} is not leader, reject getReplicaInfo request", this.dLedgerConfig.getSelfId());
+            return null;
+        }
+        return this.scheduler.appendEvent("getReplicaInfo",
             () -> this.replicasInfoManager.getReplicaInfo(request), false);
     }
 
     @Override
-    public CompletableFuture<GetMetaDataResponseHeader> getMetadata(final GetMetaDataRequestHeader request) {
-        return null;
+    public GetMetaDataResponseHeader getMetadata(final GetMetaDataRequestHeader request) {
+        final MemberState state = getMemberState();
+        return new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr());
     }
 
-    interface ControllerEvent<T> {
-        /**
-         * Run the controller event
-         */
-        void run();
+    /**
+     * Event scheduler, schedule event handler from event queue
+     */
+    class EventScheduler extends ServiceThread {
+        private final BlockingQueue<EventHandler> eventQueue;
 
-        /**
-         * Return the completableFuture
-         */
-        CompletableFuture<T> future();
-    }
+        public EventScheduler() {
+            this.eventQueue = new LinkedBlockingQueue<>(1024);
+        }
 
-    static class ControllerReadEvent<T> implements ControllerEvent<T> {
-        private final String name;
-        private final Supplier<ControllerResult<T>> supplier;
-        private final CompletableFuture<T> future;
-
-        ControllerReadEvent(String name, Supplier<ControllerResult<T>> supplier) {
-            this.name = name;
-            this.supplier = supplier;
-            this.future = new CompletableFuture<>();
+        @Override
+        public String getServiceName() {
+            return EventScheduler.class.getName();
         }
 
         @Override
         public void run() {
+            log.info("Start event scheduler.");
+            while (!isStopped()) {
+                EventHandler handler;
+                try {
+                    handler = this.eventQueue.poll(5, TimeUnit.SECONDS);
+                } catch (final InterruptedException e) {
+                    continue;
+                }
+                try {
+                    if (handler != null) {
+                        handler.run();
+                    }
+                } catch (final Throwable e) {
+                    handler.handleException(e);
+                }
+            }
 
+        }
+
+        public <T> CompletableFuture<T> appendEvent(final String name, final Supplier<ControllerResult<T>> supplier,
+            boolean isWriteEvent) {
+            if (isStopped()) {
+                return null;
+            }
+            final EventHandler<T> event = new ControllerEventHandler<>(name, supplier, isWriteEvent);
+            int tryTimes = 0;
+            while (true) {
+                try {
+                    if (!this.eventQueue.offer(event, 5, TimeUnit.SECONDS)) {
+                        continue;
+                    }
+                    return event.future();
+                } catch (final InterruptedException e) {
+                    log.error("Error happen in EventScheduler when append event", e);
+                    tryTimes++;
+                    if (tryTimes > 3) {
+                        return null;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Event handler, get events from supplier, and append events to dledger
+     */
+    class ControllerEventHandler<T> implements EventHandler<T> {
+        private final String name;
+        private final Supplier<ControllerResult<T>> supplier;
+        private final CompletableFuture<T> future;
+        private final boolean isWriteEvent;
+
+        ControllerEventHandler(final String name, final Supplier<ControllerResult<T>> supplier,
+            final boolean isWriteEvent) {
+            this.name = name;
+            this.supplier = supplier;
+            this.future = new CompletableFuture<>();
+            this.isWriteEvent = isWriteEvent;
+        }
+
+        @Override
+        public void run() throws Throwable {
+            final ControllerResult<T> result = this.supplier.get();
+            log.info("Event queue run event {}, get the result {}", this.name, result);
+            boolean appendSuccess = true;
+            if (this.isWriteEvent) {
+                final List<EventMessage> events = result.getEvents();
+                final List<byte[]> eventBytes = new ArrayList<>(events.size());
+                for (final EventMessage event : events) {
+                    if (event != null) {
+                        final byte[] data = DledgerController.this.eventSerializer.serialize(event);
+                        if (data != null && data.length > 0) {
+                            eventBytes.add(data);
+                        }
+                    }
+                }
+                // Append events to dledger
+                if (!eventBytes.isEmpty()) {
+                    final BatchAppendEntryRequest request = new BatchAppendEntryRequest();
+                    request.setBatchMsgs(eventBytes);
+                    appendSuccess = appendToDledgerAndWait(request);
+                }
+            } else {
+                // Now the dledger don't have the function of Read-Index or Lease-Read,
+                // So we still need to propose an empty request to dledger.
+                final AppendEntryRequest request = new AppendEntryRequest();
+                request.setBody(new byte[0]);
+                appendSuccess = appendToDledgerAndWait(request);
+            }
+            if (appendSuccess) {
+                this.future.complete(result.getResponse());
+            } else {
+                log.error("Failed to append event to dledger, the response is {}, try cancel the future", result.getResponse());
+                this.future.cancel(true);
+            }
         }
 
         @Override
         public CompletableFuture<T> future() {
             return this.future;
         }
+
+        @Override
+        public void handleException(final Throwable t) {
+            log.error("Error happen when handle event {}", this.name, t);
+            this.future.completeExceptionally(t);
+        }
+
+        private boolean appendToDledgerAndWait(final AppendEntryRequest request) throws Throwable {
+            if (request != null) {
+                request.setGroup(DledgerController.this.dLedgerConfig.getGroup());
+                request.setRemoteId(DledgerController.this.dLedgerConfig.getSelfId());
+
+                final AppendFuture<AppendEntryResponse> dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+                if (dledgerFuture.getPos() == -1) {
+                    return false;
+                }
+                dledgerFuture.get(10, TimeUnit.SECONDS);
+                return true;
+            }
+            return false;
+        }
     }
 
-    static class ControllerWriteEvent<T> implements ControllerEvent<T> {
-        private final String name;
-        private final Supplier<ControllerResult<T>> supplier;
-        private final CompletableFuture<T> future;
+    /**
+     * Role change handler, trigger the startScheduling() and stopScheduling() when role change.
+     */
+    class RoleChangeHandler implements DLedgerLeaderElector.RoleChangeHandler {
 
-        ControllerWriteEvent(String name, Supplier<ControllerResult<T>> supplier) {
-            this.name = name;
-            this.supplier = supplier;
-            this.future = new CompletableFuture<>();
+        private volatile MemberState.Role currentRole = MemberState.Role.FOLLOWER;
+        private final String selfId;
+
+        public RoleChangeHandler(final String selfId) {
+            this.selfId = selfId;
         }
 
         @Override
-        public void run() {
-
+        public void handle(long term, MemberState.Role role) {
+            switch (role) {
+                case CANDIDATE:
+                    this.currentRole = MemberState.Role.CANDIDATE;
+                    log.info("Controller {} change role to candidate", this.selfId);
+                    DledgerController.this.stopScheduling();
+                    break;
+                case FOLLOWER:
+                    this.currentRole = MemberState.Role.FOLLOWER;
+                    log.info("Controller {} change role to Follower, leaderId:{}", this.selfId, getMemberState().getLeaderId());
+                    DledgerController.this.stopScheduling();
+                    break;
+                case LEADER:
+                    this.currentRole = MemberState.Role.LEADER;
+                    log.info("Controller {} change role to leader, startup scheduling events", this.selfId);
+                    DledgerController.this.startScheduling();
+                    break;
+            }
         }
 
         @Override
-        public CompletableFuture<T> future() {
-            return this.future;
+        public void startup() {
         }
+
+        @Override
+        public void shutdown() {
+            if (this.currentRole == MemberState.Role.LEADER) {
+                DledgerController.this.stopScheduling();
+            }
+        }
+
+        public boolean isLeaderState() {
+            return this.currentRole == MemberState.Role.LEADER;
+        }
+    }
+
+    // Only for test
+    public MemberState getMemberState() {
+        return this.dLedgerServer.getMemberState();
+    }
+
+    // Only for test
+    public ReplicasInfoManager getReplicasInfoManager() {
+        return this.replicasInfoManager;
     }
 }

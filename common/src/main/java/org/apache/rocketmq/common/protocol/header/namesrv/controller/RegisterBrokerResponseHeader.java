@@ -47,4 +47,13 @@ public class RegisterBrokerResponseHeader {
     public void setBrokerId(long brokerId) {
         this.brokerId = brokerId;
     }
+
+    @Override public String toString() {
+        return "RegisterBrokerResponseHeader{" +
+            "errorCode=" + errorCode +
+            ", masterAddress='" + masterAddress + '\'' +
+            ", masterEpoch=" + masterEpoch +
+            ", brokerId=" + brokerId +
+            '}';
+    }
 }

@@ -134,7 +134,7 @@ public class ReplicasInfoManager {
             }
             // If elect failed, we still need to apply an ElectMasterEvent to tell the statemachine
             // that the master was shutdown and no new master was elected.
-            final ElectMasterEvent event = new ElectMasterEvent(brokerName, false);
+            final ElectMasterEvent event = new ElectMasterEvent(false, brokerName);
             result.addEvent(event);
             response.setErrorCode(ErrorCodes.MASTER_NOT_AVAILABLE.getCode());
             return result;
@@ -175,16 +175,16 @@ public class ReplicasInfoManager {
                 canBeElectedAsMaster = replicasInfo.getSyncStateSet().contains(brokerAddress) || this.enableElectUncleanMaster;
             }
         } else {
+            // If the broker's metadata does not exist in the state machine, the replicas can be elected as master directly.
             canBeElectedAsMaster = true;
         }
         if (canBeElectedAsMaster) {
-            // If the broker's metadata does not exist in the state machine, the replicas can be elected as master directly.
             response.setMasterAddress(request.getBrokerAddress());
             int masterEpoch = this.inSyncReplicasInfoTable.containsKey(brokerName) ?
                 this.inSyncReplicasInfoTable.get(brokerName).getMasterEpoch() + 1 : 1;
             response.setMasterEpoch(masterEpoch);
 
-            final ElectMasterEvent event = new ElectMasterEvent(brokerName, brokerAddress);
+            final ElectMasterEvent event = new ElectMasterEvent(true, brokerName, brokerAddress, request.getClusterName());
             result.addEvent(event);
             return result;
         }
@@ -213,7 +213,7 @@ public class ReplicasInfoManager {
 
     // Apply events to memory statemachine.
     public void applyEvent(final EventMessage event) {
-        final EventType type = event.eventType();
+        final EventType type = event.getEventType();
         switch (type) {
             case ALTER_SYNC_STATE_SET_EVENT:
                 handleAlterSyncStateSet((AlterSyncStateSetEvent) event);
@@ -256,7 +256,7 @@ public class ReplicasInfoManager {
             final BrokerIdInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
 
-            if (event.isNewMasterElected()) {
+            if (event.getNewMasterElected()) {
                 // Step1, change the origin master to follower
                 final String originMaster = replicasInfo.getMasterAddress();
                 final long originMasterId = replicasInfo.getMasterOriginId();

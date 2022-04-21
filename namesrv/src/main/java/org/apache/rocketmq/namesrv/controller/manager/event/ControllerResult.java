@@ -41,4 +41,11 @@ public class ControllerResult<T> {
     public void addEvent(EventMessage event) {
         this.events.add(event);
     }
+
+    @Override public String toString() {
+        return "ControllerResult{" +
+            "events=" + events +
+            ", response=" + response +
+            '}';
+    }
 }

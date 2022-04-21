@@ -18,4 +18,26 @@ public enum EventType {
         this.name = name;
         this.id = id;
     }
+
+    public static EventType from(short id) {
+        switch(id) {
+            case 1:
+                return ALTER_SYNC_STATE_SET_EVENT;
+            case 2:
+                return APPLY_BROKER_ID_EVENT;
+            case 3:
+                return ELECT_MASTER_EVENT;
+            case 4:
+                return READ_EVENT;
+        }
+        return null;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public short getId() {
+        return id;
+    }
 }

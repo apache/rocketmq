@@ -20,7 +20,7 @@ public class AlterSyncStateSetEvent implements EventMessage {
     }
 
     @Override
-    public EventType eventType() {
+    public EventType getEventType() {
         return EventType.ALTER_SYNC_STATE_SET_EVENT;
     }
 
@@ -30,5 +30,12 @@ public class AlterSyncStateSetEvent implements EventMessage {
 
     public Set<String> getNewSyncStateSet() {
         return newSyncStateSet;
+    }
+
+    @Override public String toString() {
+        return "AlterSyncStateSetEvent{" +
+            "brokerName='" + brokerName + '\'' +
+            ", newSyncStateSet=" + newSyncStateSet +
+            '}';
     }
 }

@@ -10,5 +10,5 @@ public interface EventMessage {
     /**
      * Returns the event type of this message
      */
-    EventType eventType();
+    EventType getEventType();
 }

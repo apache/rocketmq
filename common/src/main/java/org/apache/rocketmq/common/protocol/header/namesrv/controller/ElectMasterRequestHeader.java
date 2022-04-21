@@ -14,4 +14,10 @@ public class ElectMasterRequestHeader {
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
     }
+
+    @Override public String toString() {
+        return "ElectMasterRequestHeader{" +
+            "brokerName='" + brokerName + '\'' +
+            '}';
+    }
 }

@@ -114,7 +114,7 @@ public class ReplicasInfoManagerTest {
         final List<EventMessage> events = cResult.getEvents();
         assertEquals(events.size(), 1);
         final ElectMasterEvent event = (ElectMasterEvent) events.get(0);
-        assertFalse(event.isNewMasterElected());
+        assertFalse(event.getNewMasterElected());
 
         apply(cResult.getEvents());
 
