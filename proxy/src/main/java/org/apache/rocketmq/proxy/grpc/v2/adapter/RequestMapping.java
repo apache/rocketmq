@@ -24,9 +24,7 @@ import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
-import apache.rocketmq.v2.PullMessageRequest;
 import apache.rocketmq.v2.QueryAssignmentRequest;
-import apache.rocketmq.v2.QueryOffsetRequest;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -47,8 +45,6 @@ public class RequestMapping {
             put(NackMessageRequest.getDescriptor().getFullName(), RequestCode.CONSUMER_SEND_MSG_BACK);
             put(ForwardMessageToDeadLetterQueueResponse.getDescriptor().getFullName(), RequestCode.CONSUMER_SEND_MSG_BACK);
             put(EndTransactionRequest.getDescriptor().getFullName(), RequestCode.CONSUMER_SEND_MSG_BACK);
-            put(QueryOffsetRequest.getDescriptor().getFullName(), RequestCode.SEARCH_OFFSET_BY_TIMESTAMP);
-            put(PullMessageRequest.getDescriptor().getFullName(), RequestCode.PULL_MESSAGE);
             put(NotifyClientTerminationRequest.getDescriptor().getFullName(), RequestCode.UNREGISTER_CLIENT);
             put(ChangeInvisibleDurationRequest.getDescriptor().getFullName(), RequestCode.CONSUMER_SEND_MSG_BACK);
 
