@@ -65,7 +65,7 @@ public class AssignmentManager {
         ignoreRouteTopics.add(brokerController.getBrokerConfig().getBrokerClusterName());
         ignoreRouteTopics.add(brokerController.getBrokerConfig().getBrokerName());
         scheduledExecutorService = Executors
-            .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("LoadBalanceManagerScheduledThread", brokerController.getBrokerConfig()));
+            .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("LoadBalanceManagerScheduledThread", brokerController.getBrokerIdentity()));
     }
 
     public void start() {

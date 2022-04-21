@@ -365,7 +365,7 @@ public class BrokerOuterAPI {
         final int timeoutMills,
         final boolean enableActingMaster,
         final boolean compressed,
-        final boolean isInBrokerContainer) {
+        final BrokerIdentity brokerIdentity) {
         return registerBrokerAll(clusterName,
             brokerAddr,
             brokerName,
@@ -377,7 +377,7 @@ public class BrokerOuterAPI {
             enableActingMaster,
             compressed,
             null,
-            isInBrokerContainer);
+            brokerIdentity);
     }
 
     /**
@@ -409,7 +409,7 @@ public class BrokerOuterAPI {
         final boolean enableActingMaster,
         final boolean compressed,
         final Long heartbeatTimeoutMillis,
-        final boolean isInBrokerContainer) {
+        final BrokerIdentity brokerIdentity) {
 
         final List<RegisterBrokerResult> registerBrokerResultList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getAvailableNameSrvList();
@@ -435,7 +435,7 @@ public class BrokerOuterAPI {
             requestHeader.setBodyCrc32(bodyCrc32);
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
-                brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
+                brokerOuterExecutor.execute(new AbstractBrokerRunnable(brokerIdentity) {
                     @Override public void run2() {
                         try {
                             RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);

@@ -74,9 +74,9 @@ public class InnerBrokerController extends BrokerController {
     protected void initializeResources() {
         super.initializeResources();
         this.syncBrokerMemberGroupExecutorService = new ScheduledThreadPoolExecutor(1,
-            new ThreadFactoryImpl("BrokerControllerSyncBrokerScheduledThread", brokerConfig));
+            new ThreadFactoryImpl("BrokerControllerSyncBrokerScheduledThread", super.getBrokerIdentity()));
         this.brokerHeartbeatExecutorService = new ScheduledThreadPoolExecutor(1,
-            new ThreadFactoryImpl("rokerControllerHeartbeatScheduledThread", brokerConfig));
+            new ThreadFactoryImpl("rokerControllerHeartbeatScheduledThread", super.getBrokerIdentity()));
     }
 
     @Override
@@ -134,7 +134,7 @@ public class InnerBrokerController extends BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
-        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.brokerConfig) {
+        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
             @Override
             public void run2() {
                 try {
@@ -154,7 +154,7 @@ public class InnerBrokerController extends BrokerController {
         }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS));
 
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
-            scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.brokerConfig) {
+            scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
                 @Override
                 public void run2() {
                     if (isIsolated) {
@@ -169,7 +169,7 @@ public class InnerBrokerController extends BrokerController {
                 }
             }, 1000, brokerConfig.getBrokerHeartbeatInterval(), TimeUnit.MILLISECONDS));
 
-            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.brokerConfig) {
+            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
                 @Override public void run2() {
                     try {
                         InnerBrokerController.this.syncBrokerMemberGroup();
@@ -261,7 +261,7 @@ public class InnerBrokerController extends BrokerController {
             this.brokerConfig.isEnableSlaveActingMaster(),
             this.brokerConfig.isCompressedRegister(),
             this.brokerConfig.isEnableSlaveActingMaster() ? this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null,
-            this.brokerConfig.isInBrokerContainer());
+            this.getBrokerIdentity());
 
         handleRegisterBrokerResult(registerBrokerResultList, checkOrderConfig);
     }
