@@ -555,6 +555,7 @@ public class HAService {
                             boolean result = this.reportSlaveMaxOffset(this.currentReportedOffset);
                             if (!result) {
                                 this.closeMaster();
+                                continue;
                             }
                         }
 
@@ -563,6 +564,7 @@ public class HAService {
                         boolean ok = this.processReadEvent();
                         if (!ok) {
                             this.closeMaster();
+                            continue;
                         }
 
                         if (!reportSlaveMaxOffsetPlus()) {
