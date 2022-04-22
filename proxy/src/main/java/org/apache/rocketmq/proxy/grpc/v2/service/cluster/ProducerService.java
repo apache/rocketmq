@@ -71,11 +71,6 @@ public class ProducerService extends BaseService {
 
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
-        future.whenComplete((response, throwable) -> {
-            if (sendMessageHook != null) {
-                sendMessageHook.beforeResponse(ctx, request, response, throwable);
-            }
-        });
 
         try {
             Pair<SendMessageRequestHeader, List<org.apache.rocketmq.common.message.Message>> requestPair = this.buildSendMessageRequest(ctx, request);
@@ -89,28 +84,21 @@ public class ProducerService extends BaseService {
             }
 
             // send message to broker.
-            CompletableFuture<SendResult> sendResultCompletableFuture = this.producer.sendMessage(
+            future = this.producer.sendMessage(
                 selectableMessageQueue.getBrokerAddr(),
                 selectableMessageQueue.getBrokerName(),
                 message,
                 requestHeader
-            );
-
-            sendResultCompletableFuture
-                .thenAccept(result -> {
-                    try {
-                        future.complete(convertToSendMessageResponse(ctx, request, result));
-                    } catch (Throwable throwable) {
-                        future.completeExceptionally(throwable);
-                    }
-                })
-                .exceptionally(e -> {
-                    future.completeExceptionally(e);
-                    return null;
-                });
+            ).thenApply(result -> convertToSendMessageResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
+
+        future.whenComplete((response, throwable) -> {
+            if (sendMessageHook != null) {
+                sendMessageHook.beforeResponse(ctx, request, response, throwable);
+            }
+        });
         return future;
     }
 
@@ -145,11 +133,6 @@ public class ProducerService extends BaseService {
     public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = new CompletableFuture<>();
-        future.whenComplete((response, throwable) -> {
-            if (forwardMessageToDLQHook != null) {
-                forwardMessageToDLQHook.beforeResponse(ctx, request, response, throwable);
-            }
-        });
 
         try {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
@@ -158,27 +141,28 @@ public class ProducerService extends BaseService {
             AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(
                 request.getTopic(), request.getGroup(), receiptHandle);
 
-            CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBackThenAckOrg(brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader);
-            resultFuture
-                .thenAccept(result ->
-                    future.complete(
-                        ForwardMessageToDeadLetterQueueResponse.newBuilder()
-                            .setStatus(ResponseBuilder.buildStatus(result.getCode(), result.getRemark()))
-                            .build()
-                    )
-                )
-                .exceptionally(throwable -> {
-                    future.completeExceptionally(throwable);
-                    return null;
-                });
+            future = this.producer.sendMessageBackThenAckOrg(brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader)
+                .thenApply(result -> convertToForwardMessageToDeadLetterQueueResponse(ctx, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
+        future.whenComplete((response, throwable) -> {
+            if (forwardMessageToDLQHook != null) {
+                forwardMessageToDLQHook.beforeResponse(ctx, request, response, throwable);
+            }
+        });
         return future;
     }
 
     protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(Context ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
         return GrpcConverter.buildConsumerSendMsgBackRequestHeader(request);
+    }
+
+    protected ForwardMessageToDeadLetterQueueResponse convertToForwardMessageToDeadLetterQueueResponse(Context ctx,
+        RemotingCommand result) {
+        return ForwardMessageToDeadLetterQueueResponse.newBuilder()
+            .setStatus(ResponseBuilder.buildStatus(result.getCode(), result.getRemark()))
+            .build();
     }
 }

@@ -40,6 +40,7 @@ public class ClusterGrpcTest extends GrpcBaseTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        ConfigurationManager.getProxyConfig().setTransactionHeartbeatPeriodSecond(3);
         grpcForwardService = new ClusterGrpcService();
         grpcForwardService.start();
         GrpcMessagingProcessor processor = new GrpcMessagingProcessor(grpcForwardService);
@@ -90,6 +91,11 @@ public class ClusterGrpcTest extends GrpcBaseTest {
     @Test
     public void testSendReceiveMessageThenToDLQ() throws Exception {
         super.testSendReceiveMessageThenToDLQ();
+    }
+
+    @Test
+    public void testSimpleConsumerSendAndRecv() throws Exception {
+        super.testSimpleConsumerSendAndRecv();
     }
 
     @Test
