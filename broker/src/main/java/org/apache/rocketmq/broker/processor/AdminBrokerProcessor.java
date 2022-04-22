@@ -231,6 +231,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getAllConsumerOffset(ctx, request);
             case RequestCode.GET_ALL_DELAY_OFFSET:
                 return this.getAllDelayOffset(ctx, request);
+            case RequestCode.GET_ALL_MESSAGE_REQUEST_MODE:
+                return this.getAllMessageRequestMode(ctx, request);
             case RequestCode.INVOKE_BROKER_TO_RESET_OFFSET:
                 return this.resetOffset(ctx, request);
             case RequestCode.INVOKE_BROKER_TO_GET_CONSUMER_STATUS:
@@ -1507,6 +1509,33 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No delay offset in this broker");
+            return response;
+        }
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+
+        return response;
+    }
+
+    private RemotingCommand getAllMessageRequestMode(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        String content = this.brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager().encode();
+        if (content != null && content.length() > 0) {
+            try {
+                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+            } catch (UnsupportedEncodingException e) {
+                LOGGER.error("get all message request mode from master error.", e);
+
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("UnsupportedEncodingException " + e);
+                return response;
+            }
+        } else {
+            LOGGER.error("No message request mode in this broker, client: {} ", ctx.channel().remoteAddress());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("No message request mode in this broker");
             return response;
         }
 
