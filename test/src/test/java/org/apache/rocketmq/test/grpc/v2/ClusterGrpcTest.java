@@ -93,7 +93,7 @@ public class ClusterGrpcTest extends GrpcBaseTest {
     }
 
     @Test
-    public void testSimpleConsumer() throws Exception {
-        super.testSimpleConsumer();
+    public void testSimpleConsumerToDLQ() throws Exception {
+        super.testSimpleConsumerToDLQ();
     }
 }
