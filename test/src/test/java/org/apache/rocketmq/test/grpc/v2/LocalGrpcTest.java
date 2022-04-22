@@ -66,4 +66,14 @@ public class LocalGrpcTest extends GrpcBaseTest {
     public void testSendReceiveMessageThenToDLQ() throws Exception {
         super.testSendReceiveMessageThenToDLQ();
     }
+
+    @Test
+    public void testSimpleConsumerSendAndRecv() throws Exception {
+        super.testSimpleConsumerSendAndRecv();
+    }
+
+    @Test
+    public void testSimpleConsumerToDLQ() throws Exception {
+        super.testSimpleConsumerToDLQ();
+    }
 }

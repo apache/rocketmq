@@ -29,7 +29,7 @@ public class ResponseBuilder {
             t = t.getCause();
         }
         if (t instanceof ProxyException) {
-            ProxyException proxyException = (ProxyException) t.getCause();
+            ProxyException proxyException = (ProxyException) t;
             return ResponseBuilder.buildStatus(proxyException.getCode(), proxyException.getMessage());
         }
         return ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "internal error");

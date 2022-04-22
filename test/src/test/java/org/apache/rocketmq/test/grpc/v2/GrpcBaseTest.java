@@ -20,8 +20,11 @@ package org.apache.rocketmq.test.grpc.v2;
 import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.AckMessageResultEntry;
 import apache.rocketmq.v2.Address;
 import apache.rocketmq.v2.AddressScheme;
+import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
+import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.EndTransactionRequest;
@@ -54,6 +57,7 @@ import apache.rocketmq.v2.TransactionResolution;
 import apache.rocketmq.v2.TransactionSource;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Duration;
+import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import io.grpc.Channel;
 import io.grpc.Metadata;
@@ -77,6 +81,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -120,6 +125,10 @@ public class GrpcBaseTest extends BaseConf {
     protected static final int defaultQueueNums = 8;
 
     public void setUp() throws Exception {
+        brokerController1.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
+        brokerController2.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
+        brokerController3.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
+
         header.put(InterceptorConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
         header.put(InterceptorConstants.LANGUAGE, "JAVA");
 
@@ -148,7 +157,8 @@ public class GrpcBaseTest extends BaseConf {
         return MetadataUtils.attachHeaders(stub, header);
     }
 
-    protected CompletableFuture<Settings> sendClientSettings(MessagingServiceGrpc.MessagingServiceStub stub, Settings clientSettings) {
+    protected CompletableFuture<Settings> sendClientSettings(MessagingServiceGrpc.MessagingServiceStub stub,
+        Settings clientSettings) {
         CompletableFuture<Settings> future = new CompletableFuture<>();
         StreamObserver<TelemetryCommand> requestStreamObserver = stub.telemetry(new DefaultTelemetryCommandStreamObserver() {
             @Override
@@ -217,8 +227,8 @@ public class GrpcBaseTest extends BaseConf {
         ReceiveMessageResponse response = receiveMessage(blockingStub, topic, group).get(0);
         assertReceiveMessage(response, messageId);
         String receiptHandle = response.getMessages(0).getSystemProperties().getReceiptHandle();
-        AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(group, topic, messageId, receiptHandle));
-        assertAck(ackMessageResponse);
+        AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(topic, group, messageId, receiptHandle));
+        assertAllAckOk(ackMessageResponse);
     }
 
     public void testSendReceiveMessageThenToDLQ() throws Exception {
@@ -241,7 +251,7 @@ public class GrpcBaseTest extends BaseConf {
 
         Message message = receiveResponse.getMessages(0);
         NackMessageResponse nackMessageResponse = blockingStub.nackMessage(buildNackMessageRequest(
-            group, topic, messageId, message.getSystemProperties().getReceiptHandle(), 1
+            topic, group, messageId, message.getSystemProperties().getReceiptHandle(), 1
         ));
         assertNackMessageResponse(nackMessageResponse);
 
@@ -258,7 +268,7 @@ public class GrpcBaseTest extends BaseConf {
 
         message = receiveRetryResponseRef.get().getMessages(0);
         nackMessageResponse = blockingStub.nackMessage(buildNackMessageRequest(
-            group, topic, messageId, message.getSystemProperties().getReceiptHandle(), 2
+            topic, group, messageId, message.getSystemProperties().getReceiptHandle(), 2
         ));
         assertNackMessageResponse(nackMessageResponse);
 
@@ -331,7 +341,7 @@ public class GrpcBaseTest extends BaseConf {
             SendMessageResponse sendResponse = blockingStub.sendMessage(buildTransactionSendMessageRequest(topic, messageId));
             assertSendMessage(sendResponse, messageId);
 
-            await().atMost(java.time.Duration.ofSeconds(60)).until(() -> {
+            await().atMost(java.time.Duration.ofSeconds(90)).until(() -> {
                 if (telemetryCommandRef.get() == null) {
                     return false;
                 }
@@ -362,6 +372,64 @@ public class GrpcBaseTest extends BaseConf {
         } finally {
             requestStreamObserver.onCompleted();
         }
+    }
+
+    public void testSimpleConsumerSendAndRecv() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(broker1Name);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+        int maxDeliveryAttempts = 16;
+        boolean fifo = false;
+
+        // init consumer offset
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        receiveMessage(blockingStub, topic, group);
+
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        String messageId = createUniqID();
+        SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
+        assertSendMessage(sendResponse, messageId);
+
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+
+        ReceiveMessageResponse receiveResponse = receiveMessage(blockingStub, topic, group).get(0);
+        assertReceiveMessage(receiveResponse, messageId);
+
+        String receiptHandle = receiveResponse.getMessages(0).getSystemProperties().getReceiptHandle();
+        ChangeInvisibleDurationResponse changeResponse = blockingStub.changeInvisibleDuration(buildChangeInvisibleDurationRequest(topic, group, receiptHandle, 5));
+        assertChangeInvisibleDurationResponse(changeResponse, receiptHandle);
+
+        List<String> ackHandles = new ArrayList<>();
+        ackHandles.add(changeResponse.getReceiptHandle());
+
+        await().atMost(java.time.Duration.ofSeconds(20)).until(() -> {
+            ReceiveMessageResponse receiveRetryResponse = receiveMessage(blockingStub, topic, group).get(0);
+            if (receiveRetryResponse.getMessagesCount() <= 0) {
+                return false;
+            }
+            if (receiveRetryResponse.getMessages(0).getSystemProperties()
+                .getMessageId().equals(messageId)) {
+                ackHandles.add(receiveRetryResponse.getMessages(0).getSystemProperties().getReceiptHandle());
+                return true;
+            }
+            return false;
+        });
+
+        assertThat(ackHandles.size()).isEqualTo(2);
+        AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(topic, group,
+            AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(ackHandles.get(0)).build(),
+            AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(ackHandles.get(1)).build()));
+        assertThat(ackMessageResponse.getStatus().getCode()).isEqualTo(Code.OK);
+        int okNum = 0;
+        int expireNum = 0;
+        for (AckMessageResultEntry entry : ackMessageResponse.getEntriesList()) {
+            if (entry.getStatus().getCode().equals(Code.OK)) {
+                okNum++;
+            } else if (entry.getStatus().getCode().equals(Code.RECEIPT_HANDLE_EXPIRED)) {
+                expireNum++;
+            }
+        }
+        assertThat(okNum).isEqualTo(1);
+        assertThat(expireNum).isEqualTo(1);
     }
 
     public void testSimpleConsumerToDLQ() throws Exception {
@@ -411,20 +479,22 @@ public class GrpcBaseTest extends BaseConf {
         assertThat(receiveMessageCount.get()).isEqualTo(maxDeliveryAttempts);
     }
 
-    public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group) {
+    public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub,
+        String topic, String group) {
         List<ReceiveMessageResponse> responseList = new ArrayList<>();
         Iterator<ReceiveMessageResponse> responseIterator = stub.withDeadlineAfter(15, TimeUnit.SECONDS)
-            .receiveMessage(buildReceiveMessageRequest(group, topic));
+            .receiveMessage(buildReceiveMessageRequest(topic, group));
         while (responseIterator.hasNext()) {
             responseList.add(responseIterator.next());
         }
         return responseList;
     }
 
-    public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group, int timeSeconds) {
+    public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub,
+        String topic, String group, int timeSeconds) {
         List<ReceiveMessageResponse> responseList = new ArrayList<>();
-        Iterator<ReceiveMessageResponse> responseIterator =  stub.withDeadlineAfter(timeSeconds, TimeUnit.SECONDS)
-            .receiveMessage(buildReceiveMessageRequest(group, topic));
+        Iterator<ReceiveMessageResponse> responseIterator = stub.withDeadlineAfter(timeSeconds, TimeUnit.SECONDS)
+            .receiveMessage(buildReceiveMessageRequest(topic, group));
         while (responseIterator.hasNext()) {
             responseList.add(responseIterator.next());
         }
@@ -493,7 +563,7 @@ public class GrpcBaseTest extends BaseConf {
             .build();
     }
 
-    public ReceiveMessageRequest buildReceiveMessageRequest(String group, String topic) {
+    public ReceiveMessageRequest buildReceiveMessageRequest(String topic, String group) {
         return ReceiveMessageRequest.newBuilder()
             .setGroup(Resource.newBuilder()
                 .setName(group)
@@ -511,7 +581,15 @@ public class GrpcBaseTest extends BaseConf {
             .build();
     }
 
-    public AckMessageRequest buildAckMessageRequest(String group, String topic, String messageId, String receiptHandle) {
+    public AckMessageRequest buildAckMessageRequest(String topic, String group, String messageId,
+        String receiptHandle) {
+        return buildAckMessageRequest(topic, group, AckMessageEntry.newBuilder()
+            .setMessageId(messageId)
+            .setReceiptHandle(receiptHandle)
+            .build());
+    }
+
+    public AckMessageRequest buildAckMessageRequest(String topic, String group, AckMessageEntry... entry) {
         return AckMessageRequest.newBuilder()
             .setGroup(Resource.newBuilder()
                 .setName(group)
@@ -519,14 +597,12 @@ public class GrpcBaseTest extends BaseConf {
             .setTopic(Resource.newBuilder()
                 .setName(topic)
                 .build())
-            .addEntries(AckMessageEntry.newBuilder()
-                .setMessageId(messageId)
-                .setReceiptHandle(receiptHandle)
-                .build())
+            .addAllEntries(Arrays.stream(entry).collect(Collectors.toList()))
             .build();
     }
 
-    public NackMessageRequest buildNackMessageRequest(String group, String topic, String messageId, String receiptHandle,
+    public NackMessageRequest buildNackMessageRequest(String topic, String group, String messageId,
+        String receiptHandle,
         int deliveryAttempt) {
         return NackMessageRequest.newBuilder()
             .setDeliveryAttempt(deliveryAttempt)
@@ -541,7 +617,8 @@ public class GrpcBaseTest extends BaseConf {
             .build();
     }
 
-    public EndTransactionRequest buildEndTransactionRequest(String topic, String messageId, String transactionId, TransactionResolution resolution) {
+    public EndTransactionRequest buildEndTransactionRequest(String topic, String messageId, String transactionId,
+        TransactionResolution resolution) {
         return EndTransactionRequest.newBuilder()
             .setMessageId(messageId)
             .setTopic(Resource.newBuilder()
@@ -550,6 +627,16 @@ public class GrpcBaseTest extends BaseConf {
             .setTransactionId(transactionId)
             .setResolution(resolution)
             .setSource(TransactionSource.SOURCE_SERVER_CHECK)
+            .build();
+    }
+
+    public ChangeInvisibleDurationRequest buildChangeInvisibleDurationRequest(String topic, String group,
+        String receiptHandle, int second) {
+        return ChangeInvisibleDurationRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName(topic).build())
+            .setGroup(Resource.newBuilder().setName(group).build())
+            .setInvisibleDuration(Durations.fromSeconds(second))
+            .setReceiptHandle(receiptHandle)
             .build();
     }
 
@@ -580,9 +667,13 @@ public class GrpcBaseTest extends BaseConf {
             .getMessageId()).isEqualTo(messageId);
     }
 
-    public void assertAck(AckMessageResponse response) {
+    public void assertAllAckOk(AckMessageResponse response) {
         assertThat(response.getStatus()
             .getCode()).isEqualTo(Code.OK);
+        for (AckMessageResultEntry entry : response.getEntriesList()) {
+            assertThat(entry.getStatus()
+                .getCode()).isEqualTo(Code.OK);
+        }
     }
 
     public void assertNackMessageResponse(NackMessageResponse response) {
@@ -597,6 +688,11 @@ public class GrpcBaseTest extends BaseConf {
 
     public void assertEndTransactionResponse(EndTransactionResponse response) {
         assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+    }
+
+    public void assertChangeInvisibleDurationResponse(ChangeInvisibleDurationResponse response, String prevHandle) {
+        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(response.getReceiptHandle()).isNotEqualTo(prevHandle);
     }
 
     public Settings buildAccessPointClientSettings(int port) {

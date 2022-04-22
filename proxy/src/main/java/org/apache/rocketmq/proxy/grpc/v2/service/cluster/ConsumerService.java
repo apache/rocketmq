@@ -96,12 +96,6 @@ public class ConsumerService extends BaseService {
 
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
-        // register hook.
-        future.whenComplete((response, throwable) -> {
-            if (receiveMessageHook != null) {
-                receiveMessageHook.beforeResponse(ctx, request, response, throwable);
-            }
-        });
 
         try {
             PopMessageRequestHeader requestHeader = this.buildPopMessageRequestHeader(ctx, request);
@@ -111,26 +105,20 @@ public class ConsumerService extends BaseService {
                 throw new ProxyException(Code.FORBIDDEN, "no readable topic route for topic " + requestHeader.getTopic());
             }
 
-            CompletableFuture<PopResult> popResultFuture = this.readConsumer.popMessage(
+            future = this.readConsumer.popMessage(
                 messageQueue.getBrokerAddr(),
                 messageQueue.getBrokerName(),
                 requestHeader,
-                requestHeader.getPollTime());
-            popResultFuture
-                .thenAccept(result -> {
-                    try {
-                        future.complete(convertToReceiveMessageResponse(ctx, request, result));
-                    } catch (Throwable throwable) {
-                        future.completeExceptionally(throwable);
-                    }
-                })
-                .exceptionally(throwable -> {
-                    future.completeExceptionally(throwable);
-                    return null;
-                });
+                requestHeader.getPollTime())
+                .thenApply(result -> convertToReceiveMessageResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
+        future.whenComplete((response, throwable) -> {
+            if (receiveMessageHook != null) {
+                receiveMessageHook.beforeResponse(ctx, request, response, throwable);
+            }
+        });
         return future;
     }
 
@@ -141,7 +129,8 @@ public class ConsumerService extends BaseService {
         return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), fifo);
     }
 
-    protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request, PopResult result) {
+    protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request,
+        PopResult result) {
         PopStatus status = result.getPopStatus();
         switch (status) {
             case FOUND:
@@ -189,7 +178,8 @@ public class ConsumerService extends BaseService {
         return resMessageList;
     }
 
-    protected void forwardMessageToDLQ(Context ctx, ReceiveMessageRequest request, MessageExt messageExt, int maxReconsumeTimes) {
+    protected void forwardMessageToDLQ(Context ctx, ReceiveMessageRequest request, MessageExt messageExt,
+        int maxReconsumeTimes) {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
 
@@ -286,7 +276,8 @@ public class ConsumerService extends BaseService {
         return future;
     }
 
-    protected CompletableFuture<AckMessageResultEntry> processAckMessage(Context ctx, AckMessageRequest request, AckMessageEntry ackMessageEntry) {
+    protected CompletableFuture<AckMessageResultEntry> processAckMessage(Context ctx, AckMessageRequest request,
+        AckMessageEntry ackMessageEntry) {
         CompletableFuture<AckMessageResultEntry> future = new CompletableFuture<>();
         AckMessageResultEntry.Builder failResult = AckMessageResultEntry.newBuilder()
             .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "ack message failed"))
@@ -311,11 +302,13 @@ public class ConsumerService extends BaseService {
         return future;
     }
 
-    protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, AckMessageRequest request, ReceiptHandle handle) {
+    protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, AckMessageRequest request,
+        ReceiptHandle handle) {
         return GrpcConverter.buildAckMessageRequestHeader(request, handle);
     }
 
-    protected AckMessageResultEntry convertToAckMessageResultEntry(Context ctx, AckMessageEntry ackMessageEntry, AckResult ackResult) {
+    protected AckMessageResultEntry convertToAckMessageResultEntry(Context ctx, AckMessageEntry ackMessageEntry,
+        AckResult ackResult) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
             return AckMessageResultEntry.newBuilder()
                 .setMessageId(ackMessageEntry.getMessageId())
@@ -332,11 +325,6 @@ public class ConsumerService extends BaseService {
 
     public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
         CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
-        future.whenComplete((response, throwable) -> {
-            if (nackMessageHook != null) {
-                nackMessageHook.beforeResponse(ctx, request, response, throwable);
-            }
-        });
         try {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
@@ -344,51 +332,35 @@ public class ConsumerService extends BaseService {
             Settings settings = grpcClientManager.getClientSettings(ctx);
             int maxDeliveryAttempts = settings.getSubscription().getBackoffPolicy().getMaxAttempts();
             if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
-                CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
+                future = this.producer.sendMessageBack(
                     brokerAddr,
                     this.buildConsumerSendMsgBackToDLQRequestHeader(ctx, request, maxDeliveryAttempts)
-                );
-
-                resultFuture
-                    .thenAccept(result -> {
-                        try {
-                            future.complete(convertToNackMessageResponse(ctx, request, result));
-                            if (result.getCode() == ResponseCode.SUCCESS) {
-                                writeConsumer.ackMessage(
-                                    brokerAddr,
-                                    this.buildAckMessageRequestHeader(ctx, request));
-                            }
-                        } catch (Throwable throwable) {
-                            future.completeExceptionally(throwable);
-                        }
-                    })
-                    .exceptionally(throwable -> {
-                        future.completeExceptionally(throwable);
-                        return null;
-                    });
+                ).thenApply(result -> {
+                    if (result.getCode() == ResponseCode.SUCCESS) {
+                        writeConsumer.ackMessage(
+                            brokerAddr,
+                            this.buildAckMessageRequestHeader(ctx, request));
+                    }
+                    return convertToNackMessageResponse(ctx, request, result);
+                });
             } else {
                 ChangeInvisibleTimeRequestHeader requestHeader = this.buildChangeInvisibleTimeRequestHeader(ctx, request);
-                CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader);
-                resultFuture
-                    .thenAccept(result -> {
-                        try {
-                            future.complete(convertToNackMessageResponse(ctx, request, result));
-                        } catch (Throwable throwable) {
-                            future.completeExceptionally(throwable);
-                        }
-                    })
-                    .exceptionally(throwable -> {
-                        future.completeExceptionally(throwable);
-                        return null;
-                    });
+                future = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader)
+                    .thenApply(result -> convertToNackMessageResponse(ctx, request, result));
             }
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
+        future.whenComplete((response, throwable) -> {
+            if (nackMessageHook != null) {
+                nackMessageHook.beforeResponse(ctx, request, response, throwable);
+            }
+        });
         return future;
     }
 
-    protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx, NackMessageRequest request) {
+    protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx,
+        NackMessageRequest request) {
         return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, this.delayPolicy);
     }
 
@@ -396,12 +368,14 @@ public class ConsumerService extends BaseService {
         return GrpcConverter.buildAckMessageRequestHeader(request);
     }
 
-    protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx, NackMessageRequest request,
+    protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx,
+        NackMessageRequest request,
         int maxReconsumeTimes) {
         return GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
     }
 
-    protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, AckResult ackResult) {
+    protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request,
+        AckResult ackResult) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
             return NackMessageResponse.newBuilder()
                 .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
@@ -412,7 +386,8 @@ public class ConsumerService extends BaseService {
             .build();
     }
 
-    protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request, RemotingCommand sendMsgBackToDLQResult) {
+    protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request,
+        RemotingCommand sendMsgBackToDLQResult) {
         return NackMessageResponse.newBuilder()
             .setStatus(ResponseBuilder.buildStatus(sendMsgBackToDLQResult.getCode(), sendMsgBackToDLQResult.getRemark()))
             .build();
@@ -421,32 +396,22 @@ public class ConsumerService extends BaseService {
     public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         CompletableFuture<ChangeInvisibleDurationResponse> future = new CompletableFuture<>();
-        future.whenComplete((response, throwable) -> {
-            if (changeInvisibleDurationHook != null) {
-                changeInvisibleDurationHook.beforeResponse(ctx, request, response, throwable);
-            }
-        });
+
         try {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
             ChangeInvisibleTimeRequestHeader requestHeader = convertToChangeInvisibleTimeRequestHeader(ctx, request);
-            CompletableFuture<AckResult> resultFuture = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader);
-            resultFuture
-                .thenAccept(result -> {
-                    try {
-                        future.complete(convertToChangeInvisibleDurationResponse(ctx, request, result));
-                    } catch (Throwable throwable) {
-                        future.completeExceptionally(throwable);
-                    }
-                })
-                .exceptionally(throwable -> {
-                    future.completeExceptionally(throwable);
-                    return null;
-                });
+            future = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader)
+                .thenApply(result -> convertToChangeInvisibleDurationResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
+        future.whenComplete((response, throwable) -> {
+            if (changeInvisibleDurationHook != null) {
+                changeInvisibleDurationHook.beforeResponse(ctx, request, response, throwable);
+            }
+        });
         return future;
     }
 
