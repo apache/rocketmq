@@ -36,6 +36,8 @@ import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.ServiceProvider;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
@@ -43,11 +45,9 @@ import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingProcessor;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcForwardService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GrpcServer implements StartAndShutdown {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final io.grpc.Server server;
     private final ThreadPoolExecutor executor;

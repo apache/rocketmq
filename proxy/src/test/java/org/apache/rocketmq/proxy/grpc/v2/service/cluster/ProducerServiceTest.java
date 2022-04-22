@@ -164,16 +164,4 @@ public class ProducerServiceTest extends BaseServiceTest {
             assertSame(ex, e.getCause());
         }
     }
-
-//    @Test
-//    public void testForwardMessageToDeadLetterQueue() throws Exception {
-//        ProducerService producerService = new ProducerService(this.connectorManager);
-//
-//        when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
-//        producerService.forwardMessageToDeadLetterQueue(Context.current(), ForwardMessageToDeadLetterQueueRequest.newBuilder()
-//            .setMessageId("msgId")
-//            .setReceiptHandle(createReceiptHandle().encode())
-//            .set
-//            .build());
-//    }
 }

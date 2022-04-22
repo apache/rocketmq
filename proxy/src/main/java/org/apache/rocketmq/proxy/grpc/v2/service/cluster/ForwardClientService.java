@@ -38,8 +38,11 @@ import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MQVersion;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
@@ -51,11 +54,9 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.proxy.grpc.v2.service.ClientSettingsService;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ForwardClientService extends BaseService {
-    private static final Logger log = LoggerFactory.getLogger(ForwardClientService.class);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final ChannelManager channelManager;
     private final ConsumerManager consumerManager;

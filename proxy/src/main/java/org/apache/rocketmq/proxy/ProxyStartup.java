@@ -24,7 +24,10 @@ import java.util.Date;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -34,11 +37,10 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.service.ClusterGrpcService;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcForwardService;
 import org.apache.rocketmq.proxy.grpc.v2.service.LocalGrpcService;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ProxyStartup {
-    private static final Logger log = LoggerFactory.getLogger(ProxyStartup.class);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private static final ProxyStartAndShutdown PROXY_START_AND_SHUTDOWN = new ProxyStartAndShutdown();
 
     private static class ProxyStartAndShutdown extends AbstractStartAndShutdown {
