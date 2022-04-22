@@ -91,7 +91,6 @@ import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
@@ -257,15 +256,13 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     @Override
     public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         long pollTime = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
-        String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
         // TODO: get fifo config from subscriptionGroupManager
         boolean fifo = false;
         PopMessageRequestHeader requestHeader = GrpcConverter.buildPopMessageRequestHeader(request, pollTime, fifo);
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         command.makeCustomHeaderToNet();
 
-        ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(brokerController.getBrokerConfig().getBrokerName(),
-            fifo);
+        ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(brokerController.getBrokerConfig().getBrokerName(), fifo);
         ReceiveMessageChannel channel = channelManager.createChannel(() -> new ReceiveMessageChannel(handler), ReceiveMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
@@ -332,7 +329,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
 
-        int maxReconsumeTimes = ConfigurationManager.getProxyConfig().getDefaultMaxDeliveryAttempts();
+        int maxReconsumeTimes = grpcClientManager.getClientSettings(ctx).getSubscription().getBackoffPolicy().getMaxAttempts();
         if (request.getDeliveryAttempt() >= maxReconsumeTimes) {
             ConsumerSendMsgBackRequestHeader requestHeader = GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
             RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
