@@ -17,8 +17,8 @@
 package org.apache.rocketmq.namesrv.controller;
 
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
@@ -72,11 +72,11 @@ public interface Controller {
     /**
      * Alter ISR of broker replicas.
      *
-     * @param request AlterInSyncReplicasRequest
-     * @return AlterInSyncReplicasResponse
+     * @param request AlterSyncStateSetRequestHeader
+     * @return AlterSyncStateSetResponseHeader
      */
-    CompletableFuture<AlterInSyncReplicasResponseHeader> alterInSyncReplicas(
-        final AlterInSyncReplicasRequestHeader request);
+    CompletableFuture<AlterSyncStateSetResponseHeader> alterSyncStateSet(
+        final AlterSyncStateSetRequestHeader request);
 
     /**
      * Elect new master for a broker.

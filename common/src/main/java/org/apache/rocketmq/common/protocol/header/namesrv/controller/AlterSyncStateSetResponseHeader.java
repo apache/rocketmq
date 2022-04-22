@@ -17,16 +17,18 @@
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
 import java.util.Set;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class AlterInSyncReplicasResponseHeader {
+public class AlterSyncStateSetResponseHeader implements CommandCustomHeader {
     private short errorCode = ErrorCodes.NONE.getCode();
     private Set<String> newSyncStateSet;
     private int newSyncStateSetEpoch;
 
-    public AlterInSyncReplicasResponseHeader() {
+    public AlterSyncStateSetResponseHeader() {
     }
 
-    public AlterInSyncReplicasResponseHeader(Set<String> newSyncStateSet, int newSyncStateSetEpoch) {
+    public AlterSyncStateSetResponseHeader(Set<String> newSyncStateSet, int newSyncStateSetEpoch) {
         this.newSyncStateSet = newSyncStateSet;
         this.newSyncStateSetEpoch = newSyncStateSetEpoch;
     }
@@ -55,11 +57,16 @@ public class AlterInSyncReplicasResponseHeader {
         this.newSyncStateSetEpoch = newSyncStateSetEpoch;
     }
 
-    @Override public String toString() {
-        return "AlterInSyncReplicasResponseHeader{" +
+    @Override
+    public String toString() {
+        return "AlterSyncStateSetResponseHeader{" +
             "errorCode=" + errorCode +
             ", newSyncStateSet=" + newSyncStateSet +
             ", newSyncStateSetEpoch=" + newSyncStateSetEpoch +
             '}';
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
     }
 }

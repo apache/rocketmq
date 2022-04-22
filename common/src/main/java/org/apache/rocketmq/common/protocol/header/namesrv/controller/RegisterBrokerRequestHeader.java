@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-public class RegisterBrokerRequestHeader {
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
+public class RegisterBrokerRequestHeader implements CommandCustomHeader {
     private String clusterName;
     private String brokerName;
     private String brokerAddress;
@@ -51,11 +54,16 @@ public class RegisterBrokerRequestHeader {
         this.brokerAddress = brokerAddress;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "RegisterBrokerRequestHeader{" +
             "clusterName='" + clusterName + '\'' +
             ", brokerName='" + brokerName + '\'' +
             ", brokerAddress='" + brokerAddress + '\'' +
             '}';
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
     }
 }

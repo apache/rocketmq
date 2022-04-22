@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -34,27 +35,30 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
-import org.apache.rocketmq.common.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
+import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
+import org.apache.rocketmq.common.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.namesrv.controller.Controller;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -80,8 +84,9 @@ public class RouteInfoManager {
 
     private final NamesrvController namesrvController;
     private final NamesrvConfig namesrvConfig;
+    private final Controller controller;
 
-    public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController) {
+    public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController, final Controller controller) {
         this.topicQueueTable = new ConcurrentHashMap<String, Map<String, QueueData>>(1024);
         this.brokerAddrTable = new ConcurrentHashMap<String, BrokerData>(128);
         this.clusterAddrTable = new ConcurrentHashMap<String, Set<String>>(32);
@@ -92,6 +97,7 @@ public class RouteInfoManager {
         this.unRegisterService = new BatchUnRegisterService(this, namesrvConfig);
         this.namesrvConfig = namesrvConfig;
         this.namesrvController = namesrvController;
+        this.controller = controller;
     }
 
     public void start() {
@@ -662,6 +668,15 @@ public class RouteInfoManager {
                         removedBroker.add(brokerName);
                     } else {
                         reducedBroker.add(brokerName);
+                    }
+
+                    // Check whether we need to elect a new master
+                    if (this.namesrvConfig.isStartupController() && this.controller != null) {
+                        if (unRegisterRequest.getBrokerId() == 0) {
+                            final CompletableFuture<ElectMasterResponseHeader> future =
+                                this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
+                            // Todo: Inform the master, However, because now the broker does not have the related api, so I will complete the process in the future.
+                        }
                     }
                 }
 

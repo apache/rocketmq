@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-public class ElectMasterResponseHeader {
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
+public class ElectMasterResponseHeader implements CommandCustomHeader {
     private short errorCode = ErrorCodes.NONE.getCode();
     private String newMasterAddress;
     private int masterEpoch;
@@ -53,11 +56,16 @@ public class ElectMasterResponseHeader {
         this.masterEpoch = masterEpoch;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "ElectMasterResponseHeader{" +
             "errorCode=" + errorCode +
             ", newMasterAddress='" + newMasterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             '}';
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
     }
 }

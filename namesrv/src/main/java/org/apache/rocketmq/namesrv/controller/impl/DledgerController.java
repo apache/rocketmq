@@ -32,8 +32,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
@@ -110,13 +110,13 @@ public class DledgerController implements Controller {
     }
 
     @Override
-    public CompletableFuture<AlterInSyncReplicasResponseHeader> alterInSyncReplicas(
-        AlterInSyncReplicasRequestHeader request) {
+    public CompletableFuture<AlterSyncStateSetResponseHeader> alterSyncStateSet(
+        AlterSyncStateSetRequestHeader request) {
         if (!this.roleHandler.isLeaderState()) {
-            log.warn("Current controller {} is not leader, reject alterInSyncReplicas request", this.dLedgerConfig.getSelfId());
+            log.warn("Current controller {} is not leader, reject alterSyncStateSet request", this.dLedgerConfig.getSelfId());
             return null;
         }
-        return this.scheduler.appendEvent("alterInSyncReplicas",
+        return this.scheduler.appendEvent("alterSyncStateSet",
             () -> this.replicasInfoManager.alterSyncStateSet(request), true);
     }
 

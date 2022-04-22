@@ -20,7 +20,7 @@ import java.util.Set;
 
 /**
  * The event alters the syncStateSet of target broker.
- * Triggered by the AlterInSyncReplicaApi.
+ * Triggered by the AlterSyncStateSetApi.
  */
 public class AlterSyncStateSetEvent implements EventMessage {
 

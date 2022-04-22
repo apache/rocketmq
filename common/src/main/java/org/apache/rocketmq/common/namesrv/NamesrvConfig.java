@@ -73,11 +73,25 @@ public class NamesrvConfig {
 
     private volatile boolean enableAllTopicList = false;
 
+    /**
+     * Dledger controller config
+     */
+    private boolean isStartupController = false;
+    /**
+     * Indicates the nums of thread to handle broker or operation requests, like REGISTER_BROKER.
+     */
+    private int controllerThreadPoolNums = 16;
+    /**
+     * Indicates the capacity of queue to hold client requests.
+     */
+    private int controllerRequestThreadPoolQueueCapacity = 50000;
     private String controllerDLegerGroup;
     private String controllerDLegerPeers;
     private String controllerDLegerSelfId;
     private String controllerStorePath = System.getProperty("user.home") + File.separator + "DledgerController";
-    // Whether the controller can elect a master which is not in the syncStateSet.
+    /**
+     * Whether the controller can elect a master which is not in the syncStateSet.
+     */
     private boolean enableElectUncleanMaster = false;
 
     public void setRemoteFaultTolerance(boolean remoteFaultTolerance) {
@@ -206,6 +220,30 @@ public class NamesrvConfig {
 
     public void setEnableAllTopicList(boolean enableAllTopicList) {
         this.enableAllTopicList = enableAllTopicList;
+    }
+
+    public boolean isStartupController() {
+        return isStartupController;
+    }
+
+    public void setStartupController(boolean startupController) {
+        isStartupController = startupController;
+    }
+
+    public int getControllerThreadPoolNums() {
+        return controllerThreadPoolNums;
+    }
+
+    public void setControllerThreadPoolNums(int controllerThreadPoolNums) {
+        this.controllerThreadPoolNums = controllerThreadPoolNums;
+    }
+
+    public int getControllerRequestThreadPoolQueueCapacity() {
+        return controllerRequestThreadPoolQueueCapacity;
+    }
+
+    public void setControllerRequestThreadPoolQueueCapacity(int controllerRequestThreadPoolQueueCapacity) {
+        this.controllerRequestThreadPoolQueueCapacity = controllerRequestThreadPoolQueueCapacity;
     }
 
     public String getControllerDLegerGroup() {

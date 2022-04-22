@@ -21,8 +21,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ErrorCodes;
@@ -60,11 +60,11 @@ public class ReplicasInfoManager {
 
     /********************************    The following methods don't update statemachine, triggered by controller leader   ********************************/
 
-    public ControllerResult<AlterInSyncReplicasResponseHeader> alterSyncStateSet(
-        final AlterInSyncReplicasRequestHeader request) {
+    public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
+        final AlterSyncStateSetRequestHeader request) {
         final String brokerName = request.getBrokerName();
-        final ControllerResult<AlterInSyncReplicasResponseHeader> result = new ControllerResult<>(new AlterInSyncReplicasResponseHeader());
-        final AlterInSyncReplicasResponseHeader response = result.getResponse();
+        final ControllerResult<AlterSyncStateSetResponseHeader> result = new ControllerResult<>(new AlterSyncStateSetResponseHeader());
+        final AlterSyncStateSetResponseHeader response = result.getResponse();
 
         if (isContainsBroker(brokerName)) {
             final Set<String> newSyncStateSet = request.getNewSyncStateSet();

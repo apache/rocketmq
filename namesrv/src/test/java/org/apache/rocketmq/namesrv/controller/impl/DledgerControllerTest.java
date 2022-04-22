@@ -25,8 +25,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ErrorCodes;
@@ -109,9 +109,9 @@ public class DledgerControllerTest {
 
     private boolean alterNewInSyncSet(Controller leader, String brokerName, String masterAddress, int masterEpoch,
         Set<String> newSyncStateSet, int syncStateSetEpoch) throws Exception {
-        final AlterInSyncReplicasRequestHeader alterRequest =
-            new AlterInSyncReplicasRequestHeader(brokerName, masterAddress, masterEpoch, newSyncStateSet, syncStateSetEpoch);
-        final CompletableFuture<AlterInSyncReplicasResponseHeader> response = leader.alterInSyncReplicas(alterRequest);
+        final AlterSyncStateSetRequestHeader alterRequest =
+            new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch, newSyncStateSet, syncStateSetEpoch);
+        final CompletableFuture<AlterSyncStateSetResponseHeader> response = leader.alterSyncStateSet(alterRequest);
         response.get(10, TimeUnit.SECONDS);
         Thread.sleep(500);
 

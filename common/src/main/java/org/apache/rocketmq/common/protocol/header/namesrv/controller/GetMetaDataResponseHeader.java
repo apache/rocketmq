@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-public class GetMetaDataResponseHeader {
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
+public class GetMetaDataResponseHeader implements CommandCustomHeader {
     private String controllerLeaderId;
     private String controllerLeaderAddress;
 
@@ -39,5 +42,9 @@ public class GetMetaDataResponseHeader {
 
     public void setControllerLeaderAddress(String controllerLeaderAddress) {
         this.controllerLeaderAddress = controllerLeaderAddress;
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
     }
 }

@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-public class GetReplicaInfoRequestHeader {
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
+public class GetReplicaInfoRequestHeader implements CommandCustomHeader {
     private String brokerName;
 
     public GetReplicaInfoRequestHeader(String brokerName) {
@@ -31,9 +34,14 @@ public class GetReplicaInfoRequestHeader {
         this.brokerName = brokerName;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "GetReplicaInfoRequestHeader{" +
             "brokerName='" + brokerName + '\'' +
             '}';
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
     }
 }

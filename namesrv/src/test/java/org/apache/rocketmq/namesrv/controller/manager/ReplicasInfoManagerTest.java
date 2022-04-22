@@ -19,8 +19,8 @@ package org.apache.rocketmq.namesrv.controller.manager;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ErrorCodes;
@@ -72,9 +72,9 @@ public class ReplicasInfoManagerTest {
     }
 
     private boolean alterNewInSyncSet(String brokerName, String masterAddress, int masterEpoch, Set<String> newSyncStateSet, int syncStateSetEpoch) {
-        final AlterInSyncReplicasRequestHeader alterRequest =
-            new AlterInSyncReplicasRequestHeader(brokerName, masterAddress, masterEpoch, newSyncStateSet, syncStateSetEpoch);
-        final ControllerResult<AlterInSyncReplicasResponseHeader> result = this.replicasInfoManager.alterSyncStateSet(alterRequest);
+        final AlterSyncStateSetRequestHeader alterRequest =
+            new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch, newSyncStateSet, syncStateSetEpoch);
+        final ControllerResult<AlterSyncStateSetResponseHeader> result = this.replicasInfoManager.alterSyncStateSet(alterRequest);
         apply(result.getEvents());
 
         final GetReplicaInfoResponseHeader replicaInfo = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).getResponse();

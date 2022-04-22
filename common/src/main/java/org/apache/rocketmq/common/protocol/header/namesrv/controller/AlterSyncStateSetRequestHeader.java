@@ -17,15 +17,17 @@
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
 import java.util.Set;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class AlterInSyncReplicasRequestHeader {
+public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     private String brokerName;
     private String masterAddress;
     private int masterEpoch;
     private Set<String> newSyncStateSet;
     private int syncStateSetEpoch;
 
-    public AlterInSyncReplicasRequestHeader(String brokerName, String masterAddress, int masterEpoch,
+    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch,
         Set<String> newSyncStateSet, int syncStateSetEpoch) {
         this.brokerName = brokerName;
         this.masterAddress = masterAddress;
@@ -74,13 +76,18 @@ public class AlterInSyncReplicasRequestHeader {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    @Override public String toString() {
-        return "AlterInSyncReplicasRequestHeader{" +
+    @Override
+    public String toString() {
+        return "AlterSyncStateSetRequestHeader{" +
             "brokerName='" + brokerName + '\'' +
             ", masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             ", newSyncStateSet=" + newSyncStateSet +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
             '}';
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
     }
 }

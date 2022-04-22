@@ -17,8 +17,10 @@
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
 import java.util.Set;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class GetReplicaInfoResponseHeader {
+public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
     private short errorCode = ErrorCodes.NONE.getCode();
     private String masterAddress;
     private int masterEpoch;
@@ -76,7 +78,8 @@ public class GetReplicaInfoResponseHeader {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "GetReplicaInfoResponseHeader{" +
             "errorCode=" + errorCode +
             ", masterAddress='" + masterAddress + '\'' +
@@ -84,5 +87,9 @@ public class GetReplicaInfoResponseHeader {
             ", syncStateSet=" + syncStateSet +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
             '}';
+    }
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
     }
 }

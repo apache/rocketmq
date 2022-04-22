@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.namesrv;
 
+import io.openmessaging.storage.dledger.DLedgerConfig;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -30,13 +31,16 @@ import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
+import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.namesrv.controller.Controller;
+import org.apache.rocketmq.namesrv.controller.impl.DledgerController;
 import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
 import org.apache.rocketmq.namesrv.processor.ClientRequestProcessor;
 import org.apache.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
+import org.apache.rocketmq.namesrv.processor.ControllerRequestProcessor;
 import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
 import org.apache.rocketmq.namesrv.routeinfo.BrokerHousekeepingService;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
@@ -51,7 +55,6 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
-
 
 public class NamesrvController {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
@@ -82,24 +85,36 @@ public class NamesrvController {
 
     private ExecutorService defaultExecutor;
     private ExecutorService clientRequestExecutor;
+    private ExecutorService controllerRequestExecutor;
 
     private BlockingQueue<Runnable> defaultThreadPoolQueue;
     private BlockingQueue<Runnable> clientRequestThreadPoolQueue;
+    private BlockingQueue<Runnable> controllerRequestThreadPoolQueue;
 
     private Configuration configuration;
     private FileWatchService fileWatchService;
+
+    private Controller controller;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
         this(namesrvConfig, nettyServerConfig, new NettyClientConfig());
     }
 
-    public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig, NettyClientConfig nettyClientConfig) {
+    public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig,
+        NettyClientConfig nettyClientConfig) {
         this.namesrvConfig = namesrvConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.kvConfigManager = new KVConfigManager(this);
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
-        this.routeInfoManager = new RouteInfoManager(namesrvConfig, this);
+        if (namesrvConfig.isStartupController()) {
+            final DLedgerConfig config = new DLedgerConfig();
+            config.setGroup(namesrvConfig.getControllerDLegerGroup());
+            config.setPeers(namesrvConfig.getControllerDLegerPeers());
+            config.setSelfId(namesrvConfig.getControllerDLegerSelfId());
+            this.controller = new DledgerController(config, namesrvConfig.isEnableElectUncleanMaster());
+        }
+        this.routeInfoManager = new RouteInfoManager(namesrvConfig, this, this.controller);
         this.configuration = new Configuration(
             LOGGER,
             this.namesrvConfig, this.nettyServerConfig
@@ -140,6 +155,24 @@ public class NamesrvController {
                 return new FutureTaskExt<T>(runnable, value);
             }
         };
+
+        if (this.namesrvConfig.isStartupController()) {
+            this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.namesrvConfig.getControllerRequestThreadPoolQueueCapacity());
+            this.controllerRequestExecutor = new ThreadPoolExecutor(
+                this.namesrvConfig.getControllerThreadPoolNums(),
+                this.namesrvConfig.getControllerThreadPoolNums(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.controllerRequestThreadPoolQueue,
+                new ThreadFactoryImpl("ControllerRequestExecutorThread_")) {
+                @Override
+                protected <T> RunnableFuture<T> newTaskFor(final Runnable runnable, final T value) {
+                    return new FutureTaskExt<T>(runnable, value);
+                }
+            };
+            this.controller.startup();
+        }
+
         this.remotingClient = new NettyRemotingClient(this.nettyClientConfig);
         this.remotingClient.updateNameServerAddressList(Arrays.asList(RemotingUtil.getLocalAddress() + ":" + this.nettyServerConfig.getListenPort()));
 
@@ -229,7 +262,6 @@ public class NamesrvController {
 
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
-
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                 this.defaultExecutor);
         } else {
@@ -238,6 +270,11 @@ public class NamesrvController {
             this.remotingServer.registerProcessor(RequestCode.GET_ROUTEINFO_BY_TOPIC, clientRequestProcessor, this.clientRequestExecutor);
 
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.defaultExecutor);
+
+            if (namesrvConfig.isStartupController()) {
+                final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this.controller);
+                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_REQUEST, controllerRequestProcessor, this.controllerRequestExecutor);
+            }
         }
     }
 
