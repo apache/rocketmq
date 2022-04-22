@@ -20,8 +20,8 @@ package org.apache.rocketmq.proxy.grpc.v2.adapter.handler;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.SendReceipt;
-import java.net.UnknownHostException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
@@ -30,8 +30,11 @@ import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SendMessageResponseHandler implements ResponseHandler<SendMessageRequest, SendMessageResponse> {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
     private final String messageId;
     private final int sysFlag;
     private final String localAddress;
@@ -42,7 +45,8 @@ public class SendMessageResponseHandler implements ResponseHandler<SendMessageRe
         this.localAddress = localAddress;
     }
 
-    @Override public void handle(RemotingCommand responseCommand,
+    @Override
+    public void handle(RemotingCommand responseCommand,
         InvocationContext<SendMessageRequest, SendMessageResponse> context) {
         // If responseCommand equals to null, then the response has been written to channel.
         // org.apache.rocketmq.broker.processor.SendMessageProcessor#handlePutMessageResult
@@ -55,11 +59,16 @@ public class SendMessageResponseHandler implements ResponseHandler<SendMessageRe
                 long commitLogOffset = 0L;
                 try {
                     commitLogOffset = TransactionId.generateCommitLogOffset(responseHeader.getMsgId());
-                } catch (UnknownHostException e) {
+                } catch (IllegalArgumentException e) {
+                    log.warn("illegal messageId:{}", responseHeader.getMsgId());
                     e.printStackTrace();
                 }
-                TransactionId transactionId = TransactionId.genByBrokerTransactionId(RemotingUtil.string2SocketAddress(localAddress),
-                    responseHeader.getTransactionId(), commitLogOffset, responseHeader.getQueueOffset());
+                TransactionId transactionId = TransactionId.genByBrokerTransactionId(
+                    RemotingUtil.string2SocketAddress(localAddress),
+                    responseHeader.getTransactionId(),
+                    commitLogOffset,
+                    responseHeader.getQueueOffset()
+                );
                 transactionIdString = transactionId.getProxyTransactionId();
             }
             SendMessageResponse response = SendMessageResponse.newBuilder()

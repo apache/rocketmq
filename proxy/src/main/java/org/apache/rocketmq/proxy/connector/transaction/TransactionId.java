@@ -74,8 +74,12 @@ public class TransactionId {
             commitLogOffset, sendResult.getQueueOffset());
     }
 
-    public static TransactionId genByBrokerTransactionId(SocketAddress brokerAddr, String orgTransactionId,
-        long commitLogOffset, long tranStateTableOffset) {
+    public static TransactionId genByBrokerTransactionId(
+        SocketAddress brokerAddr,
+        String orgTransactionId,
+        long commitLogOffset,
+        long tranStateTableOffset
+    ) {
         byte[] orgTransactionIdByte = new byte[0];
         if (StringUtils.isNotBlank(orgTransactionId)) {
             orgTransactionIdByte = orgTransactionId.getBytes(StandardCharsets.UTF_8);
@@ -127,9 +131,13 @@ public class TransactionId {
             .build();
     }
 
-    public static long generateCommitLogOffset(String messageId) throws UnknownHostException {
-        MessageId id = MessageDecoder.decodeMessageId(messageId);
-        return id.getOffset();
+    public static long generateCommitLogOffset(String messageId) throws IllegalArgumentException {
+        try {
+            MessageId id = MessageDecoder.decodeMessageId(messageId);
+            return id.getOffset();
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("illegal messageId: " + messageId);
+        }
     }
 
     @Override
