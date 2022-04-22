@@ -91,4 +91,9 @@ public class ClusterGrpcTest extends GrpcBaseTest {
     public void testSendReceiveMessageThenToDLQ() throws Exception {
         super.testSendReceiveMessageThenToDLQ();
     }
+
+    @Test
+    public void testSimpleConsumer() throws Exception {
+        super.testSimpleConsumer();
+    }
 }

@@ -80,6 +80,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLException;
@@ -96,7 +97,6 @@ import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.junit.Rule;
-import org.junit.Test;
 
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
@@ -202,12 +202,12 @@ public class GrpcBaseTest extends BaseConf {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = "group";
 
-        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
-
         // init consumer offset
+        this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
         receiveMessage(blockingStub, topic, group);
 
         String messageId = createUniqID();
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
         SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
         assertSendMessage(sendResponse, messageId);
 
@@ -222,13 +222,13 @@ public class GrpcBaseTest extends BaseConf {
 
     public void testSendReceiveMessageThenToDLQ() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
-        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
-
         String group = "group";
 
         // init consumer offset
+        this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
         receiveMessage(blockingStub, topic, group);
 
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
         String messageId = createUniqID();
         SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
         assertSendMessage(sendResponse, messageId);
@@ -278,7 +278,6 @@ public class GrpcBaseTest extends BaseConf {
         });
     }
 
-    @Test
     public void testTransactionCheckThenCommit() {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = "group";
@@ -362,6 +361,53 @@ public class GrpcBaseTest extends BaseConf {
         } finally {
             requestStreamObserver.onCompleted();
         }
+    }
+
+    public void testSimpleConsumer() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(broker1Name);
+        String group = "group";
+        int maxDeliveryAttempts = 2;
+        boolean fifo = false;
+
+        // init consumer offset
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        receiveMessage(blockingStub, topic, group);
+
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        String messageId = createUniqID();
+        SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
+        assertSendMessage(sendResponse, messageId);
+
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+
+        AtomicInteger receiveMessageCount = new AtomicInteger(0);
+
+        ReceiveMessageResponse receiveResponse = receiveMessage(blockingStub, topic, group).get(0);
+        assertReceiveMessage(receiveResponse, messageId);
+        receiveMessageCount.incrementAndGet();
+
+        DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(group);
+        defaultMQPullConsumer.start();
+        org.apache.rocketmq.common.message.MessageQueue dlqMQ = new org.apache.rocketmq.common.message.MessageQueue(MixAll.getDLQTopic(group), broker1Name, 0);
+        await().atMost(java.time.Duration.ofSeconds(30)).until(() -> {
+            try {
+                ReceiveMessageResponse retryReceiveResponse = receiveMessage(blockingStub, topic, group, 1).get(0);
+                if (retryReceiveResponse.getMessagesCount() > 0) {
+                    receiveMessageCount.addAndGet(retryReceiveResponse.getMessagesCount());
+                }
+
+                PullResult pullResult = defaultMQPullConsumer.pull(dlqMQ, "*", 0L, 1);
+                if (!PullStatus.FOUND.equals(pullResult.getPullStatus())) {
+                    return false;
+                }
+                MessageExt messageExt = pullResult.getMsgFoundList().get(0);
+                return messageId.equals(messageExt.getMsgId());
+            } catch (Throwable ignore) {
+                return false;
+            }
+        });
+
+        assertThat(receiveMessageCount.get()).isEqualTo(maxDeliveryAttempts);
     }
 
     public List<ReceiveMessageResponse> receiveMessage(MessagingServiceGrpc.MessagingServiceBlockingStub stub, String topic, String group) {
@@ -560,6 +606,18 @@ public class GrpcBaseTest extends BaseConf {
                     .setHost("127.0.0.1")
                     .setPort(port)
                     .build())
+                .build())
+            .build();
+    }
+
+    public Settings buildSimpleConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
+        return Settings.newBuilder()
+            .setClientType(ClientType.SIMPLE_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setBackoffPolicy(RetryPolicy.newBuilder()
+                    .setMaxAttempts(maxDeliveryAttempts)
+                    .build())
+                .setFifo(fifo)
                 .build())
             .build();
     }

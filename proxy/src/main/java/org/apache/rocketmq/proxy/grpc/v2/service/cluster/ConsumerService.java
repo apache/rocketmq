@@ -22,15 +22,18 @@ import apache.rocketmq.v2.AckMessageResponse;
 import apache.rocketmq.v2.AckMessageResultEntry;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
@@ -72,6 +75,7 @@ public class ConsumerService extends BaseService {
     private volatile ReadQueueSelector readQueueSelector;
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
     private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook;
+    private volatile ResponseHook<ConsumerSendMsgBackRequestHeader, RemotingCommand> forwardToDLQInRecvMessageHook;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
     private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook;
     private volatile ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> changeInvisibleDurationHook;
@@ -141,9 +145,10 @@ public class ConsumerService extends BaseService {
         PopStatus status = result.getPopStatus();
         switch (status) {
             case FOUND:
+                List<Message> messageList = filterMessage(ctx, request, result.getMsgFoundList());
                 return ReceiveMessageResponse.newBuilder()
                     .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-                    .addAllMessages(checkAndGetMessagesFromPopResult(ctx, request, result))
+                    .addAllMessages(messageList)
                     .build();
             case POLLING_FULL:
                 return ReceiveMessageResponse.newBuilder()
@@ -158,20 +163,65 @@ public class ConsumerService extends BaseService {
         }
     }
 
-    protected List<Message> checkAndGetMessagesFromPopResult(Context ctx, ReceiveMessageRequest request, PopResult result) {
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+    protected List<Message> filterMessage(Context ctx, ReceiveMessageRequest request, List<MessageExt> messageExtList) {
+        if (messageExtList == null || messageExtList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Settings settings = grpcClientManager.getClientSettings(ctx);
+        ClientType clientType = settings.getClientType();
+        int maxAttempts = settings.getSubscription().getBackoffPolicy().getMaxAttempts();
+        Resource topic = request.getMessageQueue().getTopic();
+        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
         SubscriptionData subscriptionData = GrpcConverter.buildSubscriptionData(topicName, request.getFilterExpression());
 
-        List<Message> messages = new ArrayList<>();
-        for (MessageExt messageExt : result.getMsgFoundList()) {
+        List<Message> resMessageList = new ArrayList<>();
+        for (MessageExt messageExt : messageExtList) {
+            if (ClientType.SIMPLE_CONSUMER.equals(clientType) && messageExt.getReconsumeTimes() >= maxAttempts) {
+                forwardMessageToDLQ(ctx, request, messageExt, maxAttempts);
+                continue;
+            }
             if (!FilterUtils.isTagMatched(subscriptionData.getTagsSet(), messageExt.getTags())) {
                 this.ackNoMatchedMessage(ctx, request, messageExt);
                 continue;
             }
-            messages.add(GrpcConverter.buildMessage(messageExt));
+            resMessageList.add(GrpcConverter.buildMessage(messageExt));
+        }
+        return resMessageList;
+    }
+
+    protected void forwardMessageToDLQ(Context ctx, ReceiveMessageRequest request, MessageExt messageExt, int maxReconsumeTimes) {
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
+
+        try {
+            ReceiptHandle handle = ReceiptHandle.create(messageExt);
+            if (handle == null) {
+                return;
+            }
+            String brokerAddr = this.getBrokerAddr(ctx, handle.getBrokerName());
+            Resource topic = request.getMessageQueue().getTopic();
+            Resource group = request.getGroup();
+            ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = GrpcConverter.buildConsumerSendMsgBackRequestHeader(
+                topic,
+                group,
+                handle,
+                messageExt.getMsgId(),
+                maxReconsumeTimes);
+            AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(
+                topic,
+                group,
+                handle);
+
+            future = this.producer.sendMessageBackThenAckOrg(brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
         }
 
-        return messages;
+        future.whenComplete((result, throwable) -> {
+            if (forwardToDLQInRecvMessageHook != null) {
+                forwardToDLQInRecvMessageHook.beforeResponse(ctx, consumerSendMsgBackRequestHeader, result, throwable);
+            }
+        });
     }
 
     protected void ackNoMatchedMessage(Context ctx, ReceiveMessageRequest request, MessageExt messageExt) {
@@ -442,6 +492,15 @@ public class ConsumerService extends BaseService {
     public void setAckNoMatchedMessageHook(
         ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook) {
         this.ackNoMatchedMessageHook = ackNoMatchedMessageHook;
+    }
+
+    public ResponseHook<ConsumerSendMsgBackRequestHeader, RemotingCommand> getForwardToDLQInRecvMessageHook() {
+        return forwardToDLQInRecvMessageHook;
+    }
+
+    public void setForwardToDLQInRecvMessageHook(
+        ResponseHook<ConsumerSendMsgBackRequestHeader, RemotingCommand> forwardToDLQInRecvMessageHook) {
+        this.forwardToDLQInRecvMessageHook = forwardToDLQInRecvMessageHook;
     }
 
     public ResponseHook<AckMessageRequest, AckMessageResponse> getAckMessageHook() {

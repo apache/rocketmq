@@ -235,22 +235,17 @@ public class GrpcConverter {
     }
 
     public static AckMessageRequestHeader buildAckMessageRequestHeader(AckMessageRequest request, ReceiptHandle handle) {
-        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
-
-        AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
-        ackMessageRequestHeader.setConsumerGroup(groupName);
-        ackMessageRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
-        ackMessageRequestHeader.setQueueId(handle.getQueueId());
-        ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
-        ackMessageRequestHeader.setOffset(handle.getOffset());
-        return ackMessageRequestHeader;
+        return buildAckMessageRequestHeader(request.getTopic(), request.getGroup(), handle);
     }
 
     public static AckMessageRequestHeader buildAckMessageRequestHeader(NackMessageRequest request) {
-        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
+        return buildAckMessageRequestHeader(request.getTopic(), request.getGroup(), handle);
+    }
+
+    public static AckMessageRequestHeader buildAckMessageRequestHeader(Resource topic, Resource group, ReceiptHandle handle) {
+        String groupName = GrpcConverter.wrapResourceWithNamespace(group);
+        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
 
         AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
         ackMessageRequestHeader.setConsumerGroup(groupName);
@@ -295,33 +290,30 @@ public class GrpcConverter {
 
     public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(
         NackMessageRequest request, int maxReconsumeTimes) {
-        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
-
-        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
-        consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());
-        consumerSendMsgBackRequestHeader.setGroup(groupName);
-        consumerSendMsgBackRequestHeader.setDelayLevel(-1);
-        consumerSendMsgBackRequestHeader.setOriginMsgId(request.getMessageId());
-        consumerSendMsgBackRequestHeader.setOriginTopic(handle.getRealTopic(topicName, groupName));
-        consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(maxReconsumeTimes);
-        return consumerSendMsgBackRequestHeader;
+        return buildConsumerSendMsgBackRequestHeader(request.getTopic(), request.getGroup(), handle,
+            request.getMessageId(), maxReconsumeTimes);
     }
 
     public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(
         ForwardMessageToDeadLetterQueueRequest request) {
-        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
+        return buildConsumerSendMsgBackRequestHeader(request.getTopic(), request.getGroup(), handle,
+            request.getMessageId(), request.getMaxDeliveryAttempts());
+    }
+
+    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(Resource topic, Resource group, ReceiptHandle handle,
+        String messageId, int maxReconsumeTimes) {
+        String groupName = GrpcConverter.wrapResourceWithNamespace(group);
+        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
 
         ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
         consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());
         consumerSendMsgBackRequestHeader.setGroup(groupName);
         consumerSendMsgBackRequestHeader.setDelayLevel(-1);
-        consumerSendMsgBackRequestHeader.setOriginMsgId(request.getMessageId());
+        consumerSendMsgBackRequestHeader.setOriginMsgId(messageId);
         consumerSendMsgBackRequestHeader.setOriginTopic(handle.getRealTopic(topicName, groupName));
-        consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(request.getMaxDeliveryAttempts());
+        consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(maxReconsumeTimes);
         return consumerSendMsgBackRequestHeader;
     }
 
