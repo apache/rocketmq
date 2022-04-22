@@ -55,14 +55,14 @@ import com.google.rpc.Code;
 import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.grpc.v1.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v1.adapter.V2Converter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final org.apache.rocketmq.proxy.grpc.v2.service.ClusterGrpcService clusterGrpcService;
 

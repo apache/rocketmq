@@ -59,15 +59,15 @@ import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.grpc.v1.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v1.adapter.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.v1.service.GrpcForwardService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
 
 public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServiceImplBase {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final GrpcForwardService grpcForwardService;
 
     public GrpcMessagingProcessor(GrpcForwardService grpcForwardService) {

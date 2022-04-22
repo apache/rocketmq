@@ -21,11 +21,12 @@ import com.alibaba.fastjson.JSON;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Configuration {
-    private final static Logger log = LoggerFactory.getLogger(Configuration.class);
+    private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final AtomicReference<ProxyConfig> proxyConfigReference = new AtomicReference<>();
 
     public void init() throws Exception {

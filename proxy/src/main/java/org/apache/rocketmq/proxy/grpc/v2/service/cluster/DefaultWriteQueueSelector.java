@@ -20,16 +20,17 @@ import apache.rocketmq.v2.SendMessageRequest;
 import io.grpc.Context;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DefaultWriteQueueSelector implements WriteQueueSelector {
-    private static final Logger log = LoggerFactory.getLogger(DefaultWriteQueueSelector.class);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected final TopicRouteCache topicRouteCache;
 

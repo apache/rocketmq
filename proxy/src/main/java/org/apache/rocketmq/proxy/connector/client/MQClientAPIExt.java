@@ -35,6 +35,7 @@ import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -56,16 +57,16 @@ import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MQClientAPIExt extends MQClientAPIImpl {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MQClientAPIExt.class);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final ClientConfig clientConfig;
 
@@ -82,7 +83,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
     public boolean updateNameServerAddressList() {
         if (this.clientConfig.getNamesrvAddr() != null) {
             this.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
-            LOGGER.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
+            log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
             return true;
         }
         return false;

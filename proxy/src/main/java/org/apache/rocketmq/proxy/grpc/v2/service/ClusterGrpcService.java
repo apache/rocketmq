@@ -47,6 +47,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
@@ -60,11 +62,9 @@ import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ForwardClientService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ProducerService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.RouteService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.TransactionService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.GRPC_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryImpl("ClusterGrpcServiceScheduledThread")

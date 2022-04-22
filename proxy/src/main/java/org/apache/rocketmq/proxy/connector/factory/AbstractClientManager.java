@@ -19,13 +19,14 @@ package org.apache.rocketmq.proxy.connector.factory;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class AbstractClientManager<T>  {
-    private static final Logger log = LoggerFactory.getLogger(AbstractClientManager.class);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected final ScheduledExecutorService scheduledExecutorService;
     protected Map<String, T> cacheTable = new ConcurrentHashMap<>();
