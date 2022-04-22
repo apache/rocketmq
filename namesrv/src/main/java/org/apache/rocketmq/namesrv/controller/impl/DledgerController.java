@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.namesrv.controller.impl;
 
 import io.openmessaging.storage.dledger.AppendFuture;
@@ -20,7 +36,6 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSync
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterInSyncReplicasResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
@@ -36,11 +51,7 @@ import org.apache.rocketmq.namesrv.controller.manager.event.EventSerializer;
 import org.apache.rocketmq.remoting.common.ServiceThread;
 
 /**
- * The implementation of controllerApi, based on dledger (raft).
- *
- * @author hzh
- * @email 642256541@qq.com
- * @date 2022/4/15 14:58
+ * The implementation of controller, based on dledger (raft).
  */
 public class DledgerController implements Controller {
 
@@ -140,7 +151,7 @@ public class DledgerController implements Controller {
     }
 
     @Override
-    public GetMetaDataResponseHeader getMetadata(final GetMetaDataRequestHeader request) {
+    public GetMetaDataResponseHeader getControllerMetadata() {
         final MemberState state = getMemberState();
         return new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr());
     }
@@ -338,10 +349,5 @@ public class DledgerController implements Controller {
     // Only for test
     public MemberState getMemberState() {
         return this.dLedgerServer.getMemberState();
-    }
-
-    // Only for test
-    public ReplicasInfoManager getReplicasInfoManager() {
-        return this.replicasInfoManager;
     }
 }

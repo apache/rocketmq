@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.namesrv.controller.impl;
 
 import io.openmessaging.storage.dledger.DLedgerConfig;
@@ -127,12 +143,12 @@ public class DledgerControllerTest {
         return null;
     }
 
-    public DledgerController mockMetaData() throws Exception {
+    public DledgerController mockMetaData(boolean enableElectUncleanMaster) throws Exception {
         String group = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
-        DledgerController c0 = launchController(group, peers, "n0", "n1", DLedgerConfig.MEMORY, true);
-        DledgerController c1 = launchController(group, peers, "n1", "n1", DLedgerConfig.MEMORY, true);
-        DledgerController c2 = launchController(group, peers, "n2", "n1", DLedgerConfig.MEMORY, true);
+        DledgerController c0 = launchController(group, peers, "n0", "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster);
+        DledgerController c1 = launchController(group, peers, "n1", "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster);
+        DledgerController c2 = launchController(group, peers, "n2", "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster);
         controllers.add(c0);
         controllers.add(c1);
         controllers.add(c2);
@@ -159,7 +175,7 @@ public class DledgerControllerTest {
 
     @Test
     public void testElectMaster() throws Exception {
-        final DledgerController leader = mockMetaData();
+        final DledgerController leader = mockMetaData(false);
         final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
         final CompletableFuture<ElectMasterResponseHeader> future = leader.electMaster(request);
         final ElectMasterResponseHeader response = future.get(10, TimeUnit.SECONDS);
@@ -169,8 +185,8 @@ public class DledgerControllerTest {
     }
 
     @Test
-    public void testAllReplicasShutdownAndRestart() throws Exception {
-        final DledgerController leader = mockMetaData();
+    public void testAllReplicasShutdownAndRestartWithUnEnableElectUnCleanMaster() throws Exception {
+        final DledgerController leader = mockMetaData(false);
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
 
@@ -185,13 +201,70 @@ public class DledgerControllerTest {
         assertEquals(response.getErrorCode(), ErrorCodes.MASTER_NOT_AVAILABLE.getCode());
 
         final GetReplicaInfoResponseHeader replicaInfo = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
+        assertEquals(replicaInfo.getSyncStateSet(), newSyncStateSet);
         assertEquals(replicaInfo.getMasterAddress(), "");
         assertEquals(replicaInfo.getMasterEpoch(), 2);
+
+        // Now, we start broker1 - 127.0.0.1:9001, but it was not in syncStateSet, so it will not be elected as master.
+        final RegisterBrokerRequestHeader request1 =
+            new RegisterBrokerRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
+        final RegisterBrokerResponseHeader r1 = leader.registerBroker(request1).get(10, TimeUnit.SECONDS);
+        assertEquals(r1.getBrokerId(), 2);
+        assertEquals(r1.getMasterAddress(), "");
+        assertEquals(r1.getMasterEpoch(), 2);
+
+        // Now, we start broker1 - 127.0.0.1:9000, it will be elected as master
+        final RegisterBrokerRequestHeader request2 =
+            new RegisterBrokerRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
+        final RegisterBrokerResponseHeader r2 = leader.registerBroker(request2).get(10, TimeUnit.SECONDS);
+        assertEquals(r2.getBrokerId(), 0);
+        assertEquals(r2.getMasterAddress(), "127.0.0.1:9000");
+        assertEquals(r2.getMasterEpoch(), 3);
+    }
+
+    @Test
+    public void testAllReplicasShutdownAndRestartWithEnableElectUnCleanMaster() throws Exception {
+        final DledgerController leader = mockMetaData(true);
+        final HashSet<String> newSyncStateSet = new HashSet<>();
+        newSyncStateSet.add("127.0.0.1:9000");
+
+        assertTrue(alterNewInSyncSet(leader, "broker1", "127.0.0.1:9000", 1, newSyncStateSet, 2));
+
+        // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
+        // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
+        final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
+        final CompletableFuture<ElectMasterResponseHeader> future = leader.electMaster(electRequest);
+        final ElectMasterResponseHeader response = future.get(10, TimeUnit.SECONDS);
+        Thread.sleep(500);
+        assertEquals(response.getErrorCode(), ErrorCodes.MASTER_NOT_AVAILABLE.getCode());
+
+        final GetReplicaInfoResponseHeader replicaInfo = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
+        assertEquals(replicaInfo.getSyncStateSet(), newSyncStateSet);
+        assertEquals(replicaInfo.getMasterAddress(), "");
+        assertEquals(replicaInfo.getMasterEpoch(), 2);
+
+        // Now, we start broker1 - 127.0.0.1:9001, but it was not in syncStateSet, however, because the option {enableElectUncleanMaster = true}
+        // So it still will be elected as master
+        final RegisterBrokerRequestHeader request1 =
+            new RegisterBrokerRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
+        final RegisterBrokerResponseHeader r1 = leader.registerBroker(request1).get(10, TimeUnit.SECONDS);
+        assertEquals(r1.getBrokerId(), 0);
+        assertEquals(r1.getMasterAddress(), "127.0.0.1:9001");
+        assertEquals(r1.getMasterEpoch(), 3);
+        Thread.sleep(500);
+
+        // Now, we start broker1 - 127.0.0.1:9000
+        final RegisterBrokerRequestHeader request2 =
+            new RegisterBrokerRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
+        final RegisterBrokerResponseHeader r2 = leader.registerBroker(request2).get(10, TimeUnit.SECONDS);
+        assertEquals(r2.getBrokerId(), 1);
+        assertEquals(r2.getMasterAddress(), "127.0.0.1:9001");
+        assertEquals(r2.getMasterEpoch(), 3);
     }
 
     @Test
     public void testChangeControllerLeader() throws Exception {
-        final DledgerController leader = mockMetaData();
+        final DledgerController leader = mockMetaData(false);
         leader.shutdown();
         Thread.sleep(2000);
         this.controllers.remove(leader);

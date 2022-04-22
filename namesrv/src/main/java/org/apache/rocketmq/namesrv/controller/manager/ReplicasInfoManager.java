@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.namesrv.controller.manager;
 
 import java.util.HashMap;
@@ -28,13 +44,9 @@ import org.apache.rocketmq.namesrv.controller.manager.event.EventType;
  * We can think of this class as the controller's memory state machine
  * It should be noted that this class is not thread safe,
  * and the upper layer needs to ensure that it can be called sequentially
- *
- * @author hzh
- * @email 642256541@qq.com
- * @date 2022/4/15 15:00
  */
 public class ReplicasInfoManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final Long LEADER_ID = 0L;
     private final boolean enableElectUncleanMaster;
     private final Map<String/* brokerName */, BrokerIdInfo> replicaInfoTable;
@@ -148,25 +160,29 @@ public class ReplicasInfoManager {
         final String brokerAddress = request.getBrokerAddress();
         final ControllerResult<RegisterBrokerResponseHeader> result = new ControllerResult<>(new RegisterBrokerResponseHeader());
         final RegisterBrokerResponseHeader response = result.getResponse();
-        boolean canBeElectedAsMaster = false;
+        boolean canBeElectedAsMaster;
         if (isContainsBroker(brokerName)) {
             final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
             final BrokerIdInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
+
+            // Get brokerId.
+            long brokerId;
+            if (!brokerIdTable.containsKey(brokerAddress)) {
+                // If this broker replicas is first time come online, we need to apply a new id for this replicas.
+                brokerId = brokerInfo.newBrokerId();
+                final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getBrokerName(),
+                    brokerAddress, brokerId);
+                result.addEvent(applyIdEvent);
+            } else {
+                brokerId = brokerIdTable.get(brokerAddress);
+            }
+            response.setBrokerId(brokerId);
+            response.setMasterEpoch(replicasInfo.getMasterEpoch());
+
             if (replicasInfo.isMasterAlive()) {
-                // If the master is alive, Check whether we need to apply an id for this replicas.
-                long brokerId = 0;
-                if (!brokerIdTable.containsKey(brokerAddress)) {
-                    brokerId = brokerInfo.newBrokerId();
-                    final ApplyBrokerIdEvent applyIdEvent = new ApplyBrokerIdEvent(request.getBrokerName(),
-                        brokerAddress, brokerId);
-                    result.addEvent(applyIdEvent);
-                } else {
-                    brokerId = brokerIdTable.get(brokerAddress);
-                }
+                // If the master is alive, just return master info.
                 response.setMasterAddress(replicasInfo.getMasterAddress());
-                response.setMasterEpoch(replicasInfo.getMasterEpoch());
-                response.setBrokerId(brokerId);
                 return result;
             } else {
                 // If the master is not alive, we should elect a new master:
@@ -178,17 +194,21 @@ public class ReplicasInfoManager {
             // If the broker's metadata does not exist in the state machine, the replicas can be elected as master directly.
             canBeElectedAsMaster = true;
         }
+
         if (canBeElectedAsMaster) {
-            response.setMasterAddress(request.getBrokerAddress());
             int masterEpoch = this.inSyncReplicasInfoTable.containsKey(brokerName) ?
                 this.inSyncReplicasInfoTable.get(brokerName).getMasterEpoch() + 1 : 1;
+            response.setMasterAddress(request.getBrokerAddress());
             response.setMasterEpoch(masterEpoch);
+            response.setBrokerId(0);
 
             final ElectMasterEvent event = new ElectMasterEvent(true, brokerName, brokerAddress, request.getClusterName());
             result.addEvent(event);
             return result;
         }
-        result.getResponse().setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
+
+        response.setMasterAddress("");
+        response.setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
         return result;
     }
 
