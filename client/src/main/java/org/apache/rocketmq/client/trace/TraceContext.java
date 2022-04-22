@@ -118,7 +118,7 @@ public class TraceContext implements Comparable<TraceContext> {
 
     @Override
     public int compareTo(TraceContext o) {
-        return (int) (this.timeStamp - o.getTimeStamp());
+        return Long.compare(this.timeStamp, o.getTimeStamp());
     }
 
     @Override

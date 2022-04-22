@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -911,7 +912,10 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getEarliestMessageTime() {
-        final long minPhyOffset = this.getMinPhyOffset();
+        long minPhyOffset = this.getMinPhyOffset();
+        if (this.getCommitLog() instanceof DLedgerCommitLog) {
+            minPhyOffset += DLedgerEntry.BODY_OFFSET;
+        }
         final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }

@@ -33,6 +33,9 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathCommitLog = null;
 
+    @ImportantField
+    private String storePathDLedgerCommitLog = null;
+
     private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
@@ -310,6 +313,14 @@ public class MessageStoreConfig {
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
+    }
+
+    public String getStorePathDLedgerCommitLog() {
+        return storePathDLedgerCommitLog;
+    }
+
+    public void setStorePathDLedgerCommitLog(String storePathDLedgerCommitLog) {
+        this.storePathDLedgerCommitLog = storePathDLedgerCommitLog;
     }
 
     public String getDeleteWhen() {
