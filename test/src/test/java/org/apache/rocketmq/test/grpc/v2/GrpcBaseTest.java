@@ -96,6 +96,7 @@ import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.test.base.BaseConf;
+import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.junit.Rule;
 
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
@@ -200,7 +201,7 @@ public class GrpcBaseTest extends BaseConf {
 
     public void testSendReceiveMessage() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
-        String group = "group";
+        String group = MQRandomUtils.getRandomConsumerGroup();
 
         // init consumer offset
         this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
@@ -222,7 +223,7 @@ public class GrpcBaseTest extends BaseConf {
 
     public void testSendReceiveMessageThenToDLQ() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
-        String group = "group";
+        String group = MQRandomUtils.getRandomConsumerGroup();
 
         // init consumer offset
         this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
@@ -280,7 +281,7 @@ public class GrpcBaseTest extends BaseConf {
 
     public void testTransactionCheckThenCommit() {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
-        String group = "group";
+        String group = MQRandomUtils.getRandomConsumerGroup();
 
         AtomicReference<TelemetryCommand> telemetryCommandRef = new AtomicReference<>(null);
         StreamObserver<TelemetryCommand> requestStreamObserver = stub.telemetry(new DefaultTelemetryCommandStreamObserver() {
@@ -363,9 +364,9 @@ public class GrpcBaseTest extends BaseConf {
         }
     }
 
-    public void testSimpleConsumer() throws Exception {
+    public void testSimpleConsumerToDLQ() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
-        String group = "group";
+        String group = MQRandomUtils.getRandomConsumerGroup();
         int maxDeliveryAttempts = 2;
         boolean fifo = false;
 
