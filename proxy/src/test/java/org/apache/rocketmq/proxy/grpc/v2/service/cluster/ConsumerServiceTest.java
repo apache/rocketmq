@@ -11,6 +11,9 @@ import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.RetryPolicy;
+import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
 import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -59,6 +62,13 @@ public class ConsumerServiceTest extends BaseServiceTest {
         SelectableMessageQueue selectableMessageQueue = new SelectableMessageQueue(
             new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr");
         when(readQueueSelector.select(any(), any(), any())).thenReturn(selectableMessageQueue);
+
+        Settings clientSettings = Settings.newBuilder()
+            .setSubscription(Subscription.newBuilder()
+                .setFifo(false)
+                .build())
+            .build();
+        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
 
         List<MessageExt> messageExtList = Lists.newArrayList(
             createMessageExt("msg1", "msg1"),
@@ -113,7 +123,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
                 .setMessageId("msgId")
                 .setReceiptHandle(createReceiptHandle().encode()))
             .build())
-        .get();
+            .get();
 
         assertEquals(Code.OK, response.getStatus().getCode());
     }
@@ -128,7 +138,8 @@ public class ConsumerServiceTest extends BaseServiceTest {
         }).when(producerClient).sendMessageBack(anyString(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
-        ConfigurationManager.getProxyConfig().setDefaultMaxDeliveryAttempts(3);
+        Settings clientSettings = createClientSettings(3);
+        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
 
         NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -140,7 +151,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
             .setReceiptHandle(receiptHandle.encode())
             .setDeliveryAttempt(3)
             .build())
-        .get();
+            .get();
 
         assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(receiptHandle.getCommitLogOffset(), headerRef.get().getOffset().longValue());
@@ -158,7 +169,8 @@ public class ConsumerServiceTest extends BaseServiceTest {
         }).when(writeConsumerClient).changeInvisibleTimeAsync(anyString(), anyString(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
-        ConfigurationManager.getProxyConfig().setDefaultMaxDeliveryAttempts(3);
+        Settings clientSettings = createClientSettings(3);
+        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
 
         NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -175,5 +187,15 @@ public class ConsumerServiceTest extends BaseServiceTest {
         assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(receiptHandle.getOffset(), headerRef.get().getOffset().longValue());
         assertEquals(receiptHandle.encode(), headerRef.get().getExtraInfo());
+    }
+
+    private Settings createClientSettings(int maxDeliveryAttempts) {
+        return Settings.newBuilder()
+            .setSubscription(Subscription.newBuilder()
+                .setBackoffPolicy(RetryPolicy.newBuilder()
+                    .setMaxAttempts(maxDeliveryAttempts)
+                    .build())
+                .build())
+            .build();
     }
 }
