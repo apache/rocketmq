@@ -326,9 +326,9 @@ public class ScheduleMessageService extends ConfigManager {
 
         msgInner.setWaitStoreMsgOK(false);
 
-        msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
+        msgInner.setTopic(msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
 
-        String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
+        String queueIdStr = msgExt.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
         int queueId = Integer.parseInt(queueIdStr);
         msgInner.setQueueId(queueId);
 
