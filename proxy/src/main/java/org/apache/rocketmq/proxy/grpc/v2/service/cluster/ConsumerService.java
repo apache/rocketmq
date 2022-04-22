@@ -28,6 +28,7 @@ import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.List;
@@ -131,8 +132,8 @@ public class ConsumerService extends BaseService {
 
     protected PopMessageRequestHeader buildPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
         checkSubscriptionData(request.getMessageQueue().getTopic(), request.getFilterExpression());
-        // TODO: get fifo config from subscriptionGroupManager
-        return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), false);
+        boolean fifo = grpcClientManager.getClientSettings(ctx).getSubscription().getFifo();
+        return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), fifo);
     }
 
     protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request, PopResult result) {
@@ -289,7 +290,8 @@ public class ConsumerService extends BaseService {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
-            int maxDeliveryAttempts = ConfigurationManager.getProxyConfig().getDefaultMaxDeliveryAttempts();
+            Settings settings = grpcClientManager.getClientSettings(ctx);
+            int maxDeliveryAttempts = settings.getSubscription().getBackoffPolicy().getMaxAttempts();
             if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
                 CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(
                     brokerAddr,

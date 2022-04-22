@@ -57,11 +57,6 @@ public class ProxyConfig {
      */
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
 
-    private int maxMessageBodyBytes = 1024 * 1024 * 4;
-    private int defaultMessageBodyCompressionBytesThreshold = 1024 * 4;
-    private int defaultTransactionRecoverySecond = 30;
-    private int defaultMaxDeliveryAttempts = 16;
-
     private int channelExpiredInSeconds = 60;
 
     private int forwardConsumerNum = 2;
@@ -240,38 +235,6 @@ public class ProxyConfig {
 
     public void setGrpcMaxInboundMessageSize(int grpcMaxInboundMessageSize) {
         this.grpcMaxInboundMessageSize = grpcMaxInboundMessageSize;
-    }
-
-    public int getMaxMessageBodyBytes() {
-        return maxMessageBodyBytes;
-    }
-
-    public void setMaxMessageBodyBytes(int maxMessageBodyBytes) {
-        this.maxMessageBodyBytes = maxMessageBodyBytes;
-    }
-
-    public int getDefaultMessageBodyCompressionBytesThreshold() {
-        return defaultMessageBodyCompressionBytesThreshold;
-    }
-
-    public void setDefaultMessageBodyCompressionBytesThreshold(int defaultMessageBodyCompressionBytesThreshold) {
-        this.defaultMessageBodyCompressionBytesThreshold = defaultMessageBodyCompressionBytesThreshold;
-    }
-
-    public int getDefaultTransactionRecoverySecond() {
-        return defaultTransactionRecoverySecond;
-    }
-
-    public void setDefaultTransactionRecoverySecond(int defaultTransactionRecoverySecond) {
-        this.defaultTransactionRecoverySecond = defaultTransactionRecoverySecond;
-    }
-
-    public int getDefaultMaxDeliveryAttempts() {
-        return defaultMaxDeliveryAttempts;
-    }
-
-    public void setDefaultMaxDeliveryAttempts(int defaultMaxDeliveryAttempts) {
-        this.defaultMaxDeliveryAttempts = defaultMaxDeliveryAttempts;
     }
 
     public int getChannelExpiredInSeconds() {

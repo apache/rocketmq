@@ -28,7 +28,6 @@ import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
-import apache.rocketmq.v2.ReportActiveSettingsCommand;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import com.google.common.net.HostAndPort;
@@ -45,7 +44,6 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
-import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,11 +69,12 @@ public class RouteServiceTest extends BaseServiceTest {
                 .setHost("host")
                 .build())
             .setScheme(AddressScheme.DOMAIN_NAME)
-            .build());
+            .build())
+        .build();
 
-    private static final GrpcClientManager.ActiveClientSettings INVALID_HOST_SETTINGS = new GrpcClientManager.ActiveClientSettings(ReportActiveSettingsCommand.newBuilder()
+    private static final Settings INVALID_HOST_SETTINGS = Settings.newBuilder()
         .setAccessPoint(Endpoints.getDefaultInstance())
-        .buildPartial());
+        .build();
 
     @Override
     public void beforeEach() throws Exception {

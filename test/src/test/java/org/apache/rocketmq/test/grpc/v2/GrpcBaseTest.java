@@ -20,11 +20,8 @@ package org.apache.rocketmq.test.grpc.v2;
 import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
-import apache.rocketmq.v2.ActivePublishingSettings;
-import apache.rocketmq.v2.ActiveSubscriptionSettings;
 import apache.rocketmq.v2.Address;
 import apache.rocketmq.v2.AddressScheme;
-import apache.rocketmq.v2.ApplyPassiveSettingsCommand;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.EndTransactionRequest;
@@ -37,6 +34,7 @@ import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.MessagingServiceGrpc;
 import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NackMessageResponse;
+import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
@@ -44,10 +42,12 @@ import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
-import apache.rocketmq.v2.ReportActiveSettingsCommand;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
+import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.TransactionResolution;
@@ -96,6 +96,7 @@ import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.junit.Rule;
+import org.junit.Test;
 
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
@@ -131,7 +132,6 @@ public class GrpcBaseTest extends BaseConf {
         ConfigurationManager.intConfig();
         ConfigurationManager.getProxyConfig().setGrpcServerPort(PORT);
         ConfigurationManager.getProxyConfig().setNameSrvAddr(nsAddr);
-        ConfigurationManager.getProxyConfig().setDefaultMaxDeliveryAttempts(2);
 
         blockingStub = createBlockingStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
         stub = createStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
@@ -147,20 +147,19 @@ public class GrpcBaseTest extends BaseConf {
         return MetadataUtils.attachHeaders(stub, header);
     }
 
-    protected CompletableFuture<ApplyPassiveSettingsCommand> sendClientSettings(MessagingServiceGrpc.MessagingServiceStub stub,
-        ReportActiveSettingsCommand clientSettings) {
-        CompletableFuture<ApplyPassiveSettingsCommand> future = new CompletableFuture<>();
+    protected CompletableFuture<Settings> sendClientSettings(MessagingServiceGrpc.MessagingServiceStub stub, Settings clientSettings) {
+        CompletableFuture<Settings> future = new CompletableFuture<>();
         StreamObserver<TelemetryCommand> requestStreamObserver = stub.telemetry(new DefaultTelemetryCommandStreamObserver() {
             @Override
             public void onNext(TelemetryCommand value) {
                 TelemetryCommand.CommandCase commandCase = value.getCommandCase();
-                if (TelemetryCommand.CommandCase.APPLY_PASSIVE_SETTINGS_COMMAND.equals(commandCase)) {
-                    future.complete(value.getApplyPassiveSettingsCommand());
+                if (TelemetryCommand.CommandCase.SETTINGS.equals(commandCase)) {
+                    future.complete(value.getSettings());
                 }
             }
         });
         requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-            .setReportActiveSettingsCommand(clientSettings)
+            .setSettings(clientSettings)
             .build());
         requestStreamObserver.onCompleted();
         return future;
@@ -203,11 +202,7 @@ public class GrpcBaseTest extends BaseConf {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = "group";
 
-        this.sendClientSettings(stub, ReportActiveSettingsCommand.newBuilder()
-            .setNonce(UUID.randomUUID().toString())
-            .setClientType(ClientType.PRODUCER)
-            .build())
-            .get();
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
 
         // init consumer offset
         receiveMessage(blockingStub, topic, group);
@@ -227,8 +222,7 @@ public class GrpcBaseTest extends BaseConf {
 
     public void testSendReceiveMessageThenToDLQ() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
-        this.sendClientSettings(stub, buildProducerClientSettings(topic))
-            .get();
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
 
         String group = "group";
 
@@ -284,6 +278,7 @@ public class GrpcBaseTest extends BaseConf {
         });
     }
 
+    @Test
     public void testTransactionCheckThenCommit() {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = "group";
@@ -298,13 +293,13 @@ public class GrpcBaseTest extends BaseConf {
 
         try {
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setReportActiveSettingsCommand(buildPushConsumerClientSettings())
+                .setSettings(buildPushConsumerClientSettings())
                 .build());
             await().atMost(java.time.Duration.ofSeconds(3)).until(() -> {
                 if (telemetryCommandRef.get() == null) {
                     return false;
                 }
-                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.APPLY_PASSIVE_SETTINGS_COMMAND) {
+                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.SETTINGS) {
                     return false;
                 }
                 return telemetryCommandRef.get() != null;
@@ -314,7 +309,7 @@ public class GrpcBaseTest extends BaseConf {
             receiveMessage(blockingStub, topic, group);
 
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setReportActiveSettingsCommand(buildProducerClientSettings(topic))
+                .setSettings(buildProducerClientSettings(topic))
                 .build());
             blockingStub.heartbeat(HeartbeatRequest.newBuilder()
                 .setGroup(Resource.newBuilder()
@@ -325,7 +320,7 @@ public class GrpcBaseTest extends BaseConf {
                 if (telemetryCommandRef.get() == null) {
                     return false;
                 }
-                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.APPLY_PASSIVE_SETTINGS_COMMAND) {
+                if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.SETTINGS) {
                     return false;
                 }
                 return telemetryCommandRef.get() != null;
@@ -353,7 +348,7 @@ public class GrpcBaseTest extends BaseConf {
             assertEndTransactionResponse(endTransactionResponse);
 
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
-                .setReportActiveSettingsCommand(buildPushConsumerClientSettings())
+                .setSettings(buildPushConsumerClientSettings())
                 .build());
 
             await().atMost(java.time.Duration.ofSeconds(30)).until(() -> {
@@ -557,9 +552,8 @@ public class GrpcBaseTest extends BaseConf {
         assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
     }
 
-    public ReportActiveSettingsCommand buildAccessPointClientSettings(int port) {
-        return ReportActiveSettingsCommand.newBuilder()
-            .setNonce(UUID.randomUUID().toString())
+    public Settings buildAccessPointClientSettings(int port) {
+        return Settings.newBuilder()
             .setAccessPoint(Endpoints.newBuilder()
                 .setScheme(AddressScheme.IPv4)
                 .addAddresses(Address.newBuilder()
@@ -570,27 +564,29 @@ public class GrpcBaseTest extends BaseConf {
             .build();
     }
 
-    public ReportActiveSettingsCommand buildPushConsumerClientSettings() {
+    public Settings buildPushConsumerClientSettings() {
         return buildPushConsumerClientSettings(2, false);
     }
 
-    public ReportActiveSettingsCommand buildPushConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
-        return ReportActiveSettingsCommand.newBuilder()
-            .setNonce(UUID.randomUUID().toString())
+    public Settings buildPushConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
+        return Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
-            .setActiveSubscriptionSettings(ActiveSubscriptionSettings.newBuilder()
+            .setSubscription(Subscription.newBuilder()
+                .setBackoffPolicy(RetryPolicy.newBuilder()
+                    .setMaxAttempts(maxDeliveryAttempts)
+                    .build())
+                .setFifo(fifo)
                 .build())
             .build();
     }
 
-    public ReportActiveSettingsCommand buildProducerClientSettings(String... topics) {
+    public Settings buildProducerClientSettings(String... topics) {
         List<Resource> topicResources = Arrays.stream(topics).map(topic -> Resource.newBuilder().setName(topic).build())
             .collect(Collectors.toList());
-        return ReportActiveSettingsCommand.newBuilder()
-            .setNonce(UUID.randomUUID().toString())
+        return Settings.newBuilder()
             .setClientType(ClientType.PRODUCER)
-            .setActivePublishingSettings(ActivePublishingSettings.newBuilder()
-                .addAllPublishingTopics(topicResources)
+            .setPublishing(Publishing.newBuilder()
+                .addAllTopics(topicResources)
                 .build())
             .build();
     }
