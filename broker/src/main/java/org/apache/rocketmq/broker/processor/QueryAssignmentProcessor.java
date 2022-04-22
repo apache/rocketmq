@@ -315,4 +315,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    public MessageRequestModeManager getMessageRequestModeManager() {
+        return messageRequestModeManager;
+    }
 }
