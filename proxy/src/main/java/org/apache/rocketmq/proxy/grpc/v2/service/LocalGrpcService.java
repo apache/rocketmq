@@ -17,8 +17,10 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.service;
 
+import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.AckMessageResultEntry;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
@@ -48,6 +50,7 @@ import apache.rocketmq.v2.VerifyMessageResult;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -92,6 +95,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
@@ -286,21 +290,39 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
         Channel channel = channelManager.createChannel();
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
-        AckMessageRequestHeader requestHeader = GrpcConverter.buildAckMessageRequestHeader(request, null);
-        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.ACK_MESSAGE, requestHeader);
-        command.makeCustomHeaderToNet();
-
         CompletableFuture<AckMessageResponse> future = new CompletableFuture<>();
-        try {
-            RemotingCommand responseCommand = brokerController.getAckMessageProcessor()
-                .processRequest(channelHandlerContext, command);
-            AckMessageResponse.Builder builder = AckMessageResponse.newBuilder();
-            builder.setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()));
-            AckMessageResponse response = builder.build();
-            future.complete(response);
-        } catch (Exception e) {
-            log.error("Exception raised when ack message", e);
+        List<AckMessageResultEntry> ackMessageResultEntryList = new ArrayList<>();
+        for (AckMessageEntry entry : request.getEntriesList()) {
+            ReceiptHandle receiptHandle = ReceiptHandle.decode(entry.getReceiptHandle());
+            if (receiptHandle.isExpired()) {
+                throw new ProxyException(Code.RECEIPT_HANDLE_EXPIRED, "handle has expired");
+            }
+            AckMessageRequestHeader requestHeader = GrpcConverter.buildAckMessageRequestHeader(request, receiptHandle);
+            RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.ACK_MESSAGE, requestHeader);
+            command.makeCustomHeaderToNet();
+
+            try {
+                RemotingCommand responseCommand = brokerController.getAckMessageProcessor()
+                    .processRequest(channelHandlerContext, command);
+                ackMessageResultEntryList.add(AckMessageResultEntry.newBuilder()
+                    .setReceiptHandle(entry.getReceiptHandle())
+                    .setMessageId(entry.getMessageId())
+                    .setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
+                    .build());
+            } catch (Exception e) {
+                log.error("Exception raised when ack message", e);
+                ackMessageResultEntryList.add(AckMessageResultEntry.newBuilder()
+                    .setReceiptHandle(entry.getReceiptHandle())
+                    .setMessageId(entry.getMessageId())
+                    .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, e.getMessage()))
+                    .build());
+            }
         }
+        AckMessageResponse response = AckMessageResponse.newBuilder()
+            .setStatus(ResponseBuilder.buildStatus(ResponseCode.SUCCESS, "ok"))
+            .addAllEntries(ackMessageResultEntryList)
+            .build();
+        future.complete(response);
         return future;
     }
 
