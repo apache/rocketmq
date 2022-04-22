@@ -3,6 +3,7 @@ package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
@@ -15,6 +16,7 @@ import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import io.grpc.Context;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -30,7 +32,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.assertj.core.util.Lists;
@@ -103,6 +104,56 @@ public class ConsumerServiceTest extends BaseServiceTest {
         assertEquals(1, response.getMessagesCount());
         assertEquals("msg1", response.getMessages(0).getSystemProperties().getMessageId());
         assertEquals(ReceiptHandle.create(messageExtList.get(1)).getReceiptHandle(), ackHandler.get());
+    }
+
+    @Test
+    public void testToDLQInReceiveMessage() throws Exception {
+        SelectableMessageQueue selectableMessageQueue = new SelectableMessageQueue(
+            new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr");
+        when(readQueueSelector.select(any(), any(), any())).thenReturn(selectableMessageQueue);
+
+        Settings clientSettings = Settings.newBuilder()
+            .setClientType(ClientType.SIMPLE_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setBackoffPolicy(RetryPolicy.newBuilder().setMaxAttempts(0).build())
+                .setFifo(false)
+                .build())
+            .build();
+        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
+
+        List<MessageExt> messageExtList = Lists.newArrayList(
+            createMessageExt("msg1", "msg1"),
+            createMessageExt("msg2", "msg2")
+        );
+        PopResult popResult = new PopResult(PopStatus.FOUND, messageExtList);
+        when(readConsumerClient.popMessage(anyString(), anyString(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(popResult));
+        when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
+        List<String> toDLQMsgId = new ArrayList<>();
+        doAnswer(mock -> {
+            ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = mock.getArgument(1);
+            toDLQMsgId.add(sendMsgBackRequestHeader.getOriginMsgId());
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, ""));
+        }).when(producerClient).sendMessageBackThenAckOrg(anyString(), any(), any());
+
+        Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
+        ReceiveMessageResponse response = consumerService.receiveMessage(ctx,
+            ReceiveMessageRequest.newBuilder()
+                .setMessageQueue(apache.rocketmq.v2.MessageQueue.newBuilder()
+                    .setTopic(Resource.newBuilder()
+                        .setResourceNamespace("namespace")
+                        .setName("topic")
+                        .build())
+                    .build())
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("msg1")
+                    .build())
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(2, toDLQMsgId.size());
     }
 
     @Test

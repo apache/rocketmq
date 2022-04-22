@@ -31,6 +31,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
@@ -48,7 +49,6 @@ public class ProducerService extends BaseService {
     private volatile WriteQueueSelector writeQueueSelector;
     private volatile ResponseHook<SendMessageRequest, SendMessageResponse> sendMessageHook;
     private volatile ResponseHook<ForwardMessageToDeadLetterQueueRequest, ForwardMessageToDeadLetterQueueResponse> forwardMessageToDLQHook;
-
 
     public ProducerService(ConnectorManager connectorManager) {
         super(connectorManager);
@@ -123,7 +123,8 @@ public class ProducerService extends BaseService {
         return Pair.of(requestHeader, message);
     }
 
-    protected SendMessageResponse convertToSendMessageResponse(Context ctx, SendMessageRequest request, SendResult result) {
+    protected SendMessageResponse convertToSendMessageResponse(Context ctx, SendMessageRequest request,
+        SendResult result) {
         if (result.getSendStatus() != SendStatus.SEND_OK) {
             return SendMessageResponse.newBuilder()
                 .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "send message failed, sendStatus=" + result.getSendStatus()))
@@ -153,8 +154,11 @@ public class ProducerService extends BaseService {
         try {
             ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
-            ConsumerSendMsgBackRequestHeader requestHeader = this.buildConsumerSendMsgBackRequestHeader(ctx, request);
-            CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBack(brokerAddr, requestHeader);
+            ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = this.buildConsumerSendMsgBackRequestHeader(ctx, request);
+            AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(
+                request.getTopic(), request.getGroup(), receiptHandle);
+
+            CompletableFuture<RemotingCommand> resultFuture = this.producer.sendMessageBackThenAckOrg(brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader);
             resultFuture
                 .thenAccept(result ->
                     future.complete(
