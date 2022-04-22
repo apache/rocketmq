@@ -96,10 +96,14 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                         // find pop ck offset
                         String key = messageExt.getTopic() + messageExt.getQueueId();
                         if (!map.containsKey(messageExt.getTopic() + messageExt.getQueueId())) {
-                            String extraInfo = ExtraInfoUtil.buildExtraInfo(messageExt.getQueueOffset(),
-                                responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
-                                responseHeader.getReviveQid(), messageExt.getTopic(), brokerName,
-                                messageExt.getQueueId());
+                            String extraInfo = ExtraInfoUtil.buildExtraInfo(
+                                messageExt.getQueueOffset(),
+                                responseHeader.getPopTime(),
+                                responseHeader.getInvisibleTime(),
+                                responseHeader.getReviveQid(),
+                                messageExt.getTopic(), brokerName,
+                                messageExt.getQueueId()
+                            );
                             map.put(key, extraInfo);
                         }
                         messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
@@ -113,10 +117,16 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                             log.warn("Queue offset[{}] of msg is strange, not equal to the stored in msg, {}",
                                 msgQueueOffset, messageExt);
                         }
-                        String extraInfo = ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(key),
-                            responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
-                            responseHeader.getReviveQid(), messageExt.getTopic(),
-                            brokerName, messageExt.getQueueId(), msgQueueOffset);
+                        String extraInfo = ExtraInfoUtil.buildExtraInfo(
+                            startOffsetInfo.get(key),
+                            responseHeader.getPopTime(),
+                            responseHeader.getInvisibleTime(),
+                            responseHeader.getReviveQid(),
+                            messageExt.getTopic(),
+                            brokerName,
+                            messageExt.getQueueId(),
+                            msgQueueOffset
+                        );
                         messageExt.setQueueOffset(msgQueueOffset);
                         messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK, extraInfo);
                         if (fifo && orderCountInfo != null) {
@@ -142,8 +152,7 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
             }
             response = builder.build();
             long elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Translating remoting response to gRPC response costs {}ms. Duration request received: {}",
-                elapsed, popCosts);
+            log.debug("Translating remoting response to gRPC response costs {}ms. Duration request received: {}", elapsed, popCosts);
             future.complete(response);
         } catch (Exception e) {
             log.error("Unexpected exception raised when handle pop remoting command", e);
