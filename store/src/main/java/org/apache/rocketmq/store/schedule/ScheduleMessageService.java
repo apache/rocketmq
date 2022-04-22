@@ -332,9 +332,9 @@ public class ScheduleMessageService extends ConfigManager {
         int queueId = Integer.parseInt(queueIdStr);
         msgInner.setQueueId(queueId);
 
-        MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
-        MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
-        MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
+        MessageAccessor.clearProperty(msgExt, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
+        MessageAccessor.clearProperty(msgExt, MessageConst.PROPERTY_REAL_TOPIC);
+        MessageAccessor.clearProperty(msgExt, MessageConst.PROPERTY_REAL_QUEUE_ID);
         MessageAccessor.setProperties(msgInner, msgExt.getProperties());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 
