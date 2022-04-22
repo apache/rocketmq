@@ -17,81 +17,30 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.service;
 
-import apache.rocketmq.v2.ActivePublishingSettings;
-import apache.rocketmq.v2.ActiveSubscriptionSettings;
-import apache.rocketmq.v2.ClientType;
-import apache.rocketmq.v2.Endpoints;
-import apache.rocketmq.v2.ReportActiveSettingsCommand;
-import com.google.protobuf.Duration;
+import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 
 public class GrpcClientManager {
+    
+    private static final Map<String, Settings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
 
-    public static class ActiveClientSettings {
-        private ClientType clientType;
-        private Endpoints accessPoint;
-        private Duration connectionTimeout;
-        private boolean traceOn = true;
-        private ActivePublishingSettings activePublishingSettings;
-        private ActiveSubscriptionSettings activeSubscriptionSettings;
-
-        public ActiveClientSettings(ReportActiveSettingsCommand reportActiveSettingsCommand) {
-            this.clientType = reportActiveSettingsCommand.getClientType();
-            this.accessPoint = reportActiveSettingsCommand.getAccessPoint();
-            this.connectionTimeout = reportActiveSettingsCommand.getConnectionTimeout();
-            this.traceOn = reportActiveSettingsCommand.getTraceOn();
-            if (reportActiveSettingsCommand.hasActivePublishingSettings()) {
-                this.activePublishingSettings = reportActiveSettingsCommand.getActivePublishingSettings();
-            }
-            if (reportActiveSettingsCommand.hasActiveSubscriptionSettings()) {
-                this.activeSubscriptionSettings = reportActiveSettingsCommand.getActiveSubscriptionSettings();
-            }
-        }
-
-        public ClientType getClientType() {
-            return clientType;
-        }
-
-        public Endpoints getAccessPoint() {
-            return accessPoint;
-        }
-
-        public Duration getConnectionTimeout() {
-            return connectionTimeout;
-        }
-
-        public boolean isTraceOn() {
-            return traceOn;
-        }
-
-        public ActivePublishingSettings getActivePublishingSettings() {
-            return activePublishingSettings;
-        }
-
-        public ActiveSubscriptionSettings getActiveSubscriptionSettings() {
-            return activeSubscriptionSettings;
-        }
-    }
-
-    private static final Map<String, ActiveClientSettings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
-
-    public ActiveClientSettings getClientSettings(Context ctx) {
+    public Settings getClientSettings(Context ctx) {
         String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
         return CLIENT_SETTINGS_MAP.get(clientId);
     }
 
-    public ActiveClientSettings getClientSettings(String clientId) {
+    public Settings getClientSettings(String clientId) {
         return CLIENT_SETTINGS_MAP.get(clientId);
     }
 
-    public void updateClientSettings(String clientId, ReportActiveSettingsCommand reportActiveSettingsCommand) {
-        CLIENT_SETTINGS_MAP.put(clientId, new ActiveClientSettings(reportActiveSettingsCommand));
+    public void updateClientSettings(String clientId, Settings settings) {
+        CLIENT_SETTINGS_MAP.put(clientId, settings);
     }
 
-    public ActiveClientSettings removeClientSettings(String clientId) {
+    public Settings removeClientSettings(String clientId) {
         return CLIENT_SETTINGS_MAP.remove(clientId);
     }
 }

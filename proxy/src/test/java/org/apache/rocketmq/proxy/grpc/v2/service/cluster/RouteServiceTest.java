@@ -30,6 +30,7 @@ import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReportActiveSettingsCommand;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
 import com.google.common.net.HostAndPort;
 import io.grpc.Context;
 import java.util.ArrayList;
@@ -63,15 +64,14 @@ public class RouteServiceTest extends BaseServiceTest {
         .setResourceNamespace(NAMESPACE)
         .build();
 
-    private static final GrpcClientManager.ActiveClientSettings WITH_HOST_SETTINGS = new GrpcClientManager.ActiveClientSettings(ReportActiveSettingsCommand.newBuilder()
+    private static final Settings WITH_HOST_SETTINGS = Settings.newBuilder()
         .setAccessPoint(Endpoints.newBuilder()
-                .addAddresses(Address.newBuilder()
-                    .setPort(80)
-                    .setHost("host")
-                    .build())
-        .setScheme(AddressScheme.DOMAIN_NAME)
+            .addAddresses(Address.newBuilder()
+                .setPort(80)
+                .setHost("host")
                 .build())
-        .buildPartial());
+            .setScheme(AddressScheme.DOMAIN_NAME)
+            .build());
 
     private static final GrpcClientManager.ActiveClientSettings INVALID_HOST_SETTINGS = new GrpcClientManager.ActiveClientSettings(ReportActiveSettingsCommand.newBuilder()
         .setAccessPoint(Endpoints.getDefaultInstance())

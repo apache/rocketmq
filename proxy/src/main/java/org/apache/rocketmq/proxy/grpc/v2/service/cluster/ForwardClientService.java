@@ -16,15 +16,13 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v2.ActiveSubscriptionSettings;
-import apache.rocketmq.v2.ApplyPassiveSettingsCommand;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
-import apache.rocketmq.v2.ReportActiveSettingsCommand;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
@@ -51,7 +49,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
-import org.apache.rocketmq.proxy.grpc.v2.service.ReportActiveSettingsService;
+import org.apache.rocketmq.proxy.grpc.v2.service.ClientSettingsService;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +62,7 @@ public class ForwardClientService extends BaseService {
     private final ProducerManager producerManager;
     private final GrpcClientManager grpcClientManager;
     private final TelemetryCommandManager telemetryCommandManager;
-    private final ReportActiveSettingsService reportActiveSettingsService;
+    private final ClientSettingsService clientSettingsService;
 
     public ForwardClientService(
         ConnectorManager connectorManager,
@@ -83,7 +81,7 @@ public class ForwardClientService extends BaseService {
         this.grpcClientManager = grpcClientManager;
         this.telemetryCommandManager = telemetryCommandManager;
 
-        this.reportActiveSettingsService = new ReportActiveSettingsService(this.channelManager, this.grpcClientManager, this.telemetryCommandManager);
+        this.clientSettingsService = new ClientSettingsService(this.channelManager, this.grpcClientManager, this.telemetryCommandManager);
 
         this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl());
         this.producerManager = new ProducerManager();
@@ -138,10 +136,10 @@ public class ForwardClientService extends BaseService {
             String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
             LanguageCode languageCode = LanguageCode.valueOf(language);
 
-            GrpcClientManager.ActiveClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+            Settings clientSettings = grpcClientManager.getClientSettings(clientId);
             switch (clientSettings.getClientType()) {
                 case PRODUCER: {
-                    for (Resource topic : clientSettings.getActivePublishingSettings().getPublishingTopicsList()) {
+                    for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
                         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                         GrpcClientChannel channel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
@@ -151,7 +149,6 @@ public class ForwardClientService extends BaseService {
                     }
                     break;
                 }
-                case PULL_CONSUMER:
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER: {
                     if (!request.hasGroup()) {
@@ -167,7 +164,7 @@ public class ForwardClientService extends BaseService {
                         GrpcConverter.buildConsumeType(clientSettings.getClientType()),
                         MessageModel.CLUSTERING,
                         ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
-                        GrpcConverter.buildSubscriptionDataSet(clientSettings.getActiveSubscriptionSettings().getSubscriptionsList()),
+                        GrpcConverter.buildSubscriptionDataSet(clientSettings.getSubscription().getSubscriptionsList()),
                         false
                     );
                     break;
@@ -191,11 +188,11 @@ public class ForwardClientService extends BaseService {
 
         try {
             String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
-            GrpcClientManager.ActiveClientSettings clientSettings = grpcClientManager.getClientSettings(clientId);
+            Settings clientSettings = grpcClientManager.getClientSettings(clientId);
 
             switch (clientSettings.getClientType()) {
                 case PRODUCER:
-                    for (Resource topic : clientSettings.getActivePublishingSettings().getPublishingTopicsList()) {
+                    for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
                         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                         // user topic name as producer group
                         GrpcClientChannel channel = GrpcClientChannel.removeChannel(channelManager, topicName, clientId);
@@ -204,7 +201,6 @@ public class ForwardClientService extends BaseService {
                         }
                     }
                     break;
-                case PULL_CONSUMER:
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER:
                     if (!request.hasGroup()) {
@@ -232,8 +228,8 @@ public class ForwardClientService extends BaseService {
         return new StreamObserver<TelemetryCommand>() {
             @Override
             public void onNext(TelemetryCommand request) {
-                if (request.getCommandCase() == TelemetryCommand.CommandCase.REPORT_ACTIVE_SETTINGS_COMMAND) {
-                    responseObserver.onNext(reportActiveSettingsService.processReportActiveSettingsCommand(ctx, request, responseObserver));
+                if (request.getCommandCase() == TelemetryCommand.CommandCase.SETTINGS) {
+                    responseObserver.onNext(clientSettingsService.processClientSettings(ctx, request, responseObserver));
                 }
             }
 

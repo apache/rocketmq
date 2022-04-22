@@ -1,14 +1,14 @@
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v2.ActivePublishingSettings;
-import apache.rocketmq.v2.ActiveSubscriptionSettings;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
-import apache.rocketmq.v2.ReportActiveSettingsCommand;
+import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SubscriptionEntry;
 import io.grpc.Context;
 import io.netty.channel.Channel;
@@ -23,7 +23,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
-import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Test;
 
@@ -52,17 +51,17 @@ public class ForwardClientServiceTest extends BaseServiceTest {
 
     @Test
     public void testProducerHeartbeat() {
-        GrpcClientManager.ActiveClientSettings clientSettings = new GrpcClientManager.ActiveClientSettings(ReportActiveSettingsCommand.newBuilder()
+        Settings clientSettings = Settings.newBuilder()
             .setClientType(ClientType.PRODUCER)
-            .setActivePublishingSettings(ActivePublishingSettings.newBuilder()
-                .addPublishingTopics(Resource.newBuilder()
-                    .setName("topic1")
+            .setPublishing(Publishing.newBuilder()
+                    .addTopics(Resource.newBuilder()
+                        .setName("topic1")
+                        .build())
+                    .addTopics(Resource.newBuilder()
+                        .setName("topic2")
+                        .build())
                     .build())
-                .addPublishingTopics(Resource.newBuilder()
-                    .setName("topic2")
-                    .build())
-                .build())
-            .build());
+            .build();
         when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
 
         clientService.heartbeat(Context.current(), HeartbeatRequest.newBuilder().build());
@@ -89,12 +88,12 @@ public class ForwardClientServiceTest extends BaseServiceTest {
                 .build())
             .build());
 
-        GrpcClientManager.ActiveClientSettings clientSettings = new GrpcClientManager.ActiveClientSettings(ReportActiveSettingsCommand.newBuilder()
+        Settings clientSettings = Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
-            .setActiveSubscriptionSettings(ActiveSubscriptionSettings.newBuilder()
+            .setSubscription(Subscription.newBuilder()
                 .addAllSubscriptions(subscriptionEntryList)
                 .build())
-            .build());
+            .build();
         when(grpcClientManager.getClientSettings(anyString())).thenReturn(clientSettings);
 
         clientService.heartbeat(Context.current(), HeartbeatRequest.newBuilder()
