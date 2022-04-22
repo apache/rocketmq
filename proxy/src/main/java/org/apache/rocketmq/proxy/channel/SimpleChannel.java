@@ -39,7 +39,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
  * @see io.netty.channel.Channel#writeAndFlush
  */
 public class SimpleChannel extends AbstractChannel {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected final String remoteAddress;
     protected final String localAddress;

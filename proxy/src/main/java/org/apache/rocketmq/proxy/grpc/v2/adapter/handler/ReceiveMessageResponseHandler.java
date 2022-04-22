@@ -57,7 +57,6 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
     @Override
     public void handle(RemotingCommand responseCommand,
         InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context) {
-        ReceiveMessageRequest request = context.getRequest();
         CompletableFuture<ReceiveMessageResponse> future = context.getResponse();
 
         long currentTimeInMillis = System.currentTimeMillis();

@@ -17,14 +17,13 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.service;
 
+import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
-import apache.rocketmq.v2.ClientSettings;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
-import apache.rocketmq.v2.DeadLetterPolicy;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
@@ -37,14 +36,10 @@ import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.Publishing;
-import apache.rocketmq.v2.PullMessageRequest;
-import apache.rocketmq.v2.PullMessageResponse;
-import apache.rocketmq.v2.QueryOffsetPolicy;
-import apache.rocketmq.v2.QueryOffsetRequest;
-import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Settings;
@@ -53,7 +48,6 @@ import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
-import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import io.grpc.Context;
 import io.grpc.Metadata;
@@ -66,6 +60,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
+import org.apache.rocketmq.broker.client.ConsumerManager;
+import org.apache.rocketmq.broker.client.ProducerChangeListener;
+import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
 import org.apache.rocketmq.broker.processor.ClientManageProcessor;
@@ -83,9 +81,8 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
-import org.apache.rocketmq.common.protocol.header.PullMessageResponseHeader;
-import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
+import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
@@ -94,7 +91,6 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -117,6 +113,10 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     private PullMessageProcessor pullMessageProcessorMock;
     @Mock
     private BrokerController brokerControllerMock;
+    @Mock
+    private ConsumerManager consumerManagerMock;
+    @Mock
+    private ProducerManager producerManagerMock;
 
     @Mock
     private TelemetryCommandManager telemetryCommandManager;
@@ -130,9 +130,12 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         super.before();
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
-        Mockito.when(brokerControllerMock.getPullMessageProcessor()).thenReturn(pullMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
         Mockito.when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        Mockito.doNothing().when(consumerManagerMock).appendConsumerIdsChangeListener(Mockito.any(ConsumerIdsChangeListener.class));
+        Mockito.doNothing().when(producerManagerMock).appendProducerChangeListener(Mockito.any(ProducerChangeListener.class));
+        Mockito.when(brokerControllerMock.getConsumerManager()).thenReturn(consumerManagerMock);
+        Mockito.when(brokerControllerMock.getProducerManager()).thenReturn(producerManagerMock);
         localGrpcService = new LocalGrpcService(brokerControllerMock, telemetryCommandManager);
         metadata = new Metadata();
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, "1.1.1.1");
@@ -151,25 +154,24 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
             }
         });
         streamObserver.onNext(TelemetryCommand.newBuilder()
-            .setClientSettings(ClientSettings.newBuilder().setSettings(Settings.newBuilder()
+            .setSettings(Settings.newBuilder()
                 .setSubscription(Subscription.newBuilder()
-                    .setDeadLetterPolicy(DeadLetterPolicy.newBuilder()
-                        .setMaxDeliveryAttempts(3).build()).build()).build()))
-            .build());
+                    .setBackoffPolicy(RetryPolicy.newBuilder()
+                        .setMaxAttempts(3).build()).build())
+                .build()).build());
     }
 
     @Test
     public void testHeartbeatProducerData() throws Exception {
         streamObserver.onNext(TelemetryCommand.newBuilder()
-            .setClientSettings(ClientSettings.newBuilder()
-                .setSettings(Settings.newBuilder()
-                    .setPublishing(Publishing.newBuilder()
-                        .addTopics(Resource.newBuilder()
+            .setSettings(Settings.newBuilder()
+                .setPublishing(Publishing.newBuilder()
+                    .addTopics(Resource.newBuilder()
                         .setName("topic")
-                            .build())
                         .build())
                     .build())
-                .setClientType(ClientType.PRODUCER).build())
+                .setClientType(ClientType.PRODUCER)
+                .build())
             .build());
         RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
         ClientManageProcessor clientManageProcessorMock = Mockito.mock(ClientManageProcessor.class);
@@ -190,7 +192,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     @Test
     public void testHeartbeatConsumerData() throws Exception {
         streamObserver.onNext(TelemetryCommand.newBuilder()
-            .setClientSettings(ClientSettings.newBuilder()
+            .setSettings(Settings.newBuilder()
                 .setClientType(ClientType.PUSH_CONSUMER).build())
             .build());
         RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
@@ -350,23 +352,22 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         Mockito.when(brokerControllerMock.getAckMessageProcessor()).thenReturn(ackMessageProcessorMock);
         Mockito.when(ackMessageProcessorMock.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
             .thenReturn(response);
-        AckMessageRequest request = AckMessageRequest.newBuilder().setReceiptHandle(
-            ReceiptHandle.builder()
-                .startOffset(0L)
-                .retrieveTime(0L)
-                .invisibleTime(1000L)
-                .nextVisibleTime(1000L)
-                .reviveQueueId(0)
-                .topicType("topic")
-                .brokerName("brokerName")
-                .queueId(0)
-                .offset(0L)
-                .build().encode()
-        ).build();
-        CompletableFuture<AckMessageResponse> grpcFuture = localGrpcService.ackMessage(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .attach(), request);
+        AckMessageRequest request = AckMessageRequest.newBuilder()
+            .addEntries(
+                AckMessageEntry.newBuilder()
+                    .setReceiptHandle(ReceiptHandle.builder()
+                        .startOffset(0L)
+                        .retrieveTime(System.currentTimeMillis())
+                        .invisibleTime(1000L)
+                        .reviveQueueId(0)
+                        .topicType("topic")
+                        .brokerName("brokerName")
+                        .queueId(0)
+                        .offset(0L)
+                        .build().encode())
+                    .build())
+            .build();
+        CompletableFuture<AckMessageResponse> grpcFuture = localGrpcService.ackMessage(Context.current(), request);
         AckMessageResponse r = grpcFuture.get();
         assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
     }
@@ -396,10 +397,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
                 .offset(0L)
                 .build().encode()
         ).build();
-        CompletableFuture<NackMessageResponse> grpcFuture = localGrpcService.nackMessage(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .attach(), request);
+        CompletableFuture<NackMessageResponse> grpcFuture = localGrpcService.nackMessage(Context.current(), request);
         NackMessageResponse r = grpcFuture.get();
         assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
     }
@@ -429,9 +427,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
                     .build().encode()
             ).build();
         CompletableFuture<NackMessageResponse> grpcFuture = localGrpcService.nackMessage(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .attach(), request);
+            Context.current(), request);
         NackMessageResponse r = grpcFuture.get();
         assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
     }
@@ -457,9 +453,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
                 .build().encode())
             .build();
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> grpcFuture = localGrpcService.forwardMessageToDeadLetterQueue(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .attach(), request);
+            Context.current(), request);
         ForwardMessageToDeadLetterQueueResponse r = grpcFuture.get();
         assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
     }
@@ -481,75 +475,9 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
             )
             .build();
         CompletableFuture<EndTransactionResponse> grpcFuture = localGrpcService.endTransaction(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .attach(), request);
+            Context.current(), request);
         EndTransactionResponse r = grpcFuture.get();
         assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
-    }
-
-    @Test
-    public void testQueryOffset() throws Exception {
-        String topic = "test-topic";
-        int queueId = 1;
-
-        long maxOffset = 10L;
-        long timeOffset = 5L;
-        MessageStore messageStore = Mockito.mock(MessageStore.class);
-        Mockito.when(brokerControllerMock.getMessageStore()).thenReturn(messageStore);
-        Mockito.when(messageStore.getMaxOffsetInQueue(Mockito.eq(topic), Mockito.eq(queueId))).thenReturn(maxOffset);
-        Mockito.when(messageStore.getOffsetInQueueByTime(Mockito.eq(topic), Mockito.eq(queueId), Mockito.anyLong())).thenReturn(timeOffset);
-
-        QueryOffsetRequest request = QueryOffsetRequest.newBuilder()
-            .setMessageQueue(MessageQueue.newBuilder()
-                .setTopic(Resource.newBuilder()
-                    .setName(topic)
-                    .build())
-                .setId(queueId)
-                .build())
-            .setPolicy(QueryOffsetPolicy.BEGINNING)
-            .build();
-        CompletableFuture<QueryOffsetResponse> grpcFuture = localGrpcService.queryOffset(Context.current(), request);
-        QueryOffsetResponse r = grpcFuture.get();
-        assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
-        assertThat(r.getOffset()).isEqualTo(0);
-
-        request = QueryOffsetRequest.newBuilder()
-            .setMessageQueue(MessageQueue.newBuilder()
-                .setTopic(Resource.newBuilder()
-                    .setName(topic)
-                    .build())
-                .setId(queueId)
-                .build())
-            .setPolicy(QueryOffsetPolicy.END)
-            .build();
-        grpcFuture = localGrpcService.queryOffset(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .attach(), request);
-        r = grpcFuture.get();
-        assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
-        assertThat(r.getOffset()).isEqualTo(maxOffset);
-
-        request = QueryOffsetRequest.newBuilder()
-            .setMessageQueue(MessageQueue.newBuilder()
-                .setTopic(Resource.newBuilder()
-                    .setName(topic)
-                    .build())
-                .setId(queueId)
-                .build())
-            .setTimePoint(Timestamp.newBuilder()
-                .setSeconds(1000L)
-                .build())
-            .setPolicy(QueryOffsetPolicy.TIME_POINT)
-            .build();
-        grpcFuture = localGrpcService.queryOffset(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .attach(), request);
-        r = grpcFuture.get();
-        assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
-        assertThat(r.getOffset()).isEqualTo(timeOffset);
     }
 
     @Test
@@ -649,46 +577,5 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         assertThat(handle.getInvisibleTime()).isEqualTo(invisibleTime);
         assertThat(handle.getQueueId()).isEqualTo(queueId);
         assertThat(handle.getOffset()).isEqualTo(offset);
-    }
-
-    @Test
-    public void testPullMessageSuccess() throws Exception {
-        String topic = "topic";
-        byte[] body = "123".getBytes(StandardCharsets.UTF_8);
-        MessageExt messageExt = new MessageExt();
-        messageExt.setTopic(topic);
-        messageExt.setQueueOffset(0L);
-        messageExt.setBornHost(new InetSocketAddress("127.0.0.1", 10911));
-        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));
-        messageExt.setBody(body);
-        messageExt.putUserProperty("key", "value");
-
-        long minOffset = 1L;
-        long nextOffset = 3L;
-        long maxOffset = 10L;
-        PullMessageResponseHeader responseHeader = new PullMessageResponseHeader();
-        responseHeader.setMinOffset(minOffset);
-        responseHeader.setNextBeginOffset(nextOffset);
-        responseHeader.setMaxOffset(maxOffset);
-        RemotingCommand remotingCommand = RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, responseHeader);
-        remotingCommand.setBody(MessageDecoder.encode(messageExt, true));
-        remotingCommand.makeCustomHeaderToNet();
-        Mockito.when(pullMessageProcessorMock.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
-            .thenReturn(remotingCommand);
-        PullMessageRequest request = PullMessageRequest.newBuilder().getDefaultInstanceForType();
-        CompletableFuture<PullMessageResponse> grpcFuture = localGrpcService.pullMessage(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .attach()
-                .withDeadlineAfter(20, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryImpl("test"))), request);
-        PullMessageResponse r = grpcFuture.get();
-        assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
-        assertThat(r.getMessagesCount()).isEqualTo(1);
-        assertThat(GrpcConverter.wrapResourceWithNamespace(r.getMessages(0).getTopic())).isEqualTo(topic);
-        assertThat(r.getMessages(0).getBody().toByteArray()).isEqualTo(body);
-        assertThat(r.getMinOffset()).isEqualTo(minOffset);
-        assertThat(r.getNextOffset()).isEqualTo(nextOffset);
-        assertThat(r.getMaxOffset()).isEqualTo(maxOffset);
     }
 }
