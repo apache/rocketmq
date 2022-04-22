@@ -18,7 +18,6 @@
 package org.apache.rocketmq.proxy.grpc.v2.adapter;
 
 import apache.rocketmq.v2.AckMessageRequest;
-import apache.rocketmq.v2.ApplyPassiveSettingsCommand;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
@@ -26,7 +25,6 @@ import apache.rocketmq.v2.Digest;
 import apache.rocketmq.v2.DigestType;
 import apache.rocketmq.v2.Encoding;
 import apache.rocketmq.v2.EndTransactionRequest;
-import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
@@ -36,11 +34,10 @@ import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
-import apache.rocketmq.v2.PassivePublishingSettings;
-import apache.rocketmq.v2.PassiveSubscriptionSettings;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
+import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.TransactionResolution;
@@ -91,9 +88,7 @@ import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
-import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,20 +100,19 @@ public class GrpcConverter {
     }
 
     public static HeartbeatData buildHeartbeatData(String clientId, HeartbeatRequest request,
-        GrpcClientManager.ActiveClientSettings clientSettings) {
+        Settings clientSettings) {
         HeartbeatData heartbeatData = new HeartbeatData();
         heartbeatData.setClientID(clientId);
         switch (clientSettings.getClientType()) {
             case PRODUCER: {
                 Set<org.apache.rocketmq.common.protocol.heartbeat.ProducerData> producerDataSet = new HashSet<>();
-                for (Resource topic : clientSettings.getActivePublishingSettings().getPublishingTopicsList()) {
+                for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
                     String topicName = wrapResourceWithNamespace(topic);
                     producerDataSet.add(buildProducerData(topicName));
                 }
                 heartbeatData.setProducerDataSet(producerDataSet);
                 break;
             }
-            case PULL_CONSUMER:
             case PUSH_CONSUMER:
             case SIMPLE_CONSUMER: {
                 String groupName = wrapResourceWithNamespace(request.getGroup());
@@ -139,7 +133,7 @@ public class GrpcConverter {
     }
 
     public static org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData(String groupName,
-        GrpcClientManager.ActiveClientSettings clientSettings) {
+        Settings clientSettings) {
         org.apache.rocketmq.common.protocol.heartbeat.ConsumerData buildConsumerData = new org.apache.rocketmq.common.protocol.heartbeat.ConsumerData();
         buildConsumerData.setGroupName(groupName);
         buildConsumerData.setConsumeType(buildConsumeType(clientSettings.getClientType()));
@@ -147,14 +141,13 @@ public class GrpcConverter {
         buildConsumerData.setMessageModel(MessageModel.CLUSTERING);
         buildConsumerData.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         Set<SubscriptionData> subscriptionDataSet =
-            buildSubscriptionDataSet(clientSettings.getActiveSubscriptionSettings().getSubscriptionsList());
+            buildSubscriptionDataSet(clientSettings.getSubscription().getSubscriptionsList());
         buildConsumerData.setSubscriptionDataSet(subscriptionDataSet);
         return buildConsumerData;
     }
 
     public static ConsumeType buildConsumeType(ClientType clientType) {
         switch (clientType) {
-            case PULL_CONSUMER:
             case SIMPLE_CONSUMER:
                 return ConsumeType.CONSUME_ACTIVELY;
             case PUSH_CONSUMER:
@@ -369,7 +362,6 @@ public class GrpcConverter {
                 header.setProducerGroup(groupName);
                 break;
             }
-            case PULL_CONSUMER:
             case PUSH_CONSUMER:
             case SIMPLE_CONSUMER: {
                 header.setConsumerGroup(groupName);
@@ -505,30 +497,6 @@ public class GrpcConverter {
             .putAllUserProperties(userProperties)
             .setSystemProperties(systemProperties)
             .setBody(ByteString.copyFrom(messageExt.getBody()))
-            .build();
-    }
-
-    public static ApplyPassiveSettingsCommand buildDefaultPublishingSettings(String nonce, Endpoints traceEndpoint) {
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        return ApplyPassiveSettingsCommand.newBuilder()
-            .setNonce(nonce)
-            .setTraceAccessPoint(traceEndpoint)
-            .setPassivePublishingSettings(PassivePublishingSettings.newBuilder()
-                .setMaxMessageBodyBytes(proxyConfig.getMaxMessageBodyBytes())
-                .setMessageBodyCompressionBytesThreshold(proxyConfig.getDefaultMessageBodyCompressionBytesThreshold())
-                .setOrphanedTransactionRecoveryDuration(Durations.fromSeconds(proxyConfig.getDefaultTransactionRecoverySecond()))
-                .build())
-            .build();
-    }
-
-    public static ApplyPassiveSettingsCommand buildDefaultSubscriptionSettings(String nonce, Endpoints traceEndpoint) {
-        // TODO: read config from subscriptionGroupManager
-        return ApplyPassiveSettingsCommand.newBuilder()
-            .setNonce(nonce)
-            .setTraceAccessPoint(traceEndpoint)
-            .setPassiveSubscriptionSettings(PassiveSubscriptionSettings.newBuilder()
-                .setFifo(false)
-                .build())
             .build();
     }
 

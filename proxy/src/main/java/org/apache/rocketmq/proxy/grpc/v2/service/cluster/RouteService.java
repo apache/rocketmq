@@ -29,6 +29,7 @@ import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 import io.grpc.Context;
@@ -112,7 +113,7 @@ public class RouteService extends BaseService {
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             if (ProxyMode.isClusterMode(mode.name())) {
-                GrpcClientManager.ActiveClientSettings clientSettings = grpcClientManager.getClientSettings(ctx);
+                Settings clientSettings = grpcClientManager.getClientSettings(ctx);
                 Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
                 if (resEndpoints == null || resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
                     future.complete(QueryRouteResponse.newBuilder()
@@ -243,7 +244,7 @@ public class RouteService extends BaseService {
                 }
             }
             if (ProxyMode.isClusterMode(mode)) {
-                GrpcClientManager.ActiveClientSettings clientSettings = grpcClientManager.getClientSettings(ctx);
+                Settings clientSettings = grpcClientManager.getClientSettings(ctx);
                 Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
                 if (resEndpoints == null || Endpoints.getDefaultInstance().equals(resEndpoints)) {
                     future.complete(QueryAssignmentResponse.newBuilder()

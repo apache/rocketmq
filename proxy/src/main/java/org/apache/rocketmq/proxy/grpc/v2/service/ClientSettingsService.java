@@ -17,10 +17,8 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.service;
 
-import apache.rocketmq.v2.ActiveSubscriptionSettings;
-import apache.rocketmq.v2.ApplyPassiveSettingsCommand;
-import apache.rocketmq.v2.ReportActiveSettingsCommand;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
@@ -30,13 +28,13 @@ import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
 
-public class ReportActiveSettingsService {
+public class ClientSettingsService {
 
     private final ChannelManager channelManager;
     private final GrpcClientManager grpcClientManager;
     private final TelemetryCommandManager telemetryCommandManager;
 
-    public ReportActiveSettingsService(ChannelManager channelManager,
+    public ClientSettingsService(ChannelManager channelManager,
         GrpcClientManager grpcClientManager,
         TelemetryCommandManager telemetryCommandManager) {
         this.channelManager = channelManager;
@@ -44,34 +42,24 @@ public class ReportActiveSettingsService {
         this.telemetryCommandManager = telemetryCommandManager;
     }
 
-    public TelemetryCommand processReportActiveSettingsCommand(Context ctx, TelemetryCommand request, StreamObserver<TelemetryCommand> responseObserver) {
+    public TelemetryCommand processClientSettings(Context ctx, TelemetryCommand request, StreamObserver<TelemetryCommand> responseObserver) {
         String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
-        ReportActiveSettingsCommand reportActiveSettings = request.getReportActiveSettingsCommand();
-        grpcClientManager.updateClientSettings(clientId, reportActiveSettings);
-        ApplyPassiveSettingsCommand applyPassiveSettingsCommand = ApplyPassiveSettingsCommand.getDefaultInstance();
-        if (reportActiveSettings.hasActivePublishingSettings()) {
-            for (Resource topic : reportActiveSettings.getActivePublishingSettings().getPublishingTopicsList()) {
+        grpcClientManager.updateClientSettings(clientId, request.getSettings());
+        Settings settings = grpcClientManager.getClientSettings(clientId);
+        if (settings.hasPublishing()) {
+            for (Resource topic : settings.getPublishing().getTopicsList()) {
                 String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                 GrpcClientChannel producerChannel = GrpcClientChannel.create(channelManager, topicName, clientId, telemetryCommandManager);
                 producerChannel.setClientObserver(responseObserver);
             }
-            applyPassiveSettingsCommand = GrpcConverter.buildDefaultPublishingSettings(
-                reportActiveSettings.getNonce(),
-                reportActiveSettings.getAccessPoint()
-            );
         }
-        if (reportActiveSettings.hasActiveSubscriptionSettings()) {
-            ActiveSubscriptionSettings subscription = reportActiveSettings.getActiveSubscriptionSettings();
-            String groupName = GrpcConverter.wrapResourceWithNamespace(subscription.getGroup());
+        if (settings.hasSubscription()) {
+            String groupName = GrpcConverter.wrapResourceWithNamespace(settings.getSubscription().getGroup());
             GrpcClientChannel consumerChannel = GrpcClientChannel.create(channelManager, groupName, clientId, telemetryCommandManager);
             consumerChannel.setClientObserver(responseObserver);
-            applyPassiveSettingsCommand = GrpcConverter.buildDefaultSubscriptionSettings(
-                reportActiveSettings.getNonce(),
-                reportActiveSettings.getAccessPoint()
-            );
         }
         return TelemetryCommand.newBuilder()
-            .setApplyPassiveSettingsCommand(applyPassiveSettingsCommand)
+            .setSettings(settings)
             .build();
     }
 }
