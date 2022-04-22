@@ -132,7 +132,8 @@ public class ConsumerService extends BaseService {
 
     protected PopMessageRequestHeader buildPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
         checkSubscriptionData(request.getMessageQueue().getTopic(), request.getFilterExpression());
-        boolean fifo = grpcClientManager.getClientSettings(ctx).getSubscription().getFifo();
+        // TODO: get fifo config from subscriptionGroupManager
+        boolean fifo = false;
         return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), fifo);
     }
 
