@@ -284,8 +284,7 @@ public class BrokerContainer implements IBrokerContainer {
             throw new Exception("Can not add broker to container when duplicationEnable is true currently");
         }
         InnerBrokerController brokerController = new InnerBrokerController(this, brokerConfig, storeConfig);
-        BrokerIdentity brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
-                brokerConfig.getBrokerName(), Integer.parseInt(storeConfig.getdLegerSelfId().substring(1)));
+        BrokerIdentity brokerIdentity = brokerController.getBrokerIdentity();
         final BrokerController previousBroker = dLedgerBrokerControllers.putIfAbsent(brokerIdentity, brokerController);
         if (previousBroker == null) {
             // New dLedger broker added, start it
@@ -317,8 +316,7 @@ public class BrokerContainer implements IBrokerContainer {
             throw new Exception("Can not add broker to container when duplicationEnable is true currently");
         }
         InnerBrokerController masterBroker = new InnerBrokerController(this, masterBrokerConfig, storeConfig);
-        BrokerIdentity brokerIdentity = new BrokerIdentity(masterBrokerConfig.getBrokerClusterName(),
-            masterBrokerConfig.getBrokerName(), masterBrokerConfig.getBrokerId());
+        BrokerIdentity brokerIdentity = masterBroker.getBrokerIdentity();
         final BrokerController previousBroker = masterBrokerControllers.putIfAbsent(brokerIdentity, masterBroker);
         if (previousBroker == null) {
             // New master broker added, start it
@@ -365,8 +363,7 @@ public class BrokerContainer implements IBrokerContainer {
         int ratio = storeConfig.getAccessMessageInMemoryMaxRatio() - 10;
         storeConfig.setAccessMessageInMemoryMaxRatio(Math.max(ratio, 0));
         InnerSalveBrokerController slaveBroker = new InnerSalveBrokerController(this, slaveBrokerConfig, storeConfig);
-        BrokerIdentity brokerIdentity = new BrokerIdentity(slaveBrokerConfig.getBrokerClusterName(),
-            slaveBrokerConfig.getBrokerName(), slaveBrokerConfig.getBrokerId());
+        BrokerIdentity brokerIdentity = slaveBroker.getBrokerIdentity();
         final InnerSalveBrokerController previousBroker = slaveBrokerControllers.putIfAbsent(brokerIdentity, slaveBroker);
         if (previousBroker == null) {
             // New slave broker added, start it

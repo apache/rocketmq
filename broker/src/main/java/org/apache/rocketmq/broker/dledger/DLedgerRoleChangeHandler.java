@@ -36,7 +36,7 @@ import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChangeHandler {
 
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("DLegerRoleChangeHandler_"));
+    private ExecutorService executorService;
     private BrokerController brokerController;
     private DefaultMessageStore messageStore;
     private DLedgerCommitLog dLedgerCommitLog;
@@ -48,6 +48,8 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         this.messageStore = messageStore;
         this.dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
         this.dLegerServer = dLedgerCommitLog.getdLedgerServer();
+        this.executorService = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("DLegerRoleChangeHandler_", brokerController.getBrokerIdentity()));
     }
 
     @Override public void handle(long term, MemberState.Role role) {

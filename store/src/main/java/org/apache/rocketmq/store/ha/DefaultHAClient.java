@@ -385,7 +385,7 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
     @Override
     public String getServiceName() {
         if (this.defaultMessageStore != null && this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-            return this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + DefaultHAClient.class.getSimpleName();
+            return this.defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + DefaultHAClient.class.getSimpleName();
         }
         return DefaultHAClient.class.getSimpleName();
     }

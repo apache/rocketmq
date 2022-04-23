@@ -1250,7 +1250,7 @@ public class CommitLog implements Swappable {
         @Override
         public String getServiceName() {
             if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerConfig().getLoggerIdentifier() + CommitRealTimeService.class.getSimpleName();
+                return CommitLog.this.defaultMessageStore.getBrokerIdentity().getLoggerIdentifier() + CommitRealTimeService.class.getSimpleName();
             }
             return CommitRealTimeService.class.getSimpleName();
         }

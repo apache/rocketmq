@@ -98,6 +98,7 @@ import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.broker.util.HookUtils;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -394,7 +395,7 @@ public class BrokerController {
      */
     protected void initializeResources() {
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
-            new ThreadFactoryImpl("BrokerControllerScheduledThread", true, brokerConfig));
+            new ThreadFactoryImpl("BrokerControllerScheduledThread", true, getBrokerIdentity()));
 
         this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getSendMessageThreadPoolNums(),
@@ -402,7 +403,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.sendThreadPoolQueue,
-            new ThreadFactoryImpl("SendMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("SendMessageThread_", getBrokerIdentity()));
 
         this.pullMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getPullMessageThreadPoolNums(),
@@ -410,7 +411,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.pullThreadPoolQueue,
-            new ThreadFactoryImpl("PullMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("PullMessageThread_", getBrokerIdentity()));
 
         this.litePullMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getLitePullMessageThreadPoolNums(),
@@ -418,7 +419,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.litePullThreadPoolQueue,
-            new ThreadFactoryImpl("LitePullMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("LitePullMessageThread_", getBrokerIdentity()));
 
         this.putMessageFutureExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getPutMessageFutureThreadPoolNums(),
@@ -426,7 +427,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.putThreadPoolQueue,
-            new ThreadFactoryImpl("SendMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("SendMessageThread_", getBrokerIdentity()));
 
         this.ackMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getAckMessageThreadPoolNums(),
@@ -434,7 +435,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.ackThreadPoolQueue,
-            new ThreadFactoryImpl("AckMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("AckMessageThread_", getBrokerIdentity()));
 
         this.queryMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getQueryMessageThreadPoolNums(),
@@ -442,7 +443,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.queryThreadPoolQueue,
-            new ThreadFactoryImpl("QueryMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("QueryMessageThread_", getBrokerIdentity()));
 
         this.adminBrokerExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getAdminBrokerThreadPoolNums(),
@@ -450,7 +451,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.adminBrokerThreadPoolQueue,
-            new ThreadFactoryImpl("AdminBrokerThread_", brokerConfig));
+            new ThreadFactoryImpl("AdminBrokerThread_", getBrokerIdentity()));
 
         this.clientManageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getClientManageThreadPoolNums(),
@@ -458,7 +459,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.clientManagerThreadPoolQueue,
-            new ThreadFactoryImpl("ClientManageThread_", brokerConfig));
+            new ThreadFactoryImpl("ClientManageThread_", getBrokerIdentity()));
 
         this.heartbeatExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getHeartbeatThreadPoolNums(),
@@ -466,7 +467,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.heartbeatThreadPoolQueue,
-            new ThreadFactoryImpl("HeartbeatThread_", true, brokerConfig));
+            new ThreadFactoryImpl("HeartbeatThread_", true, getBrokerIdentity()));
 
         this.consumerManageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getConsumerManageThreadPoolNums(),
@@ -474,7 +475,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.consumerManagerThreadPoolQueue,
-            new ThreadFactoryImpl("ConsumerManageThread_", true, brokerConfig));
+            new ThreadFactoryImpl("ConsumerManageThread_", true, getBrokerIdentity()));
 
         this.replyMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getProcessReplyMessageThreadPoolNums(),
@@ -482,7 +483,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.replyThreadPoolQueue,
-            new ThreadFactoryImpl("ProcessReplyMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("ProcessReplyMessageThread_", getBrokerIdentity()));
 
         this.endTransactionExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getEndTransactionThreadPoolNums(),
@@ -490,7 +491,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.endTransactionThreadPoolQueue,
-            new ThreadFactoryImpl("EndTransactionThread_", brokerConfig));
+            new ThreadFactoryImpl("EndTransactionThread_", getBrokerIdentity()));
 
         this.loadBalanceExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getLoadBalanceProcessorThreadPoolNums(),
@@ -498,7 +499,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.loadBalanceThreadPoolQueue,
-            new ThreadFactoryImpl("LoadBalanceProcessorThread_", brokerConfig));
+            new ThreadFactoryImpl("LoadBalanceProcessorThread_", getBrokerIdentity()));
 
         this.topicQueueMappingCleanService = new TopicQueueMappingCleanService(this);
     }
@@ -1517,7 +1518,7 @@ public class BrokerController {
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
             this.brokerConfig.isEnableSlaveActingMaster(),
             this.brokerConfig.isCompressedRegister(),
-            this.brokerConfig.isInBrokerContainer());
+            this.getBrokerIdentity());
 
         handleRegisterBrokerResult(registerBrokerResultList, checkOrderConfig);
     }
@@ -1858,5 +1859,17 @@ public class BrokerController {
             return this.getMessageStore();
         }
         return null;
+    }
+
+    public BrokerIdentity getBrokerIdentity() {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
+        } else {
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
+        }
     }
 }

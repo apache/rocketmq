@@ -52,5 +52,5 @@ public interface MessageListener {
    * @return {@link ConsumeResult#SUCCESS} if <code>message</code> is properly processed; {@link ConsumeResult#FAILURE}
    *         otherwise.
    */
-  ConsumeResult onMessage(MessageView message);
+    ConsumeResult onMessage(MessageView message);
 }

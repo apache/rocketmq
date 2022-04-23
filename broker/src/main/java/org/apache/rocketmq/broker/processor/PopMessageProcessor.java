@@ -730,9 +730,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         @Override
         public String getServiceName() {
             if (PopMessageProcessor.this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-                return PopMessageProcessor.this.brokerController.getBrokerConfig().getLoggerIdentifier() + PopLongPollingService.class.getName();
+                return PopMessageProcessor.this.brokerController.getBrokerIdentity().getLoggerIdentifier() + PopLongPollingService.class.getSimpleName();
             }
-            return PopLongPollingService.class.getName();
+            return PopLongPollingService.class.getSimpleName();
         }
 
         private void cleanUnusedResource() {
@@ -961,9 +961,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         @Override
         public String getServiceName() {
             if (PopMessageProcessor.this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-                return PopMessageProcessor.this.brokerController.getBrokerConfig().getLoggerIdentifier() + QueueLockManager.class.getName();
+                return PopMessageProcessor.this.brokerController.getBrokerIdentity().getLoggerIdentifier() + QueueLockManager.class.getSimpleName();
             }
-            return QueueLockManager.class.getName();
+            return QueueLockManager.class.getSimpleName();
         }
 
         @Override

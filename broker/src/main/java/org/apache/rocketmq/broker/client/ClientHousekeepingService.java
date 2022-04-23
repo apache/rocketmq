@@ -36,7 +36,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public ClientHousekeepingService(final BrokerController brokerController) {
         this.brokerController = brokerController;
         scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
-            new ThreadFactoryImpl("ClientHousekeepingScheduledThread", brokerController.getBrokerConfig()));
+            new ThreadFactoryImpl("ClientHousekeepingScheduledThread", brokerController.getBrokerIdentity()));
     }
 
     public void start() {
