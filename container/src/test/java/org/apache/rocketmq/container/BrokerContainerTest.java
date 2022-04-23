@@ -126,8 +126,9 @@ public class BrokerContainerTest {
         brokerController.registerIncrementBrokerData(topicConfigList, dataVersion);
         // Get topicConfigSerializeWrapper created by registerIncrementBrokerData() from brokerOuterAPI.registerBrokerAll()
         ArgumentCaptor<TopicConfigSerializeWrapper> captor = ArgumentCaptor.forClass(TopicConfigSerializeWrapper.class);
+        ArgumentCaptor<BrokerIdentity> brokerIdentityCaptor = ArgumentCaptor.forClass(BrokerIdentity.class);
         verify(brokerOuterAPI).registerBrokerAll(anyString(), anyString(), anyString(), anyLong(), anyString(),
-            captor.capture(), ArgumentMatchers.anyList(), anyBoolean(), anyInt(), anyBoolean(), anyBoolean(), new BrokerIdentity());
+            captor.capture(), ArgumentMatchers.anyList(), anyBoolean(), anyInt(), anyBoolean(), anyBoolean(), brokerIdentityCaptor.capture());
         TopicConfigSerializeWrapper wrapper = captor.getValue();
         for (Map.Entry<String, TopicConfig> entry : wrapper.getTopicConfigTable().entrySet()) {
             assertThat(entry.getValue().getPerm()).isEqualTo(brokerController.getBrokerConfig().getBrokerPermission());
@@ -351,8 +352,9 @@ public class BrokerContainerTest {
         brokerController.registerIncrementBrokerData(topicConfigList, dataVersion);
         // Get topicConfigSerializeWrapper created by registerIncrementBrokerData() from brokerOuterAPI.registerBrokerAll()
         ArgumentCaptor<TopicConfigSerializeWrapper> captor = ArgumentCaptor.forClass(TopicConfigSerializeWrapper.class);
+        ArgumentCaptor<BrokerIdentity> brokerIdentityCaptor = ArgumentCaptor.forClass(BrokerIdentity.class);
         verify(brokerOuterAPI, times(times)).registerBrokerAll(anyString(), anyString(), anyString(), anyLong(),
-            anyString(), captor.capture(), ArgumentMatchers.anyList(), anyBoolean(), anyInt(), anyBoolean(), anyBoolean(),  new BrokerIdentity());
+            anyString(), captor.capture(), ArgumentMatchers.anyList(), anyBoolean(), anyInt(), anyBoolean(), anyBoolean(),  brokerIdentityCaptor.capture());
         TopicConfigSerializeWrapper wrapper = captor.getValue();
 
         for (TopicConfig topicConfig : topicConfigList) {

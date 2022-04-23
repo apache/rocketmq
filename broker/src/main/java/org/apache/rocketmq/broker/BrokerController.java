@@ -1867,7 +1867,9 @@ public class BrokerController {
                 brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
                 Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
         } else {
-            return brokerConfig;
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
         }
     }
 }
