@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.protocol.RequestCode;
@@ -171,7 +172,7 @@ public class BrokerOuterAPITest {
             timeOut,
             false,
             true,
-            false);
+            new BrokerIdentity());
 
         assertTrue(registerBrokerResultList.size() > 0);
     }
@@ -202,7 +203,7 @@ public class BrokerOuterAPITest {
                 return response;
             }
         });
-        List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr, brokerName, brokerId, "hasServerAddr", topicConfigSerializeWrapper, Lists.<String>newArrayList(), false, timeOut, false, true, false);
+        List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr, brokerName, brokerId, "hasServerAddr", topicConfigSerializeWrapper, Lists.<String>newArrayList(), false, timeOut, false, true, new BrokerIdentity());
 
         assertEquals(2, registerBrokerResultList.size());
     }

@@ -57,8 +57,10 @@ public class TopicQueueMappingCleanService extends ServiceThread {
     private RpcClient rpcClient;
     private MessageStoreConfig messageStoreConfig;
     private BrokerConfig brokerConfig;
+    private BrokerController brokerController;
 
     public TopicQueueMappingCleanService(BrokerController brokerController) {
+        this.brokerController = brokerController;
         this.topicQueueMappingManager = brokerController.getTopicQueueMappingManager();
         this.rpcClient = brokerController.getBrokerOuterAPI().getRpcClient();
         this.messageStoreConfig = brokerController.getMessageStoreConfig();
@@ -69,7 +71,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (this.brokerConfig.isInBrokerContainer()) {
-            return this.brokerConfig.getLoggerIdentifier() + TopicQueueMappingCleanService.class.getSimpleName();
+            return this.brokerController.getBrokerIdentity().getLoggerIdentifier() + TopicQueueMappingCleanService.class.getSimpleName();
         }
         return TopicQueueMappingCleanService.class.getSimpleName();
     }

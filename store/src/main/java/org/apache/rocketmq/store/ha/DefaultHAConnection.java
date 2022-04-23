@@ -177,7 +177,7 @@ public class DefaultHAConnection implements HAConnection {
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerConfig().getLoggerIdentifier() + ReadSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + ReadSocketService.class.getSimpleName();
             }
             return ReadSocketService.class.getSimpleName();
         }

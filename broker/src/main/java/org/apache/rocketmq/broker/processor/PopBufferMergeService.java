@@ -77,7 +77,7 @@ public class PopBufferMergeService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (this.brokerController != null && this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return brokerController.getBrokerConfig().getLoggerIdentifier() + PopBufferMergeService.class.getSimpleName();
+            return brokerController.getBrokerIdentity().getLoggerIdentifier() + PopBufferMergeService.class.getSimpleName();
         }
         return PopBufferMergeService.class.getSimpleName();
     }

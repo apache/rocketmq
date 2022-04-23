@@ -66,7 +66,7 @@ public class PopReviveService extends ServiceThread {
     @Override
     public String getServiceName() {
         if (brokerController != null && brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return brokerController.getBrokerConfig().getLoggerIdentifier() + "PopReviveService_" + this.queueId;
+            return brokerController.getBrokerIdentity().getLoggerIdentifier() + "PopReviveService_" + this.queueId;
         }
         return "PopReviveService_" + this.queueId;
     }
