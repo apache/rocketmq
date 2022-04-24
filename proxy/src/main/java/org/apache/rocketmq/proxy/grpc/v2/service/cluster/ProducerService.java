@@ -108,7 +108,7 @@ public class ProducerService extends BaseService {
         // use topic name as group
         Resource topic = request.getMessages(0).getTopic();
         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-        return GrpcConverter.buildMessage(request.getMessagesList(), topic, topicName);
+        return GrpcConverter.buildMessage(request.getMessagesList(), topic);
     }
 
     protected SendMessageResponse convertToSendMessageResponse(Context ctx, SendMessageRequest request,

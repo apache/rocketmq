@@ -89,7 +89,6 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
@@ -444,22 +443,24 @@ public class GrpcConverter {
     }
 
     public static List<org.apache.rocketmq.common.message.Message> buildMessage(List<Message> protoMessageList,
-        Resource topic, String producerGroup) {
+        Resource topic) {
+        String topicName = wrapResourceWithNamespace(topic);
         List<org.apache.rocketmq.common.message.Message> messages = new ArrayList<>();
         for (Message protoMessage : protoMessageList) {
             if (!protoMessage.getTopic().equals(topic)) {
                 throw new ProxyException(Code.MESSAGE_CORRUPTED, "topic in message is not same");
             }
-            messages.add(buildMessage(protoMessage, producerGroup));
+            // here use topicName as producerGroup for transactional checker.
+            messages.add(buildMessage(protoMessage, topicName));
         }
         return messages;
     }
 
     public static org.apache.rocketmq.common.message.Message buildMessage(Message protoMessage, String producerGroup) {
-        String topic = wrapResourceWithNamespace(protoMessage.getTopic());
+        String topicName = wrapResourceWithNamespace(protoMessage.getTopic());
 
         org.apache.rocketmq.common.message.Message message =
-            new org.apache.rocketmq.common.message.Message(topic, protoMessage.getBody().toByteArray());
+            new org.apache.rocketmq.common.message.Message(topicName, protoMessage.getBody().toByteArray());
         Map<String, String> messageProperty = buildMessageProperty(protoMessage, producerGroup);
 
         MessageAccessor.setProperties(message, messageProperty);
