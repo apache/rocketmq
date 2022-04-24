@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
@@ -302,36 +301,19 @@ public class ReplicasInfoManager {
         final String newMaster = event.getNewMasterAddress();
         if (isContainsBroker(brokerName)) {
             final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
-            final BrokerIdInfo brokerInfo = this.replicaInfoTable.get(brokerName);
-            final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
 
             if (event.getNewMasterElected()) {
-                // Step1, change the origin master to follower
-                final String originMaster = replicasInfo.getMasterAddress();
-                final long originMasterId = replicasInfo.getMasterOriginId();
-                if (originMasterId > 0) {
-                    brokerIdTable.put(originMaster, originMasterId);
-                }
+                // Record new master
+                replicasInfo.updateMasterInfo(newMaster);
 
-                // Step2, record new master
-                final Long newMasterOriginId = brokerIdTable.get(newMaster);
-                brokerIdTable.put(newMaster, MixAll.MASTER_ID);
-                replicasInfo.updateMasterInfo(newMaster, newMasterOriginId);
-
-                // Step3, record new newSyncStateSet list
+                // Record new newSyncStateSet list
                 final HashSet<String> newSyncStateSet = new HashSet<>();
                 newSyncStateSet.add(newMaster);
                 replicasInfo.updateSyncStateSetInfo(newSyncStateSet);
             } else {
                 // If new master was not elected, which means old master was shutdown and the newSyncStateSet list had no more replicas
                 // So we should delete old master, but retain newSyncStateSet list.
-                final String originMaster = replicasInfo.getMasterAddress();
-                final long originMasterId = replicasInfo.getMasterOriginId();
-                if (originMasterId > 0) {
-                    brokerIdTable.put(originMaster, originMasterId);
-                }
-
-                replicasInfo.updateMasterInfo("", -1);
+                replicasInfo.updateMasterInfo("");
             }
         } else {
             // When the first replicas of a broker come online,
@@ -340,7 +322,7 @@ public class ReplicasInfoManager {
             final BrokerIdInfo brokerInfo = new BrokerIdInfo(clusterName, brokerName);
             final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
             final InSyncReplicasInfo replicasInfo = new InSyncReplicasInfo(clusterName, brokerName, newMaster);
-            brokerIdTable.put(newMaster, MixAll.MASTER_ID);
+            brokerIdTable.put(newMaster, 1L);
             this.inSyncReplicasInfoTable.put(brokerName, replicasInfo);
             this.replicaInfoTable.put(brokerName, brokerInfo);
         }

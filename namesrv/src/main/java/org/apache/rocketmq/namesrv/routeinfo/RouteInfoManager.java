@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -674,10 +673,9 @@ public class RouteInfoManager {
                     }
 
                     // Check whether we need to elect a new master
-                    if (this.namesrvConfig.isStartupController() && this.controller != null) {
+                    if (this.namesrvController.getControllerConfig().isStartupController() && this.controller != null) {
                         if (unRegisterRequest.getBrokerId() == 0) {
-                            final CompletableFuture<RemotingCommand> future =
-                                this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
+                            this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
                             // Todo: Inform the master
                             // However, because now the broker does not have the related api, so I will complete the process in the future.
                         }

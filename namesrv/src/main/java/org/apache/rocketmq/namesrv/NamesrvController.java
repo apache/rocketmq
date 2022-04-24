@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.namesrv;
 
-import io.openmessaging.storage.dledger.DLedgerConfig;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +30,7 @@ import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
+import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -64,6 +64,7 @@ public class NamesrvController {
 
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
+    private final ControllerConfig controllerConfig;
 
     private final ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
         new BasicThreadFactory.Builder()
@@ -97,22 +98,19 @@ public class NamesrvController {
     private Controller controller;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
-        this(namesrvConfig, nettyServerConfig, new NettyClientConfig());
+        this(namesrvConfig, nettyServerConfig, new NettyClientConfig(), new ControllerConfig());
     }
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig,
-        NettyClientConfig nettyClientConfig) {
+        NettyClientConfig nettyClientConfig, ControllerConfig controllerConfig) {
         this.namesrvConfig = namesrvConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
+        this.controllerConfig = controllerConfig;
         this.kvConfigManager = new KVConfigManager(this);
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
-        if (namesrvConfig.isStartupController()) {
-            final DLedgerConfig config = new DLedgerConfig();
-            config.setGroup(namesrvConfig.getControllerDLegerGroup());
-            config.setPeers(namesrvConfig.getControllerDLegerPeers());
-            config.setSelfId(namesrvConfig.getControllerDLegerSelfId());
-            this.controller = new DledgerController(config, namesrvConfig.isEnableElectUncleanMaster());
+        if (controllerConfig.isStartupController()) {
+            this.controller = new DledgerController(controllerConfig);
         }
         this.routeInfoManager = new RouteInfoManager(namesrvConfig, this, this.controller);
         this.configuration = new Configuration(
@@ -156,11 +154,11 @@ public class NamesrvController {
             }
         };
 
-        if (this.namesrvConfig.isStartupController()) {
-            this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.namesrvConfig.getControllerRequestThreadPoolQueueCapacity());
+        if (this.controllerConfig.isStartupController()) {
+            this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.controllerConfig.getControllerRequestThreadPoolQueueCapacity());
             this.controllerRequestExecutor = new ThreadPoolExecutor(
-                this.namesrvConfig.getControllerThreadPoolNums(),
-                this.namesrvConfig.getControllerThreadPoolNums(),
+                this.controllerConfig.getControllerThreadPoolNums(),
+                this.controllerConfig.getControllerThreadPoolNums(),
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.controllerRequestThreadPoolQueue,
@@ -271,7 +269,7 @@ public class NamesrvController {
 
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.defaultExecutor);
 
-            if (namesrvConfig.isStartupController()) {
+            if (controllerConfig.isStartupController()) {
                 final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this.controller);
                 this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
                 this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
@@ -313,6 +311,10 @@ public class NamesrvController {
 
     public NettyServerConfig getNettyServerConfig() {
         return nettyServerConfig;
+    }
+
+    public ControllerConfig getControllerConfig() {
+        return controllerConfig;
     }
 
     public KVConfigManager getKvConfigManager() {

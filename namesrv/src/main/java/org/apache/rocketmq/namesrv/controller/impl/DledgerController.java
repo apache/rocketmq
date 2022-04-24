@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
@@ -56,6 +57,7 @@ public class DledgerController implements Controller {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final DLedgerServer dLedgerServer;
+    private final ControllerConfig controllerConfig;
     private final DLedgerConfig dLedgerConfig;
     private final ReplicasInfoManager replicasInfoManager;
     private final EventScheduler scheduler;
@@ -64,14 +66,20 @@ public class DledgerController implements Controller {
     private final DledgerControllerStateMachine statemachine;
     private volatile boolean isScheduling = false;
 
-    public DledgerController(final DLedgerConfig dLedgerConfig, final boolean isEnableElectUncleanMaster) {
-        this.dLedgerConfig = dLedgerConfig;
-
+    public DledgerController(final ControllerConfig config) {
+        this.controllerConfig = config;
         this.eventSerializer = new EventSerializer();
-
         this.scheduler = new EventScheduler();
+
+        this.dLedgerConfig = new DLedgerConfig();
+        this.dLedgerConfig.setGroup(config.getControllerDLegerGroup());
+        this.dLedgerConfig.setPeers(config.getControllerDLegerPeers());
+        this.dLedgerConfig.setSelfId(config.getControllerDLegerSelfId());
+        this.dLedgerConfig.setStoreBaseDir(config.getControllerStorePath());
+        this.dLedgerConfig.setMappedFileSizeForEntryData(config.getMappedFileSize());
+
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
-        this.replicasInfoManager = new ReplicasInfoManager(isEnableElectUncleanMaster);
+        this.replicasInfoManager = new ReplicasInfoManager(config.isEnableElectUncleanMaster());
         this.statemachine = new DledgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getSelfId());
 
         // Register statemachine and role handler.

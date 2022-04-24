@@ -31,25 +31,19 @@ public class InSyncReplicasInfo {
 
     private String masterAddress;
     private int masterEpoch;
-    // Because when a Broker becomes a master, its id needs to be assigned a value of 0.
-    // We need to record it's originId so that when it becomes a follower again, we can find its original id.
-    private long masterOriginId;
 
     public InSyncReplicasInfo(String clusterName, String brokerName, String masterAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.masterAddress = masterAddress;
         this.masterEpoch = 1;
-        // The first master is the first online broker
-        this.masterOriginId = 1;
         this.syncStateSet = new HashSet<>();
         this.syncStateSet.add(masterAddress);
         this.syncStateSetEpoch = 1;
     }
 
-    public void updateMasterInfo(String masterAddress, long masterOriginId) {
+    public void updateMasterInfo(String masterAddress) {
         this.masterAddress = masterAddress;
-        this.masterOriginId = masterOriginId;
         this.masterEpoch++;
     }
 
@@ -59,7 +53,7 @@ public class InSyncReplicasInfo {
     }
 
     public boolean isMasterExist() {
-        return !this.masterAddress.isEmpty() && this.masterOriginId > 0;
+        return !this.masterAddress.isEmpty();
     }
 
     public String getClusterName() {
@@ -84,9 +78,5 @@ public class InSyncReplicasInfo {
 
     public int getMasterEpoch() {
         return masterEpoch;
-    }
-
-    public long getMasterOriginId() {
-        return masterOriginId;
     }
 }

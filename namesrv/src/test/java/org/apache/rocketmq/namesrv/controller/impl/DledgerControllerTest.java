@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
@@ -58,15 +59,15 @@ public class DledgerControllerTest {
         final String path = "/tmp" + File.separator + group + File.separator + selfId;
         baseDirs.add(path);
 
-        DLedgerConfig config = new DLedgerConfig();
-        config.group(group).selfId(selfId).peers(peers);
-        config.setStoreBaseDir(path);
-        config.setStoreType(storeType);
-        config.setMappedFileSizeForEntryData(10 * 1024 * 1024);
-        config.setEnableDiskForceClean(false);
-        config.setDiskSpaceRatioToForceClean(0.90f);
+        final ControllerConfig config = new ControllerConfig();
+        config.setControllerDLegerGroup(group);
+        config.setControllerDLegerPeers(peers);
+        config.setControllerDLegerSelfId(selfId);
+        config.setControllerStorePath(path);
+        config.setMappedFileSize(10 * 1024 * 1024);
+        config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
 
-        final DledgerController controller = new DledgerController(config, isEnableElectUncleanMaster);
+        final DledgerController controller = new DledgerController(config);
 
         controller.startup();
         return controller;
