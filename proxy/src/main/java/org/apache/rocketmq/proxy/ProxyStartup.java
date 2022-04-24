@@ -81,7 +81,7 @@ public class ProxyStartup {
             System.exit(1);
         }
 
-        System.out.printf("%s%n", new Date() + " rmq-proxy startup successfully");
+        System.out.println(new Date() + " rmq-proxy startup successfully");
         log.info(new Date() + " rmq-proxy startup successfully");
     }
 
