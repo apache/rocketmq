@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.adapter;
 
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
+import java.util.Iterator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -26,7 +27,19 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 public class ResponseWriter {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    public static <T> void write(StreamObserver<T> observer, final Iterator<T> responseIterator) {
+        while (responseIterator.hasNext()) {
+            writeResponse(observer, responseIterator.next());
+        }
+        observer.onCompleted();
+    }
+
     public static <T> void write(StreamObserver<T> observer, final T response) {
+        writeResponse(observer, response);
+        observer.onCompleted();
+    }
+
+    public static <T> void writeResponse(StreamObserver<T> observer, final T response) {
         if (observer instanceof ServerCallStreamObserver) {
             if (response == null) {
                 return;
@@ -40,7 +53,6 @@ public class ResponseWriter {
 
             log.debug("start to write response. response: {}", response);
             serverCallStreamObserver.onNext(response);
-            serverCallStreamObserver.onCompleted();
         }
     }
 

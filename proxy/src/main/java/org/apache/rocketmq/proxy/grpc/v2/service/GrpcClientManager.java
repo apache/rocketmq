@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.service;
 
+import apache.rocketmq.v2.ExponentialBackoff;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
@@ -30,13 +31,16 @@ import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 
 public class GrpcClientManager {
 
+    // TODO: read config from topic or subscription configManager
     private static final Settings DEFAULT_PRODUCER_SETTINGS = Settings.newBuilder()
         .setPublishing(Publishing.newBuilder()
             .setRetryPolicy(RetryPolicy.newBuilder()
                 .setMaxAttempts(3)
-                .setInitialBackoff(1)
-                .setMaxBackoff(4)
-                .setBackoffMultiplier(2)
+                .setExponentialBackoff(ExponentialBackoff.newBuilder()
+                    .setInitial(Durations.fromSeconds(1))
+                    .setMax(Durations.fromSeconds(3))
+                    .setMultiplier(2)
+                    .build())
                 .build())
             .setCompressBodyThreshold(4 * 1024)
             .setMaxBodySize(4 * 1024 * 1024)
@@ -47,9 +51,11 @@ public class GrpcClientManager {
             .setFifo(false)
             .setBackoffPolicy(RetryPolicy.newBuilder()
                 .setMaxAttempts(16)
-                .setInitialBackoff(1)
-                .setMaxBackoff(10)
-                .setBackoffMultiplier(2)
+                .setExponentialBackoff(ExponentialBackoff.newBuilder()
+                    .setInitial(Durations.fromSeconds(5))
+                    .setMax(Durations.fromMinutes(30))
+                    .setMultiplier(2)
+                    .build())
                 .build())
             .setReceiveBatchSize(ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST)
             .setLongPollingTimeout(Durations.fromSeconds(30))

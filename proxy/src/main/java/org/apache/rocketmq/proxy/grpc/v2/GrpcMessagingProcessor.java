@@ -44,6 +44,7 @@ import apache.rocketmq.v2.Status;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
+import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
@@ -116,7 +117,7 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
 
     @Override
     public void receiveMessage(ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
-        CompletableFuture<ReceiveMessageResponse> future = grpcForwardService.receiveMessage(Context.current(), request);
+        CompletableFuture<Iterator<ReceiveMessageResponse>> future = grpcForwardService.receiveMessage(Context.current(), request);
         future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
             .exceptionally(e -> {
                 ResponseWriter.write(

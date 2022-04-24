@@ -25,6 +25,7 @@ import apache.rocketmq.v2.Digest;
 import apache.rocketmq.v2.DigestType;
 import apache.rocketmq.v2.Encoding;
 import apache.rocketmq.v2.EndTransactionRequest;
+import apache.rocketmq.v2.ExponentialBackoff;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
@@ -36,6 +37,7 @@ import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.SubscriptionEntry;
@@ -158,10 +160,8 @@ public class GrpcConverter {
     }
 
     public static SendMessageRequestHeader buildSendMessageRequestHeader(SendMessageRequest request,
-        String producerGroup) {
+        String producerGroup, int queueId) {
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
-
-        MessageQueue messageQueue = request.getMessageQueue();
 
         if (request.getMessagesCount() <= 0) {
             throw new ProxyException(Code.MESSAGE_CORRUPTED, "no message to send");
@@ -177,7 +177,7 @@ public class GrpcConverter {
         requestHeader.setTopic(wrapResourceWithNamespace(message.getTopic()));
         requestHeader.setDefaultTopic("");
         requestHeader.setDefaultTopicQueueNums(0);
-        requestHeader.setQueueId(messageQueue.getId());
+        requestHeader.setQueueId(queueId);
         // sysFlag (body encoding & message type)
         int sysFlag = 0;
         Encoding bodyEncoding = systemProperties.getBodyEncoding();
@@ -257,7 +257,7 @@ public class GrpcConverter {
     }
 
     public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(NackMessageRequest request,
-        DelayPolicy delayPolicy) {
+        RetryPolicy retryPolicy) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
         ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
@@ -269,8 +269,22 @@ public class GrpcConverter {
         changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
         changeInvisibleTimeRequestHeader.setInvisibleTime(
-            delayPolicy.getDelayInterval(ConfigurationManager.getProxyConfig().getRetryDelayLevelDelta() + request.getDeliveryAttempt()));
+            Durations.toMillis(calculateNextDeliveryDurations(retryPolicy, request.getDeliveryAttempt())));
         return changeInvisibleTimeRequestHeader;
+    }
+
+    public static Duration calculateNextDeliveryDurations(RetryPolicy retryPolicy, int deliveryAttempt) {
+        if (retryPolicy.hasCustomizedBackoff()) {
+            int nextCount = retryPolicy.getCustomizedBackoff().getNextCount();
+            return retryPolicy.getCustomizedBackoff().getNext(Math.min(nextCount, deliveryAttempt));
+        }
+        ExponentialBackoff exponentialBackoff = retryPolicy.getExponentialBackoff();
+        long nextDurationMillis = (long) (Math.pow(exponentialBackoff.getMultiplier(), deliveryAttempt) *
+            Durations.toMillis(exponentialBackoff.getInitial()));
+        nextDurationMillis = Math.min(
+            Durations.toMillis(exponentialBackoff.getMax()),
+            nextDurationMillis);
+        return Durations.fromMillis(nextDurationMillis);
     }
 
     public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(ChangeInvisibleDurationRequest request) {
@@ -430,9 +444,12 @@ public class GrpcConverter {
     }
 
     public static List<org.apache.rocketmq.common.message.Message> buildMessage(List<Message> protoMessageList,
-        String producerGroup) {
+        Resource topic, String producerGroup) {
         List<org.apache.rocketmq.common.message.Message> messages = new ArrayList<>();
         for (Message protoMessage : protoMessageList) {
+            if (!protoMessage.getTopic().equals(topic)) {
+                throw new ProxyException(Code.MESSAGE_CORRUPTED, "topic in message is not same");
+            }
             messages.add(buildMessage(protoMessage, producerGroup));
         }
         return messages;

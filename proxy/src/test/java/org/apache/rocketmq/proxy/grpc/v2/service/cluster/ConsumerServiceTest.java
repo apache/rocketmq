@@ -85,7 +85,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
         AtomicReference<String> ackHandler = new AtomicReference<>();
         consumerService.setAckNoMatchedMessageHook((ctx1, request, response, t) -> ackHandler.set(request.getExtraInfo()));
-        ReceiveMessageResponse response = consumerService.receiveMessage(ctx,
+        List<ReceiveMessageResponse> responseList = consumerService.receiveMessage(ctx,
             ReceiveMessageRequest.newBuilder()
                 .setMessageQueue(apache.rocketmq.v2.MessageQueue.newBuilder()
                     .setTopic(Resource.newBuilder()
@@ -100,9 +100,10 @@ public class ConsumerServiceTest extends BaseServiceTest {
                 .build()
         ).get();
 
+        assertEquals(1, responseList.size());
+        ReceiveMessageResponse response = responseList.get(0);
         assertEquals(Code.OK, response.getStatus().getCode());
-        assertEquals(1, response.getMessagesCount());
-        assertEquals("msg1", response.getMessages(0).getSystemProperties().getMessageId());
+        assertEquals("msg1", response.getMessage().getSystemProperties().getMessageId());
         assertEquals(ReceiptHandle.create(messageExtList.get(1)).getReceiptHandle(), ackHandler.get());
     }
 
@@ -137,7 +138,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         }).when(producerClient).sendMessageBackThenAckOrg(anyString(), any(), any());
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
-        ReceiveMessageResponse response = consumerService.receiveMessage(ctx,
+        List<ReceiveMessageResponse> responseList = consumerService.receiveMessage(ctx,
             ReceiveMessageRequest.newBuilder()
                 .setMessageQueue(apache.rocketmq.v2.MessageQueue.newBuilder()
                     .setTopic(Resource.newBuilder()
@@ -152,6 +153,8 @@ public class ConsumerServiceTest extends BaseServiceTest {
                 .build()
         ).get();
 
+        assertEquals(1, responseList.size());
+        ReceiveMessageResponse response = responseList.get(0);
         assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(2, toDLQMsgId.size());
     }
