@@ -24,14 +24,16 @@ import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
-import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLException;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -40,6 +42,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
@@ -58,19 +61,9 @@ public class GrpcServer implements StartAndShutdown {
         int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
         NettyServerBuilder serverBuilder = NettyServerBuilder.forPort(port);
 
-        // add tls files
-        String tlsKeyPath = ConfigurationManager.getProxyConfig().getGrpcTlsKeyPath();
-        String tlsCertPath = ConfigurationManager.getProxyConfig().getGrpcTlsCertPath();
         try {
-            InputStream serverKeyInputStream = new FileInputStream(tlsKeyPath);
-            InputStream serverCertificateStream = new FileInputStream(tlsCertPath);
-
-            SslContext sslContext = GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .clientAuth(ClientAuth.NONE)
-                .build();
-            serverBuilder.sslContext(sslContext);
-        } catch (IOException e) {
+            configSslContext(serverBuilder);
+        } catch (Exception e) {
             log.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
             throw new RuntimeException("grpc tls set failed: " + e.getMessage());
         }
@@ -125,10 +118,38 @@ public class GrpcServer implements StartAndShutdown {
         log.info(
             "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
                 + "boosLoop: {}, workerLoop: {}, maxInboundMessageSize: {}",
-            port, tlsKeyPath, tlsCertPath, threadPoolNums, threadPoolQueueCapacity,
+            port, threadPoolNums, threadPoolQueueCapacity,
             bossLoopNum, workerLoopNum, maxInboundMessageSize);
     }
 
+    protected void configSslContext(NettyServerBuilder serverBuilder) throws SSLException, CertificateException {
+        if (null == serverBuilder) {
+            return;
+        }
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        boolean tlsTestModeEnable = proxyConfig.isGrpcTlsTestModeEnable();
+        if (tlsTestModeEnable) {
+            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
+            serverBuilder.sslContext(GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .clientAuth(ClientAuth.NONE)
+                .build());
+            return;
+        }
+
+        String tlsKeyPath = ConfigurationManager.getProxyConfig().getGrpcTlsKeyPath();
+        String tlsCertPath = ConfigurationManager.getProxyConfig().getGrpcTlsCertPath();
+        try (InputStream serverKeyInputStream = new FileInputStream(tlsKeyPath);
+             InputStream serverCertificateStream = new FileInputStream(tlsCertPath)) {
+            serverBuilder.sslContext(GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .clientAuth(ClientAuth.NONE)
+                .build());
+            log.info("TLS configured OK");
+        } catch (IOException e) {
+            log.error("Failed to load Server key/certificate", e);
+        }
+    }
 
     public void start() throws Exception {
         // first to start grpc service.
