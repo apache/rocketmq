@@ -43,8 +43,9 @@ public class ProxyConfig {
     private String proxyMode = ProxyMode.CLUSTER.name();
     private Boolean startGrpcServer = true;
     private Integer grpcServerPort = 8081;
-    private String grpcTlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/gRPC.key.pem";
-    private String grpcTlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/gRPC.chain.cert.pem";
+    private boolean grpcTlsTestModeEnable = true;
+    private String grpcTlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
+    private String grpcTlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = Runtime.getRuntime().availableProcessors() * 2;
     private boolean enableGrpcEpoll = false;
@@ -163,6 +164,14 @@ public class ProxyConfig {
 
     public void setGrpcServerPort(Integer grpcServerPort) {
         this.grpcServerPort = grpcServerPort;
+    }
+
+    public boolean isGrpcTlsTestModeEnable() {
+        return grpcTlsTestModeEnable;
+    }
+
+    public void setGrpcTlsTestModeEnable(boolean grpcTlsTestModeEnable) {
+        this.grpcTlsTestModeEnable = grpcTlsTestModeEnable;
     }
 
     public String getGrpcTlsKeyPath() {
