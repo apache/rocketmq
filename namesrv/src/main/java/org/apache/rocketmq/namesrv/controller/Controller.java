@@ -18,14 +18,10 @@ package org.apache.rocketmq.namesrv.controller;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * The api for controller
@@ -56,39 +52,39 @@ public interface Controller {
      * Alter ISR of broker replicas.
      *
      * @param request AlterSyncStateSetRequestHeader
-     * @return AlterSyncStateSetResponseHeader
+     * @return RemotingCommand(AlterSyncStateSetResponseHeader)
      */
-    CompletableFuture<AlterSyncStateSetResponseHeader> alterSyncStateSet(
+    CompletableFuture<RemotingCommand> alterSyncStateSet(
         final AlterSyncStateSetRequestHeader request);
 
     /**
      * Elect new master for a broker.
      *
      * @param request ElectMasterRequest
-     * @return ElectMasterResponse
+     * @return RemotingCommand(ElectMasterResponseHeader)
      */
-    CompletableFuture<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request);
+    CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request);
 
     /**
      * Register api when a replicas of a broker startup.
      *
      * @param request RegisterBrokerRequest
-     * @return RegisterBrokerResponse
+     * @return RemotingCommand(RegisterBrokerResponseHeader)
      */
-    CompletableFuture<RegisterBrokerResponseHeader> registerBroker(final RegisterBrokerRequestHeader request);
+    CompletableFuture<RemotingCommand> registerBroker(final RegisterBrokerRequestHeader request);
 
     /**
      * Get the Replica Info for a target broker.
      *
      * @param request GetRouteInfoRequest
-     * @return GetReplicaInfoResponse
+     * @return RemotingCommand(GetReplicaInfoResponseHeader)
      */
-    CompletableFuture<GetReplicaInfoResponseHeader> getReplicaInfo(final GetReplicaInfoRequestHeader request);
+    CompletableFuture<RemotingCommand> getReplicaInfo(final GetReplicaInfoRequestHeader request);
 
     /**
      * Get Metadata of controller
      *
-     * @return GetMetaDataResponse
+     * @return RemotingCommand(GetControllerMetadataResponseHeader)
      */
-    GetMetaDataResponseHeader getControllerMetadata();
+    RemotingCommand getControllerMetadata();
 }

@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 public class ControllerResult<T> {
     private final List<EventMessage> events;
     private final T response;
-    private int responseCode = ResponseCode.SYSTEM_ERROR;
+    private int responseCode = ResponseCode.SUCCESS;
 
     public ControllerResult(T response) {
         this.events = new ArrayList<>();

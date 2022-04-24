@@ -115,7 +115,6 @@ public class ReplicasInfoManager {
             response.setNewSyncStateSet(newSyncStateSet);
             final AlterSyncStateSetEvent event = new AlterSyncStateSetEvent(brokerName, newSyncStateSet);
             result.addEvent(event);
-
             return result;
         }
         result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REQUEST);

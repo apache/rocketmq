@@ -33,15 +33,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.controller.Controller;
@@ -49,6 +46,8 @@ import org.apache.rocketmq.namesrv.controller.manager.ReplicasInfoManager;
 import org.apache.rocketmq.namesrv.controller.manager.event.ControllerResult;
 import org.apache.rocketmq.namesrv.controller.manager.event.EventMessage;
 import org.apache.rocketmq.namesrv.controller.manager.event.EventSerializer;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * The implementation of controller, based on dledger (raft).
@@ -110,7 +109,7 @@ public class DledgerController implements Controller {
     }
 
     @Override
-    public CompletableFuture<AlterSyncStateSetResponseHeader> alterSyncStateSet(
+    public CompletableFuture<RemotingCommand> alterSyncStateSet(
         AlterSyncStateSetRequestHeader request) {
         if (!this.roleHandler.isLeaderState()) {
             log.warn("Current controller {} is not leader, reject alterSyncStateSet request", this.dLedgerConfig.getSelfId());
@@ -121,7 +120,7 @@ public class DledgerController implements Controller {
     }
 
     @Override
-    public CompletableFuture<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request) {
+    public CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request) {
         if (!this.roleHandler.isLeaderState()) {
             log.warn("Current controller {} is not leader, reject electMaster request", this.dLedgerConfig.getSelfId());
             return null;
@@ -131,7 +130,7 @@ public class DledgerController implements Controller {
     }
 
     @Override
-    public CompletableFuture<RegisterBrokerResponseHeader> registerBroker(RegisterBrokerRequestHeader request) {
+    public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerRequestHeader request) {
         if (!this.roleHandler.isLeaderState()) {
             log.warn("Current controller {} is not leader, reject registerBroker request", this.dLedgerConfig.getSelfId());
             return null;
@@ -141,7 +140,7 @@ public class DledgerController implements Controller {
     }
 
     @Override
-    public CompletableFuture<GetReplicaInfoResponseHeader> getReplicaInfo(final GetReplicaInfoRequestHeader request) {
+    public CompletableFuture<RemotingCommand> getReplicaInfo(final GetReplicaInfoRequestHeader request) {
         if (!this.roleHandler.isLeaderState()) {
             log.warn("Current controller {} is not leader, reject getReplicaInfo request", this.dLedgerConfig.getSelfId());
             return null;
@@ -151,9 +150,9 @@ public class DledgerController implements Controller {
     }
 
     @Override
-    public GetMetaDataResponseHeader getControllerMetadata() {
+    public RemotingCommand getControllerMetadata() {
         final MemberState state = getMemberState();
-        return new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr());
+        return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr()));
     }
 
     /**
@@ -168,7 +167,7 @@ public class DledgerController implements Controller {
         /**
          * Return the completableFuture
          */
-        CompletableFuture<T> future();
+        CompletableFuture<RemotingCommand> future();
 
         /**
          * Handle Exception.
@@ -210,10 +209,10 @@ public class DledgerController implements Controller {
                     handler.handleException(e);
                 }
             }
-
         }
 
-        public <T> CompletableFuture<T> appendEvent(final String name, final Supplier<ControllerResult<T>> supplier,
+        public <T> CompletableFuture<RemotingCommand> appendEvent(final String name,
+            final Supplier<ControllerResult<T>> supplier,
             boolean isWriteEvent) {
             if (isStopped()) {
                 return null;
@@ -243,7 +242,7 @@ public class DledgerController implements Controller {
     class ControllerEventHandler<T> implements EventHandler<T> {
         private final String name;
         private final Supplier<ControllerResult<T>> supplier;
-        private final CompletableFuture<T> future;
+        private final CompletableFuture<RemotingCommand> future;
         private final boolean isWriteEvent;
 
         ControllerEventHandler(final String name, final Supplier<ControllerResult<T>> supplier,
@@ -284,7 +283,8 @@ public class DledgerController implements Controller {
                 appendSuccess = appendToDledgerAndWait(request);
             }
             if (appendSuccess) {
-                this.future.complete(result.getResponse());
+                final RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(result.getResponseCode(), (CommandCustomHeader) result.getResponse());
+                this.future.complete(response);
             } else {
                 log.error("Failed to append event to dledger, the response is {}, try cancel the future", result.getResponse());
                 this.future.cancel(true);
@@ -292,7 +292,7 @@ public class DledgerController implements Controller {
         }
 
         @Override
-        public CompletableFuture<T> future() {
+        public CompletableFuture<RemotingCommand> future() {
             return this.future;
         }
 

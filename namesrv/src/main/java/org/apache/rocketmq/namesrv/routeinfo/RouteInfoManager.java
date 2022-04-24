@@ -48,7 +48,6 @@ import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -677,9 +676,10 @@ public class RouteInfoManager {
                     // Check whether we need to elect a new master
                     if (this.namesrvConfig.isStartupController() && this.controller != null) {
                         if (unRegisterRequest.getBrokerId() == 0) {
-                            final CompletableFuture<ElectMasterResponseHeader> future =
+                            final CompletableFuture<RemotingCommand> future =
                                 this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
-                            // Todo: Inform the master, However, because now the broker does not have the related api, so I will complete the process in the future.
+                            // Todo: Inform the master
+                            // However, because now the broker does not have the related api, so I will complete the process in the future.
                         }
                     }
                 }

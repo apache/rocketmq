@@ -22,14 +22,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.controller.Controller;
@@ -67,43 +62,38 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         switch(request.getCode()) {
             case CONTROLLER_ALTER_SYNC_STATE_SET : {
                 final AlterSyncStateSetRequestHeader controllerRequest = request.decodeCommandCustomHeader(AlterSyncStateSetRequestHeader.class);
-                final CompletableFuture<AlterSyncStateSetResponseHeader> future = this.controller.alterSyncStateSet(controllerRequest);
+                final CompletableFuture<RemotingCommand> future = this.controller.alterSyncStateSet(controllerRequest);
                 if (future != null) {
-                    final AlterSyncStateSetResponseHeader resp = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                    return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, resp);
+                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                 }
                 break;
             }
             case CONTROLLER_ELECT_MASTER: {
                 final ElectMasterRequestHeader controllerRequest = request.decodeCommandCustomHeader(ElectMasterRequestHeader.class);
-                final CompletableFuture<ElectMasterResponseHeader> future = this.controller.electMaster(controllerRequest);
+                final CompletableFuture<RemotingCommand> future = this.controller.electMaster(controllerRequest);
                 if (future != null) {
-                    final ElectMasterResponseHeader resp = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                    return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, resp);
+                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                 }
                 break;
             }
             case CONTROLLER_REGISTER_BROKER: {
                 final RegisterBrokerRequestHeader controllerRequest = request.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
-                final CompletableFuture<RegisterBrokerResponseHeader> future = this.controller.registerBroker(controllerRequest);
+                final CompletableFuture<RemotingCommand> future = this.controller.registerBroker(controllerRequest);
                 if (future != null) {
-                    final RegisterBrokerResponseHeader resp = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                    return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, resp);
+                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                 }
                 break;
             }
             case CONTROLLER_GET_REPLICA_INFO: {
                 final GetReplicaInfoRequestHeader controllerRequest = request.decodeCommandCustomHeader(GetReplicaInfoRequestHeader.class);
-                final CompletableFuture<GetReplicaInfoResponseHeader> future = this.controller.getReplicaInfo(controllerRequest);
+                final CompletableFuture<RemotingCommand> future = this.controller.getReplicaInfo(controllerRequest);
                 if (future != null) {
-                    final GetReplicaInfoResponseHeader resp = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                    return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, resp);
+                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                 }
                 break;
             }
             case CONTROLLER_GET_METADATA_INFO: {
-                final GetMetaDataResponseHeader resp = this.controller.getControllerMetadata();
-                return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, resp);
+                return this.controller.getControllerMetadata();
             }
             default: {
                 final String error = " request type " + request.getCode() + " not supported";
