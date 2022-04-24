@@ -17,14 +17,44 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.service;
 
+import apache.rocketmq.v2.Publishing;
+import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
+import com.google.protobuf.util.Durations;
 import io.grpc.Context;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 
 public class GrpcClientManager {
-    
+
+    private static final Settings DEFAULT_PRODUCER_SETTINGS = Settings.newBuilder()
+        .setPublishing(Publishing.newBuilder()
+            .setRetryPolicy(RetryPolicy.newBuilder()
+                .setMaxAttempts(3)
+                .setInitialBackoff(1)
+                .setMaxBackoff(4)
+                .setBackoffMultiplier(2)
+                .build())
+            .setCompressBodyThreshold(4 * 1024)
+            .setMaxBodySize(4 * 1024 * 1024)
+            .build())
+        .build();
+    private static final Settings DEFAULT_CONSUMER_SETTINGS = Settings.newBuilder()
+        .setSubscription(Subscription.newBuilder()
+            .setFifo(false)
+            .setBackoffPolicy(RetryPolicy.newBuilder()
+                .setMaxAttempts(16)
+                .setInitialBackoff(1)
+                .setMaxBackoff(10)
+                .setBackoffMultiplier(2)
+                .build())
+            .setReceiveBatchSize(ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST)
+            .setLongPollingTimeout(Durations.fromSeconds(30))
+            .build())
+        .build();
     private static final Map<String, Settings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
 
     public Settings getClientSettings(Context ctx) {
@@ -37,6 +67,11 @@ public class GrpcClientManager {
     }
 
     public void updateClientSettings(String clientId, Settings settings) {
+        if (settings.hasPublishing()) {
+            settings = DEFAULT_PRODUCER_SETTINGS.toBuilder().mergeFrom(settings).build();
+        } else if (settings.hasSubscription()) {
+            settings = DEFAULT_CONSUMER_SETTINGS.toBuilder().mergeFrom(settings).build();
+        }
         CLIENT_SETTINGS_MAP.put(clientId, settings);
     }
 
