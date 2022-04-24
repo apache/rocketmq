@@ -16,23 +16,24 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
+import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
-    private String brokerName;
-    private String masterAddress;
-    private int masterEpoch;
-    private Set<String> newSyncStateSet;
-    private int syncStateSetEpoch;
+    private final String brokerName;
+    private final String masterAddress;
+    private final int masterEpoch;
+    private final Set<String> newSyncStateSet;
+    private final int syncStateSetEpoch;
 
     public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch,
         Set<String> newSyncStateSet, int syncStateSetEpoch) {
         this.brokerName = brokerName;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
-        this.newSyncStateSet = newSyncStateSet;
+        this.newSyncStateSet = new HashSet<>(newSyncStateSet);
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
@@ -40,40 +41,20 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         return brokerName;
     }
 
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
-    }
-
     public String getMasterAddress() {
         return masterAddress;
-    }
-
-    public void setMasterAddress(String masterAddress) {
-        this.masterAddress = masterAddress;
     }
 
     public int getMasterEpoch() {
         return masterEpoch;
     }
 
-    public void setMasterEpoch(int masterEpoch) {
-        this.masterEpoch = masterEpoch;
-    }
-
     public Set<String> getNewSyncStateSet() {
-        return newSyncStateSet;
-    }
-
-    public void setNewSyncStateSet(Set<String> newSyncStateSet) {
-        this.newSyncStateSet = newSyncStateSet;
+        return new HashSet<>(newSyncStateSet);
     }
 
     public int getSyncStateSetEpoch() {
         return syncStateSetEpoch;
-    }
-
-    public void setSyncStateSetEpoch(int syncStateSetEpoch) {
-        this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
     @Override

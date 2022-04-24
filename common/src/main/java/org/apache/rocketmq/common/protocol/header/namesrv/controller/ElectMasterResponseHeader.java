@@ -27,11 +27,6 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
     public ElectMasterResponseHeader() {
     }
 
-    public ElectMasterResponseHeader(String newMasterAddress, int masterEpoch) {
-        this.newMasterAddress = newMasterAddress;
-        this.masterEpoch = masterEpoch;
-    }
-
     public short getErrorCode() {
         return errorCode;
     }

@@ -84,9 +84,14 @@ public class RouteInfoManager {
 
     private final NamesrvController namesrvController;
     private final NamesrvConfig namesrvConfig;
-    private final Controller controller;
+    private Controller controller;
 
     public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController, final Controller controller) {
+        this(namesrvConfig, namesrvController);
+        this.controller = controller;
+    }
+
+    public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController) {
         this.topicQueueTable = new ConcurrentHashMap<String, Map<String, QueueData>>(1024);
         this.brokerAddrTable = new ConcurrentHashMap<String, BrokerData>(128);
         this.clusterAddrTable = new ConcurrentHashMap<String, Set<String>>(32);
@@ -97,7 +102,6 @@ public class RouteInfoManager {
         this.unRegisterService = new BatchUnRegisterService(this, namesrvConfig);
         this.namesrvConfig = namesrvConfig;
         this.namesrvController = namesrvController;
-        this.controller = controller;
     }
 
     public void start() {

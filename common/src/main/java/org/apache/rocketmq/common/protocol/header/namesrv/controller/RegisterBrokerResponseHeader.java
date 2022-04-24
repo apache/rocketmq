@@ -29,12 +29,6 @@ public class RegisterBrokerResponseHeader implements CommandCustomHeader {
     public RegisterBrokerResponseHeader() {
     }
 
-    public RegisterBrokerResponseHeader(String masterAddress, int masterEpoch, int brokerId) {
-        this.masterAddress = masterAddress;
-        this.masterEpoch = masterEpoch;
-        this.brokerId = brokerId;
-    }
-
     public short getErrorCode() {
         return errorCode;
     }

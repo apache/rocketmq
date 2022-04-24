@@ -180,7 +180,7 @@ public class ReplicasInfoManager {
             response.setBrokerId(brokerId);
             response.setMasterEpoch(replicasInfo.getMasterEpoch());
 
-            if (replicasInfo.isMasterAlive()) {
+            if (replicasInfo.isMasterExist()) {
                 // If the master is alive, just return master info.
                 response.setMasterAddress(replicasInfo.getMasterAddress());
                 return result;

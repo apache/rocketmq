@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
+import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -28,14 +29,6 @@ public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
     private int syncStateSetEpoch;
 
     public GetReplicaInfoResponseHeader() {
-    }
-
-    public GetReplicaInfoResponseHeader(String masterAddress, int masterEpoch, Set<String> syncStateSet,
-        int syncStateSetEpoch) {
-        this.masterAddress = masterAddress;
-        this.masterEpoch = masterEpoch;
-        this.syncStateSet = syncStateSet;
-        this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
     public short getErrorCode() {
@@ -63,11 +56,11 @@ public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
     }
 
     public Set<String> getSyncStateSet() {
-        return syncStateSet;
+        return new HashSet<>(syncStateSet);
     }
 
     public void setSyncStateSet(Set<String> syncStateSet) {
-        this.syncStateSet = syncStateSet;
+        this.syncStateSet = new HashSet<>(syncStateSet);
     }
 
     public int getSyncStateSetEpoch() {

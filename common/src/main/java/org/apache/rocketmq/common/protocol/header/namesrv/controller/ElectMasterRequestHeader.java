@@ -20,7 +20,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class ElectMasterRequestHeader implements CommandCustomHeader {
-    private String brokerName;
+    private final String brokerName;
 
     public ElectMasterRequestHeader(String brokerName) {
         this.brokerName = brokerName;
@@ -28,10 +28,6 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
 
     public String getBrokerName() {
         return brokerName;
-    }
-
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
     }
 
     @Override

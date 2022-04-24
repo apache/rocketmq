@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.namesrv.controller.manager.event;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -29,7 +30,7 @@ public class AlterSyncStateSetEvent implements EventMessage {
 
     public AlterSyncStateSetEvent(String brokerName, Set<String> newSyncStateSet) {
         this.brokerName = brokerName;
-        this.newSyncStateSet = newSyncStateSet;
+        this.newSyncStateSet = new HashSet<>(newSyncStateSet);
     }
 
     @Override
@@ -42,7 +43,7 @@ public class AlterSyncStateSetEvent implements EventMessage {
     }
 
     public Set<String> getNewSyncStateSet() {
-        return newSyncStateSet;
+        return new HashSet<>(newSyncStateSet);
     }
 
     @Override public String toString() {

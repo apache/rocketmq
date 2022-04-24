@@ -54,11 +54,11 @@ public class InSyncReplicasInfo {
     }
 
     public void updateSyncStateSetInfo(Set<String> newSyncStateSet) {
-        this.syncStateSet = newSyncStateSet;
+        this.syncStateSet = new HashSet<>(newSyncStateSet);
         this.syncStateSetEpoch++;
     }
 
-    public boolean isMasterAlive() {
+    public boolean isMasterExist() {
         return !this.masterAddress.isEmpty() && this.masterOriginId > 0;
     }
 
@@ -71,7 +71,7 @@ public class InSyncReplicasInfo {
     }
 
     public Set<String> getSyncStateSet() {
-        return syncStateSet;
+        return new HashSet<>(syncStateSet);
     }
 
     public int getSyncStateSetEpoch() {

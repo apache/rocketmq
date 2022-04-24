@@ -20,12 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ControllerResult<T> {
-    private List<EventMessage> events;
-    private T response;
-
-    public ControllerResult() {
-        this.events = new ArrayList<>();
-    }
+    private final List<EventMessage> events;
+    private final T response;
 
     public ControllerResult(T response) {
         this.events = new ArrayList<>();
@@ -33,12 +29,12 @@ public class ControllerResult<T> {
     }
 
     public ControllerResult(List<EventMessage> events, T response) {
-        this.events = events;
+        this.events = new ArrayList<>(events);
         this.response = response;
     }
 
     public List<EventMessage> getEvents() {
-        return events;
+        return new ArrayList<>(events);
     }
 
     public T getResponse() {

@@ -20,8 +20,8 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class GetMetaDataResponseHeader implements CommandCustomHeader {
-    private String controllerLeaderId;
-    private String controllerLeaderAddress;
+    private final String controllerLeaderId;
+    private final String controllerLeaderAddress;
 
     public GetMetaDataResponseHeader(String controllerLeaderId, String controllerLeaderAddress) {
         this.controllerLeaderId = controllerLeaderId;
@@ -32,16 +32,15 @@ public class GetMetaDataResponseHeader implements CommandCustomHeader {
         return controllerLeaderId;
     }
 
-    public void setControllerLeaderId(String controllerLeaderId) {
-        this.controllerLeaderId = controllerLeaderId;
-    }
-
     public String getControllerLeaderAddress() {
         return controllerLeaderAddress;
     }
 
-    public void setControllerLeaderAddress(String controllerLeaderAddress) {
-        this.controllerLeaderAddress = controllerLeaderAddress;
+    @Override public String toString() {
+        return "GetMetaDataResponseHeader{" +
+            "controllerLeaderId='" + controllerLeaderId + '\'' +
+            ", controllerLeaderAddress='" + controllerLeaderAddress + '\'' +
+            '}';
     }
 
     @Override
