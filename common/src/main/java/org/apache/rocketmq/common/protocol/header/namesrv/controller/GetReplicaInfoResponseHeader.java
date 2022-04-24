@@ -22,21 +22,12 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
-    private short errorCode = ErrorCodes.NONE.getCode();
     private String masterAddress;
     private int masterEpoch;
     private Set<String> syncStateSet;
     private int syncStateSetEpoch;
 
     public GetReplicaInfoResponseHeader() {
-    }
-
-    public short getErrorCode() {
-        return errorCode;
-    }
-
-    public void setErrorCode(short errorCode) {
-        this.errorCode = errorCode;
     }
 
     public String getMasterAddress() {
@@ -74,8 +65,7 @@ public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
     @Override
     public String toString() {
         return "GetReplicaInfoResponseHeader{" +
-            "errorCode=" + errorCode +
-            ", masterAddress='" + masterAddress + '\'' +
+            "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             ", syncStateSet=" + syncStateSet +
             ", syncStateSetEpoch=" + syncStateSetEpoch +

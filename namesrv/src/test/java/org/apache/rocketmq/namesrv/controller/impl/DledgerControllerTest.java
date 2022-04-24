@@ -29,7 +29,6 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncSt
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ErrorCodes;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerRequestHeader;
@@ -117,9 +116,6 @@ public class DledgerControllerTest {
 
         final CompletableFuture<GetReplicaInfoResponseHeader> getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
         final GetReplicaInfoResponseHeader replicaInfo = getInfoResponse.get();
-        if (replicaInfo.getErrorCode() != ErrorCodes.NONE.getCode()) {
-            return false;
-        }
         assertArrayEquals(replicaInfo.getSyncStateSet().toArray(), newSyncStateSet.toArray());
         assertEquals(replicaInfo.getSyncStateSetEpoch(), syncStateSetEpoch + 1);
         return true;
@@ -198,7 +194,6 @@ public class DledgerControllerTest {
         final CompletableFuture<ElectMasterResponseHeader> future = leader.electMaster(electRequest);
         final ElectMasterResponseHeader response = future.get(10, TimeUnit.SECONDS);
         Thread.sleep(500);
-        assertEquals(response.getErrorCode(), ErrorCodes.MASTER_NOT_AVAILABLE.getCode());
 
         final GetReplicaInfoResponseHeader replicaInfo = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
         assertEquals(replicaInfo.getSyncStateSet(), newSyncStateSet);
@@ -236,7 +231,6 @@ public class DledgerControllerTest {
         final CompletableFuture<ElectMasterResponseHeader> future = leader.electMaster(electRequest);
         final ElectMasterResponseHeader response = future.get(10, TimeUnit.SECONDS);
         Thread.sleep(500);
-        assertEquals(response.getErrorCode(), ErrorCodes.MASTER_NOT_AVAILABLE.getCode());
 
         final GetReplicaInfoResponseHeader replicaInfo = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);
         assertEquals(replicaInfo.getSyncStateSet(), newSyncStateSet);

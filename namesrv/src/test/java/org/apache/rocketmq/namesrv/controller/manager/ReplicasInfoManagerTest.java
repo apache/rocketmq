@@ -23,7 +23,6 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncSt
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ErrorCodes;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerRequestHeader;
@@ -58,9 +57,6 @@ public class ReplicasInfoManagerTest {
         if (isFirstRegisteredBroker) {
             final ControllerResult<GetReplicaInfoResponseHeader> getInfoResult = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
             final GetReplicaInfoResponseHeader replicaInfo = getInfoResult.getResponse();
-            if (replicaInfo.getErrorCode() != ErrorCodes.NONE.getCode()) {
-                return false;
-            }
             assertEquals(replicaInfo.getMasterAddress(), brokerAddress);
             assertEquals(replicaInfo.getMasterEpoch(), 1);
             assertEquals(replicaInfo.getSyncStateSet().size(), 1);
@@ -78,9 +74,6 @@ public class ReplicasInfoManagerTest {
         apply(result.getEvents());
 
         final GetReplicaInfoResponseHeader replicaInfo = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).getResponse();
-        if (replicaInfo.getErrorCode() != ErrorCodes.NONE.getCode()) {
-            return false;
-        }
         assertArrayEquals(replicaInfo.getSyncStateSet().toArray(), newSyncStateSet.toArray());
         assertEquals(replicaInfo.getSyncStateSetEpoch(), syncStateSetEpoch + 1);
         return true;
@@ -109,7 +102,6 @@ public class ReplicasInfoManagerTest {
         mockMetaData();
         final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request);
-        assertEquals(cResult.getResponse().getErrorCode(), ErrorCodes.NONE.getCode());
         final ElectMasterResponseHeader response = cResult.getResponse();
         assertEquals(response.getMasterEpoch(), 2);
         assertFalse(response.getNewMasterAddress().isEmpty());

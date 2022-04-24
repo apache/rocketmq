@@ -18,10 +18,12 @@ package org.apache.rocketmq.namesrv.controller.manager.event;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 
 public class ControllerResult<T> {
     private final List<EventMessage> events;
     private final T response;
+    private int responseCode = ResponseCode.SYSTEM_ERROR;
 
     public ControllerResult(T response) {
         this.events = new ArrayList<>();
@@ -39,6 +41,14 @@ public class ControllerResult<T> {
 
     public T getResponse() {
         return response;
+    }
+
+    public void setResponseCode(int responseCode) {
+        this.responseCode = responseCode;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
     }
 
     public static <T> ControllerResult<T> of(List<EventMessage> events, T response) {

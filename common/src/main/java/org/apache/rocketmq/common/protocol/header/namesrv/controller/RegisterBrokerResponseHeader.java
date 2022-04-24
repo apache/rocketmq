@@ -20,21 +20,12 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RegisterBrokerResponseHeader implements CommandCustomHeader {
-    private short errorCode;
     private String masterAddress;
     private int masterEpoch;
     // The id of this registered replicas.
     private long brokerId;
 
     public RegisterBrokerResponseHeader() {
-    }
-
-    public short getErrorCode() {
-        return errorCode;
-    }
-
-    public void setErrorCode(short errorCode) {
-        this.errorCode = errorCode;
     }
 
     public String getMasterAddress() {
@@ -64,8 +55,7 @@ public class RegisterBrokerResponseHeader implements CommandCustomHeader {
     @Override
     public String toString() {
         return "RegisterBrokerResponseHeader{" +
-            "errorCode=" + errorCode +
-            ", masterAddress='" + masterAddress + '\'' +
+            "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             ", brokerId=" + brokerId +
             '}';

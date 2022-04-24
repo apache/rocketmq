@@ -20,13 +20,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.ErrorCodes;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerRequestHeader;
@@ -74,7 +75,7 @@ public class ReplicasInfoManager {
             if (!replicasInfo.getMasterAddress().equals(request.getMasterAddress())) {
                 log.info("Rejecting alter syncStateSet request because the current leader is:{}, not {}",
                     replicasInfo.getMasterAddress(), request.getMasterAddress());
-                response.setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
+                result.setResponseCode(ResponseCode.CONTROLLER_INVALID_MASTER);
                 return result;
             }
 
@@ -82,7 +83,7 @@ public class ReplicasInfoManager {
             if (request.getMasterEpoch() != replicasInfo.getMasterEpoch()) {
                 log.info("Rejecting alter syncStateSet request because the current master epoch is:{}, not {}",
                     replicasInfo.getMasterEpoch(), request.getMasterEpoch());
-                response.setErrorCode(ErrorCodes.FENCED_LEADER_EPOCH.getCode());
+                result.setResponseCode(ResponseCode.CONTROLLER_FENCED_MASTER_EPOCH);
                 return result;
             }
 
@@ -90,7 +91,7 @@ public class ReplicasInfoManager {
             if (request.getSyncStateSetEpoch() != replicasInfo.getSyncStateSetEpoch()) {
                 log.info("Rejecting alter syncStateSet request because the current syncStateSet epoch is:{}, not {}",
                     replicasInfo.getSyncStateSetEpoch(), request.getSyncStateSetEpoch());
-                response.setErrorCode(ErrorCodes.FENCED_SYNC_STATE_SET_EPOCH.getCode());
+                result.setResponseCode(ResponseCode.CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH);
                 return result;
             }
 
@@ -98,14 +99,14 @@ public class ReplicasInfoManager {
             for (String replicas : newSyncStateSet) {
                 if (!brokerIdTable.containsKey(replicas)) {
                     log.info("Rejecting alter syncStateSet request because the replicas {} don't exist", replicas);
-                    response.setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
+                    result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REPLICAS);
                     return result;
                 }
                 // todo: check whether the replicas is active
             }
             if (!newSyncStateSet.contains(replicasInfo.getMasterAddress())) {
                 log.info("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {}", replicasInfo.getMasterAddress());
-                response.setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
+                result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REQUEST);
                 return result;
             }
 
@@ -117,7 +118,7 @@ public class ReplicasInfoManager {
 
             return result;
         }
-        response.setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
+        result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REQUEST);
         return result;
     }
 
@@ -127,30 +128,59 @@ public class ReplicasInfoManager {
         final ElectMasterResponseHeader response = result.getResponse();
         if (isContainsBroker(brokerName)) {
             final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
+            final BrokerIdInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final Set<String> syncStateSet = replicasInfo.getSyncStateSet();
+            // Try elect a master in syncStateSet
             if (syncStateSet.size() > 1) {
-                for (String replicas : syncStateSet) {
-                    if (replicas.equals(replicasInfo.getMasterAddress())) {
-                        continue;
-                    }
-                    // todo: check whether the replicas is active
-                    response.setNewMasterAddress(replicas);
-                    response.setMasterEpoch(replicasInfo.getMasterEpoch() + 1);
-
-                    final ElectMasterEvent event = new ElectMasterEvent(brokerName, replicas);
-                    result.addEvent(event);
+                // todo: check whether the replicas is active
+                boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, (candidate) -> !candidate.equals(replicasInfo.getMasterAddress()));
+                if (electSuccess) {
                     return result;
                 }
             }
+
+            // Try elect a master in all replicas if enableElectUncleanMaster = true
+            if (enableElectUncleanMaster) {
+                final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
+                // todo: check whether the replicas is active
+                boolean electSuccess = tryElectMaster(result, brokerName, brokerIdTable.keySet(), (candidate) -> !candidate.equals(replicasInfo.getMasterAddress()));
+                if (electSuccess) {
+                    return result;
+                }
+            }
+
             // If elect failed, we still need to apply an ElectMasterEvent to tell the statemachine
             // that the master was shutdown and no new master was elected.
             final ElectMasterEvent event = new ElectMasterEvent(false, brokerName);
             result.addEvent(event);
-            response.setErrorCode(ErrorCodes.MASTER_NOT_AVAILABLE.getCode());
+            result.setResponseCode(ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE);
             return result;
         }
-        result.getResponse().setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
+        result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REQUEST);
         return result;
+    }
+
+    /**
+     * Try elect a new master in candidates
+     *
+     * @param filter return true if the candidate is available
+     * @return true if elect success
+     */
+    private boolean tryElectMaster(final ControllerResult<ElectMasterResponseHeader> result, final String brokerName,
+        final Set<String> candidates, final Predicate<String> filter) {
+        final int masterEpoch = this.inSyncReplicasInfoTable.get(brokerName).getMasterEpoch();
+        for (final String candidate : candidates) {
+            if (filter.test(candidate)) {
+                final ElectMasterResponseHeader response = result.getResponse();
+                response.setNewMasterAddress(candidate);
+                response.setMasterEpoch(masterEpoch + 1);
+
+                final ElectMasterEvent event = new ElectMasterEvent(brokerName, candidate);
+                result.addEvent(event);
+                return true;
+            }
+        }
+        return false;
     }
 
     public ControllerResult<RegisterBrokerResponseHeader> registerBroker(final RegisterBrokerRequestHeader request) {
@@ -206,7 +236,7 @@ public class ReplicasInfoManager {
         }
 
         response.setMasterAddress("");
-        response.setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
+        result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REQUEST);
         return result;
     }
 
@@ -223,12 +253,13 @@ public class ReplicasInfoManager {
             response.setSyncStateSetEpoch(replicasInfo.getSyncStateSetEpoch());
             return result;
         }
-        result.getResponse().setErrorCode(ErrorCodes.INVALID_REQUEST.getCode());
+        result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REQUEST);
         return result;
     }
 
     /**
      * Apply events to memory statemachine.
+     *
      * @param event event message
      */
     public void applyEvent(final EventMessage event) {
@@ -318,6 +349,7 @@ public class ReplicasInfoManager {
 
     /**
      * Is the broker existed in the memory metadata
+     *
      * @return true if both existed in replicaInfoTable and inSyncReplicasInfoTable
      */
     private boolean isContainsBroker(final String brokerName) {

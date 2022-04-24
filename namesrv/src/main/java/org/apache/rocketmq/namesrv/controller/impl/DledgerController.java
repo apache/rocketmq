@@ -157,7 +157,7 @@ public class DledgerController implements Controller {
     }
 
     /**
-     * Event handler that handle event T
+     * Event handler that handle event
      */
     interface EventHandler<T> {
         /**
@@ -175,6 +175,7 @@ public class DledgerController implements Controller {
          */
         void handleException(final Throwable t);
     }
+
 
     /**
      * Event scheduler, schedule event handler from event queue

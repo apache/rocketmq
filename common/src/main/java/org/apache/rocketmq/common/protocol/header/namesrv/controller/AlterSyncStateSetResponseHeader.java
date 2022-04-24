@@ -22,19 +22,10 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class AlterSyncStateSetResponseHeader implements CommandCustomHeader {
-    private short errorCode = ErrorCodes.NONE.getCode();
     private Set<String> newSyncStateSet;
     private int newSyncStateSetEpoch;
 
     public AlterSyncStateSetResponseHeader() {
-    }
-
-    public short getErrorCode() {
-        return errorCode;
-    }
-
-    public void setErrorCode(short errorCode) {
-        this.errorCode = errorCode;
     }
 
     public Set<String> getNewSyncStateSet() {
@@ -56,8 +47,7 @@ public class AlterSyncStateSetResponseHeader implements CommandCustomHeader {
     @Override
     public String toString() {
         return "AlterSyncStateSetResponseHeader{" +
-            "errorCode=" + errorCode +
-            ", newSyncStateSet=" + newSyncStateSet +
+            "newSyncStateSet=" + newSyncStateSet +
             ", newSyncStateSetEpoch=" + newSyncStateSetEpoch +
             '}';
     }

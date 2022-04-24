@@ -20,19 +20,10 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class ElectMasterResponseHeader implements CommandCustomHeader {
-    private short errorCode = ErrorCodes.NONE.getCode();
     private String newMasterAddress;
     private int masterEpoch;
 
     public ElectMasterResponseHeader() {
-    }
-
-    public short getErrorCode() {
-        return errorCode;
-    }
-
-    public void setErrorCode(short errorCode) {
-        this.errorCode = errorCode;
     }
 
     public String getNewMasterAddress() {
@@ -54,8 +45,7 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
     @Override
     public String toString() {
         return "ElectMasterResponseHeader{" +
-            "errorCode=" + errorCode +
-            ", newMasterAddress='" + newMasterAddress + '\'' +
+            "newMasterAddress='" + newMasterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             '}';
     }
