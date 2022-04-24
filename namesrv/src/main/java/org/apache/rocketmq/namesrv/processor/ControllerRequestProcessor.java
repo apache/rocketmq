@@ -46,7 +46,6 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     private static final int WAIT_TIMEOUT_OUT = 5;
     private final Controller controller;
 
-
     public ControllerRequestProcessor(final Controller controller) {
         this.controller = controller;
     }
@@ -59,8 +58,8 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                 request);
         }
-        switch(request.getCode()) {
-            case CONTROLLER_ALTER_SYNC_STATE_SET : {
+        switch (request.getCode()) {
+            case CONTROLLER_ALTER_SYNC_STATE_SET: {
                 final AlterSyncStateSetRequestHeader controllerRequest = request.decodeCommandCustomHeader(AlterSyncStateSetRequestHeader.class);
                 final CompletableFuture<RemotingCommand> future = this.controller.alterSyncStateSet(controllerRequest);
                 if (future != null) {

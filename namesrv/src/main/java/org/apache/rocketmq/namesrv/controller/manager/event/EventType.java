@@ -34,7 +34,7 @@ public enum EventType {
     }
 
     public static EventType from(short id) {
-        switch(id) {
+        switch (id) {
             case 1:
                 return ALTER_SYNC_STATE_SET_EVENT;
             case 2:
