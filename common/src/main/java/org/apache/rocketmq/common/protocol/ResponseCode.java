@@ -106,5 +106,6 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int CONTROLLER_INVALID_REPLICAS = 2003;
     public static final int CONTROLLER_MASTER_NOT_AVAILABLE = 2004;
     public static final int CONTROLLER_INVALID_REQUEST = 2005;
-    public static final int CONTROLLER_NOT_LEADER = 2006;
+    public static final int CONTROLLER_BROKER_NOT_ALIVE = 2006;
+
 }

@@ -110,7 +110,7 @@ public class NamesrvController {
         this.kvConfigManager = new KVConfigManager(this);
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         if (controllerConfig.isStartupController()) {
-            this.controller = new DledgerController(controllerConfig);
+            this.controller = new DledgerController(controllerConfig, this);
         }
         this.routeInfoManager = new RouteInfoManager(namesrvConfig, this, this.controller);
         this.configuration = new Configuration(

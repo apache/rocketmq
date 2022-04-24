@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -59,7 +60,7 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
-        final AlterSyncStateSetRequestHeader request) {
+        final AlterSyncStateSetRequestHeader request, final BiPredicate<String, String> brokerAlivePredicate) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<AlterSyncStateSetResponseHeader> result = new ControllerResult<>(new AlterSyncStateSetResponseHeader());
         final AlterSyncStateSetResponseHeader response = result.getResponse();
@@ -101,8 +102,13 @@ public class ReplicasInfoManager {
                     result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REPLICAS);
                     return result;
                 }
-                // todo: check whether the replicas is active
+                if (!brokerAlivePredicate.test(brokerInfo.getClusterName(), replicas)) {
+                    log.info("Rejecting alter syncStateSet request because the replicas {} don't alive", replicas);
+                    result.setResponseCode(ResponseCode.CONTROLLER_BROKER_NOT_ALIVE);
+                    return result;
+                }
             }
+
             if (!newSyncStateSet.contains(replicasInfo.getMasterAddress())) {
                 log.info("Rejecting alter syncStateSet request because the newSyncStateSet don't contains origin leader {}", replicasInfo.getMasterAddress());
                 result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REQUEST);
@@ -120,7 +126,8 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request) {
+    public ControllerResult<ElectMasterResponseHeader> electMaster(
+        final ElectMasterRequestHeader request, final BiPredicate<String, String> brokerAlivePredicate) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
         final ElectMasterResponseHeader response = result.getResponse();
@@ -131,7 +138,8 @@ public class ReplicasInfoManager {
             // Try elect a master in syncStateSet
             if (syncStateSet.size() > 1) {
                 // todo: check whether the replicas is active
-                boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, (candidate) -> !candidate.equals(replicasInfo.getMasterAddress()));
+                boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, (candidate) ->
+                    !candidate.equals(replicasInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
                     return result;
                 }
@@ -141,7 +149,8 @@ public class ReplicasInfoManager {
             if (enableElectUncleanMaster) {
                 final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
                 // todo: check whether the replicas is active
-                boolean electSuccess = tryElectMaster(result, brokerName, brokerIdTable.keySet(), (candidate) -> !candidate.equals(replicasInfo.getMasterAddress()));
+                boolean electSuccess = tryElectMaster(result, brokerName, brokerIdTable.keySet(), (candidate) ->
+                    !candidate.equals(replicasInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
                     return result;
                 }

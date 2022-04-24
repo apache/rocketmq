@@ -30,6 +30,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaI
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.namesrv.controller.Controller;
 import org.apache.rocketmq.namesrv.controller.manager.ReplicasInfoManager;
 import org.apache.rocketmq.namesrv.controller.manager.event.ControllerResult;
@@ -59,6 +61,10 @@ public class DledgerController implements Controller {
     private final DLedgerServer dLedgerServer;
     private final ControllerConfig controllerConfig;
     private final DLedgerConfig dLedgerConfig;
+    private final NamesrvController namesrvController;
+    // Usr for checking whether the broker is alive
+    private final BiPredicate<String, String> brokerAlivePredicate;
+
     private final ReplicasInfoManager replicasInfoManager;
     private final EventScheduler scheduler;
     private final EventSerializer eventSerializer;
@@ -66,10 +72,16 @@ public class DledgerController implements Controller {
     private final DledgerControllerStateMachine statemachine;
     private volatile boolean isScheduling = false;
 
-    public DledgerController(final ControllerConfig config) {
+    public DledgerController(final ControllerConfig config, final NamesrvController namesrvController) {
         this.controllerConfig = config;
         this.eventSerializer = new EventSerializer();
         this.scheduler = new EventScheduler();
+        this.namesrvController = namesrvController;
+        if (namesrvController == null) {
+            this.brokerAlivePredicate = (cluster, address) -> true;
+        } else {
+            this.brokerAlivePredicate = (cluster, address) -> namesrvController.getRouteInfoManager().isBrokerAlive(cluster, address);
+        }
 
         this.dLedgerConfig = new DLedgerConfig();
         this.dLedgerConfig.setGroup(config.getControllerDLegerGroup());
@@ -124,7 +136,7 @@ public class DledgerController implements Controller {
             return null;
         }
         return this.scheduler.appendEvent("alterSyncStateSet",
-            () -> this.replicasInfoManager.alterSyncStateSet(request), true);
+            () -> this.replicasInfoManager.alterSyncStateSet(request, this.brokerAlivePredicate), true);
     }
 
     @Override
@@ -134,7 +146,7 @@ public class DledgerController implements Controller {
             return null;
         }
         return this.scheduler.appendEvent("electMaster",
-            () -> this.replicasInfoManager.electMaster(request), true);
+            () -> this.replicasInfoManager.electMaster(request, this.brokerAlivePredicate), true);
     }
 
     @Override
