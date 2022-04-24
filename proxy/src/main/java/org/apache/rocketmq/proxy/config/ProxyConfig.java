@@ -23,18 +23,12 @@ public class ProxyConfig {
     public final static String CONFIG_FILE_NAME = "rmq-proxy.json";
 
     /**
-     * Configuration for proxy
-     */
-    private Integer healthCheckPort = 8000;
-    private long waitAfterStopHealthCheckInSeconds = 40;
-
-    /**
      * configuration for ThreadPoolMonitor
      */
     private boolean enablePrintJstack = true;
     private long printJstackInMillis = 60000;
 
-    private String nameSrvAddr = "11.165.223.199:9876";
+    private String nameSrvAddr = "";
     private String nameSrvDomain = "";
     private String nameSrvDomainSubgroup = "";
     /**
@@ -81,26 +75,7 @@ public class ProxyConfig {
 
     private long longPollingReserveTimeInMillis = 10000;
 
-    private int retryDelayLevelDelta = 2;
-    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
-
     private boolean enableACL = false;
-
-    public Integer getHealthCheckPort() {
-        return healthCheckPort;
-    }
-
-    public void setHealthCheckPort(Integer healthCheckPort) {
-        this.healthCheckPort = healthCheckPort;
-    }
-
-    public long getWaitAfterStopHealthCheckInSeconds() {
-        return waitAfterStopHealthCheckInSeconds;
-    }
-
-    public void setWaitAfterStopHealthCheckInSeconds(long waitAfterStopHealthCheckInSeconds) {
-        this.waitAfterStopHealthCheckInSeconds = waitAfterStopHealthCheckInSeconds;
-    }
 
     public boolean isEnablePrintJstack() {
         return enablePrintJstack;
@@ -388,22 +363,6 @@ public class ProxyConfig {
 
     public void setLongPollingReserveTimeInMillis(long longPollingReserveTimeInMillis) {
         this.longPollingReserveTimeInMillis = longPollingReserveTimeInMillis;
-    }
-
-    public int getRetryDelayLevelDelta() {
-        return retryDelayLevelDelta;
-    }
-
-    public void setRetryDelayLevelDelta(int retryDelayLevelDelta) {
-        this.retryDelayLevelDelta = retryDelayLevelDelta;
-    }
-
-    public String getMessageDelayLevel() {
-        return messageDelayLevel;
-    }
-
-    public void setMessageDelayLevel(String messageDelayLevel) {
-        this.messageDelayLevel = messageDelayLevel;
     }
 
     public boolean isEnableACL() {

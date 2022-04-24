@@ -30,6 +30,7 @@ import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
 import java.util.ArrayList;
@@ -48,9 +49,7 @@ import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHead
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.common.utils.FilterUtils;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.ForwardReadConsumer;
@@ -64,7 +63,6 @@ import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ConsumerService extends BaseService {
-    private final DelayPolicy delayPolicy;
     private final ForwardReadConsumer readConsumer;
     private final ForwardWriteConsumer writeConsumer;
     /**
@@ -73,7 +71,7 @@ public class ConsumerService extends BaseService {
     private final ForwardProducer producer;
 
     private volatile ReadQueueSelector readQueueSelector;
-    private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
+    private volatile ResponseHook<ReceiveMessageRequest, List<ReceiveMessageResponse>> receiveMessageHook;
     private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook;
     private volatile ResponseHook<ConsumerSendMsgBackRequestHeader, RemotingCommand> forwardToDLQInRecvMessageHook;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
@@ -89,13 +87,12 @@ public class ConsumerService extends BaseService {
         this.producer = connectorManager.getForwardProducer();
 
         this.readQueueSelector = new DefaultReadQueueSelector(connectorManager.getTopicRouteCache());
-        this.delayPolicy = DelayPolicy.build(ConfigurationManager.getProxyConfig().getMessageDelayLevel());
 
         this.grpcClientManager = grpcClientManager;
     }
 
-    public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
+    public CompletableFuture<List<ReceiveMessageResponse>> receiveMessage(Context ctx, ReceiveMessageRequest request) {
+        CompletableFuture<List<ReceiveMessageResponse>> future = new CompletableFuture<>();
 
         try {
             PopMessageRequestHeader requestHeader = this.buildPopMessageRequestHeader(ctx, request);
@@ -128,27 +125,40 @@ public class ConsumerService extends BaseService {
         return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), fifo);
     }
 
-    protected ReceiveMessageResponse convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request,
+    protected List<ReceiveMessageResponse> convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request,
         PopResult result) {
+        List<ReceiveMessageResponse> responseList = new ArrayList<>();
         PopStatus status = result.getPopStatus();
         switch (status) {
             case FOUND:
                 List<Message> messageList = filterMessage(ctx, request, result.getMsgFoundList());
-                return ReceiveMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-                    .addAllMessages(messageList)
-                    .build();
+                if (messageList.isEmpty()) {
+                    responseList.add(ReceiveMessageResponse.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                        .build());
+                } else {
+                    for (Message message : messageList) {
+                        responseList.add(ReceiveMessageResponse.newBuilder()
+                            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                            .setMessage(message)
+                            .build());
+                    }
+                }
+                break;
             case POLLING_FULL:
-                return ReceiveMessageResponse.newBuilder()
+                responseList.add(ReceiveMessageResponse.newBuilder()
                     .setStatus(ResponseBuilder.buildStatus(Code.TOO_MANY_REQUESTS, "polling full"))
-                    .build();
+                    .build());
+                break;
             case NO_NEW_MSG:
             case POLLING_NOT_FOUND:
             default:
-                return ReceiveMessageResponse.newBuilder()
+                responseList.add(ReceiveMessageResponse.newBuilder()
                     .setStatus(ResponseBuilder.buildStatus(Code.OK, "no new message"))
-                    .build();
+                    .build());
+                break;
         }
+        return responseList;
     }
 
     protected List<Message> filterMessage(Context ctx, ReceiveMessageRequest request, List<MessageExt> messageExtList) {
@@ -360,7 +370,8 @@ public class ConsumerService extends BaseService {
 
     protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx,
         NackMessageRequest request) {
-        return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, this.delayPolicy);
+        RetryPolicy retryPolicy = grpcClientManager.getClientSettings(ctx).getSubscription().getBackoffPolicy();
+        return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, retryPolicy);
     }
 
     protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, NackMessageRequest request) {
@@ -440,12 +451,12 @@ public class ConsumerService extends BaseService {
         this.readQueueSelector = readQueueSelector;
     }
 
-    public ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> getReceiveMessageHook() {
+    public ResponseHook<ReceiveMessageRequest, List<ReceiveMessageResponse>> getReceiveMessageHook() {
         return receiveMessageHook;
     }
 
     public void setReceiveMessageHook(
-        ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook) {
+        ResponseHook<ReceiveMessageRequest, List<ReceiveMessageResponse>> receiveMessageHook) {
         this.receiveMessageHook = receiveMessageHook;
     }
 

@@ -49,7 +49,11 @@ public class ForwardClientManager implements StartAndShutdown {
         System.setProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY,
             System.getProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
         if (StringUtils.isEmpty(ConfigurationManager.getProxyConfig().getNameSrvDomain())) {
-            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, ConfigurationManager.getProxyConfig().getNameSrvAddr());
+            String nameSrvAddr = ConfigurationManager.getProxyConfig().getNameSrvAddr();
+            if (StringUtils.isEmpty(nameSrvAddr)) {
+                throw new IllegalArgumentException("the address of namesrv cannot be empty");
+            }
+            System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, nameSrvAddr);
         } else {
             System.setProperty("rocketmq.namesrv.domain", ConfigurationManager.getProxyConfig().getNameSrvDomain());
             System.setProperty("rocketmq.namesrv.domain.subgroup", ConfigurationManager.getProxyConfig().getNameSrvDomainSubgroup());

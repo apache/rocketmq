@@ -63,10 +63,6 @@ public class ProxyStartup {
             GrpcServer grpcServer = createGrpcServer();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
-            // create health check server
-            final HealthCheckServer healthCheckServer = new HealthCheckServer();
-            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(healthCheckServer);
-
             // start servers one by one.
             PROXY_START_AND_SHUTDOWN.start();
 
@@ -86,7 +82,7 @@ public class ProxyStartup {
         }
 
         System.out.printf("%s%n", new Date() + " rmq-proxy startup successfully");
-        log.info(new Date() + "rmq-proxy startup successfully");
+        log.info(new Date() + " rmq-proxy startup successfully");
     }
 
     private static GrpcServer createGrpcServer() throws Exception {
@@ -128,6 +124,7 @@ public class ProxyStartup {
     }
 
     private static void initLogger() throws JoranException {
+        System.setProperty("brokerLogDir", "");
         System.setProperty(ClientLogger.CLIENT_LOG_USESLF4J, "true");
 
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();

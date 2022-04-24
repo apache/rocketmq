@@ -199,8 +199,8 @@ public class GrpcConverter {
         changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
         changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
-        changeInvisibleTimeRequestHeader.setInvisibleTime(
-            delayPolicy.getDelayInterval(ConfigurationManager.getProxyConfig().getRetryDelayLevelDelta() + request.getDeliveryAttempt()));
+//        changeInvisibleTimeRequestHeader.setInvisibleTime(
+//            delayPolicy.getDelayInterval(ConfigurationManager.getProxyConfig().getRetryDelayLevelDelta() + request.getDeliveryAttempt()));
         return changeInvisibleTimeRequestHeader;
     }
 

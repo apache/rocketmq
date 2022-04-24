@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.SendReceipt;
@@ -27,7 +28,6 @@ import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
@@ -73,22 +73,17 @@ public class ProducerService extends BaseService {
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
 
         try {
-            Pair<SendMessageRequestHeader, List<org.apache.rocketmq.common.message.Message>> requestPair = this.buildSendMessageRequest(ctx, request);
-            SendMessageRequestHeader requestHeader = requestPair.getLeft();
-            List<org.apache.rocketmq.common.message.Message> message = requestPair.getRight();
-            SelectableMessageQueue selectableMessageQueue = writeQueueSelector.selectQueue(ctx, request, requestHeader, message);
-
-            String topic = requestHeader.getTopic();
+            SelectableMessageQueue selectableMessageQueue = writeQueueSelector.selectQueue(ctx, request);
             if (selectableMessageQueue == null) {
-                throw new ProxyException(Code.FORBIDDEN, "no writeable topic route for topic: " + topic);
+                throw new ProxyException(Code.FORBIDDEN, "no writeable topic route");
             }
 
             // send message to broker.
             future = this.producer.sendMessage(
                 selectableMessageQueue.getBrokerAddr(),
                 selectableMessageQueue.getBrokerName(),
-                message,
-                requestHeader
+                convertToMessageList(ctx, request),
+                convertToSendMessageRequestHeader(ctx, request, selectableMessageQueue)
             ).thenApply(result -> convertToSendMessageResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);
@@ -102,13 +97,18 @@ public class ProducerService extends BaseService {
         return future;
     }
 
-    protected Pair<SendMessageRequestHeader, List<org.apache.rocketmq.common.message.Message>> buildSendMessageRequest(
-        Context ctx, SendMessageRequest request) {
-        String topic = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+    protected SendMessageRequestHeader convertToSendMessageRequestHeader(Context ctx, SendMessageRequest request, SelectableMessageQueue selectableMessageQueue) {
         // use topic name as group
-        SendMessageRequestHeader requestHeader = GrpcConverter.buildSendMessageRequestHeader(request, topic);
-        List<org.apache.rocketmq.common.message.Message> message = GrpcConverter.buildMessage(request.getMessagesList(), topic);
-        return Pair.of(requestHeader, message);
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getMessages(0).getTopic());
+        return GrpcConverter.buildSendMessageRequestHeader(request, topicName,
+            selectableMessageQueue.getQueueId());
+    }
+
+    protected List<org.apache.rocketmq.common.message.Message> convertToMessageList(Context ctx, SendMessageRequest request) {
+        // use topic name as group
+        Resource topic = request.getMessages(0).getTopic();
+        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+        return GrpcConverter.buildMessage(request.getMessagesList(), topic, topicName);
     }
 
     protected SendMessageResponse convertToSendMessageResponse(Context ctx, SendMessageRequest request,

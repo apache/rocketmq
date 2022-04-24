@@ -42,6 +42,8 @@ import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -117,8 +119,8 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     }
 
     @Override
-    public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        return consumerService.receiveMessage(ctx, request);
+    public CompletableFuture<Iterator<ReceiveMessageResponse>> receiveMessage(Context ctx, ReceiveMessageRequest request) {
+        return consumerService.receiveMessage(ctx, request).thenApply(List::iterator);
     }
 
     @Override
