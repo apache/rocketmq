@@ -136,7 +136,6 @@ public class ReplicasInfoManager {
             final Set<String> syncStateSet = replicasInfo.getSyncStateSet();
             // Try elect a master in syncStateSet
             if (syncStateSet.size() > 1) {
-                // todo: check whether the replicas is active
                 boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, (candidate) ->
                     !candidate.equals(replicasInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
@@ -144,10 +143,9 @@ public class ReplicasInfoManager {
                 }
             }
 
-            // Try elect a master in all replicas if enableElectUncleanMaster = true
+            // Try elect a master in lagging replicas if enableElectUncleanMaster = true
             if (enableElectUncleanMaster) {
                 final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
-                // todo: check whether the replicas is active
                 boolean electSuccess = tryElectMaster(result, brokerName, brokerIdTable.keySet(), (candidate) ->
                     !candidate.equals(replicasInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
