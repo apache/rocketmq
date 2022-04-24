@@ -20,9 +20,14 @@ package org.apache.rocketmq.proxy.grpc.v2.adapter;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import java.util.concurrent.CompletionException;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class ResponseBuilder {
+
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     public static Status buildStatus(Throwable t) {
         if (t instanceof CompletionException) {
@@ -32,6 +37,7 @@ public class ResponseBuilder {
             ProxyException proxyException = (ProxyException) t;
             return ResponseBuilder.buildStatus(proxyException.getCode(), proxyException.getMessage());
         }
+        log.error("internal server error", t);
         return ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "internal error");
     }
 
