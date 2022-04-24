@@ -130,7 +130,6 @@ public class ReplicasInfoManager {
         final ElectMasterRequestHeader request, final BiPredicate<String, String> brokerAlivePredicate) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
-        final ElectMasterResponseHeader response = result.getResponse();
         if (isContainsBroker(brokerName)) {
             final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
             final BrokerIdInfo brokerInfo = this.replicaInfoTable.get(brokerName);
