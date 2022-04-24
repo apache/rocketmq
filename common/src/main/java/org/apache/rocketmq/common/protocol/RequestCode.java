@@ -240,8 +240,6 @@ public class RequestCode {
     /**
      * Controller code
      */
-    public static final int CONTROLLER_REQUEST = 1000;
-
     public static final int CONTROLLER_ALTER_SYNC_STATE_SET = 1001;
 
     public static final int CONTROLLER_ELECT_MASTER = 1002;

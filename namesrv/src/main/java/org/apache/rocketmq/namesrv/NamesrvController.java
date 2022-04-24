@@ -273,7 +273,11 @@ public class NamesrvController {
 
             if (namesrvConfig.isStartupController()) {
                 final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this.controller);
-                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_REQUEST, controllerRequestProcessor, this.controllerRequestExecutor);
+                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
+                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
+                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_REGISTER_BROKER, controllerRequestProcessor, this.controllerRequestExecutor);
+                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_GET_REPLICA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
+                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_GET_METADATA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
             }
         }
     }

@@ -48,7 +48,7 @@ import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_REGISTE
  */
 public class ControllerRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private static final int WAIT_TIMEOUT_OUT = 10;
+    private static final int WAIT_TIMEOUT_OUT = 5;
     private final Controller controller;
 
 
@@ -106,10 +106,11 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, resp);
             }
             default: {
-                return RemotingCommand.createResponseCommandWithHeader(ResponseCode.QUERY_NOT_FOUND, null);
+                final String error = " request type " + request.getCode() + " not supported";
+                return RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
             }
         }
-        return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SYSTEM_ERROR, null);
+        return RemotingCommand.createResponseCommand(null);
     }
 
     @Override

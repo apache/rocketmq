@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
@@ -47,7 +48,6 @@ import org.apache.rocketmq.namesrv.controller.manager.event.EventType;
  */
 public class ReplicasInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private static final Long LEADER_ID = 0L;
     private final boolean enableElectUncleanMaster;
     private final Map<String/* brokerName */, BrokerIdInfo> replicaInfoTable;
     private final Map<String/* brokerName */, InSyncReplicasInfo> inSyncReplicasInfoTable;
@@ -57,8 +57,6 @@ public class ReplicasInfoManager {
         this.replicaInfoTable = new HashMap<>();
         this.inSyncReplicasInfoTable = new HashMap<>();
     }
-
-    /********************************    The following methods don't update statemachine, triggered by controller leader   ********************************/
 
     public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
         final AlterSyncStateSetRequestHeader request) {
@@ -229,9 +227,10 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    /********************************    The following methods will update statemachine   ********************************/
-
-    // Apply events to memory statemachine.
+    /**
+     * Apply events to memory statemachine.
+     * @param event event message
+     */
     public void applyEvent(final EventMessage event) {
         final EventType type = event.getEventType();
         switch (type) {
@@ -286,7 +285,7 @@ public class ReplicasInfoManager {
 
                 // Step2, record new master
                 final Long newMasterOriginId = brokerIdTable.get(newMaster);
-                brokerIdTable.put(newMaster, LEADER_ID);
+                brokerIdTable.put(newMaster, MixAll.MASTER_ID);
                 replicasInfo.updateMasterInfo(newMaster, newMasterOriginId);
 
                 // Step3, record new newSyncStateSet list
@@ -311,14 +310,16 @@ public class ReplicasInfoManager {
             final BrokerIdInfo brokerInfo = new BrokerIdInfo(clusterName, brokerName);
             final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
             final InSyncReplicasInfo replicasInfo = new InSyncReplicasInfo(clusterName, brokerName, newMaster);
-            brokerIdTable.put(newMaster, LEADER_ID);
+            brokerIdTable.put(newMaster, MixAll.MASTER_ID);
             this.inSyncReplicasInfoTable.put(brokerName, replicasInfo);
             this.replicaInfoTable.put(brokerName, brokerInfo);
         }
     }
 
-    /********************************    Util methods   ********************************/
-
+    /**
+     * Is the broker existed in the memory metadata
+     * @return true if both existed in replicaInfoTable and inSyncReplicasInfoTable
+     */
     private boolean isContainsBroker(final String brokerName) {
         return this.replicaInfoTable.containsKey(brokerName) && this.inSyncReplicasInfoTable.containsKey(brokerName);
     }

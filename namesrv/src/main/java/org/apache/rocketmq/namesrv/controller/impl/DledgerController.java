@@ -31,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
@@ -48,7 +49,6 @@ import org.apache.rocketmq.namesrv.controller.manager.ReplicasInfoManager;
 import org.apache.rocketmq.namesrv.controller.manager.event.ControllerResult;
 import org.apache.rocketmq.namesrv.controller.manager.event.EventMessage;
 import org.apache.rocketmq.namesrv.controller.manager.event.EventSerializer;
-import org.apache.rocketmq.remoting.common.ServiceThread;
 
 /**
  * The implementation of controller, based on dledger (raft).
@@ -154,6 +154,26 @@ public class DledgerController implements Controller {
     public GetMetaDataResponseHeader getControllerMetadata() {
         final MemberState state = getMemberState();
         return new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr());
+    }
+
+    /**
+     * Event handler that handle event T
+     */
+    interface EventHandler<T> {
+        /**
+         * Run the controller event
+         */
+        void run() throws Throwable;
+
+        /**
+         * Return the completableFuture
+         */
+        CompletableFuture<T> future();
+
+        /**
+         * Handle Exception.
+         */
+        void handleException(final Throwable t);
     }
 
     /**
