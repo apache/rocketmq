@@ -284,11 +284,13 @@ public class DledgerController implements Controller {
                     appendSuccess = appendToDledgerAndWait(request);
                 }
             } else {
-                // Now the dledger don't have the function of Read-Index or Lease-Read,
-                // So we still need to propose an empty request to dledger.
-                final AppendEntryRequest request = new AppendEntryRequest();
-                request.setBody(new byte[0]);
-                appendSuccess = appendToDledgerAndWait(request);
+                if (DledgerController.this.controllerConfig.isProcessReadEvent()) {
+                    // Now the dledger don't have the function of Read-Index or Lease-Read,
+                    // So we still need to propose an empty request to dledger.
+                    final AppendEntryRequest request = new AppendEntryRequest();
+                    request.setBody(new byte[0]);
+                    appendSuccess = appendToDledgerAndWait(request);
+                }
             }
             if (appendSuccess) {
                 final RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(result.getResponseCode(), (CommandCustomHeader) result.getResponse());

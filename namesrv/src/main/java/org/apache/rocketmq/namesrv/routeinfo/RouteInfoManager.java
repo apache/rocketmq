@@ -1161,6 +1161,19 @@ public class RouteInfoManager {
 
         return topicList;
     }
+
+    /**
+     * @return true if the broker{brokerAddress} is alive
+     */
+    public boolean isBrokerAlive(final String clusterName, final String brokerAddress) {
+        final BrokerLiveInfo info = this.brokerLiveTable.get(new BrokerAddrInfo(clusterName, brokerAddress));
+        if (info != null) {
+            long last = info.getLastUpdateTimestamp();
+            long timeoutMillis = info.getHeartbeatTimeoutMillis();
+            return (last + timeoutMillis) >= System.currentTimeMillis();
+        }
+        return false;
+    }
 }
 
 /**

@@ -30,6 +30,11 @@ public class ControllerConfig {
      */
     private boolean enableElectUncleanMaster = false;
 
+    /**
+     * Whether process read event
+     */
+    private boolean isProcessReadEvent = false;
+
     public boolean isStartupController() {
         return isStartupController;
     }
@@ -100,5 +105,13 @@ public class ControllerConfig {
 
     public void setEnableElectUncleanMaster(boolean enableElectUncleanMaster) {
         this.enableElectUncleanMaster = enableElectUncleanMaster;
+    }
+
+    public boolean isProcessReadEvent() {
+        return isProcessReadEvent;
+    }
+
+    public void setProcessReadEvent(boolean processReadEvent) {
+        isProcessReadEvent = processReadEvent;
     }
 }
