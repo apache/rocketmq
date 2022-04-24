@@ -262,7 +262,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                                 // get the traceDataSegment which will save this trace message, create if null
                                 TraceDataSegment traceDataSegment = taskQueueByTopic.get(traceTopicName);
                                 if (traceDataSegment == null) {
-                                    traceDataSegment = new TraceDataSegment(traceContext.getRegionId());
+                                    traceDataSegment = new TraceDataSegment(traceTopicName, traceContext.getRegionId());
                                     taskQueueByTopic.put(traceTopicName, traceDataSegment);
                                 }
 
@@ -309,12 +309,14 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     }
 
     class TraceDataSegment {
-        public long firstBeanAddTime;
-        public int currentMsgSize;
-        public final String regionId;
-        public final List<TraceTransferBean> traceTransferBeanList = new ArrayList();
+        private long firstBeanAddTime;
+        private int currentMsgSize;
+        private final String traceTopicName;
+        private final String regionId;
+        private final List<TraceTransferBean> traceTransferBeanList = new ArrayList();
 
-        TraceDataSegment(String regionId) {
+        TraceDataSegment(String traceTopicName, String regionId) {
+            this.traceTopicName = traceTopicName;
             this.regionId = regionId;
         }
 
@@ -324,7 +326,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             this.currentMsgSize += traceTransferBean.getTransData().length();
             if (currentMsgSize >= traceProducer.getMaxMessageSize()) {
                 List<TraceTransferBean> dataToSend = new ArrayList(traceTransferBeanList);
-                AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(regionId, dataToSend);
+                AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(traceTopicName, regionId, dataToSend);
                 traceExecutor.submit(asyncDataSendTask);
 
                 this.clear();
@@ -336,7 +338,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 return;
             }
             List<TraceTransferBean> dataToSend = new ArrayList(traceTransferBeanList);
-            AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(regionId, dataToSend);
+            AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(traceTopicName, regionId, dataToSend);
             traceExecutor.submit(asyncDataSendTask);
 
             this.clear();
@@ -357,10 +359,12 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
 
     class AsyncDataSendTask implements Runnable {
-        public final String regionId;
-        public final List<TraceTransferBean> traceTransferBeanList;
+        private final String traceTopicName;
+        private final String regionId;
+        private final List<TraceTransferBean> traceTransferBeanList;
 
-        public AsyncDataSendTask(String regionId, List<TraceTransferBean> traceTransferBeanList) {
+        public AsyncDataSendTask(String traceTopicName, String regionId, List<TraceTransferBean> traceTransferBeanList) {
+            this.traceTopicName = traceTopicName;
             this.regionId = regionId;
             this.traceTransferBeanList = traceTransferBeanList;
         }
@@ -373,7 +377,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 keySet.addAll(bean.getTransKey());
                 buffer.append(bean.getTransData());
             }
-            sendTraceDataByMQ(keySet, buffer.toString(), regionId);
+            sendTraceDataByMQ(keySet, buffer.toString(), traceTopicName);
         }
 
         /**
@@ -381,12 +385,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
          *
          * @param keySet the keyset in this batch(including msgId in original message not offsetMsgId)
          * @param data   the message trace data in this batch
+         * @param traceTopic the topic which message trace data will send to
          */
-        private void sendTraceDataByMQ(Set<String> keySet, final String data, String regionId) {
-            String traceTopic = traceTopicName;
-            if (AccessChannel.CLOUD == accessChannel) {
-                traceTopic = TraceConstants.TRACE_TOPIC_PREFIX + regionId;
-            }
+        private void sendTraceDataByMQ(Set<String> keySet, final String data, String traceTopic) {
             final Message message = new Message(traceTopic, data.getBytes());
             // Keyset of message trace includes msgId of or original message
             message.setKeys(keySet);
