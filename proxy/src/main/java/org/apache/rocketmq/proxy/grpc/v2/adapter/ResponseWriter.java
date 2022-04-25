@@ -40,38 +40,34 @@ public class ResponseWriter {
     }
 
     public static <T> void writeResponse(StreamObserver<T> observer, final T response) {
+        if (null == response) {
+            return;
+        }
         if (observer instanceof ServerCallStreamObserver) {
-            if (response == null) {
-                return;
-            }
-
             final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
             if (serverCallStreamObserver.isCancelled()) {
                 log.warn("client has cancelled the request. response to write: {}", response);
                 return;
             }
-
-            log.debug("start to write response. response: {}", response);
-            serverCallStreamObserver.onNext(response);
         }
+        log.debug("start to write response. response: {}", response);
+        observer.onNext(response);
     }
 
     public static <T> void writeException(StreamObserver<T> observer, final Throwable e) {
+        if (null == e) {
+            return;
+        }
         if (observer instanceof ServerCallStreamObserver) {
-            if (null == e) {
-                return;
-            }
-
             final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
             if (serverCallStreamObserver.isCancelled()) {
                 log.warn("Client has cancelled the request. Exception to write", e);
                 return;
             }
-
-            log.debug("Start to write error response", e);
-            serverCallStreamObserver.onError(e);
-            serverCallStreamObserver.onCompleted();
         }
+        log.debug("Start to write error response", e);
+        observer.onError(e);
+        observer.onCompleted();
     }
 }
 
