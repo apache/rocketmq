@@ -34,7 +34,7 @@ public class TransactionListenerImpl implements TransactionListener {
         int value = transactionIndex.getAndIncrement();
         int status = value % 3;
         localTrans.put(msg.getTransactionId(), status);
-        return LocalTransactionState.UNKNOW;
+        return LocalTransactionState.UNKNOWN;
     }
 
     @Override
@@ -43,7 +43,7 @@ public class TransactionListenerImpl implements TransactionListener {
         if (null != status) {
             switch (status) {
                 case 0:
-                    return LocalTransactionState.UNKNOW;
+                    return LocalTransactionState.UNKNOWN;
                 case 1:
                     return LocalTransactionState.COMMIT_MESSAGE;
                 case 2:
