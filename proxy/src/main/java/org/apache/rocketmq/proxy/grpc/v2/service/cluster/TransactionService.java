@@ -42,8 +42,8 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class TransactionService extends BaseService implements TransactionStateChecker {
 
-    private final ChannelManager channelManager;
-    private final ForwardProducer forwardProducer;
+    protected final ChannelManager channelManager;
+    protected final ForwardProducer forwardProducer;
 
     private volatile ResponseHook<TransactionStateCheckRequest, TelemetryCommand> checkTransactionStateHook;
     private volatile ResponseHook<EndTransactionRequest, EndTransactionResponse> endTransactionHook;
@@ -115,9 +115,17 @@ public class TransactionService extends BaseService implements TransactionStateC
         return GrpcConverter.buildEndTransactionRequestHeader(request, topic);
     }
 
+    public ResponseHook<TransactionStateCheckRequest, TelemetryCommand> getCheckTransactionStateHook() {
+        return checkTransactionStateHook;
+    }
+
     public void setCheckTransactionStateHook(
         ResponseHook<TransactionStateCheckRequest, TelemetryCommand> checkTransactionStateHook) {
         this.checkTransactionStateHook = checkTransactionStateHook;
+    }
+
+    public ResponseHook<EndTransactionRequest, EndTransactionResponse> getEndTransactionHook() {
+        return endTransactionHook;
     }
 
     public void setEndTransactionHook(

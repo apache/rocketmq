@@ -43,6 +43,7 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.junit.Test;
 
@@ -111,7 +112,7 @@ public class RouteServiceTest extends BaseServiceTest {
     public void testGenPartitionFromQueueData() throws Exception {
         // test queueData with 8 read queues, 8 write queues, and rw permission, expect 8 rw queues.
         QueueData queueDataWith8R8WPermRW = mockQueueData(8, 8, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith8R8WPermRW = RouteService.genMessageQueueFromQueueData(queueDataWith8R8WPermRW, MOCK_TOPIC, MOCK_BROKER);
+        List<MessageQueue> partitionWith8R8WPermRW = GrpcConverter.genMessageQueueFromQueueData(queueDataWith8R8WPermRW, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith8R8WPermRW.size()).isEqualTo(8);
         assertThat(partitionWith8R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(8);
         assertThat(partitionWith8R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count()).isEqualTo(0);
@@ -119,7 +120,7 @@ public class RouteServiceTest extends BaseServiceTest {
 
         // test queueData with 8 read queues, 8 write queues, and read only permission, expect 8 read only queues.
         QueueData queueDataWith8R8WPermR = mockQueueData(8, 8, PermName.PERM_READ);
-        List<MessageQueue> partitionWith8R8WPermR = RouteService.genMessageQueueFromQueueData(queueDataWith8R8WPermR, MOCK_TOPIC, MOCK_BROKER);
+        List<MessageQueue> partitionWith8R8WPermR = GrpcConverter.genMessageQueueFromQueueData(queueDataWith8R8WPermR, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith8R8WPermR.size()).isEqualTo(8);
         assertThat(partitionWith8R8WPermR.stream().filter(a -> a.getPermission() == Permission.READ).count()).isEqualTo(8);
         assertThat(partitionWith8R8WPermR.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(0);
@@ -127,7 +128,7 @@ public class RouteServiceTest extends BaseServiceTest {
 
         // test queueData with 8 read queues, 8 write queues, and write only permission, expect 8 write only queues.
         QueueData queueDataWith8R8WPermW = mockQueueData(8, 8, PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith8R8WPermW = RouteService.genMessageQueueFromQueueData(queueDataWith8R8WPermW, MOCK_TOPIC, MOCK_BROKER);
+        List<MessageQueue> partitionWith8R8WPermW = GrpcConverter.genMessageQueueFromQueueData(queueDataWith8R8WPermW, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith8R8WPermW.size()).isEqualTo(8);
         assertThat(partitionWith8R8WPermW.stream().filter(a -> a.getPermission() == Permission.WRITE).count()).isEqualTo(8);
         assertThat(partitionWith8R8WPermW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(0);
@@ -135,7 +136,7 @@ public class RouteServiceTest extends BaseServiceTest {
 
         // test queueData with 8 read queues, 0 write queues, and rw permission, expect 8 read only queues.
         QueueData queueDataWith8R0WPermRW = mockQueueData(8, 0, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith8R0WPermRW = RouteService.genMessageQueueFromQueueData(queueDataWith8R0WPermRW, MOCK_TOPIC, MOCK_BROKER);
+        List<MessageQueue> partitionWith8R0WPermRW = GrpcConverter.genMessageQueueFromQueueData(queueDataWith8R0WPermRW, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith8R0WPermRW.size()).isEqualTo(8);
         assertThat(partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count()).isEqualTo(8);
         assertThat(partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(0);
@@ -143,7 +144,7 @@ public class RouteServiceTest extends BaseServiceTest {
 
         // test queueData with 4 read queues, 8 write queues, and rw permission, expect 4 rw queues and  4 write only queues.
         QueueData queueDataWith4R8WPermRW = mockQueueData(4, 8, PermName.PERM_READ | PermName.PERM_WRITE);
-        List<MessageQueue> partitionWith4R8WPermRW = RouteService.genMessageQueueFromQueueData(queueDataWith4R8WPermRW, MOCK_TOPIC, MOCK_BROKER);
+        List<MessageQueue> partitionWith4R8WPermRW = GrpcConverter.genMessageQueueFromQueueData(queueDataWith4R8WPermRW, MOCK_TOPIC, MOCK_BROKER);
         assertThat(partitionWith4R8WPermRW.size()).isEqualTo(8);
         assertThat(partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count()).isEqualTo(4);
         assertThat(partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count()).isEqualTo(4);

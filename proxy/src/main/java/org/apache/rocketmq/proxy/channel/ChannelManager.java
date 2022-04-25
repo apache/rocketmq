@@ -35,8 +35,8 @@ import org.apache.rocketmq.proxy.grpc.v1.adapter.channel.GrpcClientChannel;
 
 public class ChannelManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    private final ConcurrentMap<String /* clientId */, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String /* group */, Set<String>/* clientId */> groupClientIdMap = new ConcurrentHashMap<>();
+    protected final ConcurrentMap<String /* clientId */, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
+    protected final ConcurrentMap<String /* group */, Set<String>/* clientId */> groupClientIdMap = new ConcurrentHashMap<>();
 
     public SimpleChannel createChannel() {
         return createChannel(anonymousChannelId());

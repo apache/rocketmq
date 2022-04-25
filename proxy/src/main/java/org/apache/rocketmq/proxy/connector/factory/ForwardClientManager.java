@@ -30,22 +30,16 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public class ForwardClientManager implements StartAndShutdown {
 
-    private RPCHook rpcHook;
+    protected RPCHook rpcHook;
 
-    private final MQClientFactory mqClientFactory;
-    private final TransactionProducerFactory transactionalProducerFactory;
+    protected MQClientFactory mqClientFactory;
+    protected TransactionProducerFactory transactionalProducerFactory;
 
     public ForwardClientManager(TransactionStateChecker transactionStateChecker) {
-        this.init();
-
-        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
-            new ThreadFactoryBuilder().setNameFormat("ForwardClientFactoryScheduledThread" + "-%d").build()
-        );
-        this.mqClientFactory = new MQClientFactory(scheduledExecutorService, this.rpcHook);
-        this.transactionalProducerFactory = new TransactionProducerFactory(scheduledExecutorService, this.rpcHook, transactionStateChecker);
+        this.init(transactionStateChecker);
     }
 
-    private void init() {
+    protected void init(TransactionStateChecker transactionStateChecker) {
         System.setProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY,
             System.getProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
         if (StringUtils.isEmpty(ConfigurationManager.getProxyConfig().getNameSrvDomain())) {
@@ -58,6 +52,12 @@ public class ForwardClientManager implements StartAndShutdown {
             System.setProperty("rocketmq.namesrv.domain", ConfigurationManager.getProxyConfig().getNameSrvDomain());
             System.setProperty("rocketmq.namesrv.domain.subgroup", ConfigurationManager.getProxyConfig().getNameSrvDomainSubgroup());
         }
+
+        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryBuilder().setNameFormat("ForwardClientFactoryScheduledThread" + "-%d").build()
+        );
+        this.mqClientFactory = new MQClientFactory(scheduledExecutorService, this.rpcHook);
+        this.transactionalProducerFactory = new TransactionProducerFactory(scheduledExecutorService, this.rpcHook, transactionStateChecker);
     }
 
     public MQClientAPIExt getMQClient(String instanceName, int bootstrapWorkerThreads) {

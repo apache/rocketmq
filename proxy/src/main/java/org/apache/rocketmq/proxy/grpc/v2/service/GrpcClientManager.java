@@ -32,7 +32,7 @@ import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 public class GrpcClientManager {
 
     // TODO: read config from topic or subscription configManager
-    private static final Settings DEFAULT_PRODUCER_SETTINGS = Settings.newBuilder()
+    protected static final Settings DEFAULT_PRODUCER_SETTINGS = Settings.newBuilder()
         .setPublishing(Publishing.newBuilder()
             .setRetryPolicy(RetryPolicy.newBuilder()
                 .setMaxAttempts(3)
@@ -46,7 +46,7 @@ public class GrpcClientManager {
             .setMaxBodySize(4 * 1024 * 1024)
             .build())
         .build();
-    private static final Settings DEFAULT_CONSUMER_SETTINGS = Settings.newBuilder()
+    protected static final Settings DEFAULT_CONSUMER_SETTINGS = Settings.newBuilder()
         .setSubscription(Subscription.newBuilder()
             .setFifo(false)
             .setBackoffPolicy(RetryPolicy.newBuilder()
@@ -61,7 +61,7 @@ public class GrpcClientManager {
             .setLongPollingTimeout(Durations.fromSeconds(30))
             .build())
         .build();
-    private static final Map<String, Settings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
+    protected static final Map<String, Settings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
 
     public Settings getClientSettings(Context ctx) {
         String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
