@@ -84,7 +84,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
 
-    private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
+    private ServiceState serviceState = ServiceState.CREATE_JUST;
 
     protected MQClientInstance mQClientFactory;
 
