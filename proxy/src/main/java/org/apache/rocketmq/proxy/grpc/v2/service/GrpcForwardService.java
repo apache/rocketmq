@@ -42,7 +42,6 @@ import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
-import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 
@@ -56,7 +55,7 @@ public interface GrpcForwardService extends StartAndShutdown {
 
     CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request);
 
-    CompletableFuture<Iterator<ReceiveMessageResponse>> receiveMessage(Context ctx, ReceiveMessageRequest request);
+    void receiveMessage(Context ctx, ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver);
 
     CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request);
 

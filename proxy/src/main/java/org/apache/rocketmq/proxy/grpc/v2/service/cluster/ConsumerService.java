@@ -33,6 +33,7 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
+import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +60,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -90,7 +92,20 @@ public class ConsumerService extends BaseService {
         this.grpcClientManager = grpcClientManager;
     }
 
-    public CompletableFuture<List<ReceiveMessageResponse>> receiveMessage(Context ctx, ReceiveMessageRequest request) {
+    public void receiveMessage(Context ctx, ReceiveMessageRequest request,
+        StreamObserver<ReceiveMessageResponse> responseObserver) {
+        this.receiveMessage(ctx, request)
+            .thenAccept(responses -> ResponseWriter.write(responseObserver, responses.iterator()))
+            .exceptionally(e -> {
+                ResponseWriter.write(
+                    responseObserver,
+                    ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(e)).build()
+                );
+                return null;
+            });
+    }
+
+    protected CompletableFuture<List<ReceiveMessageResponse>> receiveMessage(Context ctx, ReceiveMessageRequest request) {
         CompletableFuture<List<ReceiveMessageResponse>> future = new CompletableFuture<>();
 
         try {
