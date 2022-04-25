@@ -148,12 +148,12 @@ public class GrpcBaseTest extends BaseConf {
 
     protected MessagingServiceGrpc.MessagingServiceStub createStub(Channel channel) {
         MessagingServiceGrpc.MessagingServiceStub stub = MessagingServiceGrpc.newStub(channel);
-        return MetadataUtils.attachHeaders(stub, header);
+        return stub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(header));
     }
 
     protected MessagingServiceGrpc.MessagingServiceBlockingStub createBlockingStub(Channel channel) {
         MessagingServiceGrpc.MessagingServiceBlockingStub stub = MessagingServiceGrpc.newBlockingStub(channel);
-        return MetadataUtils.attachHeaders(stub, header);
+        return stub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(header));
     }
 
     protected CompletableFuture<Settings> sendClientSettings(MessagingServiceGrpc.MessagingServiceStub stub,
