@@ -91,13 +91,18 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         this.connectorManager = new ConnectorManager(new GrpcTransactionStateChecker());
         this.consumerService = new ConsumerService(connectorManager, grpcClientManager);
         this.producerService = new ProducerService(connectorManager);
-        this.routeService = new RouteService(ProxyMode.CLUSTER, connectorManager, grpcClientManager);
+        this.routeService = new RouteService(connectorManager, grpcClientManager);
         this.clientService = new ForwardClientService(connectorManager, scheduledExecutorService,
             channelManager, grpcClientManager, pollCommandResponseManager);
         this.transactionService = new TransactionService(connectorManager, channelManager);
 
         this.appendStartAndShutdown(new ClusterGrpcServiceStartAndShutdown());
         this.appendStartAndShutdown(this.connectorManager);
+        this.appendStartAndShutdown(this.consumerService);
+        this.appendStartAndShutdown(this.producerService);
+        this.appendStartAndShutdown(this.routeService);
+        this.appendStartAndShutdown(this.clientService);
+        this.appendStartAndShutdown(this.transactionService);
     }
 
     @Override

@@ -47,6 +47,7 @@ public class ForwardClientServiceTest extends BaseServiceTest {
             this.channelManager,
             this.grpcClientManager,
             this.telemetryCommandManager);
+        clientService.start();
     }
 
     @Test
