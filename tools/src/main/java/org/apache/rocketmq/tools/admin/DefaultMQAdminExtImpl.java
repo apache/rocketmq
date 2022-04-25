@@ -921,7 +921,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         while (it.hasNext()) {
             Entry<MessageQueue, OffsetWrapper> next = it.next();
             MessageQueue mq = next.getKey();
-            if (mq.getTopic().equals(msg.getTopic()) && mq.getQueueId() == msg.getQueueId()) {
+            if (mq.getQueueId() == msg.getQueueId()) {
                 BrokerData brokerData = ci.getBrokerAddrTable().get(mq.getBrokerName());
                 if (brokerData != null) {
                     String addr = RemotingUtil.convert2IpString(brokerData.getBrokerAddrs().get(MixAll.MASTER_ID));
