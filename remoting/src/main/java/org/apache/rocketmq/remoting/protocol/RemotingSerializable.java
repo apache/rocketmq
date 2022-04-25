@@ -17,11 +17,17 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public abstract class RemotingSerializable {
     private final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
+
+    static {
+        JSON.DEFAULT_GENERATE_FEATURE |= SerializerFeature.WriteNonStringKeyAsString.getMask();
+    }
 
     public static byte[] encode(final Object obj) {
         final String json = toJson(obj, false);
