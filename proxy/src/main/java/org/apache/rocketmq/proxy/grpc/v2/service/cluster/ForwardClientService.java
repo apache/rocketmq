@@ -82,9 +82,11 @@ public class ForwardClientService extends BaseService {
         this.channelManager = channelManager;
         this.grpcClientManager = grpcClientManager;
         this.telemetryCommandManager = telemetryCommandManager;
+    }
 
+    @Override
+    public void start() throws Exception {
         this.clientSettingsService = new ClientSettingsService(this.channelManager, this.grpcClientManager, this.telemetryCommandManager);
-
         this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl());
         this.producerManager = new ProducerManager();
         this.producerManager.appendProducerChangeListener(new ProducerChangeListenerImpl());

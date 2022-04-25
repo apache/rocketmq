@@ -30,7 +30,6 @@ import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
-import com.google.common.net.HostAndPort;
 import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +43,6 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,6 +75,8 @@ public class RouteServiceTest extends BaseServiceTest {
         .setAccessPoint(Endpoints.getDefaultInstance())
         .build();
 
+    private RouteService routeService;
+
     @Override
     public void beforeEach() throws Exception {
         TopicRouteData routeData = new TopicRouteData();
@@ -106,6 +106,9 @@ public class RouteServiceTest extends BaseServiceTest {
         when(this.topicRouteCache.getMessageQueue("topic")).thenReturn(messageQueueWrapper);
 
         when(this.topicRouteCache.getMessageQueue("notExistTopic")).thenThrow(new MQClientException(ResponseCode.TOPIC_NOT_EXIST, ""));
+
+        routeService = new RouteService(this.connectorManager, this.grpcClientManager);
+        routeService.start();
     }
 
     @Test
@@ -162,27 +165,7 @@ public class RouteServiceTest extends BaseServiceTest {
     }
 
     @Test
-    public void testLocalModeQueryRoute() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.connectorManager, this.grpcClientManager);
-
-        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(WITH_HOST_SETTINGS);
-
-        CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
-            .setTopic(Resource.newBuilder()
-                .setName("topic")
-                .build())
-            .build());
-        QueryRouteResponse response = future.get();
-        assertEquals(Code.OK.getNumber(), response.getStatus().getCode().getNumber());
-        assertEquals(8, response.getMessageQueuesCount());
-        assertEquals(HostAndPort.fromString(brokerAddress).getHost(), response.getMessageQueues(0).getBroker()
-            .getEndpoints().getAddresses(0).getHost());
-    }
-
-    @Test
     public void testQueryRouteWithInvalidEndpoints() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
-
         when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(INVALID_HOST_SETTINGS);
         CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -196,8 +179,6 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testQueryRoute() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
-
         when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(WITH_HOST_SETTINGS);
 
         CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
@@ -215,8 +196,6 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testQueryRouteWhenTopicNotExist() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
-
         when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(WITH_HOST_SETTINGS);
 
         CompletableFuture<QueryRouteResponse> future = routeService.queryRoute(Context.current(), QueryRouteRequest.newBuilder()
@@ -231,8 +210,6 @@ public class RouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testQueryAssignmentInvalidEndpoints() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
-
         when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(INVALID_HOST_SETTINGS);
         CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
             .setTopic(
@@ -247,31 +224,7 @@ public class RouteServiceTest extends BaseServiceTest {
     }
 
     @Test
-    public void testLocalModeQueryAssignment() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.LOCAL, this.connectorManager, this.grpcClientManager);
-
-        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(WITH_HOST_SETTINGS);
-
-        CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
-            .setTopic(Resource.newBuilder()
-                .setName("topic")
-                .build())
-            .setGroup(Resource.newBuilder()
-                .setName("group")
-                .build())
-            .build());
-
-        QueryAssignmentResponse response = future.get();
-        assertEquals(Code.OK.getNumber(), response.getStatus().getCode().getNumber());
-        assertEquals(1, response.getAssignmentsCount());
-        assertEquals("brokerName", response.getAssignments(0).getMessageQueue().getBroker().getName());
-        assertEquals(HostAndPort.fromString(brokerAddress).getHost(), response.getAssignments(0).getMessageQueue().getBroker().getEndpoints().getAddresses(0).getHost());
-    }
-
-    @Test
     public void testQueryAssignment() throws Exception {
-        RouteService routeService = new RouteService(ProxyMode.CLUSTER, this.connectorManager, this.grpcClientManager);
-
         when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(WITH_HOST_SETTINGS);
 
         CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()

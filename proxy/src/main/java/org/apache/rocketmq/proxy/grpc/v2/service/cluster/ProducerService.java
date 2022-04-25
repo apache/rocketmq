@@ -53,7 +53,11 @@ public class ProducerService extends BaseService {
     public ProducerService(ConnectorManager connectorManager) {
         super(connectorManager);
         this.producer = connectorManager.getForwardProducer();
-        writeQueueSelector = new DefaultWriteQueueSelector(this.connectorManager.getTopicRouteCache());
+    }
+
+    @Override
+    public void start() throws Exception {
+        this.writeQueueSelector = new DefaultWriteQueueSelector(this.connectorManager.getTopicRouteCache());
     }
 
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
@@ -123,7 +127,7 @@ public class ProducerService extends BaseService {
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = new CompletableFuture<>();
 
         try {
-            ReceiptHandle receiptHandle = this.resolveReceiptHandle(ctx, request.getReceiptHandle());
+            ReceiptHandle receiptHandle = resolveReceiptHandle(ctx, request.getReceiptHandle());
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
             ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = this.buildConsumerSendMsgBackRequestHeader(ctx, request);
             AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(

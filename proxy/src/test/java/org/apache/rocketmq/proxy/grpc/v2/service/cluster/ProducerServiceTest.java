@@ -46,6 +46,8 @@ import static org.mockito.Mockito.when;
 
 public class ProducerServiceTest extends BaseServiceTest {
 
+    private ProducerService producerService;
+
     private static final SendMessageRequest REQUEST = SendMessageRequest.newBuilder()
         .addMessages(Message.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -61,6 +63,8 @@ public class ProducerServiceTest extends BaseServiceTest {
 
     @Override
     public void beforeEach() throws Throwable {
+        producerService = new ProducerService(this.connectorManager);
+        producerService.start();
     }
 
     @Test
@@ -71,7 +75,6 @@ public class ProducerServiceTest extends BaseServiceTest {
         sendResultFuture.complete(new SendResult(SendStatus.SEND_OK, "msgId", new MessageQueue(),
             1L, "txId", "offsetMsgId", "regionId"));
 
-        ProducerService producerService = new ProducerService(this.connectorManager);
         producerService.setWriteQueueSelector((ctx, request) ->
             new SelectableMessageQueue(new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr"));
 
@@ -88,8 +91,6 @@ public class ProducerServiceTest extends BaseServiceTest {
 
     @Test
     public void testSendMessageNoQueueSelect() {
-        ProducerService producerService = new ProducerService(this.connectorManager);
-
         producerService.setWriteQueueSelector((ctx, request) -> null);
 
         CompletableFuture<SendMessageResponse> future = producerService.sendMessage(Context.current(), SendMessageRequest.newBuilder()
@@ -125,7 +126,6 @@ public class ProducerServiceTest extends BaseServiceTest {
             .thenReturn(sendResultFuture);
         sendResultFuture.completeExceptionally(ex);
 
-        ProducerService producerService = new ProducerService(this.connectorManager);
         producerService.setWriteQueueSelector((ctx, request) ->
             new SelectableMessageQueue(new MessageQueue("namespace%topic", "brokerName", 0), "brokerAddr"));
 
@@ -145,7 +145,6 @@ public class ProducerServiceTest extends BaseServiceTest {
     public void testSendMessageWithErrorThrow() {
         RuntimeException ex = new RuntimeException();
 
-        ProducerService producerService = new ProducerService(this.connectorManager);
         producerService.setWriteQueueSelector((ctx, request) -> {
             throw ex;
         });

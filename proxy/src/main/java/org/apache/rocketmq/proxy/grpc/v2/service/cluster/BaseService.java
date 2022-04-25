@@ -22,11 +22,13 @@ import apache.rocketmq.v2.Resource;
 import io.grpc.Context;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
+import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 
-public class BaseService {
+public abstract class BaseService implements StartAndShutdown {
 
     protected final ConnectorManager connectorManager;
 
@@ -34,7 +36,7 @@ public class BaseService {
         this.connectorManager = connectorManager;
     }
 
-    protected ReceiptHandle resolveReceiptHandle(Context ctx, String receiptHandleStr) {
+    public static ReceiptHandle resolveReceiptHandle(Context ctx, String receiptHandleStr) {
         ReceiptHandle receiptHandle = ReceiptHandle.decode(receiptHandleStr);
         if (receiptHandle.isExpired()) {
             throw new ProxyException(Code.RECEIPT_HANDLE_EXPIRED, "handle has expired");
@@ -42,20 +44,34 @@ public class BaseService {
         return receiptHandle;
     }
 
-    protected String getBrokerAddr(Context ctx, String brokerName) throws Exception {
+    public static String getBrokerAddr(Context ctx, TopicRouteCache topicRouteCache, String brokerName) throws Exception {
         if (StringUtils.isBlank(brokerName)) {
             throw new ProxyException(Code.UNRECOGNIZED, "broker name is empty");
         }
-        String addr = this.connectorManager.getTopicRouteCache().getBrokerAddr(brokerName);
+        String addr = topicRouteCache.getBrokerAddr(brokerName);
         if (StringUtils.isBlank(addr)) {
             throw new ProxyException(Code.UNRECOGNIZED, brokerName + " not exist");
         }
         return addr;
     }
 
+    protected String getBrokerAddr(Context ctx, String brokerName) throws Exception {
+        return getBrokerAddr(ctx, this.connectorManager.getTopicRouteCache(), brokerName);
+    }
+
     protected void checkSubscriptionData(Resource topic, FilterExpression filterExpression) {
         // for checking filterExpression.
         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
         GrpcConverter.buildSubscriptionData(topicName, filterExpression);
+    }
+
+    @Override
+    public void start() throws Exception {
+
+    }
+
+    @Override
+    public void shutdown() throws Exception {
+
     }
 }

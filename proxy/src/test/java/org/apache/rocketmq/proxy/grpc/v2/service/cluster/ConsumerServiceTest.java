@@ -51,10 +51,15 @@ public class ConsumerServiceTest extends BaseServiceTest {
     private ReadQueueSelector readQueueSelector;
 
     private ConsumerService consumerService;
+    private DefaultReceiveMessageResultFilter receiveMessageResultFilter;
 
     @Override
     public void beforeEach() throws Throwable {
         consumerService = new ConsumerService(this.connectorManager, this.grpcClientManager);
+        consumerService.start();
+
+        receiveMessageResultFilter = new DefaultReceiveMessageResultFilter(producerClient, writeConsumerClient, grpcClientManager, topicRouteCache);
+        consumerService.setReceiveMessageResultFilter(receiveMessageResultFilter);
         consumerService.setReadQueueSelector(readQueueSelector);
     }
 
@@ -84,7 +89,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
         AtomicReference<String> ackHandler = new AtomicReference<>();
-        consumerService.setAckNoMatchedMessageHook((ctx1, request, response, t) -> ackHandler.set(request.getExtraInfo()));
+        receiveMessageResultFilter.setAckNoMatchedMessageHook((ctx1, request, response, t) -> ackHandler.set(request.getExtraInfo()));
         List<ReceiveMessageResponse> responseList = consumerService.receiveMessage(ctx,
             ReceiveMessageRequest.newBuilder()
                 .setMessageQueue(apache.rocketmq.v2.MessageQueue.newBuilder()
@@ -189,7 +194,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         doAnswer(mock -> {
             headerRef.set(mock.getArgument(2));
             return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, ""));
-        }).when(producerClient).sendMessageBack(any(), anyString(), any());
+        }).when(producerClient).sendMessageBackThenAckOrg(any(), anyString(), any(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         Settings clientSettings = createClientSettings(3);
