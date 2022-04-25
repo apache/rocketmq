@@ -99,7 +99,7 @@ public class TransactionService extends BaseService implements TransactionStateC
             TransactionId handle = TransactionId.decode(request.getTransactionId());
             String brokerAddr = RemotingHelper.parseSocketAddressAddr(handle.getBrokerAddr());
             EndTransactionRequestHeader requestHeader = this.toEndTransactionRequestHeader(ctx, request);
-            this.forwardProducer.endTransaction(brokerAddr, requestHeader);
+            this.forwardProducer.endTransaction(ctx, brokerAddr, requestHeader);
             future.complete(EndTransactionResponse.newBuilder()
                 .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
                 .build());

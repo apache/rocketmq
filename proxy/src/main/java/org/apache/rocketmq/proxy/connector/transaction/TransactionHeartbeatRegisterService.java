@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.connector.transaction;
 
 import com.google.common.collect.Sets;
+import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -174,6 +175,7 @@ public class TransactionHeartbeatRegisterService implements StartAndShutdown {
 
     protected void sendHeartBeatToCluster(String clusterName, HeartbeatData heartbeatData) {
         try {
+            Context ctx = Context.current();
             MessageQueueWrapper messageQueue =  this.topicRouteCache.getMessageQueue(clusterName);
             List<BrokerData> brokerDataList = messageQueue.getTopicRouteData().getBrokerDatas();
             if (brokerDataList == null) {
@@ -183,7 +185,7 @@ public class TransactionHeartbeatRegisterService implements StartAndShutdown {
                 heartbeatExecutors.submit(() -> {
                     String brokerAddr = brokerData.selectBrokerAddr();
                     try {
-                        this.forwardProducer.heartBeat(brokerAddr, heartbeatData);
+                        this.forwardProducer.heartBeat(ctx, brokerAddr, heartbeatData);
                     } catch (Exception e) {
                         log.error("Send transactionHeartbeat to broker err. brokerAddr: {}", brokerAddr, e);
                     }

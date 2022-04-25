@@ -67,6 +67,7 @@ public class ProducerService extends BaseService {
 
             // send message to broker.
             future = this.producer.sendMessage(
+                ctx,
                 selectableMessageQueue.getBrokerAddr(),
                 selectableMessageQueue.getBrokerName(),
                 convertToMessageList(ctx, request),
@@ -128,7 +129,7 @@ public class ProducerService extends BaseService {
             AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(
                 request.getTopic(), request.getGroup(), receiptHandle);
 
-            future = this.producer.sendMessageBackThenAckOrg(brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader)
+            future = this.producer.sendMessageBackThenAckOrg(ctx, brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader)
                 .thenApply(result -> convertToForwardMessageToDeadLetterQueueResponse(ctx, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);

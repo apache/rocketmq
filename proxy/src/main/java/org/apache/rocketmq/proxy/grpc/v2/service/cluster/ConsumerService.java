@@ -102,6 +102,7 @@ public class ConsumerService extends BaseService {
             }
 
             future = this.readConsumer.popMessage(
+                ctx,
                 messageQueue.getBrokerAddr(),
                 messageQueue.getBrokerName(),
                 requestHeader,
@@ -210,7 +211,7 @@ public class ConsumerService extends BaseService {
                 group,
                 handle);
 
-            future = this.producer.sendMessageBackThenAckOrg(brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader);
+            future = this.producer.sendMessageBackThenAckOrg(ctx, brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -238,7 +239,7 @@ public class ConsumerService extends BaseService {
             ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
             ackMessageRequestHeader.setOffset(handle.getOffset());
 
-            future = this.writeConsumer.ackMessage(brokerAddr, ackMessageRequestHeader);
+            future = this.writeConsumer.ackMessage(ctx, brokerAddr, ackMessageRequestHeader);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -297,7 +298,7 @@ public class ConsumerService extends BaseService {
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
             AckMessageRequestHeader requestHeader = this.buildAckMessageRequestHeader(ctx, request, receiptHandle);
-            CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(brokerAddr, requestHeader);
+            CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(ctx, brokerAddr, requestHeader);
             ackResultFuture
                 .thenAccept(result -> future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result)))
                 .exceptionally(throwable -> {
@@ -341,11 +342,13 @@ public class ConsumerService extends BaseService {
             int maxDeliveryAttempts = settings.getSubscription().getBackoffPolicy().getMaxAttempts();
             if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
                 future = this.producer.sendMessageBack(
+                    ctx,
                     brokerAddr,
                     this.buildConsumerSendMsgBackToDLQRequestHeader(ctx, request, maxDeliveryAttempts)
                 ).thenApply(result -> {
                     if (result.getCode() == ResponseCode.SUCCESS) {
                         writeConsumer.ackMessage(
+                            ctx,
                             brokerAddr,
                             this.buildAckMessageRequestHeader(ctx, request));
                     }
@@ -353,7 +356,7 @@ public class ConsumerService extends BaseService {
                 });
             } else {
                 ChangeInvisibleTimeRequestHeader requestHeader = this.buildChangeInvisibleTimeRequestHeader(ctx, request);
-                future = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader)
+                future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(), requestHeader)
                     .thenApply(result -> convertToNackMessageResponse(ctx, request, result));
             }
         } catch (Throwable t) {
@@ -411,7 +414,7 @@ public class ConsumerService extends BaseService {
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
             ChangeInvisibleTimeRequestHeader requestHeader = convertToChangeInvisibleTimeRequestHeader(ctx, request);
-            future = this.writeConsumer.changeInvisibleTimeAsync(brokerAddr, receiptHandle.getBrokerName(), requestHeader)
+            future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(), requestHeader)
                 .thenApply(result -> convertToChangeInvisibleDurationResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);

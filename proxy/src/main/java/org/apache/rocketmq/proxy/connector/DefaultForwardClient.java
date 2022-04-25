@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.connector;
 
+import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -47,6 +48,7 @@ public class DefaultForwardClient extends AbstractForwardClient {
     }
 
     public CompletableFuture<List<String>> getConsumerListByGroup(
+        Context ctx,
         String brokerAddr,
         GetConsumerListByGroupRequestHeader requestHeader,
         long timeoutMillis
@@ -64,11 +66,12 @@ public class DefaultForwardClient extends AbstractForwardClient {
         return this.getClient().getTopicRouteInfoFromNameServer(topic, timeoutMillis);
     }
 
-    public CompletableFuture<Long> getMaxOffset(String brokerAddr, String topic, int queueId) {
-        return this.getMaxOffset(brokerAddr, topic, queueId, DEFAULT_MQ_CLIENT_TIMEOUT);
+    public CompletableFuture<Long> getMaxOffset(Context ctx, String brokerAddr, String topic, int queueId) {
+        return this.getMaxOffset(ctx, brokerAddr, topic, queueId, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<Long> getMaxOffset(
+        Context ctx,
         String brokerAddr,
         String topic,
         int queueId,
@@ -78,15 +81,17 @@ public class DefaultForwardClient extends AbstractForwardClient {
     }
 
     public CompletableFuture<Long> searchOffset(
+        Context ctx,
         String brokerAddr,
         String topic,
         int queueId,
         long timestamp
     ) {
-        return this.searchOffset(brokerAddr, topic, queueId, timestamp, DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.searchOffset(ctx, brokerAddr, topic, queueId, timestamp, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<Long> searchOffset(
+        Context ctx,
         String brokerAddr,
         String topic,
         int queueId,
