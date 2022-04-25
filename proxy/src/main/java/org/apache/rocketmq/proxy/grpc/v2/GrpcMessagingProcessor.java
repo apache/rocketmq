@@ -117,15 +117,7 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
 
     @Override
     public void receiveMessage(ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
-        CompletableFuture<Iterator<ReceiveMessageResponse>> future = grpcForwardService.receiveMessage(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    ReceiveMessageResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        grpcForwardService.receiveMessage(Context.current(), request, responseObserver);
     }
 
     @Override
