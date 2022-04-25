@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.connector;
 
+import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -54,31 +55,33 @@ public class ForwardProducer extends AbstractForwardClient {
         return clientFactory.getTransactionalProducer(name, threadCount);
     }
 
-    public CompletableFuture<Integer> heartBeat(String brokerAddr, HeartbeatData heartbeatData) throws Exception {
-        return this.heartBeat(brokerAddr, heartbeatData, DEFAULT_MQ_CLIENT_TIMEOUT);
+    public CompletableFuture<Integer> heartBeat(Context ctx, String brokerAddr, HeartbeatData heartbeatData) throws Exception {
+        return this.heartBeat(ctx, brokerAddr, heartbeatData, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
-    public CompletableFuture<Integer> heartBeat(String brokerAddr, HeartbeatData heartbeatData, long timeout) throws Exception {
+    public CompletableFuture<Integer> heartBeat(Context ctx, String brokerAddr, HeartbeatData heartbeatData, long timeout) throws Exception {
         return this.getClient().sendHeartbeatAsync(brokerAddr, heartbeatData, timeout);
     }
 
-    public void endTransaction(String brokerAddr, EndTransactionRequestHeader requestHeader) throws Exception {
-        this.endTransaction(brokerAddr, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
+    public void endTransaction(Context ctx, String brokerAddr, EndTransactionRequestHeader requestHeader) throws Exception {
+        this.endTransaction(ctx, brokerAddr, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
-    public void endTransaction(String brokerAddr, EndTransactionRequestHeader requestHeader, long timeoutMillis) throws Exception {
+    public void endTransaction(Context ctx, String brokerAddr, EndTransactionRequestHeader requestHeader, long timeoutMillis) throws Exception {
         this.getClient().endTransactionOneway(brokerAddr, requestHeader, "end transaction from rmq proxy", timeoutMillis);
     }
 
     public CompletableFuture<SendResult> sendMessage(
+        Context ctx,
         String address,
         String brokerName,
         List<Message> msg,
         SendMessageRequestHeader requestHeader
     ) {
-        return this.sendMessage(address, brokerName, msg, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.sendMessage(ctx, address, brokerName, msg, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<SendResult> sendMessage(
+        Context ctx,
         String address,
         String brokerName,
         List<Message> msg,
@@ -91,10 +94,11 @@ public class ForwardProducer extends AbstractForwardClient {
         } else {
             future = this.getClient().sendMessageAsync(address, brokerName, msg, requestHeader, timeoutMillis);
         }
-        return processSendMessageResponseFuture(address, requestHeader, future);
+        return processSendMessageResponseFuture(ctx, address, requestHeader, future);
     }
 
-    private CompletableFuture<SendResult> processSendMessageResponseFuture(
+    protected CompletableFuture<SendResult> processSendMessageResponseFuture(
+        Context ctx,
         String address,
         SendMessageRequestHeader requestHeader,
         CompletableFuture<SendResult> future) {
@@ -108,14 +112,14 @@ public class ForwardProducer extends AbstractForwardClient {
         });
     }
 
-    public CompletableFuture<RemotingCommand> sendMessageBackThenAckOrg(String brokerAddr, ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader,
+    public CompletableFuture<RemotingCommand> sendMessageBackThenAckOrg(Context ctx, String brokerAddr, ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader,
         AckMessageRequestHeader ackMessageRequestHeader) {
-        return sendMessageBackThenAckOrg(brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader,DEFAULT_MQ_CLIENT_TIMEOUT);
+        return sendMessageBackThenAckOrg(ctx, brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader,DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
-    public CompletableFuture<RemotingCommand> sendMessageBackThenAckOrg(String brokerAddr, ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader,
+    public CompletableFuture<RemotingCommand> sendMessageBackThenAckOrg(Context ctx, String brokerAddr, ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader,
         AckMessageRequestHeader ackMessageRequestHeader, long timeoutMillis) {
-        return this.sendMessageBack(brokerAddr, sendMsgBackRequestHeader, timeoutMillis).whenComplete((result, throwable) -> {
+        return this.sendMessageBack(ctx, brokerAddr, sendMsgBackRequestHeader, timeoutMillis).whenComplete((result, throwable) -> {
             if (throwable != null || ResponseCode.SUCCESS != result.getCode()) {
                 return;
             }
@@ -123,11 +127,11 @@ public class ForwardProducer extends AbstractForwardClient {
         });
     }
 
-    public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader) {
-        return this.sendMessageBack(brokerAddr, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
+    public CompletableFuture<RemotingCommand> sendMessageBack(Context ctx, String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader) {
+        return this.sendMessageBack(ctx, brokerAddr, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
-    public CompletableFuture<RemotingCommand> sendMessageBack(String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {
+    public CompletableFuture<RemotingCommand> sendMessageBack(Context ctx, String brokerAddr, ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {
         return this.getClient().sendMessageBackAsync(brokerAddr, requestHeader, timeoutMillis);
     }
 }

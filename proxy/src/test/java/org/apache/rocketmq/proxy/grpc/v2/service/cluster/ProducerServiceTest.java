@@ -66,7 +66,7 @@ public class ProducerServiceTest extends BaseServiceTest {
     @Test
     public void testSendMessage() {
         CompletableFuture<SendResult> sendResultFuture = new CompletableFuture<>();
-        when(producerClient.sendMessage(anyString(), anyString(), any(), any()))
+        when(producerClient.sendMessage(any(), anyString(), anyString(), any(), any()))
             .thenReturn(sendResultFuture);
         sendResultFuture.complete(new SendResult(SendStatus.SEND_OK, "msgId", new MessageQueue(),
             1L, "txId", "offsetMsgId", "regionId"));
@@ -121,7 +121,7 @@ public class ProducerServiceTest extends BaseServiceTest {
         RuntimeException ex = new RuntimeException();
 
         CompletableFuture<SendResult> sendResultFuture = new CompletableFuture<>();
-        when(producerClient.sendMessage(anyString(), anyString(), any(), any()))
+        when(producerClient.sendMessage(any(), anyString(), anyString(), any(), any()))
             .thenReturn(sendResultFuture);
         sendResultFuture.completeExceptionally(ex);
 

@@ -72,10 +72,10 @@ public class TransactionServiceTest extends BaseServiceTest {
             RemotingHelper.string2SocketAddress("127.0.0.1:8080"),
             "71F99B78B6E261357FA259CCA6456118", 1234, 5678);
         doAnswer(mock -> {
-            brokerAddrRef.set(mock.getArgument(0));
-            headerRef.set(mock.getArgument(1));
+            brokerAddrRef.set(mock.getArgument(1));
+            headerRef.set(mock.getArgument(2));
             return null;
-        }).when(producerClient).endTransaction(anyString(), any());
+        }).when(producerClient).endTransaction(any(), anyString(), any());
 
         EndTransactionResponse response = transactionService.endTransaction(Context.current(), EndTransactionRequest.newBuilder()
             .setTransactionId(transactionId.getProxyTransactionId())

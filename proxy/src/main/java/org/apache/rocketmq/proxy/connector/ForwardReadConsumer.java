@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.connector;
 
+import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -46,12 +47,13 @@ public class ForwardReadConsumer extends AbstractForwardClient {
         return clientFactory.getMQClient(name, threadCount);
     }
 
-    public CompletableFuture<PopResult> popMessage(String address, String brokerName,
+    public CompletableFuture<PopResult> popMessage(Context ctx, String address, String brokerName,
         PopMessageRequestHeader requestHeader) {
-        return this.popMessage(address, brokerName, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.popMessage(ctx, address, brokerName, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<PopResult> popMessage(
+        Context ctx,
         String address,
         String brokerName,
         PopMessageRequestHeader requestHeader,
@@ -60,11 +62,11 @@ public class ForwardReadConsumer extends AbstractForwardClient {
         return this.getClient().popMessageAsync(address, brokerName, requestHeader, timeoutMillis);
     }
 
-    public CompletableFuture<PullResult> pullMessage(String address, PullMessageRequestHeader requestHeader) {
-        return this.pullMessage(address, requestHeader, MAX_CONSUMER_TIMEOUT_MILLIS);
+    public CompletableFuture<PullResult> pullMessage(Context ctx, String address, PullMessageRequestHeader requestHeader) {
+        return this.pullMessage(ctx, address, requestHeader, MAX_CONSUMER_TIMEOUT_MILLIS);
     }
 
-    public CompletableFuture<PullResult> pullMessage(String address, PullMessageRequestHeader requestHeader,
+    public CompletableFuture<PullResult> pullMessage(Context ctx, String address, PullMessageRequestHeader requestHeader,
         long timeoutMillis) {
         return this.getClient().pullMessageAsync(address, requestHeader, timeoutMillis);
     }

@@ -76,10 +76,10 @@ public class ConsumerServiceTest extends BaseServiceTest {
             createMessageExt("msg2", "msg2")
         );
         PopResult popResult = new PopResult(PopStatus.FOUND, messageExtList);
-        when(readConsumerClient.popMessage(anyString(), anyString(), any(), anyLong()))
+        when(readConsumerClient.popMessage(any(), anyString(), anyString(), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(popResult));
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
-        when(writeConsumerClient.ackMessage(anyString(), any()))
+        when(writeConsumerClient.ackMessage(any(), anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(new AckResult()));
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
@@ -127,15 +127,15 @@ public class ConsumerServiceTest extends BaseServiceTest {
             createMessageExt("msg2", "msg2")
         );
         PopResult popResult = new PopResult(PopStatus.FOUND, messageExtList);
-        when(readConsumerClient.popMessage(anyString(), anyString(), any(), anyLong()))
+        when(readConsumerClient.popMessage(any(), anyString(), anyString(), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(popResult));
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
         List<String> toDLQMsgId = new ArrayList<>();
         doAnswer(mock -> {
-            ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = mock.getArgument(1);
+            ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = mock.getArgument(2);
             toDLQMsgId.add(sendMsgBackRequestHeader.getOriginMsgId());
             return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, ""));
-        }).when(producerClient).sendMessageBackThenAckOrg(anyString(), any(), any());
+        }).when(producerClient).sendMessageBackThenAckOrg(any(), anyString(), any(), any());
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
         List<ReceiveMessageResponse> responseList = consumerService.receiveMessage(ctx,
@@ -164,7 +164,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
         AckResult ackResult = new AckResult();
         ackResult.setStatus(AckStatus.OK);
-        when(writeConsumerClient.ackMessage(anyString(), any())).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(writeConsumerClient.ackMessage(any(), anyString(), any())).thenReturn(CompletableFuture.completedFuture(ackResult));
 
         AckMessageResponse response = consumerService.ackMessage(Context.current(), AckMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -187,9 +187,9 @@ public class ConsumerServiceTest extends BaseServiceTest {
         ReceiptHandle receiptHandle = createReceiptHandle();
         AtomicReference<ConsumerSendMsgBackRequestHeader> headerRef = new AtomicReference<>();
         doAnswer(mock -> {
-            headerRef.set(mock.getArgument(1));
+            headerRef.set(mock.getArgument(2));
             return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, ""));
-        }).when(producerClient).sendMessageBack(anyString(), any());
+        }).when(producerClient).sendMessageBack(any(), anyString(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         Settings clientSettings = createClientSettings(3);
@@ -216,11 +216,11 @@ public class ConsumerServiceTest extends BaseServiceTest {
         ReceiptHandle receiptHandle = createReceiptHandle();
         AtomicReference<ChangeInvisibleTimeRequestHeader> headerRef = new AtomicReference<>();
         doAnswer(mock -> {
-            headerRef.set(mock.getArgument(2));
+            headerRef.set(mock.getArgument(3));
             AckResult ackResult = new AckResult();
             ackResult.setStatus(AckStatus.OK);
             return CompletableFuture.completedFuture(ackResult);
-        }).when(writeConsumerClient).changeInvisibleTimeAsync(anyString(), anyString(), any());
+        }).when(writeConsumerClient).changeInvisibleTimeAsync(any(), anyString(), anyString(), any());
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         Settings clientSettings = createClientSettings(3);
