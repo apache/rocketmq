@@ -16,12 +16,14 @@ import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import io.grpc.Context;
-import java.util.ArrayList;
+import io.grpc.stub.StreamObserver;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -36,19 +38,24 @@ import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ConsumerServiceTest extends BaseServiceTest {
 
     @Mock
     private ReadQueueSelector readQueueSelector;
+    @Mock
+    private StreamObserver<ReceiveMessageResponse> receiveMessageResponseStreamObserver;
 
     private ConsumerService consumerService;
     private DefaultReceiveMessageResultFilter receiveMessageResultFilter;
@@ -90,7 +97,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
         AtomicReference<String> ackHandler = new AtomicReference<>();
         receiveMessageResultFilter.setAckNoMatchedMessageHook((ctx1, request, response, t) -> ackHandler.set(request.getExtraInfo()));
-        List<ReceiveMessageResponse> responseList = consumerService.receiveMessage(ctx,
+        consumerService.receiveMessage(ctx,
             ReceiveMessageRequest.newBuilder()
                 .setMessageQueue(apache.rocketmq.v2.MessageQueue.newBuilder()
                     .setTopic(Resource.newBuilder()
@@ -102,12 +109,19 @@ public class ConsumerServiceTest extends BaseServiceTest {
                     .setType(FilterType.TAG)
                     .setExpression("msg1")
                     .build())
-                .build()
-        ).get();
+                .build(),
+            receiveMessageResponseStreamObserver
+        );
+        ArgumentCaptor<ReceiveMessageResponse> argument = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        verify(receiveMessageResponseStreamObserver, times(2)).onNext(argument.capture());
+        verify(receiveMessageResponseStreamObserver, times(1)).onCompleted();
 
-        assertEquals(1, responseList.size());
-        ReceiveMessageResponse response = responseList.get(0);
+        ReceiveMessageResponse response = argument.getAllValues().get(0);
+        assertTrue(response.hasStatus());
         assertEquals(Code.OK, response.getStatus().getCode());
+
+        response = argument.getAllValues().get(1);
+        assertTrue(response.hasMessage());
         assertEquals("msg1", response.getMessage().getSystemProperties().getMessageId());
         assertEquals(ReceiptHandle.create(messageExtList.get(1)).getReceiptHandle(), ackHandler.get());
     }
@@ -135,15 +149,13 @@ public class ConsumerServiceTest extends BaseServiceTest {
         when(readConsumerClient.popMessage(any(), anyString(), anyString(), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(popResult));
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
-        List<String> toDLQMsgId = new ArrayList<>();
-        doAnswer(mock -> {
-            ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = mock.getArgument(2);
-            toDLQMsgId.add(sendMsgBackRequestHeader.getOriginMsgId());
-            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, ""));
-        }).when(producerClient).sendMessageBackThenAckOrg(any(), anyString(), any(), any());
+        ArgumentCaptor<ConsumerSendMsgBackRequestHeader> sendMsgBackRequestHeaderArgumentCaptor =
+            ArgumentCaptor.forClass(ConsumerSendMsgBackRequestHeader.class);
+        when(producerClient.sendMessageBackThenAckOrg(any(), anyString(), sendMsgBackRequestHeaderArgumentCaptor.capture(), any()))
+            .thenReturn(CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "")));
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
-        List<ReceiveMessageResponse> responseList = consumerService.receiveMessage(ctx,
+        consumerService.receiveMessage(ctx,
             ReceiveMessageRequest.newBuilder()
                 .setMessageQueue(apache.rocketmq.v2.MessageQueue.newBuilder()
                     .setTopic(Resource.newBuilder()
@@ -155,13 +167,20 @@ public class ConsumerServiceTest extends BaseServiceTest {
                     .setType(FilterType.TAG)
                     .setExpression("msg1")
                     .build())
-                .build()
-        ).get();
+                .build(),
+            receiveMessageResponseStreamObserver
+        );
+        ArgumentCaptor<ReceiveMessageResponse> argument = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        verify(receiveMessageResponseStreamObserver, times(1)).onNext(argument.capture());
+        verify(receiveMessageResponseStreamObserver, times(1)).onCompleted();
 
-        assertEquals(1, responseList.size());
-        ReceiveMessageResponse response = responseList.get(0);
+        ReceiveMessageResponse response = argument.getValue();
         assertEquals(Code.OK, response.getStatus().getCode());
-        assertEquals(2, toDLQMsgId.size());
+        assertEquals(2, sendMsgBackRequestHeaderArgumentCaptor.getAllValues().size());
+        Set<String> toDLQMsgId = sendMsgBackRequestHeaderArgumentCaptor.getAllValues().stream()
+            .map(ConsumerSendMsgBackRequestHeader::getOriginMsgId).collect(Collectors.toSet());
+        assertTrue(toDLQMsgId.contains("msg1"));
+        assertTrue(toDLQMsgId.contains("msg2"));
     }
 
     @Test
@@ -190,11 +209,9 @@ public class ConsumerServiceTest extends BaseServiceTest {
     @Test
     public void testNackMessageToDLQ() throws Exception {
         ReceiptHandle receiptHandle = createReceiptHandle();
-        AtomicReference<ConsumerSendMsgBackRequestHeader> headerRef = new AtomicReference<>();
-        doAnswer(mock -> {
-            headerRef.set(mock.getArgument(2));
-            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, ""));
-        }).when(producerClient).sendMessageBackThenAckOrg(any(), anyString(), any(), any());
+        ArgumentCaptor<ConsumerSendMsgBackRequestHeader> headerArgumentCaptor = ArgumentCaptor.forClass(ConsumerSendMsgBackRequestHeader.class);
+        when(producerClient.sendMessageBackThenAckOrg(any(), anyString(), headerArgumentCaptor.capture(), any()))
+            .thenReturn(CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "")));
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         Settings clientSettings = createClientSettings(3);
@@ -213,19 +230,17 @@ public class ConsumerServiceTest extends BaseServiceTest {
             .get();
 
         assertEquals(Code.OK, response.getStatus().getCode());
-        assertEquals(receiptHandle.getCommitLogOffset(), headerRef.get().getOffset().longValue());
+        assertEquals(receiptHandle.getCommitLogOffset(), headerArgumentCaptor.getValue().getOffset().longValue());
     }
 
     @Test
     public void testNackMessage() throws Exception {
         ReceiptHandle receiptHandle = createReceiptHandle();
-        AtomicReference<ChangeInvisibleTimeRequestHeader> headerRef = new AtomicReference<>();
-        doAnswer(mock -> {
-            headerRef.set(mock.getArgument(3));
-            AckResult ackResult = new AckResult();
-            ackResult.setStatus(AckStatus.OK);
-            return CompletableFuture.completedFuture(ackResult);
-        }).when(writeConsumerClient).changeInvisibleTimeAsync(any(), anyString(), anyString(), any());
+        ArgumentCaptor<ChangeInvisibleTimeRequestHeader> headerArgumentCaptor = ArgumentCaptor.forClass(ChangeInvisibleTimeRequestHeader.class);
+        AckResult ackResult = new AckResult();
+        ackResult.setStatus(AckStatus.OK);
+        when(writeConsumerClient.changeInvisibleTimeAsync(any(), anyString(), anyString(), headerArgumentCaptor.capture()))
+            .thenReturn(CompletableFuture.completedFuture(ackResult));
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 
         Settings clientSettings = createClientSettings(3);
@@ -244,8 +259,8 @@ public class ConsumerServiceTest extends BaseServiceTest {
             .get();
 
         assertEquals(Code.OK, response.getStatus().getCode());
-        assertEquals(receiptHandle.getOffset(), headerRef.get().getOffset().longValue());
-        assertEquals(receiptHandle.encode(), headerRef.get().getExtraInfo());
+        assertEquals(receiptHandle.getOffset(), headerArgumentCaptor.getValue().getOffset().longValue());
+        assertEquals(receiptHandle.encode(), headerArgumentCaptor.getValue().getExtraInfo());
     }
 
     private Settings createClientSettings(int maxDeliveryAttempts) {

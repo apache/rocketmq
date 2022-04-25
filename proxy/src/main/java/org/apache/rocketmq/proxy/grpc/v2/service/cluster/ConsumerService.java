@@ -68,7 +68,7 @@ public class ConsumerService extends BaseService {
 
     private volatile ReadQueueSelector readQueueSelector;
     private volatile ReceiveMessageResultFilter receiveMessageResultFilter;
-    private volatile ResponseHook<ReceiveMessageRequest, List<ReceiveMessageResponse>> receiveMessageHook;
+    private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
     private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook;
     private volatile ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> changeInvisibleDurationHook;
@@ -90,20 +90,11 @@ public class ConsumerService extends BaseService {
 
     public void receiveMessage(Context ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
-        this.receiveMessage(ctx, request)
-            .thenAccept(responses -> ResponseWriter.write(responseObserver, responses.iterator()))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(e)).build()
-                );
-                return null;
-            });
-    }
-
-    protected CompletableFuture<List<ReceiveMessageResponse>> receiveMessage(Context ctx, ReceiveMessageRequest request) {
-        CompletableFuture<List<ReceiveMessageResponse>> future = new CompletableFuture<>();
-
+        ReceiveMessageResponseStreamObserver streamObserver = new ReceiveMessageResponseStreamObserver(
+            ctx,
+            request,
+            receiveMessageHook,
+            responseObserver);
         try {
             PopMessageRequestHeader requestHeader = this.buildPopMessageRequestHeader(ctx, request);
             SelectableMessageQueue messageQueue = this.readQueueSelector.select(ctx, request, requestHeader);
@@ -112,22 +103,17 @@ public class ConsumerService extends BaseService {
                 throw new ProxyException(Code.FORBIDDEN, "no readable topic route for topic " + requestHeader.getTopic());
             }
 
-            future = this.readConsumer.popMessage(
+            this.readConsumer.popMessage(
                 ctx,
                 messageQueue.getBrokerAddr(),
                 messageQueue.getBrokerName(),
                 requestHeader,
                 requestHeader.getPollTime())
-                .thenApply(result -> convertToReceiveMessageResponse(ctx, request, result));
+                .thenAccept(result -> writeReceiveMessageResponse(ctx, request, result, streamObserver))
+                .exceptionally(e -> writeReceiveMessageResponse(ctx, e, streamObserver));
         } catch (Throwable t) {
-            future.completeExceptionally(t);
+            writeReceiveMessageResponse(ctx, t, streamObserver);
         }
-        future.whenComplete((response, throwable) -> {
-            if (receiveMessageHook != null) {
-                receiveMessageHook.beforeResponse(ctx, request, response, throwable);
-            }
-        });
-        return future;
     }
 
     protected PopMessageRequestHeader buildPopMessageRequestHeader(Context ctx, ReceiveMessageRequest request) {
@@ -136,40 +122,52 @@ public class ConsumerService extends BaseService {
         return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), fifo);
     }
 
-    protected List<ReceiveMessageResponse> convertToReceiveMessageResponse(Context ctx, ReceiveMessageRequest request,
-        PopResult result) {
-        List<ReceiveMessageResponse> responseList = new ArrayList<>();
+    protected void writeReceiveMessageResponse(Context ctx, ReceiveMessageRequest request,
+        PopResult result, StreamObserver<ReceiveMessageResponse> streamObserver) {
         PopStatus status = result.getPopStatus();
-        switch (status) {
-            case FOUND:
-                List<Message> messageList = this.receiveMessageResultFilter.filterMessage(ctx, request, result.getMsgFoundList());
-                if (messageList.isEmpty()) {
-                    responseList.add(ReceiveMessageResponse.newBuilder()
+        try {
+            switch (status) {
+                case FOUND:
+                    List<Message> messageList = this.receiveMessageResultFilter.filterMessage(ctx, request, result.getMsgFoundList());
+                    if (messageList.isEmpty()) {
+                        streamObserver.onNext(ReceiveMessageResponse.newBuilder()
+                            .setStatus(ResponseBuilder.buildStatus(Code.OK, "no new message"))
+                            .build());
+                    } else {
+                        streamObserver.onNext(ReceiveMessageResponse.newBuilder()
+                            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                            .build());
+                        for (Message message : messageList) {
+                            streamObserver.onNext(ReceiveMessageResponse.newBuilder()
+                                .setMessage(message)
+                                .build());
+                        }
+                    }
+                    break;
+                case POLLING_FULL:
+                    streamObserver.onNext(ReceiveMessageResponse.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.TOO_MANY_REQUESTS, "polling full"))
+                        .build());
+                    break;
+                case NO_NEW_MSG:
+                case POLLING_NOT_FOUND:
+                default:
+                    streamObserver.onNext(ReceiveMessageResponse.newBuilder()
                         .setStatus(ResponseBuilder.buildStatus(Code.OK, "no new message"))
                         .build());
-                } else {
-                    for (Message message : messageList) {
-                        responseList.add(ReceiveMessageResponse.newBuilder()
-                            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-                            .setMessage(message)
-                            .build());
-                    }
-                }
-                break;
-            case POLLING_FULL:
-                responseList.add(ReceiveMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.TOO_MANY_REQUESTS, "polling full"))
-                    .build());
-                break;
-            case NO_NEW_MSG:
-            case POLLING_NOT_FOUND:
-            default:
-                responseList.add(ReceiveMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.OK, "no new message"))
-                    .build());
-                break;
+                    break;
+            }
+        } finally {
+            streamObserver.onCompleted();
         }
-        return responseList;
+    }
+
+    protected Void writeReceiveMessageResponse(Context ctx, Throwable throwable, StreamObserver<ReceiveMessageResponse> streamObserver) {
+        ResponseWriter.write(
+            streamObserver,
+            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(throwable)).build()
+        );
+        return null;
     }
 
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
@@ -375,12 +373,12 @@ public class ConsumerService extends BaseService {
         this.receiveMessageResultFilter = receiveMessageResultFilter;
     }
 
-    public ResponseHook<ReceiveMessageRequest, List<ReceiveMessageResponse>> getReceiveMessageHook() {
+    public ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> getReceiveMessageHook() {
         return receiveMessageHook;
     }
 
     public void setReceiveMessageHook(
-        ResponseHook<ReceiveMessageRequest, List<ReceiveMessageResponse>> receiveMessageHook) {
+        ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook) {
         this.receiveMessageHook = receiveMessageHook;
     }
 
