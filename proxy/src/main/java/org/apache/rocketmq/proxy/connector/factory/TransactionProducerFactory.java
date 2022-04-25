@@ -23,7 +23,7 @@ import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class TransactionProducerFactory extends AbstractMQClientFactory {
-    private final TransactionStateChecker transactionStateChecker;
+    protected final TransactionStateChecker transactionStateChecker;
 
     public TransactionProducerFactory(ScheduledExecutorService scheduledExecutorService,
         RPCHook rpcHook, TransactionStateChecker transactionStateChecker) {

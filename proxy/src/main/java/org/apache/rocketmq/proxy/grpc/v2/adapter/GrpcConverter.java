@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.adapter;
 
 import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.Broker;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
@@ -35,6 +36,7 @@ import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
+import apache.rocketmq.v2.Permission;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.RetryPolicy;
@@ -63,6 +65,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
@@ -85,6 +88,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -683,6 +687,51 @@ public class GrpcConverter {
         }
 
         return pollTime;
+    }
+
+    public static List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic, Broker broker) {
+        List<MessageQueue> messageQueueList = new ArrayList<>();
+
+        int r = 0;
+        int w = 0;
+        int rw = 0;
+        if (PermName.isWriteable(queueData.getPerm()) && PermName.isReadable(queueData.getPerm())) {
+            rw = Math.min(queueData.getWriteQueueNums(), queueData.getReadQueueNums());
+            r = queueData.getReadQueueNums() - rw;
+            w = queueData.getWriteQueueNums() - rw;
+        } else if (PermName.isWriteable(queueData.getPerm())) {
+            w = queueData.getWriteQueueNums();
+        } else if (PermName.isReadable(queueData.getPerm())) {
+            r = queueData.getReadQueueNums();
+        }
+
+        // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
+        int queueIdIndex = 0;
+        for (int i = 0; i < r; i++) {
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                .setId(queueIdIndex++)
+                .setPermission(Permission.READ)
+                .build();
+            messageQueueList.add(messageQueue);
+        }
+
+        for (int i = 0; i < w; i++) {
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                .setId(queueIdIndex++)
+                .setPermission(Permission.WRITE)
+                .build();
+            messageQueueList.add(messageQueue);
+        }
+
+        for (int i = 0; i < rw; i++) {
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                .setId(queueIdIndex++)
+                .setPermission(Permission.READ_WRITE)
+                .build();
+            messageQueueList.add(messageQueue);
+        }
+
+        return messageQueueList;
     }
 
 }

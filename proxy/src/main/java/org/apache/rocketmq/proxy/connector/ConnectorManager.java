@@ -23,16 +23,20 @@ import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 
 public class ConnectorManager extends AbstractStartAndShutdown {
-    private final ForwardClientManager forwardClientManager;
-    private final DefaultForwardClient defaultForwardClient;
-    private final ForwardProducer forwardProducer;
-    private final ForwardReadConsumer forwardReadConsumer;
-    private final ForwardWriteConsumer forwardWriteConsumer;
+    protected ForwardClientManager forwardClientManager;
+    protected DefaultForwardClient defaultForwardClient;
+    protected ForwardProducer forwardProducer;
+    protected ForwardReadConsumer forwardReadConsumer;
+    protected ForwardWriteConsumer forwardWriteConsumer;
 
-    private final TopicRouteCache topicRouteCache;
-    private final TransactionHeartbeatRegisterService transactionHeartbeatRegisterService;
+    protected TopicRouteCache topicRouteCache;
+    protected TransactionHeartbeatRegisterService transactionHeartbeatRegisterService;
 
     public ConnectorManager(TransactionStateChecker transactionStateChecker) {
+        this.init(transactionStateChecker);
+    }
+
+    protected void init(TransactionStateChecker transactionStateChecker) {
         this.forwardClientManager = new ForwardClientManager(transactionStateChecker);
         this.defaultForwardClient = new DefaultForwardClient(this.forwardClientManager);
         this.forwardProducer = new ForwardProducer(this.forwardClientManager);

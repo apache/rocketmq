@@ -63,12 +63,13 @@ import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ConsumerService extends BaseService {
-    private final ForwardReadConsumer readConsumer;
-    private final ForwardWriteConsumer writeConsumer;
+    protected final ForwardReadConsumer readConsumer;
+    protected final ForwardWriteConsumer writeConsumer;
     /**
      * For sending messages back to broker.
      */
-    private final ForwardProducer producer;
+    protected final ForwardProducer producer;
+    protected final GrpcClientManager grpcClientManager;
 
     private volatile ReadQueueSelector readQueueSelector;
     private volatile ResponseHook<ReceiveMessageRequest, List<ReceiveMessageResponse>> receiveMessageHook;
@@ -77,8 +78,6 @@ public class ConsumerService extends BaseService {
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
     private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook;
     private volatile ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> changeInvisibleDurationHook;
-
-    private final GrpcClientManager grpcClientManager;
 
     public ConsumerService(ConnectorManager connectorManager, GrpcClientManager grpcClientManager) {
         super(connectorManager);

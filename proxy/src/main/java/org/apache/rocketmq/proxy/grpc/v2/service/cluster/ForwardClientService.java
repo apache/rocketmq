@@ -58,12 +58,13 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 public class ForwardClientService extends BaseService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final ChannelManager channelManager;
-    private final ConsumerManager consumerManager;
-    private final ProducerManager producerManager;
-    private final GrpcClientManager grpcClientManager;
-    private final TelemetryCommandManager telemetryCommandManager;
-    private final ClientSettingsService clientSettingsService;
+    protected final ChannelManager channelManager;
+    protected final GrpcClientManager grpcClientManager;
+    protected final TelemetryCommandManager telemetryCommandManager;
+
+    protected ConsumerManager consumerManager;
+    protected ProducerManager producerManager;
+    protected ClientSettingsService clientSettingsService;
 
     public ForwardClientService(
         ConnectorManager connectorManager,

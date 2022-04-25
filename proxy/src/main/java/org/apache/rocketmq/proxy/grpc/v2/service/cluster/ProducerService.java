@@ -45,7 +45,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ProducerService extends BaseService {
 
-    private final ForwardProducer producer;
+    protected final ForwardProducer producer;
     private volatile WriteQueueSelector writeQueueSelector;
     private volatile ResponseHook<SendMessageRequest, SendMessageResponse> sendMessageHook;
     private volatile ResponseHook<ForwardMessageToDeadLetterQueueRequest, ForwardMessageToDeadLetterQueueResponse> forwardMessageToDLQHook;
@@ -54,19 +54,6 @@ public class ProducerService extends BaseService {
         super(connectorManager);
         this.producer = connectorManager.getForwardProducer();
         writeQueueSelector = new DefaultWriteQueueSelector(this.connectorManager.getTopicRouteCache());
-    }
-
-    public void setSendMessageHook(ResponseHook<SendMessageRequest, SendMessageResponse> sendMessageHook) {
-        this.sendMessageHook = sendMessageHook;
-    }
-
-    public void setWriteQueueSelector(WriteQueueSelector writeQueueSelector) {
-        this.writeQueueSelector = writeQueueSelector;
-    }
-
-    public void setForwardMessageToDLQHook(
-        ResponseHook<ForwardMessageToDeadLetterQueueRequest, ForwardMessageToDeadLetterQueueResponse> forwardMessageToDLQHook) {
-        this.forwardMessageToDLQHook = forwardMessageToDLQHook;
     }
 
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
@@ -164,5 +151,31 @@ public class ProducerService extends BaseService {
         return ForwardMessageToDeadLetterQueueResponse.newBuilder()
             .setStatus(ResponseBuilder.buildStatus(result.getCode(), result.getRemark()))
             .build();
+    }
+
+    public WriteQueueSelector getWriteQueueSelector() {
+        return writeQueueSelector;
+    }
+
+    public void setWriteQueueSelector(WriteQueueSelector writeQueueSelector) {
+        this.writeQueueSelector = writeQueueSelector;
+    }
+
+    public ResponseHook<SendMessageRequest, SendMessageResponse> getSendMessageHook() {
+        return sendMessageHook;
+    }
+
+    public void setSendMessageHook(
+        ResponseHook<SendMessageRequest, SendMessageResponse> sendMessageHook) {
+        this.sendMessageHook = sendMessageHook;
+    }
+
+    public ResponseHook<ForwardMessageToDeadLetterQueueRequest, ForwardMessageToDeadLetterQueueResponse> getForwardMessageToDLQHook() {
+        return forwardMessageToDLQHook;
+    }
+
+    public void setForwardMessageToDLQHook(
+        ResponseHook<ForwardMessageToDeadLetterQueueRequest, ForwardMessageToDeadLetterQueueResponse> forwardMessageToDLQHook) {
+        this.forwardMessageToDLQHook = forwardMessageToDLQHook;
     }
 }

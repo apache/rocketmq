@@ -68,21 +68,25 @@ import org.apache.rocketmq.proxy.grpc.v2.service.cluster.TransactionService;
 public class ClusterGrpcService extends AbstractStartAndShutdown implements GrpcForwardService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+    protected final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryImpl("ClusterGrpcServiceScheduledThread")
     );
 
-    private final ChannelManager channelManager;
-    private final ConnectorManager connectorManager;
-    private final ProducerService producerService;
-    private final ConsumerService consumerService;
-    private final RouteService routeService;
-    private final ForwardClientService clientService;
-    private final TransactionService transactionService;
-    private final TelemetryCommandManager pollCommandResponseManager;
-    private final GrpcClientManager grpcClientManager;
+    protected ChannelManager channelManager;
+    protected ConnectorManager connectorManager;
+    protected ProducerService producerService;
+    protected ConsumerService consumerService;
+    protected RouteService routeService;
+    protected ForwardClientService clientService;
+    protected TransactionService transactionService;
+    protected TelemetryCommandManager pollCommandResponseManager;
+    protected GrpcClientManager grpcClientManager;
 
     public ClusterGrpcService() {
+        this.init();
+    }
+
+    protected void init() {
         this.channelManager = new ChannelManager();
         this.grpcClientManager = new GrpcClientManager();
         this.pollCommandResponseManager = new TelemetryCommandManager();

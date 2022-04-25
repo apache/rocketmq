@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TelemetryCommandManager {
-    private final ConcurrentMap<String, TelemetryCommandRecord> commandTable = new ConcurrentHashMap<>();
-    private final AtomicLong commandIdGenerator = new AtomicLong(0);
+    protected final ConcurrentMap<String, TelemetryCommandRecord> commandTable = new ConcurrentHashMap<>();
+    protected final AtomicLong commandIdGenerator = new AtomicLong(0);
 
     public String putCommand(int opaque) {
         String nonce = String.valueOf(commandIdGenerator.incrementAndGet());

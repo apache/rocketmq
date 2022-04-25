@@ -28,7 +28,6 @@ import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
-import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
@@ -38,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -64,36 +62,16 @@ public class RouteService extends BaseService {
     private volatile AssignmentQueueSelector assignmentQueueSelector;
     private volatile ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook;
 
-    private GrpcClientManager grpcClientManager;
+    protected final GrpcClientManager grpcClientManager;
 
     public RouteService(ProxyMode mode, ConnectorManager connectorManager, GrpcClientManager grpcClientManager) {
         super(connectorManager);
         Preconditions.checkArgument(ProxyMode.isClusterMode(mode) || ProxyMode.isLocalMode(mode));
         this.mode = mode;
-        queryRouteEndpointConverter = (ctx, parameter) -> parameter;
-        queryAssignmentEndpointConverter = (ctx, parameter) -> parameter;
-        assignmentQueueSelector = new DefaultAssignmentQueueSelector(this.connectorManager.getTopicRouteCache());
+        this.queryRouteEndpointConverter = (ctx, parameter) -> parameter;
+        this.queryAssignmentEndpointConverter = (ctx, parameter) -> parameter;
+        this.assignmentQueueSelector = new DefaultAssignmentQueueSelector(this.connectorManager.getTopicRouteCache());
         this.grpcClientManager = grpcClientManager;
-    }
-
-    public void setQueryRouteEndpointConverter(ParameterConverter<Endpoints, Endpoints> queryRouteEndpointConverter) {
-        this.queryRouteEndpointConverter = queryRouteEndpointConverter;
-    }
-
-    public void setQueryRouteHook(ResponseHook<QueryRouteRequest, QueryRouteResponse> queryRouteHook) {
-        this.queryRouteHook = queryRouteHook;
-    }
-
-    public void setQueryAssignmentEndpointConverter(ParameterConverter<Endpoints, Endpoints> queryAssignmentEndpointConverter) {
-        this.queryAssignmentEndpointConverter = queryAssignmentEndpointConverter;
-    }
-
-    public void setAssignmentQueueSelector(AssignmentQueueSelector assignmentQueueSelector) {
-        this.assignmentQueueSelector = assignmentQueueSelector;
-    }
-
-    public void setQueryAssignmentHook(ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook) {
-        this.queryAssignmentHook = queryAssignmentHook;
     }
 
     public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
@@ -129,7 +107,7 @@ public class RouteService extends BaseService {
                         .setEndpoints(resEndpoints)
                         .build();
 
-                    messageQueueList.addAll(genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
+                    messageQueueList.addAll(GrpcConverter.genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
                 }
             }
             if (ProxyMode.isLocalMode(mode.name())) {
@@ -142,7 +120,7 @@ public class RouteService extends BaseService {
                         break;
                     }
                     for (Broker broker : brokerIdMap.values()) {
-                        messageQueueList.addAll(genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
+                        messageQueueList.addAll(GrpcConverter.genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
                     }
                 }
             }
@@ -162,51 +140,6 @@ public class RouteService extends BaseService {
             }
         }
         return future;
-    }
-
-    protected static List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic, Broker broker) {
-        List<MessageQueue> messageQueueList = new ArrayList<>();
-
-        int r = 0;
-        int w = 0;
-        int rw = 0;
-        if (PermName.isWriteable(queueData.getPerm()) && PermName.isReadable(queueData.getPerm())) {
-            rw = Math.min(queueData.getWriteQueueNums(), queueData.getReadQueueNums());
-            r = queueData.getReadQueueNums() - rw;
-            w = queueData.getWriteQueueNums() - rw;
-        } else if (PermName.isWriteable(queueData.getPerm())) {
-            w = queueData.getWriteQueueNums();
-        } else if (PermName.isReadable(queueData.getPerm())) {
-            r = queueData.getReadQueueNums();
-        }
-
-        // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
-        int queueIdIndex = 0;
-        for (int i = 0; i < r; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.READ)
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        for (int i = 0; i < w; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.WRITE)
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        for (int i = 0; i < rw; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.READ_WRITE)
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        return messageQueueList;
     }
 
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
@@ -310,5 +243,50 @@ public class RouteService extends BaseService {
             brokerMap.put(brokerName, brokerIdMap);
         }
         return brokerMap;
+    }
+
+    public ParameterConverter<Endpoints, Endpoints> getQueryRouteEndpointConverter() {
+        return queryRouteEndpointConverter;
+    }
+
+    public void setQueryRouteEndpointConverter(
+        ParameterConverter<Endpoints, Endpoints> queryRouteEndpointConverter) {
+        this.queryRouteEndpointConverter = queryRouteEndpointConverter;
+    }
+
+    public ResponseHook<QueryRouteRequest, QueryRouteResponse> getQueryRouteHook() {
+        return queryRouteHook;
+    }
+
+    public void setQueryRouteHook(
+        ResponseHook<QueryRouteRequest, QueryRouteResponse> queryRouteHook) {
+        this.queryRouteHook = queryRouteHook;
+    }
+
+    public ParameterConverter<Endpoints, Endpoints> getQueryAssignmentEndpointConverter() {
+        return queryAssignmentEndpointConverter;
+    }
+
+    public void setQueryAssignmentEndpointConverter(
+        ParameterConverter<Endpoints, Endpoints> queryAssignmentEndpointConverter) {
+        this.queryAssignmentEndpointConverter = queryAssignmentEndpointConverter;
+    }
+
+    public AssignmentQueueSelector getAssignmentQueueSelector() {
+        return assignmentQueueSelector;
+    }
+
+    public void setAssignmentQueueSelector(
+        AssignmentQueueSelector assignmentQueueSelector) {
+        this.assignmentQueueSelector = assignmentQueueSelector;
+    }
+
+    public ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> getQueryAssignmentHook() {
+        return queryAssignmentHook;
+    }
+
+    public void setQueryAssignmentHook(
+        ResponseHook<QueryAssignmentRequest, QueryAssignmentResponse> queryAssignmentHook) {
+        this.queryAssignmentHook = queryAssignmentHook;
     }
 }
