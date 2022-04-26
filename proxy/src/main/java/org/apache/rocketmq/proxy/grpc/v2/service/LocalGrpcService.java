@@ -41,6 +41,7 @@ import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Settings;
@@ -51,6 +52,7 @@ import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -68,6 +70,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
@@ -97,12 +100,14 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.ReceiveMessageChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.SendMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.RouteService;
+import org.apache.rocketmq.proxy.grpc.v2.service.local.LocalWriteQueueSelector;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -120,6 +125,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     private final RouteService routeService;
     private final ClientSettingsService clientSettingsService;
     private final DelayPolicy delayPolicy;
+    private final LocalWriteQueueSelector localWriteQueueSelector;
 
     public LocalGrpcService(BrokerController brokerController) {
         this(brokerController, new TelemetryCommandManager());
@@ -140,6 +146,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager, grpcClientManager);
         this.clientSettingsService = new ClientSettingsService(this.channelManager, this.grpcClientManager, this.telemetryCommandManager);
         this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
+        this.localWriteQueueSelector = new LocalWriteQueueSelector(brokerController.getBrokerConfig().getBrokerName(),
+            brokerController.getTopicConfigManager(), connectorManager.getTopicRouteCache());
 
         this.brokerController.getConsumerManager().appendConsumerIdsChangeListener(new ConsumerIdsChangeListenerImpl());
         this.brokerController.getProducerManager().appendProducerChangeListener(new ProducerChangeListenerImpl());
@@ -208,10 +216,11 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
-        SendMessageRequestHeader requestHeader = GrpcConverter.buildSendMessageRequestHeader(request, topicName);
+        MessageQueue messageQueue = localWriteQueueSelector.selectQueue(ctx, request).getMessageQueue();
+        String topicName = messageQueue.getTopic();
+        SendMessageRequestHeader requestHeader = GrpcConverter.buildSendMessageRequestHeader(request, topicName, messageQueue.getQueueId());
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
-        List<org.apache.rocketmq.common.message.Message> messageList = GrpcConverter.buildMessage(request.getMessagesList(), topicName);
+        List<org.apache.rocketmq.common.message.Message> messageList = GrpcConverter.buildMessage(request.getMessagesList(), request.getMessages(0).getTopic());
         String messageId;
         if (messageList.size() == 1) {
             org.apache.rocketmq.common.message.Message message = messageList.get(0);
@@ -254,7 +263,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     }
 
     @Override
-    public CompletableFuture<ReceiveMessageResponse> receiveMessage(Context ctx, ReceiveMessageRequest request) {
+    public void receiveMessage(Context ctx, ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
         long pollTime = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
         // TODO: get fifo config from subscriptionGroupManager
         boolean fifo = false;
@@ -265,8 +274,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(brokerController.getBrokerConfig().getBrokerName(), fifo);
         ReceiveMessageChannel channel = channelManager.createChannel(() -> new ReceiveMessageChannel(handler), ReceiveMessageChannel.class);
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
-        CompletableFuture<ReceiveMessageResponse> future = new CompletableFuture<>();
-        InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context
+        CompletableFuture<Iterator<ReceiveMessageResponse>> future = new CompletableFuture<>();
+        InvocationContext<ReceiveMessageRequest, Iterator<ReceiveMessageResponse>> context
             = new InvocationContext<>(request, future);
         channel.registerInvocationContext(command.getOpaque(), context);
         try {
@@ -280,7 +289,14 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             channel.eraseInvocationContext(command.getOpaque());
             future.completeExceptionally(e);
         }
-        return future;
+        future.thenAccept(r -> ResponseWriter.write(responseObserver, r))
+            .exceptionally(e -> {
+                ResponseWriter.write(
+                    responseObserver,
+                    ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(e)).build()
+                );
+                return null;
+            });
     }
 
     @Override
@@ -329,7 +345,8 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
 
-        int maxReconsumeTimes = grpcClientManager.getClientSettings(ctx).getSubscription().getBackoffPolicy().getMaxAttempts();
+        RetryPolicy retryPolicy = grpcClientManager.getClientSettings(ctx).getSubscription().getBackoffPolicy();
+        int maxReconsumeTimes = retryPolicy.getMaxAttempts();
         if (request.getDeliveryAttempt() >= maxReconsumeTimes) {
             ConsumerSendMsgBackRequestHeader requestHeader = GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
             RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
@@ -347,7 +364,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
                 future.completeExceptionally(e);
             }
         } else {
-            ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, delayPolicy);
+            ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, retryPolicy);
             RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
             command.makeCustomHeaderToNet();
 

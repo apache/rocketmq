@@ -35,9 +35,9 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 public class MessageQueueSelector {
     private static final int BROKER_ACTING_QUEUE_ID = -1;
 
-    // multiple queues for one broker, with queueId : normal
+    // multiple queues for brokers with queueId : normal
     private final List<SelectableMessageQueue> queues = new ArrayList<>();
-    // one queue for one broker, with queueId : -1
+    // one queue for brokers with queueId : -1
     private final List<SelectableMessageQueue> brokerActingQueues = new ArrayList<>();
     private final Map<String, SelectableMessageQueue> brokerNameQueueMap = new ConcurrentHashMap<>();
     private final AtomicInteger queueIndex;

@@ -21,11 +21,10 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
 import com.google.common.base.Stopwatch;
-import com.google.protobuf.util.Durations;
-import com.google.protobuf.util.Timestamps;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -44,7 +43,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
-public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMessageRequest, ReceiveMessageResponse> {
+public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMessageRequest, Iterator<ReceiveMessageResponse>> {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final String brokerName;
     private final boolean fifo;
@@ -56,20 +55,16 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
 
     @Override
     public void handle(RemotingCommand responseCommand,
-        InvocationContext<ReceiveMessageRequest, ReceiveMessageResponse> context) {
-        CompletableFuture<ReceiveMessageResponse> future = context.getResponse();
+        InvocationContext<ReceiveMessageRequest, Iterator<ReceiveMessageResponse>> context) {
+        CompletableFuture<Iterator<ReceiveMessageResponse>> future = context.getResponse();
 
         long currentTimeInMillis = System.currentTimeMillis();
         long popCosts = currentTimeInMillis - context.getTimestamp();
         try {
             Stopwatch stopWatch = Stopwatch.createStarted();
-            ReceiveMessageResponse.Builder builder = ReceiveMessageResponse.newBuilder();
             PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) responseCommand.readCustomHeader();
-            builder.setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()));
-            builder.setInvisibleDuration(Durations.fromMillis(responseHeader.getInvisibleTime()))
-                .setDeliveryTimestamp(Timestamps.fromMillis(responseHeader.getPopTime()));
+            List<ReceiveMessageResponse> responseList = new ArrayList<>();
 
-            ReceiveMessageResponse response;
             if (responseCommand.getCode() == RemotingSysResponseCode.SUCCESS) {
                 ByteBuffer byteBuffer = ByteBuffer.wrap(responseCommand.getBody());
                 List<MessageExt> msgFoundList = MessageDecoder.decodes(byteBuffer);
@@ -145,14 +140,19 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                         k -> String.valueOf(responseHeader.getPopTime()));
                 }
 
+                responseList.add(ReceiveMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
+                    .build());
+
                 for (MessageExt messageExt : msgFoundList) {
-                    builder.addMessages(GrpcConverter.buildMessage(messageExt));
+                    ReceiveMessageResponse response = ReceiveMessageResponse.newBuilder()
+                        .setMessage(GrpcConverter.buildMessage(messageExt)).build();
+                    responseList.add(response);
                 }
             }
-            response = builder.build();
             long elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
             log.debug("Translating remoting response to gRPC response costs {}ms. Duration request received: {}", elapsed, popCosts);
-            future.complete(response);
+            future.complete(responseList.iterator());
         } catch (Exception e) {
             log.error("Unexpected exception raised when handle pop remoting command", e);
             future.completeExceptionally(e);
