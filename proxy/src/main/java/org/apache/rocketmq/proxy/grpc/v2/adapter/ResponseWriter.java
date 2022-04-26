@@ -19,20 +19,12 @@ package org.apache.rocketmq.proxy.grpc.v2.adapter;
 
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-import java.util.Iterator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class ResponseWriter {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-
-    public static <T> void write(StreamObserver<T> observer, final Iterator<T> responseIterator) {
-        while (responseIterator.hasNext()) {
-            writeResponse(observer, responseIterator.next());
-        }
-        observer.onCompleted();
-    }
 
     public static <T> void write(StreamObserver<T> observer, final T response) {
         writeResponse(observer, response);
@@ -43,12 +35,9 @@ public class ResponseWriter {
         if (null == response) {
             return;
         }
-        if (observer instanceof ServerCallStreamObserver) {
-            final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
-            if (serverCallStreamObserver.isCancelled()) {
-                log.warn("client has cancelled the request. response to write: {}", response);
-                return;
-            }
+        if (isCancelled(observer)) {
+            log.warn("client has cancelled the request. response to write: {}", response);
+            return;
         }
         log.debug("start to write response. response: {}", response);
         observer.onNext(response);
@@ -58,16 +47,21 @@ public class ResponseWriter {
         if (null == e) {
             return;
         }
-        if (observer instanceof ServerCallStreamObserver) {
-            final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
-            if (serverCallStreamObserver.isCancelled()) {
-                log.warn("Client has cancelled the request. Exception to write", e);
-                return;
-            }
+        if (isCancelled(observer)) {
+            log.warn("Client has cancelled the request. Exception to write", e);
+            return;
         }
         log.debug("Start to write error response", e);
         observer.onError(e);
         observer.onCompleted();
+    }
+
+    public static <T> boolean isCancelled(StreamObserver<T> observer) {
+        if (observer instanceof ServerCallStreamObserver) {
+            final ServerCallStreamObserver<T> serverCallStreamObserver = (ServerCallStreamObserver<T>) observer;
+            return serverCallStreamObserver.isCancelled();
+        }
+        return false;
     }
 }
 

@@ -66,7 +66,8 @@ public class ConsumerServiceTest extends BaseServiceTest {
         consumerService.start();
 
         receiveMessageResultFilter = new DefaultReceiveMessageResultFilter(producerClient, writeConsumerClient, grpcClientManager, topicRouteCache);
-        consumerService.setReceiveMessageResultFilter(receiveMessageResultFilter);
+        consumerService.setReceiveMessageWriterBuilder((observer, hook) ->
+            new DefaultReceiveMessageResponseStreamWriter(observer, hook, writeConsumerClient, topicRouteCache, receiveMessageResultFilter));
         consumerService.setReadQueueSelector(readQueueSelector);
     }
 
