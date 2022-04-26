@@ -19,10 +19,11 @@ package org.apache.rocketmq.proxy.grpc.v2.adapter.channel;
 
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
+import java.util.Iterator;
 import org.apache.rocketmq.proxy.channel.InvocationChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.ReceiveMessageResponseHandler;
 
-public class ReceiveMessageChannel extends InvocationChannel<ReceiveMessageRequest, ReceiveMessageResponse> {
+public class ReceiveMessageChannel extends InvocationChannel<ReceiveMessageRequest, Iterator<ReceiveMessageResponse>> {
     public ReceiveMessageChannel(ReceiveMessageResponseHandler handler) {
         super(handler);
     }

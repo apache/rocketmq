@@ -48,9 +48,9 @@ import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
-import com.google.protobuf.util.Durations;
 import io.grpc.Context;
 import io.grpc.Metadata;
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
@@ -71,8 +71,10 @@ import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.broker.processor.PullMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -83,6 +85,7 @@ import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHead
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
@@ -95,6 +98,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -117,9 +121,13 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     private ConsumerManager consumerManagerMock;
     @Mock
     private ProducerManager producerManagerMock;
+    @Mock
+    private TopicConfigManager topicConfigManagerMock;
 
     @Mock
     private TelemetryCommandManager telemetryCommandManager;
+
+    StreamObserver<ReceiveMessageResponse> receiveStreamObserver = Mockito.mock(ServerCallStreamObserver.class);
 
     private Metadata metadata;
 
@@ -128,10 +136,13 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
     @Before
     public void setUp() throws Throwable {
         super.before();
+        ConfigurationManager.getProxyConfig().setNameSrvAddr("1.1.1.1");
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
         Mockito.when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        Mockito.when(brokerControllerMock.getTopicConfigManager()).thenReturn(topicConfigManagerMock);
+        Mockito.when(topicConfigManagerMock.selectTopicConfig(Mockito.anyString())).thenReturn(new TopicConfig("topic", 8, 8));
         Mockito.doNothing().when(consumerManagerMock).appendConsumerIdsChangeListener(Mockito.any(ConsumerIdsChangeListener.class));
         Mockito.doNothing().when(producerManagerMock).appendProducerChangeListener(Mockito.any(ProducerChangeListener.class));
         Mockito.when(brokerControllerMock.getConsumerManager()).thenReturn(consumerManagerMock);
@@ -320,29 +331,26 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
                     .build())
                 .build())
             .build();
-        CompletableFuture<ReceiveMessageResponse> grpcFuture = localGrpcService.receiveMessage(
-            Context.current()
-                .withValue(InterceptorConstants.METADATA, metadata)
-                .withDeadlineAfter(20, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryImpl("test"))), request);
-        ReceiveMessageResponse r = grpcFuture.get();
-        assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
-        assertThat(r.getMessagesCount()).isEqualTo(1);
-        assertThat(Durations.toMillis(r.getInvisibleDuration())).isEqualTo(invisibleTime);
-        assertThat(GrpcConverter.wrapResourceWithNamespace(r.getMessages(0).getTopic())).isEqualTo(topic);
-        assertThat(r.getMessages(0).getBody().toByteArray()).isEqualTo(body);
-    }
-
-    @Test
-    public void testReceiveMessageSuccessWriteAndFlush() throws Exception {
-        Mockito.when(popMessageProcessorMock.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
-            .thenReturn(null);
-        ReceiveMessageRequest request = ReceiveMessageRequest.newBuilder().getDefaultInstanceForType();
-        CompletableFuture<ReceiveMessageResponse> grpcFuture = localGrpcService.receiveMessage(
-            Context.current()
-                .withDeadlineAfter(20, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryImpl("test"))), request);
-        assertThat(grpcFuture.isDone()).isFalse();
+        ReceiveMessageResponse receiveMessageResponse1 = ReceiveMessageResponse.newBuilder()
+            .setStatus(ResponseBuilder.buildStatus(ResponseCode.SUCCESS, null))
+            .build();
+        Message message = GrpcConverter.buildMessage(messageExt);
+        ReceiveMessageResponse receiveMessageResponse2 = ReceiveMessageResponse.newBuilder()
+            .setMessage(message.toBuilder()
+                .setSystemProperties(
+                    message.getSystemProperties()
+                    .toBuilder()
+                    .setReceiptHandle("0 0 1000 0 0 zhouxiang_MBP16 0 0 0")
+                    .build())
+                .build())
+            .build();
+        Mockito.doNothing().when(receiveStreamObserver).onNext(Mockito.any());
+        localGrpcService.receiveMessage(Context.current().withDeadlineAfter(20, TimeUnit.SECONDS,
+            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("test"))), request, receiveStreamObserver);
+        ArgumentCaptor<ReceiveMessageResponse> argument = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        Mockito.verify(receiveStreamObserver, Mockito.times(2)).onNext(argument.capture());
+        assertThat(argument.getAllValues().get(0)).isEqualTo(receiveMessageResponse1);
+        assertThat(argument.getAllValues().get(1)).isEqualTo(receiveMessageResponse2);
     }
 
     @Test
