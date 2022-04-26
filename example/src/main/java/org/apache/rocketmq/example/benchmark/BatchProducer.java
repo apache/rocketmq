@@ -364,7 +364,7 @@ class StatsBenchmarkBatchProducer {
 
     public void start() {
 
-        executorService.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 snapshotList.addLast(createSnapshot());
@@ -374,7 +374,7 @@ class StatsBenchmarkBatchProducer {
             }
         }, 1000, 1000, TimeUnit.MILLISECONDS);
 
-        executorService.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new Runnable() {
             private void printStats() {
                 if (snapshotList.size() >= 10) {
                     Long[] begin = snapshotList.getFirst();
