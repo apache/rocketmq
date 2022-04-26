@@ -45,6 +45,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -320,8 +321,8 @@ class StatsBenchmarkBatchProducer {
 
     private final LongAdder sendMessageFailedCount = new LongAdder();
 
-    private final ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1,
-            new BasicThreadFactory.Builder().namingPattern("BenchmarkTimerThread-%d").daemon(true).build());
+    private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "BenchmarkTimerThread"));
 
     private final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
