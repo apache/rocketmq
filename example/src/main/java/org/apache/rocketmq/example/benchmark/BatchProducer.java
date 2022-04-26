@@ -319,7 +319,7 @@ class StatsBenchmarkBatchProducer {
     private final LongAdder sendMessageFailedCount = new LongAdder();
 
     private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-            "BenchmarkTimerThread",Boolean.TRUE));
+            "BenchmarkTimerThread", Boolean.TRUE));
 
     private final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
