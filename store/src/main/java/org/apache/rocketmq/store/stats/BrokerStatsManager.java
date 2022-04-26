@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.stats.Stats;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.stats.MomentStatsItemSet;
@@ -29,37 +30,37 @@ import org.apache.rocketmq.common.stats.StatsItemSet;
 
 public class BrokerStatsManager {
 
-    public static final String QUEUE_PUT_NUMS = "QUEUE_PUT_NUMS";
-    public static final String QUEUE_PUT_SIZE = "QUEUE_PUT_SIZE";
-    public static final String QUEUE_GET_NUMS = "QUEUE_GET_NUMS";
-    public static final String QUEUE_GET_SIZE = "QUEUE_GET_SIZE";
-    public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
-    public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
-    public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";
-    public static final String GROUP_GET_SIZE = "GROUP_GET_SIZE";
-    public static final String SNDBCK_PUT_NUMS = "SNDBCK_PUT_NUMS";
-    public static final String BROKER_PUT_NUMS = "BROKER_PUT_NUMS";
-    public static final String BROKER_GET_NUMS = "BROKER_GET_NUMS";
-    public static final String GROUP_GET_FROM_DISK_NUMS = "GROUP_GET_FROM_DISK_NUMS";
-    public static final String GROUP_GET_FROM_DISK_SIZE = "GROUP_GET_FROM_DISK_SIZE";
-    public static final String BROKER_GET_FROM_DISK_NUMS = "BROKER_GET_FROM_DISK_NUMS";
-    public static final String BROKER_GET_FROM_DISK_SIZE = "BROKER_GET_FROM_DISK_SIZE";
+    @Deprecated public static final String QUEUE_PUT_NUMS = Stats.QUEUE_PUT_NUMS;
+    @Deprecated public static final String QUEUE_PUT_SIZE = Stats.QUEUE_PUT_SIZE;
+    @Deprecated public static final String QUEUE_GET_NUMS = Stats.QUEUE_GET_NUMS;
+    @Deprecated public static final String QUEUE_GET_SIZE = Stats.QUEUE_GET_SIZE;
+    @Deprecated public static final String TOPIC_PUT_NUMS = Stats.TOPIC_PUT_NUMS;
+    @Deprecated public static final String TOPIC_PUT_SIZE = Stats.TOPIC_PUT_SIZE;
+    @Deprecated public static final String GROUP_GET_NUMS = Stats.GROUP_GET_NUMS;
+    @Deprecated public static final String GROUP_GET_SIZE = Stats.GROUP_GET_SIZE;
+    @Deprecated public static final String SNDBCK_PUT_NUMS = Stats.SNDBCK_PUT_NUMS;
+    @Deprecated public static final String BROKER_PUT_NUMS = Stats.BROKER_PUT_NUMS;
+    @Deprecated public static final String BROKER_GET_NUMS = Stats.BROKER_GET_NUMS;
+    @Deprecated public static final String GROUP_GET_FROM_DISK_NUMS = Stats.GROUP_GET_FROM_DISK_NUMS;
+    @Deprecated public static final String GROUP_GET_FROM_DISK_SIZE = Stats.GROUP_GET_FROM_DISK_SIZE;
+    @Deprecated public static final String BROKER_GET_FROM_DISK_NUMS = Stats.BROKER_GET_FROM_DISK_NUMS;
+    @Deprecated public static final String BROKER_GET_FROM_DISK_SIZE = Stats.BROKER_GET_FROM_DISK_SIZE;
     // For commercial
-    public static final String COMMERCIAL_SEND_TIMES = "COMMERCIAL_SEND_TIMES";
-    public static final String COMMERCIAL_SNDBCK_TIMES = "COMMERCIAL_SNDBCK_TIMES";
-    public static final String COMMERCIAL_RCV_TIMES = "COMMERCIAL_RCV_TIMES";
-    public static final String COMMERCIAL_RCV_EPOLLS = "COMMERCIAL_RCV_EPOLLS";
-    public static final String COMMERCIAL_SEND_SIZE = "COMMERCIAL_SEND_SIZE";
-    public static final String COMMERCIAL_RCV_SIZE = "COMMERCIAL_RCV_SIZE";
-    public static final String COMMERCIAL_PERM_FAILURES = "COMMERCIAL_PERM_FAILURES";
+    @Deprecated public static final String COMMERCIAL_SEND_TIMES = Stats.COMMERCIAL_SEND_TIMES;
+    @Deprecated public static final String COMMERCIAL_SNDBCK_TIMES = Stats.COMMERCIAL_SNDBCK_TIMES;
+    @Deprecated public static final String COMMERCIAL_RCV_TIMES = Stats.COMMERCIAL_RCV_TIMES;
+    @Deprecated public static final String COMMERCIAL_RCV_EPOLLS = Stats.COMMERCIAL_RCV_EPOLLS;
+    @Deprecated public static final String COMMERCIAL_SEND_SIZE = Stats.COMMERCIAL_SEND_SIZE;
+    @Deprecated public static final String COMMERCIAL_RCV_SIZE = Stats.COMMERCIAL_RCV_SIZE;
+    @Deprecated public static final String COMMERCIAL_PERM_FAILURES = Stats.COMMERCIAL_PERM_FAILURES;
     public static final String COMMERCIAL_OWNER = "Owner";
     // Message Size limit for one api-calling count.
     public static final double SIZE_PER_COUNT = 64 * 1024;
 
-    public static final String GROUP_GET_FALL_SIZE = "GROUP_GET_FALL_SIZE";
-    public static final String GROUP_GET_FALL_TIME = "GROUP_GET_FALL_TIME";
+    @Deprecated public static final String GROUP_GET_FALL_SIZE = Stats.GROUP_GET_FALL_SIZE;
+    @Deprecated public static final String GROUP_GET_FALL_TIME = Stats.GROUP_GET_FALL_TIME;
     // Pull Message Latency
-    public static final String GROUP_GET_LATENCY = "GROUP_GET_LATENCY";
+    @Deprecated public static final String GROUP_GET_LATENCY = Stats.GROUP_GET_LATENCY;
 
     /**
      * read disk follow stats
@@ -73,39 +74,39 @@ public class BrokerStatsManager {
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
     private final String clusterName;
     private final boolean enableQueueStat;
-    private final MomentStatsItemSet momentStatsItemSetFallSize = new MomentStatsItemSet(GROUP_GET_FALL_SIZE, scheduledExecutorService, log);
-    private final MomentStatsItemSet momentStatsItemSetFallTime = new MomentStatsItemSet(GROUP_GET_FALL_TIME, scheduledExecutorService, log);
+    private final MomentStatsItemSet momentStatsItemSetFallSize = new MomentStatsItemSet(Stats.GROUP_GET_FALL_SIZE, scheduledExecutorService, log);
+    private final MomentStatsItemSet momentStatsItemSetFallTime = new MomentStatsItemSet(Stats.GROUP_GET_FALL_TIME, scheduledExecutorService, log);
 
     public BrokerStatsManager(String clusterName, boolean enableQueueStat) {
         this.clusterName = clusterName;
         this.enableQueueStat = enableQueueStat;
 
         if (enableQueueStat) {
-            this.statsTable.put(QUEUE_PUT_NUMS, new StatsItemSet(QUEUE_PUT_NUMS, this.scheduledExecutorService, log));
-            this.statsTable.put(QUEUE_PUT_SIZE, new StatsItemSet(QUEUE_PUT_SIZE, this.scheduledExecutorService, log));
-            this.statsTable.put(QUEUE_GET_NUMS, new StatsItemSet(QUEUE_GET_NUMS, this.scheduledExecutorService, log));
-            this.statsTable.put(QUEUE_GET_SIZE, new StatsItemSet(QUEUE_GET_SIZE, this.scheduledExecutorService, log));
+            this.statsTable.put(Stats.QUEUE_PUT_NUMS, new StatsItemSet(Stats.QUEUE_PUT_NUMS, this.scheduledExecutorService, log));
+            this.statsTable.put(Stats.QUEUE_PUT_SIZE, new StatsItemSet(Stats.QUEUE_PUT_SIZE, this.scheduledExecutorService, log));
+            this.statsTable.put(Stats.QUEUE_GET_NUMS, new StatsItemSet(Stats.QUEUE_GET_NUMS, this.scheduledExecutorService, log));
+            this.statsTable.put(Stats.QUEUE_GET_SIZE, new StatsItemSet(Stats.QUEUE_GET_SIZE, this.scheduledExecutorService, log));
         }
-        this.statsTable.put(TOPIC_PUT_NUMS, new StatsItemSet(TOPIC_PUT_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(TOPIC_PUT_SIZE, new StatsItemSet(TOPIC_PUT_SIZE, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_GET_NUMS, new StatsItemSet(GROUP_GET_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_GET_SIZE, new StatsItemSet(GROUP_GET_SIZE, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_GET_LATENCY, new StatsItemSet(GROUP_GET_LATENCY, this.scheduledExecutorService, log));
-        this.statsTable.put(SNDBCK_PUT_NUMS, new StatsItemSet(SNDBCK_PUT_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(BROKER_PUT_NUMS, new StatsItemSet(BROKER_PUT_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(BROKER_GET_NUMS, new StatsItemSet(BROKER_GET_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_GET_FROM_DISK_NUMS, new StatsItemSet(GROUP_GET_FROM_DISK_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_GET_FROM_DISK_SIZE, new StatsItemSet(GROUP_GET_FROM_DISK_SIZE, this.scheduledExecutorService, log));
-        this.statsTable.put(BROKER_GET_FROM_DISK_NUMS, new StatsItemSet(BROKER_GET_FROM_DISK_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(BROKER_GET_FROM_DISK_SIZE, new StatsItemSet(BROKER_GET_FROM_DISK_SIZE, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.TOPIC_PUT_NUMS, new StatsItemSet(Stats.TOPIC_PUT_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.TOPIC_PUT_SIZE, new StatsItemSet(Stats.TOPIC_PUT_SIZE, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_GET_NUMS, new StatsItemSet(Stats.GROUP_GET_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_GET_SIZE, new StatsItemSet(Stats.GROUP_GET_SIZE, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_GET_LATENCY, new StatsItemSet(Stats.GROUP_GET_LATENCY, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.SNDBCK_PUT_NUMS, new StatsItemSet(Stats.SNDBCK_PUT_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.BROKER_PUT_NUMS, new StatsItemSet(Stats.BROKER_PUT_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.BROKER_GET_NUMS, new StatsItemSet(Stats.BROKER_GET_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_GET_FROM_DISK_NUMS, new StatsItemSet(Stats.GROUP_GET_FROM_DISK_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_GET_FROM_DISK_SIZE, new StatsItemSet(Stats.GROUP_GET_FROM_DISK_SIZE, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.BROKER_GET_FROM_DISK_NUMS, new StatsItemSet(Stats.BROKER_GET_FROM_DISK_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.BROKER_GET_FROM_DISK_SIZE, new StatsItemSet(Stats.BROKER_GET_FROM_DISK_SIZE, this.scheduledExecutorService, log));
 
-        this.statsTable.put(COMMERCIAL_SEND_TIMES, new StatsItemSet(COMMERCIAL_SEND_TIMES, this.commercialExecutor, COMMERCIAL_LOG));
-        this.statsTable.put(COMMERCIAL_RCV_TIMES, new StatsItemSet(COMMERCIAL_RCV_TIMES, this.commercialExecutor, COMMERCIAL_LOG));
-        this.statsTable.put(COMMERCIAL_SEND_SIZE, new StatsItemSet(COMMERCIAL_SEND_SIZE, this.commercialExecutor, COMMERCIAL_LOG));
-        this.statsTable.put(COMMERCIAL_RCV_SIZE, new StatsItemSet(COMMERCIAL_RCV_SIZE, this.commercialExecutor, COMMERCIAL_LOG));
-        this.statsTable.put(COMMERCIAL_RCV_EPOLLS, new StatsItemSet(COMMERCIAL_RCV_EPOLLS, this.commercialExecutor, COMMERCIAL_LOG));
-        this.statsTable.put(COMMERCIAL_SNDBCK_TIMES, new StatsItemSet(COMMERCIAL_SNDBCK_TIMES, this.commercialExecutor, COMMERCIAL_LOG));
-        this.statsTable.put(COMMERCIAL_PERM_FAILURES, new StatsItemSet(COMMERCIAL_PERM_FAILURES, this.commercialExecutor, COMMERCIAL_LOG));
+        this.statsTable.put(Stats.COMMERCIAL_SEND_TIMES, new StatsItemSet(Stats.COMMERCIAL_SEND_TIMES, this.commercialExecutor, COMMERCIAL_LOG));
+        this.statsTable.put(Stats.COMMERCIAL_RCV_TIMES, new StatsItemSet(Stats.COMMERCIAL_RCV_TIMES, this.commercialExecutor, COMMERCIAL_LOG));
+        this.statsTable.put(Stats.COMMERCIAL_SEND_SIZE, new StatsItemSet(Stats.COMMERCIAL_SEND_SIZE, this.commercialExecutor, COMMERCIAL_LOG));
+        this.statsTable.put(Stats.COMMERCIAL_RCV_SIZE, new StatsItemSet(Stats.COMMERCIAL_RCV_SIZE, this.commercialExecutor, COMMERCIAL_LOG));
+        this.statsTable.put(Stats.COMMERCIAL_RCV_EPOLLS, new StatsItemSet(Stats.COMMERCIAL_RCV_EPOLLS, this.commercialExecutor, COMMERCIAL_LOG));
+        this.statsTable.put(Stats.COMMERCIAL_SNDBCK_TIMES, new StatsItemSet(Stats.COMMERCIAL_SNDBCK_TIMES, this.commercialExecutor, COMMERCIAL_LOG));
+        this.statsTable.put(Stats.COMMERCIAL_PERM_FAILURES, new StatsItemSet(Stats.COMMERCIAL_PERM_FAILURES, this.commercialExecutor, COMMERCIAL_LOG));
     }
 
     public MomentStatsItemSet getMomentStatsItemSetFallSize() {
@@ -134,82 +135,82 @@ public class BrokerStatsManager {
     }
 
     public void onTopicDeleted(final String topic) {
-        this.statsTable.get(TOPIC_PUT_NUMS).delValue(topic);
-        this.statsTable.get(TOPIC_PUT_SIZE).delValue(topic);
+        this.statsTable.get(Stats.TOPIC_PUT_NUMS).delValue(topic);
+        this.statsTable.get(Stats.TOPIC_PUT_SIZE).delValue(topic);
         if (enableQueueStat) {
-            this.statsTable.get(QUEUE_PUT_NUMS).delValueByPrefixKey(topic, "@");
-            this.statsTable.get(QUEUE_PUT_SIZE).delValueByPrefixKey(topic, "@");
+            this.statsTable.get(Stats.QUEUE_PUT_NUMS).delValueByPrefixKey(topic, "@");
+            this.statsTable.get(Stats.QUEUE_PUT_SIZE).delValueByPrefixKey(topic, "@");
         }
-        this.statsTable.get(GROUP_GET_NUMS).delValueByPrefixKey(topic, "@");
-        this.statsTable.get(GROUP_GET_SIZE).delValueByPrefixKey(topic, "@");
-        this.statsTable.get(QUEUE_GET_NUMS).delValueByPrefixKey(topic, "@");
-        this.statsTable.get(QUEUE_GET_SIZE).delValueByPrefixKey(topic, "@");
-        this.statsTable.get(SNDBCK_PUT_NUMS).delValueByPrefixKey(topic, "@");
-        this.statsTable.get(GROUP_GET_LATENCY).delValueByInfixKey(topic, "@");
+        this.statsTable.get(Stats.GROUP_GET_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.GROUP_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.QUEUE_GET_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.QUEUE_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.SNDBCK_PUT_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.GROUP_GET_LATENCY).delValueByInfixKey(topic, "@");
         this.momentStatsItemSetFallSize.delValueByInfixKey(topic, "@");
         this.momentStatsItemSetFallTime.delValueByInfixKey(topic, "@");
     }
 
     public void onGroupDeleted(final String group) {
-        this.statsTable.get(GROUP_GET_NUMS).delValueBySuffixKey(group, "@");
-        this.statsTable.get(GROUP_GET_SIZE).delValueBySuffixKey(group, "@");
+        this.statsTable.get(Stats.GROUP_GET_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(Stats.GROUP_GET_SIZE).delValueBySuffixKey(group, "@");
         if (enableQueueStat) {
-            this.statsTable.get(QUEUE_GET_NUMS).delValueBySuffixKey(group, "@");
-            this.statsTable.get(QUEUE_GET_SIZE).delValueBySuffixKey(group, "@");
+            this.statsTable.get(Stats.QUEUE_GET_NUMS).delValueBySuffixKey(group, "@");
+            this.statsTable.get(Stats.QUEUE_GET_SIZE).delValueBySuffixKey(group, "@");
         }
-        this.statsTable.get(SNDBCK_PUT_NUMS).delValueBySuffixKey(group, "@");
-        this.statsTable.get(GROUP_GET_LATENCY).delValueBySuffixKey(group, "@");
+        this.statsTable.get(Stats.SNDBCK_PUT_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(Stats.GROUP_GET_LATENCY).delValueBySuffixKey(group, "@");
         this.momentStatsItemSetFallSize.delValueBySuffixKey(group, "@");
         this.momentStatsItemSetFallTime.delValueBySuffixKey(group, "@");
     }
 
     public void incQueuePutNums(final String topic, final Integer queueId) {
         if (enableQueueStat) {
-            this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, queueId), 1, 1);
+            this.statsTable.get(Stats.QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, queueId), 1, 1);
         }
     }
 
     public void incQueuePutNums(final String topic, final Integer queueId, int num, int times) {
         if (enableQueueStat) {
-            this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, queueId), num, times);
+            this.statsTable.get(Stats.QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, queueId), num, times);
         }
     }
 
     public void incQueuePutSize(final String topic, final Integer queueId, final int size) {
         if (enableQueueStat) {
-            this.statsTable.get(QUEUE_PUT_SIZE).addValue(buildStatsKey(topic, queueId), size, 1);
+            this.statsTable.get(Stats.QUEUE_PUT_SIZE).addValue(buildStatsKey(topic, queueId), size, 1);
         }
     }
 
     public void incQueueGetNums(final String group, final String topic, final Integer queueId, final int incValue) {
         if (enableQueueStat) {
             final String statsKey = buildStatsKey(topic, queueId, group);
-            this.statsTable.get(QUEUE_GET_NUMS).addValue(statsKey, incValue, 1);
+            this.statsTable.get(Stats.QUEUE_GET_NUMS).addValue(statsKey, incValue, 1);
         }
     }
 
     public void incQueueGetSize(final String group, final String topic, final Integer queueId, final int incValue) {
         if (enableQueueStat) {
             final String statsKey = buildStatsKey(topic, queueId, group);
-            this.statsTable.get(QUEUE_GET_SIZE).addValue(statsKey, incValue, 1);
+            this.statsTable.get(Stats.QUEUE_GET_SIZE).addValue(statsKey, incValue, 1);
         }
     }
 
     public void incTopicPutNums(final String topic) {
-        this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, 1, 1);
+        this.statsTable.get(Stats.TOPIC_PUT_NUMS).addValue(topic, 1, 1);
     }
 
     public void incTopicPutNums(final String topic, int num, int times) {
-        this.statsTable.get(TOPIC_PUT_NUMS).addValue(topic, num, times);
+        this.statsTable.get(Stats.TOPIC_PUT_NUMS).addValue(topic, num, times);
     }
 
     public void incTopicPutSize(final String topic, final int size) {
-        this.statsTable.get(TOPIC_PUT_SIZE).addValue(topic, size, 1);
+        this.statsTable.get(Stats.TOPIC_PUT_SIZE).addValue(topic, size, 1);
     }
 
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
-        this.statsTable.get(GROUP_GET_NUMS).addValue(statsKey, incValue, 1);
+        this.statsTable.get(Stats.GROUP_GET_NUMS).addValue(statsKey, incValue, 1);
     }
 
     public String buildStatsKey(String topic, String group) {
@@ -258,7 +259,7 @@ public class BrokerStatsManager {
 
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
-        this.statsTable.get(GROUP_GET_SIZE).addValue(statsKey, incValue, 1);
+        this.statsTable.get(Stats.GROUP_GET_SIZE).addValue(statsKey, incValue, 1);
     }
 
     public void incGroupGetLatency(final String group, final String topic, final int queueId, final int incValue) {
@@ -268,29 +269,29 @@ public class BrokerStatsManager {
         } else {
             statsKey = buildStatsKey(topic, group);
         }
-        this.statsTable.get(GROUP_GET_LATENCY).addRTValue(statsKey, incValue, 1);
+        this.statsTable.get(Stats.GROUP_GET_LATENCY).addRTValue(statsKey, incValue, 1);
     }
 
     public void incBrokerPutNums() {
-        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(1);
+        this.statsTable.get(Stats.BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(1);
     }
 
     public void incBrokerPutNums(final int incValue) {
-        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
+        this.statsTable.get(Stats.BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
     public void incBrokerGetNums(final int incValue) {
-        this.statsTable.get(BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
+        this.statsTable.get(Stats.BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
     public void incSendBackNums(final String group, final String topic) {
         final String statsKey = buildStatsKey(topic, group);
-        this.statsTable.get(SNDBCK_PUT_NUMS).addValue(statsKey, 1, 1);
+        this.statsTable.get(Stats.SNDBCK_PUT_NUMS).addValue(statsKey, 1, 1);
     }
 
     public double tpsGroupGetNums(final String group, final String topic) {
         final String statsKey = buildStatsKey(topic, group);
-        return this.statsTable.get(GROUP_GET_NUMS).getStatsDataInMinute(statsKey).getTps();
+        return this.statsTable.get(Stats.GROUP_GET_NUMS).getStatsDataInMinute(statsKey).getTps();
     }
 
     public void recordDiskFallBehindTime(final String group, final String topic, final int queueId,
