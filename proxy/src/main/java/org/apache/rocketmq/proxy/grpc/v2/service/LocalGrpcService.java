@@ -98,7 +98,6 @@ import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
@@ -106,7 +105,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.ReceiveMessageChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.SendMessageChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.ReceiveMessageResponseHandler;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.SendMessageResponseHandler;
-import org.apache.rocketmq.proxy.grpc.v2.service.cluster.RouteService;
+import org.apache.rocketmq.proxy.grpc.v2.service.local.RouteService;
 import org.apache.rocketmq.proxy.grpc.v2.service.local.LocalWriteQueueSelector;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
@@ -143,7 +142,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         ConnectorManager connectorManager = new ConnectorManager(null);
         this.telemetryCommandManager = telemetryCommandManager;
         this.grpcClientManager = new GrpcClientManager();
-        this.routeService = new RouteService(ProxyMode.LOCAL, connectorManager, grpcClientManager);
+        this.routeService = new RouteService(connectorManager, grpcClientManager);
         this.clientSettingsService = new ClientSettingsService(this.channelManager, this.grpcClientManager, this.telemetryCommandManager);
         this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
         this.localWriteQueueSelector = new LocalWriteQueueSelector(brokerController.getBrokerConfig().getBrokerName(),
