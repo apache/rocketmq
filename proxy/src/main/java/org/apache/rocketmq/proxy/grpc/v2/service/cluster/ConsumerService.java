@@ -23,7 +23,6 @@ import apache.rocketmq.v2.AckMessageResultEntry;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
-import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
@@ -37,8 +36,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
-import org.apache.rocketmq.client.consumer.PopResult;
-import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
@@ -53,7 +50,6 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -67,7 +63,8 @@ public class ConsumerService extends BaseService {
     protected final GrpcClientManager grpcClientManager;
 
     private volatile ReadQueueSelector readQueueSelector;
-    private volatile ReceiveMessageResultFilter receiveMessageResultFilter;
+    private volatile ReceiveMessageResponseStreamWriter.Builder receiveMessageWriterBuilder;
+
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
     private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook;
@@ -84,17 +81,19 @@ public class ConsumerService extends BaseService {
     @Override
     public void start() throws Exception {
         this.readQueueSelector = new DefaultReadQueueSelector(connectorManager.getTopicRouteCache());
-        this.receiveMessageResultFilter = new DefaultReceiveMessageResultFilter(
-            producer, writeConsumer, grpcClientManager, connectorManager.getTopicRouteCache());
+        this.receiveMessageWriterBuilder = (observer, hook) -> new DefaultReceiveMessageResponseStreamWriter(
+            observer,
+            hook,
+            writeConsumer,
+            connectorManager.getTopicRouteCache(),
+            new DefaultReceiveMessageResultFilter(
+                producer, writeConsumer, grpcClientManager, connectorManager.getTopicRouteCache())
+        );
     }
 
     public void receiveMessage(Context ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
-        ReceiveMessageResponseStreamObserver streamObserver = new ReceiveMessageResponseStreamObserver(
-            ctx,
-            request,
-            receiveMessageHook,
-            responseObserver);
+        ReceiveMessageResponseStreamWriter writer = receiveMessageWriterBuilder.build(responseObserver, receiveMessageHook);
         try {
             PopMessageRequestHeader requestHeader = this.buildPopMessageRequestHeader(ctx, request);
             SelectableMessageQueue messageQueue = this.readQueueSelector.select(ctx, request, requestHeader);
@@ -109,10 +108,13 @@ public class ConsumerService extends BaseService {
                 messageQueue.getBrokerName(),
                 requestHeader,
                 requestHeader.getPollTime())
-                .thenAccept(result -> writeReceiveMessageResponse(ctx, request, result, streamObserver))
-                .exceptionally(e -> writeReceiveMessageResponse(ctx, e, streamObserver));
+                .thenAccept(result -> writer.write(ctx, request, result))
+                .exceptionally(e -> {
+                    writer.write(ctx, request, e);
+                    return null;
+                });
         } catch (Throwable t) {
-            writeReceiveMessageResponse(ctx, t, streamObserver);
+            writer.write(ctx, request, t);
         }
     }
 
@@ -120,54 +122,6 @@ public class ConsumerService extends BaseService {
         checkSubscriptionData(request.getMessageQueue().getTopic(), request.getFilterExpression());
         boolean fifo = grpcClientManager.getClientSettings(ctx).getSubscription().getFifo();
         return GrpcConverter.buildPopMessageRequestHeader(request, GrpcConverter.buildPollTimeFromContext(ctx), fifo);
-    }
-
-    protected void writeReceiveMessageResponse(Context ctx, ReceiveMessageRequest request,
-        PopResult result, StreamObserver<ReceiveMessageResponse> streamObserver) {
-        PopStatus status = result.getPopStatus();
-        try {
-            switch (status) {
-                case FOUND:
-                    List<Message> messageList = this.receiveMessageResultFilter.filterMessage(ctx, request, result.getMsgFoundList());
-                    if (messageList.isEmpty()) {
-                        streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                            .setStatus(ResponseBuilder.buildStatus(Code.OK, "no new message"))
-                            .build());
-                    } else {
-                        streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-                            .build());
-                        for (Message message : messageList) {
-                            streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                                .setMessage(message)
-                                .build());
-                        }
-                    }
-                    break;
-                case POLLING_FULL:
-                    streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                        .setStatus(ResponseBuilder.buildStatus(Code.TOO_MANY_REQUESTS, "polling full"))
-                        .build());
-                    break;
-                case NO_NEW_MSG:
-                case POLLING_NOT_FOUND:
-                default:
-                    streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                        .setStatus(ResponseBuilder.buildStatus(Code.OK, "no new message"))
-                        .build());
-                    break;
-            }
-        } finally {
-            streamObserver.onCompleted();
-        }
-    }
-
-    protected Void writeReceiveMessageResponse(Context ctx, Throwable throwable, StreamObserver<ReceiveMessageResponse> streamObserver) {
-        ResponseWriter.write(
-            streamObserver,
-            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(throwable)).build()
-        );
-        return null;
     }
 
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
@@ -364,13 +318,13 @@ public class ConsumerService extends BaseService {
         this.readQueueSelector = readQueueSelector;
     }
 
-    public ReceiveMessageResultFilter getReceiveMessageResultFilter() {
-        return receiveMessageResultFilter;
+    public ReceiveMessageResponseStreamWriter.Builder getReceiveMessageWriterBuilder() {
+        return receiveMessageWriterBuilder;
     }
 
-    public void setReceiveMessageResultFilter(
-        ReceiveMessageResultFilter receiveMessageResultFilter) {
-        this.receiveMessageResultFilter = receiveMessageResultFilter;
+    public void setReceiveMessageWriterBuilder(
+        ReceiveMessageResponseStreamWriter.Builder receiveMessageWriterBuilder) {
+        this.receiveMessageWriterBuilder = receiveMessageWriterBuilder;
     }
 
     public ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> getReceiveMessageHook() {
