@@ -51,6 +51,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.service.BaseService;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.proxy.grpc.v2.service.ClientSettingsService;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -82,10 +83,7 @@ public class ForwardClientService extends BaseService {
         this.channelManager = channelManager;
         this.grpcClientManager = grpcClientManager;
         this.telemetryCommandManager = telemetryCommandManager;
-    }
 
-    @Override
-    public void start() throws Exception {
         this.clientSettingsService = new ClientSettingsService(this.channelManager, this.grpcClientManager, this.telemetryCommandManager);
         this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl());
         this.producerManager = new ProducerManager();

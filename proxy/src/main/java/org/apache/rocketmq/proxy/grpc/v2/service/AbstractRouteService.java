@@ -28,7 +28,6 @@ import org.apache.rocketmq.proxy.common.ParameterConverter;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.AssignmentQueueSelector;
-import org.apache.rocketmq.proxy.grpc.v2.service.cluster.BaseService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.DefaultAssignmentQueueSelector;
 
 public abstract class AbstractRouteService extends BaseService {

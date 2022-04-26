@@ -50,6 +50,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.v2.service.BaseService;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -76,10 +77,7 @@ public class ConsumerService extends BaseService {
         this.writeConsumer = connectorManager.getForwardWriteConsumer();
         this.producer = connectorManager.getForwardProducer();
         this.grpcClientManager = grpcClientManager;
-    }
 
-    @Override
-    public void start() throws Exception {
         this.readQueueSelector = new DefaultReadQueueSelector(connectorManager.getTopicRouteCache());
         this.receiveMessageWriterBuilder = (observer, hook) -> new DefaultReceiveMessageResponseStreamWriter(
             observer,

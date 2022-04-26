@@ -39,6 +39,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
+import org.apache.rocketmq.proxy.grpc.v2.service.BaseService;
 
 public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageResponseStreamWriter {
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -89,9 +90,7 @@ public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageRes
                                 .setMessage(messageIterator.next())
                                 .build());
                         }
-                        messageIterator.forEachRemaining(message -> {
-                            this.nackFailToWriteMessage(ctx, request, message);
-                        });
+                        messageIterator.forEachRemaining(message -> this.nackFailToWriteMessage(ctx, request, message));
                     }
                     break;
                 case POLLING_FULL:

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
+package org.apache.rocketmq.proxy.grpc.v2.service;
 
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.FilterExpression;
