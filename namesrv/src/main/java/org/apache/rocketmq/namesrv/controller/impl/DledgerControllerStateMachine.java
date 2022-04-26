@@ -21,8 +21,6 @@ import io.openmessaging.storage.dledger.snapshot.SnapshotReader;
 import io.openmessaging.storage.dledger.snapshot.SnapshotWriter;
 import io.openmessaging.storage.dledger.statemachine.CommittedEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -49,21 +47,17 @@ public class DledgerControllerStateMachine implements StateMachine {
 
     @Override
     public void onApply(CommittedEntryIterator iterator) {
-        final List<EventMessage> events = new ArrayList<>();
+        int applyingSize = 0;
         while (iterator.hasNext()) {
             final DLedgerEntry entry = iterator.next();
             final byte[] body = entry.getBody();
             if (body != null && body.length > 0) {
                 final EventMessage event = this.eventSerializer.deserialize(body);
-                if (event != null) {
-                    events.add(event);
-                }
+                this.replicasInfoManager.applyEvent(event);
+                applyingSize ++;
             }
         }
-        log.info("Apply {} events on controller {}", events.size(), this.dledgerId);
-        for (EventMessage event : events) {
-            this.replicasInfoManager.applyEvent(event);
-        }
+        log.info("Apply {} events on controller {}", applyingSize, this.dledgerId);
     }
 
     @Override

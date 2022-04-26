@@ -102,7 +102,6 @@ public class DledgerControllerTest {
         if (!isFirstRegisteredBroker) {
             assertTrue(registerResult.getBrokerId() > 0);
         }
-        Thread.sleep(500);
         return true;
     }
 
@@ -111,7 +110,6 @@ public class DledgerControllerTest {
         final AlterSyncStateSetRequestHeader alterRequest =
             new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch, newSyncStateSet, syncStateSetEpoch);
         final RemotingCommand response = leader.alterSyncStateSet(alterRequest).get(10, TimeUnit.SECONDS);
-        Thread.sleep(500);
 
         final RemotingCommand getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
@@ -149,7 +147,6 @@ public class DledgerControllerTest {
         controllers.add(c2);
 
         DledgerController leader = waitLeader(controllers);
-        Thread.sleep(2000);
 
         assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9000", true));
         assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9001", true));
@@ -191,7 +188,6 @@ public class DledgerControllerTest {
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
         final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
         final RemotingCommand resp = leader.electMaster(electRequest).get(10, TimeUnit.SECONDS);
-        Thread.sleep(500);
 
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).
             get(10, TimeUnit.SECONDS).readCustomHeader();
@@ -230,7 +226,6 @@ public class DledgerControllerTest {
         final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
         final CompletableFuture<RemotingCommand> future = leader.electMaster(electRequest);
         future.get(10, TimeUnit.SECONDS);
-        Thread.sleep(500);
 
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS).readCustomHeader();
         final HashSet<String> newSyncStateSet2 = new HashSet<>();
@@ -260,6 +255,5 @@ public class DledgerControllerTest {
         syncStateSet.add("127.0.0.1:9001");
         syncStateSet.add("127.0.0.1:9002");
         assertEquals(response.getSyncStateSet(), syncStateSet);
-
     }
 }
