@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -94,7 +95,9 @@ public class DefaultMQPushConsumerTest {
     @Before
     public void init() throws Exception {
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        factoryTable.forEach((s, instance) -> instance.shutdown());
+        for (Map.Entry<String, MQClientInstance> entry : factoryTable.entrySet()) {
+            entry.getValue().shutdown();
+        }
         factoryTable.clear();
 
         when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
@@ -116,7 +119,6 @@ public class DefaultMQPushConsumerTest {
                     return pullResult;
                 }
             });
-
 
         consumerGroup = "FooBarGroup" + System.currentTimeMillis();
         pushConsumer = new DefaultMQPushConsumer(consumerGroup);
@@ -169,7 +171,7 @@ public class DefaultMQPushConsumerTest {
     @Test
     public void testPullMessage_Success() throws InterruptedException, RemotingException, MQBrokerException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
@@ -192,7 +194,7 @@ public class DefaultMQPushConsumerTest {
     @Test
     public void testPullMessage_SuccessWithOrderlyService() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
+        final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
 
         MessageListenerOrderly listenerOrderly = new MessageListenerOrderly() {
             @Override
@@ -329,11 +331,13 @@ public class DefaultMQPushConsumerTest {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final MessageExt[] messageExts = new MessageExt[1];
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(
-                new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(),
-                        (msgs, context) -> {
-                            messageExts[0] = msgs.get(0);
-                            return null;
-                        }));
+            new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+                @Override public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                    ConsumeConcurrentlyContext context) {
+                    messageExts[0] = msgs.get(0);
+                    return null;
+                }
+            }));
 
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeOrderly(true);
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();

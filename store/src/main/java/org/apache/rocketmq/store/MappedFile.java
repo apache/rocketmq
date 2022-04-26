@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.CommitLog.PutMessageContext;
 import org.apache.rocketmq.store.config.FlushDiskType;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
@@ -80,11 +81,22 @@ public class MappedFile extends ReferenceResource {
 
     public static void ensureDirOK(final String dirName) {
         if (dirName != null) {
-            File f = new File(dirName);
-            if (!f.exists()) {
-                boolean result = f.mkdirs();
-                log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
+            if (dirName.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
+                String[] dirs = dirName.trim().split(MessageStoreConfig.MULTI_PATH_SPLITTER);
+                for (String dir : dirs) {
+                    createDirIfNotExist(dir);
+                }
+            } else {
+                createDirIfNotExist(dirName);
             }
+        }
+    }
+
+    private static void  createDirIfNotExist(String dirName) {
+        File f = new File(dirName);
+        if (!f.exists()) {
+            boolean result = f.mkdirs();
+            log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
         }
     }
 
@@ -236,8 +248,9 @@ public class MappedFile extends ReferenceResource {
 
         if ((currentPos + data.length) <= this.fileSize) {
             try {
-                this.fileChannel.position(currentPos);
-                this.fileChannel.write(ByteBuffer.wrap(data));
+                ByteBuffer buf = this.mappedByteBuffer.slice();
+                buf.position(currentPos);
+                buf.put(data);
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
@@ -249,7 +262,7 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
-     * Content of data from offset to offset + length will be wrote to file.
+     * Content of data from offset to offset + length will be written to file.
      *
      * @param offset The offset of the subarray to be used.
      * @param length The length of the subarray to be used.
@@ -259,8 +272,9 @@ public class MappedFile extends ReferenceResource {
 
         if ((currentPos + length) <= this.fileSize) {
             try {
-                this.fileChannel.position(currentPos);
-                this.fileChannel.write(ByteBuffer.wrap(data, offset, length));
+                ByteBuffer buf = this.mappedByteBuffer.slice();
+                buf.position(currentPos);
+                buf.put(data, offset, length);
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }

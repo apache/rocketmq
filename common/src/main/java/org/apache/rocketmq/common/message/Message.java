@@ -128,14 +128,10 @@ public class Message implements Serializable {
         return this.getProperty(MessageConst.PROPERTY_KEYS);
     }
 
-    public void setKeys(Collection<String> keys) {
-        StringBuilder sb = new StringBuilder();
-        for (String k : keys) {
-            sb.append(k);
-            sb.append(MessageConst.KEY_SEPARATOR);
-        }
+    public void setKeys(Collection<String> keyCollection) {
+        String keys = String.join(MessageConst.KEY_SEPARATOR, keyCollection);
 
-        this.setKeys(sb.toString().trim());
+        this.setKeys(keys);
     }
 
     public int getDelayTimeLevel() {

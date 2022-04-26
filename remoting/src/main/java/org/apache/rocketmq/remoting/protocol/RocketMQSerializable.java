@@ -94,6 +94,7 @@ public class RocketMQSerializable {
         return out.writerIndex() - beginIndex;
     }
 
+
     public static byte[] rocketMQProtocolEncode(RemotingCommand cmd) {
         // String remark
         byte[] remarkBytes = null;

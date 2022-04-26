@@ -358,7 +358,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             }
 
             int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
-            if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
+            if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal() && requestHeader.getMaxReconsumeTimes() != null) {
                 maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
             }
             int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
@@ -501,8 +501,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             case MESSAGE_ILLEGAL:
             case PROPERTIES_SIZE_EXCEEDED:
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                response.setRemark(
-                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
+                response.setRemark(String.format("the message is illegal, maybe msg body or properties length not matched. msg body length limit %dB, msg properties length limit 32KB.",
+                    this.brokerController.getMessageStoreConfig().getMaxMessageSize()));
                 break;
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
@@ -513,6 +513,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             case OS_PAGECACHE_BUSY:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
+                break;
+            case LMQ_CONSUME_QUEUE_NUM_EXCEEDED:
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("[LMQ_CONSUME_QUEUE_NUM_EXCEEDED]broker config enableLmq and enableMultiDispatch, lmq consumeQueue num exceed maxLmqConsumeQueueNum config num, default limit 2w.");
                 break;
             case UNKNOWN_ERROR:
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -619,8 +623,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         return handlePutMessageResultFuture(putMessageResult, response, request, messageExtBatch, responseHeader, mqtraceContext, ctx, queueIdInt);
     }
 
-
-
     public boolean hasConsumeMessageHook() {
         return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
     }
@@ -709,9 +711,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         response.setCode(-1);
         super.msgCheck(ctx, requestHeader, response);
-        if (response.getCode() != -1) {
-            return response;
-        }
 
         return response;
     }
