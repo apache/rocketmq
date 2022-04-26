@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
@@ -42,7 +41,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import static org.apache.rocketmq.proxy.grpc.v2.service.cluster.BaseService.getBrokerAddr;
+import static org.apache.rocketmq.proxy.grpc.v2.service.BaseService.getBrokerAddr;
 
 public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFilter {
 
@@ -68,7 +67,6 @@ public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFi
             return Collections.emptyList();
         }
         Settings settings = grpcClientManager.getClientSettings(ctx);
-        ClientType clientType = settings.getClientType();
         int maxAttempts = settings.getSubscription().getBackoffPolicy().getMaxAttempts();
         Resource topic = request.getMessageQueue().getTopic();
         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
@@ -76,7 +74,7 @@ public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFi
 
         List<Message> resMessageList = new ArrayList<>();
         for (MessageExt messageExt : messageExtList) {
-            if (ClientType.SIMPLE_CONSUMER.equals(clientType) && messageExt.getReconsumeTimes() >= maxAttempts) {
+            if (messageExt.getReconsumeTimes() >= maxAttempts) {
                 forwardMessageToDLQ(ctx, request, messageExt, maxAttempts);
                 continue;
             }
