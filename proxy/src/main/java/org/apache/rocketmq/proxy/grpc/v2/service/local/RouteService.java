@@ -14,8 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
+package org.apache.rocketmq.proxy.grpc.v2.service.local;
+
+import apache.rocketmq.v2.Address;
+import apache.rocketmq.v2.AddressScheme;
 import apache.rocketmq.v2.Assignment;
 import apache.rocketmq.v2.Broker;
 import apache.rocketmq.v2.Code;
@@ -26,13 +29,17 @@ import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
-import apache.rocketmq.v2.Settings;
+import com.google.common.net.HostAndPort;
 import io.grpc.Context;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.route.MessageQueueWrapper;
 import org.apache.rocketmq.proxy.connector.route.SelectableMessageQueue;
@@ -61,26 +68,22 @@ public class RouteService extends AbstractRouteService {
             MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache().getMessageQueue(topicName);
             TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
             List<QueueData> queueDataList = topicRouteData.getQueueDatas();
+            List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
-            Settings clientSettings = grpcClientManager.getClientSettings(ctx);
-            Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
-            if (resEndpoints == null || resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
-                future.complete(QueryRouteResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.ILLEGAL_ACCESS_POINT, "endpoint " +
-                        clientSettings.getAccessPoint() + " is invalidate"))
-                    .build());
-                return future;
-            }
-            for (QueueData queueData : queueDataList) {
-                Broker broker = Broker.newBuilder()
-                    .setName(queueData.getBrokerName())
-                    .setId(0)
-                    .setEndpoints(resEndpoints)
-                    .build();
+            Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(brokerDataList);
 
-                messageQueueList.addAll(GrpcConverter.genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
+            for (QueueData queueData : queueDataList) {
+                String brokerName = queueData.getBrokerName();
+                Map<Long, Broker> brokerIdMap = brokerMap.get(brokerName);
+                if (brokerIdMap == null) {
+                    break;
+                }
+                for (Broker broker : brokerIdMap.values()) {
+                    messageQueueList.addAll(GrpcConverter.genMessageQueueFromQueueData(queueData, request.getTopic(), broker));
+                }
             }
+
             QueryRouteResponse response = QueryRouteResponse.newBuilder()
                 .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
                 .addAllMessageQueues(messageQueueList)
@@ -110,34 +113,27 @@ public class RouteService extends AbstractRouteService {
         try {
             List<Assignment> assignments = new ArrayList<>();
             List<SelectableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(ctx, request);
-            Settings clientSettings = grpcClientManager.getClientSettings(ctx);
-            Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
-            if (resEndpoints == null || Endpoints.getDefaultInstance().equals(resEndpoints)) {
-                future.complete(QueryAssignmentResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.ILLEGAL_ACCESS_POINT, "endpoint " +
-                        clientSettings.getAccessPoint() + " is invalidate"))
-                    .build());
-                return future;
-            }
+            String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
+            MessageQueueWrapper messageQueueWrapper = this.connectorManager.getTopicRouteCache().getMessageQueue(topicName);
+            TopicRouteData topicRouteData = messageQueueWrapper.getTopicRouteData();
+            Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(topicRouteData.getBrokerDatas());
             for (SelectableMessageQueue messageQueue : messageQueueList) {
-                Broker broker = Broker.newBuilder()
-                    .setName(messageQueue.getBrokerName())
-                    .setId(0)
-                    .setEndpoints(resEndpoints)
-                    .build();
+                Map<Long, Broker> brokerIdMap = brokerMap.get(messageQueue.getBrokerName());
+                if (brokerIdMap != null) {
+                    Broker broker = brokerIdMap.get(0L);
 
-                MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
-                    .setTopic(request.getTopic())
-                    .setId(-1)
-                    .setPermission(Permission.READ_WRITE)
-                    .setBroker(broker)
-                    .build();
+                    MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
+                        .setTopic(request.getTopic())
+                        .setId(-1)
+                        .setPermission(Permission.READ_WRITE)
+                        .setBroker(broker)
+                        .build();
 
-                assignments.add(Assignment.newBuilder()
-                    .setMessageQueue(defaultMessageQueue)
-                    .build());
+                    assignments.add(Assignment.newBuilder()
+                        .setMessageQueue(defaultMessageQueue)
+                        .build());
+                }
             }
-
             QueryAssignmentResponse response = QueryAssignmentResponse.newBuilder()
                 .addAllAssignments(assignments)
                 .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
@@ -147,5 +143,33 @@ public class RouteService extends AbstractRouteService {
             future.completeExceptionally(t);
         }
         return future;
+    }
+
+    private Map<String/*brokerName*/, Map<Long/*brokerID*/, Broker>> buildBrokerMap(List<BrokerData> brokerDataList) {
+        Map<String, Map<Long, Broker>> brokerMap = new HashMap<>();
+        for (BrokerData brokerData : brokerDataList) {
+            Map<Long, Broker> brokerIdMap = new HashMap<>();
+            String brokerName = brokerData.getBrokerName();
+            for (Map.Entry<Long, String> entry : brokerData.getBrokerAddrs().entrySet()) {
+                Long brokerId = entry.getKey();
+                HostAndPort hostAndPort = HostAndPort.fromString(entry.getValue());
+                Broker broker = Broker.newBuilder()
+                    .setName(brokerName)
+                    .setId(Math.toIntExact(brokerId))
+                    .setEndpoints(Endpoints.newBuilder()
+                        .setScheme(AddressScheme.IPv4)
+                        .addAddresses(
+                            Address.newBuilder()
+                                .setPort(ConfigurationManager.getProxyConfig().getGrpcServerPort())
+                                .setHost(hostAndPort.getHost())
+                        )
+                        .build())
+                    .build();
+
+                brokerIdMap.put(brokerId, broker);
+            }
+            brokerMap.put(brokerName, brokerIdMap);
+        }
+        return brokerMap;
     }
 }
