@@ -698,10 +698,10 @@ public class GrpcBaseTest extends BaseConf {
     public Settings buildSimpleConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
         return Settings.newBuilder()
             .setClientType(ClientType.SIMPLE_CONSUMER)
+            .setBackoffPolicy(RetryPolicy.newBuilder()
+                .setMaxAttempts(maxDeliveryAttempts)
+                .build())
             .setSubscription(Subscription.newBuilder()
-                .setBackoffPolicy(RetryPolicy.newBuilder()
-                    .setMaxAttempts(maxDeliveryAttempts)
-                    .build())
                 .setFifo(fifo)
                 .build())
             .build();
@@ -714,10 +714,10 @@ public class GrpcBaseTest extends BaseConf {
     public Settings buildPushConsumerClientSettings(int maxDeliveryAttempts, boolean fifo) {
         return Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
+            .setBackoffPolicy(RetryPolicy.newBuilder()
+                .setMaxAttempts(maxDeliveryAttempts)
+                .build())
             .setSubscription(Subscription.newBuilder()
-                .setBackoffPolicy(RetryPolicy.newBuilder()
-                    .setMaxAttempts(maxDeliveryAttempts)
-                    .build())
                 .setFifo(fifo)
                 .build())
             .build();

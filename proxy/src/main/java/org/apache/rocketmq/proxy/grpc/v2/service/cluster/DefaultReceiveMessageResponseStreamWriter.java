@@ -106,6 +106,8 @@ public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageRes
                         .build());
                     break;
             }
+        } catch (Throwable t) {
+            write(ctx, request, t);
         } finally {
             responseStreamObserver.onCompleted();
         }

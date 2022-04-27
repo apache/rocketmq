@@ -78,6 +78,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         when(readQueueSelector.select(any(), any(), any())).thenReturn(selectableMessageQueue);
 
         Settings clientSettings = Settings.newBuilder()
+            .setBackoffPolicy(RetryPolicy.newBuilder().setMaxAttempts(16).build())
             .setSubscription(Subscription.newBuilder()
                 .setFifo(false)
                 .build())
@@ -135,8 +136,8 @@ public class ConsumerServiceTest extends BaseServiceTest {
 
         Settings clientSettings = Settings.newBuilder()
             .setClientType(ClientType.SIMPLE_CONSUMER)
+            .setBackoffPolicy(RetryPolicy.newBuilder().setMaxAttempts(0).build())
             .setSubscription(Subscription.newBuilder()
-                .setBackoffPolicy(RetryPolicy.newBuilder().setMaxAttempts(0).build())
                 .setFifo(false)
                 .build())
             .build();
@@ -266,10 +267,10 @@ public class ConsumerServiceTest extends BaseServiceTest {
 
     private Settings createClientSettings(int maxDeliveryAttempts) {
         return Settings.newBuilder()
+            .setBackoffPolicy(RetryPolicy.newBuilder()
+                .setMaxAttempts(maxDeliveryAttempts)
+                .build())
             .setSubscription(Subscription.newBuilder()
-                .setBackoffPolicy(RetryPolicy.newBuilder()
-                    .setMaxAttempts(maxDeliveryAttempts)
-                    .build())
                 .build())
             .build();
     }

@@ -117,13 +117,13 @@ public class ProxyStartup {
         return BrokerStartup.createBrokerController(brokerStartupArgs);
     }
 
-    private static void initThreadPoolMonitor() {
+    public static void initThreadPoolMonitor() {
         ThreadPoolMonitor.init();
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         ThreadPoolMonitor.config(config.isEnablePrintJstack(), config.getPrintJstackInMillis());
     }
 
-    private static void initLogger() throws JoranException {
+    public static void initLogger() throws JoranException {
         System.setProperty("brokerLogDir", "");
         System.setProperty(ClientLogger.CLIENT_LOG_USESLF4J, "true");
 

@@ -344,7 +344,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
         CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
 
-        RetryPolicy retryPolicy = grpcClientManager.getClientSettings(ctx).getSubscription().getBackoffPolicy();
+        RetryPolicy retryPolicy = grpcClientManager.getClientSettings(ctx).getBackoffPolicy();
         int maxReconsumeTimes = retryPolicy.getMaxAttempts();
         if (request.getDeliveryAttempt() >= maxReconsumeTimes) {
             ConsumerSendMsgBackRequestHeader requestHeader = GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
