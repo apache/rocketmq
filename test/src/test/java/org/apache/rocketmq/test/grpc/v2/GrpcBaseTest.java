@@ -214,7 +214,7 @@ public class GrpcBaseTest extends BaseConf {
 
         // init consumer offset
         this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
-        receiveMessage(blockingStub, topic, group);
+        receiveMessage(blockingStub, topic, group, 1);
 
         String messageId = createUniqID();
         this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
@@ -235,7 +235,7 @@ public class GrpcBaseTest extends BaseConf {
 
         // init consumer offset
         this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
-        receiveMessage(blockingStub, topic, group);
+        receiveMessage(blockingStub, topic, group, 1);
 
         this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
         String messageId = createUniqID();
@@ -313,7 +313,7 @@ public class GrpcBaseTest extends BaseConf {
             });
             telemetryCommandRef.set(null);
             // init consumer offset
-            receiveMessage(blockingStub, topic, group);
+            receiveMessage(blockingStub, topic, group, 1);
 
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
                 .setSettings(buildProducerClientSettings(topic))
@@ -379,7 +379,7 @@ public class GrpcBaseTest extends BaseConf {
 
         // init consumer offset
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
-        receiveMessage(blockingStub, topic, group);
+        receiveMessage(blockingStub, topic, group, 1);
 
         this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
         String messageId = createUniqID();
@@ -436,7 +436,7 @@ public class GrpcBaseTest extends BaseConf {
 
         // init consumer offset
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
-        receiveMessage(blockingStub, topic, group);
+        receiveMessage(blockingStub, topic, group, 1);
 
         this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
         String messageId = createUniqID();

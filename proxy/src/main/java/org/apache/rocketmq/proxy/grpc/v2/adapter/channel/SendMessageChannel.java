@@ -19,11 +19,12 @@ package org.apache.rocketmq.proxy.grpc.v2.adapter.channel;
 
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
+import io.grpc.Context;
 import org.apache.rocketmq.proxy.channel.InvocationChannel;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.handler.SendMessageResponseHandler;
 
 public class SendMessageChannel extends InvocationChannel<SendMessageRequest, SendMessageResponse> {
-    public SendMessageChannel(SendMessageResponseHandler handler) {
-        super(handler);
+    public SendMessageChannel(Context context, SendMessageResponseHandler handler) {
+        super(context, handler);
     }
 }

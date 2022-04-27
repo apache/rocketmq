@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.channel;
 
+import io.grpc.Context;
 import io.netty.channel.ChannelFuture;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,8 +31,8 @@ public abstract class InvocationChannel<R, W> extends SimpleChannel implements C
     protected final ConcurrentMap<Integer, InvocationContext<R, W>> inFlightRequestMap;
     protected final ResponseHandler<R, W> handler;
 
-    public InvocationChannel(ResponseHandler<R, W> handler) {
-        super(ChannelManager.createSimpleChannelDirectly());
+    public InvocationChannel(Context ctx, ResponseHandler<R, W> handler) {
+        super(ChannelManager.createSimpleChannelDirectly(ctx));
         this.inFlightRequestMap = new ConcurrentHashMap<>();
         this.handler = handler;
     }

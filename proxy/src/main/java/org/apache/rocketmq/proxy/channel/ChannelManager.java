@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -38,25 +38,25 @@ public class ChannelManager {
     protected final ConcurrentMap<String /* clientId */, SimpleChannel> clientIdChannelMap = new ConcurrentHashMap<>();
     protected final ConcurrentMap<String /* group */, Set<String>/* clientId */> groupClientIdMap = new ConcurrentHashMap<>();
 
-    public SimpleChannel createChannel() {
-        return createChannel(anonymousChannelId());
+    public SimpleChannel createChannel(Context ctx) {
+        return createChannel(ctx, anonymousChannelId(ctx));
     }
 
-    public SimpleChannel createChannel(String clientId) {
-        return createChannel(clientId, ChannelManager::createSimpleChannelDirectly, SimpleChannel.class);
+    public SimpleChannel createChannel(Context ctx, String clientId) {
+        return createChannel(ctx, clientId, ChannelManager::createSimpleChannelDirectly, SimpleChannel.class);
     }
 
-    public <T extends SimpleChannel> T createChannel(Supplier<T> creator, Class<T> clazz) {
-        return createChannel(anonymousChannelId(clazz.getName()), creator, clazz);
+    public <T extends SimpleChannel> T createChannel(Context ctx, Function<Context, T> creator, Class<T> clazz) {
+        return createChannel(ctx, anonymousChannelId(ctx, clazz.getName()), creator, clazz);
     }
 
-    public <T extends SimpleChannel> T createChannel(String clientId, Supplier<T> creator, Class<T> clazz) {
+    public <T extends SimpleChannel> T createChannel(Context ctx, String clientId, Function<Context, T> creator, Class<T> clazz) {
         if (StringUtils.isBlank(clientId)) {
             log.warn("ClientId is unexpected null or empty");
-            return creator.get();
+            return creator.apply(ctx);
         }
 
-        clientIdChannelMap.computeIfAbsent(clientId, key -> creator.get());
+        clientIdChannelMap.computeIfAbsent(clientId, key -> creator.apply(ctx));
 
         T channel = clazz.cast(clientIdChannelMap.get(clientId));
         channel.updateLastAccessTime();
@@ -83,24 +83,20 @@ public class ChannelManager {
         return clazz.cast(channel);
     }
 
-    private String anonymousChannelId() {
-        final String clientHost = InterceptorConstants.METADATA.get(Context.current())
+    private String anonymousChannelId(Context ctx) {
+        final String clientHost = InterceptorConstants.METADATA.get(ctx)
             .get(InterceptorConstants.REMOTE_ADDRESS);
-        final String localAddress = InterceptorConstants.METADATA.get(Context.current())
+        final String localAddress = InterceptorConstants.METADATA.get(ctx)
             .get(InterceptorConstants.LOCAL_ADDRESS);
         return clientHost + "@" + localAddress;
     }
 
-    private String anonymousChannelId(String className) {
-        final String clientHost = InterceptorConstants.METADATA.get(Context.current())
+    private String anonymousChannelId(Context ctx, String className) {
+        final String clientHost = InterceptorConstants.METADATA.get(ctx)
             .get(InterceptorConstants.REMOTE_ADDRESS);
-        final String localAddress = InterceptorConstants.METADATA.get(Context.current())
+        final String localAddress = InterceptorConstants.METADATA.get(ctx)
             .get(InterceptorConstants.LOCAL_ADDRESS);
         return className + "@" + clientHost + "@" + localAddress;
-    }
-
-    public static SimpleChannel createSimpleChannelDirectly() {
-        return createSimpleChannelDirectly(Context.current());
     }
 
     public static SimpleChannel createSimpleChannelDirectly(Context ctx) {

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
+package org.apache.rocketmq.proxy.grpc.v2.service;
 
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.ReceiveMessageRequest;

@@ -18,13 +18,10 @@
 package org.apache.rocketmq.proxy.grpc.v2.adapter.handler;
 
 import apache.rocketmq.v2.ReceiveMessageRequest;
-import apache.rocketmq.v2.ReceiveMessageResponse;
-import apache.rocketmq.v2.Resource;
 import com.google.common.base.Stopwatch;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -39,11 +36,10 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.channel.InvocationContext;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
-public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMessageRequest, Iterator<ReceiveMessageResponse>> {
+public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMessageRequest, List<MessageExt>> {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final String brokerName;
     private final boolean fifo;
@@ -55,17 +51,19 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
 
     @Override
     public void handle(RemotingCommand responseCommand,
-        InvocationContext<ReceiveMessageRequest, Iterator<ReceiveMessageResponse>> context) {
-        CompletableFuture<Iterator<ReceiveMessageResponse>> future = context.getResponse();
+        InvocationContext<ReceiveMessageRequest, List<MessageExt>> context) {
+        CompletableFuture<List<MessageExt>> future = context.getResponse();
 
         long currentTimeInMillis = System.currentTimeMillis();
         long popCosts = currentTimeInMillis - context.getTimestamp();
         try {
             Stopwatch stopWatch = Stopwatch.createStarted();
             PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) responseCommand.readCustomHeader();
-            List<ReceiveMessageResponse> responseList = new ArrayList<>();
+            List<MessageExt> allMessageList = new ArrayList<>();
 
+            ReceiveMessageRequest request = context.getRequest();
             if (responseCommand.getCode() == RemotingSysResponseCode.SUCCESS) {
+                String topicName = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
                 ByteBuffer byteBuffer = ByteBuffer.wrap(responseCommand.getBody());
                 List<MessageExt> msgFoundList = MessageDecoder.decodes(byteBuffer);
 
@@ -130,29 +128,16 @@ public class ReceiveMessageResponseHandler implements ResponseHandler<ReceiveMes
                             }
                         }
                     }
-                    Resource topic = context.getRequest()
-                        .getMessageQueue()
-                        .getTopic();
-                    String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                     messageExt.setTopic(topicName);
                     messageExt.setBrokerName(brokerName);
                     messageExt.getProperties().computeIfAbsent(MessageConst.PROPERTY_FIRST_POP_TIME,
                         k -> String.valueOf(responseHeader.getPopTime()));
                 }
-
-                responseList.add(ReceiveMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
-                    .build());
-
-                for (MessageExt messageExt : msgFoundList) {
-                    ReceiveMessageResponse response = ReceiveMessageResponse.newBuilder()
-                        .setMessage(GrpcConverter.buildMessage(messageExt)).build();
-                    responseList.add(response);
-                }
+                allMessageList.addAll(msgFoundList);
             }
             long elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
             log.debug("Translating remoting response to gRPC response costs {}ms. Duration request received: {}", elapsed, popCosts);
-            future.complete(responseList.iterator());
+            future.complete(allMessageList);
         } catch (Exception e) {
             log.error("Unexpected exception raised when handle pop remoting command", e);
             future.completeExceptionally(e);

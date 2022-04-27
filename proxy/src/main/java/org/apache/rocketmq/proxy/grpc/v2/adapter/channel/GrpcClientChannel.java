@@ -72,8 +72,9 @@ public class GrpcClientChannel extends SimpleChannel {
         TelemetryCommandManager manager
     ) {
         GrpcClientChannel channel = channelManager.createChannel(
+            ctx,
             buildKey(group, clientId),
-            () -> new GrpcClientChannel(ctx, group, clientId, manager),
+            context -> new GrpcClientChannel(context, group, clientId, manager),
             GrpcClientChannel.class
         );
 

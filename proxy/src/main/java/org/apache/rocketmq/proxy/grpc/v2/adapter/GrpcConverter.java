@@ -237,6 +237,10 @@ public class GrpcConverter {
         return requestHeader;
     }
 
+    public static AckMessageRequestHeader buildAckMessageRequestHeader(ReceiveMessageRequest request, ReceiptHandle handle) {
+        return buildAckMessageRequestHeader(request.getMessageQueue().getTopic(), request.getGroup(), handle);
+    }
+
     public static AckMessageRequestHeader buildAckMessageRequestHeader(AckMessageRequest request, ReceiptHandle handle) {
         return buildAckMessageRequestHeader(request.getTopic(), request.getGroup(), handle);
     }
@@ -303,6 +307,25 @@ public class GrpcConverter {
         changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
         changeInvisibleTimeRequestHeader.setInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
         return changeInvisibleTimeRequestHeader;
+    }
+
+    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(ReceiveMessageRequest request, ReceiptHandle handle) {
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
+
+        ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
+        changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
+        changeInvisibleTimeRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
+        changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
+        changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
+        changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
+        changeInvisibleTimeRequestHeader.setInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
+        return changeInvisibleTimeRequestHeader;
+    }
+
+    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(ReceiveMessageRequest request,
+        ReceiptHandle handle, String messageId, int maxReconsumeTimes) {
+        return buildConsumerSendMsgBackRequestHeader(request.getMessageQueue().getTopic(), request.getGroup(), handle, messageId, maxReconsumeTimes);
     }
 
     public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(

@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
+
+package org.apache.rocketmq.proxy.grpc.v2.service.local;
 
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Message;
@@ -22,45 +23,45 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
-import java.time.Duration;
+import io.netty.channel.Channel;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.rocketmq.client.consumer.AckStatus;
+import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
-import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
+import org.apache.rocketmq.proxy.channel.ChannelManager;
+import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
-import org.apache.rocketmq.proxy.grpc.v2.service.BaseService;
 import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResponseStreamObserver;
 import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResponseStreamWriter;
 import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResultFilter;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageResponseStreamWriter {
-    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+public class LocalReceiveMessageResponseStreamWriter extends ReceiveMessageResponseStreamWriter {
+    private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private final ChannelManager channelManager;
+    private final BrokerController brokerController;
+    private final ReceiveMessageResultFilter receiveMessageResultFilter;
 
-    protected static final long NACK_INVISIBLE_TIME = Duration.ofSeconds(1).toMillis();
-    protected final ForwardWriteConsumer writeConsumer;
-    protected final TopicRouteCache topicRouteCache;
-    protected volatile ReceiveMessageResultFilter receiveMessageResultFilter;
-
-    public DefaultReceiveMessageResponseStreamWriter(
+    public LocalReceiveMessageResponseStreamWriter(
         StreamObserver<ReceiveMessageResponse> observer,
         ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> hook,
-        ForwardWriteConsumer writeConsumer,
-        TopicRouteCache topicRouteCache,
+        ChannelManager channelManager,
+        BrokerController brokerController,
         ReceiveMessageResultFilter receiveMessageResultFilter) {
         super(observer, hook);
-        this.writeConsumer = writeConsumer;
-        this.topicRouteCache = topicRouteCache;
+        this.channelManager = channelManager;
+        this.brokerController = brokerController;
         this.receiveMessageResultFilter = receiveMessageResultFilter;
     }
 
@@ -92,7 +93,7 @@ public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageRes
                                 .setMessage(messageIterator.next())
                                 .build());
                         }
-                        messageIterator.forEachRemaining(message -> this.nackFailToWriteMessage(ctx, request, message));
+                        messageIterator.forEachRemaining(message -> this.changeInvisibleTime(ctx, request, ReceiptHandle.decode(message.getSystemProperties().getReceiptHandle())));
                     }
                     break;
                 case POLLING_FULL:
@@ -115,8 +116,7 @@ public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageRes
         }
     }
 
-    @Override
-    public void write(Context ctx, ReceiveMessageRequest request, Throwable throwable) {
+    @Override public void write(Context ctx, ReceiveMessageRequest request, Throwable throwable) {
         ReceiveMessageResponseStreamObserver responseStreamObserver = new ReceiveMessageResponseStreamObserver(
             ctx,
             request,
@@ -128,45 +128,16 @@ public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageRes
         );
     }
 
-    protected void nackFailToWriteMessage(Context ctx, ReceiveMessageRequest request, Message message) {
+    private void changeInvisibleTime(Context ctx, ReceiveMessageRequest request, ReceiptHandle handle) {
+        Channel channel = channelManager.createChannel(ctx);
+        SimpleChannelHandlerContext simpleChannelHandlerContext = new SimpleChannelHandlerContext(channel);
+        ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, handle);
+        RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        command.makeCustomHeaderToNet();
         try {
-            String receiptHandleStr = message.getSystemProperties().getReceiptHandle();
-            ReceiptHandle handle = BaseService.resolveReceiptHandle(ctx, receiptHandleStr);
-            String brokerAddr = BaseService.getBrokerAddr(ctx, this.topicRouteCache, handle.getBrokerName());
-
-            String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-            String topicName = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
-            ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
-            changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
-            changeInvisibleTimeRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
-            changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
-            changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
-            changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
-            changeInvisibleTimeRequestHeader.setInvisibleTime(NACK_INVISIBLE_TIME);
-
-            this.writeConsumer.changeInvisibleTimeAsync(
-                ctx,
-                brokerAddr,
-                handle.getBrokerName(),
-                changeInvisibleTimeRequestHeader
-            ).whenComplete((ackResult, t) -> {
-                if (t != null) {
-                    log.warn("err when nack message. request:{}, message:{}", request, message, t);
-                } else if (!AckStatus.OK.equals(ackResult.getStatus())) {
-                    log.warn("nack failed. request:{}, message:{}, ackResult:{}", request, message, ackResult);
-                }
-            });
-        } catch (Throwable t) {
-            log.warn("err when nack message. request:{}, message:{}", request, message, t);
+            brokerController.getChangeInvisibleTimeProcessor().processRequest(simpleChannelHandlerContext, command);
+        } catch (RemotingCommandException e) {
+            log.error("ChangeInvisibleTime error when write response", e);
         }
-    }
-
-    public ReceiveMessageResultFilter getReceiveMessageResultFilter() {
-        return receiveMessageResultFilter;
-    }
-
-    public void setReceiveMessageResultFilter(
-        ReceiveMessageResultFilter receiveMessageResultFilter) {
-        this.receiveMessageResultFilter = receiveMessageResultFilter;
     }
 }
