@@ -19,6 +19,7 @@ package org.apache.rocketmq.namesrv.controller.manager;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
@@ -44,7 +45,9 @@ public class ReplicasInfoManagerTest {
 
     @Before
     public void init() {
-        this.replicasInfoManager = new ReplicasInfoManager(true);
+        final ControllerConfig config = new ControllerConfig();
+        config.setEnableElectUncleanMaster(false);
+        this.replicasInfoManager = new ReplicasInfoManager(config);
     }
 
     public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress, boolean isFirstRegisteredBroker) {

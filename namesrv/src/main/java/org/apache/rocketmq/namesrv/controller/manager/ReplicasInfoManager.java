@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
@@ -53,8 +54,8 @@ public class ReplicasInfoManager {
     private final Map<String/* brokerName */, BrokerIdInfo> replicaInfoTable;
     private final Map<String/* brokerName */, InSyncReplicasInfo> inSyncReplicasInfoTable;
 
-    public ReplicasInfoManager(final boolean enableElectUncleanMaster) {
-        this.enableElectUncleanMaster = enableElectUncleanMaster;
+    public ReplicasInfoManager(final ControllerConfig config) {
+        this.enableElectUncleanMaster = config.isEnableElectUncleanMaster();
         this.replicaInfoTable = new HashMap<>();
         this.inSyncReplicasInfoTable = new HashMap<>();
     }

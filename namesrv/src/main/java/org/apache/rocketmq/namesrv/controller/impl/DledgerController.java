@@ -94,7 +94,7 @@ public class DledgerController implements Controller {
         this.dLedgerConfig.setMappedFileSizeForEntryData(config.getMappedFileSize());
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
-        this.replicasInfoManager = new ReplicasInfoManager(config.isEnableElectUncleanMaster());
+        this.replicasInfoManager = new ReplicasInfoManager(config);
         this.statemachine = new DledgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getSelfId());
 
         // Register statemachine and role handler.
@@ -358,9 +358,9 @@ public class DledgerController implements Controller {
                             } catch (final Throwable e) {
                                 log.error("Error happen when controller leader append initial request to dledger", e);
                                 tryTimes++;
-                                if (tryTimes > 3) {
-                                    log.error("Controller leader append initial log failed too many times");
-                                    break;
+                                if (tryTimes > 2) {
+                                    log.warn("Controller leader append initial log failed too many times, please wait a while");
+                                    tryTimes = 0;
                                 }
                             }
                         }
