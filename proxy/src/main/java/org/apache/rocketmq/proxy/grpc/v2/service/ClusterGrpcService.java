@@ -56,7 +56,6 @@ import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateCheckRequest;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionStateChecker;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ConsumerService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ForwardClientService;
 import org.apache.rocketmq.proxy.grpc.v2.service.cluster.ProducerService;
