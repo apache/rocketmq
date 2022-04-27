@@ -250,7 +250,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         if (requestHeader.isTimeoutTooMuch()) {
-            response.setCode(POLLING_TIMEOUT);
+            response.setCode(ResponseCode.POLLING_TIMEOUT);
             response.setRemark(String.format("the broker[%s] poping message is timeout too much",
                 this.brokerController.getBrokerConfig().getBrokerIP1()));
             return response;
