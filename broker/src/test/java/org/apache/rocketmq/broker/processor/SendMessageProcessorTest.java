@@ -207,13 +207,7 @@ public class SendMessageProcessorTest {
                 .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         RemotingCommand request = createSendTransactionMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                response[0] = invocation.getArgument(0);
-                return null;
-            }
-        }).when(handlerContext).writeAndFlush(any(Object.class));
+
         RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
         if (responseToReturn != null) {
             assertThat(response[0]).isNull();
@@ -275,13 +269,6 @@ public class SendMessageProcessorTest {
     private void assertPutResult(int responseCode) throws RemotingCommandException {
         final RemotingCommand request = createSendMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                response[0] = invocation.getArgument(0);
-                return null;
-            }
-        }).when(handlerContext).writeAndFlush(any(Object.class));
         RemotingCommand responseToReturn = sendMessageProcessor.processRequest(handlerContext, request);
         if (responseToReturn != null) {
             assertThat(response[0]).isNull();
