@@ -54,8 +54,6 @@ import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
@@ -65,7 +63,6 @@ import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageBatch;
@@ -92,7 +89,6 @@ import org.apache.rocketmq.proxy.channel.InvocationContext;
 import org.apache.rocketmq.proxy.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
-import org.apache.rocketmq.proxy.common.DelayPolicy;
 import org.apache.rocketmq.proxy.common.TelemetryCommandManager;
 import org.apache.rocketmq.proxy.common.TelemetryCommandRecord;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
@@ -118,14 +114,11 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final BrokerController brokerController;
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
-        new ThreadFactoryImpl("LocalGrpcServiceScheduledThread"));
     private final ChannelManager channelManager;
     private final TelemetryCommandManager telemetryCommandManager;
     private final GrpcClientManager grpcClientManager;
     private final RouteService routeService;
     private final ClientSettingsService clientSettingsService;
-    private final DelayPolicy delayPolicy;
     private final LocalWriteQueueSelector localWriteQueueSelector;
     private final ReceiveMessageResponseStreamWriter.Builder streamWriterBuilder;
 
@@ -149,7 +142,6 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         this.grpcClientManager = new GrpcClientManager();
         this.routeService = new RouteService(connectorManager, grpcClientManager);
         this.clientSettingsService = new ClientSettingsService(this.channelManager, this.grpcClientManager, this.telemetryCommandManager);
-        this.delayPolicy = DelayPolicy.build(brokerController.getMessageStoreConfig().getMessageDelayLevel());
         this.localWriteQueueSelector = new LocalWriteQueueSelector(brokerController.getBrokerConfig().getBrokerName(),
             brokerController.getTopicConfigManager(), connectorManager.getTopicRouteCache());
 
