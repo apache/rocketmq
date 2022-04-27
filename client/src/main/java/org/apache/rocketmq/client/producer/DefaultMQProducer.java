@@ -70,6 +70,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private final Set<Integer> retryResponseCodes = new CopyOnWriteArraySet<Integer>(Arrays.asList(
             ResponseCode.TOPIC_NOT_EXIST,
             ResponseCode.SERVICE_NOT_AVAILABLE,
+            ResponseCode.FLUSH_DISK_FAILED,
             ResponseCode.SYSTEM_ERROR,
             ResponseCode.NO_PERMISSION,
             ResponseCode.NO_BUYER_ID,
