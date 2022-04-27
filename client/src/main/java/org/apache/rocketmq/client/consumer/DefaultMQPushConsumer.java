@@ -640,7 +640,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     public void setSubscription(Map<String, String> subscription) {
-        Map<String, String> subscriptionWithNamespace = new HashMap<String, String>(subscription.size());
+        Map<String, String> subscriptionWithNamespace = new HashMap<String, String>(subscription.size(), 1);
         for (Entry<String, String> topicEntry : subscription.entrySet()) {
             subscriptionWithNamespace.put(withNamespace(topicEntry.getKey()), topicEntry.getValue());
         }

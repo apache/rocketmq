@@ -287,7 +287,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         }
 
         public void sendTraceData(List<TraceContext> contextList) {
-            Map<String, List<TraceTransferBean>> transBeanMap = new HashMap<String, List<TraceTransferBean>>(contextList.size());
+            Map<String, List<TraceTransferBean>> transBeanMap = new HashMap<String, List<TraceTransferBean>>(contextList.size(), 1);
             for (TraceContext context : contextList) {
                 if (context.getTraceBeans().isEmpty()) {
                     continue;
