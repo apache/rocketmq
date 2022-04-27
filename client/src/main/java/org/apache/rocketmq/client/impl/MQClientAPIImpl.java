@@ -388,7 +388,7 @@ public class MQClientAPIImpl {
                 clusterAclVersionInfo.setBrokerAddr(responseHeader.getBrokerAddr());
                 clusterAclVersionInfo.setAclConfigDataVersion(DataVersion.fromJson(responseHeader.getVersion(), DataVersion.class));
                 HashMap<String, Object> dataVersionMap = JSON.parseObject(responseHeader.getAllAclFileVersion(), HashMap.class);
-                Map<String, DataVersion> allAclConfigDataVersion = new HashMap<String, DataVersion>();
+                Map<String, DataVersion> allAclConfigDataVersion = new HashMap<String, DataVersion>(dataVersionMap.size());
                 for (Map.Entry<String, Object> entry : dataVersionMap.entrySet()) {
                     allAclConfigDataVersion.put(entry.getKey(),DataVersion.fromJson(JSON.toJSONString(entry.getValue()), DataVersion.class));
                 }

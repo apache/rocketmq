@@ -366,7 +366,7 @@ public class MQClientInstance {
      * @return newOffsetTable
      */
     public Map<MessageQueue, Long> parseOffsetTableFromBroker(Map<MessageQueue, Long> offsetTable, String namespace) {
-        HashMap<MessageQueue, Long> newOffsetTable = new HashMap<MessageQueue, Long>();
+        HashMap<MessageQueue, Long> newOffsetTable = new HashMap<MessageQueue, Long>(offsetTable.size());
         if (StringUtils.isNotEmpty(namespace)) {
             for (Entry<MessageQueue, Long> entry : offsetTable.entrySet()) {
                 MessageQueue queue = entry.getKey();
@@ -387,7 +387,7 @@ public class MQClientInstance {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
                 try {
-                    ConcurrentHashMap<String, HashMap<Long, String>> updatedTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
+                    ConcurrentHashMap<String, HashMap<Long, String>> updatedTable = new ConcurrentHashMap<String, HashMap<Long, String>>(this.brokerAddrTable.size());
 
                     Iterator<Entry<String, HashMap<Long, String>>> itBrokerTable = this.brokerAddrTable.entrySet().iterator();
                     while (itBrokerTable.hasNext()) {
@@ -395,7 +395,7 @@ public class MQClientInstance {
                         String brokerName = entry.getKey();
                         HashMap<Long, String> oneTable = entry.getValue();
 
-                        HashMap<Long, String> cloneAddrTable = new HashMap<Long, String>();
+                        HashMap<Long, String> cloneAddrTable = new HashMap<Long, String>(oneTable.size());
                         cloneAddrTable.putAll(oneTable);
 
                         Iterator<Entry<Long, String>> it = cloneAddrTable.entrySet().iterator();
