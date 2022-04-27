@@ -21,6 +21,8 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import java.util.Date;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.client.log.ClientLogger;
@@ -33,6 +35,8 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
+import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingProcessor;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
 import org.apache.rocketmq.proxy.grpc.v2.service.ClusterGrpcService;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcForwardService;
@@ -59,8 +63,12 @@ public class ProxyStartup {
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
 
+            ThreadPoolExecutor executor = createServerExecutor();
+
             // create grpcServer
-            GrpcServer grpcServer = createGrpcServer();
+            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor)
+                .addService(createServiceProcessor())
+                .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
             // start servers one by one.
@@ -85,7 +93,7 @@ public class ProxyStartup {
         log.info(new Date() + " rmq-proxy startup successfully");
     }
 
-    private static GrpcServer createGrpcServer() throws Exception {
+    private static GrpcMessagingProcessor createServiceProcessor() {
         GrpcForwardService grpcService;
         String proxyModeStr = ConfigurationManager.getProxyConfig().getProxyMode();
         if (ProxyMode.isClusterMode(proxyModeStr)) {
@@ -109,12 +117,27 @@ public class ProxyStartup {
             throw new IllegalArgumentException("try to start grpc server with wrong mode, use 'local' or 'cluster'");
         }
 
-        return new GrpcServer(grpcService);
+        PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcService);
+        return new GrpcMessagingProcessor(grpcService);
     }
 
     private static BrokerController createBrokerController() {
         String[] brokerStartupArgs = new String[] {"-c", ConfigurationManager.getProxyConfig().getBrokerConfigPath()};
         return BrokerStartup.createBrokerController(brokerStartupArgs);
+    }
+
+    public static ThreadPoolExecutor createServerExecutor() {
+        int threadPoolNums = ConfigurationManager.getProxyConfig().getGrpcThreadPoolNums();
+        int threadPoolQueueCapacity = ConfigurationManager.getProxyConfig().getGrpcThreadPoolQueueCapacity();
+        ThreadPoolExecutor executor = ThreadPoolMonitor.createAndMonitor(
+            threadPoolNums,
+            threadPoolNums,
+            1, TimeUnit.MINUTES,
+            "GrpcRequestExecutorThread",
+            threadPoolQueueCapacity
+        );
+        PROXY_START_AND_SHUTDOWN.appendShutdown(executor::shutdown);
+        return executor;
     }
 
     public static void initThreadPoolMonitor() {
