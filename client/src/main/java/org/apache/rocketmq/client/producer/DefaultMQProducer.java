@@ -54,7 +54,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * It's fine to tune fields which exposes getter/setter methods, but keep in mind, all of them should work well out of
  * box for most scenarios. </p>
  *
- * This class aggregates various <code>send</code> methods to deliver messages to brokers. Each of them has pros and
+ * This class aggregates various <code>send</code> methods to deliver messages to broker(s). Each of them has pros and
  * cons; you'd better understand strengths and weakness of them before actually coding. </p>
  *
  * <p> <strong>Thread Safety:</strong> After configuring and starting process, this class can be regarded as thread-safe
@@ -82,7 +82,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * For non-transactional messages, it does not matter as long as it's unique per process. </p>
      *
-     * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
+     * See <a href="http://rocketmq.apache.org/docs/core-concept/">core concepts</a> for more discussion.
      */
     private String producerGroup;
 
@@ -317,7 +317,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Send message in synchronous mode. This method returns only when the sending procedure totally completes. </p>
      *
      * <strong>Warn:</strong> this method has internal retry-mechanism, that is, internal implementation will retry
-     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may potentially
+     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may be potentially
      * delivered to broker(s). It's up to the application developers to resolve potential duplication issue.
      *
      * @param msg Message to send.
@@ -580,7 +580,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Send request message in synchronous mode. This method returns only when the consumer consume the request message and reply a message. </p>
      *
      * <strong>Warn:</strong> this method has internal retry-mechanism, that is, internal implementation will retry
-     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may potentially
+     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may be potentially
      * delivered to broker(s). It's up to the application developers to resolve potential duplication issue.
      *
      * @param msg request message to send
@@ -824,7 +824,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Query earliest message store time.
+     * Query the earliest message store time.
      *
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *

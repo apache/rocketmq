@@ -161,7 +161,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
             Assert.assertEquals(i, putMessageResult.getAppendMessageResult().getLogicsOffset());
         }
-        Thread.sleep(100);
+        Thread.sleep(500);
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
         Assert.assertEquals(10, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.dispatchBehindBytes());

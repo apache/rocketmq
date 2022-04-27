@@ -23,6 +23,7 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +34,7 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 public class MessageDecoder {
 //    public final static int MSG_ID_LENGTH = 8 + 8;
 
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
     public final static int MESSAGE_MAGIC_CODE_POSTION = 4;
     public final static int MESSAGE_FLAG_POSTION = 16;
     public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
@@ -82,20 +83,17 @@ public class MessageDecoder {
     }
 
     public static MessageId decodeMessageId(final String msgId) throws UnknownHostException {
-        SocketAddress address;
-        long offset;
-        int ipLength = msgId.length() == 32 ? 4 * 2 : 16 * 2;
+        byte[] bytes = UtilAll.string2bytes(msgId);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
 
-        byte[] ip = UtilAll.string2bytes(msgId.substring(0, ipLength));
-        byte[] port = UtilAll.string2bytes(msgId.substring(ipLength, ipLength + 8));
-        ByteBuffer bb = ByteBuffer.wrap(port);
-        int portInt = bb.getInt(0);
-        address = new InetSocketAddress(InetAddress.getByAddress(ip), portInt);
+        // address(ip+port)
+        byte[] ip = new byte[msgId.length() == 32 ? 4 : 16];
+        byteBuffer.get(ip);
+        int port = byteBuffer.getInt();
+        SocketAddress address = new InetSocketAddress(InetAddress.getByAddress(ip), port);
 
         // offset
-        byte[] data = UtilAll.string2bytes(msgId.substring(ipLength + 8, ipLength + 8 + 16));
-        bb = ByteBuffer.wrap(data);
-        offset = bb.getLong(0);
+        long offset = byteBuffer.getLong();
 
         return new MessageId(address, offset);
     }

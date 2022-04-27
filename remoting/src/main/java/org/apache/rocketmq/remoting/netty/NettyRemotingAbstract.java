@@ -209,6 +209,7 @@ public abstract class NettyRemotingAbstract {
                                     if (response != null) {
                                         response.setOpaque(opaque);
                                         response.markResponseType();
+                                        response.setSerializeTypeCurrentRPC(cmd.getSerializeTypeCurrentRPC());
                                         try {
                                             ctx.writeAndFlush(response);
                                         } catch (Throwable e) {
