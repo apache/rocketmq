@@ -31,7 +31,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
-import org.apache.rocketmq.proxy.grpc.v1.adapter.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.adapter.channel.GrpcClientChannel;
 
 public class ChannelManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
