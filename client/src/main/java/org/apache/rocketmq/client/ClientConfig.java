@@ -39,6 +39,7 @@ public class ClientConfig {
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     protected String namespace;
+    private boolean namespaceInitialized = false;
     protected AccessChannel accessChannel = AccessChannel.LOCAL;
 
     /**
@@ -158,6 +159,7 @@ public class ClientConfig {
         this.useTLS = cc.useTLS;
         this.namespace = cc.namespace;
         this.language = cc.language;
+        this.mqClientApiTimeout = cc.mqClientApiTimeout;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -176,6 +178,7 @@ public class ClientConfig {
         cc.useTLS = useTLS;
         cc.namespace = namespace;
         cc.language = language;
+        cc.mqClientApiTimeout = mqClientApiTimeout;
         return cc;
     }
 
@@ -193,6 +196,7 @@ public class ClientConfig {
      */
     public void setNamesrvAddr(String namesrvAddr) {
         this.namesrvAddr = namesrvAddr;
+        this.namespaceInitialized = false;
     }
 
     public int getClientCallbackExecutorThreads() {
@@ -276,20 +280,26 @@ public class ClientConfig {
     }
 
     public String getNamespace() {
+        if (namespaceInitialized) {
+            return namespace;
+        }
+
         if (StringUtils.isNotEmpty(namespace)) {
             return namespace;
         }
 
         if (StringUtils.isNotEmpty(this.namesrvAddr)) {
             if (NameServerAddressUtils.validateInstanceEndpoint(namesrvAddr)) {
-                return NameServerAddressUtils.parseInstanceIdFromEndpoint(namesrvAddr);
+                namespace = NameServerAddressUtils.parseInstanceIdFromEndpoint(namesrvAddr);
             }
         }
+        namespaceInitialized = true;
         return namespace;
     }
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+        this.namespaceInitialized = true;
     }
 
     public AccessChannel getAccessChannel() {

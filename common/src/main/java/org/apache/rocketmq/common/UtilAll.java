@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -52,12 +51,11 @@ public class UtilAll {
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYYMMDDHHMMSS = "yyyyMMddHHmmss";
     final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    final static String HOST_NAME = ManagementFactory.getRuntimeMXBean().getName(); // format: "pid@hostname"
 
     public static int getPid() {
-        RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
-        String name = runtime.getName(); // format: "pid@hostname"
         try {
-            return Integer.parseInt(name.substring(0, name.indexOf('@')));
+            return Integer.parseInt(HOST_NAME.substring(0, HOST_NAME.indexOf('@')));
         } catch (Exception e) {
             return -1;
         }
@@ -262,6 +260,20 @@ public class UtilAll {
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
         return new String(hexChars);
+    }
+
+    public static void writeInt(char[] buffer, int pos, int value) {
+        char[] hexArray = HEX_ARRAY;
+        for (int moveBits = 28; moveBits >= 0; moveBits -= 4) {
+            buffer[pos++] = hexArray[(value >>> moveBits) & 0x0F];
+        }
+    }
+
+    public static void writeShort(char[] buffer, int pos, int value) {
+        char[] hexArray = HEX_ARRAY;
+        for (int moveBits = 12; moveBits >= 0; moveBits -= 4) {
+            buffer[pos++] = hexArray[(value >>> moveBits) & 0x0F];
+        }
     }
 
     public static byte[] string2bytes(String hexString) {

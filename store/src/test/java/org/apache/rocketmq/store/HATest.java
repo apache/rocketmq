@@ -60,7 +60,7 @@ public class HATest {
     private MessageStore slaveMessageStore;
     private MessageStoreConfig masterMessageStoreConfig;
     private MessageStoreConfig slaveStoreConfig;
-    private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest");
+    private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest", true);
     private String storePathRootParentDir = System.getProperty("user.home") + File.separator +
             UUID.randomUUID().toString().replace("-", "");
     private String storePathRootDir = storePathRootParentDir + File.separator + "store";

@@ -40,9 +40,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.BROKER_PUT_NUMS;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_NUMS;
-import static org.apache.rocketmq.store.stats.BrokerStatsManager.TOPIC_PUT_SIZE;
+import static org.apache.rocketmq.common.stats.Stats.BROKER_PUT_NUMS;
+import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_NUMS;
+import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
@@ -103,7 +103,7 @@ public class ScheduleMessageServiceTest {
         messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
 
         brokerConfig = new BrokerConfig();
-        BrokerStatsManager manager = new BrokerStatsManager(brokerConfig.getBrokerClusterName());
+        BrokerStatsManager manager = new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat());
         messageStore = new DefaultMessageStore(messageStoreConfig, manager, new MyMessageArrivingListener(), new BrokerConfig());
 
         assertThat(messageStore.load()).isTrue();

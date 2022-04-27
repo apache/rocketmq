@@ -31,8 +31,10 @@ public class MessageStoreConfig {
 
     //The directory in which the commitlog is kept
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "commitlog";
+    private String storePathCommitLog = null;
+
+    @ImportantField
+    private String storePathDLedgerCommitLog = null;
 
     private String readOnlyCommitLogStorePaths = null;
 
@@ -131,6 +133,7 @@ public class MessageStoreConfig {
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
     private int syncFlushTimeout = 1000 * 5;
+    private int slaveTimeout = 3000;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
@@ -158,6 +161,14 @@ public class MessageStoreConfig {
     private boolean isEnableBatchPush = false;
 
     private boolean enableScheduleMessageStats = true;
+
+    private boolean enableLmq = false;
+    private boolean enableMultiDispatch = false;
+    private int maxLmqConsumeQueueNum = 20000;
+
+    private boolean enableScheduleAsyncDeliver = false;
+    private int scheduleAsyncDeliverMaxPendingLimit = 2000;
+    private int scheduleAsyncDeliverMaxResendNum2Blocked = 3;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -294,11 +305,22 @@ public class MessageStoreConfig {
     }
 
     public String getStorePathCommitLog() {
+        if (storePathCommitLog == null) {
+            return storePathRootDir + File.separator + "commitlog";
+        }
         return storePathCommitLog;
     }
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
+    }
+
+    public String getStorePathDLedgerCommitLog() {
+        return storePathDLedgerCommitLog;
+    }
+
+    public void setStorePathDLedgerCommitLog(String storePathDLedgerCommitLog) {
+        this.storePathDLedgerCommitLog = storePathDLedgerCommitLog;
     }
 
     public String getDeleteWhen() {
@@ -539,6 +561,14 @@ public class MessageStoreConfig {
         this.syncFlushTimeout = syncFlushTimeout;
     }
 
+    public int getSlaveTimeout() {
+        return slaveTimeout;
+    }
+
+    public void setSlaveTimeout(int slaveTimeout) {
+        this.slaveTimeout = slaveTimeout;
+    }
+
     public String getHaMasterAddress() {
         return haMasterAddress;
     }
@@ -743,5 +773,53 @@ public class MessageStoreConfig {
 
     public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
         this.enableScheduleMessageStats = enableScheduleMessageStats;
+    }
+
+    public boolean isEnableLmq() {
+        return enableLmq;
+    }
+
+    public void setEnableLmq(boolean enableLmq) {
+        this.enableLmq = enableLmq;
+    }
+
+    public boolean isEnableMultiDispatch() {
+        return enableMultiDispatch;
+    }
+
+    public void setEnableMultiDispatch(boolean enableMultiDispatch) {
+        this.enableMultiDispatch = enableMultiDispatch;
+    }
+
+    public int getMaxLmqConsumeQueueNum() {
+        return maxLmqConsumeQueueNum;
+    }
+
+    public void setMaxLmqConsumeQueueNum(int maxLmqConsumeQueueNum) {
+        this.maxLmqConsumeQueueNum = maxLmqConsumeQueueNum;
+    }
+
+    public boolean isEnableScheduleAsyncDeliver() {
+        return enableScheduleAsyncDeliver;
+    }
+
+    public void setEnableScheduleAsyncDeliver(boolean enableScheduleAsyncDeliver) {
+        this.enableScheduleAsyncDeliver = enableScheduleAsyncDeliver;
+    }
+
+    public int getScheduleAsyncDeliverMaxPendingLimit() {
+        return scheduleAsyncDeliverMaxPendingLimit;
+    }
+
+    public void setScheduleAsyncDeliverMaxPendingLimit(int scheduleAsyncDeliverMaxPendingLimit) {
+        this.scheduleAsyncDeliverMaxPendingLimit = scheduleAsyncDeliverMaxPendingLimit;
+    }
+
+    public int getScheduleAsyncDeliverMaxResendNum2Blocked() {
+        return scheduleAsyncDeliverMaxResendNum2Blocked;
+    }
+
+    public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
+        this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
     }
 }

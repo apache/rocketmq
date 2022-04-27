@@ -34,6 +34,8 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.SerializeType;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.io.IOException;
@@ -49,6 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Consumer {
 
     public static void main(String[] args) throws MQClientException, IOException {
+        System.setProperty(RemotingCommand.SERIALIZE_TYPE_PROPERTY, SerializeType.ROCKETMQ.name());
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkConsumer", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
@@ -123,7 +126,12 @@ public class Consumer {
             }
         }, 10000, 10000, TimeUnit.MILLISECONDS);
 
-        RPCHook rpcHook = aclEnable ? AclClient.getAclRPCHook() : null;
+        RPCHook rpcHook = null;
+        if (aclEnable) {
+            String ak = commandLine.hasOption("ak") ? String.valueOf(commandLine.getOptionValue("ak")) : AclClient.ACL_ACCESS_KEY;
+            String sk = commandLine.hasOption("sk") ? String.valueOf(commandLine.getOptionValue("sk")) : AclClient.ACL_SECRET_KEY;
+            rpcHook = AclClient.getAclRPCHook(ak, sk);
+        }
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group, rpcHook, new AllocateMessageQueueAveragely(), msgTraceEnable, null);
         if (commandLine.hasOption('n')) {
             String ns = commandLine.getOptionValue('n');
@@ -215,6 +223,14 @@ public class Consumer {
         options.addOption(opt);
 
         opt = new Option("a", "aclEnable", true, "Acl Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ak", "accessKey", true, "Acl access key, Default: 12345678");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("sk", "secretKey", true, "Acl secret key, Default: rocketmq2");
         opt.setRequired(false);
         options.addOption(opt);
 

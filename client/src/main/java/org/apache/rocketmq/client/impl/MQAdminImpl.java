@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -406,12 +407,14 @@ public class MQAdminImpl {
                             }
                         } else {
                             String keys = msgExt.getKeys();
+                            String msgTopic = msgExt.getTopic();
                             if (keys != null) {
                                 boolean matched = false;
                                 String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
                                 if (keyArray != null) {
                                     for (String k : keyArray) {
-                                        if (key.equals(k)) {
+                                        // both topic and key must be equal at the same time
+                                        if (Objects.equals(key, k) && Objects.equals(topic, msgTopic)) {
                                             matched = true;
                                             break;
                                         }

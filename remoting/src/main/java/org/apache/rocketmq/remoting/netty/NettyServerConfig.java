@@ -27,10 +27,13 @@ public class NettyServerConfig implements Cloneable {
 
     private int serverSocketSndBufSize = NettySystemConfig.socketSndbufSize;
     private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
+    private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
+    private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
+    private int serverSocketBacklog = NettySystemConfig.socketBacklog;
     private boolean serverPooledByteBufAllocatorEnable = true;
 
     /**
-     * make make install
+     * make install
      *
      *
      * ../glibc-2.10.1/configure \ --prefix=/usr \ --with-headers=/usr/include \
@@ -110,6 +113,14 @@ public class NettyServerConfig implements Cloneable {
         this.serverSocketRcvBufSize = serverSocketRcvBufSize;
     }
 
+    public int getServerSocketBacklog() {
+        return serverSocketBacklog;
+    }
+
+    public void setServerSocketBacklog(int serverSocketBacklog) {
+        this.serverSocketBacklog = serverSocketBacklog;
+    }
+
     public boolean isServerPooledByteBufAllocatorEnable() {
         return serverPooledByteBufAllocatorEnable;
     }
@@ -129,5 +140,21 @@ public class NettyServerConfig implements Cloneable {
     @Override
     public Object clone() throws CloneNotSupportedException {
         return (NettyServerConfig) super.clone();
+    }
+
+    public int getWriteBufferLowWaterMark() {
+        return writeBufferLowWaterMark;
+    }
+
+    public void setWriteBufferLowWaterMark(int writeBufferLowWaterMark) {
+        this.writeBufferLowWaterMark = writeBufferLowWaterMark;
+    }
+
+    public int getWriteBufferHighWaterMark() {
+        return writeBufferHighWaterMark;
+    }
+
+    public void setWriteBufferHighWaterMark(int writeBufferHighWaterMark) {
+        this.writeBufferHighWaterMark = writeBufferHighWaterMark;
     }
 }

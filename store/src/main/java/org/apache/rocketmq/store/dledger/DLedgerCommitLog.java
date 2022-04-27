@@ -55,12 +55,18 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
  */
 public class DLedgerCommitLog extends CommitLog {
+
+    static {
+        System.setProperty("dLedger.multiPath.Splitter", MessageStoreConfig.MULTI_PATH_SPLITTER);
+    }
+
     private final DLedgerServer dLedgerServer;
     private final DLedgerConfig dLedgerConfig;
     private final DLedgerMmapFileStore dLedgerFileStore;
@@ -88,13 +94,15 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setGroup(defaultMessageStore.getMessageStoreConfig().getdLegerGroup());
         dLedgerConfig.setPeers(defaultMessageStore.getMessageStoreConfig().getdLegerPeers());
         dLedgerConfig.setStoreBaseDir(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
+        dLedgerConfig.setDataStorePath(defaultMessageStore.getMessageStoreConfig().getStorePathDLedgerCommitLog());
+        dLedgerConfig.setReadOnlyDataStoreDirs(defaultMessageStore.getMessageStoreConfig().getReadOnlyCommitLogStorePaths());
         dLedgerConfig.setMappedFileSizeForEntryData(defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog());
         dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
         dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         dLedgerConfig.setPreferredLeaderId(defaultMessageStore.getMessageStoreConfig().getPreferredLeaderId());
         dLedgerConfig.setEnableBatchPush(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
 
-        id = Integer.valueOf(dLedgerConfig.getSelfId().substring(1)) + 1;
+        id = Integer.parseInt(dLedgerConfig.getSelfId().substring(1)) + 1;
         dLedgerServer = new DLedgerServer(dLedgerConfig);
         dLedgerFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
         DLedgerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -> {
@@ -629,7 +637,7 @@ public class DLedgerCommitLog extends CommitLog {
             PutMessageResult putMessageResult = new PutMessageResult(putMessageStatus, appendResult);
             if (putMessageStatus == PutMessageStatus.PUT_OK) {
                 // Statistics
-                storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(1);
+                storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(appendResult.getMsgNum());
                 storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).add(appendResult.getWroteBytes());
             }
             return putMessageResult;

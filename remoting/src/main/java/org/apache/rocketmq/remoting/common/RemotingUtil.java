@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 
 public class RemotingUtil {
     public static final String OS_NAME = System.getProperty("os.name");
@@ -165,6 +166,10 @@ public class RemotingUtil {
         return sb.toString();
     }
 
+    public static String convert2IpString(final String addr) {
+        return socketAddress2String(string2SocketAddress(addr));
+    }
+
     private static boolean isBridge(NetworkInterface networkInterface) {
         try {
             if (isLinuxPlatform()) {
@@ -189,8 +194,12 @@ public class RemotingUtil {
             sc.configureBlocking(true);
             sc.socket().setSoLinger(false, -1);
             sc.socket().setTcpNoDelay(true);
-            sc.socket().setReceiveBufferSize(1024 * 64);
-            sc.socket().setSendBufferSize(1024 * 64);
+            if (NettySystemConfig.socketSndbufSize > 0) {
+                sc.socket().setReceiveBufferSize(NettySystemConfig.socketSndbufSize);
+            }
+            if (NettySystemConfig.socketRcvbufSize > 0) {
+                sc.socket().setSendBufferSize(NettySystemConfig.socketRcvbufSize);
+            }
             sc.socket().connect(remote, timeoutMillis);
             sc.configureBlocking(false);
             return sc;

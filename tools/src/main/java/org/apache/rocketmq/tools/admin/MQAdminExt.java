@@ -92,7 +92,7 @@ public interface MQAdminExt extends MQAdmin {
 
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr, final String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;
 
-    TopicConfig examineTopicConfig(final String addr, final String topic);
+    TopicConfig examineTopicConfig(final String addr, final String topic) throws RemotingException, InterruptedException, MQBrokerException;
 
     TopicStatsTable examineTopicStats(
         final String topic) throws RemotingException, MQClientException, InterruptedException,
@@ -124,6 +124,10 @@ public interface MQAdminExt extends MQAdmin {
     ConsumerConnection examineConsumerConnectionInfo(final String consumerGroup) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException, RemotingException,
         MQClientException;
+
+    ConsumerConnection examineConsumerConnectionInfo(
+        String consumerGroup, String brokerAddr) throws InterruptedException, MQBrokerException,
+        RemotingException, MQClientException;
 
     ProducerConnection examineProducerConnectionInfo(final String producerGroup,
         final String topic) throws RemotingException,
@@ -238,9 +242,17 @@ public interface MQAdminExt extends MQAdmin {
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException;
 
-    TopicConfigSerializeWrapper getAllTopicGroup(final String brokerAddr,
+    SubscriptionGroupWrapper getUserSubscriptionGroup(final String brokerAddr,
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException;
+
+    TopicConfigSerializeWrapper getAllTopicConfig(final String brokerAddr,
+        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQBrokerException;
+
+    TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr, final boolean specialTopic,
+        long timeoutMillis) throws InterruptedException, RemotingException,
+        MQBrokerException, MQClientException;
 
     void updateConsumeOffset(String brokerAddr, String consumeGroup, MessageQueue mq,
         long offset) throws RemotingException, InterruptedException, MQBrokerException;

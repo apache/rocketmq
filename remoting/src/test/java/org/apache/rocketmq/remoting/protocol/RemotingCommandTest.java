@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,7 +32,13 @@ public class RemotingCommandTest {
     public void testMarkProtocolType_JSONProtocolType() {
         int source = 261;
         SerializeType type = SerializeType.JSON;
-        byte[] result = RemotingCommand.markProtocolType(source, type);
+
+        byte[] result = new byte[4];
+        int x = RemotingCommand.markProtocolType(source, type);
+        result[0] = (byte) (x >> 24);
+        result[1] = (byte) (x >> 16);
+        result[2] = (byte) (x >> 8);
+        result[3] = (byte) x;
         assertThat(result).isEqualTo(new byte[] {0, 0, 1, 5});
     }
 
@@ -39,7 +46,12 @@ public class RemotingCommandTest {
     public void testMarkProtocolType_ROCKETMQProtocolType() {
         int source = 16777215;
         SerializeType type = SerializeType.ROCKETMQ;
-        byte[] result = RemotingCommand.markProtocolType(source, type);
+        byte[] result = new byte[4];
+        int x = RemotingCommand.markProtocolType(source, type);
+        result[0] = (byte) (x >> 24);
+        result[1] = (byte) (x >> 16);
+        result[2] = (byte) (x >> 8);
+        result[3] = (byte) x;
         assertThat(result).isEqualTo(new byte[] {1, -1, -1, -1});
     }
 
@@ -118,10 +130,17 @@ public class RemotingCommandTest {
         buffer.get(bytes, 0, buffer.limit() - 4);
         buffer = ByteBuffer.wrap(bytes);
 
-        RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
+        RemotingCommand decodedCommand = null;
+        try {
+            decodedCommand = RemotingCommand.decode(buffer);
 
-        assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.JSON);
-        assertThat(decodedCommand.getBody()).isNull();
+            assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.JSON);
+            assertThat(decodedCommand.getBody()).isNull();
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+            Assert.fail("Should not throw IOException");
+        }
+
     }
 
     @Test
@@ -141,10 +160,16 @@ public class RemotingCommandTest {
         buffer.get(bytes, 0, buffer.limit() - 4);
         buffer = ByteBuffer.wrap(bytes);
 
-        RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
+        RemotingCommand decodedCommand = null;
+        try {
+            decodedCommand = RemotingCommand.decode(buffer);
 
-        assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.JSON);
-        assertThat(decodedCommand.getBody()).isEqualTo(new byte[] {0, 1, 2, 3, 4});
+            assertThat(decodedCommand.getSerializeTypeCurrentRPC()).isEqualTo(SerializeType.JSON);
+            assertThat(decodedCommand.getBody()).isEqualTo(new byte[] {0, 1, 2, 3, 4});
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+            Assert.fail("Should not throw IOException");
+        }
     }
 
     @Test
@@ -165,22 +190,30 @@ public class RemotingCommandTest {
         buffer.get(bytes, 0, buffer.limit() - 4);
         buffer = ByteBuffer.wrap(bytes);
 
-        RemotingCommand decodedCommand = RemotingCommand.decode(buffer);
+        RemotingCommand decodedCommand = null;
+        try {
+            decodedCommand = RemotingCommand.decode(buffer);
 
-        assertThat(decodedCommand.getExtFields().get("stringValue")).isEqualTo("bilibili");
-        assertThat(decodedCommand.getExtFields().get("intValue")).isEqualTo("2333");
-        assertThat(decodedCommand.getExtFields().get("longValue")).isEqualTo("23333333");
-        assertThat(decodedCommand.getExtFields().get("booleanValue")).isEqualTo("true");
-        assertThat(decodedCommand.getExtFields().get("doubleValue")).isEqualTo("0.618");
+            assertThat(decodedCommand.getExtFields().get("stringValue")).isEqualTo("bilibili");
+            assertThat(decodedCommand.getExtFields().get("intValue")).isEqualTo("2333");
+            assertThat(decodedCommand.getExtFields().get("longValue")).isEqualTo("23333333");
+            assertThat(decodedCommand.getExtFields().get("booleanValue")).isEqualTo("true");
+            assertThat(decodedCommand.getExtFields().get("doubleValue")).isEqualTo("0.618");
 
-        assertThat(decodedCommand.getExtFields().get("key")).isEqualTo("value");
+            assertThat(decodedCommand.getExtFields().get("key")).isEqualTo("value");
 
-        CommandCustomHeader decodedHeader = decodedCommand.decodeCommandCustomHeader(ExtFieldsHeader.class);
-        assertThat(((ExtFieldsHeader) decodedHeader).getStringValue()).isEqualTo("bilibili");
-        assertThat(((ExtFieldsHeader) decodedHeader).getIntValue()).isEqualTo(2333);
-        assertThat(((ExtFieldsHeader) decodedHeader).getLongValue()).isEqualTo(23333333l);
-        assertThat(((ExtFieldsHeader) decodedHeader).isBooleanValue()).isEqualTo(true);
-        assertThat(((ExtFieldsHeader) decodedHeader).getDoubleValue()).isBetween(0.617, 0.619);
+            CommandCustomHeader decodedHeader = decodedCommand.decodeCommandCustomHeader(ExtFieldsHeader.class);
+            assertThat(((ExtFieldsHeader) decodedHeader).getStringValue()).isEqualTo("bilibili");
+            assertThat(((ExtFieldsHeader) decodedHeader).getIntValue()).isEqualTo(2333);
+            assertThat(((ExtFieldsHeader) decodedHeader).getLongValue()).isEqualTo(23333333l);
+            assertThat(((ExtFieldsHeader) decodedHeader).isBooleanValue()).isEqualTo(true);
+            assertThat(((ExtFieldsHeader) decodedHeader).getDoubleValue()).isBetween(0.617, 0.619);
+        } catch (RemotingCommandException e) {
+            e.printStackTrace();
+
+            Assert.fail("Should not throw IOException");
+        }
+
     }
 
     @Test

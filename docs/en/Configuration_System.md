@@ -59,7 +59,7 @@ There is a os.sh script that lists a lot of kernel parameters in folder bin whic
 
 
 
-- **vm.swappiness**, define how aggressive the kernel will swap memory pages. Higher values will increase agressiveness, lower values decrease the amount of swap. 10 is recommended for this value to avoid swap latency.
+- **vm.swappiness**, define how aggressive the kernel will swap memory pages. Higher values will increase aggressiveness, lower values decrease the amount of swap. 10 is recommended for this value to avoid swap latency.
 
 
 
