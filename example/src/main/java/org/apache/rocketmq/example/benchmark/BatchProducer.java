@@ -21,10 +21,10 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -42,6 +42,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -317,7 +318,8 @@ class StatsBenchmarkBatchProducer {
 
     private final LongAdder sendMessageFailedCount = new LongAdder();
 
-    private final Timer timer = new Timer("BenchmarkTimerThread", true);
+    private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "BenchmarkTimerThread", Boolean.TRUE));
 
     private final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
@@ -360,7 +362,7 @@ class StatsBenchmarkBatchProducer {
 
     public void start() {
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 snapshotList.addLast(createSnapshot());
@@ -368,9 +370,9 @@ class StatsBenchmarkBatchProducer {
                     snapshotList.removeFirst();
                 }
             }
-        }, 1000, 1000);
+        }, 1000, 1000, TimeUnit.MILLISECONDS);
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new Runnable() {
             private void printStats() {
                 if (snapshotList.size() >= 10) {
                     Long[] begin = snapshotList.getFirst();
@@ -394,10 +396,10 @@ class StatsBenchmarkBatchProducer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000);
+        }, 10000, 10000, TimeUnit.MILLISECONDS);
     }
 
     public void shutdown() {
-        timer.cancel();
+        executorService.shutdown();
     }
 }
