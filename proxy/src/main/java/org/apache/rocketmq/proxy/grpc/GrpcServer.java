@@ -79,7 +79,7 @@ public class GrpcServer implements StartAndShutdown {
             threadPoolQueueCapacity
         );
 
-        GrpcMessagingProcessor messagingProcessor = new GrpcMessagingProcessor(grpcForwardService);
+        GrpcMessagingProcessor messagingProcessor = createProcessor();
 
         // build server
         int bossLoopNum = ConfigurationManager.getProxyConfig().getGrpcBossLoopNum();
@@ -102,24 +102,18 @@ public class GrpcServer implements StartAndShutdown {
                 .executor(this.executor);
         }
 
-        // grpc interceptors, including acl, logging etc.
-        if (ConfigurationManager.getProxyConfig().isEnableACL()) {
-            List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
-            if (accessValidators.isEmpty()) {
-                throw new IllegalArgumentException("Load AccessValidator failed");
-            }
-            serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
-        }
-
-        this.server = serverBuilder.intercept(new ContextInterceptor())
-            .intercept(new HeaderInterceptor())
-            .build();
+        configInterceptor(serverBuilder);
+        this.server = serverBuilder.build();
 
         log.info(
             "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
                 + "boosLoop: {}, workerLoop: {}, maxInboundMessageSize: {}",
             port, threadPoolNums, threadPoolQueueCapacity,
             bossLoopNum, workerLoopNum, maxInboundMessageSize);
+    }
+
+    protected GrpcMessagingProcessor createProcessor() {
+        return new GrpcMessagingProcessor(grpcForwardService);
     }
 
     protected void configSslContext(NettyServerBuilder serverBuilder) throws SSLException, CertificateException {
@@ -149,6 +143,20 @@ public class GrpcServer implements StartAndShutdown {
         } catch (IOException e) {
             log.error("Failed to load Server key/certificate", e);
         }
+    }
+
+    protected void configInterceptor(NettyServerBuilder serverBuilder) {
+        // grpc interceptors, including acl, logging etc.
+        if (ConfigurationManager.getProxyConfig().isEnableACL()) {
+            List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+            if (accessValidators.isEmpty()) {
+                throw new IllegalArgumentException("Load AccessValidator failed");
+            }
+            serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
+        }
+
+        serverBuilder.intercept(new ContextInterceptor())
+            .intercept(new HeaderInterceptor());
     }
 
     public void start() throws Exception {

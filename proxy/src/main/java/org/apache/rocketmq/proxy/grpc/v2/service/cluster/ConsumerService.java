@@ -209,7 +209,7 @@ public class ConsumerService extends BaseService {
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
             Settings settings = grpcClientManager.getClientSettings(ctx);
-            int maxDeliveryAttempts = settings.getSubscription().getBackoffPolicy().getMaxAttempts();
+            int maxDeliveryAttempts = settings.getBackoffPolicy().getMaxAttempts();
             if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
                 future = this.producer.sendMessageBackThenAckOrg(
                     ctx,
@@ -235,7 +235,7 @@ public class ConsumerService extends BaseService {
 
     protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx,
         NackMessageRequest request) {
-        RetryPolicy retryPolicy = grpcClientManager.getClientSettings(ctx).getSubscription().getBackoffPolicy();
+        RetryPolicy retryPolicy = grpcClientManager.getClientSettings(ctx).getBackoffPolicy();
         return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, retryPolicy);
     }
 

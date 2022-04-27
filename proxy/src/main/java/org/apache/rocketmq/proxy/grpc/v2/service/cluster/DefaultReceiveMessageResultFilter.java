@@ -67,7 +67,7 @@ public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFi
             return Collections.emptyList();
         }
         Settings settings = grpcClientManager.getClientSettings(ctx);
-        int maxAttempts = settings.getSubscription().getBackoffPolicy().getMaxAttempts();
+        int maxAttempts = settings.getBackoffPolicy().getMaxAttempts();
         Resource topic = request.getMessageQueue().getTopic();
         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
         SubscriptionData subscriptionData = GrpcConverter.buildSubscriptionData(topicName, request.getFilterExpression());

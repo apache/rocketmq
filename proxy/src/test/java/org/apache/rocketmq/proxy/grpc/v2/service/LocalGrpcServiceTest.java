@@ -166,9 +166,9 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         });
         streamObserver.onNext(TelemetryCommand.newBuilder()
             .setSettings(Settings.newBuilder()
-                .setSubscription(Subscription.newBuilder()
-                    .setBackoffPolicy(RetryPolicy.newBuilder()
-                        .setMaxAttempts(3).build()).build())
+                .setBackoffPolicy(RetryPolicy.newBuilder()
+                    .setMaxAttempts(3).build())
+                .setSubscription(Subscription.newBuilder().build())
                 .build()).build());
     }
 
