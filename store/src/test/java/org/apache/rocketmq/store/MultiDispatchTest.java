@@ -20,6 +20,7 @@ package org.apache.rocketmq.store;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -76,7 +77,7 @@ public class MultiDispatchTest {
         when(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)).thenReturn(
             "%LMQ%123,%LMQ%456");
         when(messageExtBrokerInner.getTopic()).thenReturn("test");
-        when(messageExtBrokerInner.getBody()).thenReturn("aaa".getBytes(Charset.forName("UTF-8")));
+        when(messageExtBrokerInner.getBody()).thenReturn("aaa".getBytes(StandardCharsets.UTF_8));
         when(messageExtBrokerInner.getBornHost()).thenReturn(new InetSocketAddress("127.0.0.1", 54270));
         when(messageExtBrokerInner.getStoreHost()).thenReturn(new InetSocketAddress("127.0.0.1", 10911));
         multiDispatch.wrapMultiDispatch(messageExtBrokerInner);

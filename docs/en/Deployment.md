@@ -73,7 +73,7 @@ The boot command shown above is used in the case of a single NameServer.For clus
 
 ### 3 Multiple Master And Multiple Slave Mode-Asynchronous replication
 
-Each master node configures more thran one slave nodes, with multiple pairs of master-slave.HA uses asynchronous replication, with a short message delay (millisecond) between master node and slave node.The advantages and disadvantages of this mode are as follows:
+Each master node configures more than one slave nodes, with multiple pairs of master-slave.HA uses asynchronous replication, with a short message delay (millisecond) between master node and slave node.The advantages and disadvantages of this mode are as follows:
 
 - Advantages: 
   1. Even if the disk is corrupted, very few messages will be lost and the real-time performance of the message will not be affected.

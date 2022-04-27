@@ -33,6 +33,7 @@ import org.junit.Test;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +49,7 @@ public class BatchPutMessageTest {
 
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
 
     @Before
     public void init() throws Exception {
