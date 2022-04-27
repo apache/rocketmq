@@ -100,6 +100,9 @@ public class ResponseBuilder {
             case ResponseCode.FLUSH_SLAVE_TIMEOUT: {
                 return Code.SLAVE_PERSISTENCE_TIMEOUT;
             }
+            case ResponseCode.POLLING_TIMEOUT: {
+                return Code.GATEWAY_TIMEOUT;
+            }
             default: {
                 return Code.INTERNAL_SERVER_ERROR;
             }

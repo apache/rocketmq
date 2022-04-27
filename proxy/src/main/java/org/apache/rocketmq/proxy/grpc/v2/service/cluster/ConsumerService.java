@@ -52,6 +52,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.service.BaseService;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
+import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResponseStreamWriter;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ConsumerService extends BaseService {
@@ -106,7 +107,7 @@ public class ConsumerService extends BaseService {
                 messageQueue.getBrokerName(),
                 requestHeader,
                 requestHeader.getPollTime())
-                .thenAccept(result -> writer.write(ctx, request, result))
+                .thenAccept(result -> writer.write(ctx, request, result.getPopStatus(), result.getMsgFoundList()))
                 .exceptionally(e -> {
                     writer.write(ctx, request, e);
                     return null;

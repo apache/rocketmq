@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
+package org.apache.rocketmq.proxy.grpc.v2.service;
 
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
-import org.apache.rocketmq.client.consumer.PopResult;
+import java.util.List;
+import org.apache.rocketmq.client.consumer.PopStatus;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 
 public abstract class ReceiveMessageResponseStreamWriter {
@@ -41,7 +43,7 @@ public abstract class ReceiveMessageResponseStreamWriter {
         receiveMessageHook = hook;
     }
 
-    public abstract void write(Context ctx, ReceiveMessageRequest request, PopResult result);
+    public abstract void write(Context ctx, ReceiveMessageRequest request, PopStatus status, List<MessageExt> messageFoundList);
 
     public abstract void write(Context ctx, ReceiveMessageRequest request, Throwable throwable);
 }

@@ -332,7 +332,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
                 .build())
             .build();
         ReceiveMessageResponse receiveMessageResponse1 = ReceiveMessageResponse.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(ResponseCode.SUCCESS, null))
+            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
             .build();
         Message message = GrpcConverter.buildMessage(messageExt);
         ReceiveMessageResponse receiveMessageResponse2 = ReceiveMessageResponse.newBuilder()

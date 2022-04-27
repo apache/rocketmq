@@ -39,6 +39,7 @@ import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
+import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResultFilter;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import static org.apache.rocketmq.proxy.grpc.v2.service.BaseService.getBrokerAddr;
@@ -98,18 +99,12 @@ public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFi
                 return;
             }
             String brokerAddr = getBrokerAddr(ctx, topicRouteCache, handle.getBrokerName());
-            Resource topic = request.getMessageQueue().getTopic();
-            Resource group = request.getGroup();
             ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = GrpcConverter.buildConsumerSendMsgBackRequestHeader(
-                topic,
-                group,
+                request,
                 handle,
                 messageExt.getMsgId(),
                 maxReconsumeTimes);
-            AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(
-                topic,
-                group,
-                handle);
+            AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(request, handle);
 
             future = this.producer.sendMessageBackThenAckOrg(ctx, brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader);
         } catch (Throwable t) {
@@ -126,19 +121,13 @@ public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFi
     protected void ackNoMatchedMessage(Context ctx, ReceiveMessageRequest request, MessageExt messageExt) {
         CompletableFuture<AckResult> future = new CompletableFuture<>();
 
-        AckMessageRequestHeader ackMessageRequestHeader = new AckMessageRequestHeader();
+        ReceiptHandle handle = ReceiptHandle.create(messageExt);
+        if (handle == null) {
+            return;
+        }
+        AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(request, handle);
         try {
-            ReceiptHandle handle = ReceiptHandle.create(messageExt);
-            if (handle == null) {
-                return;
-            }
             String brokerAddr = getBrokerAddr(ctx, topicRouteCache, handle.getBrokerName());
-            ackMessageRequestHeader.setConsumerGroup(GrpcConverter.wrapResourceWithNamespace(request.getGroup()));
-            ackMessageRequestHeader.setTopic(messageExt.getTopic());
-            ackMessageRequestHeader.setQueueId(handle.getQueueId());
-            ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
-            ackMessageRequestHeader.setOffset(handle.getOffset());
-
             future = this.writeConsumer.ackMessage(ctx, brokerAddr, ackMessageRequestHeader);
         } catch (Throwable t) {
             future.completeExceptionally(t);
