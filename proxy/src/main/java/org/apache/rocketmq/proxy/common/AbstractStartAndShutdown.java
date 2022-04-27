@@ -41,4 +41,32 @@ public abstract class AbstractStartAndShutdown implements StartAndShutdown {
             startAndShutdownList.get(index).shutdown();
         }
     }
+
+    public void appendStart(Start start) {
+        this.appendStartAndShutdown(new StartAndShutdown() {
+            @Override
+            public void shutdown() throws Exception {
+
+            }
+
+            @Override
+            public void start() throws Exception {
+                start.start();
+            }
+        });
+    }
+
+    public void appendShutdown(Shutdown shutdown) {
+        this.appendStartAndShutdown(new StartAndShutdown() {
+            @Override
+            public void shutdown() throws Exception {
+                shutdown.shutdown();
+            }
+
+            @Override
+            public void start() throws Exception {
+
+            }
+        });
+    }
 }

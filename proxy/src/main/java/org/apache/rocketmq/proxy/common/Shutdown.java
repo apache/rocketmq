@@ -17,5 +17,6 @@
 
 package org.apache.rocketmq.proxy.common;
 
-public interface StartAndShutdown extends Start, Shutdown {
+public interface Shutdown {
+    void shutdown() throws Exception;
 }
