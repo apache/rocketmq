@@ -293,16 +293,11 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             channel.eraseInvocationContext(command.getOpaque());
             future.completeExceptionally(e);
         }
-        future.thenAccept(r -> {
-            try {
-                writer.write(ctx, request, PopStatus.FOUND, r);
-            } finally {
-                responseObserver.onCompleted();
-            }
-        }).exceptionally(e -> {
-            writer.write(ctx, request, e);
-            return null;
-        });
+        future.thenAccept(r -> writer.write(ctx, request, PopStatus.FOUND, r))
+            .exceptionally(e -> {
+                writer.write(ctx, request, e);
+                return null;
+            });
     }
 
     @Override
