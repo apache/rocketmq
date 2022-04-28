@@ -16,16 +16,15 @@
  */
 package org.apache.rocketmq.acl.plain;
 
-import apache.rocketmq.v1.AckMessageRequest;
-import apache.rocketmq.v1.EndTransactionRequest;
-import apache.rocketmq.v1.ForwardMessageToDeadLetterQueueRequest;
-import apache.rocketmq.v1.HeartbeatRequest;
-import apache.rocketmq.v1.NackMessageRequest;
-import apache.rocketmq.v1.PullMessageRequest;
-import apache.rocketmq.v1.QueryOffsetRequest;
-import apache.rocketmq.v1.ReceiveMessageRequest;
-import apache.rocketmq.v1.Resource;
-import apache.rocketmq.v1.SendMessageRequest;
+import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.EndTransactionRequest;
+import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
+import apache.rocketmq.v2.HeartbeatRequest;
+import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.NackMessageRequest;
+import apache.rocketmq.v2.ReceiveMessageRequest;
+import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.SendMessageRequest;
 import com.google.protobuf.GeneratedMessageV3;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -47,6 +46,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -176,20 +176,22 @@ public class PlainAccessValidator implements AccessValidator {
             String rpcFullName = messageV3.getDescriptorForType().getFullName();
             if (HeartbeatRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 HeartbeatRequest request = (HeartbeatRequest) messageV3;
-                if (request.hasProducerData()) {
-                    Resource group = request.getProducerData()
-                        .getGroup();
-                    String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
-                    accessResource.addResourceAndPerm(groupName, Permission.SUB);
-                } else if (request.hasConsumerData()) {
-                    Resource group = request.getConsumerData()
-                        .getGroup();
+                if (request.hasGroup()) {
+                    Resource group = request.getGroup();
                     String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
                     accessResource.addResourceAndPerm(groupName, Permission.SUB);
                 }
             } else if (SendMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 SendMessageRequest request = (SendMessageRequest) messageV3;
-                Resource topic = request.getMessage().getTopic();
+                if (request.getMessagesCount() <= 0) {
+                    throw new AclException("SendMessageRequest, messageCount is zero", ResponseCode.MESSAGE_ILLEGAL);
+                }
+                Resource topic = request.getMessages(0).getTopic();
+                for (Message message : request.getMessagesList()) {
+                    if (!message.getTopic().equals(topic)) {
+                        throw new AclException("SendMessageRequest, messages' topic is not consistent", ResponseCode.MESSAGE_ILLEGAL);
+                    }
+                }
                 String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
                 accessResource.addResourceAndPerm(topicName, Permission.PUB);
             } else if (ReceiveMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
@@ -197,7 +199,7 @@ public class PlainAccessValidator implements AccessValidator {
                 Resource group = request.getGroup();
                 String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
                 accessResource.addResourceAndPerm(groupName, Permission.SUB);
-                Resource topic = request.getPartition().getTopic();
+                Resource topic = request.getMessageQueue().getTopic();
                 String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
                 accessResource.addResourceAndPerm(topicName, Permission.SUB);
             } else if (AckMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
@@ -226,22 +228,9 @@ public class PlainAccessValidator implements AccessValidator {
                 accessResource.addResourceAndPerm(topicName, Permission.SUB);
             } else if (EndTransactionRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 EndTransactionRequest request = (EndTransactionRequest) messageV3;
-                Resource group = request.getGroup();
-                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
-                accessResource.addResourceAndPerm(groupName, Permission.PUB);
-            } else if (QueryOffsetRequest.getDescriptor().getFullName().equals(rpcFullName)) {
-                QueryOffsetRequest request = (QueryOffsetRequest) messageV3;
-                Resource topic = request.getPartition().getTopic();
+                Resource topic = request.getTopic();
                 String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
-                accessResource.addResourceAndPerm(topicName, Permission.SUB);
-            }  else if (PullMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
-                PullMessageRequest request = (PullMessageRequest) messageV3;
-                Resource group = request.getGroup();
-                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
-                accessResource.addResourceAndPerm(groupName, Permission.SUB);
-                Resource topic = request.getPartition().getTopic();
-                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
-                accessResource.addResourceAndPerm(topicName, Permission.SUB);
+                accessResource.addResourceAndPerm(topicName, Permission.PUB);
             }
         } catch (Throwable t) {
             throw new AclException(t.getMessage(), t);
