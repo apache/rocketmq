@@ -501,7 +501,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             case MESSAGE_ILLEGAL:
             case PROPERTIES_SIZE_EXCEEDED:
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                response.setRemark(String.format("the message is illegal, maybe msg topic or msg body or properties length not matched. msg topic length limit 127B, msg body length limit %dB, msg properties length limit 32KB.",
+                response.setRemark(String.format("the message is illegal, maybe msg body or properties length not matched. msg body length limit %dB, msg properties length limit 32KB.",
                     this.brokerController.getMessageStoreConfig().getMaxMessageSize()));
                 break;
             case SERVICE_NOT_AVAILABLE:
