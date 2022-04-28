@@ -61,15 +61,18 @@ public class RouteServiceTest extends BaseServiceTest {
         .setResourceNamespace(NAMESPACE)
         .build();
 
-    private static final Settings WITH_HOST_SETTINGS = Settings.newBuilder()
-        .setAccessPoint(Endpoints.newBuilder()
-            .addAddresses(Address.newBuilder()
-                .setPort(80)
-                .setHost("host")
-                .build())
-            .setScheme(AddressScheme.DOMAIN_NAME)
+    private static final Endpoints WITH_HOST_ENDPOINT = Endpoints.newBuilder()
+        .addAddresses(Address.newBuilder()
+            .setPort(80)
+            .setHost("host")
             .build())
+        .setScheme(AddressScheme.DOMAIN_NAME)
         .build();
+
+    private static final Settings WITH_HOST_SETTINGS = Settings.newBuilder()
+        .setAccessPoint(WITH_HOST_ENDPOINT)
+        .build();
+
 
     private static final Settings INVALID_HOST_SETTINGS = Settings.newBuilder()
         .setAccessPoint(Endpoints.getDefaultInstance())
@@ -185,6 +188,7 @@ public class RouteServiceTest extends BaseServiceTest {
             .setTopic(Resource.newBuilder()
                 .setName("topic")
                 .build())
+            .setEndpoints(WITH_HOST_ENDPOINT)
             .build());
 
         QueryRouteResponse response = future.get();
@@ -228,6 +232,7 @@ public class RouteServiceTest extends BaseServiceTest {
         when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(WITH_HOST_SETTINGS);
 
         CompletableFuture<QueryAssignmentResponse> future = routeService.queryAssignment(Context.current(), QueryAssignmentRequest.newBuilder()
+            .setEndpoints(WITH_HOST_ENDPOINT)
             .setTopic(Resource.newBuilder()
                 .setName("topic")
                 .build())

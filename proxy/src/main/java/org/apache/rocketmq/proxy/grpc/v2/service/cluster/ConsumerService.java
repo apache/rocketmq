@@ -278,7 +278,8 @@ public class ConsumerService extends BaseService {
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
             ChangeInvisibleTimeRequestHeader requestHeader = convertToChangeInvisibleTimeRequestHeader(ctx, request);
-            future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(), "", requestHeader)
+            future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(),
+                request.getMessageId(), requestHeader)
                 .thenApply(result -> convertToChangeInvisibleDurationResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);
