@@ -65,4 +65,12 @@ public class SearchOffsetRequestHeader extends TopicQueueRequestHeader {
         this.timestamp = timestamp;
     }
 
+    @Override
+    public String toString() {
+        return "SearchOffsetRequestHeader [" +
+            "topic='" + topic + '\'' +
+            ", queueId=" + queueId +
+            ", timestamp=" + timestamp +
+            ']';
+    }
 }

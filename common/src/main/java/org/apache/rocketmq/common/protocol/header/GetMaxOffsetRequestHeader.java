@@ -71,4 +71,13 @@ public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
     public void setCommitted(final boolean committed) {
         this.committed = committed;
     }
+
+    @Override
+    public String toString() {
+        return "GetMaxOffsetRequestHeader [" +
+            "topic='" + topic + '\'' +
+            ", queueId=" + queueId +
+            ", committed=" + committed +
+            ']';
+    }
 }

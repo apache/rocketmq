@@ -53,4 +53,12 @@ public class GetMinOffsetRequestHeader extends TopicQueueRequestHeader {
     public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
+
+    @Override
+    public String toString() {
+        return "GetMinOffsetRequestHeader [" +
+            "topic='" + topic + '\'' +
+            ", queueId=" + queueId +
+            ']';
+    }
 }

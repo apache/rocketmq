@@ -36,4 +36,11 @@ public class GetConsumerListByGroupRequestHeader implements CommandCustomHeader 
     public void setConsumerGroup(String consumerGroup) {
         this.consumerGroup = consumerGroup;
     }
+
+    @Override
+    public String toString() {
+        return "GetConsumerListByGroupRequestHeader [" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ']';
+    }
 }
