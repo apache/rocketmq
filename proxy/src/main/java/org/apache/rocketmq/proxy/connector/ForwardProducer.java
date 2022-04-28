@@ -19,6 +19,8 @@ package org.apache.rocketmq.proxy.connector;
 import io.grpc.Context;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.client.MQClientAPIExt;
@@ -114,16 +116,19 @@ public class ForwardProducer extends AbstractForwardClient {
 
     public CompletableFuture<RemotingCommand> sendMessageBackThenAckOrg(Context ctx, String brokerAddr, ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader,
         AckMessageRequestHeader ackMessageRequestHeader) {
-        return sendMessageBackThenAckOrg(ctx, brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader,DEFAULT_MQ_CLIENT_TIMEOUT);
+        return sendMessageBackThenAckOrg(ctx, brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader, DEFAULT_MQ_CLIENT_TIMEOUT,
+            future -> {
+            });
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBackThenAckOrg(Context ctx, String brokerAddr, ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader,
-        AckMessageRequestHeader ackMessageRequestHeader, long timeoutMillis) {
+        AckMessageRequestHeader ackMessageRequestHeader, long timeoutMillis,
+        Consumer<CompletableFuture<AckResult>> ackFutureSetter) {
         return this.sendMessageBack(ctx, brokerAddr, sendMsgBackRequestHeader, timeoutMillis).whenComplete((result, throwable) -> {
             if (throwable != null || ResponseCode.SUCCESS != result.getCode()) {
                 return;
             }
-            this.getClient().ackMessageAsync(brokerAddr, ackMessageRequestHeader, timeoutMillis);
+            ackFutureSetter.accept(this.getClient().ackMessageAsync(brokerAddr, ackMessageRequestHeader, timeoutMillis));
         });
     }
 
