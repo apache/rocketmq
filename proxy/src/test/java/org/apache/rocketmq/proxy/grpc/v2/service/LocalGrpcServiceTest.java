@@ -140,7 +140,6 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
-        Mockito.when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         Mockito.when(brokerControllerMock.getTopicConfigManager()).thenReturn(topicConfigManagerMock);
         Mockito.when(topicConfigManagerMock.selectTopicConfig(Mockito.anyString())).thenReturn(new TopicConfig("topic", 8, 8));
         Mockito.doNothing().when(consumerManagerMock).appendConsumerIdsChangeListener(Mockito.any(ConsumerIdsChangeListener.class));
