@@ -77,8 +77,8 @@ public class RouteInfoManager {
 
     public void deleteTopic(final String topic) {
         try {
+            this.lock.writeLock().lockInterruptibly();
             try {
-                this.lock.writeLock().lockInterruptibly();
                 this.topicQueueTable.remove(topic);
             } finally {
                 this.lock.writeLock().unlock();
@@ -91,8 +91,8 @@ public class RouteInfoManager {
     public TopicList getAllTopicList() {
         TopicList topicList = new TopicList();
         try {
+            this.lock.readLock().lockInterruptibly();
             try {
-                this.lock.readLock().lockInterruptibly();
                 topicList.getTopicList().addAll(this.topicQueueTable.keySet());
             } finally {
                 this.lock.readLock().unlock();
@@ -115,9 +115,8 @@ public class RouteInfoManager {
             final Channel channel) {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
+            this.lock.writeLock().lockInterruptibly();
             try {
-                this.lock.writeLock().lockInterruptibly();
-
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
                 if (null == brokerNames) {
                     brokerNames = new HashSet<>();
@@ -258,8 +257,8 @@ public class RouteInfoManager {
 
     private int operateWritePermOfBrokerByLock(final String brokerName, final int requestCode) {
         try {
+            this.lock.writeLock().lockInterruptibly();
             try {
-                this.lock.writeLock().lockInterruptibly();
                 return operateWritePermOfBroker(brokerName, requestCode);
             } finally {
                 this.lock.writeLock().unlock();
@@ -307,8 +306,8 @@ public class RouteInfoManager {
             final String brokerName,
             final long brokerId) {
         try {
+            this.lock.writeLock().lockInterruptibly();
             try {
-                this.lock.writeLock().lockInterruptibly();
                 BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddr);
                 log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
                         brokerLiveInfo != null ? "OK" : "Failed",
@@ -391,8 +390,8 @@ public class RouteInfoManager {
         topicRouteData.setFilterServerTable(filterServerMap);
 
         try {
+            this.lock.readLock().lockInterruptibly();
             try {
-                this.lock.readLock().lockInterruptibly();
                 Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topic);
                 if (queueDataMap != null) {
                     topicRouteData.setQueueDatas(new ArrayList<>(queueDataMap.values()));
@@ -461,8 +460,8 @@ public class RouteInfoManager {
         String brokerAddrFound = null;
         if (channel != null) {
             try {
+                this.lock.readLock().lockInterruptibly();
                 try {
-                    this.lock.readLock().lockInterruptibly();
                     Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable =
                             this.brokerLiveTable.entrySet().iterator();
                     while (itBrokerLiveTable.hasNext()) {
@@ -489,8 +488,8 @@ public class RouteInfoManager {
         if (brokerAddrFound != null && brokerAddrFound.length() > 0) {
 
             try {
+                this.lock.writeLock().lockInterruptibly();
                 try {
-                    this.lock.writeLock().lockInterruptibly();
                     this.brokerLiveTable.remove(brokerAddrFound);
                     this.filterServerTable.remove(brokerAddrFound);
                     String brokerNameFound = null;
@@ -573,8 +572,8 @@ public class RouteInfoManager {
 
     public void printAllPeriodically() {
         try {
+            this.lock.readLock().lockInterruptibly();
             try {
-                this.lock.readLock().lockInterruptibly();
                 log.info("--------------------------------------------------------");
                 {
                     log.info("topicQueueTable SIZE: {}", this.topicQueueTable.size());
@@ -622,8 +621,8 @@ public class RouteInfoManager {
     public TopicList getSystemTopicList() {
         TopicList topicList = new TopicList();
         try {
+            this.lock.readLock().lockInterruptibly();
             try {
-                this.lock.readLock().lockInterruptibly();
                 for (Map.Entry<String, Set<String>> entry : clusterAddrTable.entrySet()) {
                     topicList.getTopicList().add(entry.getKey());
                     topicList.getTopicList().addAll(entry.getValue());
@@ -654,9 +653,8 @@ public class RouteInfoManager {
     public TopicList getTopicsByCluster(String cluster) {
         TopicList topicList = new TopicList();
         try {
+            this.lock.readLock().lockInterruptibly();
             try {
-                this.lock.readLock().lockInterruptibly();
-
                 Set<String> brokerNameSet = this.clusterAddrTable.get(cluster);
                 for (String brokerName : brokerNameSet) {
                     this.topicQueueTable.forEach((topic, queueDataMap) -> {
@@ -692,9 +690,8 @@ public class RouteInfoManager {
     private TopicList topicQueueTableIter(Predicate<QueueData> pickCondition) {
         TopicList topicList = new TopicList();
         try {
+            this.lock.readLock().lockInterruptibly();
             try {
-                this.lock.readLock().lockInterruptibly();
-
                 topicQueueTable.forEach((topic, queueDataMap) -> {
                     for (QueueData qd : queueDataMap.values()) {
                         if (pickCondition.test(qd)) {
