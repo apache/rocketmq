@@ -135,8 +135,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 public Thread newThread(Runnable r) {
                     return new Thread(r, "AsyncSenderExecutor_" + this.threadIndex.incrementAndGet());
                 }
-            },
-            new ThreadPoolExecutor.CallerRunsPolicy());
+            });
     }
 
     public void registerCheckForbiddenHook(CheckForbiddenHook checkForbiddenHook) {
