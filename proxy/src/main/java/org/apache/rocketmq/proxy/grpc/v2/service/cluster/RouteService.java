@@ -26,7 +26,6 @@ import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
-import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,12 +62,12 @@ public class RouteService extends AbstractRouteService {
             List<QueueData> queueDataList = topicRouteData.getQueueDatas();
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
-            Settings clientSettings = grpcClientManager.getClientSettings(ctx);
-            Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
+            Endpoints endpoints = request.getEndpoints();
+            Endpoints resEndpoints = this.queryRouteEndpointConverter.convert(ctx, endpoints);
             if (resEndpoints == null || resEndpoints.getDefaultInstanceForType().equals(resEndpoints)) {
                 future.complete(QueryRouteResponse.newBuilder()
                     .setStatus(ResponseBuilder.buildStatus(Code.ILLEGAL_ACCESS_POINT, "endpoint " +
-                        clientSettings.getAccessPoint() + " is invalidate"))
+                        endpoints + " is invalidate"))
                     .build());
                 return future;
             }
@@ -110,12 +109,12 @@ public class RouteService extends AbstractRouteService {
         try {
             List<Assignment> assignments = new ArrayList<>();
             List<SelectableMessageQueue> messageQueueList = this.assignmentQueueSelector.getAssignment(ctx, request);
-            Settings clientSettings = grpcClientManager.getClientSettings(ctx);
-            Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, clientSettings.getAccessPoint());
+            Endpoints endpoints = request.getEndpoints();
+            Endpoints resEndpoints = this.queryAssignmentEndpointConverter.convert(ctx, endpoints);
             if (resEndpoints == null || Endpoints.getDefaultInstance().equals(resEndpoints)) {
                 future.complete(QueryAssignmentResponse.newBuilder()
                     .setStatus(ResponseBuilder.buildStatus(Code.ILLEGAL_ACCESS_POINT, "endpoint " +
-                        clientSettings.getAccessPoint() + " is invalidate"))
+                        endpoints + " is invalidate"))
                     .build());
                 return future;
             }
