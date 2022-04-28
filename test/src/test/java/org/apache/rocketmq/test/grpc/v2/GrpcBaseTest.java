@@ -500,6 +500,7 @@ public class GrpcBaseTest extends BaseConf {
 
     public QueryRouteRequest buildQueryRouteRequest(String topic) {
         return QueryRouteRequest.newBuilder()
+            .setEndpoints(buildEndpoints(PORT))
             .setTopic(Resource.newBuilder()
                 .setName(topic)
                 .build())
@@ -508,6 +509,7 @@ public class GrpcBaseTest extends BaseConf {
 
     public QueryAssignmentRequest buildQueryAssignmentRequest(String topic, String group) {
         return QueryAssignmentRequest.newBuilder()
+            .setEndpoints(buildEndpoints(PORT))
             .setTopic(Resource.newBuilder().setName(topic).build())
             .setGroup(Resource.newBuilder().setName(group).build())
             .build();
@@ -683,15 +685,19 @@ public class GrpcBaseTest extends BaseConf {
         assertThat(response.getReceiptHandle()).isNotEqualTo(prevHandle);
     }
 
+    public Endpoints buildEndpoints(int port) {
+        return Endpoints.newBuilder()
+            .setScheme(AddressScheme.IPv4)
+            .addAddresses(Address.newBuilder()
+                .setHost("127.0.0.1")
+                .setPort(port)
+                .build())
+            .build();
+    }
+
     public Settings buildAccessPointClientSettings(int port) {
         return Settings.newBuilder()
-            .setAccessPoint(Endpoints.newBuilder()
-                .setScheme(AddressScheme.IPv4)
-                .addAddresses(Address.newBuilder()
-                    .setHost("127.0.0.1")
-                    .setPort(port)
-                    .build())
-                .build())
+            .setAccessPoint(buildEndpoints(port))
             .build();
     }
 
