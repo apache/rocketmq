@@ -295,6 +295,10 @@ public class UtilAll {
         return (byte) "0123456789ABCDEF".indexOf(c);
     }
 
+    /**
+     * use {@link org.apache.rocketmq.common.compression.Compressor#decompress(byte[])} instead.
+     */
+    @Deprecated
     public static byte[] uncompress(final byte[] src) throws IOException {
         byte[] result = src;
         byte[] uncompressData = new byte[src.length];
@@ -335,6 +339,10 @@ public class UtilAll {
         return result;
     }
 
+    /**
+     * use {@link org.apache.rocketmq.common.compression.Compressor#compress(byte[], int)} instead.
+     */
+    @Deprecated
     public static byte[] compress(final byte[] src, final int level) throws IOException {
         byte[] result = src;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(src.length);
