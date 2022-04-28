@@ -438,7 +438,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             TopicPublishInfo topicPublishInfo = producer.getTopicPublishInfoTable().get(topic);
             if (null == topicPublishInfo || !topicPublishInfo.ok()) {
                 producer.getTopicPublishInfoTable().putIfAbsent(topic, new TopicPublishInfo());
-                producer.getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
+                producer.getMqClientFactory().updateTopicRouteInfoFromNameServer(topic);
                 topicPublishInfo = producer.getTopicPublishInfoTable().get(topic);
             }
             if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
