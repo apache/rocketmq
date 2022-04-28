@@ -93,7 +93,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         when(readConsumerClient.popMessage(any(), anyString(), anyString(), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(popResult));
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
-        when(writeConsumerClient.ackMessage(any(), anyString(), any()))
+        when(writeConsumerClient.ackMessage(any(), anyString(), anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(new AckResult()));
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
@@ -190,7 +190,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
         AckResult ackResult = new AckResult();
         ackResult.setStatus(AckStatus.OK);
-        when(writeConsumerClient.ackMessage(any(), anyString(), any())).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(writeConsumerClient.ackMessage(any(), anyString(), anyString(), any())).thenReturn(CompletableFuture.completedFuture(ackResult));
 
         AckMessageResponse response = consumerService.ackMessage(Context.current(), AckMessageRequest.newBuilder()
             .setTopic(Resource.newBuilder()
@@ -241,7 +241,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
         ArgumentCaptor<ChangeInvisibleTimeRequestHeader> headerArgumentCaptor = ArgumentCaptor.forClass(ChangeInvisibleTimeRequestHeader.class);
         AckResult ackResult = new AckResult();
         ackResult.setStatus(AckStatus.OK);
-        when(writeConsumerClient.changeInvisibleTimeAsync(any(), anyString(), anyString(), headerArgumentCaptor.capture()))
+        when(writeConsumerClient.changeInvisibleTimeAsync(any(), anyString(), anyString(), anyString(), headerArgumentCaptor.capture()))
             .thenReturn(CompletableFuture.completedFuture(ackResult));
         when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
 

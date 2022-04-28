@@ -168,7 +168,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         return clientService.telemetry(ctx, responseObserver);
     }
 
-    private class ClusterGrpcServiceStartAndShutdown implements StartAndShutdown {
+    protected class ClusterGrpcServiceStartAndShutdown implements StartAndShutdown {
 
         @Override
         public void start() throws Exception {
@@ -180,7 +180,7 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
         }
     }
 
-    private class GrpcTransactionStateChecker implements TransactionStateChecker {
+    protected class GrpcTransactionStateChecker implements TransactionStateChecker {
 
         @Override
         public void checkTransactionState(TransactionStateCheckRequest checkData) {

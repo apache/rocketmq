@@ -169,7 +169,7 @@ public class ConsumerService extends BaseService {
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
             AckMessageRequestHeader requestHeader = this.buildAckMessageRequestHeader(ctx, request, receiptHandle);
-            CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(ctx, brokerAddr, requestHeader);
+            CompletableFuture<AckResult> ackResultFuture = this.writeConsumer.ackMessage(ctx, brokerAddr, ackMessageEntry.getMessageId(), requestHeader);
             ackResultFuture
                 .thenAccept(result -> future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result)))
                 .exceptionally(throwable -> {
@@ -220,7 +220,7 @@ public class ConsumerService extends BaseService {
                 ).thenApply(result -> convertToNackMessageResponse(ctx, request, result));
             } else {
                 ChangeInvisibleTimeRequestHeader requestHeader = this.buildChangeInvisibleTimeRequestHeader(ctx, request);
-                future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(), requestHeader)
+                future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(), request.getMessageId(), requestHeader)
                     .thenApply(result -> convertToNackMessageResponse(ctx, request, result));
             }
         } catch (Throwable t) {
@@ -278,7 +278,7 @@ public class ConsumerService extends BaseService {
             String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
 
             ChangeInvisibleTimeRequestHeader requestHeader = convertToChangeInvisibleTimeRequestHeader(ctx, request);
-            future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(), requestHeader)
+            future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(), "", requestHeader)
                 .thenApply(result -> convertToChangeInvisibleDurationResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);

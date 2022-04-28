@@ -48,13 +48,14 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         return clientFactory.getMQClient(name, threadCount);
     }
 
-    public CompletableFuture<AckResult> ackMessage(Context ctx, String address, AckMessageRequestHeader requestHeader) {
-        return this.ackMessage(ctx, address, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
+    public CompletableFuture<AckResult> ackMessage(Context ctx, String address, String messageId, AckMessageRequestHeader requestHeader) {
+        return this.ackMessage(ctx, address, messageId, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<AckResult> ackMessage(
         Context ctx,
         String address,
+        String messageId,
         AckMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
@@ -65,15 +66,17 @@ public class ForwardWriteConsumer extends AbstractForwardClient {
         Context ctx,
         String address,
         String brokerName,
+        String messageId,
         ChangeInvisibleTimeRequestHeader requestHeader
     ) {
-        return this.changeInvisibleTimeAsync(ctx, address, brokerName, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
+        return this.changeInvisibleTimeAsync(ctx, address, brokerName, messageId, requestHeader, DEFAULT_MQ_CLIENT_TIMEOUT);
     }
 
     public CompletableFuture<AckResult> changeInvisibleTimeAsync(
         Context ctx,
         String address,
         String brokerName,
+        String messageId,
         ChangeInvisibleTimeRequestHeader requestHeader,
         long timeoutMillis
     ) {

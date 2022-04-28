@@ -39,6 +39,11 @@ public class ForwardClientManager implements StartAndShutdown {
         this.init(transactionStateChecker);
     }
 
+    public ForwardClientManager(TransactionStateChecker transactionStateChecker, RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
+        this.init(transactionStateChecker);
+    }
+
     protected void init(TransactionStateChecker transactionStateChecker) {
         System.setProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY,
             System.getProperty(ClientConfig.SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
@@ -66,10 +71,6 @@ public class ForwardClientManager implements StartAndShutdown {
 
     public MQClientAPIExt getTransactionalProducer(String instanceName, int bootstrapWorkerThreads) {
         return transactionalProducerFactory.getOne(instanceName, bootstrapWorkerThreads);
-    }
-
-    public void setRpcHook(RPCHook rpcHook) {
-        this.rpcHook = rpcHook;
     }
 
     @Override

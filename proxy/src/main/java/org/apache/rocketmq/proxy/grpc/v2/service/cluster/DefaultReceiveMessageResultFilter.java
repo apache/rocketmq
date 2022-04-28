@@ -128,7 +128,7 @@ public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFi
         AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(request, handle);
         try {
             String brokerAddr = getBrokerAddr(ctx, topicRouteCache, handle.getBrokerName());
-            future = this.writeConsumer.ackMessage(ctx, brokerAddr, ackMessageRequestHeader);
+            future = this.writeConsumer.ackMessage(ctx, brokerAddr, messageExt.getMsgId(), ackMessageRequestHeader);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

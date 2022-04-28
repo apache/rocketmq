@@ -148,6 +148,7 @@ public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageRes
                 ctx,
                 brokerAddr,
                 handle.getBrokerName(),
+                message.getSystemProperties().getMessageId(),
                 changeInvisibleTimeRequestHeader
             ).whenComplete((ackResult, t) -> {
                 if (t != null) {
