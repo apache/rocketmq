@@ -300,7 +300,7 @@ public class MQClientAPIImpl {
 
     public void createPlainAccessConfig(final String addr, final PlainAccessConfig plainAccessConfig,
         final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
         CreateAccessConfigRequestHeader requestHeader = new CreateAccessConfigRequestHeader();
         requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
         requestHeader.setSecretKey(plainAccessConfig.getSecretKey());
@@ -328,7 +328,7 @@ public class MQClientAPIImpl {
     }
 
     public void deleteAccessConfig(final String addr, final String accessKey, final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
         DeleteAccessConfigRequestHeader requestHeader = new DeleteAccessConfigRequestHeader();
         requestHeader.setAccessKey(accessKey);
 
@@ -349,7 +349,7 @@ public class MQClientAPIImpl {
     }
 
     public void updateGlobalWhiteAddrsConfig(final String addr, final String globalWhiteAddrs, final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, InterruptedException, MQClientException {
 
         UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = new UpdateGlobalWhiteAddrsConfigRequestHeader();
         requestHeader.setGlobalWhiteAddrs(globalWhiteAddrs);
@@ -404,7 +404,7 @@ public class MQClientAPIImpl {
     }
 
     public AclConfig getBrokerClusterConfig(final String addr,
-        final long timeoutMillis) throws RemotingCommandException, InterruptedException, RemotingTimeoutException,
+        final long timeoutMillis) throws InterruptedException, RemotingTimeoutException,
         RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG, null);
 
@@ -528,7 +528,7 @@ public class MQClientAPIImpl {
         final AtomicInteger times,
         final SendMessageContext context,
         final DefaultMQProducerImpl producer
-    ) throws InterruptedException, RemotingException {
+    ) {
         final long beginStartTime = System.currentTimeMillis();
         try {
             this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
@@ -621,22 +621,10 @@ public class MQClientAPIImpl {
             }
             String addr = instance.findBrokerAddressInPublish(retryBrokerName);
             log.warn("async send msg by retry {} times. topic={}, brokerAddr={}, brokerName={}", tmp, msg.getTopic(), addr,
-                retryBrokerName, e);
-            try {
-                request.setOpaque(RemotingCommand.createNewRequestId());
-                sendMessageAsync(addr, retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
+                    retryBrokerName, e);
+            request.setOpaque(RemotingCommand.createNewRequestId());
+            sendMessageAsync(addr, retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance,
                     timesTotal, curTimes, context, producer);
-            } catch (InterruptedException e1) {
-                onExceptionImpl(retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                    context, false, producer);
-            } catch (RemotingTooMuchRequestException e1) {
-                onExceptionImpl(retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                    context, false, producer);
-            } catch (RemotingException e1) {
-                producer.updateFaultItem(brokerName, 3000, true);
-                onExceptionImpl(retryBrokerName, msg, timeoutMillis, request, sendCallback, topicPublishInfo, instance, timesTotal, curTimes, e1,
-                    context, true, producer);
-            }
         } else {
 
             if (context != null) {
@@ -1073,7 +1061,7 @@ public class MQClientAPIImpl {
         final EndTransactionRequestHeader requestHeader,
         final String remark,
         final long timeoutMillis
-    ) throws RemotingException, MQBrokerException, InterruptedException {
+    ) throws RemotingException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
 
         request.setRemark(remark);
@@ -2103,8 +2091,7 @@ public class MQClientAPIImpl {
     }
 
     public Set<String> getClusterList(String topic,
-        long timeoutMillis) throws MQClientException, RemotingConnectException,
-        RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+        long timeoutMillis) {
         return Collections.EMPTY_SET;
     }
 
@@ -2170,8 +2157,7 @@ public class MQClientAPIImpl {
     }
 
     public void updateNameServerConfig(final Properties properties, final List<String> nameServers, long timeoutMillis)
-        throws UnsupportedEncodingException,
-        MQBrokerException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        throws UnsupportedEncodingException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQClientException {
         String str = MixAll.properties2String(properties);
         if (str == null || str.length() < 1) {
@@ -2281,7 +2267,7 @@ public class MQClientAPIImpl {
     }
 
     public boolean resumeCheckHalfMessage(final String addr, String msgId,
-        final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
+        final long timeoutMillis) throws RemotingException, InterruptedException {
         ResumeCheckHalfMessageRequestHeader requestHeader = new ResumeCheckHalfMessageRequestHeader();
         requestHeader.setMsgId(msgId);
 
