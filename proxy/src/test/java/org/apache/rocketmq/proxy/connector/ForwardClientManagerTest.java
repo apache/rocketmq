@@ -29,6 +29,8 @@ public class ForwardClientManagerTest extends InitConfigAndLoggerTest {
 
     @Test
     public void testConnectorManager() throws Exception {
+        ConfigurationManager.getProxyConfig().setNameSrvAddr("127.0.0.1:9876");
+
         TransactionStateChecker mockedTransactionStateChecker = Mockito.mock(TransactionStateChecker.class);
         ConnectorManager connectorManager = new ConnectorManager(mockedTransactionStateChecker);
         connectorManager.start();

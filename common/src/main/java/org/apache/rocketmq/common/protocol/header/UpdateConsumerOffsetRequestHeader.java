@@ -73,4 +73,14 @@ public class UpdateConsumerOffsetRequestHeader extends TopicQueueRequestHeader {
     public void setCommitOffset(Long commitOffset) {
         this.commitOffset = commitOffset;
     }
+
+    @Override
+    public String toString() {
+        return "UpdateConsumerOffsetRequestHeader [" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ", topic='" + topic + '\'' +
+            ", queueId=" + queueId +
+            ", commitOffset=" + commitOffset +
+            ']';
+    }
 }

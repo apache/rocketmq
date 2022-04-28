@@ -68,4 +68,14 @@ public class CloneGroupOffsetRequestHeader implements CommandCustomHeader {
     public void setOffline(boolean offline) {
         this.offline = offline;
     }
+
+    @Override
+    public String toString() {
+        return "CloneGroupOffsetRequestHeader{" +
+            "srcGroup='" + srcGroup + '\'' +
+            ", destGroup='" + destGroup + '\'' +
+            ", topic='" + topic + '\'' +
+            ", offline=" + offline +
+            '}';
+    }
 }

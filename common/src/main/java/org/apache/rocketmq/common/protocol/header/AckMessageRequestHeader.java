@@ -80,6 +80,12 @@ public class AckMessageRequestHeader implements CommandCustomHeader {
 
     @Override
     public String toString() {
-        return topic + "," + this.consumerGroup + "," + this.queueId + "," + this.offset + "," + this.extraInfo;
+        return "AckMessageRequestHeader{" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ", topic='" + topic + '\'' +
+            ", queueId=" + queueId +
+            ", extraInfo='" + extraInfo + '\'' +
+            ", offset=" + offset +
+            '}';
     }
 }

@@ -154,4 +154,22 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader {
     public void setMaxMsgBytes(Integer maxMsgBytes) {
         this.maxMsgBytes = maxMsgBytes;
     }
+
+    @Override
+    public String toString() {
+        return "PullMessageRequestHeader [" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ", topic='" + topic + '\'' +
+            ", queueId=" + queueId +
+            ", queueOffset=" + queueOffset +
+            ", maxMsgBytes=" + maxMsgBytes +
+            ", maxMsgNums=" + maxMsgNums +
+            ", sysFlag=" + sysFlag +
+            ", commitOffset=" + commitOffset +
+            ", suspendTimeoutMillis=" + suspendTimeoutMillis +
+            ", subscription='" + subscription + '\'' +
+            ", subVersion=" + subVersion +
+            ", expressionType='" + expressionType + '\'' +
+            ']';
+    }
 }

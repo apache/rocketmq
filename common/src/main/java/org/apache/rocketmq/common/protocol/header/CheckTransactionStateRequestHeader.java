@@ -76,4 +76,15 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
     public void setOffsetMsgId(String offsetMsgId) {
         this.offsetMsgId = offsetMsgId;
     }
+
+    @Override
+    public String toString() {
+        return "CheckTransactionStateRequestHeader{" +
+            "tranStateTableOffset=" + tranStateTableOffset +
+            ", commitLogOffset=" + commitLogOffset +
+            ", msgId='" + msgId + '\'' +
+            ", transactionId='" + transactionId + '\'' +
+            ", offsetMsgId='" + offsetMsgId + '\'' +
+            '}';
+    }
 }

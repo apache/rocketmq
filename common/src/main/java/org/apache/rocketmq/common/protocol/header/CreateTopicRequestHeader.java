@@ -139,4 +139,20 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
     public void setAttributes(String attributes) {
         this.attributes = attributes;
     }
+
+    @Override
+    public String toString() {
+        return "CreateTopicRequestHeader{" +
+            "topic='" + topic + '\'' +
+            ", defaultTopic='" + defaultTopic + '\'' +
+            ", readQueueNums=" + readQueueNums +
+            ", writeQueueNums=" + writeQueueNums +
+            ", perm=" + perm +
+            ", topicFilterType='" + topicFilterType + '\'' +
+            ", topicSysFlag=" + topicSysFlag +
+            ", order=" + order +
+            ", attributes='" + attributes + '\'' +
+            ", force=" + force +
+            '}';
+    }
 }

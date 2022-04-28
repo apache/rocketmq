@@ -57,4 +57,13 @@ public class GetConsumerRunningInfoRequestHeader implements CommandCustomHeader 
     public void setJstackEnable(boolean jstackEnable) {
         this.jstackEnable = jstackEnable;
     }
+
+    @Override
+    public String toString() {
+        return "GetConsumerRunningInfoRequestHeader{" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ", clientId='" + clientId + '\'' +
+            ", jstackEnable=" + jstackEnable +
+            '}';
+    }
 }

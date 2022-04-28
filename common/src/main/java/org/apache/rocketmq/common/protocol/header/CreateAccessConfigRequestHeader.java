@@ -110,4 +110,18 @@ public class CreateAccessConfigRequestHeader implements CommandCustomHeader {
     public void setGroupPerms(String groupPerms) {
         this.groupPerms = groupPerms;
     }
+
+    @Override
+    public String toString() {
+        return "CreateAccessConfigRequestHeader{" +
+            "accessKey='" + accessKey + '\'' +
+            ", secretKey='" + secretKey + '\'' +
+            ", whiteRemoteAddress='" + whiteRemoteAddress + '\'' +
+            ", admin=" + admin +
+            ", defaultTopicPerm='" + defaultTopicPerm + '\'' +
+            ", defaultGroupPerm='" + defaultGroupPerm + '\'' +
+            ", topicPerms='" + topicPerms + '\'' +
+            ", groupPerms='" + groupPerms + '\'' +
+            '}';
+    }
 }

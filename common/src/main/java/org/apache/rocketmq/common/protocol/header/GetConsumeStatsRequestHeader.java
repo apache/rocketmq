@@ -44,4 +44,12 @@ public class GetConsumeStatsRequestHeader implements CommandCustomHeader {
     public void setTopic(String topic) {
         this.topic = topic;
     }
+
+    @Override
+    public String toString() {
+        return "GetConsumeStatsRequestHeader{" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ", topic='" + topic + '\'' +
+            '}';
+    }
 }

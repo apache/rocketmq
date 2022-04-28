@@ -57,4 +57,13 @@ public class GetConsumerStatusRequestHeader implements CommandCustomHeader {
     public void setClientAddr(String clientAddr) {
         this.clientAddr = clientAddr;
     }
+
+    @Override
+    public String toString() {
+        return "GetConsumerStatusRequestHeader{" +
+            "topic='" + topic + '\'' +
+            ", group='" + group + '\'' +
+            ", clientAddr='" + clientAddr + '\'' +
+            '}';
+    }
 }

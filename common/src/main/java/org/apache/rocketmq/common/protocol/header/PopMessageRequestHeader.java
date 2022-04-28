@@ -152,4 +152,21 @@ public class PopMessageRequestHeader implements CommandCustomHeader {
     public boolean isOrder() {
         return this.order != null && this.order.booleanValue();
     }
+
+    @Override
+    public String toString() {
+        return "PopMessageRequestHeader [" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ", topic='" + topic + '\'' +
+            ", queueId=" + queueId +
+            ", maxMsgNums=" + maxMsgNums +
+            ", invisibleTime=" + invisibleTime +
+            ", pollTime=" + pollTime +
+            ", bornTime=" + bornTime +
+            ", initMode=" + initMode +
+            ", expType='" + expType + '\'' +
+            ", exp='" + exp + '\'' +
+            ", order=" + order +
+            ']';
+    }
 }

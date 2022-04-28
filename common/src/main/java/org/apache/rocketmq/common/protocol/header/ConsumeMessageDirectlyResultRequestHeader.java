@@ -97,4 +97,17 @@ public class ConsumeMessageDirectlyResultRequestHeader implements CommandCustomH
     public void setGroupSysFlag(Integer groupSysFlag) {
         this.groupSysFlag = groupSysFlag;
     }
+
+    @Override
+    public String toString() {
+        return "ConsumeMessageDirectlyResultRequestHeader{" +
+            "consumerGroup='" + consumerGroup + '\'' +
+            ", clientId='" + clientId + '\'' +
+            ", msgId='" + msgId + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", topic='" + topic + '\'' +
+            ", topicSysFlag=" + topicSysFlag +
+            ", groupSysFlag=" + groupSysFlag +
+            '}';
+    }
 }
