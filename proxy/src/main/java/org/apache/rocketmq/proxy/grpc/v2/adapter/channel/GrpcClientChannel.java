@@ -96,10 +96,7 @@ public class GrpcClientChannel extends SimpleChannel {
 
     @Override
     public boolean isWritable() {
-        if (this.telemetryCommandRef.get() == null) {
-            return false;
-        }
-        return true;
+        return this.telemetryCommandRef.get() != null;
     }
 
     /**
