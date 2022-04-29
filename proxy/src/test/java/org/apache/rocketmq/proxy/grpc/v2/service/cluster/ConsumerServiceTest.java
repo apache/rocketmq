@@ -19,6 +19,8 @@ package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 import apache.rocketmq.v2.AckMessageEntry;
 import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
+import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
+import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.FilterExpression;
@@ -31,6 +33,8 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
+import com.google.protobuf.Duration;
+import com.google.protobuf.util.Durations;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.List;
@@ -279,6 +283,40 @@ public class ConsumerServiceTest extends BaseServiceTest {
         assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(receiptHandle.getOffset(), headerArgumentCaptor.getValue().getOffset().longValue());
         assertEquals(receiptHandle.encode(), headerArgumentCaptor.getValue().getExtraInfo());
+    }
+
+    @Test
+    public void testChangeInvisibleDuration() throws Exception {
+        Duration newDuration = Duration.newBuilder()
+            .setSeconds(3).build();
+        ReceiptHandle receiptHandle = createReceiptHandle();
+        ArgumentCaptor<ChangeInvisibleTimeRequestHeader> headerArgumentCaptor = ArgumentCaptor.forClass(ChangeInvisibleTimeRequestHeader.class);
+        AckResult ackResult = new AckResult();
+        ackResult.setStatus(AckStatus.OK);
+        ackResult.setExtraInfo(receiptHandle.encode());
+        when(writeConsumerClient.changeInvisibleTimeAsync(any(), anyString(), anyString(), anyString(), headerArgumentCaptor.capture()))
+            .thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
+
+        Settings clientSettings = createClientSettings(3);
+        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
+
+        ChangeInvisibleDurationResponse response = consumerService.changeInvisibleDuration(Context.current(), ChangeInvisibleDurationRequest.newBuilder()
+            .setTopic(Resource.newBuilder()
+                .setName("topic")
+                .build())
+            .setGroup(Resource.newBuilder()
+                .setName("group")
+                .build())
+            .setReceiptHandle(receiptHandle.encode())
+            .setInvisibleDuration(newDuration)
+            .build())
+            .get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(receiptHandle.getOffset(), headerArgumentCaptor.getValue().getOffset().longValue());
+        assertEquals(receiptHandle.encode(), headerArgumentCaptor.getValue().getExtraInfo());
+        assertEquals(Durations.toMillis(newDuration), headerArgumentCaptor.getValue().getInvisibleTime().longValue());
     }
 
     private Settings createClientSettings(int maxDeliveryAttempts) {
