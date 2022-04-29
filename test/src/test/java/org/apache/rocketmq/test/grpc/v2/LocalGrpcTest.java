@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.grpc.v2;
 
+import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteResponse;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingProcessor;
@@ -46,10 +47,19 @@ public class LocalGrpcTest extends GrpcBaseTest {
     @Test
     public void testQueryRoute() throws Exception {
         String topic = initTopic();
-        this.sendClientSettings(stub, buildAccessPointClientSettings(PORT)).get();
 
         QueryRouteResponse response = blockingStub.queryRoute(buildQueryRouteRequest(topic));
         assertQueryRoute(response, brokerControllerList.size() * defaultQueueNums);
+    }
+
+    @Test
+    public void testQueryAssignment() throws Exception {
+        String topic = initTopic();
+        String group = "group";
+
+        QueryAssignmentResponse response = blockingStub.queryAssignment(buildQueryAssignmentRequest(topic, group));
+
+        assertQueryAssignment(response, brokerNum);
     }
 
     @Test

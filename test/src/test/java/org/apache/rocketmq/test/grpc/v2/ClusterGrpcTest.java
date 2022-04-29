@@ -61,7 +61,6 @@ public class ClusterGrpcTest extends GrpcBaseTest {
     @Test
     public void testQueryRoute() throws Exception {
         String topic = initTopic();
-        this.sendClientSettings(stub, buildAccessPointClientSettings(PORT)).get();
 
         QueryRouteResponse response = blockingStub.queryRoute(buildQueryRouteRequest(topic));
         assertQueryRoute(response, brokerNum * defaultQueueNums);
@@ -71,7 +70,6 @@ public class ClusterGrpcTest extends GrpcBaseTest {
     public void testQueryAssignment() throws Exception {
         String topic = initTopic();
         String group = "group";
-        this.sendClientSettings(stub, buildAccessPointClientSettings(PORT)).get();
 
         QueryAssignmentResponse response = blockingStub.queryAssignment(buildQueryAssignmentRequest(topic, group));
 
