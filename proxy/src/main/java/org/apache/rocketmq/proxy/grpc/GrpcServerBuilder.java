@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.grpc;
 
 import io.grpc.BindableService;
+import io.grpc.ServerInterceptor;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
@@ -97,6 +98,11 @@ public class GrpcServerBuilder {
 
     public GrpcServerBuilder addService(ServerServiceDefinition service) {
         this.serverBuilder.addService(service);
+        return this;
+    }
+
+    public GrpcServerBuilder appendInterceptor(ServerInterceptor interceptor) {
+        this.serverBuilder.intercept(interceptor);
         return this;
     }
 
