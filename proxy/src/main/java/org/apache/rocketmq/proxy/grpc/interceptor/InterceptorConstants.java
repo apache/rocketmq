@@ -21,9 +21,6 @@ import io.grpc.Context;
 import io.grpc.Metadata;
 
 public class InterceptorConstants {
-    private InterceptorConstants() {
-    }
-
     public static final Context.Key<Metadata> METADATA = Context.key("rpc-metadata");
 
     /**
