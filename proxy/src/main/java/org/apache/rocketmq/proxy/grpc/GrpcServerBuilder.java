@@ -27,9 +27,10 @@ import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -83,8 +84,6 @@ public class GrpcServerBuilder {
                 .executor(executor);
         }
 
-        configInterceptor(serverBuilder);
-
         log.info(
             "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
                 + "boosLoop: {}, workerLoop: {}, maxInboundMessageSize: {}",
@@ -122,8 +121,8 @@ public class GrpcServerBuilder {
 
         String tlsKeyPath = ConfigurationManager.getProxyConfig().getGrpcTlsKeyPath();
         String tlsCertPath = ConfigurationManager.getProxyConfig().getGrpcTlsCertPath();
-        try (InputStream serverKeyInputStream = new FileInputStream(tlsKeyPath);
-             InputStream serverCertificateStream = new FileInputStream(tlsCertPath)) {
+        try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(tlsKeyPath));
+             InputStream serverCertificateStream = Files.newInputStream(Paths.get(tlsCertPath))) {
             serverBuilder.sslContext(GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .clientAuth(ClientAuth.NONE)
@@ -134,17 +133,21 @@ public class GrpcServerBuilder {
         }
     }
 
-    protected void configInterceptor(NettyServerBuilder serverBuilder) {
+    public GrpcServerBuilder configInterceptor() {
         // grpc interceptors, including acl, logging etc.
         if (ConfigurationManager.getProxyConfig().isEnableACL()) {
             List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
             if (accessValidators.isEmpty()) {
                 throw new IllegalArgumentException("Load AccessValidator failed");
             }
-            serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
+            this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
         }
 
-        serverBuilder.intercept(new ContextInterceptor())
+        this.serverBuilder
+            .intercept(new ContextInterceptor())
             .intercept(new HeaderInterceptor());
+
+        return this;
     }
+
 }

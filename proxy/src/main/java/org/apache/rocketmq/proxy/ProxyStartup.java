@@ -68,6 +68,7 @@ public class ProxyStartup {
             // create grpcServer
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor)
                 .addService(createServiceProcessor())
+                .configInterceptor()
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
