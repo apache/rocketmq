@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store.ha.controller;
+package org.apache.rocketmq.store.ha;
 
 import java.io.File;
 import java.nio.file.Paths;
+import org.apache.rocketmq.common.EpochEntry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

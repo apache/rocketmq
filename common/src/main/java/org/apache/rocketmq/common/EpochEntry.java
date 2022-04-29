@@ -15,10 +15,38 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.store.ha.controller;
+package org.apache.rocketmq.common;
 
-/**
- * Manager the sync state set, regularly check for expansion and contraction.
- */
-public class SyncStateSetManager {
+public class EpochEntry {
+
+    private final int epoch;
+    private final long startOffset;
+    private long endOffset = Long.MAX_VALUE;
+
+    public EpochEntry(EpochEntry entry) {
+        this.epoch = entry.getEpoch();
+        this.startOffset = entry.getStartOffset();
+        this.endOffset = entry.getEndOffset();
+    }
+
+    public EpochEntry(int epoch, long startOffset) {
+        this.epoch = epoch;
+        this.startOffset = startOffset;
+    }
+
+    public int getEpoch() {
+        return epoch;
+    }
+
+    public long getStartOffset() {
+        return startOffset;
+    }
+
+    public void setEndOffset(long endOffset) {
+        this.endOffset = endOffset;
+    }
+
+    public long getEndOffset() {
+        return endOffset;
+    }
 }

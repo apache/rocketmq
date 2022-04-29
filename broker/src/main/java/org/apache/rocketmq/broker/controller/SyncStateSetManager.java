@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.store.ha.controller;
+package org.apache.rocketmq.broker.controller;
 
 /**
- * The proxy of controller.
+ * Manager the sync state set, regularly check for expansion and contraction.
  */
-public class ControllerProxy {
+public class SyncStateSetManager {
 }
