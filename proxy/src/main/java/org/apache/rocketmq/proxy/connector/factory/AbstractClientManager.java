@@ -37,7 +37,7 @@ public abstract class AbstractClientManager<T>  {
         this.rpcHook = rpcHook;
     }
 
-    protected abstract T newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads) throws Throwable;
+    protected abstract T newOne(String instanceName, RPCHook rpcHook, int bootstrapWorkerThreads);
 
     protected abstract boolean tryStart(T t);
 

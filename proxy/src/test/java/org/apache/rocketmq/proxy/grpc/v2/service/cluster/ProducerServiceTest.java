@@ -17,7 +17,6 @@
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
 import apache.rocketmq.v2.Code;
-import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -148,9 +147,7 @@ public class ProducerServiceTest extends BaseServiceTest {
         producerService.setWriteQueueSelector((ctx, request) -> {
             throw ex;
         });
-        producerService.setSendMessageHook((ctx, request, response, t) ->  {
-            assertSame(ex, t);
-        });
+        producerService.setSendMessageHook((ctx, request, response, t) -> assertSame(ex, t));
 
         CompletableFuture<SendMessageResponse> future = producerService.sendMessage(Context.current(), REQUEST);
 

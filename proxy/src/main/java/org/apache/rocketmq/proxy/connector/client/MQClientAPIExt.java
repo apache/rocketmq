@@ -360,8 +360,8 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                                 return;
                             }
                         }
-                        /**
-                         * @see org.apache.rocketmq.broker.processor.ConsumerManageProcessor#getConsumerListByGroup,
+                        /*
+                          @see org.apache.rocketmq.broker.processor.ConsumerManageProcessor#getConsumerListByGroup,
                          * broker will return {@link ResponseCode.SYSTEM_ERROR} if there is no consumer.
                          */
                         case ResponseCode.SYSTEM_ERROR: {

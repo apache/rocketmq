@@ -167,11 +167,6 @@ public class SimpleChannel extends AbstractChannel {
     }
 
     @Override
-    public EventLoop eventLoop() {
-        return super.eventLoop();
-    }
-
-    @Override
     public ChannelFuture writeAndFlush(Object msg) {
         DefaultChannelPromise promise = new DefaultChannelPromise(this, GlobalEventExecutor.INSTANCE);
         promise.setSuccess();
