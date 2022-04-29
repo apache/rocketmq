@@ -97,5 +97,16 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int RPC_SEND_TO_CHANNEL_FAILED = -1004;
     public static final int RPC_TIME_OUT = -1006;
 
+    /**
+     * Controller response code
+     */
+    public static final int CONTROLLER_FENCED_MASTER_EPOCH = 2000;
+    public static final int CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH = 2001;
+    public static final int CONTROLLER_INVALID_MASTER = 2002;
+    public static final int CONTROLLER_INVALID_REPLICAS = 2003;
+    public static final int CONTROLLER_MASTER_NOT_AVAILABLE = 2004;
+    public static final int CONTROLLER_INVALID_REQUEST = 2005;
+    public static final int CONTROLLER_BROKER_NOT_ALIVE = 2006;
+    public static final int CONTROLLER_NOT_LEADER = 2007;
 
 }
