@@ -17,12 +17,12 @@
 
 package org.apache.rocketmq.proxy.config;
 
-import java.io.File;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.MixAll;
 
 public class ConfigurationManager {
     public static final String RMQ_PROXY_HOME = "RMQ_PROXY_HOME";
-    protected static final String DEFAULT_RMQ_PROXY_HOME = System.getProperty("user.home") + File.separator + "rmq-proxy";
+    protected static final String DEFAULT_RMQ_PROXY_HOME = System.getenv(MixAll.ROCKETMQ_HOME_ENV);
     protected static String proxyHome;
     protected static Configuration configuration;
 
