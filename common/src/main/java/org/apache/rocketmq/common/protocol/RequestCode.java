@@ -236,4 +236,17 @@ public class RequestCode {
     public static final int GET_BROKER_HA_STATUS = 907;
 
     public static final int RESET_MASTER_FLUSH_OFFSET = 908;
+
+    /**
+     * Controller code
+     */
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET = 1001;
+
+    public static final int CONTROLLER_ELECT_MASTER = 1002;
+
+    public static final int CONTROLLER_REGISTER_BROKER = 1003;
+
+    public static final int CONTROLLER_GET_REPLICA_INFO = 1004;
+
+    public static final int CONTROLLER_GET_METADATA_INFO = 1005;
 }
