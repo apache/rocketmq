@@ -300,7 +300,7 @@
                 <version>2.19.1</version>
                 <configuration>
                     <skipAfterFailureCount>1</skipAfterFailureCount>
-                    <forkCount>1</forkCount>
+                    <forkCount>1.5C</forkCount>
                     <reuseForks>true</reuseForks>
                     <excludes>
                         <exclude>**/IT*.java</exclude>
