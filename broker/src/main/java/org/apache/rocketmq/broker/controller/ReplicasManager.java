@@ -18,7 +18,17 @@
 package org.apache.rocketmq.broker.controller;
 
 /**
- * Manager the sync state set, regularly check for expansion and contraction.
+ * The manager of broker replicas, including regularly sync metadata from controllers, expanding and Shrinking syncStateSet, and changing broker roles.
  */
-public class SyncStateSetManager {
+public class ReplicasManager {
+
+
+
+
+
+
+
+
+
+
 }

@@ -46,7 +46,7 @@ import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LE
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 /**
- * The proxy of controller.
+ * The proxy of controller api.
  */
 public class ControllerProxy {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -58,6 +58,8 @@ public class ControllerProxy {
     public ControllerProxy(final NettyClientConfig nettyClientConfig, final List<String> controllerAddresses) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
         this.controllerAddresses = controllerAddresses;
+
+        // Update controller metadata.
         this.executorService.scheduleAtFixedRate(this::updateControllerMetadata, 0, 2, TimeUnit.SECONDS);
     }
 
