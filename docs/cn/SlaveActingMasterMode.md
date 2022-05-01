@@ -134,9 +134,12 @@ Slave代理Master时，ScheduleMessageService将启动，时间到期的延迟�
 ## 配置更新
 
 Nameserver
+
 - scanNotActiveBrokerInterval：扫描不活跃broker间隔，每次扫描将判断broker心跳是否超时，默认5s。
 - supportActingMaster：nameserver端是否支持Slave代理Master模式，开启后，副本组在无master状态下，brokerId==1的slave将在TopicRoute中被替换成master（即brokerId=0），并以只读模式对客户端提供服务，默认为false。
+
 Broker
+
 - enableSlaveActingMaster：broker端开启slave代理master模式总开关，默认为false。
 - enableRemoteEscape：是否允许远程逃逸，默认为false。
 - brokerHeartbeatInterval：broker向nameserver发送心跳间隔（不同于注册间隔），默认1s。
