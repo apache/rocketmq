@@ -673,7 +673,7 @@ public class RouteInfoManager {
                     }
 
                     // Check whether we need to elect a new master
-                    if (this.namesrvController.getControllerConfig().isStartupController() && this.controller != null) {
+                    if (this.namesrvController != null && this.namesrvController.getControllerConfig().isStartupController() && this.controller != null) {
                         if (unRegisterRequest.getBrokerId() == 0) {
                             this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
                             // Todo: Inform the master
@@ -692,6 +692,7 @@ public class RouteInfoManager {
                 this.lock.writeLock().unlock();
             }
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("unregisterBroker Exception", e);
         }
     }
