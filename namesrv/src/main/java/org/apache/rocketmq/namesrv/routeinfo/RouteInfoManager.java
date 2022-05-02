@@ -692,7 +692,6 @@ public class RouteInfoManager {
                 this.lock.writeLock().unlock();
             }
         } catch (Exception e) {
-            e.printStackTrace();
             log.error("unregisterBroker Exception", e);
         }
     }
