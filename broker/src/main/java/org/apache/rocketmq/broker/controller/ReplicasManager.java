@@ -21,14 +21,4 @@ package org.apache.rocketmq.broker.controller;
  * The manager of broker replicas, including regularly sync metadata from controllers, expanding and Shrinking syncStateSet, and changing broker roles.
  */
 public class ReplicasManager {
-
-
-
-
-
-
-
-
-
-
 }
