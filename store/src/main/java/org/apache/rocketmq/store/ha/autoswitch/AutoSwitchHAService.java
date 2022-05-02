@@ -73,7 +73,7 @@ public class AutoSwitchHAService extends DefaultHAService {
 
         // Truncate dirty file
         final long truncateOffset = truncateInvalidMsg();
-        if (truncateOffset > 0) {
+        if (truncateOffset >= 0) {
             this.epochCache.truncateFromOffset(truncateOffset);
         }
 

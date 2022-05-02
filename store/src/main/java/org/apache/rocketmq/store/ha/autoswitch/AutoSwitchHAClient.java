@@ -217,7 +217,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     private boolean sendHandshakeHeader() {
-        LOGGER.info("Slave send handshake header");
         this.transferHeaderBuffer.position(0);
         this.transferHeaderBuffer.limit(TRANSFER_HEADER_SIZE);
         this.transferHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
@@ -311,7 +310,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                     case READY:
                         // Truncate invalid msg first
                         final long truncateOffset = AutoSwitchHAClient.this.haService.truncateInvalidMsg();
-                        if (truncateOffset > 0) {
+                        if (truncateOffset >= 0) {
                             AutoSwitchHAClient.this.epochCache.truncateFromOffset(truncateOffset);
                         }
                         if (!connectMaster()) {
@@ -360,16 +359,16 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxPhyOffset());
 
         final long truncateOffset = localEpochCache.findConsistentPoint(masterEpochCache);
-        if (truncateOffset > 0) {
+        if (truncateOffset >= 0) {
             if (!this.messageStore.truncateFiles(truncateOffset)) {
                 LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
                 return false;
             }
+            this.epochCache.truncateFromOffset(truncateOffset);
+            LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
         }
-        this.epochCache.truncateFromOffset(truncateOffset);
         changeCurrentState(HAConnectionState.TRANSFER);
         this.currentReportedOffset = truncateOffset;
-        LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
         if (!reportSlaveMaxOffset()) {
             LOGGER.error("AutoSwitchHAClient report max offset to master failed");
             return false;
