@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.store.ha;
+package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,11 +27,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
+import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.CheckpointFile;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.EpochEntry;
 
 /**
  * Cache for epochFile.
@@ -42,23 +42,23 @@ public class EpochFileCache {
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final Lock readLock = this.readWriteLock.readLock();
     private final Lock writeLock = this.readWriteLock.writeLock();
-    private final CheckpointFile<EpochEntry> checkpoint;
     private final TreeMap<Integer, EpochEntry> epochMap;
+    private CheckpointFile<EpochEntry> checkpoint;
+
+    public EpochFileCache() {
+        this.epochMap = new TreeMap<>();
+    }
 
     public EpochFileCache(final String path) {
         this.epochMap = new TreeMap<>();
         this.checkpoint = new CheckpointFile<>(path, new EpochEntrySerializer());
     }
 
-
     public boolean initCacheFromFile() {
         this.writeLock.lock();
         try {
-            this.epochMap.clear();
             final List<EpochEntry> entries = this.checkpoint.read();
-            for (final EpochEntry entry : entries) {
-                this.epochMap.put(entry.getEpoch(), entry);
-            }
+            initEntries(entries);
             return true;
         } catch (final IOException e) {
             log.error("Error happen when init epoch entries from epochFile", e);
@@ -71,13 +71,22 @@ public class EpochFileCache {
     public void initCacheFromEntries(final List<EpochEntry> entries) {
         this.writeLock.lock();
         try {
-            this.epochMap.clear();
-            for (final EpochEntry entry : entries) {
-                this.epochMap.put(entry.getEpoch(), entry);
-            }
+            initEntries(entries);
             flush();
         } finally {
-             this.writeLock.unlock();
+            this.writeLock.unlock();
+        }
+    }
+
+    private void initEntries(final List<EpochEntry> entries) {
+        this.epochMap.clear();
+        EpochEntry preEntry = null;
+        for (final EpochEntry entry : entries) {
+            this.epochMap.put(entry.getEpoch(), entry);
+            if (preEntry != null) {
+                preEntry.setEndOffset(entry.getStartOffset());
+            }
+            preEntry = entry;
         }
     }
 
@@ -89,6 +98,7 @@ public class EpochFileCache {
                 if (lastEntry.getEpoch() >= entry.getEpoch() || lastEntry.getStartOffset() >= entry.getStartOffset()) {
                     return false;
                 }
+                lastEntry.setEndOffset(entry.getStartOffset());
             }
             this.epochMap.put(entry.getEpoch(), new EpochEntry(entry));
             flush();
@@ -106,12 +116,24 @@ public class EpochFileCache {
         try {
             if (!this.epochMap.isEmpty()) {
                 final EpochEntry lastEntry = this.epochMap.lastEntry().getValue();
-                if (lastEntry.getStartOffset() < endOffset) {
+                if (lastEntry.getStartOffset() <= endOffset) {
                     lastEntry.setEndOffset(endOffset);
                 }
             }
         } finally {
             this.writeLock.unlock();
+        }
+    }
+
+    public EpochEntry firstEntry() {
+        this.readLock.lock();
+        try {
+            if (this.epochMap.isEmpty()) {
+                return null;
+            }
+            return new EpochEntry(this.epochMap.firstEntry().getValue());
+        } finally {
+            this.readLock.unlock();
         }
     }
 
@@ -127,19 +149,62 @@ public class EpochFileCache {
         }
     }
 
+    public int lastEpoch() {
+        final EpochEntry entry = lastEntry();
+        if (entry != null) {
+            return entry.getEpoch();
+        }
+        return -1;
+    }
+
     public EpochEntry getEntry(final int epoch) {
         this.readLock.lock();
         try {
             if (this.epochMap.containsKey(epoch)) {
                 final EpochEntry entry = this.epochMap.get(epoch);
-                final EpochEntry result = new EpochEntry(entry);
-                final Map.Entry<Integer, EpochEntry> nextEntry = this.epochMap.ceilingEntry(epoch + 1);
-                if (nextEntry != null) {
-                    result.setEndOffset(nextEntry.getValue().getStartOffset());
-                }
-                return result;
+                return new EpochEntry(entry);
             }
             return null;
+        } finally {
+            this.readLock.unlock();
+        }
+    }
+
+    public EpochEntry findEpochEntryByOffset(final long offset) {
+        this.readLock.lock();
+        try {
+            if (!this.epochMap.isEmpty()) {
+                for (Map.Entry<Integer, EpochEntry> entry : this.epochMap.entrySet()) {
+                    if (entry.getValue().getStartOffset() <= offset && entry.getValue().getEndOffset() > offset) {
+                        return new EpochEntry(entry.getValue());
+                    }
+                }
+            }
+            return null;
+        } finally {
+            this.readLock.unlock();
+        }
+    }
+
+    public EpochEntry nextEntry(final int epoch) {
+        this.readLock.lock();
+        try {
+            final Map.Entry<Integer, EpochEntry> entry = this.epochMap.ceilingEntry(epoch + 1);
+            if (entry != null) {
+                return new EpochEntry(entry.getValue());
+            }
+            return null;
+        } finally {
+            this.readLock.unlock();
+        }
+    }
+
+    public List<EpochEntry> getAllEntries() {
+        this.readLock.lock();
+        try {
+            final ArrayList<EpochEntry> result = new ArrayList<>(this.epochMap.size());
+            this.epochMap.forEach((key, value) -> result.add(new EpochEntry(value)));
+            return result;
         } finally {
             this.readLock.unlock();
         }
@@ -154,7 +219,8 @@ public class EpochFileCache {
         this.readLock.lock();
         try {
             long consistentOffset = -1;
-            final Iterator<Map.Entry<Integer, EpochEntry>> iter = reverseIter();
+            final Map<Integer, EpochEntry> descendingMap = new TreeMap<>(this.epochMap).descendingMap();
+            final Iterator<Map.Entry<Integer, EpochEntry>> iter = descendingMap.entrySet().iterator();
             while (iter.hasNext()) {
                 final Map.Entry<Integer, EpochEntry> curLocalEntry = iter.next();
                 final EpochEntry compareEntry = compareCache.getEntry(curLocalEntry.getKey());
@@ -164,24 +230,6 @@ public class EpochFileCache {
                 }
             }
             return consistentOffset;
-        } finally {
-            this.readLock.unlock();
-        }
-    }
-
-    private Iterator<Map.Entry<Integer, EpochEntry>> reverseIter() {
-        this.readLock.lock();
-        try {
-            final Map<Integer, EpochEntry> descendingMap = new TreeMap<>(this.epochMap).descendingMap();
-            // Set end offset for each entry
-            long preEntryStartOffset = -1L;
-            for (Map.Entry<Integer, EpochEntry> entry : descendingMap.entrySet()) {
-                if (preEntryStartOffset > 0) {
-                    entry.getValue().setEndOffset(preEntryStartOffset);
-                }
-                preEntryStartOffset = entry.getValue().getStartOffset();
-            }
-            return descendingMap.entrySet().iterator();
         } finally {
             this.readLock.unlock();
         }
@@ -212,6 +260,10 @@ public class EpochFileCache {
         this.writeLock.lock();
         try {
             this.epochMap.entrySet().removeIf(entry -> predict.test(entry.getValue()));
+            final EpochEntry entry = lastEntry();
+            if (entry != null) {
+                entry.setEndOffset(Long.MAX_VALUE);
+            }
             flush();
         } finally {
             this.writeLock.unlock();
@@ -223,7 +275,9 @@ public class EpochFileCache {
         try {
             final ArrayList<EpochEntry> entries = new ArrayList<>(this.epochMap.values());
             try {
-                this.checkpoint.write(entries);
+                if (this.checkpoint != null) {
+                    this.checkpoint.write(entries);
+                }
             } catch (final IOException e) {
                 log.error("Error happen when flush epochEntries to epochCheckpointFile", e);
             }

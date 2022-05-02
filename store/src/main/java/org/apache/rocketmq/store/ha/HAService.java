@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.ha;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
@@ -47,6 +48,26 @@ public interface HAService {
      * Shutdown HA Service
      */
     void shutdown();
+
+    /**
+     * Change to master state
+     * @param masterEpoch the new masterEpoch
+     */
+    boolean changeToMaster(int masterEpoch);
+
+    /**
+     * Change to slave state
+     * @param newMasterAddr new master addr
+     * @param newHaMasterAddr new master HA addr
+     * @param newMasterEpoch new masterEpoch
+     */
+    boolean changeToSlave(String newMasterAddr, String newHaMasterAddr, int newMasterEpoch);
+
+    /**
+     * Check whether the syncStateSet changed
+     * @return new syncStateSet
+     */
+    Set<String> checkSyncStateSetChanged();
 
     /**
      * Update master address

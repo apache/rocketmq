@@ -33,6 +33,11 @@ public class MessageStoreConfig {
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
 
+    //The directory in which the commitlog is kept
+    @ImportantField
+    private String storePathEpochFile = System.getProperty("user.home") + File.separator + "store"
+        + File.separator + "epochFileCheckpoint";
+
     private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
@@ -249,6 +254,12 @@ public class MessageStoreConfig {
     private boolean enableAutoInSyncReplicas = false;
 
     /**
+     * Whether startup controller mode
+     */
+    @ImportantField
+    private boolean startupControllerMode = false;
+
+    /**
      * Enable or not ha flow control
      */
     @ImportantField
@@ -457,6 +468,14 @@ public class MessageStoreConfig {
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
+    }
+
+    public String getStorePathEpochFile() {
+        return storePathEpochFile;
+    }
+
+    public void setStorePathEpochFile(String storePathEpochFile) {
+        this.storePathEpochFile = storePathEpochFile;
     }
 
     public String getDeleteWhen() {
@@ -1148,6 +1167,14 @@ public class MessageStoreConfig {
 
     public void setEnableAutoInSyncReplicas(boolean enableAutoInSyncReplicas) {
         this.enableAutoInSyncReplicas = enableAutoInSyncReplicas;
+    }
+
+    public boolean isStartupControllerMode() {
+        return startupControllerMode;
+    }
+
+    public void setStartupControllerMode(boolean startupControllerMode) {
+        this.startupControllerMode = startupControllerMode;
     }
 
     public boolean isHaFlowControlEnable() {

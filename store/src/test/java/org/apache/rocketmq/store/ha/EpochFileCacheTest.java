@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.ha;
 import java.io.File;
 import java.nio.file.Paths;
 import org.apache.rocketmq.common.EpochEntry;
+import org.apache.rocketmq.store.ha.autoswitch.EpochFileCache;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +42,10 @@ public class EpochFileCacheTest {
         assertTrue(this.epochCache.appendEntry(new EpochEntry(1, 100)));
         assertTrue(this.epochCache.appendEntry(new EpochEntry(2, 300)));
         assertTrue(this.epochCache.appendEntry(new EpochEntry(3, 500)));
+        final EpochEntry entry = this.epochCache.getEntry(2);
+        assertEquals(entry.getEpoch(), 2);
+        assertEquals(entry.getStartOffset(), 300);
+        assertEquals(entry.getEndOffset(), 500);
     }
 
     @After
@@ -100,5 +105,13 @@ public class EpochFileCacheTest {
         this.epochCache2.setLastEpochEntryEndOffset(600);
         final long consistentPoint = this.epochCache.findConsistentPoint(this.epochCache2);
         assertEquals(consistentPoint, 600);
+    }
+
+    @Test
+    public void testFindEpochEntryByOffset() {
+        final EpochEntry entry = this.epochCache.findEpochEntryByOffset(350);
+        assertEquals(entry.getEpoch(), 2);
+        assertEquals(entry.getStartOffset(), 300);
+        assertEquals(entry.getEndOffset(), 500);
     }
 }
