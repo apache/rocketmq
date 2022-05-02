@@ -314,7 +314,6 @@ public class ContainerIntegrationTestBase {
         NettyServerConfig nettyServerConfig = new NettyServerConfig();
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
         brokerContainerConfig.setNamesrvAddr(nsAddr);
-        brokerContainerConfig.setCompatibleWithOldNameSrv(false);
 
         nettyServerConfig.setListenPort(generatePort(20000, 10000));
         BrokerContainer brokerContainer = new BrokerContainer(brokerContainerConfig, nettyServerConfig, nettyClientConfig);
@@ -356,6 +355,7 @@ public class ContainerIntegrationTestBase {
         brokerConfig.setLockInStrictMode(true);
         brokerConfig.setConsumerOffsetUpdateVersionStep(10);
         brokerConfig.setDelayOffsetUpdateVersionStep(10);
+        brokerConfig.setCompatibleWithOldNameSrv(false);
         brokerConfig.setListenPort(generatePort(brokerContainer.getRemotingServer().localListenPort(), 10000));
 
         String baseDir = createBaseDir(brokerConfig.getBrokerName() + "_" + brokerConfig.getBrokerId()).getAbsolutePath();
@@ -426,7 +426,7 @@ public class ContainerIntegrationTestBase {
         slaveBrokerConfig.setBrokerName(master.getBrokerConfig().getBrokerName());
         slaveBrokerConfig.setBrokerId(slaveBrokerId);
         slaveBrokerConfig.setBrokerClusterName(master.getBrokerConfig().getBrokerClusterName());
-
+        slaveBrokerConfig.setCompatibleWithOldNameSrv(false);
         slaveBrokerConfig.setBrokerIP1("127.0.0.1");
         slaveBrokerConfig.setBrokerIP2("127.0.0.1");
         slaveBrokerConfig.setEnablePropertyFilter(true);
@@ -564,9 +564,9 @@ public class ContainerIntegrationTestBase {
     }
 
     protected static void changeCompatibleMode(boolean compatibleMode) {
-        brokerContainer1.getBrokerContainerConfig().setCompatibleWithOldNameSrv(compatibleMode);
-        brokerContainer2.getBrokerContainerConfig().setCompatibleWithOldNameSrv(compatibleMode);
-        brokerContainer3.getBrokerContainerConfig().setCompatibleWithOldNameSrv(compatibleMode);
+        brokerContainer1.getBrokerControllers().forEach(brokerController -> brokerController.getBrokerConfig().setCompatibleWithOldNameSrv(compatibleMode));
+        brokerContainer2.getBrokerControllers().forEach(brokerController -> brokerController.getBrokerConfig().setCompatibleWithOldNameSrv(compatibleMode));
+        brokerContainer3.getBrokerControllers().forEach(brokerController -> brokerController.getBrokerConfig().setCompatibleWithOldNameSrv(compatibleMode));
     }
 
     protected static Set<MessageQueue> filterMessageQueue(Set<MessageQueue> mqSet, String topic) {

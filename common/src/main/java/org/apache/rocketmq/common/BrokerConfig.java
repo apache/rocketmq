@@ -295,6 +295,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private String metaDataHosts = "";
 
+    private boolean compatibleWithOldNameSrv = true;
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
@@ -1269,5 +1271,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setIsolateLogEnable(boolean isolateLogEnable) {
         this.isolateLogEnable = isolateLogEnable;
+    }
+
+    public boolean isCompatibleWithOldNameSrv() {
+        return compatibleWithOldNameSrv;
+    }
+
+    public void setCompatibleWithOldNameSrv(boolean compatibleWithOldNameSrv) {
+        this.compatibleWithOldNameSrv = compatibleWithOldNameSrv;
     }
 }
