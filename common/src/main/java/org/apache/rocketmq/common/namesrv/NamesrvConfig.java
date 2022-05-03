@@ -22,12 +22,8 @@ package org.apache.rocketmq.common.namesrv;
 
 import java.io.File;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class NamesrvConfig {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     private String kvConfigPath = System.getProperty("user.home") + File.separator + "namesrv" + File.separator + "kvConfig.json";
@@ -36,7 +32,6 @@ public class NamesrvConfig {
     private boolean clusterTest = false;
     private boolean orderMessageEnable = false;
     private boolean returnOrderTopicConfigToBroker = true;
-    private volatile boolean remoteFaultTolerance = true;
 
     /**
      * Indicates the nums of thread to handle client requests, like GET_ROUTEINTO_BY_TOPIC.
@@ -71,15 +66,13 @@ public class NamesrvConfig {
      */
     private boolean supportActingMaster = false;
 
-    private volatile boolean enableAllTopicList = false;
+    private volatile boolean enableAllTopicList = true;
 
-    public void setRemoteFaultTolerance(boolean remoteFaultTolerance) {
-        this.remoteFaultTolerance = remoteFaultTolerance;
-    }
 
-    public boolean isRemoteFaultTolerance() {
-        return remoteFaultTolerance;
-    }
+    private volatile boolean enableTopicList = true;
+
+    private volatile boolean notifyMinBrokerIdChanged = true;
+
 
     public boolean isOrderMessageEnable() {
         return orderMessageEnable;
@@ -199,5 +192,21 @@ public class NamesrvConfig {
 
     public void setEnableAllTopicList(boolean enableAllTopicList) {
         this.enableAllTopicList = enableAllTopicList;
+    }
+
+    public boolean isEnableTopicList() {
+        return enableTopicList;
+    }
+
+    public void setEnableTopicList(boolean enableTopicList) {
+        this.enableTopicList = enableTopicList;
+    }
+
+    public boolean isNotifyMinBrokerIdChanged() {
+        return notifyMinBrokerIdChanged;
+    }
+
+    public void setNotifyMinBrokerIdChanged(boolean notifyMinBrokerIdChanged) {
+        this.notifyMinBrokerIdChanged = notifyMinBrokerIdChanged;
     }
 }
