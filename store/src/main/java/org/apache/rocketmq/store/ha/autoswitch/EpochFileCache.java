@@ -96,6 +96,7 @@ public class EpochFileCache {
             if (!this.epochMap.isEmpty()) {
                 final EpochEntry lastEntry = this.epochMap.lastEntry().getValue();
                 if (lastEntry.getEpoch() >= entry.getEpoch() || lastEntry.getStartOffset() >= entry.getStartOffset()) {
+                    log.error("The appending entry's lastEpoch or endOffset {} is not bigger than lastEntry {}, append failed", entry, lastEntry);
                     return false;
                 }
                 lastEntry.setEndOffset(entry.getStartOffset());

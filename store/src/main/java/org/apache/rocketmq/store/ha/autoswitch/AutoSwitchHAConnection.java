@@ -39,9 +39,8 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 public class AutoSwitchHAConnection implements HAConnection {
     /**
      * Header protocol in syncing msg from master.
-     * Format: current state + body size + offset + epoch + additionalInfo(confirmOffset / lastFlushOffset).
-     * If the msg is normalMsg, the additionalInfo is confirmOffset
-     * If the msg is hankeShakeMsg, the body size = EpochEntrySize * EpochEntryNums, the additionalInfo is lastFlushOffset
+     * Format: current state + body size + offset + epoch + additionalInfo(confirmOffset).
+     * If the msg is hankeShakeMsg, the body size = EpochEntrySize * EpochEntryNums, the offset is maxOffset in master.
      */
     public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8;
     public static final int EPOCH_ENTRY_SIZE = 12;
@@ -132,6 +131,15 @@ public class AutoSwitchHAConnection implements HAConnection {
 
     @Override public long getTransferFromWhere() {
         return this.writeSocketService.getNextTransferFromWhere();
+    }
+
+    private void changeTransferEpochToNext(final EpochEntry entry) {
+        this.currentTransferEpoch = entry.getEpoch();
+        this.currentTransferEpochEndOffset = entry.getEndOffset();
+        if (entry.getEpoch() == this.epochCache.lastEpoch()) {
+            // Use -1 to stand for ＋∞
+            this.currentTransferEpochEndOffset = -1;
+        }
     }
 
     class ReadSocketService extends ServiceThread {
@@ -372,11 +380,11 @@ public class AutoSwitchHAConnection implements HAConnection {
             // Body size
             this.byteBufferHeader.putInt(epochEntries.size() * EPOCH_ENTRY_SIZE);
             // Offset
-            this.byteBufferHeader.putLong(0L);
+            this.byteBufferHeader.putLong(maxPhyOffset);
             // Epoch
             this.byteBufferHeader.putInt(lastEpoch);
-            // Additional info(Flush position)
-            this.byteBufferHeader.putLong(maxPhyOffset);
+            // Additional info
+            this.byteBufferHeader.putLong(0L);
             this.byteBufferHeader.flip();
 
             // EpochEntries
@@ -471,16 +479,17 @@ public class AutoSwitchHAConnection implements HAConnection {
                 }
 
                 // We must ensure that the transmitted logs are within the same epoch
-                if (this.nextTransferFromWhere + size > AutoSwitchHAConnection.this.currentTransferEpochEndOffset) {
+                // If currentEpochEndOffset == -1, means that currentTransferEpoch = last epoch, so the endOffset = ＋∞.
+                final long currentEpochEndOffset = AutoSwitchHAConnection.this.currentTransferEpochEndOffset;
+                if (currentEpochEndOffset != -1 && this.nextTransferFromWhere + size > currentEpochEndOffset) {
                     final EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.nextEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
                     if (epochEntry == null) {
                         LOGGER.error("Can't find a bigger epochEntry than epoch {}", AutoSwitchHAConnection.this.currentTransferEpoch);
                         waitForRunning(100);
                         return;
                     }
-                    size = (int) (AutoSwitchHAConnection.this.currentTransferEpochEndOffset - this.nextTransferFromWhere);
-                    AutoSwitchHAConnection.this.currentTransferEpoch = epochEntry.getEpoch();
-                    AutoSwitchHAConnection.this.currentTransferEpochEndOffset = epochEntry.getEndOffset();
+                    size = (int) (currentEpochEndOffset - this.nextTransferFromWhere);
+                    changeTransferEpochToNext(epochEntry);
                 }
 
                 this.transferOffset = this.nextTransferFromWhere;
@@ -543,11 +552,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     waitForRunning(500);
                                     break;
                                 }
-                                AutoSwitchHAConnection.this.currentTransferEpoch = epochEntry.getEpoch();
-                                AutoSwitchHAConnection.this.currentTransferEpochEndOffset = epochEntry.getEndOffset();
-                                if (epochEntry.getEpoch() == AutoSwitchHAConnection.this.epochCache.lastEpoch()) {
-                                    AutoSwitchHAConnection.this.currentTransferEpochEndOffset = Long.MAX_VALUE;
-                                }
+                                changeTransferEpochToNext(epochEntry);
                                 LOGGER.info("Master transfer data to slave {}, from offset:{}, currentEpoch:{}. currentEpochEndOffset:{}",
                                     AutoSwitchHAConnection.this.clientAddress, this.nextTransferFromWhere, epochEntry.getEpoch(), epochEntry.getEndOffset());
                             }

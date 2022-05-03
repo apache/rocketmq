@@ -179,7 +179,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 this.socketChannel.close();
                 this.socketChannel = null;
 
-                LOGGER.info("AutoRecoverHAClient close connection with master {}", this.masterHaAddress.get());
+                LOGGER.info("AutoSwitchHAClient close connection with master {}", this.masterHaAddress.get());
                 this.changeCurrentState(HAConnectionState.READY);
             } catch (IOException e) {
                 LOGGER.warn("CloseMaster exception. ", e);
@@ -207,7 +207,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         try {
             this.selector.close();
         } catch (IOException e) {
-            LOGGER.warn("Close the selector of AutoRecoverHAClient error, ", e);
+            LOGGER.warn("Close the selector of AutoSwitchHAClient error, ", e);
         }
     }
 
@@ -268,7 +268,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 this.socketChannel = RemotingUtil.connect(socketAddress);
                 if (this.socketChannel != null) {
                     this.socketChannel.register(this.selector, SelectionKey.OP_READ);
-                    LOGGER.info("AutoRecoverHAClient connect to master {}", addr);
+                    LOGGER.info("AutoSwitchHAClient connect to master {}", addr);
                     changeCurrentState(HAConnectionState.HANDSHAKE);
                 }
             }
@@ -314,7 +314,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                             AutoSwitchHAClient.this.epochCache.truncateFromOffset(truncateOffset);
                         }
                         if (!connectMaster()) {
-                            LOGGER.warn("AutoRecoverHAClient connect to master {} failed", this.masterHaAddress.get());
+                            LOGGER.warn("AutoSwitchHAClient connect to master {} failed", this.masterHaAddress.get());
                             waitForRunning(1000 * 5);
                         }
                         continue;
@@ -334,10 +334,10 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 }
                 long interval = this.messageStore.now() - this.lastReadTimestamp;
                 if (interval > this.messageStore.getMessageStoreConfig().getHaHousekeepingInterval()) {
-                    LOGGER.warn("AutoRecoverHAClient, housekeeping, found this connection[" + this.masterHaAddress
+                    LOGGER.warn("AutoSwitchHAClient, housekeeping, found this connection[" + this.masterHaAddress
                         + "] expired, " + interval);
                     closeMaster();
-                    LOGGER.warn("AutoRecoverHAClient, master not response some time, so close connection");
+                    LOGGER.warn("AutoSwitchHAClient, master not response some time, so close connection");
                 }
             } catch (Exception e) {
                 LOGGER.warn(this.getServiceName() + " service has exception. ", e);
@@ -389,17 +389,17 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                     int bodySize = byteBufferRead.getInt(AutoSwitchHAClient.this.processPosition + 4);
                     long masterOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + 4 + 4);
                     int masterEpoch = byteBufferRead.getInt(AutoSwitchHAClient.this.processPosition + 4 + 4 + 8);
-                    long additionalOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + 4 + 4 + 8 + 4);
+                    long confirmOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + 4 + 4 + 8 + 4);
 
                     if (masterState != AutoSwitchHAClient.this.currentState.ordinal()) {
                         AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize;
                         AutoSwitchHAClient.this.waitForRunning(1);
-                        LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, masterOffset:{}, masterEpoch:{}, additional:{}",
-                            masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, additionalOffset);
+                        LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, masterOffset:{}, masterEpoch:{}, confirmOffset:{}",
+                            masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, confirmOffset);
                         return true;
                     }
-                    LOGGER.info("Receive master msg, masterState:{}, bodySize:{}, masterOffset:{}, masterEpoch:{}, additional:{}",
-                        HAConnectionState.values()[masterState], bodySize, masterOffset, masterEpoch, additionalOffset);
+                    LOGGER.info("Receive master msg, masterState:{}, bodySize:{}, masterOffset:{}, masterEpoch:{}, confirmOffset:{}",
+                        HAConnectionState.values()[masterState], bodySize, masterOffset, masterEpoch, confirmOffset);
 
                     if (diff >= (AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize)) {
                         switch (AutoSwitchHAClient.this.currentState) {
@@ -416,8 +416,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                 }
                                 byteBufferRead.position(readSocketPos);
                                 AutoSwitchHAClient.this.processPosition += bodySize;
-                                LOGGER.info("Receive handshake, masterMaxPosition {}, masterEpochEntries:{}, try truncate log", additionalOffset, epochEntries);
-                                if (!doTruncate(epochEntries, additionalOffset)) {
+                                LOGGER.info("Receive handshake, masterMaxPosition {}, masterEpochEntries:{}, try truncate log", masterOffset, epochEntries);
+                                if (!doTruncate(epochEntries, masterOffset)) {
                                     LOGGER.error("AutoSwitchHAClient truncate log failed in handshake state");
                                     return false;
                                 }
@@ -443,10 +443,14 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                     AutoSwitchHAClient.this.currentReceivedEpoch = masterEpoch;
                                     AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterOffset));
                                 }
+                                AutoSwitchHAClient.this.confirmOffset = Math.min(confirmOffset, messageStore.getMaxPhyOffset());
 
-                                final DefaultMessageStore messageStore = AutoSwitchHAClient.this.messageStore;
-                                AutoSwitchHAClient.this.confirmOffset = Math.min(additionalOffset, messageStore.getMaxPhyOffset());
-                                messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
+                                if (bodySize > 0) {
+                                    final DefaultMessageStore messageStore = AutoSwitchHAClient.this.messageStore;
+                                    if (messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length)) {
+                                        LOGGER.info("Slave append master log success, from {}, size {}, epoch:{}", masterOffset, bodySize, masterEpoch);
+                                    }
+                                }
 
                                 if (!reportSlaveMaxOffset()) {
                                     LOGGER.error("AutoSwitchHAClient report max offset to master failed");

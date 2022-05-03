@@ -74,6 +74,14 @@ public class EpochFileCacheTest {
     }
 
     @Test
+    public void testFindEpochEntryByOffset() {
+        final EpochEntry entry = this.epochCache.findEpochEntryByOffset(350);
+        assertEquals(entry.getEpoch(), 2);
+        assertEquals(entry.getStartOffset(), 300);
+        assertEquals(entry.getEndOffset(), 500);
+    }
+
+    @Test
     public void testFindConsistentPointSample1() {
         this.path2 = Paths.get(File.separator + "tmp", "EpochCheckpoint2").toString();
         this.epochCache2 = new EpochFileCache(path2);
@@ -108,10 +116,35 @@ public class EpochFileCacheTest {
     }
 
     @Test
-    public void testFindEpochEntryByOffset() {
-        final EpochEntry entry = this.epochCache.findEpochEntryByOffset(350);
-        assertEquals(entry.getEpoch(), 2);
-        assertEquals(entry.getStartOffset(), 300);
-        assertEquals(entry.getEndOffset(), 500);
+    public void testFindConsistentPointSample3() {
+        this.path2 = Paths.get(File.separator + "tmp", "EpochCheckpoint2").toString();
+        this.epochCache2 = new EpochFileCache(path2);
+        assertTrue(this.epochCache2.appendEntry(new EpochEntry(1, 200)));
+        assertTrue(this.epochCache2.appendEntry(new EpochEntry(2, 500)));
+        /**
+         *  cache1: <Epoch1, 100>, <Epoch2, 300>, <Epoch3, 500, 700>
+         *  cache2: <Epoch1, 200>, <Epoch2, 500>
+         *  The consistent point should be -1
+         */
+        final long consistentPoint = this.epochCache.findConsistentPoint(this.epochCache2);
+        assertEquals(consistentPoint, -1);
+    }
+
+    @Test
+    public void testFindConsistentPointSample4() {
+        this.path2 = Paths.get(File.separator + "tmp", "EpochCheckpoint2").toString();
+        this.epochCache2 = new EpochFileCache(path2);
+        assertTrue(this.epochCache2.appendEntry(new EpochEntry(1, 100)));
+        assertTrue(this.epochCache2.appendEntry(new EpochEntry(2, 300)));
+        assertTrue(this.epochCache2.appendEntry(new EpochEntry(3, 500)));
+        assertTrue(this.epochCache2.appendEntry(new EpochEntry(4, 800)));
+        /**
+         *  cache1: <Epoch1, 100>, <Epoch2, 300>, <Epoch3, 500, 700>
+         *  cache2: <Epoch1, 100>, <Epoch2, 300>, <Epoch3, 500>, <Epoch4, 800>
+         *  The consistent point should be 700
+         */
+        this.epochCache.setLastEpochEntryEndOffset(700);
+        final long consistentPoint = this.epochCache2.findConsistentPoint(this.epochCache);
+        assertEquals(consistentPoint, 700);
     }
 }
