@@ -274,9 +274,9 @@ public class EpochFileCache {
     private void flush() {
         this.writeLock.lock();
         try {
-            final ArrayList<EpochEntry> entries = new ArrayList<>(this.epochMap.values());
             try {
                 if (this.checkpoint != null) {
+                    final ArrayList<EpochEntry> entries = new ArrayList<>(this.epochMap.values());
                     this.checkpoint.write(entries);
                 }
             } catch (final IOException e) {
