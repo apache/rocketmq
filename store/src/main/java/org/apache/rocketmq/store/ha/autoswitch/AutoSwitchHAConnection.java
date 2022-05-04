@@ -137,7 +137,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         this.currentTransferEpoch = entry.getEpoch();
         this.currentTransferEpochEndOffset = entry.getEndOffset();
         if (entry.getEpoch() == this.epochCache.lastEpoch()) {
-            // Use -1 to stand for ＋∞
+            // Use -1 to stand for Long.max
             this.currentTransferEpochEndOffset = -1;
         }
     }
@@ -479,7 +479,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                 }
 
                 // We must ensure that the transmitted logs are within the same epoch
-                // If currentEpochEndOffset == -1, means that currentTransferEpoch = last epoch, so the endOffset = ＋∞.
+                // If currentEpochEndOffset == -1, means that currentTransferEpoch = last epoch, so the endOffset = Long.max
                 final long currentEpochEndOffset = AutoSwitchHAConnection.this.currentTransferEpochEndOffset;
                 if (currentEpochEndOffset != -1 && this.nextTransferFromWhere + size > currentEpochEndOffset) {
                     final EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.nextEntry(AutoSwitchHAConnection.this.currentTransferEpoch);

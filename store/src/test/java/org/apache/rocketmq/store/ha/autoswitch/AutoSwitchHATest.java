@@ -125,8 +125,12 @@ public class AutoSwitchHATest {
 
         Thread.sleep(200);
 
+        checkMessage(messageStore2, 10, 0);
+    }
+
+    private void checkMessage(final DefaultMessageStore messageStore, int totalMsgs, int startOffset) {
         for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = messageStore2.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
+            GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset + i, 1024 * 1024, null);
             assertThat(result).isNotNull();
             assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
             result.release();
@@ -156,12 +160,7 @@ public class AutoSwitchHATest {
         Thread.sleep(200);
 
         // Check slave messages (store1)
-        for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, totalMsgs + i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
-            result.release();
-        }
+        checkMessage(messageStore, 10, 10);
 
         // Step3, change store2 to follower, store1 to master, epoch = 3
         this.storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
@@ -177,12 +176,7 @@ public class AutoSwitchHATest {
         Thread.sleep(200);
 
         // Check slave messages (store2)
-        for (long i = 0; i < totalMsgs; i++) {
-            GetMessageResult result = messageStore2.getMessage("GROUP_A", "FooBar", 0, totalMsgs * 2 + i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
-            result.release();
-        }
+        checkMessage(messageStore2, 10, 20);
     }
 
     @Test
@@ -194,14 +188,8 @@ public class AutoSwitchHATest {
         messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 1);
         Thread.sleep(5000);
 
-        for (long i = 0; i < 10; i++) {
-            GetMessageResult result = messageStore3.getMessage("GROUP_A", "FooBar", 0, i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
-            result.release();
-        }
+        checkMessage(messageStore3, 10, 0);
     }
-
 
     @After
     public void destroy() throws Exception {

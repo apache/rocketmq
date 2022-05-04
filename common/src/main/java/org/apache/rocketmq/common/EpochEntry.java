@@ -19,8 +19,8 @@ package org.apache.rocketmq.common;
 
 public class EpochEntry {
 
-    private final int epoch;
-    private final long startOffset;
+    private int epoch;
+    private long startOffset;
     private long endOffset = Long.MAX_VALUE;
 
     public EpochEntry(EpochEntry entry) {
@@ -38,16 +38,24 @@ public class EpochEntry {
         return epoch;
     }
 
+    public void setEpoch(int epoch) {
+        this.epoch = epoch;
+    }
+
     public long getStartOffset() {
         return startOffset;
     }
 
-    public void setEndOffset(long endOffset) {
-        this.endOffset = endOffset;
+    public void setStartOffset(long startOffset) {
+        this.startOffset = startOffset;
     }
 
     public long getEndOffset() {
         return endOffset;
+    }
+
+    public void setEndOffset(long endOffset) {
+        this.endOffset = endOffset;
     }
 
     @Override public String toString() {

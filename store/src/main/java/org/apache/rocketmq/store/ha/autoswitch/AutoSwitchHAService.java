@@ -74,13 +74,13 @@ public class AutoSwitchHAService extends DefaultHAService {
         // Truncate dirty file
         final long truncateOffset = truncateInvalidMsg();
         if (truncateOffset >= 0) {
-            this.epochCache.truncateFromOffset(truncateOffset);
+            this.epochCache.truncateSuffixByOffset(truncateOffset);
         }
 
         // Append new epoch to epochFile
         final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
         if (this.epochCache.lastEpoch() >= masterEpoch) {
-            this.epochCache.truncateFromEpoch(masterEpoch);
+            this.epochCache.truncateSuffixByEpoch(masterEpoch);
         }
         this.epochCache.appendEntry(newEpochEntry);
 
@@ -123,6 +123,14 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
         }
         return newSyncStateSet;
+    }
+
+    public void truncateEpochFilePrefix(final long offset) {
+        this.epochCache.truncatePrefixByOffset(offset);
+    }
+
+    public void truncateEpochFileSuffix(final long offset) {
+        this.epochCache.truncateSuffixByOffset(offset);
     }
 
     /**

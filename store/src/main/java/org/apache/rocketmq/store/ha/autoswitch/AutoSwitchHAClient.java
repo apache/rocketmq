@@ -311,7 +311,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         // Truncate invalid msg first
                         final long truncateOffset = AutoSwitchHAClient.this.haService.truncateInvalidMsg();
                         if (truncateOffset >= 0) {
-                            AutoSwitchHAClient.this.epochCache.truncateFromOffset(truncateOffset);
+                            AutoSwitchHAClient.this.epochCache.truncateSuffixByOffset(truncateOffset);
                         }
                         if (!connectMaster()) {
                             LOGGER.warn("AutoSwitchHAClient connect to master {} failed", this.masterHaAddress.get());
@@ -364,7 +364,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
                 return false;
             }
-            this.epochCache.truncateFromOffset(truncateOffset);
+            this.epochCache.truncateSuffixByOffset(truncateOffset);
             LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
         }
         changeCurrentState(HAConnectionState.TRANSFER);

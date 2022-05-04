@@ -239,25 +239,20 @@ public class EpochFileCache {
     /**
      * Remove epochEntries with epoch >= truncateEpoch.
      */
-    public void truncateFromEpoch(final int truncateEpoch) {
-        doTruncate((entry) -> entry.getEpoch() >= truncateEpoch);
+    public void truncateSuffixByEpoch(final int truncateEpoch) {
+        Predicate<EpochEntry> predict = (entry) -> entry.getEpoch() >= truncateEpoch;
+        doTruncateSuffix(predict);
     }
 
     /**
      * Remove epochEntries with startOffset >= truncateOffset.
      */
-    public void truncateFromOffset(final long truncateOffset) {
-        doTruncate((entry) -> entry.getStartOffset() >= truncateOffset);
+    public void truncateSuffixByOffset(final long truncateOffset) {
+        Predicate<EpochEntry> predict = (entry) -> entry.getStartOffset() >= truncateOffset;
+        doTruncateSuffix(predict);
     }
 
-    /**
-     * Clear all epochEntries
-     */
-    public void clearAll() {
-        doTruncate((entry) -> true);
-    }
-
-    private void doTruncate(final Predicate<EpochEntry> predict) {
+    private void doTruncateSuffix(Predicate<EpochEntry> predict) {
         this.writeLock.lock();
         try {
             this.epochMap.entrySet().removeIf(entry -> predict.test(entry.getValue()));
@@ -271,17 +266,33 @@ public class EpochFileCache {
         }
     }
 
+    /**
+     * Remove epochEntries with endOffset <= truncateOffset.
+     */
+    public void truncatePrefixByOffset(final long truncateOffset) {
+        Predicate<EpochEntry> predict = (entry) -> entry.getEndOffset() <= truncateOffset;
+        this.writeLock.lock();
+        try {
+            this.epochMap.entrySet().removeIf(entry -> predict.test(entry.getValue()));
+            final EpochEntry entry = firstEntry();
+            if (entry != null && entry.getStartOffset() < truncateOffset && entry.getEndOffset() > truncateOffset) {
+                entry.setStartOffset(truncateOffset);
+            }
+            flush();
+        } finally {
+            this.writeLock.unlock();
+        }
+    }
+
     private void flush() {
         this.writeLock.lock();
         try {
-            try {
-                if (this.checkpoint != null) {
-                    final ArrayList<EpochEntry> entries = new ArrayList<>(this.epochMap.values());
-                    this.checkpoint.write(entries);
-                }
-            } catch (final IOException e) {
-                log.error("Error happen when flush epochEntries to epochCheckpointFile", e);
+            if (this.checkpoint != null) {
+                final ArrayList<EpochEntry> entries = new ArrayList<>(this.epochMap.values());
+                this.checkpoint.write(entries);
             }
+        } catch (final IOException e) {
+            log.error("Error happen when flush epochEntries to epochCheckpointFile", e);
         } finally {
             this.writeLock.unlock();
         }

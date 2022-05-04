@@ -68,7 +68,7 @@ public class EpochFileCacheTest {
 
     @Test
     public void testTruncate() {
-        this.epochCache.truncateFromOffset(150);
+        this.epochCache.truncateSuffixByOffset(150);
         assertNotNull(this.epochCache.getEntry(1));
         assertNull(this.epochCache.getEntry(2));
     }
