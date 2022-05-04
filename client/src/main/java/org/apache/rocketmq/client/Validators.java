@@ -19,10 +19,12 @@ package org.apache.rocketmq.client;
 
 import static org.apache.rocketmq.common.topic.TopicValidator.isTopicOrGroupIllegal;
 
+import java.util.Map;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
 
@@ -74,6 +76,30 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
         }
+
+        if (!checkMessageProperties(msg.getProperties())) {
+            throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message properties has decoder separator");
+        }
+    }
+
+    private static boolean checkMessageProperties(Map<String, String> properties) {
+        for (Map.Entry<String, String> next : properties.entrySet()) {
+            String key = next.getKey();
+            if (checkSeparator(key))
+                return false;
+
+            String value = next.getValue();
+            if (value == null) {
+                continue;
+            }
+            if (checkSeparator(value))
+                return false;
+        }
+        return true;
+    }
+
+    private static boolean checkSeparator(String str) {
+        return str.indexOf(MessageDecoder.NAME_VALUE_SEPARATOR) > -1 || str.indexOf(MessageDecoder.PROPERTY_SEPARATOR) > -1;
     }
 
     public static void checkTopic(String topic) throws MQClientException {

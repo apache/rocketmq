@@ -42,6 +42,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -79,6 +80,7 @@ public class DefaultMQProducerTest {
     private Message message;
     private Message zeroMsg;
     private Message bigMessage;
+    private Message withSepMessage;
     private String topic = "FooBar";
     private String producerGroupPrefix = "FooBar_PID";
 
@@ -91,7 +93,11 @@ public class DefaultMQProducerTest {
         message = new Message(topic, new byte[] {'a'});
         zeroMsg = new Message(topic, new byte[] {});
         bigMessage = new Message(topic, "This is a very huge message!".getBytes());
-
+        withSepMessage = new Message(topic, new byte[] {'a'});
+        String keys = MessageDecoder.NAME_VALUE_SEPARATOR +
+            "K1" +
+            MessageDecoder.PROPERTY_SEPARATOR;
+        withSepMessage.setKeys(keys);
         producer.start();
 
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
@@ -145,6 +151,16 @@ public class DefaultMQProducerTest {
             failBecauseExceptionWasNotThrown(MQClientException.class);
         } catch (MQClientException e) {
             assertThat(e).hasMessageContaining("No route info of this topic");
+        }
+    }
+
+    @Test
+    public void testSendMessage_PropertiesWithSeparator() throws InterruptedException, RemotingException, MQBrokerException {
+        try {
+            producer.send(withSepMessage);
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("the message properties has decoder separator");
         }
     }
 
