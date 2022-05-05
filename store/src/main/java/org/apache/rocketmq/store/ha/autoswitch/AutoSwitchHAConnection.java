@@ -30,6 +30,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.apache.rocketmq.store.ha.HAConnection;
 import org.apache.rocketmq.store.ha.HAConnectionState;
@@ -39,10 +40,10 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 public class AutoSwitchHAConnection implements HAConnection {
     /**
      * Header protocol in syncing msg from master.
-     * Format: current state + body size + offset + epoch + additionalInfo(confirmOffset).
+     * Format: current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset).
      * If the msg is hankeShakeMsg, the body size = EpochEntrySize * EpochEntryNums, the offset is maxOffset in master.
      */
-    public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8;
+    public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8 + 8;
     public static final int EPOCH_ENTRY_SIZE = 12;
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final AutoSwitchHAService haService;
@@ -383,7 +384,9 @@ public class AutoSwitchHAConnection implements HAConnection {
             this.byteBufferHeader.putLong(maxPhyOffset);
             // Epoch
             this.byteBufferHeader.putInt(lastEpoch);
-            // Additional info
+            // EpochStartOffset (not needed in handshake)
+            this.byteBufferHeader.putLong(0L);
+            // Additional info (not needed in handshake)
             this.byteBufferHeader.putLong(0L);
             this.byteBufferHeader.flip();
 
@@ -415,6 +418,11 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         // Normal transfer method
         private void buildTransferHeaderBuffer(long nextOffset, int bodySize) {
+            final EpochEntry entry = AutoSwitchHAConnection.this.epochCache.getEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
+            if (entry == null) {
+                LOGGER.error("Failed to find epochEntry with epoch {} when build msg header", AutoSwitchHAConnection.this.currentTransferEpoch);
+                return;
+            }
             // Build Header
             this.byteBufferHeader.position(0);
             this.byteBufferHeader.limit(MSG_HEADER_SIZE);
@@ -425,13 +433,15 @@ public class AutoSwitchHAConnection implements HAConnection {
             // Offset
             this.byteBufferHeader.putLong(nextOffset);
             // Epoch
-            this.byteBufferHeader.putInt(AutoSwitchHAConnection.this.currentTransferEpoch);
+            this.byteBufferHeader.putInt(entry.getEpoch());
+            // EpochStartOffset
+            this.byteBufferHeader.putLong(entry.getStartOffset());
             // Additional info(confirm offset)
             final long confirmOffset = AutoSwitchHAConnection.this.haService.getConfirmOffset();
             this.byteBufferHeader.putLong(confirmOffset);
             this.byteBufferHeader.flip();
-            LOGGER.info("Master send msg, state:{}, size:{}, offset:{}, epoch:{}, confirmOffset:{}",
-                currentState, bodySize, nextOffset, AutoSwitchHAConnection.this.currentTransferEpoch, confirmOffset);
+            LOGGER.info("Master send msg, state:{}, size:{}, offset:{}, epoch:{}, epochStartOffset:{}, confirmOffset:{}",
+                currentState, bodySize, nextOffset, entry.getEpoch(), entry.getStartOffset(), confirmOffset);
         }
 
         private void transferToSlave() throws Exception {
@@ -541,7 +551,19 @@ public class AutoSwitchHAConnection implements HAConnection {
 
                             if (-1 == this.nextTransferFromWhere) {
                                 if (0 == slaveRequestOffset) {
-                                    this.nextTransferFromWhere = haService.getDefaultMessageStore().getCommitLog().getMinOffset();
+                                    // We must ensure that the starting point of syncing log
+                                    // must be the startOffset of a file (maybe the last file, or the minOffset)
+                                    final MessageStoreConfig config = haService.getDefaultMessageStore().getMessageStoreConfig();
+                                    if (config.isSyncFromLastFile()) {
+                                        long masterOffset = haService.getDefaultMessageStore().getCommitLog().getMaxOffset();
+                                        masterOffset = masterOffset - (masterOffset % config.getMappedFileSizeCommitLog());
+                                        if (masterOffset < 0) {
+                                            masterOffset = 0;
+                                        }
+                                        this.nextTransferFromWhere = masterOffset;
+                                    } else {
+                                        this.nextTransferFromWhere = haService.getDefaultMessageStore().getCommitLog().getMinOffset();
+                                    }
                                 } else {
                                     this.nextTransferFromWhere = slaveRequestOffset;
                                 }
@@ -553,8 +575,8 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     break;
                                 }
                                 changeTransferEpochToNext(epochEntry);
-                                LOGGER.info("Master transfer data to slave {}, from offset:{}, currentEpoch:{}. currentEpochEndOffset:{}",
-                                    AutoSwitchHAConnection.this.clientAddress, this.nextTransferFromWhere, epochEntry.getEpoch(), epochEntry.getEndOffset());
+                                LOGGER.info("Master transfer data to slave {}, from offset:{}, currentEpoch:{}",
+                                    AutoSwitchHAConnection.this.clientAddress, this.nextTransferFromWhere, epochEntry);
                             }
                             transferToSlave();
                             break;

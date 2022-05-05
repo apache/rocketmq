@@ -296,6 +296,11 @@ public class MessageStoreConfig {
 
     private boolean syncFromMinOffset = false;
 
+    /**
+     * Whether sync from lastFile when a new broker replicas join the master.
+     */
+    private boolean syncFromLastFile = false;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -1247,6 +1252,14 @@ public class MessageStoreConfig {
 
     public void setSyncFromMinOffset(boolean syncFromMinOffset) {
         this.syncFromMinOffset = syncFromMinOffset;
+    }
+
+    public boolean isSyncFromLastFile() {
+        return syncFromLastFile;
+    }
+
+    public void setSyncFromLastFile(boolean syncFromLastFile) {
+        this.syncFromLastFile = syncFromLastFile;
     }
 
     public boolean isEnableLmq() {

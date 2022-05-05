@@ -30,38 +30,46 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchHATest {
     private final String StoreMessage = "Once, there was a chance for me!";
+    private final int defaultMappedFileSize = 1024 * 1024;
     private int QUEUE_TOTAL = 100;
     private AtomicInteger QueueId = new AtomicInteger(0);
     private SocketAddress BornHost;
     private SocketAddress StoreHost;
     private byte[] MessageBody;
 
-    private DefaultMessageStore messageStore;
+    private DefaultMessageStore messageStore1;
     private DefaultMessageStore messageStore2;
     private DefaultMessageStore messageStore3;
     private MessageStoreConfig storeConfig1;
     private MessageStoreConfig storeConfig2;
     private MessageStoreConfig storeConfig3;
+    private String store1HaAddress;
+    private String store2HaAddress;
+    private String store3HaAddress;
+
     private BrokerStatsManager brokerStatsManager = new BrokerStatsManager("simpleTest", true);
     private String storePathRootParentDir = System.getProperty("user.home") + File.separator +
         UUID.randomUUID().toString().replace("-", "");
     private String storePathRootDir = storePathRootParentDir + File.separator + "store";
 
-    @Before
-    public void init() throws Exception {
+    public void init(int mappedFileSize) throws Exception {
+        QUEUE_TOTAL = 1;
+        MessageBody = StoreMessage.getBytes();
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         storeConfig1 = new MessageStoreConfig();
@@ -72,7 +80,9 @@ public class AutoSwitchHATest {
         storeConfig1.setTotalReplicas(3);
         storeConfig1.setInSyncReplicas(2);
         storeConfig1.setStartupControllerMode(true);
-        buildMessageStoreConfig(storeConfig1);
+        buildMessageStoreConfig(storeConfig1, mappedFileSize);
+        this.store1HaAddress = "127.0.0.1:10912";
+
         storeConfig2 = new MessageStoreConfig();
         storeConfig2.setBrokerRole(BrokerRole.SLAVE);
         storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + "broker2");
@@ -82,15 +92,11 @@ public class AutoSwitchHATest {
         storeConfig2.setTotalReplicas(3);
         storeConfig2.setInSyncReplicas(2);
         storeConfig2.setStartupControllerMode(true);
-        buildMessageStoreConfig(storeConfig2);
-        messageStore = buildMessageStore(storeConfig1, 0L);
+        buildMessageStoreConfig(storeConfig2, mappedFileSize);
+        this.store2HaAddress = "127.0.0.1:10943";
+
+        messageStore1 = buildMessageStore(storeConfig1, 0L);
         messageStore2 = buildMessageStore(storeConfig2, 1L);
-        boolean load = messageStore.load();
-        boolean slaveLoad = messageStore2.load();
-        assertTrue(load);
-        assertTrue(slaveLoad);
-        messageStore.start();
-        messageStore2.start();
 
         storeConfig3 = new MessageStoreConfig();
         storeConfig3.setBrokerRole(BrokerRole.SLAVE);
@@ -101,94 +107,153 @@ public class AutoSwitchHATest {
         storeConfig3.setTotalReplicas(3);
         storeConfig3.setInSyncReplicas(2);
         storeConfig3.setStartupControllerMode(true);
-        buildMessageStoreConfig(storeConfig3);
+        buildMessageStoreConfig(storeConfig3, mappedFileSize);
         messageStore3 = buildMessageStore(storeConfig3, 3L);
-        messageStore3.load();
+        this.store3HaAddress = "127.0.0.1:10980";
+
+        assertTrue(messageStore1.load());
+        assertTrue(messageStore2.load());
+        assertTrue(messageStore3.load());
+        messageStore1.start();
+        messageStore2.start();
         messageStore3.start();
     }
 
-    public void mockData() throws InterruptedException {
-        System.out.println("Begin test");
-        long totalMsgs = 10;
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
-        // First, change store1 to master, store2 to follower
-        this.storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
-        this.messageStore.getHaService().changeToMaster(1);
-        this.messageStore2.getHaService().changeToSlave("", "127.0.0.1:10912", 1);
+    private void changeMasterAndPutMessage(DefaultMessageStore master, MessageStoreConfig masterConfig,
+        DefaultMessageStore slave, MessageStoreConfig slaveConfig, int epoch, String masterHaAddress,
+        int totalPutMessageNums) throws Exception {
+
+        // Change role
+        slaveConfig.setBrokerRole(BrokerRole.SLAVE);
+        masterConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
+        slave.getHaService().changeToSlave("", masterHaAddress, epoch);
+        master.getHaService().changeToMaster(epoch);
         Thread.sleep(5000);
 
-        for (long i = 0; i < totalMsgs; i++) {
-            messageStore.putMessage(buildMessage());
+        // Put message on master
+        for (int i = 0; i < totalPutMessageNums; i++) {
+            master.putMessage(buildMessage());
         }
-        System.out.println("Put log success");
-
         Thread.sleep(200);
-
-        checkMessage(messageStore2, 10, 0);
     }
 
     private void checkMessage(final DefaultMessageStore messageStore, int totalMsgs, int startOffset) {
         for (long i = 0; i < totalMsgs; i++) {
             GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset + i, 1024 * 1024, null);
             assertThat(result).isNotNull();
+            if (!GetMessageStatus.FOUND.equals(result.getStatus())) {
+                System.out.println("Failed i :" + i);
+            }
             assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
             result.release();
         }
     }
 
     @Test
-    public void testChangeRoleManyTimes() throws InterruptedException {
-        System.out.println("Begin test");
-        long totalMsgs = 10;
-        QUEUE_TOTAL = 1;
-        MessageBody = StoreMessage.getBytes();
+    public void testChangeRoleManyTimes() throws Exception {
         // Step1, change store1 to master, store2 to follower
-        mockData();
+        init(defaultMappedFileSize);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
 
         // Step2, change store1 to follower, store2 to master, epoch = 2
-        this.storeConfig1.setBrokerRole(BrokerRole.SLAVE);
-        this.storeConfig2.setBrokerRole(BrokerRole.SYNC_MASTER);
-        this.messageStore.getHaService().changeToSlave("", "127.0.0.1:10943", 2);
-        this.messageStore2.getHaService().changeToMaster(2);
-        Thread.sleep(5000);
-
-        for (int i = 0; i < totalMsgs; i++) {
-            this.messageStore2.putMessage(buildMessage());
-        }
-        System.out.println("Put log success2");
-        Thread.sleep(200);
-
-        // Check slave messages (store1)
-        checkMessage(messageStore, 10, 10);
+        changeMasterAndPutMessage(this.messageStore2, this.storeConfig2, this.messageStore1, this.storeConfig1, 2, store2HaAddress, 10);
+        checkMessage(this.messageStore1, 20, 0);
 
         // Step3, change store2 to follower, store1 to master, epoch = 3
-        this.storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
-        this.storeConfig2.setBrokerRole(BrokerRole.SLAVE);
-        this.messageStore.getHaService().changeToMaster(3);
-        this.messageStore2.getHaService().changeToSlave("", "127.0.0.1:10912", 3);
-        Thread.sleep(5000);
-
-        for (int i = 0; i < totalMsgs; i++) {
-            this.messageStore.putMessage(buildMessage());
-        }
-        System.out.println("Put log success3");
-        Thread.sleep(200);
-
-        // Check slave messages (store2)
-        checkMessage(messageStore2, 10, 20);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 3, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 30, 0);
     }
 
     @Test
     public void testAddBroker() throws Exception {
         // Step1: broker1 as leader, broker2 as follower
-        mockData();
+        init(defaultMappedFileSize);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
 
         // Step2: add new broker3, link to broker1
         messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 1);
         Thread.sleep(5000);
-
         checkMessage(messageStore3, 10, 0);
+    }
+
+    @Test
+    public void testTruncateEpochLogAndAddBroker() throws Exception {
+        // Noted that 10 msg 's total size = 1570, and if init the mappedFileSize = 1700, one file only be used to store 10 msg.
+        init(1700);
+
+        // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
+        // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
+
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 2, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 20, 0);
+
+        // Step2: Check file position, each epoch will be stored on one file(Because fileSize = 1570, which equal to 10 msg size);
+        // So epoch1 was stored in firstFile, epoch2 was stored in second file, the lastFile was empty.
+        final MappedFileQueue fileQueue = this.messageStore1.getCommitLog().getMappedFileQueue();
+        assertEquals(2, fileQueue.getTotalFileSize() / 1700);
+
+        // Step3: truncate epoch1's log (truncateEndOffset = 1570), which means we should delete the first file directly.
+        final MappedFile firstFile = this.messageStore1.getCommitLog().getMappedFileQueue().getFirstMappedFile();
+        firstFile.shutdown(1000);
+        fileQueue.retryDeleteFirstFile(1000);
+        assertEquals(this.messageStore1.getCommitLog().getMinOffset(), 1700);
+        checkMessage(this.messageStore1, 10, 10);
+
+        final AutoSwitchHAService haService = (AutoSwitchHAService) this.messageStore1.getHaService();
+        haService.truncateEpochFilePrefix(1570);
+
+        // Step4: add broker3 as slave, only have 10 msg from offset 10;
+        messageStore3.getHaService().changeToSlave("", store1HaAddress, 2);
+        Thread.sleep(5000);
+
+        checkMessage(messageStore3, 10, 10);
+    }
+
+    @Test
+    public void testTruncateEpochLogAndChangeMaster() throws Exception {
+        // Noted that 10 msg 's total size = 1570, and if init the mappedFileSize = 1700, one file only be used to store 10 msg.
+        init(1700);
+
+        // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
+        // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
+
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 2, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 20, 0);
+
+        // Step2: Check file position, each epoch will be stored on one file(Because fileSize = 1570, which equal to 10 msg size);
+        // So epoch1 was stored in firstFile, epoch2 was stored in second file, the lastFile was empty.
+        final MappedFileQueue fileQueue = this.messageStore1.getCommitLog().getMappedFileQueue();
+        assertEquals(2, fileQueue.getTotalFileSize() / 1700);
+
+        // Step3: truncate epoch1's log (truncateEndOffset = 1570), which means we should delete the first file directly.
+        final MappedFile firstFile = this.messageStore1.getCommitLog().getMappedFileQueue().getFirstMappedFile();
+        firstFile.shutdown(1000);
+        fileQueue.retryDeleteFirstFile(1000);
+        assertEquals(this.messageStore1.getCommitLog().getMinOffset(), 1700);
+
+        final AutoSwitchHAService haService = (AutoSwitchHAService) this.messageStore1.getHaService();
+        haService.truncateEpochFilePrefix(1570);
+        checkMessage(this.messageStore1, 10, 10);
+
+        // Step4: add broker3 as slave
+        messageStore3.getHaService().changeToSlave("", store1HaAddress, 2);
+        Thread.sleep(5000);
+        checkMessage(messageStore3, 10, 10);
+
+        // Step5: change broker2 as leader, broker3 as follower
+        changeMasterAndPutMessage(this.messageStore2, this.storeConfig2, this.messageStore3, this.storeConfig3, 3, this.store2HaAddress, 10);
+        checkMessage(messageStore3, 20, 10);
+
+        // Step6, let broker1 link to broker2, it should sync log from epoch3.
+        this.storeConfig1.setBrokerRole(BrokerRole.SLAVE);
+        this.messageStore1.getHaService().changeToSlave("", this.store2HaAddress, 3);
+        checkMessage(messageStore1, 20, 0);
     }
 
     @After
@@ -196,22 +261,23 @@ public class AutoSwitchHATest {
         Thread.sleep(5000L);
         messageStore2.shutdown();
         messageStore2.destroy();
-        messageStore.shutdown();
-        messageStore.destroy();
+        messageStore1.shutdown();
+        messageStore1.destroy();
         messageStore3.shutdown();
         messageStore3.destroy();
         File file = new File(storePathRootParentDir);
         UtilAll.deleteFile(file);
     }
 
-    private DefaultMessageStore buildMessageStore(MessageStoreConfig messageStoreConfig, long brokerId) throws Exception {
+    private DefaultMessageStore buildMessageStore(MessageStoreConfig messageStoreConfig,
+        long brokerId) throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
         return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
     }
 
-    private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig) {
-        messageStoreConfig.setMappedFileSizeCommitLog(1024 * 1024);
+    private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig, int mappedFileSize) {
+        messageStoreConfig.setMappedFileSizeCommitLog(mappedFileSize);
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 1024);
         messageStoreConfig.setMaxHashSlotNum(10000);
         messageStoreConfig.setMaxIndexNum(100 * 100);

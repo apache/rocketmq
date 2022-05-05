@@ -274,10 +274,6 @@ public class EpochFileCache {
         this.writeLock.lock();
         try {
             this.epochMap.entrySet().removeIf(entry -> predict.test(entry.getValue()));
-            final EpochEntry entry = firstEntry();
-            if (entry != null && entry.getStartOffset() < truncateOffset && entry.getEndOffset() > truncateOffset) {
-                entry.setStartOffset(truncateOffset);
-            }
             flush();
         } finally {
             this.writeLock.unlock();

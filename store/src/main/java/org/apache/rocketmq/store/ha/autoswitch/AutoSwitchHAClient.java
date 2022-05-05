@@ -385,21 +385,23 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             while (true) {
                 int diff = byteBufferRead.position() - AutoSwitchHAClient.this.processPosition;
                 if (diff >= AutoSwitchHAConnection.MSG_HEADER_SIZE) {
-                    int masterState = byteBufferRead.getInt(AutoSwitchHAClient.this.processPosition);
-                    int bodySize = byteBufferRead.getInt(AutoSwitchHAClient.this.processPosition + 4);
-                    long masterOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + 4 + 4);
-                    int masterEpoch = byteBufferRead.getInt(AutoSwitchHAClient.this.processPosition + 4 + 4 + 8);
-                    long confirmOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + 4 + 4 + 8 + 4);
+                    int processPosition =  AutoSwitchHAClient.this.processPosition;
+                    int masterState = byteBufferRead.getInt(processPosition);
+                    int bodySize = byteBufferRead.getInt(processPosition + 4);
+                    long masterOffset = byteBufferRead.getLong(processPosition + 4 + 4);
+                    int masterEpoch = byteBufferRead.getInt(processPosition + 4 + 4 + 8);
+                    long masterEpochStartOffset = byteBufferRead.getLong(processPosition + 4 + 4 + 8 + 4);
+                    long confirmOffset = byteBufferRead.getLong(processPosition + 4 + 4 + 8 + 4 + 8);
 
                     if (masterState != AutoSwitchHAClient.this.currentState.ordinal()) {
                         AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize;
                         AutoSwitchHAClient.this.waitForRunning(1);
-                        LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, masterOffset:{}, masterEpoch:{}, confirmOffset:{}",
-                            masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, confirmOffset);
+                        LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, offset:{}, masterEpoch:{}, masterEpochStartOffset:{}, confirmOffset:{}",
+                            masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
                         return true;
                     }
-                    LOGGER.info("Receive master msg, masterState:{}, bodySize:{}, masterOffset:{}, masterEpoch:{}, confirmOffset:{}",
-                        HAConnectionState.values()[masterState], bodySize, masterOffset, masterEpoch, confirmOffset);
+                    LOGGER.info("Receive master msg, masterState:{}, bodySize:{}, offset:{}, masterEpoch:{}, masterEpochStartOffset:{}, confirmOffset:{}",
+                        HAConnectionState.values()[masterState], bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
 
                     if (diff >= (AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize)) {
                         switch (AutoSwitchHAClient.this.currentState) {
@@ -441,7 +443,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                 // If epoch changed
                                 if (masterEpoch != AutoSwitchHAClient.this.currentReceivedEpoch) {
                                     AutoSwitchHAClient.this.currentReceivedEpoch = masterEpoch;
-                                    AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterOffset));
+                                    AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterEpochStartOffset));
                                 }
                                 AutoSwitchHAClient.this.confirmOffset = Math.min(confirmOffset, messageStore.getMaxPhyOffset());
 

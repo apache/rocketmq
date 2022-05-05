@@ -1938,6 +1938,13 @@ public class DefaultMessageStore implements MessageStore {
                 deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
                     destroyMappedFileIntervalForcibly, cleanAtOnce, deleteFileBatchMax);
                 if (deleteCount > 0) {
+                    // If in the controller mode, we should notify the AutoSwitchHaService to truncateEpochFile
+                    if (DefaultMessageStore.this.messageStoreConfig.isStartupControllerMode()) {
+                        if (DefaultMessageStore.this.haService instanceof AutoSwitchHAService) {
+                            final long minPhyOffset = getMinPhyOffset();
+                            ((AutoSwitchHAService) DefaultMessageStore.this.haService).truncateEpochFilePrefix(minPhyOffset - 1);
+                        }
+                    }
                 } else if (isUsageExceedsThreshold) {
                     LOGGER.warn("disk space will be full soon, but delete file failed.");
                 }
