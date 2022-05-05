@@ -22,11 +22,14 @@ import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import io.grpc.Context;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
 import org.apache.rocketmq.client.consumer.PopStatus;
@@ -45,6 +48,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
@@ -120,7 +124,14 @@ public class LocalReceiveMessageResponseStreamWriterTest {
 
     @Test
     public void testWriteWhenCancel() throws RemotingCommandException {
-        Mockito.when(streamObserverMock.isCancelled()).thenReturn(true);
+        AtomicInteger onNextCallTimes = new AtomicInteger(0);
+        Mockito.doAnswer(mock -> {
+            if (onNextCallTimes.get() <=0) {
+                onNextCallTimes.incrementAndGet();
+                return null;
+            }
+            throw new StatusRuntimeException(Status.CANCELLED);
+        }).when(streamObserverMock).onNext(Mockito.any());
         Mockito.when(brokerControllerMock.getChangeInvisibleTimeProcessor()).thenReturn(changeInvisibleTimeProcessorMock);
         MessageExt messageExt = new MessageExt();
         messageExt.setTopic("topic");

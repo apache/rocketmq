@@ -91,6 +91,7 @@ import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -338,7 +339,7 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
                 .setSystemProperties(
                     message.getSystemProperties()
                     .toBuilder()
-                    .setReceiptHandle("0 0 1000 0 0 zhouxiang_MBP16 0 0 0")
+                    .setReceiptHandle("0 0 1000 0 0 "+ brokerControllerMock.getBrokerConfig().getBrokerName() +" 0 0 0")
                     .build())
                 .build())
             .build();
