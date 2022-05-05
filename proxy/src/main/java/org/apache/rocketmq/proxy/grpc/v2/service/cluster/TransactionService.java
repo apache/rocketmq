@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
@@ -68,12 +69,14 @@ public class TransactionService extends BaseService implements TransactionStateC
             GrpcClientChannel channel = GrpcClientChannel.getChannel(this.channelManager, checkData.getGroupId(), clientId);
 
             String transactionId = checkData.getTransactionId().getProxyTransactionId();
-            Message message = GrpcConverter.buildMessage(checkData.getMessageExt());
+            MessageExt messageExt = checkData.getMessageExt();
+            Message message = GrpcConverter.buildMessage(messageExt);
             TelemetryCommand response = TelemetryCommand.newBuilder()
                 .setRecoverOrphanedTransactionCommand(
                     RecoverOrphanedTransactionCommand.newBuilder()
                         .setOrphanedTransactionalMessage(message)
                         .setTransactionId(transactionId)
+                        .setMessageQueue(GrpcConverter.buildMessageQueue(messageExt, checkData.getBrokerName()))
                         .build()
                 ).build();
 

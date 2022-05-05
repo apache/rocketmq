@@ -26,7 +26,6 @@ import apache.rocketmq.v2.Digest;
 import apache.rocketmq.v2.DigestType;
 import apache.rocketmq.v2.Encoding;
 import apache.rocketmq.v2.EndTransactionRequest;
-import apache.rocketmq.v2.ExponentialBackoff;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
@@ -34,12 +33,10 @@ import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
-import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.Permission;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
-import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.SubscriptionEntry;
@@ -63,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -245,11 +243,6 @@ public class GrpcConverter {
         return buildAckMessageRequestHeader(request.getTopic(), request.getGroup(), handle);
     }
 
-    public static AckMessageRequestHeader buildAckMessageRequestHeader(NackMessageRequest request) {
-        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
-        return buildAckMessageRequestHeader(request.getTopic(), request.getGroup(), handle);
-    }
-
     public static AckMessageRequestHeader buildAckMessageRequestHeader(Resource topic, Resource group, ReceiptHandle handle) {
         String groupName = GrpcConverter.wrapResourceWithNamespace(group);
         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
@@ -261,37 +254,6 @@ public class GrpcConverter {
         ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
         ackMessageRequestHeader.setOffset(handle.getOffset());
         return ackMessageRequestHeader;
-    }
-
-    public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(NackMessageRequest request,
-        RetryPolicy retryPolicy) {
-        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-        String topicName = GrpcConverter.wrapResourceWithNamespace(request.getTopic());
-        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
-
-        ChangeInvisibleTimeRequestHeader changeInvisibleTimeRequestHeader = new ChangeInvisibleTimeRequestHeader();
-        changeInvisibleTimeRequestHeader.setConsumerGroup(groupName);
-        changeInvisibleTimeRequestHeader.setTopic(handle.getRealTopic(topicName, groupName));
-        changeInvisibleTimeRequestHeader.setQueueId(handle.getQueueId());
-        changeInvisibleTimeRequestHeader.setExtraInfo(handle.getReceiptHandle());
-        changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
-        changeInvisibleTimeRequestHeader.setInvisibleTime(
-            Durations.toMillis(calculateNextDeliveryDurations(retryPolicy, request.getDeliveryAttempt())));
-        return changeInvisibleTimeRequestHeader;
-    }
-
-    public static Duration calculateNextDeliveryDurations(RetryPolicy retryPolicy, int deliveryAttempt) {
-        if (retryPolicy.hasCustomizedBackoff()) {
-            int nextCount = retryPolicy.getCustomizedBackoff().getNextCount();
-            return retryPolicy.getCustomizedBackoff().getNext(Math.min(nextCount, deliveryAttempt));
-        }
-        ExponentialBackoff exponentialBackoff = retryPolicy.getExponentialBackoff();
-        long nextDurationMillis = (long) (Math.pow(exponentialBackoff.getMultiplier(), deliveryAttempt) *
-            Durations.toMillis(exponentialBackoff.getInitial()));
-        nextDurationMillis = Math.min(
-            Durations.toMillis(exponentialBackoff.getMax()),
-            nextDurationMillis);
-        return Durations.fromMillis(nextDurationMillis);
     }
 
     public static ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(ChangeInvisibleDurationRequest request) {
@@ -326,13 +288,6 @@ public class GrpcConverter {
     public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(ReceiveMessageRequest request,
         ReceiptHandle handle, String messageId, int maxReconsumeTimes) {
         return buildConsumerSendMsgBackRequestHeader(request.getMessageQueue().getTopic(), request.getGroup(), handle, messageId, maxReconsumeTimes);
-    }
-
-    public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(
-        NackMessageRequest request, int maxReconsumeTimes) {
-        ReceiptHandle handle = ReceiptHandle.decode(request.getReceiptHandle());
-        return buildConsumerSendMsgBackRequestHeader(request.getTopic(), request.getGroup(), handle,
-            request.getMessageId(), maxReconsumeTimes);
     }
 
     public static ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackRequestHeader(
@@ -492,6 +447,24 @@ public class GrpcConverter {
 
         MessageAccessor.setProperties(message, messageProperty);
         return message;
+    }
+
+    public static MessageQueue buildMessageQueue(MessageExt messageExt, String brokerName) {
+        Broker broker = Broker.getDefaultInstance();
+        if (!StringUtils.isEmpty(brokerName)) {
+            broker = Broker.newBuilder()
+                .setName(brokerName)
+                .setId(0)
+                .build();
+        }
+        return MessageQueue.newBuilder()
+            .setId(messageExt.getQueueId())
+            .setTopic(Resource.newBuilder()
+                .setName(NamespaceUtil.withoutNamespace(messageExt.getTopic()))
+                .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(messageExt.getTopic()))
+                .build())
+            .setBroker(broker)
+            .build();
     }
 
     public static String buildExpressionType(FilterType filterType) {

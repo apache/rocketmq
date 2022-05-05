@@ -35,8 +35,6 @@ import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.MessagingServiceGrpc;
-import apache.rocketmq.v2.NackMessageRequest;
-import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
@@ -206,84 +204,6 @@ public class GrpcBaseTest extends BaseConf {
                 .build()
             )
             .build());
-    }
-
-    public void testSendReceiveMessage() throws Exception {
-        String topic = initTopicOnSampleTopicBroker(broker1Name);
-        String group = MQRandomUtils.getRandomConsumerGroup();
-
-        // init consumer offset
-        this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
-        receiveMessage(blockingStub, topic, group, 1);
-
-        String messageId = createUniqID();
-        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
-        SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
-        assertSendMessage(sendResponse, messageId);
-
-        this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
-
-        Message responseMessage = assertAndGetReceiveMessage(receiveMessage(blockingStub, topic, group), messageId);
-        String receiptHandle = responseMessage.getSystemProperties().getReceiptHandle();
-        AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(topic, group, messageId, receiptHandle));
-        assertAllAckOk(ackMessageResponse);
-    }
-
-    public void testSendReceiveMessageThenToDLQ() throws Exception {
-        String topic = initTopicOnSampleTopicBroker(broker1Name);
-        String group = MQRandomUtils.getRandomConsumerGroup();
-
-        // init consumer offset
-        this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
-        receiveMessage(blockingStub, topic, group, 1);
-
-        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
-        String messageId = createUniqID();
-        SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
-        assertSendMessage(sendResponse, messageId);
-
-        this.sendClientSettings(stub, buildPushConsumerClientSettings()).get();
-
-        Message message = assertAndGetReceiveMessage(receiveMessage(blockingStub, topic, group), messageId);
-
-        NackMessageResponse nackMessageResponse = blockingStub.nackMessage(buildNackMessageRequest(
-            topic, group, messageId, message.getSystemProperties().getReceiptHandle(), 1
-        ));
-        assertNackMessageResponse(nackMessageResponse);
-
-        AtomicReference<Message> receiveRetryMessageRef = new AtomicReference<>();
-        await().atMost(java.time.Duration.ofSeconds(30)).until(() -> {
-            List<Message> messageList = getMessageFromReceiveMessageResponse(receiveMessage(blockingStub, topic, group, 1));
-            if (messageList.isEmpty()) {
-                return false;
-            }
-
-            receiveRetryMessageRef.set(messageList.get(0));
-            return messageList.get(0).getSystemProperties()
-                .getMessageId().equals(messageId);
-        });
-
-        message = receiveRetryMessageRef.get();
-        nackMessageResponse = blockingStub.nackMessage(buildNackMessageRequest(
-            topic, group, messageId, message.getSystemProperties().getReceiptHandle(), 2
-        ));
-        assertNackMessageResponse(nackMessageResponse);
-
-        DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(group);
-        defaultMQPullConsumer.start();
-        org.apache.rocketmq.common.message.MessageQueue dlqMQ = new org.apache.rocketmq.common.message.MessageQueue(MixAll.getDLQTopic(group), broker1Name, 0);
-        await().atMost(java.time.Duration.ofSeconds(10)).until(() -> {
-            try {
-                PullResult pullResult = defaultMQPullConsumer.pull(dlqMQ, "*", 0L, 1);
-                if (!PullStatus.FOUND.equals(pullResult.getPullStatus())) {
-                    return false;
-                }
-                MessageExt messageExt = pullResult.getMsgFoundList().get(0);
-                return messageId.equals(messageExt.getMsgId());
-            } catch (Throwable ignore) {
-                return false;
-            }
-        });
     }
 
     public void testTransactionCheckThenCommit() {
@@ -590,22 +510,6 @@ public class GrpcBaseTest extends BaseConf {
             .build();
     }
 
-    public NackMessageRequest buildNackMessageRequest(String topic, String group, String messageId,
-        String receiptHandle,
-        int deliveryAttempt) {
-        return NackMessageRequest.newBuilder()
-            .setDeliveryAttempt(deliveryAttempt)
-            .setMessageId(messageId)
-            .setReceiptHandle(receiptHandle)
-            .setTopic(Resource.newBuilder()
-                .setName(topic)
-                .build())
-            .setGroup(Resource.newBuilder()
-                .setName(group)
-                .build())
-            .build();
-    }
-
     public EndTransactionRequest buildEndTransactionRequest(String topic, String messageId, String transactionId,
         TransactionResolution resolution) {
         return EndTransactionRequest.newBuilder()
@@ -664,10 +568,6 @@ public class GrpcBaseTest extends BaseConf {
             assertThat(entry.getStatus()
                 .getCode()).isEqualTo(Code.OK);
         }
-    }
-
-    public void assertNackMessageResponse(NackMessageResponse response) {
-        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
     }
 
     public void assertRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand command, String messageId) {

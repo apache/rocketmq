@@ -32,14 +32,14 @@ import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
-import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResponseStreamWriter;
+import org.apache.rocketmq.proxy.grpc.v2.service.BaseReceiveMessageResponseStreamWriter;
 import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResultFilter;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocalReceiveMessageResponseStreamWriter extends ReceiveMessageResponseStreamWriter {
+public class LocalReceiveMessageResponseStreamWriter extends BaseReceiveMessageResponseStreamWriter {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final ChannelManager channelManager;
     private final BrokerController brokerController;

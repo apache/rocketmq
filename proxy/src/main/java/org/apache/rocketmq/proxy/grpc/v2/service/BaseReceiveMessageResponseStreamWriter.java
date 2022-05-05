@@ -30,19 +30,19 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseWriter;
 
-public abstract class ReceiveMessageResponseStreamWriter {
+public abstract class BaseReceiveMessageResponseStreamWriter {
 
     protected final StreamObserver<ReceiveMessageResponse> streamObserver;
     protected final ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
     protected final ReceiveMessageResultFilter receiveMessageResultFilter;
 
     public interface Builder {
-        ReceiveMessageResponseStreamWriter build(
+        BaseReceiveMessageResponseStreamWriter build(
             StreamObserver<ReceiveMessageResponse> observer,
             ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> hook);
     }
 
-    public ReceiveMessageResponseStreamWriter(
+    public BaseReceiveMessageResponseStreamWriter(
         StreamObserver<ReceiveMessageResponse> observer,
         ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> hook,
         ReceiveMessageResultFilter messageResultFilter) {

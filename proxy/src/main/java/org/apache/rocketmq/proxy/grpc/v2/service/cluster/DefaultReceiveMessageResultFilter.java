@@ -17,38 +17,29 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 
-import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.ReceiveMessageRequest;
-import apache.rocketmq.v2.Resource;
-import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.proxy.common.utils.FilterUtils;
 import org.apache.rocketmq.proxy.connector.ForwardProducer;
 import org.apache.rocketmq.proxy.connector.ForwardWriteConsumer;
 import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
+import org.apache.rocketmq.proxy.grpc.v2.service.BaseReceiveMessageResultFilter;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
-import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResultFilter;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import static org.apache.rocketmq.proxy.grpc.v2.service.BaseService.getBrokerAddr;
 
-public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFilter {
+public class DefaultReceiveMessageResultFilter extends BaseReceiveMessageResultFilter {
 
     protected final ForwardProducer producer;
     protected final ForwardWriteConsumer writeConsumer;
-    protected final GrpcClientManager grpcClientManager;
     protected final TopicRouteCache topicRouteCache;
 
     private volatile ResponseHook<AckMessageRequestHeader, AckResult> ackNoMatchedMessageHook;
@@ -56,69 +47,14 @@ public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFi
 
     public DefaultReceiveMessageResultFilter(ForwardProducer producer, ForwardWriteConsumer writeConsumer,
         GrpcClientManager grpcClientManager, TopicRouteCache topicRouteCache) {
+        super(grpcClientManager);
         this.producer = producer;
         this.writeConsumer = writeConsumer;
-        this.grpcClientManager = grpcClientManager;
         this.topicRouteCache = topicRouteCache;
     }
 
     @Override
-    public List<Message> filterMessage(Context ctx, ReceiveMessageRequest request, List<MessageExt> messageExtList) {
-        if (messageExtList == null || messageExtList.isEmpty()) {
-            return Collections.emptyList();
-        }
-        Settings settings = grpcClientManager.getClientSettings(ctx);
-        int maxAttempts = settings.getBackoffPolicy().getMaxAttempts();
-        Resource topic = request.getMessageQueue().getTopic();
-        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-        SubscriptionData subscriptionData = GrpcConverter.buildSubscriptionData(topicName, request.getFilterExpression());
-
-        List<Message> resMessageList = new ArrayList<>();
-        for (MessageExt messageExt : messageExtList) {
-            if (messageExt.getReconsumeTimes() >= maxAttempts) {
-                forwardMessageToDLQ(ctx, request, messageExt, maxAttempts);
-                continue;
-            }
-            if (!FilterUtils.isTagMatched(subscriptionData.getTagsSet(), messageExt.getTags())) {
-                this.ackNoMatchedMessage(ctx, request, messageExt);
-                continue;
-            }
-            resMessageList.add(GrpcConverter.buildMessage(messageExt));
-        }
-        return resMessageList;
-    }
-
-    protected void forwardMessageToDLQ(Context ctx, ReceiveMessageRequest request, MessageExt messageExt,
-        int maxReconsumeTimes) {
-        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
-        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
-
-        try {
-            ReceiptHandle handle = ReceiptHandle.create(messageExt);
-            if (handle == null) {
-                return;
-            }
-            String brokerAddr = getBrokerAddr(ctx, topicRouteCache, handle.getBrokerName());
-            ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = GrpcConverter.buildConsumerSendMsgBackRequestHeader(
-                request,
-                handle,
-                messageExt.getMsgId(),
-                maxReconsumeTimes);
-            AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(request, handle);
-
-            future = this.producer.sendMessageBackThenAckOrg(ctx, brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader);
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-
-        future.whenComplete((result, throwable) -> {
-            if (forwardToDLQInRecvMessageHook != null) {
-                forwardToDLQInRecvMessageHook.beforeResponse(ctx, consumerSendMsgBackRequestHeader, result, throwable);
-            }
-        });
-    }
-
-    protected void ackNoMatchedMessage(Context ctx, ReceiveMessageRequest request, MessageExt messageExt) {
+    protected void processNoMatchMessage(Context ctx, ReceiveMessageRequest request, MessageExt messageExt) {
         CompletableFuture<AckResult> future = new CompletableFuture<>();
 
         ReceiptHandle handle = ReceiptHandle.create(messageExt);
@@ -136,6 +72,37 @@ public class DefaultReceiveMessageResultFilter implements ReceiveMessageResultFi
         future.whenComplete((ackResult, throwable) -> {
             if (ackNoMatchedMessageHook != null) {
                 ackNoMatchedMessageHook.beforeResponse(ctx, ackMessageRequestHeader, ackResult, throwable);
+            }
+        });
+    }
+
+    @Override
+    protected void processExceedMaxAttemptsMessage(Context ctx, ReceiveMessageRequest request, MessageExt messageExt,
+        int maxAttempts) {
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
+
+        try {
+            ReceiptHandle handle = ReceiptHandle.create(messageExt);
+            if (handle == null) {
+                return;
+            }
+            String brokerAddr = getBrokerAddr(ctx, topicRouteCache, handle.getBrokerName());
+            ConsumerSendMsgBackRequestHeader sendMsgBackRequestHeader = GrpcConverter.buildConsumerSendMsgBackRequestHeader(
+                request,
+                handle,
+                messageExt.getMsgId(),
+                maxAttempts);
+            AckMessageRequestHeader ackMessageRequestHeader = GrpcConverter.buildAckMessageRequestHeader(request, handle);
+
+            future = this.producer.sendMessageBackThenAckOrg(ctx, brokerAddr, sendMsgBackRequestHeader, ackMessageRequestHeader);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+
+        future.whenComplete((result, throwable) -> {
+            if (forwardToDLQInRecvMessageHook != null) {
+                forwardToDLQInRecvMessageHook.beforeResponse(ctx, consumerSendMsgBackRequestHeader, result, throwable);
             }
         });
     }

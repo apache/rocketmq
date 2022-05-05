@@ -33,10 +33,10 @@ import org.apache.rocketmq.proxy.connector.route.TopicRouteCache;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.service.BaseService;
-import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResponseStreamWriter;
+import org.apache.rocketmq.proxy.grpc.v2.service.BaseReceiveMessageResponseStreamWriter;
 import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResultFilter;
 
-public class DefaultReceiveMessageResponseStreamWriter extends ReceiveMessageResponseStreamWriter {
+public class DefaultReceiveMessageResponseStreamWriter extends BaseReceiveMessageResponseStreamWriter {
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected static final long NACK_INVISIBLE_TIME = Duration.ofSeconds(1).toMillis();

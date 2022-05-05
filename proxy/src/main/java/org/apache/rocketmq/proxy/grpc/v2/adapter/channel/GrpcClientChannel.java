@@ -130,6 +130,7 @@ public class GrpcClientChannel extends SimpleChannel {
                             .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
                                 .setTransactionId(transactionId.getProxyTransactionId())
                                 .setOrphanedTransactionalMessage(GrpcConverter.buildMessage(messageExt))
+                                .setMessageQueue(GrpcConverter.buildMessageQueue(messageExt, header.getBrokerName()))
                                 .build())
                             .build());
                         break;

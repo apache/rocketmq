@@ -63,18 +63,8 @@ public class LocalGrpcTest extends GrpcBaseTest {
     }
 
     @Test
-    public void testSendReceiveMessage() throws Exception {
-        super.testSendReceiveMessage();
-    }
-
-    @Test
     public void testTransactionCheckThenCommit() {
         super.testTransactionCheckThenCommit();
-    }
-
-    @Test
-    public void testSendReceiveMessageThenToDLQ() throws Exception {
-        super.testSendReceiveMessageThenToDLQ();
     }
 
     @Test

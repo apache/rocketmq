@@ -28,8 +28,6 @@ import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
 import apache.rocketmq.v2.MessagingServiceGrpc;
-import apache.rocketmq.v2.NackMessageRequest;
-import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
@@ -117,19 +115,6 @@ public class GrpcMessagingProcessor extends MessagingServiceGrpc.MessagingServic
     @Override
     public void receiveMessage(ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
         grpcForwardService.receiveMessage(Context.current(), request, responseObserver);
-    }
-
-    @Override
-    public void nackMessage(NackMessageRequest request, StreamObserver<NackMessageResponse> responseObserver) {
-        CompletableFuture<NackMessageResponse> future = grpcForwardService.nackMessage(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    NackMessageResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
     }
 
     @Override

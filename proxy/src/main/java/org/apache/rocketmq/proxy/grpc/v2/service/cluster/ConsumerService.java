@@ -23,12 +23,8 @@ import apache.rocketmq.v2.AckMessageResultEntry;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
-import apache.rocketmq.v2.NackMessageRequest;
-import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
-import apache.rocketmq.v2.RetryPolicy;
-import apache.rocketmq.v2.Settings;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
@@ -39,7 +35,6 @@ import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
-import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.proxy.connector.ConnectorManager;
 import org.apache.rocketmq.proxy.connector.ForwardProducer;
@@ -52,8 +47,7 @@ import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.ResponseHook;
 import org.apache.rocketmq.proxy.grpc.v2.service.BaseService;
 import org.apache.rocketmq.proxy.grpc.v2.service.GrpcClientManager;
-import org.apache.rocketmq.proxy.grpc.v2.service.ReceiveMessageResponseStreamWriter;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.proxy.grpc.v2.service.BaseReceiveMessageResponseStreamWriter;
 
 public class ConsumerService extends BaseService {
     protected final ForwardReadConsumer readConsumer;
@@ -65,11 +59,10 @@ public class ConsumerService extends BaseService {
     protected final GrpcClientManager grpcClientManager;
 
     private volatile ReadQueueSelector readQueueSelector;
-    private volatile ReceiveMessageResponseStreamWriter.Builder receiveMessageWriterBuilder;
+    private volatile BaseReceiveMessageResponseStreamWriter.Builder receiveMessageWriterBuilder;
 
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
     private volatile ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook;
-    private volatile ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook;
     private volatile ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> changeInvisibleDurationHook;
 
     public ConsumerService(ConnectorManager connectorManager, GrpcClientManager grpcClientManager) {
@@ -92,7 +85,7 @@ public class ConsumerService extends BaseService {
 
     public void receiveMessage(Context ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
-        ReceiveMessageResponseStreamWriter writer = receiveMessageWriterBuilder.build(responseObserver, receiveMessageHook);
+        BaseReceiveMessageResponseStreamWriter writer = receiveMessageWriterBuilder.build(responseObserver, receiveMessageHook);
         try {
             PopMessageRequestHeader requestHeader = this.buildPopMessageRequestHeader(ctx, request);
             SelectableMessageQueue messageQueue = this.readQueueSelector.select(ctx, request, requestHeader);
@@ -203,72 +196,6 @@ public class ConsumerService extends BaseService {
             .build();
     }
 
-    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
-        CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
-        try {
-            ReceiptHandle receiptHandle = resolveReceiptHandle(ctx, request.getReceiptHandle());
-            String brokerAddr = this.getBrokerAddr(ctx, receiptHandle.getBrokerName());
-
-            Settings settings = grpcClientManager.getClientSettings(ctx);
-            int maxDeliveryAttempts = settings.getBackoffPolicy().getMaxAttempts();
-            if (request.getDeliveryAttempt() >= maxDeliveryAttempts) {
-                future = this.producer.sendMessageBackThenAckOrg(
-                    ctx,
-                    brokerAddr,
-                    this.buildConsumerSendMsgBackToDLQRequestHeader(ctx, request, maxDeliveryAttempts),
-                    this.buildAckMessageRequestHeader(ctx, request)
-                ).thenApply(result -> convertToNackMessageResponse(ctx, request, result));
-            } else {
-                ChangeInvisibleTimeRequestHeader requestHeader = this.buildChangeInvisibleTimeRequestHeader(ctx, request);
-                future = this.writeConsumer.changeInvisibleTimeAsync(ctx, brokerAddr, receiptHandle.getBrokerName(), request.getMessageId(), requestHeader)
-                    .thenApply(result -> convertToNackMessageResponse(ctx, request, result));
-            }
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        future.whenComplete((response, throwable) -> {
-            if (nackMessageHook != null) {
-                nackMessageHook.beforeResponse(ctx, request, response, throwable);
-            }
-        });
-        return future;
-    }
-
-    protected ChangeInvisibleTimeRequestHeader buildChangeInvisibleTimeRequestHeader(Context ctx,
-        NackMessageRequest request) {
-        RetryPolicy retryPolicy = grpcClientManager.getClientSettings(ctx).getBackoffPolicy();
-        return GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, retryPolicy);
-    }
-
-    protected AckMessageRequestHeader buildAckMessageRequestHeader(Context ctx, NackMessageRequest request) {
-        return GrpcConverter.buildAckMessageRequestHeader(request);
-    }
-
-    protected ConsumerSendMsgBackRequestHeader buildConsumerSendMsgBackToDLQRequestHeader(Context ctx,
-        NackMessageRequest request,
-        int maxReconsumeTimes) {
-        return GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
-    }
-
-    protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request,
-        AckResult ackResult) {
-        if (AckStatus.OK.equals(ackResult.getStatus())) {
-            return NackMessageResponse.newBuilder()
-                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-                .build();
-        }
-        return NackMessageResponse.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "nack failed: status is abnormal"))
-            .build();
-    }
-
-    protected NackMessageResponse convertToNackMessageResponse(Context ctx, NackMessageRequest request,
-        RemotingCommand sendMsgBackToDLQResult) {
-        return NackMessageResponse.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(sendMsgBackToDLQResult.getCode(), sendMsgBackToDLQResult.getRemark()))
-            .build();
-    }
-
     public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
         ChangeInvisibleDurationRequest request) {
         CompletableFuture<ChangeInvisibleDurationResponse> future = new CompletableFuture<>();
@@ -318,12 +245,12 @@ public class ConsumerService extends BaseService {
         this.readQueueSelector = readQueueSelector;
     }
 
-    public ReceiveMessageResponseStreamWriter.Builder getReceiveMessageWriterBuilder() {
+    public BaseReceiveMessageResponseStreamWriter.Builder getReceiveMessageWriterBuilder() {
         return receiveMessageWriterBuilder;
     }
 
     public void setReceiveMessageWriterBuilder(
-        ReceiveMessageResponseStreamWriter.Builder receiveMessageWriterBuilder) {
+        BaseReceiveMessageResponseStreamWriter.Builder receiveMessageWriterBuilder) {
         this.receiveMessageWriterBuilder = receiveMessageWriterBuilder;
     }
 
@@ -343,15 +270,6 @@ public class ConsumerService extends BaseService {
     public void setAckMessageHook(
         ResponseHook<AckMessageRequest, AckMessageResponse> ackMessageHook) {
         this.ackMessageHook = ackMessageHook;
-    }
-
-    public ResponseHook<NackMessageRequest, NackMessageResponse> getNackMessageHook() {
-        return nackMessageHook;
-    }
-
-    public void setNackMessageHook(
-        ResponseHook<NackMessageRequest, NackMessageResponse> nackMessageHook) {
-        this.nackMessageHook = nackMessageHook;
     }
 
     public ResponseHook<ChangeInvisibleDurationRequest, ChangeInvisibleDurationResponse> getChangeInvisibleDurationHook() {

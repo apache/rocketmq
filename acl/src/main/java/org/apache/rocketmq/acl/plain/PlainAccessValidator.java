@@ -21,7 +21,6 @@ import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.Message;
-import apache.rocketmq.v2.NackMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -204,14 +203,6 @@ public class PlainAccessValidator implements AccessValidator {
                 accessResource.addResourceAndPerm(topicName, Permission.SUB);
             } else if (AckMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 AckMessageRequest request = (AckMessageRequest) messageV3;
-                Resource group = request.getGroup();
-                String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
-                accessResource.addResourceAndPerm(groupName, Permission.SUB);
-                Resource topic = request.getTopic();
-                String topicName = NamespaceUtil.wrapNamespace(topic.getResourceNamespace(), topic.getName());
-                accessResource.addResourceAndPerm(topicName, Permission.SUB);
-            } else if (NackMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
-                NackMessageRequest request = (NackMessageRequest) messageV3;
                 Resource group = request.getGroup();
                 String groupName = NamespaceUtil.wrapNamespace(group.getResourceNamespace(), group.getName());
                 accessResource.addResourceAndPerm(groupName, Permission.SUB);
