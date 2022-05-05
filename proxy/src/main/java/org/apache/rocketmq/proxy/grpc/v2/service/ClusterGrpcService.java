@@ -27,8 +27,6 @@ import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
-import apache.rocketmq.v2.NackMessageRequest;
-import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
@@ -128,11 +126,6 @@ public class ClusterGrpcService extends AbstractStartAndShutdown implements Grpc
     public void receiveMessage(Context ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
         consumerService.receiveMessage(ctx, request, responseObserver);
-    }
-
-    @Override
-    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
-        return consumerService.nackMessage(ctx, request);
     }
 
     @Override

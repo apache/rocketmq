@@ -25,8 +25,6 @@ import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
-import apache.rocketmq.v2.NackMessageRequest;
-import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
@@ -175,6 +173,8 @@ public class ConsumerServiceTest extends BaseServiceTest {
             ArgumentCaptor.forClass(ConsumerSendMsgBackRequestHeader.class);
         when(producerClient.sendMessageBackThenAckOrg(any(), anyString(), sendMsgBackRequestHeaderArgumentCaptor.capture(), any()))
             .thenReturn(CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "")));
+        when(writeConsumerClient.ackMessage(any(), anyString(), anyString(), any()))
+            .thenReturn(CompletableFuture.completedFuture(new AckResult()));
 
         Context ctx = Context.current().withDeadlineAfter(3, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
         consumerService.receiveMessage(ctx,
@@ -187,7 +187,7 @@ public class ConsumerServiceTest extends BaseServiceTest {
                     .build())
                 .setFilterExpression(FilterExpression.newBuilder()
                     .setType(FilterType.TAG)
-                    .setExpression("msg1")
+                    .setExpression("*")
                     .build())
                 .build(),
             receiveMessageResponseStreamObserver
@@ -226,63 +226,6 @@ public class ConsumerServiceTest extends BaseServiceTest {
             .get();
 
         assertEquals(Code.OK, response.getStatus().getCode());
-    }
-
-    @Test
-    public void testNackMessageToDLQ() throws Exception {
-        ReceiptHandle receiptHandle = createReceiptHandle();
-        ArgumentCaptor<ConsumerSendMsgBackRequestHeader> headerArgumentCaptor = ArgumentCaptor.forClass(ConsumerSendMsgBackRequestHeader.class);
-        when(producerClient.sendMessageBackThenAckOrg(any(), anyString(), headerArgumentCaptor.capture(), any()))
-            .thenReturn(CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "")));
-        when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
-
-        Settings clientSettings = createClientSettings(3);
-        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
-
-        NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
-            .setTopic(Resource.newBuilder()
-                .setName("topic")
-                .build())
-            .setGroup(Resource.newBuilder()
-                .setName("group")
-                .build())
-            .setReceiptHandle(receiptHandle.encode())
-            .setDeliveryAttempt(3)
-            .build())
-            .get();
-
-        assertEquals(Code.OK, response.getStatus().getCode());
-        assertEquals(receiptHandle.getCommitLogOffset(), headerArgumentCaptor.getValue().getOffset().longValue());
-    }
-
-    @Test
-    public void testNackMessage() throws Exception {
-        ReceiptHandle receiptHandle = createReceiptHandle();
-        ArgumentCaptor<ChangeInvisibleTimeRequestHeader> headerArgumentCaptor = ArgumentCaptor.forClass(ChangeInvisibleTimeRequestHeader.class);
-        AckResult ackResult = new AckResult();
-        ackResult.setStatus(AckStatus.OK);
-        when(writeConsumerClient.changeInvisibleTimeAsync(any(), anyString(), anyString(), anyString(), headerArgumentCaptor.capture()))
-            .thenReturn(CompletableFuture.completedFuture(ackResult));
-        when(topicRouteCache.getBrokerAddr(anyString())).thenReturn("brokerAddr");
-
-        Settings clientSettings = createClientSettings(3);
-        when(grpcClientManager.getClientSettings(any(Context.class))).thenReturn(clientSettings);
-
-        NackMessageResponse response = consumerService.nackMessage(Context.current(), NackMessageRequest.newBuilder()
-            .setTopic(Resource.newBuilder()
-                .setName("topic")
-                .build())
-            .setGroup(Resource.newBuilder()
-                .setName("group")
-                .build())
-            .setReceiptHandle(receiptHandle.encode())
-            .setDeliveryAttempt(1)
-            .build())
-            .get();
-
-        assertEquals(Code.OK, response.getStatus().getCode());
-        assertEquals(receiptHandle.getOffset(), headerArgumentCaptor.getValue().getOffset().longValue());
-        assertEquals(receiptHandle.encode(), headerArgumentCaptor.getValue().getExtraInfo());
     }
 
     @Test

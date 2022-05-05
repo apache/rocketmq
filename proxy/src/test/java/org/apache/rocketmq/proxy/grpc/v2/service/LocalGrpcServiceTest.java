@@ -32,8 +32,6 @@ import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
-import apache.rocketmq.v2.NackMessageRequest;
-import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.ReceiveMessageRequest;
@@ -376,66 +374,6 @@ public class LocalGrpcServiceTest extends InitConfigAndLoggerTest {
             .build();
         CompletableFuture<AckMessageResponse> grpcFuture = localGrpcService.ackMessage(Context.current(), request);
         AckMessageResponse r = grpcFuture.get();
-        assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
-    }
-
-    @Test
-    public void testNackMessage() throws Exception {
-        ChangeInvisibleTimeResponseHeader responseHeader = new ChangeInvisibleTimeResponseHeader();
-        responseHeader.setInvisibleTime(1000L);
-        responseHeader.setPopTime(0L);
-        responseHeader.setReviveQid(0);
-        RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, responseHeader);
-
-        ChangeInvisibleTimeProcessor changeInvisibleTimeProcessor = Mockito.mock(ChangeInvisibleTimeProcessor.class);
-        Mockito.when(brokerControllerMock.getChangeInvisibleTimeProcessor()).thenReturn(changeInvisibleTimeProcessor);
-        Mockito.when(changeInvisibleTimeProcessor.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
-            .thenReturn(response);
-        NackMessageRequest request = NackMessageRequest.newBuilder().setReceiptHandle(
-            ReceiptHandle.builder()
-                .startOffset(0L)
-                .retrieveTime(0L)
-                .invisibleTime(1000L)
-                .nextVisibleTime(1000L)
-                .reviveQueueId(0)
-                .topicType("topic")
-                .brokerName("brokerName")
-                .queueId(0)
-                .offset(0L)
-                .build().encode()
-        ).build();
-        CompletableFuture<NackMessageResponse> grpcFuture = localGrpcService.nackMessage(Context.current(), request);
-        NackMessageResponse r = grpcFuture.get();
-        assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
-    }
-
-    @Test
-    public void testNackMessageWhenDLQ() throws Exception {
-        ConsumerSendMsgBackRequestHeader responseHeader = new ConsumerSendMsgBackRequestHeader();
-        RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, responseHeader);
-
-        SendMessageProcessor sendMessageProcessor = Mockito.mock(SendMessageProcessor.class);
-        Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessor);
-        Mockito.when(sendMessageProcessor.processRequest(Mockito.any(ChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
-            .thenReturn(response);
-        NackMessageRequest request = NackMessageRequest.newBuilder()
-            .setDeliveryAttempt(3)
-            .setReceiptHandle(
-                ReceiptHandle.builder()
-                    .startOffset(0L)
-                    .retrieveTime(0L)
-                    .invisibleTime(1000L)
-                    .nextVisibleTime(1000L)
-                    .reviveQueueId(0)
-                    .topicType("topic")
-                    .brokerName("brokerName")
-                    .queueId(0)
-                    .offset(0L)
-                    .build().encode()
-            ).build();
-        CompletableFuture<NackMessageResponse> grpcFuture = localGrpcService.nackMessage(
-            Context.current(), request);
-        NackMessageResponse r = grpcFuture.get();
         assertThat(r.getStatus().getCode()).isEqualTo(Code.OK);
     }
 

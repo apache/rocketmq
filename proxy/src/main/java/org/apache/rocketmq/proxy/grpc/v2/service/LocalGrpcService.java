@@ -30,8 +30,6 @@ import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
-import apache.rocketmq.v2.NackMessageRequest;
-import apache.rocketmq.v2.NackMessageResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
@@ -41,7 +39,6 @@ import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
-import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Settings;
@@ -120,7 +117,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
     private final RouteService routeService;
     private final ClientSettingsService clientSettingsService;
     private final LocalWriteQueueSelector localWriteQueueSelector;
-    private final ReceiveMessageResponseStreamWriter.Builder streamWriterBuilder;
+    private final BaseReceiveMessageResponseStreamWriter.Builder streamWriterBuilder;
 
     private volatile ResponseHook<ReceiveMessageRequest, ReceiveMessageResponse> receiveMessageHook;
 
@@ -271,7 +268,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
         long pollTime = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
         // TODO: get fifo config from subscriptionGroupManager
         boolean fifo = false;
-        ReceiveMessageResponseStreamWriter writer = streamWriterBuilder.build(responseObserver, receiveMessageHook);
+        BaseReceiveMessageResponseStreamWriter writer = streamWriterBuilder.build(responseObserver, receiveMessageHook);
         ReceiveMessageResponseHandler handler = new ReceiveMessageResponseHandler(brokerController.getBrokerConfig().getBrokerName(), fifo);
         ReceiveMessageChannel channel = channelManager.createChannel(ctx, context -> new ReceiveMessageChannel(context, handler), ReceiveMessageChannel.class);
         CompletableFuture<List<MessageExt>> future = new CompletableFuture<>();
@@ -342,50 +339,6 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
             .addAllEntries(ackMessageResultEntryList)
             .build();
         future.complete(response);
-        return future;
-    }
-
-    @Override
-    public CompletableFuture<NackMessageResponse> nackMessage(Context ctx, NackMessageRequest request) {
-        Channel channel = channelManager.createChannel(ctx);
-        SimpleChannelHandlerContext channelHandlerContext = new SimpleChannelHandlerContext(channel);
-        CompletableFuture<NackMessageResponse> future = new CompletableFuture<>();
-
-        RetryPolicy retryPolicy = grpcClientManager.getClientSettings(ctx).getBackoffPolicy();
-        int maxReconsumeTimes = retryPolicy.getMaxAttempts();
-        if (request.getDeliveryAttempt() >= maxReconsumeTimes) {
-            ConsumerSendMsgBackRequestHeader requestHeader = GrpcConverter.buildConsumerSendMsgBackToDLQRequestHeader(request, maxReconsumeTimes);
-            RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
-            command.makeCustomHeaderToNet();
-
-            try {
-                RemotingCommand responseCommand = brokerController.getSendMessageProcessor()
-                    .processRequest(channelHandlerContext, command);
-                NackMessageResponse response = NackMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
-                    .build();
-                future.complete(response);
-            }  catch (Exception e) {
-                log.error("Exception raised while nackMessage", e);
-                future.completeExceptionally(e);
-            }
-        } else {
-            ChangeInvisibleTimeRequestHeader requestHeader = GrpcConverter.buildChangeInvisibleTimeRequestHeader(request, retryPolicy);
-            RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
-            command.makeCustomHeaderToNet();
-
-            try {
-                RemotingCommand responseCommand = brokerController.getChangeInvisibleTimeProcessor()
-                    .processRequest(channelHandlerContext, command);
-                NackMessageResponse response = NackMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(responseCommand.getCode(), responseCommand.getRemark()))
-                    .build();
-                future.complete(response);
-            } catch (Exception e) {
-                log.error("Exception raised while nackMessage", e);
-                future.completeExceptionally(e);
-            }
-        }
         return future;
     }
 

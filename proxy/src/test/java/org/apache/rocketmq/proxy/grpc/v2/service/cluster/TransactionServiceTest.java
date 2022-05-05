@@ -19,8 +19,10 @@ package org.apache.rocketmq.proxy.grpc.v2.service.cluster;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
+import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.proxy.channel.ChannelManager;
 import org.apache.rocketmq.proxy.connector.transaction.TransactionId;
@@ -69,13 +71,16 @@ public class TransactionServiceTest extends BaseServiceTest {
             2L,
             "msgId",
             transactionId,
+            "brokerName",
             createMessageExt("msgId", "msgId")
         ));
 
         Object flushData = flushDataCaptor.getValue();
         assertTrue(flushData instanceof TelemetryCommand);
         TelemetryCommand response = (TelemetryCommand) flushData;
-        assertEquals(transactionId.getProxyTransactionId(), response.getRecoverOrphanedTransactionCommand().getTransactionId());
+        RecoverOrphanedTransactionCommand command = response.getRecoverOrphanedTransactionCommand();
+        assertEquals(transactionId.getProxyTransactionId(), command.getTransactionId());
+        assertEquals("brokerName", command.getMessageQueue().getBroker().getName());
     }
 
     @Test

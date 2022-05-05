@@ -24,6 +24,7 @@ public class TransactionStateCheckRequest {
     private Long commitLogOffset;
     private String msgId;
     private TransactionId transactionId;
+    private String brokerName;
     private MessageExt messageExt;
 
     public TransactionStateCheckRequest(
@@ -32,6 +33,7 @@ public class TransactionStateCheckRequest {
         Long commitLogOffset,
         String msgId,
         TransactionId transactionId,
+        String brokerName,
         MessageExt messageExt
     ) {
         this.groupId = groupId;
@@ -39,6 +41,7 @@ public class TransactionStateCheckRequest {
         this.commitLogOffset = commitLogOffset;
         this.msgId = msgId;
         this.transactionId = transactionId;
+        this.brokerName = brokerName;
         this.messageExt = messageExt;
     }
 
@@ -80,6 +83,14 @@ public class TransactionStateCheckRequest {
 
     public void setTransactionId(TransactionId transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 
     public MessageExt getMessageExt() {
