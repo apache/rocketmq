@@ -217,7 +217,7 @@ public class DefaultMQConsumerWithTraceTest {
 
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
-        traceProducer.getDefaultMQProducerImpl().getmQClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
+        traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicReference<MessageExt> messageAtomic = new AtomicReference<MessageExt>();
