@@ -176,6 +176,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         PopRequest popRequest = remotingCommands.pollFirst();
         //clean inactive channel
         while (popRequest != null && !popRequest.getChannel().isActive()) {
+            totalPollingNum.decrementAndGet();
             popRequest = remotingCommands.pollFirst();
         }
 
