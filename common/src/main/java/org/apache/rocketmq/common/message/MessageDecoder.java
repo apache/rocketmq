@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageDecoder {
@@ -163,7 +165,8 @@ public class MessageDecoder {
         int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
         byte[] newBody = messageExt.getBody();
         if (needCompress && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
-            newBody = UtilAll.compress(body, 5);
+            Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
+            newBody = compressor.compress(body, 5);
         }
         int bodyLength = newBody.length;
         int storeSize = messageExt.getStoreSize();
@@ -347,7 +350,8 @@ public class MessageDecoder {
 
                     // uncompress body
                     if (deCompressBody && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
-                        body = UtilAll.uncompress(body);
+                        Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
+                        body = compressor.decompress(body);
                     }
 
                     msgExt.setBody(body);
