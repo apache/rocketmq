@@ -121,7 +121,7 @@ public class IndexFile {
 
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
 
-                if (this.indexHeader.getIndexCount() <= 1) {
+                if (this.indexHeader.getIndexCount() < 1) {
                     this.indexHeader.setBeginPhyOffset(phyOffset);
                     this.indexHeader.setBeginTimestamp(storeTimestamp);
                 }
