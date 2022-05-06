@@ -90,6 +90,15 @@ public class EpochFileCache {
         }
     }
 
+    public int getEntrySize() {
+        this.readLock.lock();
+        try {
+            return this.epochMap.size();
+        } finally {
+            this.readLock.unlock();
+        }
+    }
+
     public boolean appendEntry(final EpochEntry entry) {
         this.writeLock.lock();
         try {

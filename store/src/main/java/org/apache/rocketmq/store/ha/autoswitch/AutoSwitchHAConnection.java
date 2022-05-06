@@ -61,6 +61,7 @@ public class AutoSwitchHAConnection implements HAConnection {
     private volatile boolean isSlaveSendHandshake = false;
     private volatile int currentTransferEpoch = -1;
     private volatile long currentTransferEpochEndOffset = 0;
+    private volatile boolean isSyncFromLastFile = false;
     private final FlowMonitor flowMonitor;
 
     public AutoSwitchHAConnection(AutoSwitchHAService haService, SocketChannel socketChannel,
@@ -232,6 +233,11 @@ public class AutoSwitchHAConnection implements HAConnection {
                         switch (slaveState) {
                             case HANDSHAKE:
                                 isSlaveSendHandshake = true;
+                                long syncFromLastFileFlag = byteBufferRead.getLong(readPosition + 4);
+                                if (syncFromLastFileFlag == AutoSwitchHAClient.SYNC_FROM_LAST_FILE) {
+                                    AutoSwitchHAConnection.this.isSyncFromLastFile = true;
+                                    LOGGER.info("Slave request sync from lastFile");
+                                }
                                 ReadSocketService.this.processPosition += AutoSwitchHAClient.TRANSFER_HEADER_SIZE;
                                 break;
                             case TRANSFER:
@@ -554,7 +560,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     // We must ensure that the starting point of syncing log
                                     // must be the startOffset of a file (maybe the last file, or the minOffset)
                                     final MessageStoreConfig config = haService.getDefaultMessageStore().getMessageStoreConfig();
-                                    if (config.isSyncFromLastFile()) {
+                                    if (AutoSwitchHAConnection.this.isSyncFromLastFile) {
                                         long masterOffset = haService.getDefaultMessageStore().getCommitLog().getMaxOffset();
                                         masterOffset = masterOffset - (masterOffset % config.getMappedFileSizeCommitLog());
                                         if (masterOffset < 0) {

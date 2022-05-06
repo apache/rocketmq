@@ -41,8 +41,11 @@ import org.apache.rocketmq.store.ha.io.AbstractHAReader;
 import org.apache.rocketmq.store.ha.io.HAWriter;
 
 public class AutoSwitchHAClient extends ServiceThread implements HAClient {
+
+
     /**
-     * Transfer header buffer size. Schema: state ordinal + maxOffset
+     * Transfer header buffer size. Schema: state ordinal + additional info(maxOffset or flag)
+     * If in handshake state, we reuse additional info as the flag -- isSyncFromLastFile.
      */
     public static final int TRANSFER_HEADER_SIZE = 4 + 8;
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -81,6 +84,10 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * Confirm offset = min(localMaxOffset, master confirm offset).
      */
     private volatile long confirmOffset;
+
+    public static final int SYNC_FROM_LAST_FILE = -1;
+
+    public static final int SYNC_FROM_FIRST_FILE = -2;
 
     public AutoSwitchHAClient(AutoSwitchHAService haService, DefaultMessageStore defaultMessageStore,
         EpochFileCache epochCache) throws IOException {
@@ -220,7 +227,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         this.transferHeaderBuffer.position(0);
         this.transferHeaderBuffer.limit(TRANSFER_HEADER_SIZE);
         this.transferHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
-        this.transferHeaderBuffer.putLong(0L);
+        if (this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile()) {
+            this.transferHeaderBuffer.putLong(SYNC_FROM_LAST_FILE);
+        } else {
+            this.transferHeaderBuffer.putLong(SYNC_FROM_FIRST_FILE);
+        }
         this.transferHeaderBuffer.flip();
         return this.haWriter.write(this.socketChannel, this.transferHeaderBuffer);
     }
@@ -351,24 +362,35 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * Compare the master and slave's epoch file, find consistent point, do truncate.
      */
     private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) {
-        final EpochFileCache masterEpochCache = new EpochFileCache();
-        masterEpochCache.initCacheFromEntries(masterEpochEntries);
-        masterEpochCache.setLastEpochEntryEndOffset(masterEndOffset);
-        final EpochFileCache localEpochCache = new EpochFileCache();
-        localEpochCache.initCacheFromEntries(this.epochCache.getAllEntries());
-        localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxPhyOffset());
+        if (this.epochCache.getEntrySize() == 0) {
+            // If epochMap is empty, means the broker is a new replicas
+            LOGGER.info("Slave local epochCache is empty, skip truncate log");
+            changeCurrentState(HAConnectionState.TRANSFER);
+            this.currentReportedOffset = 0;
+        } else {
+            final EpochFileCache masterEpochCache = new EpochFileCache();
+            masterEpochCache.initCacheFromEntries(masterEpochEntries);
+            masterEpochCache.setLastEpochEntryEndOffset(masterEndOffset);
+            final List<EpochEntry> localEpochEntries = this.epochCache.getAllEntries();
+            final EpochFileCache localEpochCache = new EpochFileCache();
+            localEpochCache.initCacheFromEntries(localEpochEntries);
+            localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxPhyOffset());
 
-        final long truncateOffset = localEpochCache.findConsistentPoint(masterEpochCache);
-        if (truncateOffset >= 0) {
+            final long truncateOffset = localEpochCache.findConsistentPoint(masterEpochCache);
+            if (truncateOffset < 0) {
+                // If truncateOffset < 0, means we can't find a consistent point
+                LOGGER.error("Failed to find a consistent point between masterEpoch:{} and slaveEpoch:{}", masterEpochEntries, localEpochEntries);
+                return false;
+            }
             if (!this.messageStore.truncateFiles(truncateOffset)) {
                 LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
                 return false;
             }
             this.epochCache.truncateSuffixByOffset(truncateOffset);
             LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
+            changeCurrentState(HAConnectionState.TRANSFER);
+            this.currentReportedOffset = truncateOffset;
         }
-        changeCurrentState(HAConnectionState.TRANSFER);
-        this.currentReportedOffset = truncateOffset;
         if (!reportSlaveMaxOffset()) {
             LOGGER.error("AutoSwitchHAClient report max offset to master failed");
             return false;
@@ -420,6 +442,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                 AutoSwitchHAClient.this.processPosition += bodySize;
                                 LOGGER.info("Receive handshake, masterMaxPosition {}, masterEpochEntries:{}, try truncate log", masterOffset, epochEntries);
                                 if (!doTruncate(epochEntries, masterOffset)) {
+                                    waitForRunning(1000 * 2);
                                     LOGGER.error("AutoSwitchHAClient truncate log failed in handshake state");
                                     return false;
                                 }

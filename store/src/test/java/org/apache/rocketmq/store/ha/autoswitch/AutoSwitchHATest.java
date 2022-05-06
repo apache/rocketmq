@@ -128,7 +128,7 @@ public class AutoSwitchHATest {
         masterConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
         slave.getHaService().changeToSlave("", masterHaAddress, epoch);
         master.getHaService().changeToMaster(epoch);
-        Thread.sleep(5000);
+        Thread.sleep(6000);
 
         // Put message on master
         for (int i = 0; i < totalPutMessageNums; i++) {
@@ -174,7 +174,7 @@ public class AutoSwitchHATest {
 
         // Step2: add new broker3, link to broker1
         messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 1);
-        Thread.sleep(5000);
+        Thread.sleep(6000);
         checkMessage(messageStore3, 10, 0);
     }
 
@@ -208,7 +208,7 @@ public class AutoSwitchHATest {
 
         // Step4: add broker3 as slave, only have 10 msg from offset 10;
         messageStore3.getHaService().changeToSlave("", store1HaAddress, 2);
-        Thread.sleep(5000);
+        Thread.sleep(6000);
 
         checkMessage(messageStore3, 10, 10);
     }
@@ -243,7 +243,7 @@ public class AutoSwitchHATest {
 
         // Step4: add broker3 as slave
         messageStore3.getHaService().changeToSlave("", store1HaAddress, 2);
-        Thread.sleep(5000);
+        Thread.sleep(6000);
         checkMessage(messageStore3, 10, 10);
 
         // Step5: change broker2 as leader, broker3 as follower
@@ -253,8 +253,38 @@ public class AutoSwitchHATest {
         // Step6, let broker1 link to broker2, it should sync log from epoch3.
         this.storeConfig1.setBrokerRole(BrokerRole.SLAVE);
         this.messageStore1.getHaService().changeToSlave("", this.store2HaAddress, 3);
+        Thread.sleep(6000);
         checkMessage(messageStore1, 20, 0);
     }
+
+
+    @Test
+    public void testAddBrokerAndSyncFromLastFile() throws Exception {
+        init(1700);
+
+        // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
+        // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 2, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 20, 0);
+
+
+        // Step2: restart broker3
+        messageStore3.shutdown();
+        messageStore3.destroy();
+
+        storeConfig3.setSyncFromLastFile(true);
+        messageStore3 = buildMessageStore(storeConfig3, 3L);
+        assertTrue(messageStore3.load());
+        messageStore3.start();
+
+        // Step2: add new broker3, link to broker1. because broker3 request sync from lastFile, so it only synced 10 msg from offset 10;
+        messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 2);
+        Thread.sleep(6000);
+        checkMessage(messageStore3, 10, 10);
+    }
+
 
     @After
     public void destroy() throws Exception {
