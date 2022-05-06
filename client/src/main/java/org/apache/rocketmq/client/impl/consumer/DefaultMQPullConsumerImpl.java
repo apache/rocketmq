@@ -781,7 +781,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.pullAPIWrapper = pullAPIWrapper;
     }
 
-    public ServiceState getServiceState() {
+    public synchronized ServiceState getServiceState() {
         return serviceState;
     }
 

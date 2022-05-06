@@ -185,7 +185,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.start(true);
     }
 
-    public void start(final boolean startFactory) throws MQClientException {
+    public synchronized void start(final boolean startFactory) throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
                 this.serviceState = ServiceState.START_FAILED;
@@ -250,7 +250,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.shutdown(true);
     }
 
-    public void shutdown(final boolean shutdownFactory) {
+    public synchronized void shutdown(final boolean shutdownFactory) {
         switch (this.serviceState) {
             case CREATE_JUST:
                 break;
@@ -427,7 +427,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 
-    private void makeSureStateOK() throws MQClientException {
+    private synchronized void makeSureStateOK() throws MQClientException {
         if (this.serviceState != ServiceState.RUNNING) {
             throw new MQClientException("The producer service state not OK, "
                 + this.serviceState
@@ -1610,11 +1610,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.compressType = compressType;
     }
 
-    public ServiceState getServiceState() {
+    public synchronized ServiceState getServiceState() {
         return serviceState;
     }
 
-    public void setServiceState(ServiceState serviceState) {
+    public synchronized void setServiceState(ServiceState serviceState) {
         this.serviceState = serviceState;
     }
 
