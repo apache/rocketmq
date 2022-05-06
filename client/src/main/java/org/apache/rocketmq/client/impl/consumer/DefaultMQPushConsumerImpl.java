@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -962,8 +963,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         for (String topic : rebalanceImpl.getSubscriptionInner().keySet()) {
             Set<MessageQueue> mqs = rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
-            Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>(mqs.size(), 1);
-            if (mqs != null) {
+            if (CollectionUtils.isNotEmpty(mqs)) {
+                Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>(mqs.size(), 1);
                 for (MessageQueue mq : mqs) {
                     long offset = searchOffset(mq, timeStamp);
                     offsetTable.put(mq, offset);
