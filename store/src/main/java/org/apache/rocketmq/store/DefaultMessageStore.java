@@ -77,6 +77,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.HAService;
+import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.index.IndexService;
@@ -189,8 +190,13 @@ public class DefaultMessageStore implements MessageStore {
         if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             this.haService = ServiceProvider.loadClass(ServiceProvider.HA_SERVICE_ID, HAService.class);
             if (null == this.haService) {
-                this.haService = new DefaultHAService();
-                LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
+                if (this.messageStoreConfig.isStartupControllerMode()) {
+                    this.haService = new AutoSwitchHAService();
+                    LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
+                } else {
+                    this.haService = new DefaultHAService();
+                    LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
+                }
             }
             this.haService.init(this);
         }
@@ -1932,6 +1938,13 @@ public class DefaultMessageStore implements MessageStore {
                 deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
                     destroyMappedFileIntervalForcibly, cleanAtOnce, deleteFileBatchMax);
                 if (deleteCount > 0) {
+                    // If in the controller mode, we should notify the AutoSwitchHaService to truncateEpochFile
+                    if (DefaultMessageStore.this.messageStoreConfig.isStartupControllerMode()) {
+                        if (DefaultMessageStore.this.haService instanceof AutoSwitchHAService) {
+                            final long minPhyOffset = getMinPhyOffset();
+                            ((AutoSwitchHAService) DefaultMessageStore.this.haService).truncateEpochFilePrefix(minPhyOffset - 1);
+                        }
+                    }
                 } else if (isUsageExceedsThreshold) {
                     LOGGER.warn("disk space will be full soon, but delete file failed.");
                 }
