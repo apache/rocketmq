@@ -128,6 +128,9 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     @Override public String getServiceName() {
+        if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
+            return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + AutoSwitchHAClient.class.getSimpleName();
+        }
         return AutoSwitchHAClient.class.getSimpleName();
     }
 

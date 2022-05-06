@@ -39,9 +39,9 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 
 public class AutoSwitchHAConnection implements HAConnection {
     /**
-     * Header protocol in syncing msg from master.
-     * Format: current state + body size + offset + epoch  + epochStartOffset + additionalInfo(confirmOffset).
-     * If the msg is hankeShakeMsg, the body size = EpochEntrySize * EpochEntryNums, the offset is maxOffset in master.
+     * Header protocol in syncing msg from master. Format: current state + body size + offset + epoch  +
+     * epochStartOffset + additionalInfo(confirmOffset). If the msg is hankeShakeMsg, the body size = EpochEntrySize *
+     * EpochEntryNums, the offset is maxOffset in master.
      */
     public static final int MSG_HEADER_SIZE = 4 + 4 + 8 + 4 + 8 + 8;
     public static final int EPOCH_ENTRY_SIZE = 12;
@@ -218,6 +218,9 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         @Override
         public String getServiceName() {
+            if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
+                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + ReadSocketService.class.getSimpleName();
+            }
             return ReadSocketService.class.getSimpleName();
         }
 
@@ -336,7 +339,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         @Override
         public String getServiceName() {
             if (haService.getDefaultMessageStore().getBrokerConfig().isInBrokerContainer()) {
-                return haService.getDefaultMessageStore().getBrokerConfig().getLoggerIdentifier() + WriteSocketService.class.getSimpleName();
+                return haService.getDefaultMessageStore().getBrokerIdentity().getLoggerIdentifier() + WriteSocketService.class.getSimpleName();
             }
             return WriteSocketService.class.getSimpleName();
         }
