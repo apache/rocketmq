@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.BrokerPreOnlineService;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -50,7 +51,6 @@ public class BrokerPreOnlineTest {
 
     public void init() throws Exception {
         when(brokerContainer.getBrokerOuterAPI()).thenReturn(brokerOuterAPI);
-        when(brokerContainer.getBrokerContainerConfig()).thenReturn(new BrokerContainerConfig());
 
         BrokerMemberGroup brokerMemberGroup1 = new BrokerMemberGroup();
         Map<Long, String> brokerAddrMap = new HashMap<>();
@@ -81,7 +81,7 @@ public class BrokerPreOnlineTest {
 
         innerBrokerController.setTransactionalMessageCheckService(new TransactionalMessageCheckService(innerBrokerController));
 
-        Field field = InnerBrokerController.class.getDeclaredField("isIsolated");
+        Field field = BrokerController.class.getDeclaredField("isIsolated");
         field.setAccessible(true);
         field.set(innerBrokerController, true);
 
