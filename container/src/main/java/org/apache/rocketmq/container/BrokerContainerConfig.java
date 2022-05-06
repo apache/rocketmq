@@ -36,8 +36,6 @@ public class BrokerContainerConfig {
 
     private String brokerConfigPaths = null;
 
-    private boolean compatibleWithOldNameSrv = true;
-
     public String getRocketmqHome() {
         return rocketmqHome;
     }
@@ -74,11 +72,4 @@ public class BrokerContainerConfig {
         this.brokerConfigPaths = brokerConfigPaths;
     }
 
-    public boolean isCompatibleWithOldNameSrv() {
-        return compatibleWithOldNameSrv;
-    }
-
-    public void setCompatibleWithOldNameSrv(boolean compatibleWithOldNameSrv) {
-        this.compatibleWithOldNameSrv = compatibleWithOldNameSrv;
-    }
 }

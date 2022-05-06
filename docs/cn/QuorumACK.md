@@ -34,11 +34,11 @@
 
 通过Nameserver的反向通知以及GetBrokerMemberGroup请求可以获取当前副本组的存活信息，而Master与Slave的Commitlog高度差也可以通过HA服务中的位点记录计算出来。将增加以下参数完成自动降级：
 
-- **minInSyncReplicas**：最小需保持同步的副本组数量，仅在enableAutoInSyncReplicas为true时生效，默认为1。
+- **minInSyncReplicas**：最小需保持同步的副本组数量，仅在enableAutoInSyncReplicas为true时生效，默认为1
 - **enableAutoInSyncReplicas**：自动同步降级开关，开启后，若当前副本组处于同步状态的broker数量（包括master自身）不满足inSyncReplicas指定的数量，则按照minInSyncReplicas进行同步。同步状态判断条件为：slave commitLog落后master长度不超过haSlaveFallBehindMax。默认为false。
-- **haSlaveFallBehindMax**：slave是否与master处于in-sync状态的判断值，slave commitLog落后master长度超过该值则认为slave已处于非同步状态。当enableAutoInSyncReplicas打开时，该值越小，越容易触发master的自动降级，当enableAutoInSyncReplicas关闭，且totalReplicas==inSyncReplicas时，该值越小，越容易导致在大流量时发送请求失败，故在该情况下可适当调大haSlaveFallBehindMax。默认为256K。
+- **haMaxGapNotInSync**：slave是否与master处于in-sync状态的判断值，slave commitLog落后master长度超过该值则认为slave已处于非同步状态。当enableAutoInSyncReplicas打开时，该值越小，越容易触发master的自动降级，当enableAutoInSyncReplicas关闭，且totalReplicas==inSyncReplicas时，该值越小，越容易导致在大流量时发送请求失败，故在该情况下可适当调大haMaxGapNotInSync。默认为256K。
 
-注意：在RocketMQ 4.x中存在haSlaveFallbehindMax参数，默认256MB，表明Slave与Master的CommitLog高度差多少后判定其为不可用，在RocketMQ 5中该参数被取消，由haSlaveFallBehindMax代替，含义如上。
+注意：在RocketMQ 4.x中存在haSlaveFallbehindMax参数，默认256MB，表明Slave与Master的CommitLog高度差多少后判定其为不可用，在RIP-34中该参数被取消。
 
 ```java
 //计算needAckNums

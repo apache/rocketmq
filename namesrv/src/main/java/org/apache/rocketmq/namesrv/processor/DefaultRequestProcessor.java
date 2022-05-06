@@ -499,12 +499,19 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final GetTopicsByClusterRequestHeader requestHeader =
             (GetTopicsByClusterRequestHeader) request.decodeCommandCustomHeader(GetTopicsByClusterRequestHeader.class);
 
-        TopicList topicsByCluster = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
-        byte[] body = topicsByCluster.encode();
+        boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
+        if (enableTopicList) {
+            TopicList topicsByCluster = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
+            byte[] body = topicsByCluster.encode();
 
-        response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
+            response.setBody(body);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        } else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("disable");
+        }
+
         return response;
     }
 
@@ -525,12 +532,19 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        TopicList unitTopics = this.namesrvController.getRouteInfoManager().getUnitTopics();
-        byte[] body = unitTopics.encode();
+        boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
 
-        response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
+        if (enableTopicList) {
+            TopicList unitTopicList = this.namesrvController.getRouteInfoManager().getUnitTopics();
+            byte[] body = unitTopicList.encode();
+            response.setBody(body);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        } else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("disable");
+        }
+
         return response;
     }
 
@@ -538,12 +552,19 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        TopicList hasUnitSubTopicList = this.namesrvController.getRouteInfoManager().getHasUnitSubTopicList();
-        byte[] body = hasUnitSubTopicList.encode();
+        boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
 
-        response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
+        if (enableTopicList) {
+            TopicList hasUnitSubTopicList = this.namesrvController.getRouteInfoManager().getHasUnitSubTopicList();
+            byte[] body = hasUnitSubTopicList.encode();
+            response.setBody(body);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        } else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("disable");
+        }
+
         return response;
     }
 
@@ -551,12 +572,19 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        TopicList hasUnitSubUnUnitTopicList = this.namesrvController.getRouteInfoManager().getHasUnitSubUnUnitTopicList();
-        byte[] body = hasUnitSubUnUnitTopicList.encode();
+        boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
 
-        response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
+        if (enableTopicList) {
+            TopicList hasUnitSubUnUnitTopicList = this.namesrvController.getRouteInfoManager().getHasUnitSubUnUnitTopicList();
+            byte[] body = hasUnitSubUnUnitTopicList.encode();
+            response.setBody(body);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        } else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("disable");
+        }
+
         return response;
     }
 

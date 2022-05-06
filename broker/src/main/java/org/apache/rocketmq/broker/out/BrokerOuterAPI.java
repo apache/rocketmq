@@ -49,6 +49,7 @@ import org.apache.rocketmq.common.protocol.body.GetBrokerMemberGroupResponseBody
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.body.LockBatchResponseBody;
+import org.apache.rocketmq.common.protocol.body.MessageRequestModeSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
@@ -365,7 +366,7 @@ public class BrokerOuterAPI {
         final int timeoutMills,
         final boolean enableActingMaster,
         final boolean compressed,
-        final boolean isInBrokerContainer) {
+        final BrokerIdentity brokerIdentity) {
         return registerBrokerAll(clusterName,
             brokerAddr,
             brokerName,
@@ -377,7 +378,7 @@ public class BrokerOuterAPI {
             enableActingMaster,
             compressed,
             null,
-            isInBrokerContainer);
+            brokerIdentity);
     }
 
     /**
@@ -409,7 +410,7 @@ public class BrokerOuterAPI {
         final boolean enableActingMaster,
         final boolean compressed,
         final Long heartbeatTimeoutMillis,
-        final boolean isInBrokerContainer) {
+        final BrokerIdentity brokerIdentity) {
 
         final List<RegisterBrokerResult> registerBrokerResultList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getAvailableNameSrvList();
@@ -435,7 +436,7 @@ public class BrokerOuterAPI {
             requestHeader.setBodyCrc32(bodyCrc32);
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
-                brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
+                brokerOuterExecutor.execute(new AbstractBrokerRunnable(brokerIdentity) {
                     @Override public void run2() {
                         try {
                             RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);
@@ -969,5 +970,22 @@ public class BrokerOuterAPI {
 
     public RpcClient getRpcClient() {
         return rpcClient;
+    }
+
+    public MessageRequestModeSerializeWrapper getAllMessageRequestMode(
+        final String addr) throws RemotingSendRequestException, RemotingConnectException,
+        MQBrokerException, RemotingTimeoutException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_MESSAGE_REQUEST_MODE, null);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return MessageRequestModeSerializeWrapper.decode(response.getBody(), MessageRequestModeSerializeWrapper.class);
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 }

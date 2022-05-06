@@ -267,7 +267,7 @@ public class HAServerTest {
         doReturn(new SystemClock()).when(messageStore).getSystemClock();
         doAnswer(invocation -> System.currentTimeMillis()).when(messageStore).now();
         doReturn(this.storeConfig).when(messageStore).getMessageStoreConfig();
-//        doReturn(new BrokerConfig()).when(messageStore).getBrokerConfig();
+        doReturn(new BrokerConfig()).when(messageStore).getBrokerConfig();
         doReturn(true).when(messageStore).isOffsetAligned(anyLong());
 //        doReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))).when(messageStore).sendMsgBack(anyLong());
         doReturn(true).when(messageStore).truncateFiles(anyLong());

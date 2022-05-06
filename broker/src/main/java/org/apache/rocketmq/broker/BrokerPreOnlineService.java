@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.container;
+package org.apache.rocketmq.broker;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,18 +42,18 @@ import org.apache.rocketmq.store.ha.HAConnectionStateNotificationRequest;
 
 public class BrokerPreOnlineService extends ServiceThread {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private final InnerBrokerController brokerController;
+    private final BrokerController brokerController;
 
     private int waitBrokerIndex = 0;
 
-    public BrokerPreOnlineService(InnerBrokerController brokerController) {
+    public BrokerPreOnlineService(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
     @Override
     public String getServiceName() {
         if (this.brokerController != null && this.brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return brokerController.getBrokerConfig().getLoggerIdentifier() + BrokerPreOnlineService.class.getSimpleName();
+            return brokerController.getBrokerIdentity().getLoggerIdentifier() + BrokerPreOnlineService.class.getSimpleName();
         }
         return BrokerPreOnlineService.class.getSimpleName();
     }
@@ -241,7 +241,7 @@ public class BrokerPreOnlineService extends ServiceThread {
             brokerMemberGroup = this.brokerController.getBrokerOuterAPI().syncBrokerMemberGroup(
                 this.brokerController.getBrokerConfig().getBrokerClusterName(),
                 this.brokerController.getBrokerConfig().getBrokerName(),
-                this.brokerController.getBrokerContainer().getBrokerContainerConfig().isCompatibleWithOldNameSrv());
+                this.brokerController.getBrokerConfig().isCompatibleWithOldNameSrv());
         } catch (Exception e) {
             LOGGER.error("syncBrokerMemberGroup from namesrv error, start service failed, will try later, ", e);
             return false;

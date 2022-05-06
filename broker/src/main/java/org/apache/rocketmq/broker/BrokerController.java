@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,8 +34,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -97,7 +101,10 @@ import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageC
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.broker.util.HookUtils;
+import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.BrokerIdentity;
+import org.apache.rocketmq.common.BrokerSyncInfo;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -181,6 +188,8 @@ public class BrokerController {
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
     protected BrokerOuterAPI brokerOuterAPI;
     protected ScheduledExecutorService scheduledExecutorService;
+    protected ScheduledExecutorService syncBrokerMemberGroupExecutorService;
+    protected ScheduledExecutorService brokerHeartbeatExecutorService;
     protected final SlaveSynchronize slaveSynchronize;
     protected final BlockingQueue<Runnable> sendThreadPoolQueue;
     protected final BlockingQueue<Runnable> putThreadPoolQueue;
@@ -237,6 +246,12 @@ public class BrokerController {
     protected EscapeBridge escapeBridge;
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
     protected volatile long shouldStartTime;
+    private BrokerPreOnlineService brokerPreOnlineService;
+    protected volatile boolean isIsolated = false;
+    protected volatile long minBrokerIdInGroup = 0;
+    protected volatile String minBrokerAddrInGroup = null;
+    private final Lock lock = new ReentrantLock();
+    protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -360,6 +375,10 @@ public class BrokerController {
         this.brokerMemberGroup.getBrokerAddrs().put(this.brokerConfig.getBrokerId(), this.getBrokerAddr());
 
         this.escapeBridge = new EscapeBridge(this);
+
+        if (!this.brokerConfig.isSkipPreOnline()) {
+            this.brokerPreOnlineService = new BrokerPreOnlineService(this);
+        }
     }
 
     public BrokerConfig getBrokerConfig() {
@@ -394,7 +413,7 @@ public class BrokerController {
      */
     protected void initializeResources() {
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
-            new ThreadFactoryImpl("BrokerControllerScheduledThread", true, brokerConfig));
+            new ThreadFactoryImpl("BrokerControllerScheduledThread", true, getBrokerIdentity()));
 
         this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getSendMessageThreadPoolNums(),
@@ -402,7 +421,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.sendThreadPoolQueue,
-            new ThreadFactoryImpl("SendMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("SendMessageThread_", getBrokerIdentity()));
 
         this.pullMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getPullMessageThreadPoolNums(),
@@ -410,7 +429,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.pullThreadPoolQueue,
-            new ThreadFactoryImpl("PullMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("PullMessageThread_", getBrokerIdentity()));
 
         this.litePullMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getLitePullMessageThreadPoolNums(),
@@ -418,7 +437,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.litePullThreadPoolQueue,
-            new ThreadFactoryImpl("LitePullMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("LitePullMessageThread_", getBrokerIdentity()));
 
         this.putMessageFutureExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getPutMessageFutureThreadPoolNums(),
@@ -426,7 +445,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.putThreadPoolQueue,
-            new ThreadFactoryImpl("SendMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("SendMessageThread_", getBrokerIdentity()));
 
         this.ackMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getAckMessageThreadPoolNums(),
@@ -434,7 +453,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.ackThreadPoolQueue,
-            new ThreadFactoryImpl("AckMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("AckMessageThread_", getBrokerIdentity()));
 
         this.queryMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getQueryMessageThreadPoolNums(),
@@ -442,7 +461,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.queryThreadPoolQueue,
-            new ThreadFactoryImpl("QueryMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("QueryMessageThread_", getBrokerIdentity()));
 
         this.adminBrokerExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getAdminBrokerThreadPoolNums(),
@@ -450,7 +469,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.adminBrokerThreadPoolQueue,
-            new ThreadFactoryImpl("AdminBrokerThread_", brokerConfig));
+            new ThreadFactoryImpl("AdminBrokerThread_", getBrokerIdentity()));
 
         this.clientManageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getClientManageThreadPoolNums(),
@@ -458,7 +477,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.clientManagerThreadPoolQueue,
-            new ThreadFactoryImpl("ClientManageThread_", brokerConfig));
+            new ThreadFactoryImpl("ClientManageThread_", getBrokerIdentity()));
 
         this.heartbeatExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getHeartbeatThreadPoolNums(),
@@ -466,7 +485,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.heartbeatThreadPoolQueue,
-            new ThreadFactoryImpl("HeartbeatThread_", true, brokerConfig));
+            new ThreadFactoryImpl("HeartbeatThread_", true, getBrokerIdentity()));
 
         this.consumerManageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getConsumerManageThreadPoolNums(),
@@ -474,7 +493,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.consumerManagerThreadPoolQueue,
-            new ThreadFactoryImpl("ConsumerManageThread_", true, brokerConfig));
+            new ThreadFactoryImpl("ConsumerManageThread_", true, getBrokerIdentity()));
 
         this.replyMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getProcessReplyMessageThreadPoolNums(),
@@ -482,7 +501,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.replyThreadPoolQueue,
-            new ThreadFactoryImpl("ProcessReplyMessageThread_", brokerConfig));
+            new ThreadFactoryImpl("ProcessReplyMessageThread_", getBrokerIdentity()));
 
         this.endTransactionExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getEndTransactionThreadPoolNums(),
@@ -490,7 +509,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.endTransactionThreadPoolQueue,
-            new ThreadFactoryImpl("EndTransactionThread_", brokerConfig));
+            new ThreadFactoryImpl("EndTransactionThread_", getBrokerIdentity()));
 
         this.loadBalanceExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getLoadBalanceProcessorThreadPoolNums(),
@@ -498,7 +517,12 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.loadBalanceThreadPoolQueue,
-            new ThreadFactoryImpl("LoadBalanceProcessorThread_", brokerConfig));
+            new ThreadFactoryImpl("LoadBalanceProcessorThread_", getBrokerIdentity()));
+
+        this.syncBrokerMemberGroupExecutorService = new ScheduledThreadPoolExecutor(1,
+            new ThreadFactoryImpl("BrokerControllerSyncBrokerScheduledThread", getBrokerIdentity()));
+        this.brokerHeartbeatExecutorService = new ScheduledThreadPoolExecutor(1,
+            new ThreadFactoryImpl("rokerControllerHeartbeatScheduledThread", getBrokerIdentity()));
 
         this.topicQueueMappingCleanService = new TopicQueueMappingCleanService(this);
     }
@@ -1272,6 +1296,13 @@ public class BrokerController {
             escapeBridge.shutdown();
         }
 
+        if (this.brokerPreOnlineService != null && !this.brokerPreOnlineService.isStopped()) {
+            this.brokerPreOnlineService.shutdown();
+        }
+
+        shutdownScheduledExecutorService(this.syncBrokerMemberGroupExecutorService);
+        shutdownScheduledExecutorService(this.brokerHeartbeatExecutorService);
+
         this.topicConfigManager.persist();
         this.subscriptionGroupManager.persist();
 
@@ -1285,6 +1316,10 @@ public class BrokerController {
     public void shutdown() {
 
         shutdownBasicService();
+
+        for (ScheduledFuture<?> scheduledFuture : scheduledFutures) {
+            scheduledFuture.cancel(true);
+        }
 
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.shutdown();
@@ -1384,6 +1419,10 @@ public class BrokerController {
             this.escapeBridge.start();
         }
 
+        if (this.brokerPreOnlineService != null) {
+            this.brokerPreOnlineService.start();
+        }
+
         //Init state version after messageStore initialized.
         this.topicConfigManager.initStateVersion();
     }
@@ -1392,33 +1431,70 @@ public class BrokerController {
 
         this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
 
+        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
+            isIsolated = true;
+        }
+
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.start();
         }
 
         startBasicService();
 
-        if (!this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
+        if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
             this.registerBrokerAll(true, false, true);
         }
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
+        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
             @Override
-            public void run() {
+            public void run2() {
                 try {
                     if (System.currentTimeMillis() < shouldStartTime) {
-                        LOG.info("Register to namesrv after {}", shouldStartTime);
+                        BrokerController.LOG.info("Register to namesrv after {}", shouldStartTime);
+                        return;
+                    }
+                    if (isIsolated) {
+                        BrokerController.LOG.info("Skip register for broker is isolated");
                         return;
                     }
                     BrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
                 } catch (Throwable e) {
-                    LOG.error("BrokerController#registerBrokerAll: unexpected error occurs.", e);
+                    BrokerController.LOG.error("registerBrokerAll Exception", e);
                 }
             }
-        }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+        }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS));
 
+        if (this.brokerConfig.isEnableSlaveActingMaster()) {
+            scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+                @Override
+                public void run2() {
+                    if (isIsolated) {
+                        return;
+                    }
+                    try {
+                        BrokerController.this.sendHeartbeat();
+                    } catch (Exception e) {
+                        BrokerController.LOG.error("sendHeartbeat Exception", e);
+                    }
+
+                }
+            }, 1000, brokerConfig.getBrokerHeartbeatInterval(), TimeUnit.MILLISECONDS));
+
+            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+                @Override public void run2() {
+                    try {
+                        BrokerController.this.syncBrokerMemberGroup();
+                    } catch (Throwable e) {
+                        BrokerController.LOG.error("sync BrokerMemberGroup error. ", e);
+                    }
+                }
+            }, 1000, this.brokerConfig.getSyncBrokerMemberGroupPeriod(), TimeUnit.MILLISECONDS));
+        }
+
+        if (brokerConfig.isSkipPreOnline()) {
+            startServiceWithoutCondition();
+        }
     }
 
     public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
@@ -1502,10 +1578,10 @@ public class BrokerController {
         TopicConfigSerializeWrapper topicConfigWrapper) {
 
         if (shutdown) {
-            LOG.info("BrokerController#doResterBrokerAll: broker has shutdown, no need to register any more.");
+            BrokerController.LOG.info("BrokerController#doResterBrokerAll: broker has shutdown, no need to register any more.");
             return;
         }
-        List<RegisterBrokerResult> registerBrokerResultList = this.getBrokerOuterAPI().registerBrokerAll(
+        List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
             this.brokerConfig.getBrokerName(),
@@ -1517,9 +1593,59 @@ public class BrokerController {
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
             this.brokerConfig.isEnableSlaveActingMaster(),
             this.brokerConfig.isCompressedRegister(),
-            this.brokerConfig.isInBrokerContainer());
+            this.brokerConfig.isEnableSlaveActingMaster() ? this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null,
+            this.getBrokerIdentity());
 
         handleRegisterBrokerResult(registerBrokerResultList, checkOrderConfig);
+    }
+
+    protected void sendHeartbeat() {
+        if (this.brokerConfig.isCompatibleWithOldNameSrv()) {
+            this.brokerOuterAPI.sendHeartbeatViaDataVersion(
+                this.brokerConfig.getBrokerClusterName(),
+                this.getBrokerAddr(),
+                this.brokerConfig.getBrokerName(),
+                this.brokerConfig.getBrokerId(),
+                this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                this.getTopicConfigManager().getDataVersion(),
+                this.brokerConfig.isInBrokerContainer());
+        } else {
+            this.brokerOuterAPI.sendHeartbeat(
+                this.brokerConfig.getBrokerClusterName(),
+                this.getBrokerAddr(),
+                this.brokerConfig.getBrokerName(),
+                this.brokerConfig.getBrokerId(),
+                this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                this.brokerConfig.isInBrokerContainer());
+        }
+    }
+
+    protected void syncBrokerMemberGroup() {
+        try {
+            brokerMemberGroup = this.getBrokerOuterAPI()
+                .syncBrokerMemberGroup(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.brokerConfig.isCompatibleWithOldNameSrv());
+        } catch (Exception e) {
+            BrokerController.LOG.error("syncBrokerMemberGroup from namesrv failed, ", e);
+            return;
+        }
+        if (brokerMemberGroup == null || brokerMemberGroup.getBrokerAddrs().size() == 0) {
+            BrokerController.LOG.warn("Couldn't find any broker member from namesrv in {}/{}", this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
+            return;
+        }
+        this.messageStore.setAliveReplicaNumInGroup(calcAliveBrokerNumInGroup(brokerMemberGroup.getBrokerAddrs()));
+
+        if (!this.isIsolated) {
+            long minBrokerId = brokerMemberGroup.minimumBrokerId();
+            this.updateMinBroker(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
+        }
+    }
+
+    private int calcAliveBrokerNumInGroup(Map<Long, String> brokerAddrTable) {
+        if (brokerAddrTable.containsKey(this.brokerConfig.getBrokerId())) {
+            return brokerAddrTable.size();
+        } else {
+            return brokerAddrTable.size() + 1;
+        }
     }
 
     protected void handleRegisterBrokerResult(List<RegisterBrokerResult> registerBrokerResultList,
@@ -1567,6 +1693,189 @@ public class BrokerController {
             return this.brokerOuterAPI.fetchNameServerAddr();
         }
         return null;
+    }
+
+    public void startService(long minBrokerId, String minBrokerAddr) {
+        BrokerController.LOG.info("{} start service, min broker id is {}, min broker addr: {}",
+            this.brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
+        this.minBrokerIdInGroup = minBrokerId;
+        this.minBrokerAddrInGroup = minBrokerAddr;
+
+        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == minBrokerId);
+        this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+
+        isIsolated = false;
+    }
+
+    public void startServiceWithoutCondition() {
+        BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
+
+        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
+        this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+
+        isIsolated = false;
+    }
+
+    public void stopService() {
+        BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
+        isIsolated = true;
+        this.changeSpecialServiceStatus(false);
+    }
+
+    public boolean isSpecialServiceRunning() {
+        if (isScheduleServiceStart() && isTransactionCheckServiceStart()) {
+            return true;
+        }
+
+        return this.ackMessageProcessor != null && this.ackMessageProcessor.isPopReviveServiceRunning();
+    }
+
+    private void onMasterOffline() {
+        // close channels with master broker
+        String masterAddr = this.slaveSynchronize.getMasterAddr();
+        if (masterAddr != null) {
+            this.brokerOuterAPI.getRemotingClient().closeChannels(
+                Arrays.asList(masterAddr, MixAll.brokerVIPChannel(true, masterAddr)));
+        }
+        // master not available, stop sync
+        this.slaveSynchronize.setMasterAddr(null);
+        this.messageStore.updateHaMasterAddress(null);
+    }
+
+    private void onMasterOnline(String masterAddr, String masterHaAddr) {
+        boolean needSyncMasterFlushOffset = this.messageStore.getMasterFlushedOffset() == 0
+            && this.messageStoreConfig.isSyncMasterFlushOffsetWhenStartup();
+        if (masterHaAddr == null || needSyncMasterFlushOffset) {
+            try {
+                BrokerSyncInfo brokerSyncInfo = this.brokerOuterAPI.retrieveBrokerHaInfo(masterAddr);
+
+                if (needSyncMasterFlushOffset) {
+                    LOG.info("Set master flush offset in slave to {}", brokerSyncInfo.getMasterFlushOffset());
+                    this.messageStore.setMasterFlushedOffset(brokerSyncInfo.getMasterFlushOffset());
+                }
+
+                if (masterHaAddr == null) {
+                    this.messageStore.updateHaMasterAddress(brokerSyncInfo.getMasterHaAddress());
+                    this.messageStore.updateMasterAddress(brokerSyncInfo.getMasterAddress());
+                }
+            } catch (Exception e) {
+                LOG.error("retrieve master ha info exception, {}", e);
+            }
+        }
+
+        // set master HA address.
+        if (masterHaAddr != null) {
+            this.messageStore.updateHaMasterAddress(masterHaAddr);
+        }
+
+        // wakeup HAClient
+        this.messageStore.wakeupHAClient();
+    }
+
+    private void onMinBrokerChange(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr,
+        String masterHaAddr) {
+        LOG.info("Min broker changed, old: {}-{}, new {}-{}",
+            this.minBrokerIdInGroup, this.minBrokerAddrInGroup, minBrokerId, minBrokerAddr);
+
+        this.minBrokerIdInGroup = minBrokerId;
+        this.minBrokerAddrInGroup = minBrokerAddr;
+
+        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == this.minBrokerIdInGroup);
+
+        if (offlineBrokerAddr != null && offlineBrokerAddr.equals(this.slaveSynchronize.getMasterAddr())) {
+            // master offline
+            onMasterOffline();
+        }
+
+        if (minBrokerId == MixAll.MASTER_ID && minBrokerAddr != null) {
+            // master online
+            onMasterOnline(minBrokerAddr, masterHaAddr);
+        }
+
+        // notify PullRequest on hold to pull from master.
+        if (this.minBrokerIdInGroup == MixAll.MASTER_ID) {
+            this.pullRequestHoldService.notifyMasterOnline();
+        }
+    }
+
+    public void updateMinBroker(long minBrokerId, String minBrokerAddr) {
+        if (brokerConfig.isEnableSlaveActingMaster() && brokerConfig.getBrokerId() != MixAll.MASTER_ID) {
+            if (lock.tryLock()) {
+                try {
+                    if (minBrokerId != this.minBrokerIdInGroup) {
+                        String offlineBrokerAddr = null;
+                        if (minBrokerId > this.minBrokerIdInGroup) {
+                            offlineBrokerAddr = this.minBrokerAddrInGroup;
+                        }
+                        onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, null);
+                    }
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }
+    }
+
+    public void updateMinBroker(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr,
+        String masterHaAddr) {
+        if (brokerConfig.isEnableSlaveActingMaster() && brokerConfig.getBrokerId() != MixAll.MASTER_ID) {
+            try {
+                if (lock.tryLock(3000, TimeUnit.MILLISECONDS)) {
+                    try {
+                        if (minBrokerId != this.minBrokerIdInGroup) {
+                            onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, masterHaAddr);
+                        }
+                    } finally {
+                        lock.unlock();
+                    }
+
+                }
+            } catch (InterruptedException e) {
+                LOG.error("Update min broker error, {}", e);
+            }
+        }
+    }
+
+    public void changeSpecialServiceStatus(boolean shouldStart) {
+
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
+            if (brokerAttachedPlugin != null) {
+                brokerAttachedPlugin.statusChanged(shouldStart);
+            }
+        }
+
+        changeScheduleServiceStatus(shouldStart);
+
+        changeTransactionCheckServiceStatus(shouldStart);
+
+        if (this.ackMessageProcessor != null) {
+            LOG.info("Set PopReviveService Status to {}", shouldStart);
+            this.ackMessageProcessor.setPopReviveServiceStatus(shouldStart);
+        }
+    }
+
+    private synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {
+        if (isTransactionCheckServiceStart != shouldStart) {
+            LOG.info("TransactionCheckService status changed to {}", shouldStart);
+            if (shouldStart) {
+                this.transactionalMessageCheckService.start();
+            } else {
+                this.transactionalMessageCheckService.shutdown(true);
+            }
+            isTransactionCheckServiceStart = shouldStart;
+        }
+    }
+
+    public synchronized void changeScheduleServiceStatus(boolean shouldStart) {
+        if (isScheduleServiceStart != shouldStart) {
+            LOG.info("ScheduleServiceStatus changed to {}", shouldStart);
+            if (shouldStart) {
+                this.scheduleMessageService.start();
+            } else {
+                this.scheduleMessageService.stop();
+            }
+            isScheduleServiceStart = shouldStart;
+        }
     }
 
     public TopicConfigManager getTopicConfigManager() {
@@ -1771,18 +2080,6 @@ public class BrokerController {
         return this.brokerMemberGroup;
     }
 
-    public boolean isSpecialServiceRunning() {
-        return this.brokerConfig.getBrokerId() == MixAll.MASTER_ID;
-    }
-
-    public void updateMinBroker(long minBrokerId, String minBrokerAddr) {
-        //do nothing
-    }
-
-    public void updateMinBroker(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr, String masterHaAddr) {
-        //do nothing
-    }
-
     public int getListenPort() {
         return this.nettyServerConfig.getListenPort();
     }
@@ -1799,46 +2096,8 @@ public class BrokerController {
         return shouldStartTime;
     }
 
-    public void changeSpecialServiceStatus(boolean shouldStart) {
-
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
-            if (brokerAttachedPlugin != null) {
-                brokerAttachedPlugin.statusChanged(shouldStart);
-            }
-        }
-
-        changeScheduleServiceStatus(shouldStart);
-
-        changeTransactionCheckServiceStatus(shouldStart);
-
-        if (this.ackMessageProcessor != null) {
-            LOG.info("Set PopReviveService Status to {}", shouldStart);
-            this.ackMessageProcessor.setPopReviveServiceStatus(shouldStart);
-        }
-    }
-
-    private synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {
-        if (isTransactionCheckServiceStart != shouldStart) {
-            LOG.info("TransactionCheckService status changed to {}", shouldStart);
-            if (shouldStart) {
-                this.transactionalMessageCheckService.start();
-            } else {
-                this.transactionalMessageCheckService.shutdown(true);
-            }
-            isTransactionCheckServiceStart = shouldStart;
-        }
-    }
-
-    public synchronized void changeScheduleServiceStatus(boolean shouldStart) {
-        if (isScheduleServiceStart != shouldStart) {
-            LOG.info("ScheduleServiceStatus changed to {}", shouldStart);
-            if (shouldStart) {
-                this.scheduleMessageService.start();
-            } else {
-                this.scheduleMessageService.stop();
-            }
-            isScheduleServiceStart = shouldStart;
-        }
+    public BrokerPreOnlineService getBrokerPreOnlineService() {
+        return brokerPreOnlineService;
     }
 
     public boolean isScheduleServiceStart() {
@@ -1858,5 +2117,21 @@ public class BrokerController {
             return this.getMessageStore();
         }
         return null;
+    }
+
+    public BrokerIdentity getBrokerIdentity() {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
+        } else {
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
+        }
+    }
+
+    public boolean isIsolated() {
+        return this.isIsolated;
     }
 }

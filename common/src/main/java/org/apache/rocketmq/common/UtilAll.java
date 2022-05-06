@@ -50,6 +50,8 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class UtilAll {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final InternalLogger STORE_LOG = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
 
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
@@ -220,7 +222,7 @@ public class UtilAll {
 
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
         if (null == path || path.isEmpty()) {
-            log.error("Error when measuring disk space usage, path is null or empty, path : {}", path);
+            STORE_LOG.error("Error when measuring disk space usage, path is null or empty, path : {}", path);
             return -1;
         }
 
@@ -229,7 +231,7 @@ public class UtilAll {
             File file = new File(path);
 
             if (!file.exists()) {
-                log.error("Error when measuring disk space usage, file doesn't exist on this path: {}", path);
+                STORE_LOG.error("Error when measuring disk space usage, file doesn't exist on this path: {}", path);
                 return -1;
             }
 
@@ -247,7 +249,7 @@ public class UtilAll {
                 return result / 100.0;
             }
         } catch (Exception e) {
-            log.error("Error when measuring disk space usage, got exception: :", e);
+            STORE_LOG.error("Error when measuring disk space usage, got exception: :", e);
             return -1;
         }
 
@@ -652,7 +654,7 @@ public class UtilAll {
         File[] files = file.listFiles();
         if (files == null || files.length <= 0) {
             file.delete();
-            log.info("delete empty direct, {}", file.getPath());
+            STORE_LOG.info("delete empty direct, {}", file.getPath());
         }
     }
 
@@ -722,7 +724,7 @@ public class UtilAll {
         File f = new File(dirName);
         if (!f.exists()) {
             boolean result = f.mkdirs();
-            log.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
+            STORE_LOG.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
         }
     }
 }

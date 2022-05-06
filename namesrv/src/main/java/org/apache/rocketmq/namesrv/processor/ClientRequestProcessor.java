@@ -56,9 +56,6 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
                     String orderTopicConf =
                         this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
                             requestHeader.getTopic());
-
-                    // Get a shallow clone of route data to modify order topic conf
-                    topicRouteData = topicRouteData.cloneTopicRouteData();
                     topicRouteData.setOrderTopicConf(orderTopicConf);
                 }
 
@@ -87,8 +84,6 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
             if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
                 String orderTopicConf =
                     this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, topic);
-                // Get a shallow clone of route data to modify order topic conf
-                topicRouteData = topicRouteData.cloneTopicRouteData();
                 topicRouteData.setOrderTopicConf(orderTopicConf);
             }
 
@@ -100,7 +95,8 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    @Override public boolean rejectRequest() {
+    @Override
+    public boolean rejectRequest() {
         return false;
     }
 }

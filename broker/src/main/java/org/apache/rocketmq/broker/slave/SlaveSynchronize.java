@@ -18,9 +18,11 @@ package org.apache.rocketmq.broker.slave;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.loadbalance.MessageRequestModeManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.body.MessageRequestModeSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
@@ -55,6 +57,7 @@ public class SlaveSynchronize {
         this.syncConsumerOffset();
         this.syncDelayOffset();
         this.syncSubscriptionGroupConfig();
+        this.syncMessageRequestMode();
     }
 
     private void syncTopicConfig() {
@@ -153,6 +156,27 @@ public class SlaveSynchronize {
                 }
             } catch (Exception e) {
                 LOGGER.error("SyncSubscriptionGroup Exception, {}", masterAddrBak, e);
+            }
+        }
+    }
+
+    private void syncMessageRequestMode() {
+        String masterAddrBak = this.masterAddr;
+        if (masterAddrBak != null  && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
+            try {
+                MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper =
+                        this.brokerController.getBrokerOuterAPI().getAllMessageRequestMode(masterAddrBak);
+
+                MessageRequestModeManager messageRequestModeManager =
+                        this.brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager();
+                messageRequestModeManager.getMessageRequestModeMap().clear();
+                messageRequestModeManager.getMessageRequestModeMap().putAll(
+                        messageRequestModeSerializeWrapper.getMessageRequestModeMap()
+                );
+                messageRequestModeManager.persist();
+                LOGGER.info("Update slave Message Request Mode from master, {}", masterAddrBak);
+            } catch (Exception e) {
+                LOGGER.error("SyncMessageRequestMode Exception, {}", masterAddrBak, e);
             }
         }
     }
