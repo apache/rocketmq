@@ -614,23 +614,8 @@ public class PlainPermissionManager {
 
     public PlainAccessResource buildPlainAccessResource(PlainAccessConfig plainAccessConfig) throws AclException {
         checkPlainAccessConfig(plainAccessConfig);
-        PlainAccessResource plainAccessResource = new PlainAccessResource();
-        plainAccessResource.setAccessKey(plainAccessConfig.getAccessKey());
-        plainAccessResource.setSecretKey(plainAccessConfig.getSecretKey());
-        plainAccessResource.setWhiteRemoteAddress(plainAccessConfig.getWhiteRemoteAddress());
-
-        plainAccessResource.setAdmin(plainAccessConfig.isAdmin());
-
-        plainAccessResource.setDefaultGroupPerm(Permission.parsePermFromString(plainAccessConfig.getDefaultGroupPerm()));
-        plainAccessResource.setDefaultTopicPerm(Permission.parsePermFromString(plainAccessConfig.getDefaultTopicPerm()));
-
-        Permission.parseResourcePerms(plainAccessResource, false, plainAccessConfig.getGroupPerms());
-        Permission.parseResourcePerms(plainAccessResource, true, plainAccessConfig.getTopicPerms());
-
-        plainAccessResource.setRemoteAddressStrategy(remoteAddressStrategyFactory.
-            getRemoteAddressStrategy(plainAccessResource.getWhiteRemoteAddress()));
-
-        return plainAccessResource;
+        return PlainAccessResource.build(plainAccessConfig, remoteAddressStrategyFactory.
+            getRemoteAddressStrategy(plainAccessConfig.getWhiteRemoteAddress()));
     }
 
     public void validate(PlainAccessResource plainAccessResource) {
