@@ -111,16 +111,6 @@ public class PopMessageProcessorTest {
     }
 
     @Test
-    public void testProcessRequest_SubNotExist() throws RemotingCommandException {
-        brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo, false);
-        final RemotingCommand request = createPopMsgCommand();
-        RemotingCommand response = popMessageProcessor.processRequest(handlerContext, request);
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUBSCRIPTION_NOT_EXIST);
-        assertThat(response.getRemark()).contains("consumer's group info not exist");
-    }
-
-    @Test
     public void testProcessRequest_Found() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult(1);
         when(messageStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(getMessageResult);
