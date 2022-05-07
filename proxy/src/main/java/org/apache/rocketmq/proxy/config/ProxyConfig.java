@@ -73,7 +73,7 @@ public class ProxyConfig {
     private int transactionHeartbeatPeriodSecond = 20;
     private int transactionHeartbeatBatchNum = 100;
 
-    private long longPollingReserveTimeInMillis = 10000;
+    private long longPollingReserveTimeInMillis = 100;
 
     private boolean enableACL = false;
 

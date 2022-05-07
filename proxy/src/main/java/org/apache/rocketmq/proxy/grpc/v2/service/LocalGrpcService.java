@@ -51,7 +51,6 @@ import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
@@ -265,7 +264,7 @@ public class LocalGrpcService extends AbstractStartAndShutdown implements GrpcFo
 
     @Override
     public void receiveMessage(Context ctx, ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
-        long pollTime = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
+        long pollTime = GrpcConverter.buildPollTimeFromContext(ctx);
         // TODO: get fifo config from subscriptionGroupManager
         boolean fifo = false;
         BaseReceiveMessageResponseStreamWriter writer = streamWriterBuilder.build(responseObserver, receiveMessageHook);
