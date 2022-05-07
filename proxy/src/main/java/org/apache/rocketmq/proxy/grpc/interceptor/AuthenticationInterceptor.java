@@ -59,16 +59,16 @@ public class AuthenticationInterceptor implements ServerInterceptor {
                     .build();
                 for (AccessValidator accessValidator : accessValidatorList) {
                     AccessResource accessResource = accessValidator.parse(messageV3, metadataHeader);
-                    addHeader(headers, messageV3.getDescriptorForType().getFullName(), accessResource);
                     accessValidator.validate(accessResource);
+                    addHeader(headers, messageV3, accessResource);
                 }
                 super.onMessage(message);
             }
         };
     }
 
-    protected void addHeader(Metadata headers, String rpcName, AccessResource accessResource) {
-        headers.put(InterceptorConstants.RPC_NAME, rpcName);
+    protected void addHeader(Metadata headers, GeneratedMessageV3 messageV3, AccessResource accessResource) {
+        headers.put(InterceptorConstants.RPC_NAME, messageV3.getDescriptorForType().getFullName());
         if (accessResource instanceof PlainAccessResource) {
             PlainAccessResource plainAccessResource = (PlainAccessResource) accessResource;
             headers.put(InterceptorConstants.AUTHORIZATION_AK, plainAccessResource.getAccessKey());
