@@ -25,8 +25,10 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import java.util.List;
+import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.common.MetadataHeader;
+import org.apache.rocketmq.acl.plain.PlainAccessResource;
 import org.apache.rocketmq.proxy.grpc.v2.adapter.RequestMapping;
 
 public class AuthenticationInterceptor implements ServerInterceptor {
@@ -56,10 +58,20 @@ public class AuthenticationInterceptor implements ServerInterceptor {
                     .requestCode(RequestMapping.map(messageV3.getDescriptorForType().getFullName()))
                     .build();
                 for (AccessValidator accessValidator : accessValidatorList) {
-                    accessValidator.validate(accessValidator.parse(messageV3, metadataHeader));
+                    AccessResource accessResource = accessValidator.parse(messageV3, metadataHeader);
+                    addHeader(headers, messageV3.getDescriptorForType().getFullName(), accessResource);
+                    accessValidator.validate(accessResource);
                 }
                 super.onMessage(message);
             }
         };
+    }
+
+    protected void addHeader(Metadata headers, String rpcName, AccessResource accessResource) {
+        headers.put(InterceptorConstants.RPC_NAME, rpcName);
+        if (accessResource instanceof PlainAccessResource) {
+            PlainAccessResource plainAccessResource = (PlainAccessResource) accessResource;
+            headers.put(InterceptorConstants.AUTHORIZATION_AK, plainAccessResource.getAccessKey());
+        }
     }
 }
