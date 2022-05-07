@@ -139,6 +139,8 @@ public class GrpcBaseIT extends BaseConf {
         ConfigurationManager.intConfig();
         ConfigurationManager.getProxyConfig().setGrpcServerPort(PORT);
         ConfigurationManager.getProxyConfig().setNameSrvAddr(nsAddr);
+        // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
+        ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
 
         blockingStub = createBlockingStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
         stub = createStub(createChannel(ConfigurationManager.getProxyConfig().getGrpcServerPort()));
