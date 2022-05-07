@@ -94,7 +94,7 @@ public class DledgerControllerTest {
         boolean isFirstRegisteredBroker) throws Exception {
         // Register new broker
         final RegisterBrokerRequestHeader registerRequest =
-            new RegisterBrokerRequestHeader(clusterName, brokerName, brokerAddress);
+            new RegisterBrokerRequestHeader(clusterName, brokerName, brokerAddress, "");
         final RemotingCommand response = leader.registerBroker(registerRequest).get(10, TimeUnit.SECONDS);
         final RegisterBrokerResponseHeader registerResult = (RegisterBrokerResponseHeader) response.readCustomHeader();
         System.out.println("------------- Register broker done, the result is :" + registerResult);
@@ -197,7 +197,7 @@ public class DledgerControllerTest {
 
         // Now, we start broker1 - 127.0.0.1:9001, but it was not in syncStateSet, so it will not be elected as master.
         final RegisterBrokerRequestHeader request1 =
-            new RegisterBrokerRequestHeader("cluster1", "broker1", "127.0.0.1:9001");
+            new RegisterBrokerRequestHeader("cluster1", "broker1", "127.0.0.1:9001", "");
         final RegisterBrokerResponseHeader r1 = (RegisterBrokerResponseHeader) leader.registerBroker(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r1.getBrokerId(), 2);
         assertEquals(r1.getMasterAddress(), "");
@@ -205,7 +205,7 @@ public class DledgerControllerTest {
 
         // Now, we start broker1 - 127.0.0.1:9000, it will be elected as master
         final RegisterBrokerRequestHeader request2 =
-            new RegisterBrokerRequestHeader("cluster1", "broker1", "127.0.0.1:9000");
+            new RegisterBrokerRequestHeader("cluster1", "broker1", "127.0.0.1:9000", "");
         final RegisterBrokerResponseHeader r2 = (RegisterBrokerResponseHeader) leader.registerBroker(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(r2.getBrokerId(), 0);
         assertEquals(r2.getMasterAddress(), "127.0.0.1:9000");

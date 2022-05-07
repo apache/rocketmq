@@ -46,7 +46,7 @@ import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCC
 /**
  * The proxy of controller api.
  */
-public class ControllerProxy {
+public class HaControllerProxy {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     public static final int RPC_TIME_OUT = 3000;
     private final RemotingClient remotingClient;
@@ -54,16 +54,25 @@ public class ControllerProxy {
     private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ControllerProxy_"));
     private volatile String controllerLeaderAddress = "";
 
-    public ControllerProxy(final NettyClientConfig nettyClientConfig, final List<String> controllerAddresses) {
+    public HaControllerProxy(final NettyClientConfig nettyClientConfig, final List<String> controllerAddresses) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
         this.controllerAddresses = controllerAddresses;
-
-        // Update controller metadata.
-        this.executorService.scheduleAtFixedRate(this::updateControllerMetadata, 0, 2, TimeUnit.SECONDS);
     }
 
-    public void start() {
+    public boolean start() {
         this.remotingClient.start();
+        // Get controller metadata first.
+        int tryTimes = 0;
+        while (tryTimes < 3) {
+            boolean flag = updateControllerMetadata();
+            if (flag) {
+                this.executorService.scheduleAtFixedRate(this::updateControllerMetadata, 0, 2, TimeUnit.SECONDS);
+                return true;
+            }
+            tryTimes ++;
+        }
+        LOGGER.error("Failed to init controller metadata, maybe the controllers in {} is not available", this.controllerAddresses);
+        return false;
     }
 
     public void shutdown() {
@@ -74,7 +83,7 @@ public class ControllerProxy {
     /**
      * Update controller metadata(leaderAddress)
      */
-    private void updateControllerMetadata() {
+    private boolean updateControllerMetadata() {
         for (final String address : this.controllerAddresses) {
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_METADATA_INFO, null);
             try {
@@ -86,12 +95,14 @@ public class ControllerProxy {
                         LOGGER.info("Change controller leader address from {} to {}", this.controllerLeaderAddress, newLeader);
                         this.controllerLeaderAddress = newLeader;
                     }
-                    return;
+                    return true;
                 }
             } catch (final Exception e) {
                 LOGGER.error("Error happen when pull controller metadata", e);
+                return false;
             }
         }
+        return false;
     }
 
     /**
@@ -120,7 +131,7 @@ public class ControllerProxy {
      * Register broker to controller
      */
     public RegisterBrokerResponseHeader registerBroker(final String clusterName, final String brokerName,
-        final String address) throws Exception {
+        final String address, final String haAddress) throws Exception {
 
         final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader(clusterName, brokerName, address);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);

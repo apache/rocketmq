@@ -17,18 +17,23 @@
 
 package org.apache.rocketmq.broker.hacontroller;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 
@@ -49,33 +54,68 @@ public class ReplicasManager {
      * 3.add sync state set to ha service.
      * 4.register to controller when startup.
      */
+    private final BrokerController brokerController;
+    private final DefaultMessageStore messageStore;
     private final AutoSwitchHAService haService;
-    private final ControllerProxy proxy;
+    private final HaControllerProxy proxy;
+    private final String clusterName;
     private final String brokerName;
     private final String localAddress;
+    private final String localHaAddress;
     private volatile ScheduledFuture<?> checkSyncStateSetTaskFuture;
     private volatile Set<String> syncStateSet;
     private volatile int syncStateSetEpoch = 0;
     private volatile BrokerRole currentRole = BrokerRole.SLAVE;
+    private volatile Long brokerId = -1L;
     private volatile String masterAddress = "";
     private volatile int masterEpoch = 0;
 
-    public ReplicasManager(final AutoSwitchHAService haService, final ControllerProxy proxy, final String brokerName) {
+    public ReplicasManager(final AutoSwitchHAService haService, final BrokerController brokerController, final DefaultMessageStore messageStore) {
+        this.brokerController = brokerController;
+        this.messageStore = messageStore;
         this.haService = haService;
-        this.proxy = proxy;
+        final BrokerConfig brokerConfig = brokerController.getBrokerConfig();
+        final String controllerPaths = brokerConfig.getMetaDataHosts();
+        final String[] controllers = controllerPaths.split(";");
+        assert controllers.length > 0;
+        this.proxy = new HaControllerProxy(brokerController.getNettyClientConfig(), Arrays.asList(controllers));
         this.syncStateSet = new HashSet<>();
-        this.brokerName = brokerName;
-        this.localAddress = "";
+        this.clusterName = brokerConfig.getBrokerClusterName();
+        this.brokerName = brokerConfig.getBrokerName();
+        this.localAddress = brokerController.getBrokerAddr();
+        this.localHaAddress = brokerController.getHAServerAddr();
     }
 
-    public void start() {
+    public boolean start() {
+        if (!this.proxy.start()) {
+            LOGGER.error("Failed to start controller proxy");
+            return false;
+        }
+        // First, register this broker to controller, get brokerId and masterAddress.
+        try {
+            final RegisterBrokerResponseHeader registerResponse = this.proxy.registerBroker(this.clusterName, this.brokerName, this.localAddress, this.localHaAddress);
+            this.brokerId = registerResponse.getBrokerId();
+            final String newMasterAddress = registerResponse.getMasterAddress();
+            if (newMasterAddress != null && !newMasterAddress.isEmpty()) {
+                if (newMasterAddress.equals(this.localAddress)) {
+                    changeToMaster(registerResponse.getMasterEpoch(), 1);
+                } else {
+                    changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), "");
+                }
+            }
+        } catch (final Exception e) {
+            LOGGER.error("Failed to register broker to controller", e);
+            return false;
+        }
+
+        // Then, scheduling sync broker metadata.
         this.syncMetadataService.scheduleAtFixedRate(() -> {
             try {
                 final GetReplicaInfoResponseHeader info = this.proxy.getReplicaInfo(brokerName);
                 final String newMasterAddress = info.getMasterAddress();
                 final int newMasterEpoch = info.getMasterEpoch();
                 // Check if master changed
-                if (newMasterAddress != null && !this.masterAddress.equals(newMasterAddress) && newMasterEpoch > masterEpoch) {
+                if (newMasterAddress != null && !newMasterAddress.isEmpty() && !this.masterAddress.equals(newMasterAddress) && newMasterEpoch > masterEpoch) {
                     if (newMasterAddress.equals(this.localAddress)) {
                         changeToMaster(newMasterEpoch, info.getSyncStateSetEpoch());
                     } else {
@@ -92,6 +132,7 @@ public class ReplicasManager {
                 LOGGER.error("Error happen when get broker {}'s metadata", brokerName, e);
             }
         }, 0, 2, TimeUnit.SECONDS);
+        return true;
     }
 
     public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch) {

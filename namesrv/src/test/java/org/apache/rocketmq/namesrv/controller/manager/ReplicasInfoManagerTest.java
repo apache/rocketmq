@@ -53,7 +53,7 @@ public class ReplicasInfoManagerTest {
     public boolean registerNewBroker(String clusterName, String brokerName, String brokerAddress, boolean isFirstRegisteredBroker) {
         // Register new broker
         final RegisterBrokerRequestHeader registerRequest =
-            new RegisterBrokerRequestHeader(clusterName, brokerName, brokerAddress);
+            new RegisterBrokerRequestHeader(clusterName, brokerName, brokerAddress, "");
         final ControllerResult<RegisterBrokerResponseHeader> registerResult = this.replicasInfoManager.registerBroker(registerRequest);
         apply(registerResult.getEvents());
 
@@ -87,8 +87,7 @@ public class ReplicasInfoManagerTest {
             this.replicasInfoManager.applyEvent(event);
         }
     }
-
-
+    
     public void mockMetaData() {
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", true);
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", false);

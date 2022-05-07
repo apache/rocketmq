@@ -23,11 +23,14 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
     private final String clusterName;
     private final String brokerName;
     private final String brokerAddress;
+    private final String brokerHaAddress;
 
-    public RegisterBrokerRequestHeader(String clusterName, String brokerName, String brokerAddress) {
+    public RegisterBrokerRequestHeader(String clusterName, String brokerName, String brokerAddress,
+        final String brokerHaAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
+        this.brokerHaAddress = brokerHaAddress;
     }
 
     public String getClusterName() {
@@ -42,12 +45,16 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
         return brokerAddress;
     }
 
-    @Override
-    public String toString() {
+    public String getBrokerHaAddress() {
+        return brokerHaAddress;
+    }
+
+    @Override public String toString() {
         return "RegisterBrokerRequestHeader{" +
             "clusterName='" + clusterName + '\'' +
             ", brokerName='" + brokerName + '\'' +
             ", brokerAddress='" + brokerAddress + '\'' +
+            ", brokerHaAddress='" + brokerHaAddress + '\'' +
             '}';
     }
 

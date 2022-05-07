@@ -17,23 +17,26 @@
 package org.apache.rocketmq.namesrv.controller.manager;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.common.Pair;
 
 /**
- * Broker id info, mapping from brokerAddress to brokerId.
+ * Broker info, mapping from brokerAddress to {brokerId, brokerHaAddress}.
  */
-public class BrokerIdInfo {
+public class BrokerInfo {
     private final String clusterName;
     private final String brokerName;
     // Start from 1
     private final AtomicLong brokerIdCount;
-    private final HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
+    private final HashMap<String/*Address*/, Pair<Long/*brokerId*/, String/*HaAddress*/>> brokerTable;
 
-    public BrokerIdInfo(String clusterName, String brokerName) {
+    public BrokerInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerIdCount = new AtomicLong(1L);
-        this.brokerIdTable = new HashMap<>();
+        this.brokerTable = new HashMap<>();
     }
 
     public long newBrokerId() {
@@ -48,7 +51,31 @@ public class BrokerIdInfo {
         return brokerName;
     }
 
-    public HashMap<String, Long> getBrokerIdTable() {
-        return brokerIdTable;
+    public void addBroker(final String address, final Long brokerId, final String brokerHaAddress) {
+        this.brokerTable.put(address, new Pair<>(brokerId, brokerHaAddress));
+    }
+
+    public boolean isBrokerExist(final String address) {
+        return this.brokerTable.containsKey(address);
+    }
+
+    public Set<String> getAllBroker() {
+        return new HashSet<>(this.brokerTable.keySet());
+    }
+
+    public Long getBrokerId(final String address) {
+        final Pair<Long, String> brokerInfo = this.brokerTable.get(address);
+        if (brokerInfo != null) {
+            return brokerInfo.getObject1();
+        }
+        return -1L;
+    }
+
+    public String getBrokerHaAddress(final String address) {
+        final Pair<Long, String> brokerInfo = this.brokerTable.get(address);
+        if (brokerInfo != null) {
+            return brokerInfo.getObject2();
+        }
+        return "";
     }
 }

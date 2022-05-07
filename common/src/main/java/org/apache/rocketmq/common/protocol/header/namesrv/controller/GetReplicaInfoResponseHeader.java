@@ -23,6 +23,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
     private String masterAddress;
     private int masterEpoch;
+    private String masterHaAddress;
     private Set<String> syncStateSet;
     private int syncStateSetEpoch;
 
@@ -45,6 +46,14 @@ public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
         this.masterEpoch = masterEpoch;
     }
 
+    public String getMasterHaAddress() {
+        return masterHaAddress;
+    }
+
+    public void setMasterHaAddress(String masterHaAddress) {
+        this.masterHaAddress = masterHaAddress;
+    }
+
     public Set<String> getSyncStateSet() {
         return syncStateSet;
     }
@@ -61,11 +70,11 @@ public class GetReplicaInfoResponseHeader implements CommandCustomHeader {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
         return "GetReplicaInfoResponseHeader{" +
             "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
+            ", masterHaAddress='" + masterHaAddress + '\'' +
             ", syncStateSet=" + syncStateSet +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
             '}';
