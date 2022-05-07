@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.acl.common;
 
+import java.util.Arrays;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -25,14 +26,11 @@ public class AuthorizationHeader {
     private static final String HEADER_SEPARATOR = " ";
     private static final String CREDENTIALS_SEPARATOR = "/";
     private static final int AUTH_HEADER_KV_LENGTH = 2;
-    private static final int CREDENTIALS_LENGTH = 3;
     private static final String CREDENTIAL = "Credential";
     private static final String SIGNED_HEADERS = "SignedHeaders";
     private static final String SIGNATURE = "Signature";
     private String method;
     private String accessKey;
-    private String regionId;
-    private String channelKey;
     private String[] signedHeaders;
     private String signature;
 
@@ -59,12 +57,10 @@ public class AuthorizationHeader {
             if (CREDENTIAL.equals(authItem)) {
                 String[] credential = kv[1].split(CREDENTIALS_SEPARATOR);
                 int credentialActualLength = credential.length;
-                if (credentialActualLength < CREDENTIALS_LENGTH) {
+                if (credentialActualLength == 0) {
                     throw new DecoderException("authorization credential length is incorrect, actual length=" + credentialActualLength);
                 }
                 this.accessKey = credential[0];
-                this.regionId = credential[1];
-                this.channelKey = credential[2];
                 continue;
             }
             if (SIGNED_HEADERS.equals(authItem)) {
@@ -90,14 +86,6 @@ public class AuthorizationHeader {
         return this.accessKey;
     }
 
-    public String getRegionId() {
-        return this.regionId;
-    }
-
-    public String getChannelKey() {
-        return this.channelKey;
-    }
-
     public String[] getSignedHeaders() {
         return this.signedHeaders;
     }
@@ -114,14 +102,6 @@ public class AuthorizationHeader {
         this.accessKey = accessKey;
     }
 
-    public void setRegionId(final String regionId) {
-        this.regionId = regionId;
-    }
-
-    public void setChannelKey(final String channelKey) {
-        this.channelKey = channelKey;
-    }
-
     public void setSignedHeaders(final String[] signedHeaders) {
         this.signedHeaders = signedHeaders;
     }
@@ -130,8 +110,12 @@ public class AuthorizationHeader {
         this.signature = signature;
     }
 
-    @java.lang.Override
-    public java.lang.String toString() {
-        return "GrpcAuthHeader(method=" + this.getMethod() + ", accessKey=" + this.getAccessKey() + ", regionId=" + this.getRegionId() + ", channelKey=" + this.getChannelKey() + ", signedHeaders=" + java.util.Arrays.deepToString(this.getSignedHeaders()) + ", signature=" + this.getSignature() + ")";
+    @Override public String toString() {
+        return "AuthorizationHeader{" +
+            "method='" + method + '\'' +
+            ", accessKey='" + accessKey + '\'' +
+            ", signedHeaders=" + Arrays.toString(signedHeaders) +
+            ", signature='" + signature + '\'' +
+            '}';
     }
 }
