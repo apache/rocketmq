@@ -106,7 +106,7 @@ import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HO
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-public class GrpcBaseTest extends BaseConf {
+public class GrpcBaseIT extends BaseConf {
 
     protected final int PORT = 8082;
     /**
