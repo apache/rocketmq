@@ -33,7 +33,7 @@ import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
 
-public class ClusterGrpcTest extends GrpcBaseTest {
+public class ClusterGrpcIT extends GrpcBaseIT {
 
     private GrpcForwardService grpcForwardService;
 

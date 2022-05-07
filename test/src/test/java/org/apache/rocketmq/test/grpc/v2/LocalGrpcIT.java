@@ -26,7 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class LocalGrpcTest extends GrpcBaseTest {
+public class LocalGrpcIT extends GrpcBaseIT {
     private LocalGrpcService localGrpcService;
 
     @Before
