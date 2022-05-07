@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.test.smoke;
 
-import java.util.concurrent.CountDownLatch;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
