@@ -173,12 +173,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return CompletableFuture.completedFuture(response);
         }
 
-        final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
-        if (null == retryTopic) {
-            MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
-        }
-        msgExt.setWaitStoreMsgOK(false);
-
         int delayLevel = requestHeader.getDelayLevel();
 
         int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
@@ -189,10 +183,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             }
         }
 
-        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
-            || delayLevel < 0) {
+        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes || delayLevel < 0) {
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
             queueIdInt = ThreadLocalRandom.current().nextInt(99999999) % DLQ_NUMS_PER_GROUP;
+            delayLevel = 0;
 
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
                     DLQ_NUMS_PER_GROUP,
@@ -203,32 +197,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark("topic[" + newTopic + "] not exist");
                 return CompletableFuture.completedFuture(response);
             }
-            msgExt.setDelayTimeLevel(0);
         } else {
             if (0 == delayLevel) {
                 delayLevel = 3 + msgExt.getReconsumeTimes();
             }
-            msgExt.setDelayTimeLevel(delayLevel);
         }
 
-        MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-        msgInner.setTopic(newTopic);
-        msgInner.setBody(msgExt.getBody());
-        msgInner.setFlag(msgExt.getFlag());
-        MessageAccessor.setProperties(msgInner, msgExt.getProperties());
-        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
-        msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
-
-        msgInner.setQueueId(queueIdInt);
-        msgInner.setSysFlag(msgExt.getSysFlag());
-        msgInner.setBornTimestamp(msgExt.getBornTimestamp());
-        msgInner.setBornHost(msgExt.getBornHost());
-        msgInner.setStoreHost(msgExt.getStoreHost());
-        msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
-
-        String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
-        MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
-        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+        MessageExtBrokerInner msgInner = toRetryTopicMsg(newTopic, queueIdInt, delayLevel, msgExt);
 
         CompletableFuture<PutMessageResult> putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
         return putMessageResult.thenApply((r) -> {
@@ -263,6 +238,34 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         });
     }
 
+    //don't modify anything of originMsg.
+    private MessageExtBrokerInner toRetryTopicMsg(String newTopic, int queueIdInt, int delayLevel, MessageExt originMsg) {
+        MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        //1.add field value
+        msgInner.setTopic(newTopic);
+        msgInner.setBody(originMsg.getBody());
+        msgInner.setFlag(originMsg.getFlag());
+        msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, originMsg.getTags()));
+        msgInner.setQueueId(queueIdInt);
+        msgInner.setSysFlag(originMsg.getSysFlag());
+        msgInner.setBornTimestamp(originMsg.getBornTimestamp());
+        msgInner.setBornHost(originMsg.getBornHost());
+        msgInner.setStoreHost(originMsg.getStoreHost());
+        msgInner.setReconsumeTimes(originMsg.getReconsumeTimes() + 1);
+
+        //2.add properties from originMsg
+        MessageAccessor.setProperties(msgInner, originMsg.getProperties());
+        String originMsgId = MessageAccessor.getOriginMessageId(originMsg);
+        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_ORIGIN_MESSAGE_ID, UtilAll.isBlank(originMsgId) ? originMsg.getMsgId() : originMsgId);
+        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_RETRY_TOPIC, originMsg.getTopic());
+        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_WAIT_STORE_MSG_OK, Boolean.toString(false));
+        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(delayLevel));
+
+        //3.set PropertiesString from properties
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
+        return msgInner;
+    }
 
     private CompletableFuture<RemotingCommand> asyncSendMessage(ChannelHandlerContext ctx, RemotingCommand request,
                                                                 SendMessageContext mqtraceContext,

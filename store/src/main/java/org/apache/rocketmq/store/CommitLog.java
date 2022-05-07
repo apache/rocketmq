@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.store;
 
+import java.nio.charset.StandardCharsets;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -1530,15 +1532,26 @@ public class CommitLog {
                 return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
             }
 
-            final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+            String topic = msgInner.getTopic();
+            final byte[] topicData = topic.getBytes(MessageDecoder.CHARSET_UTF8);
             final int topicLength = topicData.length;
 
             final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
 
             final int msgLen = calMsgLength(msgInner.getSysFlag(), bodyLength, topicLength, propertiesLength);
 
+
+            int derivedMessageLen = 0;
+            if (!topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC) && !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                //normal topic from client
+                derivedMessageLen = retryMsgLength(msgInner.getSysFlag(), bodyLength, propertiesLength);
+            } else if (topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC) && msgInner.getProperty(MessageConst.PROPERTY_RETRY_TOPIC) == null) {
+                //delay topic from client, but not retry topic
+                derivedMessageLen = realMsgLength(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC), msgInner.getSysFlag(), bodyLength, propertiesLength);
+            }
+
             // Exceeds the maximum message
-            if (msgLen > this.maxMessageSize) {
+            if (Math.max(msgLen, derivedMessageLen) > this.maxMessageSize) {
                 CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
                         + ", maxMessageSize: " + this.maxMessageSize);
                 return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
@@ -1588,6 +1601,30 @@ public class CommitLog {
 
             encoderBuffer.flip();
             return null;
+        }
+
+        private int retryMsgLength(int sysFlag, int bodyLength, int propertiesLength) {
+            int scheduleTopicLength = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.getBytes(StandardCharsets.UTF_8).length;
+
+            /**
+             * WAIT="false" DELAY="3" REAL_QID="0" ORIGIN_MESSAGE_ID="7F00000100002A9F000000000002FF4E" REAL_TOPIC=... RETRY_TOPIC=...
+             * The above are the new properties in send back message properties.
+             *
+             *
+             * can not estimate propertiesLength accurately, because we can not obtain REAL_TOPIC, which contain groupId from consumer.
+             * we do not know what groupId is when we send message.
+             * send back message length is 500 large than normal message.
+             *
+             * 20(SCHEDULE_TOPIC_XXXX) + 80(new properties besides REAL_TOPIC and RETRY_TOPIC) + 255(max groupId length)
+             * + 25("REAL_TOPIC","RETRY_TOPIC", separator and connector when convert to string)
+             * + 120(reserved space) = 500
+             */
+            return calMsgLength(sysFlag, bodyLength, scheduleTopicLength, propertiesLength + 500);
+        }
+
+        private int realMsgLength(String originTopic, int sysFlag, int bodyLength, int propertiesLength) {
+            int realTopicLength = originTopic.getBytes(StandardCharsets.UTF_8).length;
+            return calMsgLength(sysFlag, bodyLength, realTopicLength, propertiesLength);
         }
 
         protected ByteBuffer encode(final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
