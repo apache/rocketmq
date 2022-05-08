@@ -417,7 +417,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void setUseTLS(boolean useTLS) {
         super.setUseTLS(useTLS);
-        if (traceDispatcher != null && traceDispatcher instanceof AsyncTraceDispatcher) {
+        if (traceDispatcher instanceof AsyncTraceDispatcher) {
             ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
         }
     }
