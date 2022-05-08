@@ -14,22 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.util;
 
-public class StoreUtil {
+import java.lang.reflect.Method;
 
-    private StoreUtil() {}
+/**
+ * Method processing util {@link Method}.
+ *
+ * @author yanhom
+ */
+public final class MethodUtil {
 
-    private static final long DEFAULT_MEM_SIZE = 1024 * 1024 * 1024 * 24L;
+    private MethodUtil() {}
 
-    public static final long TOTAL_PHYSICAL_MEMORY_SIZE = getTotalPhysicalMemorySize();
-
-    public static long getTotalPhysicalMemorySize() {
-
-        long totalPhysicalMem = OperatingSystemBeanManager.getTotalPhysicalMem();
-        if (totalPhysicalMem > 0) {
-            return totalPhysicalMem;
+    public static double invokeAndReturnDouble(Method method, Object targetObj) {
+        try {
+            return method != null ? (double) method.invoke(targetObj) : Double.NaN;
+        } catch (Exception e) {
+            return Double.NaN;
         }
-        return DEFAULT_MEM_SIZE;
     }
+
+    public static long invokeAndReturnLong(Method method, Object targetObj) {
+        try {
+            return method != null ? (long) method.invoke(targetObj) : -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
 }
