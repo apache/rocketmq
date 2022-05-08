@@ -158,7 +158,7 @@ public class DledgerController implements Controller {
     @Override
     public RemotingCommand getControllerMetadata() {
         final MemberState state = getMemberState();
-        return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr()));
+        return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr(), state.isLeader()));
     }
 
     /**

@@ -90,12 +90,12 @@ public class HaControllerProxy {
                 final RemotingCommand response = this.remotingClient.invokeSync(address, request, RPC_TIME_OUT);
                 if (response.getCode() == SUCCESS) {
                     final GetMetaDataResponseHeader responseHeader = response.decodeCommandCustomHeader(GetMetaDataResponseHeader.class);
-                    final String newLeader = responseHeader.getControllerLeaderAddress();
-                    if (!controllerLeaderAddress.equals(newLeader)) {
-                        LOGGER.info("Change controller leader address from {} to {}", this.controllerLeaderAddress, newLeader);
-                        this.controllerLeaderAddress = newLeader;
+                    if (responseHeader != null && responseHeader.isLeader()) {
+                        // Because the controller is served externally with the help of name-srv
+                        this.controllerLeaderAddress = address;
+                        LOGGER.info("Change controller leader address to {}", this.controllerAddresses);
+                        return true;
                     }
-                    return true;
                 }
             } catch (final Exception e) {
                 LOGGER.error("Error happen when pull controller metadata", e);

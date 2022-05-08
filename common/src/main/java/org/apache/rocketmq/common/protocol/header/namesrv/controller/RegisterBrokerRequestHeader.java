@@ -20,10 +20,13 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RegisterBrokerRequestHeader implements CommandCustomHeader {
-    private final String clusterName;
-    private final String brokerName;
-    private final String brokerAddress;
-    private final String brokerHaAddress;
+    private String clusterName;
+    private String brokerName;
+    private String brokerAddress;
+    private String brokerHaAddress;
+
+    public RegisterBrokerRequestHeader() {
+    }
 
     public RegisterBrokerRequestHeader(String clusterName, String brokerName, String brokerAddress,
         final String brokerHaAddress) {
@@ -37,16 +40,32 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
         return clusterName;
     }
 
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
     public String getBrokerName() {
         return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
     }
 
     public String getBrokerAddress() {
         return brokerAddress;
     }
 
+    public void setBrokerAddress(String brokerAddress) {
+        this.brokerAddress = brokerAddress;
+    }
+
     public String getBrokerHaAddress() {
         return brokerHaAddress;
+    }
+
+    public void setBrokerHaAddress(String brokerHaAddress) {
+        this.brokerHaAddress = brokerHaAddress;
     }
 
     @Override public String toString() {

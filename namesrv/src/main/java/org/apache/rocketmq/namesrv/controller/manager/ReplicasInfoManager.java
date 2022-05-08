@@ -187,7 +187,7 @@ public class ReplicasInfoManager {
         return false;
     }
 
-    public ControllerResult<RegisterBrokerResponseHeader> registerBroker(final RegisterBrokerRequestHeader request) {
+        public ControllerResult<RegisterBrokerResponseHeader> registerBroker(final RegisterBrokerRequestHeader request) {
         final String brokerName = request.getBrokerName();
         final String brokerAddress = request.getBrokerAddress();
         final ControllerResult<RegisterBrokerResponseHeader> result = new ControllerResult<>(new RegisterBrokerResponseHeader());

@@ -20,26 +20,48 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class GetMetaDataResponseHeader implements CommandCustomHeader {
-    private final String controllerLeaderId;
-    private final String controllerLeaderAddress;
+    private String controllerLeaderId;
+    private String controllerLeaderAddress;
+    private boolean isLeader;
 
-    public GetMetaDataResponseHeader(String controllerLeaderId, String controllerLeaderAddress) {
+    public GetMetaDataResponseHeader() {
+    }
+
+    public GetMetaDataResponseHeader(String controllerLeaderId, String controllerLeaderAddress, boolean isLeader) {
         this.controllerLeaderId = controllerLeaderId;
         this.controllerLeaderAddress = controllerLeaderAddress;
+        this.isLeader = isLeader;
     }
 
     public String getControllerLeaderId() {
         return controllerLeaderId;
     }
 
+    public void setControllerLeaderId(String controllerLeaderId) {
+        this.controllerLeaderId = controllerLeaderId;
+    }
+
     public String getControllerLeaderAddress() {
         return controllerLeaderAddress;
+    }
+
+    public void setControllerLeaderAddress(String controllerLeaderAddress) {
+        this.controllerLeaderAddress = controllerLeaderAddress;
+    }
+
+    public boolean isLeader() {
+        return isLeader;
+    }
+
+    public void setIsLeader(boolean leader) {
+        isLeader = leader;
     }
 
     @Override public String toString() {
         return "GetMetaDataResponseHeader{" +
             "controllerLeaderId='" + controllerLeaderId + '\'' +
             ", controllerLeaderAddress='" + controllerLeaderAddress + '\'' +
+            ", isLeader=" + isLeader +
             '}';
     }
 

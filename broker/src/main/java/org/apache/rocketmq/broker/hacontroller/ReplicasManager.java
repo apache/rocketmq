@@ -34,7 +34,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaI
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 
@@ -48,7 +48,6 @@ public class ReplicasManager {
     private final ScheduledExecutorService syncMetadataService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ReplicasManager_SyncMetadata_"));
     private final ScheduledExecutorService checkSyncStateSetService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ReplicasManager_CheckSyncStateSet_"));
     private final BrokerController brokerController;
-    private final DefaultMessageStore messageStore;
     private final AutoSwitchHAService haService;
     private final HaControllerProxy proxy;
     private final String clusterName;
@@ -58,6 +57,7 @@ public class ReplicasManager {
 
     private ScheduledFuture<?> checkSyncStateSetTaskFuture;
     private ScheduledFuture<?> slaveSyncFuture;
+
     private Set<String> syncStateSet;
     private int syncStateSetEpoch = 0;
     private BrokerRole currentRole = BrokerRole.SLAVE;
@@ -65,13 +65,11 @@ public class ReplicasManager {
     private String masterAddress = "";
     private int masterEpoch = 0;
 
-    public ReplicasManager(final AutoSwitchHAService haService, final BrokerController brokerController,
-        final DefaultMessageStore messageStore) {
+    public ReplicasManager(final BrokerController brokerController, final MessageStore messageStore) {
         this.brokerController = brokerController;
-        this.messageStore = messageStore;
-        this.haService = haService;
+        this.haService = (AutoSwitchHAService) messageStore.getHaService();
         final BrokerConfig brokerConfig = brokerController.getBrokerConfig();
-        final String controllerPaths = brokerConfig.getMetaDataHosts();
+        final String controllerPaths = brokerConfig.getNamesrvAddr();
         final String[] controllers = controllerPaths.split(";");
         assert controllers.length > 0;
         this.proxy = new HaControllerProxy(brokerController.getNettyClientConfig(), Arrays.asList(controllers));
@@ -112,7 +110,7 @@ public class ReplicasManager {
     public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
-                LOGGER.info("Begin to change to master brokerName:{}, new Epoch:{}", this.brokerController.getBrokerConfig().getBrokerName(), newMasterEpoch);
+                LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerName, this.localAddress, newMasterEpoch);
 
                 // Change record
                 this.currentRole = BrokerRole.SYNC_MASTER;
@@ -141,7 +139,7 @@ public class ReplicasManager {
                 } catch (final Throwable ignored) {
                 }
 
-                LOGGER.info("Change broker {} to master, masterEpoch, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
+                LOGGER.info("Change broker {} to master success, masterEpoch, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
             }
         }
     }
@@ -149,7 +147,7 @@ public class ReplicasManager {
     public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, final String masterHaAddress) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
-                LOGGER.info("Begin to change to slave brokerName={} brokerId={}", this.brokerName, this.brokerId);
+                LOGGER.info("Begin to change to slave, brokerName={}, replicas:{}, brokerId={}", this.brokerName, this.localAddress, this.brokerId);
 
                 // Change record
                 this.currentRole = BrokerRole.SLAVE;
@@ -198,7 +196,7 @@ public class ReplicasManager {
             slaveSyncFuture = this.brokerController.getScheduledExecutorService().scheduleAtFixedRate(() -> {
                 try {
                     brokerController.getSlaveSynchronize().syncAll();
-                } catch (Throwable e) {
+                } catch (final Throwable e) {
                     LOGGER.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                 }
             }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);

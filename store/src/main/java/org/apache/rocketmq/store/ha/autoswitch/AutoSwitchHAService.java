@@ -207,6 +207,12 @@ public class AutoSwitchHAService extends DefaultHAService {
         return -1;
     }
 
+    @Override public void updateHaMasterAddress(String newAddr) {
+    }
+
+    @Override public void updateMasterAddress(String newAddr) {
+    }
+
     class AutoSwitchAcceptSocketService extends AcceptSocketService {
 
         public AutoSwitchAcceptSocketService(int port) {
