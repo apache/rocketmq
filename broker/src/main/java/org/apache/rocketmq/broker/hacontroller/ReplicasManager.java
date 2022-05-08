@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
@@ -56,6 +57,7 @@ public class ReplicasManager {
     private final String localHaAddress;
 
     private ScheduledFuture<?> checkSyncStateSetTaskFuture;
+    private ScheduledFuture<?> slaveSyncFuture;
     private Set<String> syncStateSet;
     private int syncStateSetEpoch = 0;
     private BrokerRole currentRole = BrokerRole.SLAVE;
@@ -110,14 +112,35 @@ public class ReplicasManager {
     public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
+                LOGGER.info("Begin to change to master brokerName:{}, new Epoch:{}", this.brokerController.getBrokerConfig().getBrokerName(), newMasterEpoch);
+
+                // Change record
                 this.currentRole = BrokerRole.SYNC_MASTER;
+                this.brokerId = MixAll.MASTER_ID;
                 this.masterAddress = this.localAddress;
                 this.masterEpoch = newMasterEpoch;
+
+                // Change sync state set
                 final HashSet<String> newSyncStateSet = new HashSet<>();
                 newSyncStateSet.add(this.localAddress);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
                 startCheckSyncStateSetService();
+
+                // Notify ha service
                 this.haService.changeToMaster(newMasterEpoch);
+
+                // Handle the slave synchronise
+                handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
+
+                this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
+                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
+
+                // Last, register broker to name-srv
+                try {
+                    this.brokerController.registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
+                } catch (final Throwable ignored) {
+                }
+
                 LOGGER.info("Change broker {} to master, masterEpoch, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
             }
         }
@@ -126,12 +149,31 @@ public class ReplicasManager {
     public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, final String masterHaAddress) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
+                LOGGER.info("Begin to change to slave brokerName={} brokerId={}", this.brokerName, this.brokerId);
+
+                // Change record
                 this.currentRole = BrokerRole.SLAVE;
                 this.masterAddress = newMasterAddress;
                 this.masterEpoch = newMasterEpoch;
                 stopCheckSyncStateSetService();
+
+                // Notify ha service
                 this.haService.changeToSlave(newMasterAddress, masterHaAddress, newMasterEpoch);
-                LOGGER.info("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}, newMasterHaAddress:{}", newMasterAddress, newMasterEpoch, masterHaAddress);
+
+                // Change config
+                this.brokerController.getBrokerConfig().setBrokerId(this.brokerId); //TO DO check
+                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
+                this.brokerController.changeSpecialServiceStatus(false);
+
+                // Handle the slave synchronise
+                handleSlaveSynchronize(BrokerRole.SLAVE);
+
+                // Last, register broker to name-srv
+                try {
+                    this.brokerController.registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
+                } catch (final Throwable ignored) {
+                }
+                LOGGER.info("Finish to change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}, newMasterHaAddress:{}", newMasterAddress, newMasterEpoch, masterHaAddress);
             }
         }
     }
@@ -142,9 +184,29 @@ public class ReplicasManager {
                 LOGGER.info("Sync state set changed from {} to {}", this.syncStateSet, newSyncStateSet);
                 this.syncStateSetEpoch = newSyncStateSetEpoch;
                 this.syncStateSet = new HashSet<>(newSyncStateSet);
-                // Todo: add syncStateSet into ha service.
                 this.haService.setSyncStateSet(newSyncStateSet);
             }
+        }
+    }
+
+    private void handleSlaveSynchronize(final BrokerRole role) {
+        if (role == BrokerRole.SLAVE) {
+            if (this.slaveSyncFuture != null) {
+                this.slaveSyncFuture.cancel(false);
+            }
+            this.brokerController.getSlaveSynchronize().setMasterAddr(this.masterAddress);
+            slaveSyncFuture = this.brokerController.getScheduledExecutorService().scheduleAtFixedRate(() -> {
+                try {
+                    brokerController.getSlaveSynchronize().syncAll();
+                } catch (Throwable e) {
+                    LOGGER.error("ScheduledTask SlaveSynchronize syncAll error.", e);
+                }
+            }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);
+        } else {
+            if (this.slaveSyncFuture != null) {
+                this.slaveSyncFuture.cancel(false);
+            }
+            this.brokerController.getSlaveSynchronize().setMasterAddr(null);
         }
     }
 
@@ -197,7 +259,7 @@ public class ReplicasManager {
 
     private void stopCheckSyncStateSetService() {
         if (this.checkSyncStateSetTaskFuture != null) {
-            this.checkSyncStateSetTaskFuture.cancel(true);
+            this.checkSyncStateSetTaskFuture.cancel(false);
             this.checkSyncStateSetTaskFuture = null;
         }
     }

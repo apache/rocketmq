@@ -139,7 +139,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.epochCache.truncateSuffixByOffset(offset);
     }
 
-
     /**
      * Try to truncate incomplete msg transferred from master.
      */
@@ -195,13 +194,17 @@ public class AutoSwitchHAService extends DefaultHAService {
      * Get confirm offset (min slaveAckOffset of all syncStateSet)
      */
     public long getConfirmOffset() {
-        long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
-        for (HAConnection connection : this.connectionList) {
-           if (this.syncStateSet != null && this.syncStateSet.contains(connection.getClientAddress())) {
-               confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
-           }
+        if (this.syncStateSet != null) {
+            final HashSet<String> syncStateSetCopy = new HashSet<>(this.syncStateSet);
+            long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
+            for (HAConnection connection : this.connectionList) {
+                if (syncStateSetCopy.contains(connection.getClientAddress())) {
+                    confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
+                }
+            }
+            return confirmOffset;
         }
-        return confirmOffset;
+        return -1;
     }
 
     class AutoSwitchAcceptSocketService extends AcceptSocketService {
