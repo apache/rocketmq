@@ -46,14 +46,6 @@ public class ReplicasManager {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ScheduledExecutorService syncMetadataService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ReplicasManager_SyncMetadata_"));
     private final ScheduledExecutorService checkSyncStateSetService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ReplicasManager_CheckSyncStateSet_"));
-
-    /**
-     * Todo:
-     * 1.How to get local address?
-     * 2.How to report ha address to controller?
-     * 3.add sync state set to ha service.
-     * 4.register to controller when startup.
-     */
     private final BrokerController brokerController;
     private final DefaultMessageStore messageStore;
     private final AutoSwitchHAService haService;
@@ -62,15 +54,17 @@ public class ReplicasManager {
     private final String brokerName;
     private final String localAddress;
     private final String localHaAddress;
-    private volatile ScheduledFuture<?> checkSyncStateSetTaskFuture;
-    private volatile Set<String> syncStateSet;
-    private volatile int syncStateSetEpoch = 0;
-    private volatile BrokerRole currentRole = BrokerRole.SLAVE;
-    private volatile Long brokerId = -1L;
-    private volatile String masterAddress = "";
-    private volatile int masterEpoch = 0;
 
-    public ReplicasManager(final AutoSwitchHAService haService, final BrokerController brokerController, final DefaultMessageStore messageStore) {
+    private ScheduledFuture<?> checkSyncStateSetTaskFuture;
+    private Set<String> syncStateSet;
+    private int syncStateSetEpoch = 0;
+    private BrokerRole currentRole = BrokerRole.SLAVE;
+    private Long brokerId = -1L;
+    private String masterAddress = "";
+    private int masterEpoch = 0;
+
+    public ReplicasManager(final AutoSwitchHAService haService, final BrokerController brokerController,
+        final DefaultMessageStore messageStore) {
         this.brokerController = brokerController;
         this.messageStore = messageStore;
         this.haService = haService;
@@ -98,9 +92,9 @@ public class ReplicasManager {
             final String newMasterAddress = registerResponse.getMasterAddress();
             if (newMasterAddress != null && !newMasterAddress.isEmpty()) {
                 if (newMasterAddress.equals(this.localAddress)) {
-                    changeToMaster(registerResponse.getMasterEpoch(), 1);
+                    changeToMaster(registerResponse.getMasterEpoch(), registerResponse.getSyncStateSetEpoch());
                 } else {
-                    changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), "");
+                    changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), registerResponse.getMasterHaAddress());
                 }
             }
         } catch (final Exception e) {
@@ -109,18 +103,63 @@ public class ReplicasManager {
         }
 
         // Then, scheduling sync broker metadata.
-        this.syncMetadataService.scheduleAtFixedRate(() -> {
-            try {
-                final GetReplicaInfoResponseHeader info = this.proxy.getReplicaInfo(brokerName);
-                final String newMasterAddress = info.getMasterAddress();
-                final int newMasterEpoch = info.getMasterEpoch();
+        this.syncMetadataService.scheduleAtFixedRate(this::doSyncMetaData, 0, 2, TimeUnit.SECONDS);
+        return true;
+    }
+
+    public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch) {
+        synchronized (this) {
+            if (newMasterEpoch > this.masterEpoch) {
+                this.currentRole = BrokerRole.SYNC_MASTER;
+                this.masterAddress = this.localAddress;
+                this.masterEpoch = newMasterEpoch;
+                final HashSet<String> newSyncStateSet = new HashSet<>();
+                newSyncStateSet.add(this.localAddress);
+                changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
+                startCheckSyncStateSetService();
+                this.haService.changeToMaster(newMasterEpoch);
+                LOGGER.info("Change broker {} to master, masterEpoch, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
+            }
+        }
+    }
+
+    public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, final String masterHaAddress) {
+        synchronized (this) {
+            if (newMasterEpoch > this.masterEpoch) {
+                this.currentRole = BrokerRole.SLAVE;
+                this.masterAddress = newMasterAddress;
+                this.masterEpoch = newMasterEpoch;
+                stopCheckSyncStateSetService();
+                this.haService.changeToSlave(newMasterAddress, masterHaAddress, newMasterEpoch);
+                LOGGER.info("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}, newMasterHaAddress:{}", newMasterAddress, newMasterEpoch, masterHaAddress);
+            }
+        }
+    }
+
+    private void changeSyncStateSet(final Set<String> newSyncStateSet, final int newSyncStateSetEpoch) {
+        synchronized (this) {
+            if (newSyncStateSetEpoch > this.syncStateSetEpoch) {
+                LOGGER.info("Sync state set changed from {} to {}", this.syncStateSet, newSyncStateSet);
+                this.syncStateSetEpoch = newSyncStateSetEpoch;
+                this.syncStateSet = new HashSet<>(newSyncStateSet);
+                // Todo: add syncStateSet into ha service.
+                this.haService.setSyncStateSet(newSyncStateSet);
+            }
+        }
+    }
+
+    private void doSyncMetaData() {
+        try {
+            final GetReplicaInfoResponseHeader info = this.proxy.getReplicaInfo(this.brokerName);
+            final String newMasterAddress = info.getMasterAddress();
+            final int newMasterEpoch = info.getMasterEpoch();
+            synchronized (this) {
                 // Check if master changed
-                if (newMasterAddress != null && !newMasterAddress.isEmpty() && !this.masterAddress.equals(newMasterAddress) && newMasterEpoch > masterEpoch) {
+                if (newMasterAddress != null && !newMasterAddress.isEmpty() && !this.masterAddress.equals(newMasterAddress) && newMasterEpoch > this.masterEpoch) {
                     if (newMasterAddress.equals(this.localAddress)) {
                         changeToMaster(newMasterEpoch, info.getSyncStateSetEpoch());
                     } else {
-                        // Todo: add haAddress to controller
-                        changeToSlave(newMasterAddress, newMasterEpoch, "");
+                        changeToSlave(newMasterAddress, newMasterEpoch, info.getMasterHaAddress());
                     }
                 } else {
                     // Check if sync state set changed
@@ -128,66 +167,32 @@ public class ReplicasManager {
                         changeSyncStateSet(info.getSyncStateSet(), info.getSyncStateSetEpoch());
                     }
                 }
-            } catch (final Exception e) {
-                LOGGER.error("Error happen when get broker {}'s metadata", brokerName, e);
             }
-        }, 0, 2, TimeUnit.SECONDS);
-        return true;
-    }
-
-    public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch) {
-        synchronized(this) {
-            if (newMasterEpoch > this.masterEpoch) {
-                this.currentRole = BrokerRole.SYNC_MASTER;
-                this.masterAddress = this.localAddress;
-                this.masterEpoch = newMasterEpoch;
-                this.syncStateSet = new HashSet<>();
-                this.syncStateSet.add(this.localAddress);
-                this.syncStateSetEpoch = syncStateSetEpoch;
-                startCheckSyncStateSetService();
-                this.haService.changeToMaster(newMasterEpoch);
-            }
-        }
-    }
-
-    public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, final String masterHaAddress) {
-        synchronized(this) {
-            if (newMasterEpoch > this.masterEpoch) {
-                this.currentRole = BrokerRole.SLAVE;
-                this.masterAddress = newMasterAddress;
-                this.masterEpoch = newMasterEpoch;
-                stopCheckSyncStateSetService();
-                this.haService.changeToSlave(newMasterAddress, masterHaAddress, newMasterEpoch);
-            }
-        }
-    }
-
-    private void changeSyncStateSet(final Set<String> newSyncStateSet, final int newSyncStateSetEpoch) {
-        synchronized(this) {
-            if (newSyncStateSetEpoch > this.syncStateSetEpoch) {
-                this.syncStateSetEpoch = newSyncStateSetEpoch;
-                this.syncStateSet = new HashSet<>(newSyncStateSet);
-                // Todo: add syncStateSet into ha service.
-            }
+        } catch (final Exception e) {
+            LOGGER.error("Error happen when get broker {}'s metadata", this.brokerName, e);
         }
     }
 
     private void startCheckSyncStateSetService() {
         this.checkSyncStateSetTaskFuture = this.checkSyncStateSetService.scheduleAtFixedRate(() -> {
-            final Set<String> newSyncStateSet = this.haService.checkSyncStateSetChanged();
-            if (this.syncStateSet != null) {
-                // Check if syncStateSet changed
-                if (this.syncStateSet.size() != newSyncStateSet.size() || !this.syncStateSet.containsAll(newSyncStateSet)) {
-                    try {
-                        final AlterSyncStateSetResponseHeader header = this.proxy.alterSyncStateSet(this.brokerName, this.masterAddress, this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
-                        changeSyncStateSet(header.getNewSyncStateSet(), header.getNewSyncStateSetEpoch());
-                    } catch (final Exception e) {
-                        LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
-                            this.brokerName, this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
+            final Set<String> newSyncStateSet = this.haService.getLatestSyncStateSet();
+            newSyncStateSet.add(this.localAddress);
+            synchronized (this) {
+                if (this.syncStateSet != null) {
+                    // Check if syncStateSet changed
+                    if (this.syncStateSet.size() == newSyncStateSet.size() && this.syncStateSet.containsAll(newSyncStateSet)) {
+                        return;
                     }
                 }
             }
-        }, 1, 4, TimeUnit.SECONDS);
+            try {
+                final AlterSyncStateSetResponseHeader header = this.proxy.alterSyncStateSet(this.brokerName, this.masterAddress, this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
+                changeSyncStateSet(header.getNewSyncStateSet(), header.getNewSyncStateSetEpoch());
+            } catch (final Exception e) {
+                LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
+                    this.brokerName, this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
+            }
+        }, 0, 4, TimeUnit.SECONDS);
     }
 
     private void stopCheckSyncStateSetService() {

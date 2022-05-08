@@ -64,10 +64,15 @@ public interface HAService {
     boolean changeToSlave(String newMasterAddr, String newHaMasterAddr, int newMasterEpoch);
 
     /**
-     * Check whether the syncStateSet changed
+     * Get the latest sync state set.
      * @return new syncStateSet
      */
-    Set<String> checkSyncStateSetChanged();
+    Set<String> getLatestSyncStateSet();
+
+    /**
+     * Set sync state set
+     */
+    void setSyncStateSet(Set<String> syncStateSet);
 
     /**
      * Update master address

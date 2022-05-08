@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
@@ -25,7 +23,6 @@ public class RegisterBrokerResponseHeader implements CommandCustomHeader {
     private String masterAddress;
     private int masterEpoch;
     private String masterHaAddress;
-    private List<String> syncStateSet;
     private int syncStateSetEpoch;
     // The id of this registered replicas.
     private long brokerId;
@@ -57,14 +54,6 @@ public class RegisterBrokerResponseHeader implements CommandCustomHeader {
         this.masterHaAddress = masterHaAddress;
     }
 
-    public List<String> getSyncStateSet() {
-        return new ArrayList<>(this.syncStateSet);
-    }
-
-    public void setSyncStateSet(List<String> syncStateSet) {
-        this.syncStateSet = new ArrayList<>(syncStateSet);
-    }
-
     public int getSyncStateSetEpoch() {
         return syncStateSetEpoch;
     }
@@ -85,7 +74,7 @@ public class RegisterBrokerResponseHeader implements CommandCustomHeader {
         return "RegisterBrokerResponseHeader{" +
             "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
-            ", newSyncStateSet=" + syncStateSet +
+            ", masterHaAddress='" + masterHaAddress + '\'' +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
             ", brokerId=" + brokerId +
             '}';

@@ -133,7 +133,7 @@ public class HaControllerProxy {
     public RegisterBrokerResponseHeader registerBroker(final String clusterName, final String brokerName,
         final String address, final String haAddress) throws Exception {
 
-        final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader(clusterName, brokerName, address);
+        final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader(clusterName, brokerName, address, haAddress);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(this.controllerLeaderAddress, request, RPC_TIME_OUT);
         assert response != null;

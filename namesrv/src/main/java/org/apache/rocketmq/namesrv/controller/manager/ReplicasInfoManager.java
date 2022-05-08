@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
@@ -209,6 +210,7 @@ public class ReplicasInfoManager {
             }
             response.setBrokerId(brokerId);
             response.setMasterEpoch(replicasInfo.getMasterEpoch());
+            response.setSyncStateSetEpoch(replicasInfo.getSyncStateSetEpoch());
 
             if (replicasInfo.isMasterExist()) {
                 // If the master is alive, just return master info.
@@ -228,12 +230,14 @@ public class ReplicasInfoManager {
         }
 
         if (canBeElectedAsMaster) {
-            int masterEpoch = this.inSyncReplicasInfoTable.containsKey(brokerName) ?
-                this.inSyncReplicasInfoTable.get(brokerName).getMasterEpoch() + 1 : 1;
+            final boolean isBrokerExist = isContainsBroker(brokerName);
+            int masterEpoch = isBrokerExist ? this.inSyncReplicasInfoTable.get(brokerName).getMasterEpoch() + 1 : 1;
+            int syncStateSetEpoch = isBrokerExist ? this.inSyncReplicasInfoTable.get(brokerName).getSyncStateSetEpoch() + 1 : 1;
             response.setMasterAddress(request.getBrokerAddress());
             response.setMasterHaAddress(request.getBrokerHaAddress());
             response.setMasterEpoch(masterEpoch);
-            response.setBrokerId(0);
+            response.setSyncStateSetEpoch(syncStateSetEpoch);
+            response.setBrokerId(MixAll.MASTER_ID);
 
             final ElectMasterEvent event = new ElectMasterEvent(true, brokerName, brokerAddress, request.getBrokerHaAddress(), request.getClusterName());
             result.addEvent(event);

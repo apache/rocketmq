@@ -156,8 +156,11 @@ public class DefaultHAService implements HAService {
         return false;
     }
 
-    @Override public Set<String> checkSyncStateSetChanged() {
+    @Override public Set<String> getLatestSyncStateSet() {
         return null;
+    }
+
+    @Override public void setSyncStateSet(Set<String> syncStateSet) {
     }
 
     public void destroyConnections() {

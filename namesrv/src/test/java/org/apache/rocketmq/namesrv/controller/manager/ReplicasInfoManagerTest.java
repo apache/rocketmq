@@ -87,7 +87,7 @@ public class ReplicasInfoManagerTest {
             this.replicasInfoManager.applyEvent(event);
         }
     }
-    
+
     public void mockMetaData() {
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9000", true);
         registerNewBroker("cluster1", "broker1", "127.0.0.1:9001", false);

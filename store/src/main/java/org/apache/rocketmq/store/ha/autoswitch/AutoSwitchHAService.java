@@ -41,6 +41,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
+    private volatile Set<String> syncStateSet;
 
     public AutoSwitchHAService() {
     }
@@ -114,7 +115,12 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public Set<String> checkSyncStateSetChanged() {
+    public void setSyncStateSet(final Set<String> syncStateSet) {
+        this.syncStateSet = new HashSet<>(syncStateSet);
+    }
+
+    @Override
+    public Set<String> getLatestSyncStateSet() {
         final HashSet<String> newSyncStateSet = new HashSet<>(this.connectionList.size());
         final long masterOffset = this.defaultMessageStore.getMaxPhyOffset();
         for (HAConnection connection : this.connectionList) {
@@ -132,6 +138,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     public void truncateEpochFileSuffix(final long offset) {
         this.epochCache.truncateSuffixByOffset(offset);
     }
+
 
     /**
      * Try to truncate incomplete msg transferred from master.
@@ -190,7 +197,9 @@ public class AutoSwitchHAService extends DefaultHAService {
     public long getConfirmOffset() {
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
         for (HAConnection connection : this.connectionList) {
-            confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
+           if (this.syncStateSet != null && this.syncStateSet.contains(connection.getClientAddress())) {
+               confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
+           }
         }
         return confirmOffset;
     }
