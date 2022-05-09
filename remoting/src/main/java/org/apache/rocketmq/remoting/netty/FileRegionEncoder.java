@@ -51,8 +51,9 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
         WritableByteChannel writableByteChannel = new WritableByteChannel() {
             @Override
             public int write(ByteBuffer src) throws IOException {
+                final int pos = src.position();
                 out.writeBytes(src);
-                return out.capacity();
+                return src.position() - pos;
             }
 
             @Override
