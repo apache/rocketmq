@@ -21,7 +21,10 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Test;
 
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class TopicValidatorTest {
 
@@ -125,6 +128,15 @@ public class TopicValidatorTest {
         String topic = "test_allowed_send_topic";
         res = TopicValidator.isNotAllowedSendTopic(topic, response);
         assertThat(res).isFalse();
+    }
+
+    @Test
+    public void testNOT_ALLOWED_SEND_TOPIC_SETIsUnmodifiableSet() {
+        Set<String> notAllowedSendTopicSet = TopicValidator.getNotAllowedSendTopicSet();
+        // test for typical operation, not all
+        assertThatThrownBy(() -> notAllowedSendTopicSet.add("illegalTopic")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> notAllowedSendTopicSet.remove("someTopic")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> notAllowedSendTopicSet.clear()).isInstanceOf(UnsupportedOperationException.class);
     }
 
     private static void clearResponse(RemotingCommand response) {
