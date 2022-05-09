@@ -708,11 +708,7 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     private long getQueueOffsetByKey(String key, int tranType) {
-        Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(key);
-        if (null == queueOffset) {
-            queueOffset = 0L;
-            DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
-        }
+        long queueOffset = DLedgerCommitLog.this.topicQueueTable.computeIfAbsent(key, k -> 0L);
 
         // Transaction messages that require special handling
         switch (tranType) {
