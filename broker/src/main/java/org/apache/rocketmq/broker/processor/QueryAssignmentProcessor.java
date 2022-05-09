@@ -23,6 +23,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.loadbalance.AssignmentManager;
@@ -180,7 +182,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                     return null;
                 }
 
-                if (!brokerController.getBrokerConfig().isServerLoadBalancerEnabled()) {
+                if (!brokerController.getBrokerConfig().isServerLoadBalancerEnable()) {
                     return mqSet;
                 }
 
@@ -203,7 +205,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                 try {
                     AllocateMessageQueueStrategy allocateMessageQueueStrategy = name2LoadStrategy.get(strategyName);
                     if (null == allocateMessageQueueStrategy) {
-                        log.warn("QueryLoad: unsupported strategy [{}],  {}", consumerGroup, RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                        log.warn("QueryLoad: unsupported strategy [{}],  {}", strategyName, RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
                         return null;
                     }
 
@@ -269,13 +271,14 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
     private List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
-        if (currentCID == null || currentCID.length() < 1) {
+        if (StringUtils.isBlank(currentCID)) {
             throw new IllegalArgumentException("currentCID is empty");
         }
-        if (mqAll == null || mqAll.isEmpty()) {
+
+        if (CollectionUtils.isEmpty(mqAll)) {
             throw new IllegalArgumentException("mqAll is null or mqAll empty");
         }
-        if (cidAll == null || cidAll.isEmpty()) {
+        if (CollectionUtils.isEmpty(cidAll)) {
             throw new IllegalArgumentException("cidAll is null or cidAll empty");
         }
 

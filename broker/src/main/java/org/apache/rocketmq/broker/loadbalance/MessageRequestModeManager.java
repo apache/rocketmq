@@ -23,13 +23,12 @@ import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-
 public class MessageRequestModeManager extends ConfigManager {
 
     private transient BrokerController brokerController;
 
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>
-            messageRequestModeMap = new ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>();
+    private ConcurrentHashMap<String/*topic*/, ConcurrentHashMap<String/*consumerGroup*/, SetMessageRequestModeRequestBody>>
+        messageRequestModeMap = new ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>();
 
     public MessageRequestModeManager() {
         // empty construct for decode
@@ -44,7 +43,7 @@ public class MessageRequestModeManager extends ConfigManager {
         if (consumerGroup2ModeMap == null) {
             consumerGroup2ModeMap = new ConcurrentHashMap<String, SetMessageRequestModeRequestBody>();
             ConcurrentHashMap<String, SetMessageRequestModeRequestBody> pre =
-                    messageRequestModeMap.putIfAbsent(topic, consumerGroup2ModeMap);
+                messageRequestModeMap.putIfAbsent(topic, consumerGroup2ModeMap);
             if (pre != null) {
                 consumerGroup2ModeMap = pre;
             }
@@ -69,18 +68,15 @@ public class MessageRequestModeManager extends ConfigManager {
         this.messageRequestModeMap = messageRequestModeMap;
     }
 
-
     @Override
     public String encode() {
         return this.encode(false);
     }
 
-
     @Override
     public String configFilePath() {
         return BrokerPathConfigHelper.getMessageRequestModePath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
     }
-
 
     @Override
     public void decode(String jsonString) {
