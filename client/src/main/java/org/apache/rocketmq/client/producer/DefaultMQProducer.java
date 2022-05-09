@@ -895,7 +895,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
             return this.viewMessage(msgId);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         return this.defaultMQProducerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
     }
