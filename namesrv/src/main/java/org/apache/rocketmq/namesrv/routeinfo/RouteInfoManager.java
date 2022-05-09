@@ -88,6 +88,36 @@ public class RouteInfoManager {
         }
     }
 
+    public void deleteTopic(final String topic, final String clusterName) {
+        try {
+            try {
+                this.lock.writeLock().lockInterruptibly();
+                Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
+                if (brokerNames != null
+                    && !brokerNames.isEmpty()) {
+                    Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topic);
+                    for (String brokerName : brokerNames) {
+                        final QueueData removedQD = queueDataMap.remove(brokerName);
+                        if (removedQD != null) {
+                            log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, topic,
+                                removedQD);
+                        }
+
+                        if (queueDataMap.isEmpty()) {
+                            log.info("deleteTopic, remove the topic all queue {} {}", brokerName, topic);
+                            this.topicQueueTable.remove(topic);
+                            break;
+                        }
+                    }
+                }
+            } finally {
+                this.lock.writeLock().unlock();
+            }
+        } catch (Exception e) {
+            log.error("deleteTopic Exception", e);
+        }
+    }
+
     public TopicList getAllTopicList() {
         TopicList topicList = new TopicList();
         try {
