@@ -23,11 +23,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
@@ -39,6 +40,7 @@ import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
@@ -108,17 +110,19 @@ public class HaControllerProxy {
     /**
      * Alter syncStateSet
      */
-    public AlterSyncStateSetResponseHeader alterSyncStateSet(String brokerName,
+    public SyncStateSet alterSyncStateSet(String brokerName,
         final String masterAddress, final int masterEpoch,
         final Set<String> newSyncStateSet, final int syncStateSetEpoch) throws Exception {
 
-        final AlterSyncStateSetRequestHeader requestHeader = new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch, newSyncStateSet, syncStateSetEpoch);
+        final AlterSyncStateSetRequestHeader requestHeader = new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, requestHeader);
+        request.setBody(new SyncStateSet(newSyncStateSet, syncStateSetEpoch).encode());
         final RemotingCommand response = this.remotingClient.invokeSync(this.controllerLeaderAddress, request, RPC_TIME_OUT);
         assert response != null;
         switch (response.getCode()) {
             case SUCCESS: {
-                return response.decodeCommandCustomHeader(AlterSyncStateSetResponseHeader.class);
+                assert response.getBody() != null;
+                return RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
             }
             case CONTROLLER_NOT_LEADER: {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");
@@ -151,14 +155,17 @@ public class HaControllerProxy {
     /**
      * Get broker replica info
      */
-    public GetReplicaInfoResponseHeader getReplicaInfo(final String brokerName) throws Exception {
+    public Pair<GetReplicaInfoResponseHeader, SyncStateSet> getReplicaInfo(final String brokerName) throws Exception {
         final GetReplicaInfoRequestHeader requestHeader = new GetReplicaInfoRequestHeader(brokerName);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_REPLICA_INFO, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(this.controllerLeaderAddress, request, RPC_TIME_OUT);
         assert response != null;
         switch (response.getCode()) {
             case SUCCESS: {
-                return response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
+                final GetReplicaInfoResponseHeader header = response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
+                assert response.getBody() != null;
+                final SyncStateSet stateSet = RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
+                return new Pair<>(header, stateSet);
             }
             case CONTROLLER_NOT_LEADER: {
                 throw new MQBrokerException(response.getCode(), "Controller leader was changed");

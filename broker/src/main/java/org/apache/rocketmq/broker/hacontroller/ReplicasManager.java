@@ -27,9 +27,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
+import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -103,7 +104,7 @@ public class ReplicasManager {
         }
 
         // Then, scheduling sync broker metadata.
-        this.syncMetadataService.scheduleAtFixedRate(this::doSyncMetaData, 0, 2, TimeUnit.SECONDS);
+        this.syncMetadataService.scheduleAtFixedRate(this::doSyncMetaData, 0, 5, TimeUnit.SECONDS);
         return true;
     }
 
@@ -210,21 +211,23 @@ public class ReplicasManager {
 
     private void doSyncMetaData() {
         try {
-            final GetReplicaInfoResponseHeader info = this.proxy.getReplicaInfo(this.brokerName);
+            final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.proxy.getReplicaInfo(this.brokerName);
+            final GetReplicaInfoResponseHeader info = result.getObject1();
+            final SyncStateSet syncStateSet = result.getObject2();
             final String newMasterAddress = info.getMasterAddress();
             final int newMasterEpoch = info.getMasterEpoch();
             synchronized (this) {
                 // Check if master changed
                 if (newMasterAddress != null && !newMasterAddress.isEmpty() && !this.masterAddress.equals(newMasterAddress) && newMasterEpoch > this.masterEpoch) {
                     if (newMasterAddress.equals(this.localAddress)) {
-                        changeToMaster(newMasterEpoch, info.getSyncStateSetEpoch());
+                        changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch());
                     } else {
                         changeToSlave(newMasterAddress, newMasterEpoch, info.getMasterHaAddress());
                     }
                 } else {
                     // Check if sync state set changed
                     if (this.currentRole == BrokerRole.SYNC_MASTER) {
-                        changeSyncStateSet(info.getSyncStateSet(), info.getSyncStateSetEpoch());
+                        changeSyncStateSet(syncStateSet.getSyncStateSet(), syncStateSet.getSyncStateSetEpoch());
                     }
                 }
             }
@@ -246,13 +249,13 @@ public class ReplicasManager {
                 }
             }
             try {
-                final AlterSyncStateSetResponseHeader header = this.proxy.alterSyncStateSet(this.brokerName, this.masterAddress, this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
-                changeSyncStateSet(header.getNewSyncStateSet(), header.getNewSyncStateSetEpoch());
+                final SyncStateSet result = this.proxy.alterSyncStateSet(this.brokerName, this.masterAddress, this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
+                changeSyncStateSet(result.getSyncStateSet(), result.getSyncStateSetEpoch());
             } catch (final Exception e) {
                 LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
                     this.brokerName, this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
             }
-        }, 0, 4, TimeUnit.SECONDS);
+        }, 0, 8, TimeUnit.SECONDS);
     }
 
     private void stopCheckSyncStateSetService() {

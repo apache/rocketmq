@@ -23,7 +23,9 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 public class ControllerResult<T> {
     private final List<EventMessage> events;
     private final T response;
+    private byte[] body;
     private int responseCode = ResponseCode.SUCCESS;
+
 
     public ControllerResult(T response) {
         this.events = new ArrayList<>();
@@ -41,6 +43,14 @@ public class ControllerResult<T> {
 
     public T getResponse() {
         return response;
+    }
+
+    public byte[] getBody() {
+        return body;
+    }
+
+    public void setBody(byte[] body) {
+        this.body = body;
     }
 
     public void setResponseCode(int responseCode) {

@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
@@ -25,19 +23,14 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     private String brokerName;
     private String masterAddress;
     private int masterEpoch;
-    private Set<String> newSyncStateSet;
-    private int syncStateSetEpoch;
 
     public AlterSyncStateSetRequestHeader() {
     }
 
-    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch,
-        Set<String> newSyncStateSet, int syncStateSetEpoch) {
+    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch) {
         this.brokerName = brokerName;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
-        this.newSyncStateSet = new HashSet<>(newSyncStateSet);
-        this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
     public String getBrokerName() {
@@ -64,30 +57,11 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.masterEpoch = masterEpoch;
     }
 
-    public Set<String> getNewSyncStateSet() {
-        return newSyncStateSet;
-    }
-
-    public void setNewSyncStateSet(Set<String> newSyncStateSet) {
-        this.newSyncStateSet = newSyncStateSet;
-    }
-
-    public int getSyncStateSetEpoch() {
-        return syncStateSetEpoch;
-    }
-
-    public void setSyncStateSetEpoch(int syncStateSetEpoch) {
-        this.syncStateSetEpoch = syncStateSetEpoch;
-    }
-
-    @Override
-    public String toString() {
+    @Override public String toString() {
         return "AlterSyncStateSetRequestHeader{" +
             "brokerName='" + brokerName + '\'' +
             ", masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
-            ", newSyncStateSet=" + newSyncStateSet +
-            ", syncStateSetEpoch=" + syncStateSetEpoch +
             '}';
     }
 

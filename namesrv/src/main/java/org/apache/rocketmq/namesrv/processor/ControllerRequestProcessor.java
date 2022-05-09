@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
@@ -31,6 +32,7 @@ import org.apache.rocketmq.namesrv.controller.Controller;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ELECT_MASTER;
@@ -61,7 +63,8 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         switch (request.getCode()) {
             case CONTROLLER_ALTER_SYNC_STATE_SET: {
                 final AlterSyncStateSetRequestHeader controllerRequest = request.decodeCommandCustomHeader(AlterSyncStateSetRequestHeader.class);
-                final CompletableFuture<RemotingCommand> future = this.controller.alterSyncStateSet(controllerRequest);
+                final SyncStateSet syncStateSet = RemotingSerializable.decode(request.getBody(), SyncStateSet.class);
+                final CompletableFuture<RemotingCommand> future = this.controller.alterSyncStateSet(controllerRequest, syncStateSet);
                 if (future != null) {
                     return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                 }

@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
@@ -62,13 +63,14 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
-        final AlterSyncStateSetRequestHeader request, final BiPredicate<String, String> brokerAlivePredicate) {
+        final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet,
+        final BiPredicate<String, String> brokerAlivePredicate) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<AlterSyncStateSetResponseHeader> result = new ControllerResult<>(new AlterSyncStateSetResponseHeader());
         final AlterSyncStateSetResponseHeader response = result.getResponse();
 
         if (isContainsBroker(brokerName)) {
-            final Set<String> newSyncStateSet = request.getNewSyncStateSet();
+            final Set<String> newSyncStateSet = syncStateSet.getSyncStateSet();
             final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
 
@@ -89,9 +91,9 @@ public class ReplicasInfoManager {
             }
 
             // Check syncStateSet epoch
-            if (request.getSyncStateSetEpoch() != replicasInfo.getSyncStateSetEpoch()) {
+            if (syncStateSet.getSyncStateSetEpoch() != replicasInfo.getSyncStateSetEpoch()) {
                 log.info("Rejecting alter syncStateSet request because the current syncStateSet epoch is:{}, not {}",
-                    replicasInfo.getSyncStateSetEpoch(), request.getSyncStateSetEpoch());
+                    replicasInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
                 result.setResponseCode(ResponseCode.CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH);
                 return result;
             }
@@ -117,8 +119,9 @@ public class ReplicasInfoManager {
             }
 
             // Generate event
-            response.setNewSyncStateSetEpoch(replicasInfo.getSyncStateSetEpoch() + 1);
-            response.setNewSyncStateSet(newSyncStateSet);
+            int epoch = replicasInfo.getSyncStateSetEpoch() + 1;
+            response.setNewSyncStateSetEpoch(epoch);
+            result.setBody(new SyncStateSet(newSyncStateSet, epoch).encode());
             final AlterSyncStateSetEvent event = new AlterSyncStateSetEvent(brokerName, newSyncStateSet);
             result.addEvent(event);
             return result;
@@ -261,8 +264,7 @@ public class ReplicasInfoManager {
             response.setMasterAddress(masterAddress);
             response.setMasterHaAddress(brokerInfo.getBrokerHaAddress(masterAddress));
             response.setMasterEpoch(replicasInfo.getMasterEpoch());
-            response.setSyncStateSet(replicasInfo.getSyncStateSet());
-            response.setSyncStateSetEpoch(replicasInfo.getSyncStateSetEpoch());
+            result.setBody(new SyncStateSet(replicasInfo.getSyncStateSet(), replicasInfo.getSyncStateSetEpoch()).encode());
             return result;
         }
         result.setResponseCode(ResponseCode.CONTROLLER_INVALID_REQUEST);

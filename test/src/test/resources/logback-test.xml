@@ -30,7 +30,7 @@
 
     <!-- 根输出级别为DEBUG，控制台中将出现包含debug及以上级别的日志-->
     <!-- 日志输出级别 -->
-    <root level="WARN">
+    <root level="ERROR">
         <!-- ref值与上面的appender标签的name相对应 -->
         <appender-ref ref="console_ysw" />
     </root>

@@ -56,7 +56,7 @@ public class AutoSwitchRoleTest extends AutoSwitchRoleBase {
         Thread.sleep(4000);
 
         final String namesrvAddress = "127.0.0.1:31000;127.0.0.1:31001;127.0.0.1:31002";
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 1; i++) {
             final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + i, 20000 + i);
             final BrokerConfig brokerConfig = new BrokerConfig();
             brokerConfig.setListenPort(21000 + i);

@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
@@ -132,9 +133,10 @@ public class DledgerController implements Controller {
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> alterSyncStateSet(AlterSyncStateSetRequestHeader request) {
+    public CompletableFuture<RemotingCommand> alterSyncStateSet(AlterSyncStateSetRequestHeader request,
+        final SyncStateSet syncStateSet) {
         return this.scheduler.appendEvent("alterSyncStateSet",
-            () -> this.replicasInfoManager.alterSyncStateSet(request, this.brokerAlivePredicate), true);
+            () -> this.replicasInfoManager.alterSyncStateSet(request, syncStateSet, this.brokerAlivePredicate), true);
     }
 
     @Override
@@ -294,6 +296,9 @@ public class DledgerController implements Controller {
             }
             if (appendSuccess) {
                 final RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(result.getResponseCode(), (CommandCustomHeader) result.getResponse());
+                if (result.getBody() != null) {
+                    response.setBody(result.getBody());
+                }
                 this.future.complete(response);
             } else {
                 log.error("Failed to append event to dledger, the response is {}, try cancel the future", result.getResponse());
