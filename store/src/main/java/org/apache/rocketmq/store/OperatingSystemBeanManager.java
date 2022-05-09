@@ -30,8 +30,6 @@ import java.util.Objects;
 
 /**
  * OperatingSystemBeanManager related
- *
- * @author yanhom
  */
 public class OperatingSystemBeanManager {
 

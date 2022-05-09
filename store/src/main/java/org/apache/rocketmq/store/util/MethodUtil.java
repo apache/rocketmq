@@ -20,8 +20,6 @@ import java.lang.reflect.Method;
 
 /**
  * Method processing util {@link Method}.
- *
- * @author yanhom
  */
 public final class MethodUtil {
 
