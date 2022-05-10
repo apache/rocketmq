@@ -59,7 +59,8 @@ public class OperatingSystemBeanManager {
         PROCESS_CPU_USAGE_METHOD = deduceMethod("getProcessCpuLoad");
         Method totalPhysicalMem = deduceMethod("getTotalPhysicalMemorySize");
         // getTotalPhysicalMemory for ibm jdk 7.
-        TOTAL_PHYSICAL_MEM_METHOD = totalPhysicalMem != null ? totalPhysicalMem : deduceMethod("getTotalPhysicalMemory");
+        TOTAL_PHYSICAL_MEM_METHOD = totalPhysicalMem != null ?
+                totalPhysicalMem : deduceMethod("getTotalPhysicalMemory");
     }
 
     private OperatingSystemBeanManager() {}
