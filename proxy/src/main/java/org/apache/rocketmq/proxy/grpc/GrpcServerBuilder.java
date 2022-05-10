@@ -45,6 +45,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
+import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 
 public class GrpcServerBuilder {
@@ -150,6 +151,7 @@ public class GrpcServerBuilder {
         }
 
         this.serverBuilder
+            .intercept(new GlobalExceptionInterceptor())
             .intercept(new ContextInterceptor())
             .intercept(new HeaderInterceptor());
 
