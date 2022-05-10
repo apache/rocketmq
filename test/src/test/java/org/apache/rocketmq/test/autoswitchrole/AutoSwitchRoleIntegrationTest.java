@@ -52,7 +52,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         this.namesrvControllerList = new ArrayList<>(1);
         this.brokerControllerList = new ArrayList<>(2);
         final String peers = String.format("n0-localhost:%d", 30000);
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 1; i++) {
             final NettyServerConfig serverConfig = new NettyServerConfig();
             serverConfig.setListenPort(31000 + i);
 
