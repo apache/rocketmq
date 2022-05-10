@@ -95,6 +95,8 @@ public class ProxyConfig {
 
     private boolean enableACL = false;
 
+    private boolean enableTopicMessageTypeCheck = true;
+
     public boolean isEnablePrintJstack() {
         return enablePrintJstack;
     }
@@ -501,5 +503,13 @@ public class ProxyConfig {
 
     public void setEnableACL(boolean enableACL) {
         this.enableACL = enableACL;
+    }
+
+    public boolean isEnableTopicMessageTypeCheck() {
+        return enableTopicMessageTypeCheck;
+    }
+
+    public void setEnableTopicMessageTypeCheck(boolean enableTopicMessageTypeCheck) {
+        this.enableTopicMessageTypeCheck = enableTopicMessageTypeCheck;
     }
 }
