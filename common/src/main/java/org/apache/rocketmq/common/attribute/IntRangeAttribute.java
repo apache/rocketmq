@@ -16,14 +16,14 @@
  */
 package org.apache.rocketmq.common.attribute;
 
-public class LongRangeAttribute extends AbstractRangeAttribute<Long> {
+public class IntRangeAttribute extends AbstractRangeAttribute<Integer> {
 
-    public LongRangeAttribute(String name, boolean changeable, long min, long max, long defaultValue) {
+    public IntRangeAttribute(String name, boolean changeable, int min, int max, int defaultValue) {
         super(name, changeable, min, max, defaultValue);
     }
 
     @Override
-    protected Long parse(String value) {
-        return Long.parseLong(value);
+    protected Integer parse(String value) {
+        return Integer.parseInt(value);
     }
 }
