@@ -109,6 +109,8 @@ public interface MQAdminExt extends MQAdmin {
 
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr, final String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;
 
+    AdminToolResult<SubscriptionGroupConfig> examineSubscriptionGroupConfigConcurrent(final String addr, final String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;
+
     TopicStatsTable examineTopicStats(
         final String topic) throws RemotingException, MQClientException, InterruptedException,
         MQBrokerException;

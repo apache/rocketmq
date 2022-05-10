@@ -18,24 +18,11 @@ package org.apache.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -283,8 +270,28 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return wrapper.getSubscriptionGroupTable().get(group);
     }
 
+    @Override
+    public AdminToolResult<SubscriptionGroupConfig> examineSubscriptionGroupConfigConcurrent(String addr, String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        return adminToolExecute( () -> {
+
+            SubscriptionGroupWrapper wrapper = this.mqClientInstance.getMQClientAPIImpl().getAllSubscriptionGroup(addr, timeoutMillis);
+            ConcurrentMap<String, SubscriptionGroupConfig> cache =  wrapper.getSubscriptionGroupTable();
+            AtomicReference<SubscriptionGroupConfig> current = new AtomicReference<SubscriptionGroupConfig>();
+            for (SubscriptionGroupConfig subscriptionGroupConfig: cache.values()){
+                threadPoolExecutor.submit( () -> {
+                    if (subscriptionGroupConfig.getGroupName().equals(group)){
+                        current.set(subscriptionGroupConfig);
+                    }
+
+                } );
+            }
+
+            return AdminToolResult.success(current.get());
+        });
+    }
+
     @Override public TopicConfig examineTopicConfig(String addr,
-        String topic) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+                                                    String topic) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         return this.mqClientInstance.getMQClientAPIImpl().getTopicConfig(addr, topic, timeoutMillis);
     }
 
