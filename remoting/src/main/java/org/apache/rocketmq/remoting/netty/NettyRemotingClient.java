@@ -129,7 +129,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         });
 
-        if (nettyClientConfig.isUseTLS()) {
+        if (nettyClientConfig.isUseTLS() || TlsSystemConfig.tlsEnable) {
             try {
                 sslContext = TlsHelper.buildSslContext(true);
                 log.info("SSL enabled for client");
@@ -170,7 +170,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
-                    if (nettyClientConfig.isUseTLS()) {
+                    if (nettyClientConfig.isUseTLS() || TlsSystemConfig.tlsEnable) {
                         if (null != sslContext) {
                             pipeline.addFirst(defaultEventExecutorGroup, "sslHandler", sslContext.newHandler(ch.alloc()));
                             log.info("Prepend SSL handler");
