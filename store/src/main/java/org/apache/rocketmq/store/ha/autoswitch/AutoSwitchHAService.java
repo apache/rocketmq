@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -42,6 +43,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
     private volatile Set<String> syncStateSet;
+    private String localAddress;
 
     public AutoSwitchHAService() {
     }
@@ -91,7 +93,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public boolean changeToSlave(String newMasterAddr, String newHaMasterAddr, int newMasterEpoch) {
+    public boolean changeToSlave(String newMasterAddr, String newHaMasterAddr, int newMasterEpoch, Long slaveId) {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (newMasterEpoch <= lastEpoch) {
             return false;
@@ -103,6 +105,8 @@ public class AutoSwitchHAService extends DefaultHAService {
             } else {
                 this.haClient.reOpen();
             }
+            this.haClient.setLocalAddress(this.localAddress);
+            this.haClient.updateSlaveId(slaveId);
             this.haClient.updateHaMasterAddress(newHaMasterAddr);
             this.haClient.updateMasterAddress(newMasterAddr);
             this.haClient.start();
@@ -125,7 +129,10 @@ public class AutoSwitchHAService extends DefaultHAService {
         final long masterOffset = this.defaultMessageStore.getMaxPhyOffset();
         for (HAConnection connection : this.connectionList) {
             if (isInSyncSlave(masterOffset, connection)) {
-                newSyncStateSet.add(connection.getClientAddress());
+                final String slaveAddress = ((AutoSwitchHAConnection) connection).getSlaveAddress();
+                if (StringUtils.isNoneEmpty(slaveAddress)) {
+                    newSyncStateSet.add(slaveAddress);
+                }
             }
         }
         return newSyncStateSet;
@@ -205,6 +212,10 @@ public class AutoSwitchHAService extends DefaultHAService {
             return confirmOffset;
         }
         return -1;
+    }
+
+    public void setLocalAddress(String localAddress) {
+        this.localAddress = localAddress;
     }
 
     @Override public void updateHaMasterAddress(String newAddr) {

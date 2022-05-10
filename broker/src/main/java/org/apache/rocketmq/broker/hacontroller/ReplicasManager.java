@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -79,6 +80,7 @@ public class ReplicasManager {
         this.brokerName = brokerConfig.getBrokerName();
         this.localAddress = brokerController.getBrokerAddr();
         this.localHaAddress = brokerController.getHAServerAddr();
+        this.haService.setLocalAddress(this.localAddress);
     }
 
     public boolean start() {
@@ -91,8 +93,8 @@ public class ReplicasManager {
             final RegisterBrokerResponseHeader registerResponse = this.proxy.registerBroker(this.clusterName, this.brokerName, this.localAddress, this.localHaAddress);
             this.brokerId = registerResponse.getBrokerId();
             final String newMasterAddress = registerResponse.getMasterAddress();
-            if (newMasterAddress != null && !newMasterAddress.isEmpty()) {
-                if (newMasterAddress.equals(this.localAddress)) {
+            if (StringUtils.isNoneEmpty(newMasterAddress)) {
+                if (StringUtils.equals(newMasterAddress, this.localAddress)) {
                     changeToMaster(registerResponse.getMasterEpoch(), registerResponse.getSyncStateSetEpoch());
                 } else {
                     changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), registerResponse.getMasterHaAddress());
@@ -140,7 +142,7 @@ public class ReplicasManager {
                 } catch (final Throwable ignored) {
                 }
 
-                LOGGER.info("Change broker {} to master success, masterEpoch, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
+                LOGGER.error("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
             }
         }
     }
@@ -157,7 +159,7 @@ public class ReplicasManager {
                 stopCheckSyncStateSetService();
 
                 // Notify ha service
-                this.haService.changeToSlave(newMasterAddress, masterHaAddress, newMasterEpoch);
+                this.haService.changeToSlave(newMasterAddress, masterHaAddress, newMasterEpoch, this.brokerId);
 
                 // Change config
                 this.brokerController.getBrokerConfig().setBrokerId(this.brokerId); //TO DO check
@@ -172,7 +174,7 @@ public class ReplicasManager {
                     this.brokerController.registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
                 } catch (final Throwable ignored) {
                 }
-                LOGGER.info("Finish to change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}, newMasterHaAddress:{}", newMasterAddress, newMasterEpoch, masterHaAddress);
+                LOGGER.error("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}, newMasterHaAddress:{}", this.localAddress, newMasterAddress, newMasterEpoch, masterHaAddress);
             }
         }
     }
@@ -180,7 +182,7 @@ public class ReplicasManager {
     private void changeSyncStateSet(final Set<String> newSyncStateSet, final int newSyncStateSetEpoch) {
         synchronized (this) {
             if (newSyncStateSetEpoch > this.syncStateSetEpoch) {
-                LOGGER.info("Sync state set changed from {} to {}", this.syncStateSet, newSyncStateSet);
+                LOGGER.error("Sync state set changed from {} to {}", this.syncStateSet, newSyncStateSet);
                 this.syncStateSetEpoch = newSyncStateSetEpoch;
                 this.syncStateSet = new HashSet<>(newSyncStateSet);
                 this.haService.setSyncStateSet(newSyncStateSet);
@@ -214,12 +216,13 @@ public class ReplicasManager {
             final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.proxy.getReplicaInfo(this.brokerName);
             final GetReplicaInfoResponseHeader info = result.getObject1();
             final SyncStateSet syncStateSet = result.getObject2();
+            LOGGER.error("Sync metadata, info:{}, set:{}", info, syncStateSet);
             final String newMasterAddress = info.getMasterAddress();
             final int newMasterEpoch = info.getMasterEpoch();
             synchronized (this) {
                 // Check if master changed
-                if (newMasterAddress != null && !newMasterAddress.isEmpty() && !this.masterAddress.equals(newMasterAddress) && newMasterEpoch > this.masterEpoch) {
-                    if (newMasterAddress.equals(this.localAddress)) {
+                if (StringUtils.isNoneEmpty(newMasterAddress) && !StringUtils.equals(this.masterAddress, newMasterAddress) && newMasterEpoch > this.masterEpoch) {
+                    if (StringUtils.equals(newMasterAddress, this.localAddress)) {
                         changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch());
                     } else {
                         changeToSlave(newMasterAddress, newMasterEpoch, info.getMasterHaAddress());

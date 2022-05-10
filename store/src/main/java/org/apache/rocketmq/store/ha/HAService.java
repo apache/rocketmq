@@ -61,7 +61,7 @@ public interface HAService {
      * @param newHaMasterAddr new master HA addr
      * @param newMasterEpoch new masterEpoch
      */
-    boolean changeToSlave(String newMasterAddr, String newHaMasterAddr, int newMasterEpoch);
+    boolean changeToSlave(String newMasterAddr, String newHaMasterAddr, int newMasterEpoch, Long slaveId);
 
     /**
      * Get the latest sync state set.

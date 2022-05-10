@@ -120,13 +120,13 @@ public class AutoSwitchHATest {
     }
 
     private void changeMasterAndPutMessage(DefaultMessageStore master, MessageStoreConfig masterConfig,
-        DefaultMessageStore slave, MessageStoreConfig slaveConfig, int epoch, String masterHaAddress,
+        DefaultMessageStore slave, long slaveId, MessageStoreConfig slaveConfig, int epoch, String masterHaAddress,
         int totalPutMessageNums) throws Exception {
 
         // Change role
         slaveConfig.setBrokerRole(BrokerRole.SLAVE);
         masterConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
-        slave.getHaService().changeToSlave("", masterHaAddress, epoch);
+        slave.getHaService().changeToSlave("", masterHaAddress, epoch, slaveId);
         master.getHaService().changeToMaster(epoch);
         Thread.sleep(6000);
 
@@ -153,15 +153,15 @@ public class AutoSwitchHATest {
     public void testChangeRoleManyTimes() throws Exception {
         // Step1, change store1 to master, store2 to follower
         init(defaultMappedFileSize);
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
 
         // Step2, change store1 to follower, store2 to master, epoch = 2
-        changeMasterAndPutMessage(this.messageStore2, this.storeConfig2, this.messageStore1, this.storeConfig1, 2, store2HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore2, this.storeConfig2, this.messageStore1, 1, this.storeConfig1, 2, store2HaAddress, 10);
         checkMessage(this.messageStore1, 20, 0);
 
         // Step3, change store2 to follower, store1 to master, epoch = 3
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 3, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 3, store1HaAddress, 10);
         checkMessage(this.messageStore2, 30, 0);
     }
 
@@ -169,11 +169,11 @@ public class AutoSwitchHATest {
     public void testAddBroker() throws Exception {
         // Step1: broker1 as leader, broker2 as follower
         init(defaultMappedFileSize);
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
 
         // Step2: add new broker3, link to broker1
-        messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 1);
+        messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 1, 3L);
         Thread.sleep(6000);
         checkMessage(messageStore3, 10, 0);
     }
@@ -186,9 +186,9 @@ public class AutoSwitchHATest {
         // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
         // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
 
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 2, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 2, store1HaAddress, 10);
         checkMessage(this.messageStore2, 20, 0);
 
         // Step2: Check file position, each epoch will be stored on one file(Because fileSize = 1570, which equal to 10 msg size);
@@ -207,7 +207,7 @@ public class AutoSwitchHATest {
         haService.truncateEpochFilePrefix(1570);
 
         // Step4: add broker3 as slave, only have 10 msg from offset 10;
-        messageStore3.getHaService().changeToSlave("", store1HaAddress, 2);
+        messageStore3.getHaService().changeToSlave("", store1HaAddress, 2, 3L);
         Thread.sleep(6000);
 
         checkMessage(messageStore3, 10, 10);
@@ -221,9 +221,9 @@ public class AutoSwitchHATest {
         // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
         // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
 
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 2, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 2, store1HaAddress, 10);
         checkMessage(this.messageStore2, 20, 0);
 
         // Step2: Check file position, each epoch will be stored on one file(Because fileSize = 1570, which equal to 10 msg size);
@@ -242,17 +242,17 @@ public class AutoSwitchHATest {
         checkMessage(this.messageStore1, 10, 10);
 
         // Step4: add broker3 as slave
-        messageStore3.getHaService().changeToSlave("", store1HaAddress, 2);
+        messageStore3.getHaService().changeToSlave("", store1HaAddress, 2, 3L);
         Thread.sleep(6000);
         checkMessage(messageStore3, 10, 10);
 
         // Step5: change broker2 as leader, broker3 as follower
-        changeMasterAndPutMessage(this.messageStore2, this.storeConfig2, this.messageStore3, this.storeConfig3, 3, this.store2HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore2, this.storeConfig2, this.messageStore3, 3, this.storeConfig3, 3, this.store2HaAddress, 10);
         checkMessage(messageStore3, 20, 10);
 
         // Step6, let broker1 link to broker2, it should sync log from epoch3.
         this.storeConfig1.setBrokerRole(BrokerRole.SLAVE);
-        this.messageStore1.getHaService().changeToSlave("", this.store2HaAddress, 3);
+        this.messageStore1.getHaService().changeToSlave("", this.store2HaAddress, 3, 1L);
         Thread.sleep(6000);
         checkMessage(messageStore1, 20, 0);
     }
@@ -264,9 +264,9 @@ public class AutoSwitchHATest {
 
         // Step1: broker1 as leader, broker2 as follower, append 2 epoch, each epoch will be stored on one file(Because fileSize = 1700, which only can hold 10 msgs);
         // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 1, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
-        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, this.storeConfig2, 2, store1HaAddress, 10);
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 2, store1HaAddress, 10);
         checkMessage(this.messageStore2, 20, 0);
 
 
@@ -280,7 +280,7 @@ public class AutoSwitchHATest {
         messageStore3.start();
 
         // Step2: add new broker3, link to broker1. because broker3 request sync from lastFile, so it only synced 10 msg from offset 10;
-        messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 2);
+        messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 2, 3L);
         Thread.sleep(6000);
         checkMessage(messageStore3, 10, 10);
     }

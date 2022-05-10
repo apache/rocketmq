@@ -21,13 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.namesrv.ControllerConfig;
-import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
@@ -37,26 +36,26 @@ public class AutoSwitchRoleTest extends AutoSwitchRoleBase {
     private List<BrokerController> brokerControllerList;
     private List<NamesrvController> namesrvControllerList;
 
-    @Test
+    @Before
     public void init() throws Exception {
         this.namesrvControllerList = new ArrayList<>(3);
         this.brokerControllerList = new ArrayList<>(3);
-        final String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
-        for (int i = 0; i < 3; i++) {
-            final NettyServerConfig serverConfig = new NettyServerConfig();
-            serverConfig.setListenPort(31000 + i);
+//        final String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
+//        for (int i = 0; i < 3; i++) {
+//            final NettyServerConfig serverConfig = new NettyServerConfig();
+//            serverConfig.setListenPort(31000 + i);
+//
+//            final ControllerConfig controllerConfig = buildControllerConfig("n" + i, peers);
+//            final NamesrvController controller = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
+//            assertTrue(controller.initialize());
+//            controller.start();
+//            this.namesrvControllerList.add(controller);
+//            System.out.println("Start namesrv controller success");
+//        }
+//        Thread.sleep(4000);
 
-            final ControllerConfig controllerConfig = buildControllerConfig("n" + i, peers);
-            final NamesrvController controller = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
-            assertTrue(controller.initialize());
-            controller.start();
-            this.namesrvControllerList.add(controller);
-            System.out.println("Start namesrv controller success");
-        }
-        Thread.sleep(4000);
-
-        final String namesrvAddress = "127.0.0.1:31000;127.0.0.1:31001;127.0.0.1:31002";
-        for (int i = 0; i < 1; i++) {
+        final String namesrvAddress = "127.0.0.1:31000;";
+        for (int i = 0; i < 2; i++) {
             final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + i, 20000 + i);
             final BrokerConfig brokerConfig = new BrokerConfig();
             brokerConfig.setListenPort(21000 + i);
@@ -71,7 +70,13 @@ public class AutoSwitchRoleTest extends AutoSwitchRoleBase {
             brokerController.start();
             this.brokerControllerList.add(brokerController);
             System.out.println("Start controller success");
-        }
+       }
+    }
+
+    @Test
+    public void testChangeRole() {
+        System.out.println("Begin test");
+        while(true) {}
     }
 
     @After
