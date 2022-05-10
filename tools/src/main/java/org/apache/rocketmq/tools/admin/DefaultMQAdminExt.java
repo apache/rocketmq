@@ -248,22 +248,27 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return defaultMQAdminExtImpl.examineTopicStats(brokerAddr, topic);
     }
 
+    //FIXME add unit test
     @Override
     public AdminToolResult<TopicStatsTable> examineTopicStatsConcurrent(String topic) {
         return defaultMQAdminExtImpl.examineTopicStatsConcurrent(topic);
     }
 
+    //TODO
     @Override
     public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
         return this.defaultMQAdminExtImpl.fetchAllTopicList();
     }
 
+    //TODO
     @Override
     public TopicList fetchTopicsByCLuster(
         String clusterName) throws RemotingException, MQClientException, InterruptedException {
         return this.defaultMQAdminExtImpl.fetchTopicsByCLuster(clusterName);
     }
 
+
+    //TODO
     @Override
     public KVTable fetchBrokerRuntimeStats(
         final String brokerAddr) throws RemotingConnectException, RemotingSendRequestException,
