@@ -18,18 +18,43 @@
 package org.apache.rocketmq.test.autoswitchrole;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
+import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+
 public class AutoSwitchRoleBase {
 
-    private String storePathRootParentDir = System.getProperty("user.home") + File.separator +
+    private final String storePathRootParentDir = System.getProperty("user.home") + File.separator +
         UUID.randomUUID().toString().replace("-", "");
-    private String storePathRootDir = storePathRootParentDir + File.separator + "store";
+    private final String storePathRootDir = storePathRootParentDir + File.separator + "store";
+    private final String StoreMessage = "Once, there was a chance for me!";
+    private final byte[] MessageBody = StoreMessage.getBytes();
+    private final AtomicInteger QueueId = new AtomicInteger(0);
+    private SocketAddress BornHost;
+    private SocketAddress StoreHost;
+
+    protected void initialize() {
+        try {
+            StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+            BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+        } catch (Exception ignored) {
+        }
+    }
 
     protected MessageStoreConfig buildMessageStoreConfig(final String brokerName, final int haPort) {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
@@ -60,6 +85,42 @@ public class AutoSwitchRoleBase {
         config.setMappedFileSize(1024 * 1024);
         config.setControllerStorePath(storePathRootDir + File.separator + "namesrv" + id + File.separator + "DledgerController");
         return config;
+    }
+
+    protected MessageExtBrokerInner buildMessage() {
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.setTopic("FooBar");
+        msg.setTags("TAG1");
+        msg.setBody(MessageBody);
+        msg.setKeys(String.valueOf(System.currentTimeMillis()));
+        int QUEUE_TOTAL = 1;
+        msg.setQueueId(Math.abs(QueueId.getAndIncrement()) % QUEUE_TOTAL);
+        msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(StoreHost);
+        msg.setBornHost(BornHost);
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+        return msg;
+    }
+
+    protected void putMessage(MessageStore messageStore) throws InterruptedException {
+        // Put message on master
+        for (int i = 0; i < 10; i++) {
+            messageStore.putMessage(buildMessage());
+        }
+        Thread.sleep(200);
+    }
+
+    protected void checkMessage(final MessageStore messageStore, int totalMsgs, int startOffset) {
+        for (long i = 0; i < totalMsgs; i++) {
+            GetMessageResult result = messageStore.getMessage("GROUP_A", "FooBar", 0, startOffset + i, 1024 * 1024, null);
+            assertThat(result).isNotNull();
+            if (!GetMessageStatus.FOUND.equals(result.getStatus())) {
+                System.out.println("Failed i :" + i);
+            }
+            assertEquals(GetMessageStatus.FOUND, result.getStatus());
+            result.release();
+        }
     }
 
     protected void destroy() {

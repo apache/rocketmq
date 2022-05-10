@@ -20,39 +20,50 @@ package org.apache.rocketmq.test.autoswitchrole;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.hacontroller.ReplicasManager;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.namesrv.ControllerConfig;
+import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class AutoSwitchRoleTest extends AutoSwitchRoleBase {
+public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
     private List<BrokerController> brokerControllerList;
     private List<NamesrvController> namesrvControllerList;
+    private BrokerController master;
+    private BrokerController slave;
 
     @Before
     public void init() throws Exception {
-        this.namesrvControllerList = new ArrayList<>(3);
-        this.brokerControllerList = new ArrayList<>(3);
-//        final String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
-//        for (int i = 0; i < 3; i++) {
-//            final NettyServerConfig serverConfig = new NettyServerConfig();
-//            serverConfig.setListenPort(31000 + i);
-//
-//            final ControllerConfig controllerConfig = buildControllerConfig("n" + i, peers);
-//            final NamesrvController controller = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
-//            assertTrue(controller.initialize());
-//            controller.start();
-//            this.namesrvControllerList.add(controller);
-//            System.out.println("Start namesrv controller success");
-//        }
-//        Thread.sleep(4000);
+        super.initialize();
+        this.namesrvControllerList = new ArrayList<>(1);
+        this.brokerControllerList = new ArrayList<>(2);
+        final String peers = String.format("n0-localhost:%d", 30000);
+        for (int i = 0; i < 3; i++) {
+            final NettyServerConfig serverConfig = new NettyServerConfig();
+            serverConfig.setListenPort(31000 + i);
+
+            final ControllerConfig controllerConfig = buildControllerConfig("n" + i, peers);
+            final NamesrvController controller = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
+            assertTrue(controller.initialize());
+            controller.start();
+            this.namesrvControllerList.add(controller);
+            System.out.println("Start namesrv controller success");
+        }
+        Thread.sleep(1000);
 
         final String namesrvAddress = "127.0.0.1:31000;";
         for (int i = 0; i < 2; i++) {
@@ -70,13 +81,35 @@ public class AutoSwitchRoleTest extends AutoSwitchRoleBase {
             brokerController.start();
             this.brokerControllerList.add(brokerController);
             System.out.println("Start controller success");
-       }
+            Thread.sleep(1000);
+            // The first is master
+            if (i == 0) {
+                assertTrue(brokerController.getReplicasManager().isMasterState());
+                this.master = brokerController;
+            } else {
+                assertFalse(brokerController.getReplicasManager().isMasterState());
+                this.slave = brokerController;
+            }
+        }
+        assertNotNull(master);
+        assertNotNull(slave);
     }
 
     @Test
-    public void testChangeRole() {
+    public void testAppendLog() throws Exception {
         System.out.println("Begin test");
-        while(true) {}
+        final MessageStore messageStore = master.getMessageStore();
+        putMessage(messageStore);
+
+        // Check slave message
+        checkMessage(slave.getMessageStore(), 10, 0);
+
+        Thread.sleep(1000);
+
+        // Check sync state set
+        final ReplicasManager replicasManager = master.getReplicasManager();
+        final SyncStateSet syncStateSet = replicasManager.getSyncStateSet();
+        assertEquals(2, syncStateSet.getSyncStateSet().size());
     }
 
     @After
@@ -89,26 +122,4 @@ public class AutoSwitchRoleTest extends AutoSwitchRoleBase {
         }
         super.destroy();
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

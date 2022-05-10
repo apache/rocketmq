@@ -106,8 +106,13 @@ public class ReplicasManager {
         }
 
         // Then, scheduling sync broker metadata.
-        this.syncMetadataService.scheduleAtFixedRate(this::doSyncMetaData, 0, 5, TimeUnit.SECONDS);
+        this.syncMetadataService.scheduleAtFixedRate(this::doSyncMetaData, 3 * 1000, 5 * 1000, TimeUnit.MILLISECONDS);
         return true;
+    }
+
+    public void shutdown() {
+        this.syncMetadataService.shutdown();
+        this.checkSyncStateSetService.shutdown();
     }
 
     public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch) {
@@ -176,6 +181,18 @@ public class ReplicasManager {
                 }
                 LOGGER.error("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}, newMasterHaAddress:{}", this.localAddress, newMasterAddress, newMasterEpoch, masterHaAddress);
             }
+        }
+    }
+
+    public boolean isMasterState() {
+        synchronized (this) {
+            return this.currentRole == BrokerRole.SYNC_MASTER;
+        }
+    }
+
+    public SyncStateSet getSyncStateSet() {
+        synchronized (this) {
+            return new SyncStateSet(new HashSet<>(this.syncStateSet), this.syncStateSetEpoch);
         }
     }
 
@@ -253,12 +270,14 @@ public class ReplicasManager {
             }
             try {
                 final SyncStateSet result = this.proxy.alterSyncStateSet(this.brokerName, this.masterAddress, this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
-                changeSyncStateSet(result.getSyncStateSet(), result.getSyncStateSetEpoch());
+                if (result != null) {
+                    changeSyncStateSet(result.getSyncStateSet(), result.getSyncStateSetEpoch());
+                }
             } catch (final Exception e) {
-                LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
+                LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch:{}, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
                     this.brokerName, this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
             }
-        }, 0, 8, TimeUnit.SECONDS);
+        }, 5 * 1000, 8 * 1000, TimeUnit.MILLISECONDS);
     }
 
     private void stopCheckSyncStateSetService() {
@@ -266,10 +285,5 @@ public class ReplicasManager {
             this.checkSyncStateSetTaskFuture.cancel(false);
             this.checkSyncStateSetTaskFuture = null;
         }
-    }
-
-    public void shutdown() {
-        this.syncMetadataService.shutdown();
-        this.checkSyncStateSetService.shutdown();
     }
 }

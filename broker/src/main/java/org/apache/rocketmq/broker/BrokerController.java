@@ -603,7 +603,7 @@ public class BrokerController {
             }
         }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
 
-        if (!messageStoreConfig.isEnableDLegerCommitLog() && !messageStoreConfig.isDuplicationEnable()&& !messageStoreConfig.isStartupControllerMode()) {
+        if (!messageStoreConfig.isEnableDLegerCommitLog() && !messageStoreConfig.isDuplicationEnable() && !messageStoreConfig.isStartupControllerMode()) {
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
                 if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= HA_ADDRESS_MIN_LENGTH) {
                     this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
@@ -2143,6 +2143,10 @@ public class BrokerController {
                 brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
                 brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
         }
+    }
+
+    public ReplicasManager getReplicasManager() {
+        return replicasManager;
     }
 
     public boolean isIsolated() {
