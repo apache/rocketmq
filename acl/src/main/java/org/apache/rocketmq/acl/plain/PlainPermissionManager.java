@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.PermissionChecker;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
@@ -80,6 +81,8 @@ public class PlainPermissionManager {
     private final DataVersion dataVersion = new DataVersion();
 
     private List<String> fileList = new ArrayList<>();
+
+    private final PermissionChecker permissionChecker = new PlainPermissionChecker();
 
     public PlainPermissionManager() {
         load();
@@ -559,7 +562,7 @@ public class PlainPermissionManager {
     }
 
     void checkPerm(PlainAccessResource needCheckedAccess, PlainAccessResource ownedAccess) {
-        PlainPermissionChecker.check(needCheckedAccess, ownedAccess);
+        permissionChecker.check(needCheckedAccess, ownedAccess);
     }
 
     void clearPermissionInfo() {
