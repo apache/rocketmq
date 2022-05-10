@@ -16,14 +16,32 @@
  */
 package org.apache.rocketmq.common.attribute;
 
-public class LongRangeAttribute extends AbstractRangeAttribute<Long> {
+import static java.lang.String.format;
 
-    public LongRangeAttribute(String name, boolean changeable, long min, long max, long defaultValue) {
-        super(name, changeable, min, max, defaultValue);
+public abstract class AbstractRangeAttribute<T extends Comparable<T>> extends Attribute {
+
+    protected final T min;
+    protected final T max;
+    protected final T defaultValue;
+
+    public AbstractRangeAttribute(String name, boolean changeable, T min, T max, T defaultValue) {
+        super(name, changeable);
+        this.min = min;
+        this.max = max;
+        this.defaultValue = defaultValue;
     }
 
+    protected abstract T parse(String value);
+
     @Override
-    protected Long parse(String value) {
-        return Long.parseLong(value);
+    public void verify(String value) {
+        T l = parse(value);
+        if (l.compareTo(min) < 0 || l.compareTo(max) > 0) {
+            throw new RuntimeException(format("value is not in range(%s, %s)", min, max));
+        }
+    }
+
+    public T getDefaultValue() {
+        return defaultValue;
     }
 }
