@@ -28,6 +28,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.Permission;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.junit.Assert;
 import org.junit.Before;
@@ -63,7 +64,7 @@ public class PlainPermissionManagerTest {
         DENYPlainAccessResource = clonePlainAccessResource(Permission.DENY);
 
         File file = new File("src/test/resources");
-        System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
+        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, file.getAbsolutePath());
 
         plainPermissionManager = new PlainPermissionManager();
 
@@ -190,7 +191,6 @@ public class PlainPermissionManagerTest {
         plainPermissionManager.buildPlainAccessResource(plainAccessConfig);
     }
 
-
     @SuppressWarnings("unchecked")
     @Test
     public void cleanAuthenticationInfoTest() throws IllegalAccessException {
@@ -215,15 +215,115 @@ public class PlainPermissionManagerTest {
     @Test
     public void testWatch() throws IOException, IllegalAccessException, InterruptedException {
         File file = new File("src/test/resources");
-        System.setProperty("rocketmq.home.dir", file.getAbsolutePath());
+        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, file.getAbsolutePath());
 
-        String fileName = System.getProperty("rocketmq.home.dir") + File.separator + "/conf/acl/plain_acl_test.yml";
+        String fileName = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY) + File.separator + "/conf/acl/acl_watch_test.yml";
         File transport = new File(fileName);
         transport.delete();
         transport.createNewFile();
         FileWriter writer = new FileWriter(transport);
+        writer.write("globalWhiteRemoteAddresses: \r\n");
+        writer.write("- 1.1.1.1\r\n");
+        writer.write("- 2.2.2.2\r\n");
         writer.write("accounts:\r\n");
-        writer.write("- accessKey: watchrocketmqx\r\n");
+        writer.write("- accessKey: watchrocketmq1\r\n");
+        writer.write("  secretKey: 12345678\r\n");
+        writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
+        writer.write("  admin: true\r\n");
+        writer.write("- accessKey: watchrocketmq2\r\n");
+        writer.write("  secretKey: 12345678\r\n");
+        writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
+        writer.write("  admin: false\r\n");
+        writer.flush();
+        writer.close();
+
+        Thread.sleep(1000);
+
+        PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
+        Assert.assertTrue(plainPermissionManager.isWatchStart());
+
+        Map<String, List<RemoteAddressStrategy>> globalWhiteRemoteAddressStrategyMap
+            = (Map<String, List<RemoteAddressStrategy>>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "globalWhiteRemoteAddressStrategyMap", true);
+        Map<String, String> accessKeyTable = (Map<String, String>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "accessKeyTable", true);
+        String aclFileName = accessKeyTable.get("watchrocketmq1");
+        {
+            Assert.assertEquals(4, plainPermissionManager.getAllAclConfig().getPlainAccessConfigs().size());
+            Assert.assertEquals(6, plainPermissionManager.getAllAclConfig().getGlobalWhiteAddrs().size());
+
+            Assert.assertEquals(4, accessKeyTable.size());
+            Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap
+                = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(
+                    plainPermissionManager, "aclPlainAccessResourceMap", true);
+            Map<String, PlainAccessResource> accessResourceMap = plainAccessResourceMap.get(aclFileName);
+            PlainAccessResource accessResource = accessResourceMap.get("watchrocketmq1");
+            Assert.assertNotNull(accessResource);
+            Assert.assertEquals(accessResource.getSecretKey(), "12345678");
+            Assert.assertTrue(accessResource.isAdmin());
+            accessResource = accessResourceMap.get("watchrocketmq2");
+            Assert.assertNotNull(accessResource);
+            Assert.assertEquals(accessResource.getSecretKey(), "12345678");
+            Assert.assertFalse(accessResource.isAdmin());
+
+            List<RemoteAddressStrategy> strategies = globalWhiteRemoteAddressStrategyMap.get(aclFileName);
+            Assert.assertEquals(2, strategies.size());
+        }
+
+        // Update and remove config items
+        Map<String, Object> updatedMap = AclUtils.getYamlDataObject(fileName, Map.class);
+        List<String> whiteRemoteAddresses = (List<String>) updatedMap.get("globalWhiteRemoteAddresses");
+        List<Map<String, Object>> accounts = (List<Map<String, Object>>) updatedMap.get("accounts");
+        whiteRemoteAddresses.remove(1);
+        accounts.get(0).remove("accessKey");
+        accounts.get(0).remove("secretKey");
+        accounts.get(0).put("accessKey", "watchrocketmq1y");
+        accounts.get(0).put("secretKey", "88888888");
+        accounts.get(0).put("admin", "false");
+        accounts.remove(1);
+        // Update file and flush to yaml file
+        AclUtils.writeDataObject(fileName, updatedMap);
+
+        accessKeyTable = (Map<String, String>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "accessKeyTable", true);
+        Thread.sleep(10000);
+        {
+            Assert.assertEquals(3, plainPermissionManager.getAllAclConfig().getPlainAccessConfigs().size());
+            Assert.assertEquals(5, plainPermissionManager.getAllAclConfig().getGlobalWhiteAddrs().size());
+
+            Assert.assertEquals(3, accessKeyTable.size());
+            Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap
+                = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(
+                plainPermissionManager, "aclPlainAccessResourceMap", true);
+            Map<String, PlainAccessResource> accessResourceMap = plainAccessResourceMap.get(aclFileName);
+            PlainAccessResource accessResource = accessResourceMap.get("watchrocketmq1y");
+            Assert.assertEquals(1, accessResourceMap.size());
+            Assert.assertNotNull(accessResource);
+            Assert.assertEquals(accessResource.getSecretKey(), "88888888");
+            Assert.assertFalse(accessResource.isAdmin());
+
+            List<RemoteAddressStrategy> strategies = globalWhiteRemoteAddressStrategyMap.get(aclFileName);
+            Assert.assertEquals(1, strategies.size());
+        }
+        transport.delete();
+        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, "src/test/resources");
+    }
+
+    @Test
+    public void testWatchModifyFileNum() throws IOException, IllegalAccessException, InterruptedException {
+        File file = new File("src/test/resources");
+        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, file.getAbsolutePath());
+
+        String fileName1 = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY) + File.separator + "/conf/acl/acl_watch_test1.yml";
+        String fileName2 = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY) + File.separator + "/conf/acl/acl_watch_test2.yml";
+        File transport = new File(fileName1);
+        transport.delete();
+        transport.createNewFile();
+        FileWriter writer = new FileWriter(transport);
+        writer.write("globalWhiteRemoteAddresses: \r\n");
+        writer.write("- 1.1.1.1\r\n");
+        writer.write("accounts:\r\n");
+        writer.write("- accessKey: watchrocketmq1\r\n");
         writer.write("  secretKey: 12345678\r\n");
         writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
         writer.write("  admin: true\r\n");
@@ -235,37 +335,95 @@ public class PlainPermissionManagerTest {
         PlainPermissionManager plainPermissionManager = new PlainPermissionManager();
         Assert.assertTrue(plainPermissionManager.isWatchStart());
 
-        Map<String, String> accessKeyTable = (Map<String, String>) FieldUtils.readDeclaredField(plainPermissionManager, "accessKeyTable", true);
-        String aclFileName = accessKeyTable.get("watchrocketmqx");
+        Map<String, String> accessKeyTable = (Map<String, String>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "accessKeyTable", true);
+        Map<String, List<RemoteAddressStrategy>> globalWhiteRemoteAddressStrategyMap
+            = (Map<String, List<RemoteAddressStrategy>>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "globalWhiteRemoteAddressStrategyMap", true);
+        String aclFileName = accessKeyTable.get("watchrocketmq1");
         {
-            Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionManager, "aclPlainAccessResourceMap", true);
-            PlainAccessResource accessResource = plainAccessResourceMap.get(aclFileName).get("watchrocketmqx");
+            Assert.assertEquals(5, plainPermissionManager.getAllAclConfig().getGlobalWhiteAddrs().size());
+            Assert.assertEquals(3, plainPermissionManager.getAllAclConfig().getPlainAccessConfigs().size());
+            Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap
+                = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(
+                plainPermissionManager, "aclPlainAccessResourceMap", true);
+            Map<String, PlainAccessResource> accessResourceMap = plainAccessResourceMap.get(aclFileName);
+            Assert.assertEquals(1, accessResourceMap.size());
+            PlainAccessResource accessResource = accessResourceMap.get("watchrocketmq1");
             Assert.assertNotNull(accessResource);
             Assert.assertEquals(accessResource.getSecretKey(), "12345678");
             Assert.assertTrue(accessResource.isAdmin());
 
+            List<RemoteAddressStrategy> strategies = globalWhiteRemoteAddressStrategyMap.get(aclFileName);
+            Assert.assertEquals(1, strategies.size());
         }
 
-        Map<String, Object> updatedMap = AclUtils.getYamlDataObject(fileName, Map.class);
-        List<Map<String, Object>> accounts = (List<Map<String, Object>>) updatedMap.get("accounts");
-        accounts.get(0).remove("accessKey");
-        accounts.get(0).remove("secretKey");
-        accounts.get(0).put("accessKey", "watchrocketmq1y");
-        accounts.get(0).put("secretKey", "88888888");
-        accounts.get(0).put("admin", "false");
-        // Update file and flush to yaml file
-        AclUtils.writeDataObject(fileName, updatedMap);
+        // Add new file
+        transport = new File(fileName2);
+        transport.delete();
+        transport.createNewFile();
+        writer = new FileWriter(transport);
+        writer.write("globalWhiteRemoteAddresses: \r\n");
+        writer.write("- 2.2.2.2\r\n");
+        writer.write("accounts:\r\n");
+        writer.write("- accessKey: watchrocketmq2\r\n");
+        writer.write("  secretKey: 12345678\r\n");
+        writer.write("  whiteRemoteAddress: 127.0.0.1\r\n");
+        writer.write("  admin: false\r\n");
+        writer.flush();
+        writer.close();
 
         Thread.sleep(10000);
+        accessKeyTable = (Map<String, String>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "accessKeyTable", true);
+        globalWhiteRemoteAddressStrategyMap = (Map<String, List<RemoteAddressStrategy>>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "globalWhiteRemoteAddressStrategyMap", true);
+        aclFileName = accessKeyTable.get("watchrocketmq2");
         {
-            Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(plainPermissionManager, "aclPlainAccessResourceMap", true);
-            PlainAccessResource accessResource = plainAccessResourceMap.get(aclFileName).get("watchrocketmq1y");
+            Assert.assertEquals(6, plainPermissionManager.getAllAclConfig().getGlobalWhiteAddrs().size());
+            Assert.assertEquals(4, plainPermissionManager.getAllAclConfig().getPlainAccessConfigs().size());
+
+            Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap
+                = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(
+                plainPermissionManager, "aclPlainAccessResourceMap", true);
+            Map<String, PlainAccessResource> accessResourceMap = plainAccessResourceMap.get(aclFileName);
+            Assert.assertEquals(1, accessResourceMap.size());
+            PlainAccessResource accessResource = accessResourceMap.get("watchrocketmq2");
             Assert.assertNotNull(accessResource);
-            Assert.assertEquals(accessResource.getSecretKey(), "88888888");
+            Assert.assertEquals(accessResource.getSecretKey(), "12345678");
             Assert.assertFalse(accessResource.isAdmin());
 
+            List<RemoteAddressStrategy> strategies = globalWhiteRemoteAddressStrategyMap.get(aclFileName);
+            Assert.assertEquals(1, strategies.size());
         }
+
+        // Delete new file
         transport.delete();
-        System.setProperty("rocketmq.home.dir", "src/test/resources");
+
+        accessKeyTable = (Map<String, String>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "accessKeyTable", true);
+        globalWhiteRemoteAddressStrategyMap = (Map<String, List<RemoteAddressStrategy>>) FieldUtils.readDeclaredField(
+            plainPermissionManager, "globalWhiteRemoteAddressStrategyMap", true);
+        aclFileName = accessKeyTable.get("watchrocketmq1");
+        Thread.sleep(10000);
+        {
+            Assert.assertEquals(5, plainPermissionManager.getAllAclConfig().getGlobalWhiteAddrs().size());
+            Assert.assertEquals(3, plainPermissionManager.getAllAclConfig().getPlainAccessConfigs().size());
+
+            Map<String, Map<String, PlainAccessResource>> plainAccessResourceMap
+                = (Map<String, Map<String, PlainAccessResource>>) FieldUtils.readDeclaredField(
+                plainPermissionManager, "aclPlainAccessResourceMap", true);
+            Map<String, PlainAccessResource> accessResourceMap = plainAccessResourceMap.get(aclFileName);
+            Assert.assertEquals(1, accessResourceMap.size());
+            PlainAccessResource accessResource = accessResourceMap.get("watchrocketmq1");
+            Assert.assertNotNull(accessResource);
+            Assert.assertEquals(accessResource.getSecretKey(), "12345678");
+            Assert.assertTrue(accessResource.isAdmin());
+
+            List<RemoteAddressStrategy> strategies = globalWhiteRemoteAddressStrategyMap.get(aclFileName);
+            Assert.assertEquals(1, strategies.size());
+        }
+        new File(fileName1).delete();
+        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, "src/test/resources");
     }
 }
