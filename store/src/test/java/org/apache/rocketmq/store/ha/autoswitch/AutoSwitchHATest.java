@@ -126,7 +126,8 @@ public class AutoSwitchHATest {
         // Change role
         slaveConfig.setBrokerRole(BrokerRole.SLAVE);
         masterConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
-        slave.getHaService().changeToSlave("", masterHaAddress, epoch, slaveId);
+        slave.getHaService().changeToSlave("", epoch, slaveId);
+        slave.getHaService().updateHaMasterAddress(masterHaAddress);
         master.getHaService().changeToMaster(epoch);
         Thread.sleep(6000);
 
@@ -173,7 +174,8 @@ public class AutoSwitchHATest {
         checkMessage(this.messageStore2, 10, 0);
 
         // Step2: add new broker3, link to broker1
-        messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 1, 3L);
+        messageStore3.getHaService().changeToSlave("", 1, 3L);
+        messageStore3.getHaService().updateHaMasterAddress("127.0.0.1:10912");
         Thread.sleep(6000);
         checkMessage(messageStore3, 10, 0);
     }
@@ -207,7 +209,8 @@ public class AutoSwitchHATest {
         haService.truncateEpochFilePrefix(1570);
 
         // Step4: add broker3 as slave, only have 10 msg from offset 10;
-        messageStore3.getHaService().changeToSlave("", store1HaAddress, 2, 3L);
+        messageStore3.getHaService().changeToSlave("", 2, 3L);
+        messageStore3.getHaService().updateHaMasterAddress(store1HaAddress);
         Thread.sleep(6000);
 
         checkMessage(messageStore3, 10, 10);
@@ -242,7 +245,8 @@ public class AutoSwitchHATest {
         checkMessage(this.messageStore1, 10, 10);
 
         // Step4: add broker3 as slave
-        messageStore3.getHaService().changeToSlave("", store1HaAddress, 2, 3L);
+        messageStore3.getHaService().changeToSlave("", 2, 3L);
+        messageStore3.getHaService().updateHaMasterAddress(store1HaAddress);
         Thread.sleep(6000);
         checkMessage(messageStore3, 10, 10);
 
@@ -252,7 +256,8 @@ public class AutoSwitchHATest {
 
         // Step6, let broker1 link to broker2, it should sync log from epoch3.
         this.storeConfig1.setBrokerRole(BrokerRole.SLAVE);
-        this.messageStore1.getHaService().changeToSlave("", this.store2HaAddress, 3, 1L);
+        this.messageStore1.getHaService().changeToSlave("", 3, 1L);
+        this.messageStore1.getHaService().updateHaMasterAddress(this.store2HaAddress);
         Thread.sleep(6000);
         checkMessage(messageStore1, 20, 0);
     }
@@ -280,7 +285,8 @@ public class AutoSwitchHATest {
         messageStore3.start();
 
         // Step2: add new broker3, link to broker1. because broker3 request sync from lastFile, so it only synced 10 msg from offset 10;
-        messageStore3.getHaService().changeToSlave("", "127.0.0.1:10912", 2, 3L);
+        messageStore3.getHaService().changeToSlave("", 2, 3L);
+        messageStore3.getHaService().updateHaMasterAddress("127.0.0.1:10912");
         Thread.sleep(6000);
         checkMessage(messageStore3, 10, 10);
     }

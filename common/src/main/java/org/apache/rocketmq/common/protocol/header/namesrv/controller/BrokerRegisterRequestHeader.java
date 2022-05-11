@@ -19,21 +19,18 @@ package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class RegisterBrokerRequestHeader implements CommandCustomHeader {
+public class BrokerRegisterRequestHeader implements CommandCustomHeader {
     private String clusterName;
     private String brokerName;
     private String brokerAddress;
-    private String brokerHaAddress;
 
-    public RegisterBrokerRequestHeader() {
+    public BrokerRegisterRequestHeader() {
     }
 
-    public RegisterBrokerRequestHeader(String clusterName, String brokerName, String brokerAddress,
-        final String brokerHaAddress) {
+    public BrokerRegisterRequestHeader(String clusterName, String brokerName, String brokerAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
-        this.brokerHaAddress = brokerHaAddress;
     }
 
     public String getClusterName() {
@@ -60,20 +57,11 @@ public class RegisterBrokerRequestHeader implements CommandCustomHeader {
         this.brokerAddress = brokerAddress;
     }
 
-    public String getBrokerHaAddress() {
-        return brokerHaAddress;
-    }
-
-    public void setBrokerHaAddress(String brokerHaAddress) {
-        this.brokerHaAddress = brokerHaAddress;
-    }
-
     @Override public String toString() {
         return "RegisterBrokerRequestHeader{" +
             "clusterName='" + clusterName + '\'' +
             ", brokerName='" + brokerName + '\'' +
             ", brokerAddress='" + brokerAddress + '\'' +
-            ", brokerHaAddress='" + brokerHaAddress + '\'' +
             '}';
     }
 

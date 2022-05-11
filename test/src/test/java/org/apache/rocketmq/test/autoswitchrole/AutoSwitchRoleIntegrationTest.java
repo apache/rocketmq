@@ -138,7 +138,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         brokerController1.initialize();
         brokerController1.start();
 
-        Thread.sleep(15000);
+        Thread.sleep(20000);
         assertFalse(brokerController1.getReplicasManager().isMasterState());
         assertEquals(brokerController1.getReplicasManager().getMasterAddress(), brokerController2.getReplicasManager().getLocalAddress());
 

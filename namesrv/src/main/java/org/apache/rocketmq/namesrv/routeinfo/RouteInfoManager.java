@@ -343,7 +343,6 @@ public class RouteInfoManager {
                         haServerAddr));
                 if (null == prevBrokerLiveInfo) {
                     log.info("new broker registered, {} HAService: {}", brokerAddrInfo, haServerAddr);
-                    System.out.println("new Broker registered:" + brokerAddrInfo);
                 }
 
                 if (filterServerList != null) {
@@ -1131,7 +1130,6 @@ public class RouteInfoManager {
         if (info != null) {
             long last = info.getLastUpdateTimestamp();
             long timeoutMillis = info.getHeartbeatTimeoutMillis();
-            System.out.println("Try check broker alive, brokerAdress:+" + brokerAddress + " BrokerTime:" + (System.currentTimeMillis() - last) + "   Timeout:" + timeoutMillis);
             return (last + timeoutMillis) >= System.currentTimeMillis();
         }
         return false;

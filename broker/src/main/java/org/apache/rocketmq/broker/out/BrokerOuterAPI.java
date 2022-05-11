@@ -16,6 +16,15 @@
  */
 package org.apache.rocketmq.broker.out;
 
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -26,6 +35,7 @@ import org.apache.rocketmq.common.BrokerSyncInfo;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UnlockCallback;
 import org.apache.rocketmq.common.UtilAll;
@@ -52,6 +62,7 @@ import org.apache.rocketmq.common.protocol.body.LockBatchResponseBody;
 import org.apache.rocketmq.common.protocol.body.MessageRequestModeSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
@@ -72,6 +83,12 @@ import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionRespon
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.rpc.ClientMetadata;
@@ -92,16 +109,10 @@ import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import static org.apache.rocketmq.common.protocol.ResponseCode.CONTROLLER_NOT_LEADER;
+import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 public class BrokerOuterAPI {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -987,5 +998,86 @@ public class BrokerOuterAPI {
         }
 
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
+
+    public GetMetaDataResponseHeader getControllerMetaData(final String controllerAddress) throws Exception {
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_METADATA_INFO, null);
+        final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
+        assert response != null;
+        if (response.getCode() == SUCCESS) {
+            return response.decodeCommandCustomHeader(GetMetaDataResponseHeader.class);
+        }
+        return null;
+    }
+
+    /**
+     * Alter syncStateSet
+     */
+    public SyncStateSet alterSyncStateSet(
+        final String controllerAddress,
+        final String brokerName,
+        final String masterAddress, final int masterEpoch,
+        final Set<String> newSyncStateSet, final int syncStateSetEpoch) throws Exception {
+
+        final AlterSyncStateSetRequestHeader requestHeader = new AlterSyncStateSetRequestHeader(brokerName, masterAddress, masterEpoch);
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, requestHeader);
+        request.setBody(new SyncStateSet(newSyncStateSet, syncStateSetEpoch).encode());
+        final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case SUCCESS: {
+                assert response.getBody() != null;
+                return RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
+            }
+            case CONTROLLER_NOT_LEADER: {
+                throw new MQBrokerException(response.getCode(), "Controller leader was changed");
+            }
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    /**
+     * Register broker to controller
+     */
+    public BrokerRegisterResponseHeader registerBroker(
+        final String controllerAddress, final String clusterName,
+        final String brokerName, final String address) throws Exception {
+
+        final BrokerRegisterRequestHeader requestHeader = new BrokerRegisterRequestHeader(clusterName, brokerName, address);
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
+        final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case SUCCESS: {
+                return response.decodeCommandCustomHeader(BrokerRegisterResponseHeader.class);
+            }
+            case CONTROLLER_NOT_LEADER: {
+                throw new MQBrokerException(response.getCode(), "Controller leader was changed");
+            }
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    /**
+     * Get broker replica info
+     */
+    public Pair<GetReplicaInfoResponseHeader, SyncStateSet> getReplicaInfo(final String controllerAddress,
+        final String brokerName) throws Exception {
+        final GetReplicaInfoRequestHeader requestHeader = new GetReplicaInfoRequestHeader(brokerName);
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_REPLICA_INFO, requestHeader);
+        final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case SUCCESS: {
+                final GetReplicaInfoResponseHeader header = response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
+                assert response.getBody() != null;
+                final SyncStateSet stateSet = RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
+                return new Pair<>(header, stateSet);
+            }
+            case CONTROLLER_NOT_LEADER: {
+                throw new MQBrokerException(response.getCode(), "Controller leader was changed");
+            }
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 }

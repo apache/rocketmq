@@ -23,13 +23,11 @@ package org.apache.rocketmq.namesrv.controller.manager.event;
 public class ApplyBrokerIdEvent implements EventMessage {
     private final String brokerName;
     private final String brokerAddress;
-    private final String brokerHaAddress;
     private final long newBrokerId;
 
-    public ApplyBrokerIdEvent(String brokerName, String brokerAddress, String brokerHaAddress, long newBrokerId) {
+    public ApplyBrokerIdEvent(String brokerName, String brokerAddress, long newBrokerId) {
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
-        this.brokerHaAddress = brokerHaAddress;
         this.newBrokerId = newBrokerId;
     }
 
@@ -44,10 +42,6 @@ public class ApplyBrokerIdEvent implements EventMessage {
 
     public String getBrokerAddress() {
         return brokerAddress;
-    }
-
-    public String getBrokerHaAddress() {
-        return brokerHaAddress;
     }
 
     public long getNewBrokerId() {

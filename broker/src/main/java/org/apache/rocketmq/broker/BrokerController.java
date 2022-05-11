@@ -712,7 +712,7 @@ public class BrokerController {
                 this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
                 if (this.messageStoreConfig.isStartupControllerMode()) {
-                    this.replicasManager = new ReplicasManager(this, this.messageStore);
+                    this.replicasManager = new ReplicasManager(this);
                 }
             } catch (IOException e) {
                 result = false;
@@ -1671,8 +1671,6 @@ public class BrokerController {
         boolean checkOrderConfig) {
         for (RegisterBrokerResult registerBrokerResult : registerBrokerResultList) {
             if (registerBrokerResult != null) {
-                System.out.println("Handle broker:" + getBrokerAddr() + "  registered result, master address:" + registerBrokerResult.getMasterAddr()
-                + "  master ha address:" + registerBrokerResult.getHaServerAddr());
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
                     this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
                 }

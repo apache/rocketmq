@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.common.Pair;
 
 /**
  * Broker info, mapping from brokerAddress to {brokerId, brokerHaAddress}.
@@ -30,13 +29,13 @@ public class BrokerInfo {
     private final String brokerName;
     // Start from 1
     private final AtomicLong brokerIdCount;
-    private final HashMap<String/*Address*/, Pair<Long/*brokerId*/, String/*HaAddress*/>> brokerTable;
+    private final HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
 
     public BrokerInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerIdCount = new AtomicLong(1L);
-        this.brokerTable = new HashMap<>();
+        this.brokerIdTable = new HashMap<>();
     }
 
     public long newBrokerId() {
@@ -51,31 +50,19 @@ public class BrokerInfo {
         return brokerName;
     }
 
-    public void addBroker(final String address, final Long brokerId, final String brokerHaAddress) {
-        this.brokerTable.put(address, new Pair<>(brokerId, brokerHaAddress));
+    public void addBroker(final String address, final Long brokerId) {
+        this.brokerIdTable.put(address, brokerId);
     }
 
     public boolean isBrokerExist(final String address) {
-        return this.brokerTable.containsKey(address);
+        return this.brokerIdTable.containsKey(address);
     }
 
     public Set<String> getAllBroker() {
-        return new HashSet<>(this.brokerTable.keySet());
+        return new HashSet<>(this.brokerIdTable.keySet());
     }
 
     public Long getBrokerId(final String address) {
-        final Pair<Long, String> brokerInfo = this.brokerTable.get(address);
-        if (brokerInfo != null) {
-            return brokerInfo.getObject1();
-        }
-        return -1L;
-    }
-
-    public String getBrokerHaAddress(final String address) {
-        final Pair<Long, String> brokerInfo = this.brokerTable.get(address);
-        if (brokerInfo != null) {
-            return brokerInfo.getObject2();
-        }
-        return "";
+        return this.brokerIdTable.get(address);
     }
 }

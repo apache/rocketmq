@@ -108,7 +108,7 @@ public class AutoSwitchRoleBase {
         for (int i = 0; i < 10; i++) {
             messageStore.putMessage(buildMessage());
         }
-        Thread.sleep(200);
+        Thread.sleep(1000);
     }
 
     protected void checkMessage(final MessageStore messageStore, int totalMsgs, int startOffset) {

@@ -93,7 +93,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public boolean changeToSlave(String newMasterAddr, String newHaMasterAddr, int newMasterEpoch, Long slaveId) {
+    public boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (newMasterEpoch <= lastEpoch) {
             return false;
