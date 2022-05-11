@@ -108,6 +108,7 @@ public class ReplicasInfoManager {
                 if (!brokerAlivePredicate.test(brokerInfo.getClusterName(), replicas)) {
                     log.info("Rejecting alter syncStateSet request because the replicas {} don't alive", replicas);
                     result.setResponseCode(ResponseCode.CONTROLLER_BROKER_NOT_ALIVE);
+                    System.out.println("Failed to alter isr, new broker is not alive:" + replicas);
                     return result;
                 }
             }

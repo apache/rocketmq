@@ -1667,6 +1667,7 @@ public class BrokerController {
         boolean checkOrderConfig) {
         for (RegisterBrokerResult registerBrokerResult : registerBrokerResultList) {
             if (registerBrokerResult != null) {
+                System.out.println("Handle broker:" + getBrokerAddr() + "  registered result, master address:" + registerBrokerResult.getMasterAddr());
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
                     this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
                 }

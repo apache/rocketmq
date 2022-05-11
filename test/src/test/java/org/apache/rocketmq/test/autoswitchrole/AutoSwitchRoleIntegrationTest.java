@@ -95,8 +95,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertNotNull(slave);
     }
 
-    @Test
-    public void testAppendLog() throws Exception {
+    public void mockData() throws Exception {
         System.out.println("Begin test");
         final MessageStore messageStore = master.getMessageStore();
         putMessage(messageStore);
@@ -104,7 +103,12 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         // Check slave message
         checkMessage(slave.getMessageStore(), 10, 0);
 
-        Thread.sleep(1000);
+        Thread.sleep(10000);
+    }
+
+    @Test
+    public void testCheckSyncStateSet() throws Exception {
+        mockData();
 
         // Check sync state set
         final ReplicasManager replicasManager = master.getReplicasManager();
@@ -112,13 +116,32 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertEquals(2, syncStateSet.getSyncStateSet().size());
     }
 
+    @Test
+    public void testChangeMaster() throws Exception {
+        mockData();
+
+        // Let master shutdown
+        master.shutdown();
+        Thread.sleep(5000);
+
+        // The slave should change to master
+        assertTrue(slave.getReplicasManager().isMasterState());
+        assertEquals(slave.getReplicasManager().getMasterEpoch(), 2);
+
+        // Restart old master, it should be slave
+        master.initialize();
+        Thread.sleep(3000);
+        assertFalse(master.getReplicasManager().isMasterState());
+        assertEquals(master.getReplicasManager().getMasterAddress(), slave.getReplicasManager().getLocalAddress());
+    }
+
     @After
     public void shutdown() {
-        for (NamesrvController namesrvController : this.namesrvControllerList) {
-            namesrvController.shutdown();
-        }
         for (BrokerController controller : this.brokerControllerList) {
             controller.shutdown();
+        }
+        for (NamesrvController namesrvController : this.namesrvControllerList) {
+            namesrvController.shutdown();
         }
         super.destroy();
     }

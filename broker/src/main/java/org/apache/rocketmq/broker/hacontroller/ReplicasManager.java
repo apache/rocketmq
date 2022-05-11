@@ -132,21 +132,22 @@ public class ReplicasManager {
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
                 startCheckSyncStateSetService();
 
-                // Notify ha service
-                this.haService.changeToMaster(newMasterEpoch);
-
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
 
-                // Last, register broker to name-srv
+                // Register broker to name-srv
                 try {
-                    this.brokerController.registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
-                } catch (final Throwable ignored) {
+                    this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
+                } catch (final Throwable e) {
+                    LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to master", e);
+                    return;
                 }
 
+                // Notify ha service, change to master
+                this.haService.changeToMaster(newMasterEpoch);
                 LOGGER.error("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
             }
         }
@@ -163,9 +164,6 @@ public class ReplicasManager {
                 this.masterEpoch = newMasterEpoch;
                 stopCheckSyncStateSetService();
 
-                // Notify ha service
-                this.haService.changeToSlave(newMasterAddress, masterHaAddress, newMasterEpoch, this.brokerId);
-
                 // Change config
                 this.brokerController.getBrokerConfig().setBrokerId(this.brokerId); //TO DO check
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
@@ -174,11 +172,17 @@ public class ReplicasManager {
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SLAVE);
 
-                // Last, register broker to name-srv
+                // Register broker to name-srv
                 try {
-                    this.brokerController.registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
-                } catch (final Throwable ignored) {
+                    this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
+                    Thread.sleep(1000);
+                } catch (final Throwable e) {
+                    LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to slave", e);
+                    return;
                 }
+
+                // Notify ha service, change to slave
+                this.haService.changeToSlave(newMasterAddress, masterHaAddress, newMasterEpoch, this.brokerId);
                 LOGGER.error("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}, newMasterHaAddress:{}", this.localAddress, newMasterAddress, newMasterEpoch, masterHaAddress);
             }
         }
@@ -187,12 +191,6 @@ public class ReplicasManager {
     public boolean isMasterState() {
         synchronized (this) {
             return this.currentRole == BrokerRole.SYNC_MASTER;
-        }
-    }
-
-    public SyncStateSet getSyncStateSet() {
-        synchronized (this) {
-            return new SyncStateSet(new HashSet<>(this.syncStateSet), this.syncStateSetEpoch);
         }
     }
 
@@ -277,7 +275,7 @@ public class ReplicasManager {
                 LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch:{}, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
                     this.brokerName, this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
             }
-        }, 5 * 1000, 8 * 1000, TimeUnit.MILLISECONDS);
+        }, 3 * 1000, 8 * 1000, TimeUnit.MILLISECONDS);
     }
 
     private void stopCheckSyncStateSetService() {
@@ -285,5 +283,21 @@ public class ReplicasManager {
             this.checkSyncStateSetTaskFuture.cancel(false);
             this.checkSyncStateSetTaskFuture = null;
         }
+    }
+
+    public SyncStateSet getSyncStateSet() {
+        return new SyncStateSet(new HashSet<>(this.syncStateSet), this.syncStateSetEpoch);
+    }
+
+    public String getLocalAddress() {
+        return localAddress;
+    }
+
+    public String getMasterAddress() {
+        return masterAddress;
+    }
+
+    public int getMasterEpoch() {
+        return masterEpoch;
     }
 }
