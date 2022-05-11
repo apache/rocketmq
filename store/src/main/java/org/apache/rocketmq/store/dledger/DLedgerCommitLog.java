@@ -101,6 +101,7 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         dLedgerConfig.setPreferredLeaderId(defaultMessageStore.getMessageStoreConfig().getPreferredLeaderId());
         dLedgerConfig.setEnableBatchPush(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
+        dLedgerConfig.setDiskSpaceRatioToCheckExpired(defaultMessageStore.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100f);
 
         id = Integer.parseInt(dLedgerConfig.getSelfId().substring(1)) + 1;
         dLedgerServer = new DLedgerServer(dLedgerConfig);
@@ -707,11 +708,7 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     private long getQueueOffsetByKey(String key, int tranType) {
-        Long queueOffset = DLedgerCommitLog.this.topicQueueTable.get(key);
-        if (null == queueOffset) {
-            queueOffset = 0L;
-            DLedgerCommitLog.this.topicQueueTable.put(key, queueOffset);
-        }
+        long queueOffset = DLedgerCommitLog.this.topicQueueTable.computeIfAbsent(key, k -> 0L);
 
         // Transaction messages that require special handling
         switch (tranType) {
