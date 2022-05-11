@@ -1007,7 +1007,7 @@ public class BrokerOuterAPI {
         if (response.getCode() == SUCCESS) {
             return response.decodeCommandCustomHeader(GetMetaDataResponseHeader.class);
         }
-        return null;
+        throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
     /**

@@ -25,6 +25,7 @@ public class ControllerResult<T> {
     private final T response;
     private byte[] body;
     private int responseCode = ResponseCode.SUCCESS;
+    private String remark;
 
 
     public ControllerResult(T response) {
@@ -45,20 +46,25 @@ public class ControllerResult<T> {
         return response;
     }
 
-    public byte[] getBody() {
-        return body;
-    }
-
     public void setBody(byte[] body) {
         this.body = body;
     }
 
-    public void setResponseCode(int responseCode) {
+    public byte[] getBody() {
+        return body;
+    }
+
+    public void setCodeAndRemark(int responseCode, String remark) {
         this.responseCode = responseCode;
+        this.remark = remark;
     }
 
     public int getResponseCode() {
         return responseCode;
+    }
+
+    public String getRemark() {
+        return remark;
     }
 
     public static <T> ControllerResult<T> of(List<EventMessage> events, T response) {

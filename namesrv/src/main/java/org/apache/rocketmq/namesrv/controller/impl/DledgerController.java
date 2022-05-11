@@ -299,6 +299,9 @@ public class DledgerController implements Controller {
                 if (result.getBody() != null) {
                     response.setBody(result.getBody());
                 }
+                if (result.getRemark() != null) {
+                    response.setRemark(result.getRemark());
+                }
                 this.future.complete(response);
             } else {
                 log.error("Failed to append event to dledger, the response is {}, try cancel the future", result.getResponse());
