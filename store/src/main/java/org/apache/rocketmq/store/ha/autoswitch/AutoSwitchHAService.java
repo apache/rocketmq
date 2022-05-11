@@ -107,7 +107,6 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
             this.haClient.setLocalAddress(this.localAddress);
             this.haClient.updateSlaveId(slaveId);
-            this.haClient.updateHaMasterAddress(newHaMasterAddr);
             this.haClient.updateMasterAddress(newMasterAddr);
             this.haClient.start();
             LOGGER.info("Change ha to slave success, newMasterAddress:{}, newMasterEpoch:{}", newMasterAddr, newMasterEpoch);
@@ -219,6 +218,9 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override public void updateHaMasterAddress(String newAddr) {
+        if (this.haClient != null) {
+            this.haClient.updateHaMasterAddress(newAddr);
+        }
     }
 
     @Override public void updateMasterAddress(String newAddr) {

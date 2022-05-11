@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.test.autoswitchrole;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.hacontroller.ReplicasManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -36,34 +34,37 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
-    private List<BrokerController> brokerControllerList;
-    private List<NamesrvController> namesrvControllerList;
-    private BrokerController master;
-    private BrokerController slave;
+    private ControllerConfig controllerConfig;
+    private NamesrvController namesrvController;
+
+    private BrokerController brokerController1;
+    private BrokerController brokerController2;
+
+    private MessageStoreConfig storeConfig1;
+    private MessageStoreConfig storeConfig2;
+    private BrokerConfig brokerConfig1;
+    private BrokerConfig brokerConfig2;
+    private NettyServerConfig brokerNettyServerConfig1;
+    private NettyServerConfig brokerNettyServerConfig2;
+
 
     @Before
     public void init() throws Exception {
         super.initialize();
-        this.namesrvControllerList = new ArrayList<>(1);
-        this.brokerControllerList = new ArrayList<>(2);
-        final String peers = String.format("n0-localhost:%d", 30000);
-        for (int i = 0; i < 1; i++) {
-            final NettyServerConfig serverConfig = new NettyServerConfig();
-            serverConfig.setListenPort(31000 + i);
 
-            final ControllerConfig controllerConfig = buildControllerConfig("n" + i, peers);
-            final NamesrvController controller = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
-            assertTrue(controller.initialize());
-            controller.start();
-            this.namesrvControllerList.add(controller);
-            System.out.println("Start namesrv controller success");
-        }
-        Thread.sleep(1000);
+        // Startup namesrv
+        final String peers = String.format("n0-localhost:%d", 30000);
+        final NettyServerConfig serverConfig = new NettyServerConfig();
+        serverConfig.setListenPort(31000);
+
+        this.controllerConfig = buildControllerConfig("n0", peers);
+        this.namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
+        assertTrue(namesrvController.initialize());
+        namesrvController.start();
 
         final String namesrvAddress = "127.0.0.1:31000;";
         for (int i = 0; i < 2; i++) {
@@ -79,31 +80,35 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
             final BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), storeConfig);
             assertTrue(brokerController.initialize());
             brokerController.start();
-            this.brokerControllerList.add(brokerController);
             System.out.println("Start controller success");
             Thread.sleep(1000);
             // The first is master
             if (i == 0) {
                 assertTrue(brokerController.getReplicasManager().isMasterState());
-                this.master = brokerController;
+                this.brokerController1 = brokerController;
+                this.storeConfig1 = storeConfig;
+                this.brokerConfig1 = brokerConfig;
+                this.brokerNettyServerConfig1 = nettyServerConfig;
             } else {
                 assertFalse(brokerController.getReplicasManager().isMasterState());
-                this.slave = brokerController;
+                this.brokerController2 = brokerController;
+                this.storeConfig2 = storeConfig;
+                this.brokerConfig2 = brokerConfig;
+                this.brokerNettyServerConfig2 = nettyServerConfig;
             }
         }
-        assertNotNull(master);
-        assertNotNull(slave);
+
+        // Wait slave connecting to master
+        Thread.sleep(15000);
     }
 
     public void mockData() throws Exception {
         System.out.println("Begin test");
-        final MessageStore messageStore = master.getMessageStore();
+        final MessageStore messageStore = brokerController1.getMessageStore();
         putMessage(messageStore);
 
         // Check slave message
-        checkMessage(slave.getMessageStore(), 10, 0);
-
-        Thread.sleep(10000);
+        checkMessage(brokerController2.getMessageStore(), 10, 0);
     }
 
     @Test
@@ -111,7 +116,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         mockData();
 
         // Check sync state set
-        final ReplicasManager replicasManager = master.getReplicasManager();
+        final ReplicasManager replicasManager = brokerController1.getReplicasManager();
         final SyncStateSet syncStateSet = replicasManager.getSyncStateSet();
         assertEquals(2, syncStateSet.getSyncStateSet().size());
     }
@@ -121,27 +126,42 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         mockData();
 
         // Let master shutdown
-        master.shutdown();
+        brokerController1.shutdown();
         Thread.sleep(5000);
 
         // The slave should change to master
-        assertTrue(slave.getReplicasManager().isMasterState());
-        assertEquals(slave.getReplicasManager().getMasterEpoch(), 2);
+        assertTrue(brokerController2.getReplicasManager().isMasterState());
+        assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
 
         // Restart old master, it should be slave
-        master.initialize();
-        Thread.sleep(3000);
-        assertFalse(master.getReplicasManager().isMasterState());
-        assertEquals(master.getReplicasManager().getMasterAddress(), slave.getReplicasManager().getLocalAddress());
+        brokerController1 = new BrokerController(brokerConfig1, brokerNettyServerConfig1, new NettyClientConfig(), storeConfig1);
+        brokerController1.initialize();
+        brokerController1.start();
+
+        Thread.sleep(15000);
+        assertFalse(brokerController1.getReplicasManager().isMasterState());
+        assertEquals(brokerController1.getReplicasManager().getMasterAddress(), brokerController2.getReplicasManager().getLocalAddress());
+
+        // Put another batch messages
+        final MessageStore messageStore = brokerController2.getMessageStore();
+        putMessage(messageStore);
+
+        // Check slave message
+        checkMessage(brokerController1.getMessageStore(), 20, 0);
     }
+
+
 
     @After
     public void shutdown() {
-        for (BrokerController controller : this.brokerControllerList) {
-            controller.shutdown();
+        if (this.brokerController1 != null) {
+            this.brokerController1.shutdown();
         }
-        for (NamesrvController namesrvController : this.namesrvControllerList) {
-            namesrvController.shutdown();
+        if (this.brokerController2 != null) {
+            this.brokerController2.shutdown();
+        }
+        if (this.namesrvController != null) {
+            this.namesrvController.shutdown();
         }
         super.destroy();
     }

@@ -638,6 +638,10 @@ public class BrokerController {
                 }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
             }
         }
+
+        if (this.messageStoreConfig.isStartupControllerMode()) {
+            this.updateMasterHAServerAddrPeriodically = true;
+        }
     }
 
     protected void initializeScheduledTasks() {
@@ -1667,7 +1671,8 @@ public class BrokerController {
         boolean checkOrderConfig) {
         for (RegisterBrokerResult registerBrokerResult : registerBrokerResultList) {
             if (registerBrokerResult != null) {
-                System.out.println("Handle broker:" + getBrokerAddr() + "  registered result, master address:" + registerBrokerResult.getMasterAddr());
+                System.out.println("Handle broker:" + getBrokerAddr() + "  registered result, master address:" + registerBrokerResult.getMasterAddr()
+                + "  master ha address:" + registerBrokerResult.getHaServerAddr());
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
                     this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
                 }

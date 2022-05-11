@@ -175,7 +175,6 @@ public class ReplicasManager {
                 // Register broker to name-srv
                 try {
                     this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
-                    Thread.sleep(1000);
                 } catch (final Throwable e) {
                     LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to slave", e);
                     return;

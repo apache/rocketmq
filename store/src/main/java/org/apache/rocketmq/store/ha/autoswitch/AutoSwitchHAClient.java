@@ -27,6 +27,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -307,7 +308,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     public boolean connectMaster() throws ClosedChannelException {
         if (null == this.socketChannel) {
             String addr = this.masterHaAddress.get();
-            if (addr != null) {
+            if (StringUtils.isNotEmpty(addr)) {
                 SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
                 this.socketChannel = RemotingUtil.connect(socketAddress);
                 if (this.socketChannel != null) {
