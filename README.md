@@ -34,6 +34,110 @@ It offers a variety of features:
 * Lightweight real-time computing
 ----------
 
+
+## Quick Start
+
+This paragraph guides you through steps of installing RocketMQ in different ways.
+For local development and testing, only one instance will be created for each component.
+
+### Run RocketMQ locally
+
+RocketMQ runs on all major operating systems and requires only a Java JDK version 8 or higher to be installed.
+To check, run `java -version`:
+```shell
+$ java -version
+java version "1.8.0_121"
+```
+
+Download the latest RocketMQ release from the Apache mirror:
+```shell
+$ wget https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip
+```
+
+Unpack the release:
+```shell
+$ unzip rocketmq-all-4.9.3-bin-release.zip
+$ cd rocketmq-all-4.9.3-bin-release
+```
+
+**1) Start NameServer**
+
+NameServer will be listening at `0.0.0.0:9876`, make sure that the port is not used by others.
+
+```shell
+### Start Name Server
+$ nohup sh mqnamesrv &
+ 
+### check whether Name Server is successfully started
+$ tail -f ~/logs/rocketmqlogs/namesrv.log
+The Name Server boot success...
+```
+
+**2) Start Broker**
+
+```shell
+### start Broker
+$ nohup sh bin/mqbroker -n localhost:9876 &
+
+### check whether Broker is successfully started, eg: Broker's IP is 192.168.1.2, Broker's name is broker-a
+$ tail -f ~/logs/rocketmqlogs/broker.log 
+The broker[broker-a, 192.169.1.2:10911] boot success...
+```
+
+### Run RocketMQ in Docker
+
+You can run RocketMQ on your own machine within Docker containers,
+`host` network will be used to expose listening port in the container.
+
+**1) Start NameServer**
+
+```shell
+$ docker run -it --net=host apache/rocketmq ./mqnamesrv
+```
+
+**2) Start Broker**
+
+```shell
+$ docker run -it --net=host --mount source=/tmp/store,target=/home/rocketmq/store apache/rocketmq ./mqbroker -n localhost:9876
+```
+
+### Run RocketMQ in Kubernetes
+
+You can also run a RocketMQ cluster within a Kubernetes cluster.
+Before your operations, make sure that `kubectl` and related kubeconfig file installed on your machine.
+
+**1) Install CRDs**
+```shell
+### install CRDs
+$ git clone https://github.com/apache/rocketmq-operator
+$ cd rocketmq-operator && make deploy
+
+### check whether CRDs is successfully installed
+$ kubectl get crd | grep rocketmq.apache.org
+brokers.rocketmq.apache.org                 2022-05-12T09:23:18Z
+consoles.rocketmq.apache.org                2022-05-12T09:23:19Z
+nameservices.rocketmq.apache.org            2022-05-12T09:23:18Z
+topictransfers.rocketmq.apache.org          2022-05-12T09:23:19Z
+
+### check whether operator is running
+$ kubectl get pods | grep rocketmq-operator
+rocketmq-operator-6f65c77c49-8hwmj   1/1     Running   0          93s
+```
+
+**2) Create Cluster Instance**
+```shell
+### create RocketMQ cluster resource
+$ cd example && kubectl create -f rocketmq_v1alpha1_rocketmq_cluster.yaml
+
+### check whether cluster resources is running
+$ kubectl get sts
+NAME                 READY   AGE
+broker-0-master      1/1     107m
+broker-0-replica-1   1/1     107m
+name-service         1/1     107m
+```
+
+---
 ## Apache RocketMQ Community
 * [RocketMQ Streams](https://github.com/apache/rocketmq-streams)
 * [RocketMQ Flink](https://github.com/apache/rocketmq-flink)
