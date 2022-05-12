@@ -105,7 +105,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 TimeUnit.MILLISECONDS, //
                 this.appenderQueue, //
                 new ThreadFactoryImpl("MQTraceSendThread_"));
-        traceProducer = getAndCreateTraceProducer(rpcHook);
+        this.traceProducer = initTraceProducer(rpcHook);
     }
 
     public AccessChannel getAccessChannel() {
@@ -157,16 +157,13 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.registerShutDownHook();
     }
 
-    private DefaultMQProducer getAndCreateTraceProducer(RPCHook rpcHook) {
-        DefaultMQProducer traceProducerInstance = this.traceProducer;
-        if (traceProducerInstance == null) {
-            traceProducerInstance = new DefaultMQProducer(rpcHook);
-            traceProducerInstance.setProducerGroup(genGroupNameForTrace());
-            traceProducerInstance.setSendMsgTimeout(5000);
-            traceProducerInstance.setVipChannelEnabled(false);
-            // The max size of message is 128K
-            traceProducerInstance.setMaxMessageSize(maxMsgSize - 10 * 1000);
-        }
+    private DefaultMQProducer initTraceProducer(RPCHook rpcHook) {
+        DefaultMQProducer traceProducerInstance = new DefaultMQProducer(rpcHook);
+        traceProducerInstance.setProducerGroup(genGroupNameForTrace());
+        traceProducerInstance.setSendMsgTimeout(5000);
+        traceProducerInstance.setVipChannelEnabled(false);
+        // The max size of message is 128K
+        traceProducerInstance.setMaxMessageSize(maxMsgSize - 10 * 1000);
         return traceProducerInstance;
     }
 
