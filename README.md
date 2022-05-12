@@ -15,7 +15,6 @@ It offers a variety of features:
 * Messaging patterns including publish/subscribe, request/reply and streaming
 * Financial grade transactional message
 * Built-in fault tolerance and high availability configuration options base on [DLedger](https://github.com/openmessaging/openmessaging-storage-dledger)
-* A variety of cross language clients, such as Java, [C/C++](https://github.com/apache/rocketmq-client-cpp), [Python](https://github.com/apache/rocketmq-client-python), [Go](https://github.com/apache/rocketmq-client-go), [Node.js](https://github.com/apache/rocketmq-client-nodejs)
 * Pluggable transport protocols, such as TCP, SSL, AIO
 * Built-in message tracing capability, also support opentracing
 * Versatile big-data and streaming ecosytem integration
@@ -23,7 +22,7 @@ It offers a variety of features:
 * Reliable FIFO and strict ordered messaging in the same queue
 * Efficient pull and push consumption model
 * Million-level message accumulation capacity in a single queue
-* Multiple messaging protocols like JMS and OpenMessaging
+* Multiple messaging protocols like gRPC, MQTT, JMS and OpenMessaging
 * Flexible distributed scale-out deployment architecture
 * Lightning-fast batch message exchange system
 * Various message filter mechanics such as SQL and Tag
