@@ -958,8 +958,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.consumeOrderly = consumeOrderly;
     }
 
-    public void resetOffsetByTimeStamp(long timeStamp)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public void resetOffsetByTimeStamp(long timeStamp) throws MQClientException {
         for (String topic : rebalanceImpl.getSubscriptionInner().keySet()) {
             Set<MessageQueue> mqs = rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
             Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
