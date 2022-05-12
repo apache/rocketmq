@@ -16,7 +16,6 @@ It offers a variety of features:
 * Financial grade transactional message
 * Built-in fault tolerance and high availability configuration options base on [DLedger](https://github.com/openmessaging/openmessaging-storage-dledger)
 * A variety of cross language clients, such as Java, [C/C++](https://github.com/apache/rocketmq-client-cpp), [Python](https://github.com/apache/rocketmq-client-python), [Go](https://github.com/apache/rocketmq-client-go), [Node.js](https://github.com/apache/rocketmq-client-nodejs)
-* Pluggable transport protocols, such as TCP, SSL, AIO
 * Built-in message tracing capability, also support opentracing
 * Versatile big-data and streaming ecosystem integration
 * Message retroactivity by time or offset
