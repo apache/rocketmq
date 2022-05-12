@@ -1499,7 +1499,7 @@ public class BrokerController {
         }
     }
 
-    private void scheduleSendHeartbeat() {
+    protected void scheduleSendHeartbeat() {
         scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
             @Override
             public void run2() {

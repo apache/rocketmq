@@ -109,23 +109,6 @@ public class InnerBrokerController extends BrokerController {
         }
     }
 
-    private void scheduleSendHeartbeat() {
-        scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
-            @Override
-            public void run2() {
-                if (isIsolated) {
-                    return;
-                }
-                try {
-                    InnerBrokerController.this.sendHeartbeat();
-                } catch (Exception e) {
-                    BrokerController.LOG.error("sendHeartbeat Exception", e);
-                }
-
-            }
-        }, 1000, brokerConfig.getBrokerHeartbeatInterval(), TimeUnit.MILLISECONDS));
-    }
-
     @Override
     public void shutdown() {
 

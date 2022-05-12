@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -56,6 +57,7 @@ public class ReplicasManager {
     public static final int CHECK_SYNC_STATE_SET_PERIOD = 8 * 1000;
 
     private final ScheduledExecutorService scheduledService = Executors.newScheduledThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ScheduledService_"));
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("ReplicasManager_ExecutorService_"));
     private final BrokerController brokerController;
     private final AutoSwitchHAService haService;
     private final BrokerConfig brokerConfig;
@@ -79,7 +81,7 @@ public class ReplicasManager {
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
         final BrokerConfig brokerConfig = brokerController.getBrokerConfig();
-        final String controllerPaths = brokerConfig.getNamesrvAddr();
+        final String controllerPaths = brokerConfig.getControllerAddr();
         final String[] controllers = controllerPaths.split(";");
         assert controllers.length > 0;
         this.controllerAddresses = new ArrayList<>(Arrays.asList(controllers));
@@ -119,23 +121,26 @@ public class ReplicasManager {
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
                 schedulingCheckSyncStateSet();
 
+                this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
+                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
+                this.brokerController.changeSpecialServiceStatus(true);
+
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
-                this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
-                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
+                this.executorService.submit(() -> {
+                    // Register broker to name-srv
+                    try {
+                        this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
+                    } catch (final Throwable e) {
+                        LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to master", e);
+                        return;
+                    }
 
-                // Register broker to name-srv
-                try {
-                    this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
-                } catch (final Throwable e) {
-                    LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to master", e);
-                    return;
-                }
-
-                // Notify ha service, change to master
-                this.haService.changeToMaster(newMasterEpoch);
-                LOGGER.info("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
+                    // Notify ha service, change to master
+                    this.haService.changeToMaster(newMasterEpoch);
+                    LOGGER.info("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
+                });
             }
         }
     }
@@ -157,17 +162,19 @@ public class ReplicasManager {
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SLAVE);
 
-                // Register broker to name-srv
-                try {
-                    this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
-                } catch (final Throwable e) {
-                    LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to slave", e);
-                    return;
-                }
+                this.executorService.submit(() -> {
+                    // Register broker to name-srv
+                    try {
+                        this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
+                    } catch (final Throwable e) {
+                        LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to slave", e);
+                        return;
+                    }
 
-                // Notify ha service, change to slave
-                this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
-                LOGGER.info("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}", this.localAddress, newMasterAddress, newMasterEpoch);
+                    // Notify ha service, change to slave
+                    this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
+                    LOGGER.info("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}", this.localAddress, newMasterAddress, newMasterEpoch);
+                });
             }
         }
     }
@@ -282,8 +289,6 @@ public class ReplicasManager {
             try {
                 final GetMetaDataResponseHeader responseHeader = this.outerAPI.getControllerMetaData(address);
                 if (responseHeader != null && responseHeader.isLeader()) {
-                    // Because the controller is served externally with the help of name-srv
-                    // So we regard the name-srv address as controller address.
                     this.controllerLeaderAddress = address;
                     LOGGER.info("Change controller leader address to {}", this.controllerAddresses);
                     return true;

@@ -293,7 +293,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean lockInStrictMode = false;
 
-    private String metaDataHosts = "";
+    private String controllerAddr = "";
 
     private boolean compatibleWithOldNameSrv = true;
 
@@ -1257,12 +1257,12 @@ public class BrokerConfig extends BrokerIdentity {
         this.lockInStrictMode = lockInStrictMode;
     }
 
-    public String getMetaDataHosts() {
-        return metaDataHosts;
+    public String getControllerAddr() {
+        return controllerAddr;
     }
 
-    public void setMetaDataHosts(String metaDataHosts) {
-        this.metaDataHosts = metaDataHosts;
+    public void setControllerAddr(String controllerAddr) {
+        this.controllerAddr = controllerAddr;
     }
 
     public boolean isIsolateLogEnable() {
