@@ -36,8 +36,8 @@ It offers a variety of features:
 ----------
 
 ## Apache RocketMQ Community
-* [RocketMQ Streams](https://github.com/apache/rocketmq-streams)
-* [RocketMQ Flink](https://github.com/apache/rocketmq-flink)
+* [RocketMQ Streams](https://github.com/apache/rocketmq-streams): A lightweight stream computing engine based on rocketmq.
+* [RocketMQ Flink](https://github.com/apache/rocketmq-flink): The rocketmq connector of Flink, which supports source and sink connectors in data stream and table. 
 * [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
 * [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
 * [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
