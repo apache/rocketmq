@@ -56,18 +56,25 @@ import static org.mockito.Mockito.when;
 public class TestBenchLmqStore {
     @Test
     public void test() throws MQBrokerException, RemotingException, InterruptedException, MQClientException {
+
         System.setProperty("sendThreadNum", "1");
         System.setProperty("pullConsumerNum", "1");
         System.setProperty("consumerThreadNum", "1");
+
         BenchLmqStore.defaultMQProducer = mock(DefaultMQProducer.class);
+
         SendResult sendResult = new SendResult();
+
         when(BenchLmqStore.defaultMQProducer.send(any(Message.class))).thenReturn(sendResult);
+
         BenchLmqStore.doSend();
         Thread.sleep(100L);
         //verify(BenchLmqStore.defaultMQProducer, atLeastOnce()).send(any(Message.class));
+
         BenchLmqStore.defaultMQPullConsumers = new DefaultMQPullConsumer[1];
         BenchLmqStore.defaultMQPullConsumers[0] = mock(DefaultMQPullConsumer.class);
         BenchLmqStore.doPull(new ConcurrentHashMap<>(), new MessageQueue(), 1L);
+
         verify(BenchLmqStore.defaultMQPullConsumers[0], atLeastOnce()).pullBlockIfNotFound(any(MessageQueue.class), anyString(), anyLong(), anyInt(), any(
             PullCallback.class));
     }
@@ -75,8 +82,10 @@ public class TestBenchLmqStore {
     public void testOffset() throws RemotingException, InterruptedException, MQClientException, MQBrokerException, IllegalAccessException {
         System.setProperty("sendThreadNum", "1");
         DefaultMQPullConsumer defaultMQPullConsumer = mock(DefaultMQPullConsumer.class);
+
         BenchLmqStore.defaultMQPullConsumers = new DefaultMQPullConsumer[1];
         BenchLmqStore.defaultMQPullConsumers[0] = defaultMQPullConsumer;
+
         DefaultMQPullConsumerImpl defaultMQPullConsumerImpl = mock(DefaultMQPullConsumerImpl.class);
         when(defaultMQPullConsumer.getDefaultMQPullConsumerImpl()).thenReturn(defaultMQPullConsumerImpl);
         RebalanceImpl rebalanceImpl = mock(RebalanceImpl.class);
@@ -94,6 +103,7 @@ public class TestBenchLmqStore {
         when(mqClientAPI.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
         BenchLmqStore.doBenchOffset();
         Thread.sleep(100L);
+
         verify(mqClientAPI, atLeastOnce()).queryConsumerOffset(anyString(), any(QueryConsumerOffsetRequestHeader.class), anyLong());
         verify(mqClientAPI, atLeastOnce()).updateConsumerOffset(anyString(), any(UpdateConsumerOffsetRequestHeader.class), anyLong());
     }
