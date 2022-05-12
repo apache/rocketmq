@@ -185,7 +185,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
      *
      * <p>
-     * The size of a message only measured by message body, so it's not accurate
+     * The size(MB) of a message only measured by message body, so it's not accurate
      */
     private int pullThresholdSizeForQueue = 100;
 
