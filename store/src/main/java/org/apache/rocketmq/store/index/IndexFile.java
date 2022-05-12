@@ -145,12 +145,9 @@ public class IndexFile {
         return false;
     }
 
-    public int indexKeyHashMethod(final String key) {
+    private int indexKeyHashMethod(final String key) {
         int keyHash = key.hashCode();
-        int keyHashPositive = Math.abs(keyHash);
-        if (keyHashPositive < 0)
-            keyHashPositive = 0;
-        return keyHashPositive;
+        return keyHash & 0x7FFFFFFF;
     }
 
     public long getBeginTimestamp() {
