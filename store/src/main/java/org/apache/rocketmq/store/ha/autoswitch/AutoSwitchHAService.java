@@ -32,6 +32,7 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.GroupTransferService;
+import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnection;
 import org.apache.rocketmq.store.ha.HAConnectionStateNotificationService;
 
@@ -135,6 +136,10 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
         }
         return newSyncStateSet;
+    }
+
+    @Override public HAClient getHAClient() {
+        return this.haClient;
     }
 
     public void truncateEpochFilePrefix(final long offset) {

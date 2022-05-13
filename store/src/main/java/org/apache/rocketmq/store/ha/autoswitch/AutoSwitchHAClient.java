@@ -168,6 +168,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         String currentAddr = this.masterHaAddress.get();
         if (masterHaAddress.compareAndSet(currentAddr, newAddress)) {
             LOGGER.info("update master ha address, OLD: " + currentAddr + " NEW: " + newAddress);
+            wakeup();
         }
     }
 

@@ -52,9 +52,6 @@ import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
  */
 public class ReplicasManager {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    public static final int SYNC_BROKER_METADATA_PERIOD = 5 * 1000;
-    public static final int SYNC_CONTROLLER_METADATA_PERIOD = 10 * 1000;
-    public static final int CHECK_SYNC_STATE_SET_PERIOD = 8 * 1000;
 
     private final ScheduledExecutorService scheduledService = Executors.newScheduledThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ScheduledService_"));
     private final ExecutorService executorService = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("ReplicasManager_ExecutorService_"));
@@ -139,7 +136,7 @@ public class ReplicasManager {
 
                     // Notify ha service, change to master
                     this.haService.changeToMaster(newMasterEpoch);
-                    LOGGER.info("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
+                    LOGGER.error("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
                 });
             }
         }
@@ -173,7 +170,7 @@ public class ReplicasManager {
 
                     // Notify ha service, change to slave
                     this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
-                    LOGGER.info("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}", this.localAddress, newMasterAddress, newMasterEpoch);
+                    LOGGER.error("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}", this.localAddress, newMasterAddress, newMasterEpoch);
                 });
             }
         }
@@ -182,7 +179,7 @@ public class ReplicasManager {
     private void changeSyncStateSet(final Set<String> newSyncStateSet, final int newSyncStateSetEpoch) {
         synchronized (this) {
             if (newSyncStateSetEpoch > this.syncStateSetEpoch) {
-                LOGGER.info("Sync state set changed from {} to {}", this.syncStateSet, newSyncStateSet);
+                LOGGER.error("Sync state set changed from {} to {}", this.syncStateSet, newSyncStateSet);
                 this.syncStateSetEpoch = newSyncStateSetEpoch;
                 this.syncStateSet = new HashSet<>(newSyncStateSet);
                 this.haService.setSyncStateSet(newSyncStateSet);
@@ -258,9 +255,9 @@ public class ReplicasManager {
                     }
                 }
             } catch (final Exception e) {
-                LOGGER.error("Error happen when get broker {}'s metadata", this.brokerConfig.getBrokerName(), e);
+                LOGGER.warn("Error happen when get broker {}'s metadata", this.brokerConfig.getBrokerName(), e);
             }
-        }, 3 * 1000, SYNC_BROKER_METADATA_PERIOD, TimeUnit.MILLISECONDS);
+        }, 3 * 1000, this.brokerConfig.getReplicasManagerSyncBrokerMetadataPeriod(), TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -272,7 +269,7 @@ public class ReplicasManager {
         while (tryTimes < 3) {
             boolean flag = updateControllerMetadata();
             if (flag) {
-                this.scheduledService.scheduleAtFixedRate(this::updateControllerMetadata, 1000 * 3, SYNC_CONTROLLER_METADATA_PERIOD, TimeUnit.MILLISECONDS);
+                this.scheduledService.scheduleAtFixedRate(this::updateControllerMetadata, 1000 * 3, this.brokerConfig.getReplicasManagerSyncControllerMetadataPeriod(), TimeUnit.MILLISECONDS);
                 return true;
             }
             tryTimes++;
@@ -323,7 +320,7 @@ public class ReplicasManager {
                 LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch:{}, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
                     this.brokerConfig.getBrokerName(), this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
             }
-        }, 3 * 1000, CHECK_SYNC_STATE_SET_PERIOD, TimeUnit.MILLISECONDS);
+        }, 3 * 1000, this.brokerConfig.getReplicasManagerCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
     }
 
     private void stopCheckSyncStateSet() {

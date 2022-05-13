@@ -193,7 +193,7 @@ public class AutoSwitchHATest {
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 2, store1HaAddress, 10);
         checkMessage(this.messageStore2, 20, 0);
 
-        // Step2: Check file position, each epoch will be stored on one file(Because fileSize = 1570, which equal to 10 msg size);
+        // Step2: Check file position, each epoch will be stored on one file(Because fileSize = 1700, which equal to 10 msg size);
         // So epoch1 was stored in firstFile, epoch2 was stored in second file, the lastFile was empty.
         final MappedFileQueue fileQueue = this.messageStore1.getCommitLog().getMappedFileQueue();
         assertEquals(2, fileQueue.getTotalFileSize() / 1700);
@@ -229,7 +229,7 @@ public class AutoSwitchHATest {
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 2, store1HaAddress, 10);
         checkMessage(this.messageStore2, 20, 0);
 
-        // Step2: Check file position, each epoch will be stored on one file(Because fileSize = 1570, which equal to 10 msg size);
+        // Step2: Check file position, each epoch will be stored on one file(Because fileSize = 1700, which equal to 10 msg size);
         // So epoch1 was stored in firstFile, epoch2 was stored in second file, the lastFile was empty.
         final MappedFileQueue fileQueue = this.messageStore1.getCommitLog().getMappedFileQueue();
         assertEquals(2, fileQueue.getTotalFileSize() / 1700);

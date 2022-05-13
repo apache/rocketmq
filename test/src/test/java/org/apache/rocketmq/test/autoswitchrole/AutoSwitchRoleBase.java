@@ -21,12 +21,18 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
@@ -36,9 +42,12 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleBase {
 
+    protected List<BrokerController> brokerList = new ArrayList<>();
     private final String storePathRootParentDir = System.getProperty("user.home") + File.separator +
         UUID.randomUUID().toString().replace("-", "");
     private final String storePathRootDir = storePathRootParentDir + File.separator + "store";
@@ -56,7 +65,34 @@ public class AutoSwitchRoleBase {
         }
     }
 
-    protected MessageStoreConfig buildMessageStoreConfig(final String brokerName, final int haPort) {
+    public BrokerController startBroker(String namesrvAddress, int brokerId, int haPort, int brokerListenPort, int nettyListenPort, BrokerRole expectedRole, int mappedFileSize) throws Exception {
+        final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + brokerId, haPort, mappedFileSize);
+        final BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setListenPort(brokerListenPort);
+        brokerConfig.setNamesrvAddr(namesrvAddress);
+        brokerConfig.setControllerAddr(namesrvAddress);
+        brokerConfig.setReplicasManagerSyncBrokerMetadataPeriod(2 * 1000);
+        brokerConfig.setReplicasManagerCheckSyncStateSetPeriod(4 * 1000);
+
+        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setListenPort(nettyListenPort);
+
+        final BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), storeConfig);
+        assertTrue(brokerController.initialize());
+        brokerController.start();
+        this.brokerList.add(brokerController);
+        Thread.sleep(1000);
+        // The first is master
+        if (expectedRole == BrokerRole.SYNC_MASTER) {
+            assertTrue(brokerController.getReplicasManager().isMasterState());
+        } else {
+            assertFalse(brokerController.getReplicasManager().isMasterState());
+        }
+        return brokerController;
+    }
+
+
+    protected MessageStoreConfig buildMessageStoreConfig(final String brokerName, final int haPort, final int mappedFileSize) {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setBrokerRole(BrokerRole.SLAVE);
         storeConfig.setHaListenPort(haPort);
@@ -67,7 +103,7 @@ public class AutoSwitchRoleBase {
         storeConfig.setInSyncReplicas(2);
         storeConfig.setStartupControllerMode(true);
 
-        storeConfig.setMappedFileSizeCommitLog(1024 * 1024);
+        storeConfig.setMappedFileSizeCommitLog(mappedFileSize);
         storeConfig.setMappedFileSizeConsumeQueue(1024 * 1024);
         storeConfig.setMaxHashSlotNum(10000);
         storeConfig.setMaxIndexNum(100 * 100);

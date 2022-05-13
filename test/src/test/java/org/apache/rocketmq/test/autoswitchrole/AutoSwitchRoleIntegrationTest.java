@@ -19,17 +19,20 @@ package org.apache.rocketmq.test.autoswitchrole;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.hacontroller.ReplicasManager;
-import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.ha.HAClient;
+import org.apache.rocketmq.store.ha.HAConnectionState;
+import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -38,22 +41,15 @@ import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
+    private int defaultFileSize = 1024 * 1024;
     private ControllerConfig controllerConfig;
     private NamesrvController namesrvController;
-
+    private String namesrvAddress;
     private BrokerController brokerController1;
     private BrokerController brokerController2;
 
-    private MessageStoreConfig storeConfig1;
-    private MessageStoreConfig storeConfig2;
-    private BrokerConfig brokerConfig1;
-    private BrokerConfig brokerConfig2;
-    private NettyServerConfig brokerNettyServerConfig1;
-    private NettyServerConfig brokerNettyServerConfig2;
 
-
-    @Before
-    public void init() throws Exception {
+    public void init(int mappedFileSize) throws Exception {
         super.initialize();
 
         // Startup namesrv
@@ -65,41 +61,13 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         this.namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
         assertTrue(namesrvController.initialize());
         namesrvController.start();
+        this.namesrvAddress = "127.0.0.1:31000;";
 
-        final String namesrvAddress = "127.0.0.1:31000;";
-        for (int i = 0; i < 2; i++) {
-            final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + i, 20000 + i);
-            final BrokerConfig brokerConfig = new BrokerConfig();
-            brokerConfig.setListenPort(21000 + i);
-            brokerConfig.setNamesrvAddr(namesrvAddress);
-            brokerConfig.setMetaDataHosts(namesrvAddress);
-
-            final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-            nettyServerConfig.setListenPort(22000 + i);
-
-            final BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), storeConfig);
-            assertTrue(brokerController.initialize());
-            brokerController.start();
-            System.out.println("Start controller success");
-            Thread.sleep(1000);
-            // The first is master
-            if (i == 0) {
-                assertTrue(brokerController.getReplicasManager().isMasterState());
-                this.brokerController1 = brokerController;
-                this.storeConfig1 = storeConfig;
-                this.brokerConfig1 = brokerConfig;
-                this.brokerNettyServerConfig1 = nettyServerConfig;
-            } else {
-                assertFalse(brokerController.getReplicasManager().isMasterState());
-                this.brokerController2 = brokerController;
-                this.storeConfig2 = storeConfig;
-                this.brokerConfig2 = brokerConfig;
-                this.brokerNettyServerConfig2 = nettyServerConfig;
-            }
-        }
+        this.brokerController1 = startBroker(this.namesrvAddress, 1, 20000, 21000, 22000, BrokerRole.SYNC_MASTER, mappedFileSize);
+        this.brokerController2 = startBroker(this.namesrvAddress, 2, 20001, 21001, 22001, BrokerRole.SLAVE, mappedFileSize);
 
         // Wait slave connecting to master
-        Thread.sleep(15000);
+        assertTrue(waitSlaveReady(this.brokerController2.getMessageStore()));
     }
 
     public void mockData() throws Exception {
@@ -111,9 +79,26 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         checkMessage(brokerController2.getMessageStore(), 10, 0);
     }
 
+    public boolean waitSlaveReady(MessageStore messageStore) throws InterruptedException {
+        int tryTimes = 0;
+        while (tryTimes < 100) {
+            final HAClient haClient = messageStore.getHaService().getHAClient();
+            if (haClient != null && haClient.getCurrentState().equals(HAConnectionState.TRANSFER)) {
+                return true;
+            } else {
+                System.out.println("slave not ready");
+                Thread.sleep(2000);
+                tryTimes ++;
+            }
+        }
+        return false;
+    }
+
     @Test
     public void testCheckSyncStateSet() throws Exception {
+        init(defaultFileSize);
         mockData();
+        System.out.println("Begin test1");
 
         // Check sync state set
         final ReplicasManager replicasManager = brokerController1.getReplicasManager();
@@ -123,6 +108,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
     @Test
     public void testChangeMaster() throws Exception {
+        init(defaultFileSize);
         mockData();
 
         // Let master shutdown
@@ -134,11 +120,10 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
 
         // Restart old master, it should be slave
-        brokerController1 = new BrokerController(brokerConfig1, brokerNettyServerConfig1, new NettyClientConfig(), storeConfig1);
-        brokerController1.initialize();
-        brokerController1.start();
+        this.brokerList.remove(this.brokerController1);
+        brokerController1 = startBroker(this.namesrvAddress, 1, 20000, 21000, 22000, BrokerRole.SLAVE, defaultFileSize);
+        waitSlaveReady(brokerController1.getMessageStore());
 
-        Thread.sleep(20000);
         assertFalse(brokerController1.getReplicasManager().isMasterState());
         assertEquals(brokerController1.getReplicasManager().getMasterAddress(), brokerController2.getReplicasManager().getLocalAddress());
 
@@ -150,15 +135,76 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         checkMessage(brokerController1.getMessageStore(), 20, 0);
     }
 
+    @Test
+    public void testAddBroker() throws Exception {
+        init(defaultFileSize);
+        mockData();
+
+        BrokerController broker3 = startBroker(this.namesrvAddress, 3, 20005, 21005, 22005, BrokerRole.SLAVE, defaultFileSize);
+        waitSlaveReady(broker3.getMessageStore());
+        Thread.sleep(6000);
+
+        checkMessage(broker3.getMessageStore(), 10, 0);
+
+        putMessage(this.brokerController1.getMessageStore());
+        checkMessage(broker3.getMessageStore(), 20, 0);
+    }
+
+    @Test
+    public void testTruncateEpochLogAndChangeMaster() throws Exception {
+        // Noted that 10 msg 's total size = 1570, and if init the mappedFileSize = 1700, one file only be used to store 10 msg.
+        init(1700);
+        // Step1: Put message
+        putMessage(this.brokerController1.getMessageStore());
+        checkMessage(this.brokerController2.getMessageStore(), 10, 0);
+
+        // Step2: shutdown broker1, broker2 as master
+        brokerController1.shutdown();
+        Thread.sleep(5000);
+
+        assertTrue(brokerController2.getReplicasManager().isMasterState());
+        assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
+
+        // Step3: add broker3
+        BrokerController broker3 = startBroker(this.namesrvAddress, 3, 20005, 21005, 22005, BrokerRole.SLAVE, 1700);
+        waitSlaveReady(broker3.getMessageStore());
+        Thread.sleep(6000);
+        checkMessage(broker3.getMessageStore(), 10, 0);
+
+        // Step4: put another batch message
+        // Master: <Epoch1, 0, 1570> <Epoch2, 1570, 3270>
+        putMessage(this.brokerController2.getMessageStore());
+        Thread.sleep(2000);
+        checkMessage(broker3.getMessageStore(), 20, 0);
+
+        // Step5: Check file position, each epoch will be stored on one file(Because fileSize = 1700, which equal to 10 msg size);
+        // So epoch1 was stored in firstFile, epoch2 was stored in second file, the lastFile was empty.
+        final MessageStore broker2MessageStore = this.brokerController2.getMessageStore();
+        final MappedFileQueue fileQueue = broker2MessageStore.getCommitLog().getMappedFileQueue();
+        assertEquals(2, fileQueue.getTotalFileSize() / 1700);
+
+        // Truncate epoch1's log (truncateEndOffset = 1570), which means we should delete the first file directly.
+        final MappedFile firstFile = broker2MessageStore.getCommitLog().getMappedFileQueue().getFirstMappedFile();
+        firstFile.shutdown(1000);
+        fileQueue.retryDeleteFirstFile(1000);
+        assertEquals(broker2MessageStore.getCommitLog().getMinOffset(), 1700);
+
+        final AutoSwitchHAService haService = (AutoSwitchHAService) this.brokerController2.getMessageStore().getHaService();
+        haService.truncateEpochFilePrefix(1570);
+        checkMessage(broker2MessageStore, 10, 10);
+
+        // Step6, start broker4, link to broker2, it should sync msg from epoch2(offset = 1700).
+        BrokerController broker4 = startBroker(this.namesrvAddress, 4, 20008, 21008, 22008, BrokerRole.SLAVE, 1700);
+        waitSlaveReady(broker4.getMessageStore());
+        Thread.sleep(6000);
+        checkMessage(broker4.getMessageStore(), 10, 10);
+    }
 
 
     @After
     public void shutdown() {
-        if (this.brokerController1 != null) {
-            this.brokerController1.shutdown();
-        }
-        if (this.brokerController2 != null) {
-            this.brokerController2.shutdown();
+        for (BrokerController controller : this.brokerList) {
+            controller.shutdown();
         }
         if (this.namesrvController != null) {
             this.namesrvController.shutdown();

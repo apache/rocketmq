@@ -297,6 +297,12 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean compatibleWithOldNameSrv = true;
 
+    private long replicasManagerSyncBrokerMetadataPeriod = 5 * 1000;
+
+    private long replicasManagerCheckSyncStateSetPeriod = 8 * 1000;
+
+    private long replicasManagerSyncControllerMetadataPeriod = 10 * 1000;
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
@@ -1279,5 +1285,29 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setCompatibleWithOldNameSrv(boolean compatibleWithOldNameSrv) {
         this.compatibleWithOldNameSrv = compatibleWithOldNameSrv;
+    }
+
+    public long getReplicasManagerSyncBrokerMetadataPeriod() {
+        return replicasManagerSyncBrokerMetadataPeriod;
+    }
+
+    public void setReplicasManagerSyncBrokerMetadataPeriod(long replicasManagerSyncBrokerMetadataPeriod) {
+        this.replicasManagerSyncBrokerMetadataPeriod = replicasManagerSyncBrokerMetadataPeriod;
+    }
+
+    public long getReplicasManagerCheckSyncStateSetPeriod() {
+        return replicasManagerCheckSyncStateSetPeriod;
+    }
+
+    public void setReplicasManagerCheckSyncStateSetPeriod(long replicasManagerCheckSyncStateSetPeriod) {
+        this.replicasManagerCheckSyncStateSetPeriod = replicasManagerCheckSyncStateSetPeriod;
+    }
+
+    public long getReplicasManagerSyncControllerMetadataPeriod() {
+        return replicasManagerSyncControllerMetadataPeriod;
+    }
+
+    public void setReplicasManagerSyncControllerMetadataPeriod(long replicasManagerSyncControllerMetadataPeriod) {
+        this.replicasManagerSyncControllerMetadataPeriod = replicasManagerSyncControllerMetadataPeriod;
     }
 }
