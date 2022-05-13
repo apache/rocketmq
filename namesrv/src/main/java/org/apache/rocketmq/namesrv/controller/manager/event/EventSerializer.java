@@ -25,7 +25,7 @@ import org.apache.rocketmq.common.utils.FastJsonSerializer;
 public class EventSerializer {
     private final FastJsonSerializer serializer;
 
-    public  EventSerializer() {
+    public EventSerializer() {
         this.serializer = new FastJsonSerializer();
     }
 

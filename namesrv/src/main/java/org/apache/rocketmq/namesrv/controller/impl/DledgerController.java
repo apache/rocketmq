@@ -41,10 +41,10 @@ import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
@@ -161,6 +161,29 @@ public class DledgerController implements Controller {
     public RemotingCommand getControllerMetadata() {
         final MemberState state = getMemberState();
         return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr(), state.isLeader()));
+    }
+
+    /**
+     * Append the request to dledger, wait the dledger to commit the request.
+     */
+    private boolean appendToDledgerAndWait(final AppendEntryRequest request) throws Throwable {
+        if (request != null) {
+            request.setGroup(this.dLedgerConfig.getGroup());
+            request.setRemoteId(this.dLedgerConfig.getSelfId());
+
+            final AppendFuture<AppendEntryResponse> dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
+            if (dledgerFuture.getPos() == -1) {
+                return false;
+            }
+            dledgerFuture.get(5, TimeUnit.SECONDS);
+            return true;
+        }
+        return false;
+    }
+
+    // Only for test
+    public MemberState getMemberState() {
+        return this.dLedgerServer.getMemberState();
     }
 
     /**
@@ -326,9 +349,9 @@ public class DledgerController implements Controller {
      */
     class RoleChangeHandler implements DLedgerLeaderElector.RoleChangeHandler {
 
-        private volatile MemberState.Role currentRole = MemberState.Role.FOLLOWER;
         private final String selfId;
         private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("DLedgerControllerRoleChangeHandler_"));
+        private volatile MemberState.Role currentRole = MemberState.Role.FOLLOWER;
 
         public RoleChangeHandler(final String selfId) {
             this.selfId = selfId;
@@ -394,28 +417,5 @@ public class DledgerController implements Controller {
         public boolean isLeaderState() {
             return this.currentRole == MemberState.Role.LEADER;
         }
-    }
-
-    /**
-     * Append the request to dledger, wait the dledger to commit the request.
-     */
-    private boolean appendToDledgerAndWait(final AppendEntryRequest request) throws Throwable {
-        if (request != null) {
-            request.setGroup(this.dLedgerConfig.getGroup());
-            request.setRemoteId(this.dLedgerConfig.getSelfId());
-
-            final AppendFuture<AppendEntryResponse> dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
-            if (dledgerFuture.getPos() == -1) {
-                return false;
-            }
-            dledgerFuture.get(5, TimeUnit.SECONDS);
-            return true;
-        }
-        return false;
-    }
-
-    // Only for test
-    public MemberState getMemberState() {
-        return this.dLedgerServer.getMemberState();
     }
 }

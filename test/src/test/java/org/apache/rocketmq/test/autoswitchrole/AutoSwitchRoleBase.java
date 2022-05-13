@@ -47,13 +47,13 @@ import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleBase {
 
-    protected List<BrokerController> brokerList = new ArrayList<>();
     private final String storePathRootParentDir = System.getProperty("user.home") + File.separator +
         UUID.randomUUID().toString().replace("-", "");
     private final String storePathRootDir = storePathRootParentDir + File.separator + "store";
     private final String StoreMessage = "Once, there was a chance for me!";
     private final byte[] MessageBody = StoreMessage.getBytes();
     private final AtomicInteger QueueId = new AtomicInteger(0);
+    protected List<BrokerController> brokerList = new ArrayList<>();
     private SocketAddress BornHost;
     private SocketAddress StoreHost;
 
@@ -65,7 +65,8 @@ public class AutoSwitchRoleBase {
         }
     }
 
-    public BrokerController startBroker(String namesrvAddress, int brokerId, int haPort, int brokerListenPort, int nettyListenPort, BrokerRole expectedRole, int mappedFileSize) throws Exception {
+    public BrokerController startBroker(String namesrvAddress, int brokerId, int haPort, int brokerListenPort,
+        int nettyListenPort, BrokerRole expectedRole, int mappedFileSize) throws Exception {
         final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + brokerId, haPort, mappedFileSize);
         final BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setListenPort(brokerListenPort);
@@ -91,8 +92,8 @@ public class AutoSwitchRoleBase {
         return brokerController;
     }
 
-
-    protected MessageStoreConfig buildMessageStoreConfig(final String brokerName, final int haPort, final int mappedFileSize) {
+    protected MessageStoreConfig buildMessageStoreConfig(final String brokerName, final int haPort,
+        final int mappedFileSize) {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setBrokerRole(BrokerRole.SLAVE);
         storeConfig.setHaListenPort(haPort);

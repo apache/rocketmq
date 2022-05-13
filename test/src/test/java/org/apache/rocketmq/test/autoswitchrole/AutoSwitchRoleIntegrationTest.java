@@ -41,13 +41,12 @@ import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
-    private int defaultFileSize = 1024 * 1024;
+    private final int defaultFileSize = 1024 * 1024;
     private ControllerConfig controllerConfig;
     private NamesrvController namesrvController;
     private String namesrvAddress;
     private BrokerController brokerController1;
     private BrokerController brokerController2;
-
 
     public void init(int mappedFileSize) throws Exception {
         super.initialize();
@@ -88,7 +87,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
             } else {
                 System.out.println("slave not ready");
                 Thread.sleep(1000);
-                tryTimes ++;
+                tryTimes++;
             }
         }
         return false;
@@ -204,7 +203,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         Thread.sleep(6000);
         checkMessage(broker4.getMessageStore(), 10, 10);
     }
-
 
     @After
     public void shutdown() {

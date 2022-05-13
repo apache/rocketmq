@@ -27,7 +27,6 @@ public class ControllerResult<T> {
     private int responseCode = ResponseCode.SUCCESS;
     private String remark;
 
-
     public ControllerResult(T response) {
         this.events = new ArrayList<>();
         this.response = response;
@@ -38,6 +37,10 @@ public class ControllerResult<T> {
         this.response = response;
     }
 
+    public static <T> ControllerResult<T> of(List<EventMessage> events, T response) {
+        return new ControllerResult<>(events, response);
+    }
+
     public List<EventMessage> getEvents() {
         return new ArrayList<>(events);
     }
@@ -46,12 +49,12 @@ public class ControllerResult<T> {
         return response;
     }
 
-    public void setBody(byte[] body) {
-        this.body = body;
-    }
-
     public byte[] getBody() {
         return body;
+    }
+
+    public void setBody(byte[] body) {
+        this.body = body;
     }
 
     public void setCodeAndRemark(int responseCode, String remark) {
@@ -65,10 +68,6 @@ public class ControllerResult<T> {
 
     public String getRemark() {
         return remark;
-    }
-
-    public static <T> ControllerResult<T> of(List<EventMessage> events, T response) {
-        return new ControllerResult<>(events, response);
     }
 
     public void addEvent(EventMessage event) {
