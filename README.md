@@ -41,7 +41,7 @@ It offers a variety of features:
 * [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
 * [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
 * [RocketMQ Client Nodejs](https://github.com/apache/rocketmq-client-nodejs)
-* [RocketMQ Spring](https://github.com/apache/rocketmq-spring): RocketMQ 与spring 框架的集成组件
+* [RocketMQ Spring](https://github.com/apache/rocketmq-spring): The integration component of RocketMQ and spring framework
 * [RocketMQ Exporter](https://github.com/apache/rocketmq-exporter): A RocketMQ exporter for Prometheus
 * [RocketMQ Operator](https://github.com/apache/rocketmq-operator)
 * [RocketMQ Docker](https://github.com/apache/rocketmq-docker)
