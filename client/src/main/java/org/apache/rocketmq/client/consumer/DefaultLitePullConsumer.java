@@ -30,6 +30,7 @@ import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
@@ -223,13 +224,14 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     @Override
-    public void start() throws MQClientException {
+    public synchronized void start() throws MQClientException {
+        checkServiceState();
         setTraceDispatcher();
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
-        if (null != traceDispatcher) {
+        if (null != this.traceDispatcher) {
             try {
-                traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
+                this.traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
                 log.warn("trace dispatcher start failed ", e);
             }
@@ -530,6 +532,15 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setCustomizedTraceTopic(String customizedTraceTopic) {
         this.customizedTraceTopic = customizedTraceTopic;
+    }
+
+    private void checkServiceState() throws MQClientException {
+        if (!this.defaultLitePullConsumerImpl.isCreateJust()) {
+            throw new MQClientException("The PullConsumer service state is not CREATE_JUST, maybe started once, "
+                    + this.defaultLitePullConsumerImpl.getServiceState()
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
+                    null);
+        }
     }
 
     private void setTraceDispatcher() {
