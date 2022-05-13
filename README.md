@@ -10,6 +10,7 @@
 
 **[Apache RocketMQ](https://rocketmq.apache.org) is a distributed messaging and streaming platform with low latency, high performance and reliability, trillion-level capacity and flexible scalability.**
 
+
 It offers a variety of features:
 
 * Messaging patterns including publish/subscribe, request/reply and streaming
@@ -34,8 +35,8 @@ It offers a variety of features:
 ----------
 
 ## Apache RocketMQ Community
-* [RocketMQ Streams](https://github.com/apache/rocketmq-streams)
-* [RocketMQ Flink](https://github.com/apache/rocketmq-flink)
+* [RocketMQ Streams](https://github.com/apache/rocketmq-streams): A lightweight stream computing engine based on RocketMQ.
+* [RocketMQ Flink](https://github.com/apache/rocketmq-flink): The RocketMQ connector of Flink that supports source and sink connector in data stream and Table. 
 * [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
 * [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
 * [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
