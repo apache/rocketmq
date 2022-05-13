@@ -1371,7 +1371,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout);
     }
 
-    public Message request(Message msg,
+    public Message request(final Message msg,
         long timeout) throws RequestTimeoutException, MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginTimestamp = System.currentTimeMillis();
         prepareSendRequest(msg, timeout);
@@ -1386,6 +1386,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 @Override
                 public void onSuccess(SendResult sendResult) {
                     requestResponseFuture.setSendRequestOk(true);
+                    requestResponseFuture.putResponseMessage(msg);
                 }
 
                 @Override
@@ -1416,11 +1417,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             @Override
             public void onSuccess(SendResult sendResult) {
                 requestResponseFuture.setSendRequestOk(true);
+                requestResponseFuture.executeRequestCallback();
             }
 
             @Override
             public void onException(Throwable e) {
                 requestResponseFuture.setCause(e);
+                requestResponseFuture.executeRequestCallback();
                 requestFail(correlationId);
             }
         }, timeout - cost);
