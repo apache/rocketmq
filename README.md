@@ -48,7 +48,7 @@ It offers a variety of features:
 * [RocketMQ Connect](https://github.com/apache/rocketmq-connect)
 * [RocketMQ MQTT](https://github.com/apache/rocketmq-mqtt)
 * [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals)
-
+* [rocketmq-site](https://github.com/apache/rocketmq-site)
 ----------
 ## Learn it & Contact us
 * Mailing Lists: <https://rocketmq.apache.org/about/contact/>
