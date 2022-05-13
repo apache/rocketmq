@@ -10,19 +10,19 @@
 
 **[Apache RocketMQ](https://rocketmq.apache.org) is a distributed messaging and streaming platform with low latency, high performance and reliability, trillion-level capacity and flexible scalability.**
 
+
 It offers a variety of features:
 
 * Messaging patterns including publish/subscribe, request/reply and streaming
 * Financial grade transactional message
 * Built-in fault tolerance and high availability configuration options base on [DLedger](https://github.com/openmessaging/openmessaging-storage-dledger)
-* A variety of cross language clients, such as Java, [C/C++](https://github.com/apache/rocketmq-client-cpp), [Python](https://github.com/apache/rocketmq-client-python), [Go](https://github.com/apache/rocketmq-client-go), [Node.js](https://github.com/apache/rocketmq-client-nodejs)
 * Built-in message tracing capability, also support opentracing
 * Versatile big-data and streaming ecosystem integration
 * Message retroactivity by time or offset
 * Reliable FIFO and strict ordered messaging in the same queue
 * Efficient pull and push consumption model
 * Million-level message accumulation capacity in a single queue
-* Multiple messaging protocols like JMS and OpenMessaging
+* Multiple messaging protocols like gRPC, MQTT, JMS and OpenMessaging
 * Flexible distributed scale-out deployment architecture
 * Lightning-fast batch message exchange system
 * Various message filter mechanics such as SQL and Tag
@@ -34,8 +34,8 @@ It offers a variety of features:
 ----------
 
 ## Apache RocketMQ Community
-* [RocketMQ Streams](https://github.com/apache/rocketmq-streams)
-* [RocketMQ Flink](https://github.com/apache/rocketmq-flink)
+* [RocketMQ Streams](https://github.com/apache/rocketmq-streams): A lightweight stream computing engine based on RocketMQ.
+* [RocketMQ Flink](https://github.com/apache/rocketmq-flink): The RocketMQ connector of Flink that supports source and sink connector in data stream and Table. 
 * [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
 * [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
 * [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
@@ -44,11 +44,11 @@ It offers a variety of features:
 * [RocketMQ Exporter](https://github.com/apache/rocketmq-exporter)
 * [RocketMQ Operator](https://github.com/apache/rocketmq-operator)
 * [RocketMQ Docker](https://github.com/apache/rocketmq-docker)
-* [RocketMQ Dashboard](https://github.com/apache/rocketmq-dashboard)
-* [RocketMQ Connect](https://github.com/apache/rocketmq-connect)
+* [RocketMQ Dashboard](https://github.com/apache/rocketmq-dashboard): Operation and maintenance console of RocketMQ
+* [RocketMQ Connect](https://github.com/apache/rocketmq-connect): A tool for scalably and reliably streaming data between Apache RocketMQ and other systems
 * [RocketMQ MQTT](https://github.com/apache/rocketmq-mqtt)
 * [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals)
-
+* [rocketmq-site](https://github.com/apache/rocketmq-site)
 ----------
 ## Learn it & Contact us
 * Mailing Lists: <https://rocketmq.apache.org/about/contact/>
