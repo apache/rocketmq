@@ -103,7 +103,7 @@ $ docker run -it --net=host --mount source=/tmp/store,target=/home/rocketmq/stor
 
 ### Run RocketMQ in Kubernetes
 
-You can also run a RocketMQ cluster within a Kubernetes cluster.
+You can also run a RocketMQ cluster within a Kubernetes cluster using [RocketMQ Operator](https://github.com/apache/rocketmq-operator).
 Before your operations, make sure that `kubectl` and related kubeconfig file installed on your machine.
 
 **1) Install CRDs**
