@@ -17,33 +17,17 @@
   -->
 
 <configuration>
-    <!-- ConsoleAppender 控制台输出日志 -->
-    <appender name="console_ysw" class="ch.qos.logback.core.ConsoleAppender">
+
+    <appender name="DefaultAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <append>true</append>
         <encoder>
-            <!-- 设置日志输出格式 %d表示日期，%-5level表示级别从左显示5个字符宽度，%thread表示线程名，%logger日志输出所在的类的全限定类名，%msg：日志消息，%n是换行符-->
-            <pattern>
-                %d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] [%thread] %logger - %msg%n
-            </pattern>
+            <pattern>%d{yyy-MM-dd HH\:mm\:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
 
-    <!-- 根输出级别为DEBUG，控制台中将出现包含debug及以上级别的日志-->
-    <!-- 日志输出级别 -->
-    <root level="ERROR">
-        <!-- ref值与上面的appender标签的name相对应 -->
-        <appender-ref ref="console_ysw" />
+    <root>
+        <level value="OFF"/>
+        <appender-ref ref="DefaultAppender"/>
     </root>
-
-<!--    <appender name="DefaultAppender" class="ch.qos.logback.core.ConsoleAppender">-->
-<!--        <append>true</append>-->
-<!--        <encoder>-->
-<!--            <pattern>%d{yyy-MM-dd HH\:mm\:ss,GMT+8} %p %t - %m%n</pattern>-->
-<!--            <charset class="java.nio.charset.Charset">UTF-8</charset>-->
-<!--        </encoder>-->
-<!--    </appender>-->
-
-<!--    <root>-->
-<!--        <level value="OFF"/>-->
-<!--        <appender-ref ref="DefaultAppender"/>-->
-<!--    </root>-->
 </configuration>

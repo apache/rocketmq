@@ -133,10 +133,9 @@ public class ReplicasManager {
                         LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to master", e);
                         return;
                     }
-
                     // Notify ha service, change to master
                     this.haService.changeToMaster(newMasterEpoch);
-                    LOGGER.error("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
+                    LOGGER.info("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
                 });
             }
         }
@@ -170,7 +169,7 @@ public class ReplicasManager {
 
                     // Notify ha service, change to slave
                     this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
-                    LOGGER.error("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}", this.localAddress, newMasterAddress, newMasterEpoch);
+                    LOGGER.info("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}", this.localAddress, newMasterAddress, newMasterEpoch);
                 });
             }
         }
@@ -179,7 +178,7 @@ public class ReplicasManager {
     private void changeSyncStateSet(final Set<String> newSyncStateSet, final int newSyncStateSetEpoch) {
         synchronized (this) {
             if (newSyncStateSetEpoch > this.syncStateSetEpoch) {
-                LOGGER.error("Sync state set changed from {} to {}", this.syncStateSet, newSyncStateSet);
+                LOGGER.info("Sync state set changed from {} to {}", this.syncStateSet, newSyncStateSet);
                 this.syncStateSetEpoch = newSyncStateSetEpoch;
                 this.syncStateSet = new HashSet<>(newSyncStateSet);
                 this.haService.setSyncStateSet(newSyncStateSet);

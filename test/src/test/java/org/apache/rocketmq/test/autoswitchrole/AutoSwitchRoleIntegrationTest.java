@@ -87,7 +87,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
                 return true;
             } else {
                 System.out.println("slave not ready");
-                Thread.sleep(2000);
+                Thread.sleep(1000);
                 tryTimes ++;
             }
         }
@@ -95,10 +95,15 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     }
 
     @Test
+    public void test() throws Exception {
+        init(defaultFileSize);
+        mockData();
+    }
+
+    @Test
     public void testCheckSyncStateSet() throws Exception {
         init(defaultFileSize);
         mockData();
-        System.out.println("Begin test1");
 
         // Check sync state set
         final ReplicasManager replicasManager = brokerController1.getReplicasManager();
