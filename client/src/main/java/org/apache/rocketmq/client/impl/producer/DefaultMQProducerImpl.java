@@ -484,14 +484,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     /**
-     * @deprecated
-     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
-     * provided in next version
-     *
      * @param msg
      * @param sendCallback
      * @param timeout      the <code>sendCallback</code> will be invoked at most time
      * @throws RejectedExecutionException
+     * @deprecated It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
+     * provided in next version
      */
     @Deprecated
     public void send(final Message msg, final SendCallback sendCallback, final long timeout)
@@ -1038,10 +1036,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     /**
-     * @deprecated
-     * It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
-     * provided in next version
-     *
      * @param msg
      * @param mq
      * @param sendCallback
@@ -1049,6 +1043,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
      * @throws MQClientException
      * @throws RemotingException
      * @throws InterruptedException
+     * @deprecated It will be removed at 4.4.0 cause for exception handling and the wrong Semantics of timeout. A new one will be
+     * provided in next version
      */
     @Deprecated
     public void send(final Message msg, final MessageQueue mq, final SendCallback sendCallback, final long timeout)
