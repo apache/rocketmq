@@ -1419,7 +1419,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             @Override
             public void onException(Throwable e) {
                 requestResponseFuture.setCause(e);
-                requestResponseFuture.executeRequestCallback();
                 requestFail(correlationId);
             }
         }, timeout - cost);
