@@ -1144,11 +1144,8 @@ public class DefaultMessageStore implements MessageStore {
             SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(consumeOffset);
             if (bufferConsumeQueue != null) {
                 try {
-                    for (int i = 0; i < bufferConsumeQueue.getSize(); ) {
-                        i += ConsumeQueue.CQ_STORE_UNIT_SIZE;
-                        long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                        return checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
-                    }
+                    long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
+                    return checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
                 } finally {
 
                     bufferConsumeQueue.release();
