@@ -83,7 +83,7 @@ public class HAConnection {
         return socketChannel;
     }
 
-    private void stopChannelAndSelector(SocketChannel channel, Selector selector, String name) {
+    private void stopChannelAndSelector(SocketChannel channel, Selector selector, String serviceName) {
         SelectionKey sk = channel.keyFor(selector);
         if (sk != null) {
             sk.cancel();
@@ -96,7 +96,7 @@ public class HAConnection {
             log.error("", e);
         }
 
-        log.info(name + " service end");
+        log.info(serviceName + " service end");
     }
 
     class ReadSocketService extends ServiceThread {
