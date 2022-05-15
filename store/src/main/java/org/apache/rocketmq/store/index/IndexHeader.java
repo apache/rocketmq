@@ -22,20 +22,19 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class IndexHeader {
     public static final int INDEX_HEADER_SIZE = 40;
-    private static int beginTimestampIndex = 0;
-    private static int endTimestampIndex = 8;
-    private static int beginPhyoffsetIndex = 16;
-    private static int endPhyoffsetIndex = 24;
-    private static int hashSlotcountIndex = 32;
-    private static int indexCountIndex = 36;
+    private static final int beginTimestampIndex = 0;
+    private static final int endTimestampIndex = 8;
+    private static final int beginPhyoffsetIndex = 16;
+    private static final int endPhyoffsetIndex = 24;
+    private static final int hashSlotcountIndex = 32;
+    private static final int indexCountIndex = 36;
     private final ByteBuffer byteBuffer;
-    private AtomicLong beginTimestamp = new AtomicLong(0);
-    private AtomicLong endTimestamp = new AtomicLong(0);
-    private AtomicLong beginPhyOffset = new AtomicLong(0);
-    private AtomicLong endPhyOffset = new AtomicLong(0);
-    private AtomicInteger hashSlotCount = new AtomicInteger(0);
-
-    private AtomicInteger indexCount = new AtomicInteger(1);
+    private final AtomicLong beginTimestamp = new AtomicLong(0);
+    private final AtomicLong endTimestamp = new AtomicLong(0);
+    private final AtomicLong beginPhyOffset = new AtomicLong(0);
+    private final AtomicLong endPhyOffset = new AtomicLong(0);
+    private final AtomicInteger hashSlotCount = new AtomicInteger(0);
+    private final AtomicInteger indexCount = new AtomicInteger(1);
 
     public IndexHeader(final ByteBuffer byteBuffer) {
         this.byteBuffer = byteBuffer;
