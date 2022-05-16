@@ -34,6 +34,9 @@ public class AsyncRequestProducer {
         long ttl = 3000;
 
         DefaultMQProducer producer = new DefaultMQProducer(producerGroup);
+
+        //You need to set namesrvAddr to the address of the local namesrv
+        producer.setNamesrvAddr("127.0.0.1:9876");
         producer.start();
 
         try {
