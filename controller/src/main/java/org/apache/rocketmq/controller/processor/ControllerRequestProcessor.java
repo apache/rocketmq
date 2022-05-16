@@ -22,11 +22,15 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
+import org.apache.rocketmq.common.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.Controller;
+import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -34,6 +38,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+import static org.apache.rocketmq.common.protocol.RequestCode.BROKER_HEARTBEAT;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ELECT_MASTER;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_METADATA_INFO;
@@ -47,9 +52,11 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final int WAIT_TIMEOUT_OUT = 5;
     private final Controller controller;
+    private final BrokerHeartbeatManager heartbeatManager;
 
-    public ControllerRequestProcessor(final Controller controller) {
-        this.controller = controller;
+    public ControllerRequestProcessor(final ControllerManager controllerManager) {
+        this.controller = controllerManager.getController();
+        this.heartbeatManager = controllerManager.getHeartbeatManager();
     }
 
     @Override
@@ -82,7 +89,13 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 final BrokerRegisterRequestHeader controllerRequest = request.decodeCommandCustomHeader(BrokerRegisterRequestHeader.class);
                 final CompletableFuture<RemotingCommand> future = this.controller.registerBroker(controllerRequest);
                 if (future != null) {
-                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+                    final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+                    final BrokerRegisterResponseHeader responseHeader = (BrokerRegisterResponseHeader) response.readCustomHeader();
+                    if (responseHeader.getBrokerId() > 0) {
+                        this.heartbeatManager.registerBroker(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
+                            responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel());
+                    }
+                    return response;
                 }
                 break;
             }
@@ -96,6 +109,10 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             }
             case CONTROLLER_GET_METADATA_INFO: {
                 return this.controller.getControllerMetadata();
+            }
+            case BROKER_HEARTBEAT: {
+                final BrokerHeartbeatRequestHeader requestHeader = request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
+                this.heartbeatManager.brokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
             }
             default: {
                 final String error = " request type " + request.getCode() + " not supported";
