@@ -26,6 +26,11 @@ public class ControllerConfig {
     private boolean isStartupController = false;
 
     /**
+     * Interval of periodic scanning for non-active broker;
+     */
+    private long scanNotActiveBrokerInterval = 5 * 1000;
+
+    /**
      * Indicates the nums of thread to handle broker or operation requests, like REGISTER_BROKER.
      */
     private int controllerThreadPoolNums = 16;
@@ -57,6 +62,14 @@ public class ControllerConfig {
 
     public void setStartupController(boolean startupController) {
         isStartupController = startupController;
+    }
+
+    public long getScanNotActiveBrokerInterval() {
+        return scanNotActiveBrokerInterval;
+    }
+
+    public void setScanNotActiveBrokerInterval(long scanNotActiveBrokerInterval) {
+        this.scanNotActiveBrokerInterval = scanNotActiveBrokerInterval;
     }
 
     public int getControllerThreadPoolNums() {

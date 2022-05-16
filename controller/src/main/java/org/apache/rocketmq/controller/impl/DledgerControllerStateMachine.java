@@ -23,9 +23,9 @@ import io.openmessaging.storage.dledger.statemachine.CommittedEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.controller.manager.ReplicasInfoManager;
-import org.apache.rocketmq.controller.manager.event.EventMessage;
-import org.apache.rocketmq.controller.manager.event.EventSerializer;
+import org.apache.rocketmq.controller.impl.event.EventMessage;
+import org.apache.rocketmq.controller.impl.event.EventSerializer;
+import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 

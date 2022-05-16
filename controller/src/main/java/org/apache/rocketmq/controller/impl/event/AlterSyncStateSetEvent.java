@@ -14,45 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.manager.event;
+package org.apache.rocketmq.controller.impl.event;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * The event trys to apply a new id for a new broker.
- * Triggered by the RegisterBrokerApi.
+ * The event alters the syncStateSet of target broker.
+ * Triggered by the AlterSyncStateSetApi.
  */
-public class ApplyBrokerIdEvent implements EventMessage {
-    private final String brokerName;
-    private final String brokerAddress;
-    private final long newBrokerId;
+public class AlterSyncStateSetEvent implements EventMessage {
 
-    public ApplyBrokerIdEvent(String brokerName, String brokerAddress, long newBrokerId) {
+    private final String brokerName;
+    private final Set<String/*Address*/> newSyncStateSet;
+
+    public AlterSyncStateSetEvent(String brokerName, Set<String> newSyncStateSet) {
         this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
-        this.newBrokerId = newBrokerId;
+        this.newSyncStateSet = new HashSet<>(newSyncStateSet);
     }
 
     @Override
     public EventType getEventType() {
-        return EventType.APPLY_BROKER_ID_EVENT;
+        return EventType.ALTER_SYNC_STATE_SET_EVENT;
     }
 
     public String getBrokerName() {
         return brokerName;
     }
 
-    public String getBrokerAddress() {
-        return brokerAddress;
-    }
-
-    public long getNewBrokerId() {
-        return newBrokerId;
+    public Set<String> getNewSyncStateSet() {
+        return new HashSet<>(newSyncStateSet);
     }
 
     @Override public String toString() {
-        return "ApplyBrokerIdEvent{" +
+        return "AlterSyncStateSetEvent{" +
             "brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
-            ", newBrokerId=" + newBrokerId +
+            ", newSyncStateSet=" + newSyncStateSet +
             '}';
     }
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.controller.manager;
+package org.apache.rocketmq.controller.impl.controller.impl.manager;
 
 import java.util.HashSet;
 import java.util.List;
@@ -29,10 +29,10 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMaster
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
-import org.apache.rocketmq.controller.manager.ReplicasInfoManager;
-import org.apache.rocketmq.controller.manager.event.ControllerResult;
-import org.apache.rocketmq.controller.manager.event.ElectMasterEvent;
-import org.apache.rocketmq.controller.manager.event.EventMessage;
+import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.impl.event.ControllerResult;
+import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
+import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.Before;
 import org.junit.Test;

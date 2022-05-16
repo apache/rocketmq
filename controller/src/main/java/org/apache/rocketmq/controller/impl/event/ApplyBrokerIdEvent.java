@@ -14,42 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.manager.event;
-
-import java.util.HashSet;
-import java.util.Set;
+package org.apache.rocketmq.controller.impl.event;
 
 /**
- * The event alters the syncStateSet of target broker.
- * Triggered by the AlterSyncStateSetApi.
+ * The event trys to apply a new id for a new broker.
+ * Triggered by the RegisterBrokerApi.
  */
-public class AlterSyncStateSetEvent implements EventMessage {
-
+public class ApplyBrokerIdEvent implements EventMessage {
     private final String brokerName;
-    private final Set<String/*Address*/> newSyncStateSet;
+    private final String brokerAddress;
+    private final long newBrokerId;
 
-    public AlterSyncStateSetEvent(String brokerName, Set<String> newSyncStateSet) {
+    public ApplyBrokerIdEvent(String brokerName, String brokerAddress, long newBrokerId) {
         this.brokerName = brokerName;
-        this.newSyncStateSet = new HashSet<>(newSyncStateSet);
+        this.brokerAddress = brokerAddress;
+        this.newBrokerId = newBrokerId;
     }
 
     @Override
     public EventType getEventType() {
-        return EventType.ALTER_SYNC_STATE_SET_EVENT;
+        return EventType.APPLY_BROKER_ID_EVENT;
     }
 
     public String getBrokerName() {
         return brokerName;
     }
 
-    public Set<String> getNewSyncStateSet() {
-        return new HashSet<>(newSyncStateSet);
+    public String getBrokerAddress() {
+        return brokerAddress;
+    }
+
+    public long getNewBrokerId() {
+        return newBrokerId;
     }
 
     @Override public String toString() {
-        return "AlterSyncStateSetEvent{" +
+        return "ApplyBrokerIdEvent{" +
             "brokerName='" + brokerName + '\'' +
-            ", newSyncStateSet=" + newSyncStateSet +
+            ", brokerAddress='" + brokerAddress + '\'' +
+            ", newBrokerId=" + newBrokerId +
             '}';
     }
 }

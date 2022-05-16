@@ -46,10 +46,10 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMaster
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.controller.Controller;
-import org.apache.rocketmq.controller.manager.ReplicasInfoManager;
-import org.apache.rocketmq.controller.manager.event.ControllerResult;
-import org.apache.rocketmq.controller.manager.event.EventMessage;
-import org.apache.rocketmq.controller.manager.event.EventSerializer;
+import org.apache.rocketmq.controller.impl.event.ControllerResult;
+import org.apache.rocketmq.controller.impl.event.EventMessage;
+import org.apache.rocketmq.controller.impl.event.EventSerializer;
+import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.CommandCustomHeader;

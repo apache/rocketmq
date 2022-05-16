@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.manager.event;
+package org.apache.rocketmq.controller.impl.event;
 
 /**
  * The parent class of Event, the subclass needs to indicate eventType.
