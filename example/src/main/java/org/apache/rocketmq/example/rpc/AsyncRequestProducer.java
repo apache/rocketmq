@@ -28,20 +28,21 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 public class AsyncRequestProducer {
     private static final InternalLogger log = ClientLogger.getLog();
 
+    public static final String PRODUCER_GROUP = "please_rename_unique_group_name";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "RequestTopic";
+    public static final String TAG = "Tag";
+    public static final long TTL = 3000L;
+
     public static void main(String[] args) throws MQClientException, InterruptedException {
-        String producerGroup = "please_rename_unique_group_name";
-        String topic = "RequestTopic";
-        long ttl = 3000;
 
-        DefaultMQProducer producer = new DefaultMQProducer(producerGroup);
-
+        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
         //You need to set namesrvAddr to the address of the local namesrv
-        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.start();
 
         try {
-            Message msg = new Message(topic,
-                "",
+            Message msg = new Message(TOPIC, TAG,
                 "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
 
             long begin = System.currentTimeMillis();
@@ -49,18 +50,18 @@ public class AsyncRequestProducer {
                 @Override
                 public void onSuccess(Message message) {
                     long cost = System.currentTimeMillis() - begin;
-                    System.out.printf("request to <%s> cost: %d replyMessage: %s %n", topic, cost, message);
+                    System.out.printf("request to <%s> cost: %d replyMessage: %s %n", TOPIC, cost, message);
                 }
 
                 @Override
                 public void onException(Throwable e) {
-                    System.err.printf("request to <%s> fail.", topic);
+                    System.err.printf("request to <%s> fail.", TOPIC);
                 }
-            }, ttl);
+            }, TTL);
         } catch (Exception e) {
             log.warn("", e);
         }
-         /* shutdown after your request callback is finished */
+        /* shutdown after your request callback is finished */
 //        producer.shutdown();
     }
 }
