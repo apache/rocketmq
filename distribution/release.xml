@@ -74,6 +74,10 @@
                 <dependencySets>
                     <dependencySet>
                         <outputDirectory>lib/</outputDirectory>
+                        <excludes>
+                            <exclude>io.jaegertracing:jaeger-core</exclude>
+                            <exclude>io.jaegertracing:jaeger-client</exclude>
+                        </excludes>
                     </dependencySet>
                 </dependencySets>
             </binaries>

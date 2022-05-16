@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -37,13 +38,13 @@ public class MappedFileQueue {
 
     private final String storePath;
 
-    private final int mappedFileSize;
+    protected final int mappedFileSize;
 
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    protected final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
 
     private final AllocateMappedFileService allocateMappedFileService;
 
-    private long flushedWhere = 0;
+    protected long flushedWhere = 0;
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -144,35 +145,40 @@ public class MappedFileQueue {
         }
     }
 
+
     public boolean load() {
         File dir = new File(this.storePath);
-        File[] files = dir.listFiles();
-        if (files != null) {
-            // ascending order
-            Arrays.sort(files);
-            for (File file : files) {
+        File[] ls = dir.listFiles();
+        if (ls != null) {
+            return doLoad(Arrays.asList(ls));
+        }
+        return true;
+    }
 
-                if (file.length() != this.mappedFileSize) {
-                    log.warn(file + "\t" + file.length()
+    public boolean doLoad(List<File> files) {
+        // ascending order
+        files.sort(Comparator.comparing(File::getName));
+
+        for (File file : files) {
+            if (file.length() != this.mappedFileSize) {
+                log.warn(file + "\t" + file.length()
                         + " length not matched message store config value, please check it manually");
-                    return false;
-                }
+                return false;
+            }
 
-                try {
-                    MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
+            try {
+                MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
 
-                    mappedFile.setWrotePosition(this.mappedFileSize);
-                    mappedFile.setFlushedPosition(this.mappedFileSize);
-                    mappedFile.setCommittedPosition(this.mappedFileSize);
-                    this.mappedFiles.add(mappedFile);
-                    log.info("load " + file.getPath() + " OK");
-                } catch (IOException e) {
-                    log.error("load file " + file + " error", e);
-                    return false;
-                }
+                mappedFile.setWrotePosition(this.mappedFileSize);
+                mappedFile.setFlushedPosition(this.mappedFileSize);
+                mappedFile.setCommittedPosition(this.mappedFileSize);
+                this.mappedFiles.add(mappedFile);
+                log.info("load " + file.getPath() + " OK");
+            } catch (IOException e) {
+                log.error("load file " + file + " error", e);
+                return false;
             }
         }
-
         return true;
     }
 
@@ -204,33 +210,41 @@ public class MappedFileQueue {
         }
 
         if (createOffset != -1 && needCreate) {
-            String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
-            String nextNextFilePath = this.storePath + File.separator
-                + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
-            MappedFile mappedFile = null;
-
-            if (this.allocateMappedFileService != null) {
-                mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
-                    nextNextFilePath, this.mappedFileSize);
-            } else {
-                try {
-                    mappedFile = new MappedFile(nextFilePath, this.mappedFileSize);
-                } catch (IOException e) {
-                    log.error("create mappedFile exception", e);
-                }
-            }
-
-            if (mappedFile != null) {
-                if (this.mappedFiles.isEmpty()) {
-                    mappedFile.setFirstCreateInQueue(true);
-                }
-                this.mappedFiles.add(mappedFile);
-            }
-
-            return mappedFile;
+            return tryCreateMappedFile(createOffset);
         }
 
         return mappedFileLast;
+    }
+
+    protected MappedFile tryCreateMappedFile(long createOffset) {
+        String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
+        String nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset
+                + this.mappedFileSize);
+        return doCreateMappedFile(nextFilePath, nextNextFilePath);
+    }
+
+    protected MappedFile doCreateMappedFile(String nextFilePath, String nextNextFilePath) {
+        MappedFile mappedFile = null;
+
+        if (this.allocateMappedFileService != null) {
+            mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
+                    nextNextFilePath, this.mappedFileSize);
+        } else {
+            try {
+                mappedFile = new MappedFile(nextFilePath, this.mappedFileSize);
+            } catch (IOException e) {
+                log.error("create mappedFile exception", e);
+            }
+        }
+
+        if (mappedFile != null) {
+            if (this.mappedFiles.isEmpty()) {
+                mappedFile.setFirstCreateInQueue(true);
+            }
+            this.mappedFiles.add(mappedFile);
+        }
+
+        return mappedFile;
     }
 
     public MappedFile getLastMappedFile(final long startOffset) {

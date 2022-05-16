@@ -235,6 +235,153 @@ public class DefaultRequestProcessorTest {
         assertThat((Map) brokerAddrTable.get(routes)).isNotEmpty();
     }
 
+    @Test
+    public void testGetRouteInfoByTopic() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC);
+        RemotingCommand remotingCommandSuccess = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommandSuccess.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        request.getExtFields().put("topic", "test");
+        RemotingCommand remotingCommandNoTopicRouteInfo = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommandNoTopicRouteInfo.getCode()).isEqualTo(ResponseCode.TOPIC_NOT_EXIST);
+    }
+
+    @Test
+    public void testGetBrokerClusterInfo() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_BROKER_CLUSTER_INFO);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testWipeWritePermOfBroker() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.WIPE_WRITE_PERM_OF_BROKER);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetAllTopicListFromNameserver() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_ALL_TOPIC_LIST_FROM_NAMESERVER);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteTopicInNamesrv() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.DELETE_TOPIC_IN_NAMESRV);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetKVListByNamespace() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_KVLIST_BY_NAMESPACE);
+        request.addExtField("namespace", "default-namespace-1");
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.QUERY_NOT_FOUND);
+        namesrvController.getKvConfigManager().putKVConfig("default-namespace-1", "key", "value");
+        RemotingCommand remotingCommandSuccess = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommandSuccess.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetTopicsByCluster() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_TOPICS_BY_CLUSTER);
+        request.addExtField("cluster", "default-cluster");
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetSystemTopicListFromNs() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_NS);
+        request.addExtField("cluster", "default-cluster");
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetUnitTopicList() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_UNIT_TOPIC_LIST);
+        request.addExtField("cluster", "default-cluster");
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetHasUnitSubTopicList() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_HAS_UNIT_SUB_TOPIC_LIST);
+        request.addExtField("cluster", "default-cluster");
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetHasUnitSubUnUnitTopicList() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_HAS_UNIT_SUB_UNUNIT_TOPIC_LIST);
+        request.addExtField("cluster", "default-cluster");
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testUpdateConfig() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.UPDATE_NAMESRV_CONFIG);
+        request.addExtField("cluster", "default-cluster");
+        Map<String, String> propertiesMap = new HashMap<>();
+        propertiesMap.put("key", "value");
+        request.setBody(propertiesMap.toString().getBytes());
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetConfig() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_NAMESRV_CONFIG);
+        request.addExtField("cluster", "default-cluster");
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    private RemotingCommand getRemotingCommand(int code) {
+        RegisterBrokerRequestHeader header = new RegisterBrokerRequestHeader();
+        header.setBrokerName("broker");
+        RemotingCommand request = RemotingCommand.createRequestCommand(code, header);
+        request.addExtField("brokerName", "broker");
+        request.addExtField("brokerAddr", "10.10.1.1");
+        request.addExtField("clusterName", "cluster");
+        request.addExtField("haServerAddr", "10.10.2.1");
+        request.addExtField("brokerId", "2333");
+        request.addExtField("topic", "unit-test");
+        return request;
+    }
+
     private static RemotingCommand genSampleRegisterCmd(boolean reg) {
         RegisterBrokerRequestHeader header = new RegisterBrokerRequestHeader();
         header.setBrokerName("broker");
@@ -268,7 +415,7 @@ public class DefaultRequestProcessorTest {
         topicConfigConcurrentHashMap.put("unit-test", topicConfig);
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
         Channel channel = mock(Channel.class);
-        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001",
+        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 0, "127.0.0.1:1001",
             topicConfigSerializeWrapper, new ArrayList<String>(), channel);
 
     }

@@ -199,15 +199,17 @@ public abstract class NettyRemotingAbstract {
                 @Override
                 public void run() {
                     try {
-                        doBeforeRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
+                        String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                        doBeforeRpcHooks(remoteAddr, cmd);
                         final RemotingResponseCallback callback = new RemotingResponseCallback() {
                             @Override
                             public void callback(RemotingCommand response) {
-                                doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
+                                doAfterRpcHooks(remoteAddr, cmd, response);
                                 if (!cmd.isOnewayRPC()) {
                                     if (response != null) {
                                         response.setOpaque(opaque);
                                         response.markResponseType();
+                                        response.setSerializeTypeCurrentRPC(cmd.getSerializeTypeCurrentRPC());
                                         try {
                                             ctx.writeAndFlush(response);
                                         } catch (Throwable e) {
@@ -553,7 +555,7 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingTooMuchRequestException("invokeOnewayImpl invoke too fast");
             } else {
                 String info = String.format(
-                    "invokeOnewayImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d",
+                    "invokeOnewayImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreOnewayValue: %d",
                     timeoutMillis,
                     this.semaphoreOneway.getQueueLength(),
                     this.semaphoreOneway.availablePermits()
@@ -569,10 +571,11 @@ public abstract class NettyRemotingAbstract {
         private final int maxSize = 10000;
 
         public void putNettyEvent(final NettyEvent event) {
-            if (this.eventQueue.size() <= maxSize) {
+            int currentSize = this.eventQueue.size();
+            if (currentSize <= maxSize) {
                 this.eventQueue.add(event);
             } else {
-                log.warn("event queue size[{}] enough, so drop this event {}", this.eventQueue.size(), event.toString());
+                log.warn("event queue size [{}] over the limit [{}], so drop this event {}", currentSize, maxSize, event.toString());
             }
         }
 

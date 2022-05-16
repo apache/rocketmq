@@ -29,7 +29,7 @@ public class PushConsumerWithNamespace {
             msgs.stream().forEach((msg) -> {
                 System.out.printf("Msg topic is:%s, MsgId is:%s, reconsumeTimes is:%s%n", msg.getTopic() , msg.getMsgId(), msg.getReconsumeTimes());
             });
-            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
 
         defaultMQPushConsumer.start();

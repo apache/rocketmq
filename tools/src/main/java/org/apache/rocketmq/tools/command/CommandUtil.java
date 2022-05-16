@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
@@ -63,12 +64,12 @@ public class CommandUtil {
             String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
             masterAndSlaveMap.put(masterAddr, new ArrayList<String>());
 
-            for (Long id : brokerData.getBrokerAddrs().keySet()) {
-                if (brokerData.getBrokerAddrs().get(id) == null || id == MixAll.MASTER_ID) {
+            for (Entry<Long, String> brokerAddrEntry : brokerData.getBrokerAddrs().entrySet()) {
+                if (brokerAddrEntry.getValue() == null || brokerAddrEntry.getKey() == MixAll.MASTER_ID) {
                     continue;
                 }
 
-                masterAndSlaveMap.get(masterAddr).add(brokerData.getBrokerAddrs().get(id));
+                masterAndSlaveMap.get(masterAddr).add(brokerAddrEntry.getValue());
             }
         }
 
@@ -146,5 +147,4 @@ public class CommandUtil {
         }
         throw new Exception(ERROR_MESSAGE);
     }
-
 }

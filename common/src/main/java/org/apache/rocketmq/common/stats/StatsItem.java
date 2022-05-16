@@ -20,15 +20,16 @@ package org.apache.rocketmq.common.stats;
 import java.util.LinkedList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
+
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.logging.InternalLogger;
 
 public class StatsItem {
 
-    private final AtomicLong value = new AtomicLong(0);
+    private final LongAdder value = new LongAdder();
 
-    private final AtomicLong times = new AtomicLong(0);
+    private final LongAdder times = new LongAdder();
 
     private final LinkedList<CallSnapshot> csListMinute = new LinkedList<CallSnapshot>();
 
@@ -157,8 +158,8 @@ public class StatsItem {
             if (this.csListMinute.size() == 0) {
                 this.csListMinute.add(new CallSnapshot(System.currentTimeMillis() - 10 * 1000, 0, 0));
             }
-            this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
-                .get()));
+            this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.sum(), this.value
+                .sum()));
             if (this.csListMinute.size() > 7) {
                 this.csListMinute.removeFirst();
             }
@@ -170,8 +171,8 @@ public class StatsItem {
             if (this.csListHour.size() == 0) {
                 this.csListHour.add(new CallSnapshot(System.currentTimeMillis() - 10 * 60 * 1000, 0, 0));
             }
-            this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
-                .get()));
+            this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.sum(), this.value
+                .sum()));
             if (this.csListHour.size() > 7) {
                 this.csListHour.removeFirst();
             }
@@ -183,8 +184,8 @@ public class StatsItem {
             if (this.csListDay.size() == 0) {
                 this.csListDay.add(new CallSnapshot(System.currentTimeMillis() - 1 * 60 * 60 * 1000, 0, 0));
             }
-            this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
-                .get()));
+            this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.times.sum(), this.value
+                .sum()));
             if (this.csListDay.size() > 25) {
                 this.csListDay.removeFirst();
             }
@@ -214,7 +215,7 @@ public class StatsItem {
                 ss.getAvgpt());
     }
 
-    public AtomicLong getValue() {
+    public LongAdder getValue() {
         return value;
     }
 
@@ -226,7 +227,7 @@ public class StatsItem {
         return statsName;
     }
 
-    public AtomicLong getTimes() {
+    public LongAdder getTimes() {
         return times;
     }
 }

@@ -111,17 +111,26 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 if (showClientIP) {
                     messageQueueAllocationResult = getMessageQueueAllocationResult(defaultMQAdminExt, consumerGroup);
                 }
-
-                System.out.printf("%-32s  %-32s  %-4s  %-20s  %-20s  %-20s %-20s  %s%n",
-                    "#Topic",
-                    "#Broker Name",
-                    "#QID",
-                    "#Broker Offset",
-                    "#Consumer Offset",
-                    "#Client IP",
-                    "#Diff",
-                    "#LastTime");
-
+                if (showClientIP) {
+                    System.out.printf("%-64s  %-32s  %-4s  %-20s  %-20s  %-20s %-20s  %s%n",
+                            "#Topic",
+                            "#Broker Name",
+                            "#QID",
+                            "#Broker Offset",
+                            "#Consumer Offset",
+                            "#Client IP",
+                            "#Diff",
+                            "#LastTime");
+                } else {
+                    System.out.printf("%-64s  %-32s  %-4s  %-20s  %-20s  %-20s  %s%n",
+                            "#Topic",
+                            "#Broker Name",
+                            "#QID",
+                            "#Broker Offset",
+                            "#Consumer Offset",
+                            "#Diff",
+                            "#LastTime");
+                }
                 long diffTotal = 0L;
                 for (MessageQueue mq : mqList) {
                     OffsetWrapper offsetWrapper = consumeStats.getOffsetTable().get(mq);
@@ -141,24 +150,35 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     if (showClientIP) {
                         clientIP = messageQueueAllocationResult.get(mq);
                     }
-
-                    System.out.printf("%-32s  %-32s  %-4d  %-20d  %-20d  %-20s %-20d  %s%n",
-                        UtilAll.frontStringAtLeast(mq.getTopic(), 32),
-                        UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
-                        mq.getQueueId(),
-                        offsetWrapper.getBrokerOffset(),
-                        offsetWrapper.getConsumerOffset(),
-                        null != clientIP ? clientIP : "N/A",
-                        diff,
-                        lastTime
-                    );
+                    if (showClientIP) {
+                        System.out.printf("%-64s  %-32s  %-4d  %-20d  %-20d  %-20s %-20d  %s%n",
+                                UtilAll.frontStringAtLeast(mq.getTopic(), 64),
+                                UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
+                                mq.getQueueId(),
+                                offsetWrapper.getBrokerOffset(),
+                                offsetWrapper.getConsumerOffset(),
+                                null != clientIP ? clientIP : "N/A",
+                                diff,
+                                lastTime
+                        );
+                    } else {
+                        System.out.printf("%-64s  %-32s  %-4d  %-20d  %-20d  %-20d  %s%n",
+                                UtilAll.frontStringAtLeast(mq.getTopic(), 64),
+                                UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
+                                mq.getQueueId(),
+                                offsetWrapper.getBrokerOffset(),
+                                offsetWrapper.getConsumerOffset(),
+                                diff,
+                                lastTime
+                        );
+                    }
                 }
 
                 System.out.printf("%n");
                 System.out.printf("Consume TPS: %.2f%n", consumeStats.getConsumeTps());
                 System.out.printf("Diff Total: %d%n", diffTotal);
             } else {
-                System.out.printf("%-32s  %-6s  %-24s %-5s  %-14s  %-7s  %s%n",
+                System.out.printf("%-64s  %-6s  %-24s %-5s  %-14s  %-7s  %s%n",
                     "#Group",
                     "#Count",
                     "#Version",
@@ -201,8 +221,8 @@ public class ConsumerProgressSubCommand implements SubCommand {
                                 groupConsumeInfo.setVersion(cc.computeMinVersion());
                             }
 
-                            System.out.printf("%-32s  %-6d  %-24s %-5s  %-14s  %-7d  %d%n",
-                                UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 32),
+                            System.out.printf("%-64s  %-6d  %-24s %-5s  %-14s  %-7d  %d%n",
+                                UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 64),
                                 groupConsumeInfo.getCount(),
                                 groupConsumeInfo.getCount() > 0 ? groupConsumeInfo.versionDesc() : "OFFLINE",
                                 groupConsumeInfo.consumeTypeDesc(),

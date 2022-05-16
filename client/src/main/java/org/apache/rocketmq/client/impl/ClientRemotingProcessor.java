@@ -25,9 +25,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.client.producer.RequestFutureTable;
+import org.apache.rocketmq.client.producer.RequestFutureHolder;
 import org.apache.rocketmq.client.producer.RequestResponseFuture;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -245,9 +247,11 @@ public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implemen
             }
 
             byte[] body = request.getBody();
-            if ((requestHeader.getSysFlag() & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
+            int sysFlag = requestHeader.getSysFlag();
+            if ((sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
                 try {
-                    body = UtilAll.uncompress(body);
+                    Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
+                    body = compressor.decompress(body);
                 } catch (IOException e) {
                     log.warn("err when uncompress constant", e);
                 }
@@ -274,16 +278,14 @@ public class ClientRemotingProcessor extends AsyncNettyRequestProcessor implemen
 
     private void processReplyMessage(MessageExt replyMsg) {
         final String correlationId = replyMsg.getUserProperty(MessageConst.PROPERTY_CORRELATION_ID);
-        final RequestResponseFuture requestResponseFuture = RequestFutureTable.getRequestFutureTable().get(correlationId);
+        final RequestResponseFuture requestResponseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().get(correlationId);
         if (requestResponseFuture != null) {
             requestResponseFuture.putResponseMessage(replyMsg);
 
-            RequestFutureTable.getRequestFutureTable().remove(correlationId);
+            RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
 
             if (requestResponseFuture.getRequestCallback() != null) {
                 requestResponseFuture.getRequestCallback().onSuccess(replyMsg);
-            } else {
-                requestResponseFuture.putResponseMessage(replyMsg);
             }
         } else {
             String bornHost = replyMsg.getBornHostString();

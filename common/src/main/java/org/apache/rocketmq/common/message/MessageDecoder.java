@@ -23,17 +23,20 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageDecoder {
 //    public final static int MSG_ID_LENGTH = 8 + 8;
 
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
     public final static int MESSAGE_MAGIC_CODE_POSTION = 4;
     public final static int MESSAGE_FLAG_POSTION = 16;
     public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
@@ -42,6 +45,7 @@ public class MessageDecoder {
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
     public static final int PHY_POS_POSITION = 4 + 4 + 4 + 4 + 4 + 8;
+    public static final int QUEUE_OFFSET_POSITION = 4 + 4 + 4 + 4 + 4;
     public static final int SYSFLAG_POSITION = 4 + 4 + 4 + 4 + 4 + 8 + 8;
 //    public static final int BODY_SIZE_POSITION = 4 // 1 TOTALSIZE
 //        + 4 // 2 MAGICCODE
@@ -81,20 +85,17 @@ public class MessageDecoder {
     }
 
     public static MessageId decodeMessageId(final String msgId) throws UnknownHostException {
-        SocketAddress address;
-        long offset;
-        int ipLength = msgId.length() == 32 ? 4 * 2 : 16 * 2;
+        byte[] bytes = UtilAll.string2bytes(msgId);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
 
-        byte[] ip = UtilAll.string2bytes(msgId.substring(0, ipLength));
-        byte[] port = UtilAll.string2bytes(msgId.substring(ipLength, ipLength + 8));
-        ByteBuffer bb = ByteBuffer.wrap(port);
-        int portInt = bb.getInt(0);
-        address = new InetSocketAddress(InetAddress.getByAddress(ip), portInt);
+        // address(ip+port)
+        byte[] ip = new byte[msgId.length() == 32 ? 4 : 16];
+        byteBuffer.get(ip);
+        int port = byteBuffer.getInt();
+        SocketAddress address = new InetSocketAddress(InetAddress.getByAddress(ip), port);
 
         // offset
-        byte[] data = UtilAll.string2bytes(msgId.substring(ipLength + 8, ipLength + 8 + 16));
-        bb = ByteBuffer.wrap(data);
-        offset = bb.getLong(0);
+        long offset = byteBuffer.getLong();
 
         return new MessageId(address, offset);
     }
@@ -104,7 +105,7 @@ public class MessageDecoder {
      *
      * @param byteBuffer msg commit log buffer.
      */
-    public static Map<String, String> decodeProperties(java.nio.ByteBuffer byteBuffer) {
+    public static Map<String, String> decodeProperties(ByteBuffer byteBuffer) {
         int sysFlag = byteBuffer.getInt(SYSFLAG_POSITION);
         int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
         int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
@@ -140,15 +141,15 @@ public class MessageDecoder {
         return null;
     }
 
-    public static MessageExt decode(java.nio.ByteBuffer byteBuffer) {
+    public static MessageExt decode(ByteBuffer byteBuffer) {
         return decode(byteBuffer, true, true, false);
     }
 
-    public static MessageExt clientDecode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
+    public static MessageExt clientDecode(ByteBuffer byteBuffer, final boolean readBody) {
         return decode(byteBuffer, readBody, true, true);
     }
 
-    public static MessageExt decode(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
+    public static MessageExt decode(ByteBuffer byteBuffer, final boolean readBody) {
         return decode(byteBuffer, readBody, true, false);
     }
 
@@ -164,7 +165,8 @@ public class MessageDecoder {
         int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
         byte[] newBody = messageExt.getBody();
         if (needCompress && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
-            newBody = UtilAll.compress(body, 5);
+            Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
+            newBody = compressor.compress(body, 5);
         }
         int bodyLength = newBody.length;
         int storeSize = messageExt.getStoreSize();
@@ -263,12 +265,12 @@ public class MessageDecoder {
     }
 
     public static MessageExt decode(
-        java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
+        ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody) {
         return decode(byteBuffer, readBody, deCompressBody, false);
     }
 
     public static MessageExt decode(
-        java.nio.ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody, final boolean isClient) {
+        ByteBuffer byteBuffer, final boolean readBody, final boolean deCompressBody, final boolean isClient) {
         try {
 
             MessageExt msgExt;
@@ -348,7 +350,8 @@ public class MessageDecoder {
 
                     // uncompress body
                     if (deCompressBody && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
-                        body = UtilAll.uncompress(body);
+                        Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
+                        body = compressor.decompress(body);
                     }
 
                     msgExt.setBody(body);
@@ -390,11 +393,11 @@ public class MessageDecoder {
         return null;
     }
 
-    public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer) {
+    public static List<MessageExt> decodes(ByteBuffer byteBuffer) {
         return decodes(byteBuffer, true);
     }
 
-    public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
+    public static List<MessageExt> decodes(ByteBuffer byteBuffer, final boolean readBody) {
         List<MessageExt> msgExts = new ArrayList<MessageExt>();
         while (byteBuffer.hasRemaining()) {
             MessageExt msgExt = clientDecode(byteBuffer, readBody);
@@ -408,7 +411,23 @@ public class MessageDecoder {
     }
 
     public static String messageProperties2String(Map<String, String> properties) {
-        StringBuilder sb = new StringBuilder();
+        if (properties == null) {
+            return "";
+        }
+        int len = 0;
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String name = entry.getKey();
+            final String value = entry.getValue();
+            if (value == null) {
+                continue;
+            }
+            if (name != null) {
+                len += name.length();
+            }
+            len += value.length();
+            len += 2; // separator
+        }
+        StringBuilder sb = new StringBuilder(len);
         if (properties != null) {
             for (final Map.Entry<String, String> entry : properties.entrySet()) {
                 final String name = entry.getKey();
@@ -422,6 +441,9 @@ public class MessageDecoder {
                 sb.append(value);
                 sb.append(PROPERTY_SEPARATOR);
             }
+            if (sb.length() > 0) {
+                sb.deleteCharAt(sb.length() - 1);
+            }
         }
         return sb.toString();
     }
@@ -429,12 +451,22 @@ public class MessageDecoder {
     public static Map<String, String> string2messageProperties(final String properties) {
         Map<String, String> map = new HashMap<String, String>();
         if (properties != null) {
-            String[] items = properties.split(String.valueOf(PROPERTY_SEPARATOR));
-            for (String i : items) {
-                String[] nv = i.split(String.valueOf(NAME_VALUE_SEPARATOR));
-                if (2 == nv.length) {
-                    map.put(nv[0], nv[1]);
+            int len = properties.length();
+            int index = 0;
+            while (index < len) {
+                int newIndex = properties.indexOf(PROPERTY_SEPARATOR, index);
+                if (newIndex < 0) {
+                    newIndex = len;
                 }
+                if (newIndex - index >= 3) {
+                    int kvSepIndex = properties.indexOf(NAME_VALUE_SEPARATOR, index);
+                    if (kvSepIndex > index && kvSepIndex < newIndex - 1) {
+                        String k = properties.substring(index, kvSepIndex);
+                        String v = properties.substring(kvSepIndex + 1, newIndex);
+                        map.put(k, v);
+                    }
+                }
+                index = newIndex + 1;
             }
         }
 
@@ -448,7 +480,10 @@ public class MessageDecoder {
         String properties = messageProperties2String(message.getProperties());
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         //note properties length must not more than Short.MAX
-        short propertiesLength = (short) propertiesBytes.length;
+        int propsLen = propertiesBytes.length;
+        if (propsLen > Short.MAX_VALUE)
+            throw new RuntimeException(String.format("Properties size of message exceeded, properties size: {}, maxSize: {}.", propsLen, Short.MAX_VALUE));
+        short propertiesLength = (short) propsLen;
         int sysFlag = message.getFlag();
         int storeSize = 4 // 1 TOTALSIZE
             + 4 // 2 MAGICCOD

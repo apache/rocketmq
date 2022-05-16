@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -236,11 +237,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private boolean unitMode = false;
 
     /**
-     * Max re-consume times. -1 means 16 times.
-     * </p>
+     * Max re-consume times. 
+     * In concurrently mode, -1 means 16;
+     * In orderly mode, -1 means Integer.MAX_VALUE.
      *
-     * If messages are re-consumed more than {@link #maxReconsumeTimes} before success, it's be directed to a deletion
-     * queue waiting.
+     * If messages are re-consumed more than {@link #maxReconsumeTimes} before success.
      */
     private int maxReconsumeTimes = -1;
 
@@ -412,7 +413,15 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, withNamespace(newTopic), queueNum, 0);
     }
-
+    
+    @Override
+    public void setUseTLS(boolean useTLS) {
+        super.setUseTLS(useTLS);
+        if (traceDispatcher != null && traceDispatcher instanceof AsyncTraceDispatcher) {
+            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
+        }
+    }
+    
     /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      */
@@ -632,8 +641,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     public void setSubscription(Map<String, String> subscription) {
         Map<String, String> subscriptionWithNamespace = new HashMap<String, String>();
-        for (String topic : subscription.keySet()) {
-            subscriptionWithNamespace.put(withNamespace(topic), subscription.get(topic));
+        for (Entry<String, String> topicEntry : subscription.entrySet()) {
+            subscriptionWithNamespace.put(withNamespace(topicEntry.getKey()), topicEntry.getValue());
         }
         this.subscription = subscriptionWithNamespace;
     }

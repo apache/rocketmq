@@ -21,7 +21,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
@@ -59,7 +60,6 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
 
     protected final static int DLQ_NUMS_PER_GROUP = 1;
     protected final BrokerController brokerController;
-    protected final Random random = new Random(System.currentTimeMillis());
     protected final SocketAddress storeHost;
     private List<SendMessageHook> sendMessageHookList;
 
@@ -76,8 +76,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             return null;
         }
         String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
-        SendMessageContext mqtraceContext;
-        mqtraceContext = new SendMessageContext();
+        SendMessageContext mqtraceContext = new SendMessageContext();
         mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
         mqtraceContext.setNamespace(namespace);
         mqtraceContext.setTopic(requestHeader.getTopic());
@@ -108,7 +107,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         final SendMessageRequestHeader requestHeader, final byte[] body, TopicConfig topicConfig) {
         int queueIdInt = requestHeader.getQueueId();
         if (queueIdInt < 0) {
-            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
+            queueIdInt = ThreadLocalRandom.current().nextInt(99999999) % topicConfig.getWriteQueueNums();
         }
         int sysFlag = requestHeader.getSysFlag();
 
@@ -221,7 +220,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,
-                topicConfig.toString(),
+                topicConfig,
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
             log.warn(errorInfo);
@@ -237,19 +236,6 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         this.sendMessageHookList = sendMessageHookList;
     }
 
-    protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,
-        final RemotingCommand response) {
-        if (!request.isOnewayRPC()) {
-            try {
-                ctx.writeAndFlush(response);
-            } catch (Throwable e) {
-                log.error("SendMessageProcessor process request over, but response failed", e);
-                log.error(request.toString());
-                log.error(response.toString());
-            }
-        }
-    }
-
     public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
         SendMessageContext context) {
         if (hasSendMessageHook()) {
@@ -257,8 +243,8 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                 try {
                     final SendMessageRequestHeader requestHeader = parseRequestHeader(request);
 
-                    String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
                     if (null != requestHeader) {
+                        String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
                         context.setNamespace(namespace);
                         context.setProducerGroup(requestHeader.getProducerGroup());
                         context.setTopic(requestHeader.getTopic());
@@ -289,8 +275,8 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             case RequestCode.SEND_BATCH_MESSAGE:
             case RequestCode.SEND_MESSAGE_V2:
                 requestHeaderV2 =
-                    (SendMessageRequestHeaderV2) request
-                        .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+                        (SendMessageRequestHeaderV2) request
+                                .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             case RequestCode.SEND_MESSAGE:
                 if (null == requestHeaderV2) {
                     requestHeader =
