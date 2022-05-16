@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.namesrv.controller.impl;
+package org.apache.rocketmq.controller.impl.controller.impl;
 
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import java.io.File;
@@ -28,13 +28,14 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterResponseHeader;
-import org.apache.rocketmq.namesrv.controller.Controller;
+import org.apache.rocketmq.controller.Controller;
+import org.apache.rocketmq.controller.impl.DledgerController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.After;
@@ -64,7 +65,7 @@ public class DledgerControllerTest {
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
 
-        final DledgerController controller = new DledgerController(config, null);
+        final DledgerController controller = new DledgerController(config);
 
         controller.startup();
         return controller;

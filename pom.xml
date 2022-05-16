@@ -123,6 +123,7 @@
         <module>acl</module>
         <module>example</module>
         <module>container</module>
+        <module>controller</module>
     </modules>
 
     <build>
