@@ -27,6 +27,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -42,22 +43,33 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 
 public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
+    /**
+     * Handshake header buffer size. Schema: state ordinal + flag(isSyncFromLastFile) + slaveId + slaveAddressLength.
+     */
+    public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 8 + 4;
 
     /**
-     * Transfer header buffer size. Schema: state ordinal + additional info(maxOffset or flag)
-     * If in handshake state, we reuse additional info as the flag -- isSyncFromLastFile.
+     * Header + slaveAddress.
+     */
+    public static final int HANDSHAKE_SIZE = HANDSHAKE_HEADER_SIZE + 50;
+
+    /**
+     * Transfer header buffer size. Schema: state ordinal + maxOffset.
      */
     public static final int TRANSFER_HEADER_SIZE = 4 + 8;
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
     private final AtomicReference<String> masterHaAddress = new AtomicReference<>();
     private final AtomicReference<String> masterAddress = new AtomicReference<>();
+    private final AtomicReference<Long> slaveId = new AtomicReference<>();
+    private final ByteBuffer handshakeHeaderBuffer = ByteBuffer.allocate(HANDSHAKE_SIZE);
     private final ByteBuffer transferHeaderBuffer = ByteBuffer.allocate(TRANSFER_HEADER_SIZE);
     private final AutoSwitchHAService haService;
     private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
     private final DefaultMessageStore messageStore;
     private final EpochFileCache epochCache;
 
+    private String localAddress;
     private SocketChannel socketChannel;
     private Selector selector;
     private AbstractHAReader haReader;
@@ -134,6 +146,17 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return AutoSwitchHAClient.class.getSimpleName();
     }
 
+    public void setLocalAddress(String localAddress) {
+        this.localAddress = localAddress;
+    }
+
+    public void updateSlaveId(Long newId) {
+        Long currentId = this.slaveId.get();
+        if (this.slaveId.compareAndSet(currentId, newId)) {
+            LOGGER.info("Update slave Id, OLD: {}, New: {}", currentId, newId);
+        }
+    }
+
     @Override public void updateMasterAddress(String newAddress) {
         String currentAddr = this.masterAddress.get();
         if (masterAddress.compareAndSet(currentAddr, newAddress)) {
@@ -145,6 +168,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         String currentAddr = this.masterHaAddress.get();
         if (masterHaAddress.compareAndSet(currentAddr, newAddress)) {
             LOGGER.info("update master ha address, OLD: " + currentAddr + " NEW: " + newAddress);
+            wakeup();
         }
     }
 
@@ -227,20 +251,28 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     private boolean sendHandshakeHeader() {
-        this.transferHeaderBuffer.position(0);
-        this.transferHeaderBuffer.limit(TRANSFER_HEADER_SIZE);
-        this.transferHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
+        this.handshakeHeaderBuffer.position(0);
+        this.handshakeHeaderBuffer.limit(HANDSHAKE_SIZE);
+        // Original state
+        this.handshakeHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
+        // IsSyncFromLastFile
         if (this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile()) {
-            this.transferHeaderBuffer.putLong(SYNC_FROM_LAST_FILE);
+            this.handshakeHeaderBuffer.putInt(SYNC_FROM_LAST_FILE);
         } else {
-            this.transferHeaderBuffer.putLong(SYNC_FROM_FIRST_FILE);
+            this.handshakeHeaderBuffer.putInt(SYNC_FROM_FIRST_FILE);
         }
-        this.transferHeaderBuffer.flip();
-        return this.haWriter.write(this.socketChannel, this.transferHeaderBuffer);
+        // Slave Id
+        this.handshakeHeaderBuffer.putLong(this.slaveId.get());
+        // Address length
+        this.handshakeHeaderBuffer.putInt(this.localAddress == null ? 0 : this.localAddress.length());
+        // Slave address
+        this.handshakeHeaderBuffer.put(this.localAddress == null ? new byte[0] : this.localAddress.getBytes());
+
+        this.handshakeHeaderBuffer.flip();
+        return this.haWriter.write(this.socketChannel, this.handshakeHeaderBuffer);
     }
 
     private void handshakeWithMaster() throws IOException {
-        sendHandshakeHeader();
         boolean result = this.sendHandshakeHeader();
         if (!result) {
             closeMasterAndWait();
@@ -277,7 +309,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     public boolean connectMaster() throws ClosedChannelException {
         if (null == this.socketChannel) {
             String addr = this.masterHaAddress.get();
-            if (addr != null) {
+            if (StringUtils.isNotEmpty(addr)) {
                 SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
                 this.socketChannel = RemotingUtil.connect(socketAddress);
                 if (this.socketChannel != null) {

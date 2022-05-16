@@ -19,13 +19,14 @@ package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class RegisterBrokerResponseHeader implements CommandCustomHeader {
+public class BrokerRegisterResponseHeader implements CommandCustomHeader {
     private String masterAddress;
     private int masterEpoch;
+    private int syncStateSetEpoch;
     // The id of this registered replicas.
     private long brokerId;
 
-    public RegisterBrokerResponseHeader() {
+    public BrokerRegisterResponseHeader() {
     }
 
     public String getMasterAddress() {
@@ -44,6 +45,14 @@ public class RegisterBrokerResponseHeader implements CommandCustomHeader {
         this.masterEpoch = masterEpoch;
     }
 
+    public int getSyncStateSetEpoch() {
+        return syncStateSetEpoch;
+    }
+
+    public void setSyncStateSetEpoch(int syncStateSetEpoch) {
+        this.syncStateSetEpoch = syncStateSetEpoch;
+    }
+
     public long getBrokerId() {
         return brokerId;
     }
@@ -52,11 +61,11 @@ public class RegisterBrokerResponseHeader implements CommandCustomHeader {
         this.brokerId = brokerId;
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
         return "RegisterBrokerResponseHeader{" +
             "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
+            ", syncStateSetEpoch=" + syncStateSetEpoch +
             ", brokerId=" + brokerId +
             '}';
     }

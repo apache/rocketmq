@@ -35,8 +35,7 @@ public class ElectMasterEvent implements EventMessage {
         this(true, brokerName, newMasterAddress, "");
     }
 
-    public ElectMasterEvent(boolean newMasterElected, String brokerName, String newMasterAddress,
-        String clusterName) {
+    public ElectMasterEvent(boolean newMasterElected, String brokerName, String newMasterAddress, String clusterName) {
         this.newMasterElected = newMasterElected;
         this.brokerName = brokerName;
         this.newMasterAddress = newMasterAddress;

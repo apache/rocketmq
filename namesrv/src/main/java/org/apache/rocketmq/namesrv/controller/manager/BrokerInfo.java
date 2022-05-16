@@ -17,19 +17,21 @@
 package org.apache.rocketmq.namesrv.controller.manager;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Broker id info, mapping from brokerAddress to brokerId.
+ * Broker info, mapping from brokerAddress to {brokerId, brokerHaAddress}.
  */
-public class BrokerIdInfo {
+public class BrokerInfo {
     private final String clusterName;
     private final String brokerName;
     // Start from 1
     private final AtomicLong brokerIdCount;
     private final HashMap<String/*Address*/, Long/*brokerId*/> brokerIdTable;
 
-    public BrokerIdInfo(String clusterName, String brokerName) {
+    public BrokerInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerIdCount = new AtomicLong(1L);
@@ -48,7 +50,19 @@ public class BrokerIdInfo {
         return brokerName;
     }
 
-    public HashMap<String, Long> getBrokerIdTable() {
-        return brokerIdTable;
+    public void addBroker(final String address, final Long brokerId) {
+        this.brokerIdTable.put(address, brokerId);
+    }
+
+    public boolean isBrokerExist(final String address) {
+        return this.brokerIdTable.containsKey(address);
+    }
+
+    public Set<String> getAllBroker() {
+        return new HashSet<>(this.brokerIdTable.keySet());
+    }
+
+    public Long getBrokerId(final String address) {
+        return this.brokerIdTable.get(address);
     }
 }

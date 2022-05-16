@@ -152,12 +152,15 @@ public class DefaultHAService implements HAService {
         return false;
     }
 
-    @Override public boolean changeToSlave(String newMasterAddr, String newHaMasterAddr, int newMasterEpoch) {
+    @Override public boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
         return false;
     }
 
-    @Override public Set<String> checkSyncStateSetChanged() {
+    @Override public Set<String> getLatestSyncStateSet() {
         return null;
+    }
+
+    @Override public void setSyncStateSet(Set<String> syncStateSet) {
     }
 
     public void destroyConnections() {

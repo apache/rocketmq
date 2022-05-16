@@ -16,55 +16,52 @@
  */
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
-    private final String brokerName;
-    private final String masterAddress;
-    private final int masterEpoch;
-    private final Set<String> newSyncStateSet;
-    private final int syncStateSetEpoch;
+    private String brokerName;
+    private String masterAddress;
+    private int masterEpoch;
 
-    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch,
-        Set<String> newSyncStateSet, int syncStateSetEpoch) {
+    public AlterSyncStateSetRequestHeader() {
+    }
+
+    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch) {
         this.brokerName = brokerName;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
-        this.newSyncStateSet = new HashSet<>(newSyncStateSet);
-        this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
     public String getBrokerName() {
         return brokerName;
     }
 
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
     public String getMasterAddress() {
         return masterAddress;
+    }
+
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
     }
 
     public int getMasterEpoch() {
         return masterEpoch;
     }
 
-    public Set<String> getNewSyncStateSet() {
-        return new HashSet<>(newSyncStateSet);
+    public void setMasterEpoch(int masterEpoch) {
+        this.masterEpoch = masterEpoch;
     }
 
-    public int getSyncStateSetEpoch() {
-        return syncStateSetEpoch;
-    }
-
-    @Override
-    public String toString() {
+    @Override public String toString() {
         return "AlterSyncStateSetRequestHeader{" +
             "brokerName='" + brokerName + '\'' +
             ", masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
-            ", newSyncStateSet=" + newSyncStateSet +
-            ", syncStateSetEpoch=" + syncStateSetEpoch +
             '}';
     }
 

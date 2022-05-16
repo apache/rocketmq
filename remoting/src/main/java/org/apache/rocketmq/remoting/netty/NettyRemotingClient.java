@@ -277,7 +277,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     LOGGER.error("scanAvailableNameSrv exception", e);
                 }
             }
-        }, 1000 * 3, this.nettyClientConfig.getConnectTimeoutMillis());
+        }, 0, this.nettyClientConfig.getConnectTimeoutMillis());
 
     }
 
