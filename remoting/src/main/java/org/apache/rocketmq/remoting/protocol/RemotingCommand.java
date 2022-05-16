@@ -106,7 +106,7 @@ public class RemotingCommand {
         return cmd;
     }
 
-    private static void setCmdVersion(RemotingCommand cmd) {
+    protected static void setCmdVersion(RemotingCommand cmd) {
         if (configVersion >= 0) {
             cmd.setVersion(configVersion);
         } else {

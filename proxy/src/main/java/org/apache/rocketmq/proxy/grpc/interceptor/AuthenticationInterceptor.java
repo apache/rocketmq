@@ -32,7 +32,6 @@ import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.MetadataHeader;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
-import org.apache.rocketmq.proxy.grpc.v2.adapter.RequestMapping;
 
 public class AuthenticationInterceptor implements ServerInterceptor {
     private final List<AccessValidator> accessValidatorList;

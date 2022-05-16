@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.proxy.config;
 
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
+import org.apache.rocketmq.proxy.ProxyMode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
