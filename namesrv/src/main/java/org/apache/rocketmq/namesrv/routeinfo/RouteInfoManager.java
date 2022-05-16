@@ -96,19 +96,20 @@ public class RouteInfoManager {
                 if (brokerNames != null
                     && !brokerNames.isEmpty()) {
                     Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topic);
-                    for (String brokerName : brokerNames) {
-                        final QueueData removedQD = queueDataMap.remove(brokerName);
-                        if (removedQD != null) {
-                            log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, topic,
-                                removedQD);
+                    if (queueDataMap != null) {
+                        for (String brokerName : brokerNames) {
+                            final QueueData removedQD = queueDataMap.remove(brokerName);
+                            if (removedQD != null) {
+                                log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, topic,
+                                    removedQD);
+                            }
                         }
-
                         if (queueDataMap.isEmpty()) {
-                            log.info("deleteTopic, remove the topic all queue {} {}", brokerName, topic);
+                            log.info("deleteTopic, remove the topic all queue {} {}", clusterName, topic);
                             this.topicQueueTable.remove(topic);
-                            break;
                         }
                     }
+
                 }
             } finally {
                 this.lock.writeLock().unlock();
