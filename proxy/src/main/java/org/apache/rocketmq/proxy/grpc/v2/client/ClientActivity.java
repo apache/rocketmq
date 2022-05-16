@@ -1,0 +1,360 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.rocketmq.proxy.grpc.v2.client;
+
+import apache.rocketmq.v2.ClientType;
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.FilterExpression;
+import apache.rocketmq.v2.HeartbeatRequest;
+import apache.rocketmq.v2.HeartbeatResponse;
+import apache.rocketmq.v2.NotifyClientTerminationRequest;
+import apache.rocketmq.v2.NotifyClientTerminationResponse;
+import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.SubscriptionEntry;
+import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.ThreadStackTrace;
+import apache.rocketmq.v2.VerifyMessageResult;
+import io.grpc.Context;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
+import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
+import org.apache.rocketmq.broker.client.ProducerChangeListener;
+import org.apache.rocketmq.broker.client.ProducerGroupEvent;
+import org.apache.rocketmq.common.MQVersion;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.filter.FilterAPI;
+import org.apache.rocketmq.common.protocol.body.CMResult;
+import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcContextConstants;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
+
+public class ClientActivity extends AbstractMessingActivity {
+
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+
+    private final GrpcChannelManager grpcChannelManager;
+
+    public ClientActivity(MessagingProcessor messagingProcessor,
+        GrpcClientSettingsManager grpcClientSettingsManager) {
+        super(messagingProcessor, grpcClientSettingsManager);
+
+        this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyOutService());
+
+        this.init();
+    }
+
+    protected void init() {
+        this.messagingProcessor.registerConsumerListener(new ConsumerIdsChangeListenerImpl());
+        this.messagingProcessor.registerProducerListener(new ProducerChangeListenerImpl());
+    }
+
+    public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+        CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
+
+        try {
+            ProxyContext context = createContext(ctx);
+            String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
+            LanguageCode languageCode = context.getVal(GrpcContextConstants.LANGUAGE);
+
+            Settings clientSettings = grpcClientSettingsManager.getClientSettings(clientId);
+            switch (clientSettings.getClientType()) {
+                case PRODUCER: {
+                    for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
+                        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                        GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
+                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                        // use topic name as producer group
+                        this.messagingProcessor.registerProducer(context, topicName, clientChannelInfo);
+                        this.messagingProcessor.addTransactionSubscription(context, topicName, topicName);
+                    }
+                    break;
+                }
+                case PUSH_CONSUMER:
+                case SIMPLE_CONSUMER: {
+                    if (!request.hasGroup()) {
+                        throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, "group cannot be empty for consumer");
+                    }
+                    String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+                    GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, consumerGroup, clientId);
+                    ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+
+                    this.messagingProcessor.registerConsumer(
+                        context,
+                        consumerGroup,
+                        clientChannelInfo,
+                        this.buildConsumeType(clientSettings.getClientType()),
+                        MessageModel.CLUSTERING,
+                        ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+                        this.buildSubscriptionDataSet(clientSettings.getSubscription().getSubscriptionsList())
+                    );
+                    break;
+                }
+                default: {
+                    throw new IllegalArgumentException("ClientType not exist " + clientSettings.getClientType());
+                }
+            }
+            future.complete(HeartbeatResponse.newBuilder()
+                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .build());
+            return future;
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx, NotifyClientTerminationRequest request) {
+        CompletableFuture<NotifyClientTerminationResponse> future = new CompletableFuture<>();
+
+        try {
+            ProxyContext context = createContext(ctx);
+            String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
+            LanguageCode languageCode = context.getVal(GrpcContextConstants.LANGUAGE);
+            Settings clientSettings = grpcClientSettingsManager.getClientSettings(clientId);
+
+            switch (clientSettings.getClientType()) {
+                case PRODUCER:
+                    for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
+                        String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                        // user topic name as producer group
+                        GrpcClientChannel channel = this.grpcChannelManager.removeChannel(topicName, clientId);
+                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                        if (channel != null) {
+                            this.messagingProcessor.unRegisterProducer(context, topicName, clientChannelInfo);
+                        }
+                    }
+                    break;
+                case PUSH_CONSUMER:
+                case SIMPLE_CONSUMER:
+                    if (!request.hasGroup()) {
+                        throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, "group cannot be empty for consumer");
+                    }
+                    String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+                    GrpcClientChannel channel = this.grpcChannelManager.removeChannel(consumerGroup, clientId);
+                    ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                    if (channel != null) {
+                        this.messagingProcessor.unRegisterConsumer(context, consumerGroup, clientChannelInfo);
+                    }
+                    break;
+                default:
+                    break;
+            }
+            future.complete(NotifyClientTerminationResponse.newBuilder()
+                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                .build());
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public StreamObserver<TelemetryCommand> telemetry(Context ctx, StreamObserver<TelemetryCommand> responseObserver) {
+        return new StreamObserver<TelemetryCommand>() {
+            @Override
+            public void onNext(TelemetryCommand request) {
+                switch (request.getCommandCase()) {
+                    case SETTINGS: {
+                        responseObserver.onNext(processClientSettings(ctx, request, responseObserver));
+                        break;
+                    }
+                    case THREAD_STACK_TRACE: {
+                        reportThreadStackTrace(ctx, request.getThreadStackTrace());
+                        break;
+                    }
+                    case VERIFY_MESSAGE_RESULT: {
+                        reportVerifyMessageResult(ctx, request.getVerifyMessageResult());
+                        break;
+                    }
+                    default: {
+                        ResponseWriter.writeException(responseObserver, new StatusRuntimeException(
+                            Status.INVALID_ARGUMENT.withDescription("")
+                        ));
+                    }
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                log.error("telemetry on error", t);
+            }
+
+            @Override
+            public void onCompleted() {
+                responseObserver.onCompleted();
+            }
+        };
+    }
+
+    protected TelemetryCommand processClientSettings(Context ctx, TelemetryCommand request, StreamObserver<TelemetryCommand> responseObserver) {
+        ProxyContext context = createContext(ctx);
+        String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
+        grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
+        Settings settings = grpcClientSettingsManager.getClientSettings(clientId);
+        if (settings.hasPublishing()) {
+            for (Resource topic : settings.getPublishing().getTopicsList()) {
+                String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
+                GrpcClientChannel producerChannel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
+                producerChannel.setClientObserver(responseObserver);
+            }
+        }
+        if (settings.hasSubscription()) {
+            String groupName = GrpcConverter.wrapResourceWithNamespace(settings.getSubscription().getGroup());
+            GrpcClientChannel consumerChannel = this.grpcChannelManager.createChannel(ctx, groupName, clientId);
+            consumerChannel.setClientObserver(responseObserver);
+        }
+        return TelemetryCommand.newBuilder()
+            .setSettings(settings)
+            .build();
+    }
+
+    protected void reportThreadStackTrace(Context ctx, ThreadStackTrace request) {
+        String nonce = request.getNonce();
+        String threadStack = request.getThreadStackTrace();
+        CompletableFuture<ConsumerRunningInfo> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
+        if (responseFuture != null) {
+            try {
+                ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
+                runningInfo.setJstack(threadStack);
+                responseFuture.complete(runningInfo);
+            } catch (Throwable t) {
+                responseFuture.completeExceptionally(t);
+            }
+        }
+    }
+
+    protected void reportVerifyMessageResult(Context ctx, VerifyMessageResult request) {
+        String nonce = request.getNonce();
+        CompletableFuture<ConsumeMessageDirectlyResult> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
+        if (responseFuture != null) {
+            try {
+                ConsumeMessageDirectlyResult result = this.buildConsumeMessageDirectlyResult(request);
+                responseFuture.complete(result);
+            } catch (Throwable t) {
+                responseFuture.completeExceptionally(t);
+            }
+        }
+    }
+
+    protected ConsumeMessageDirectlyResult buildConsumeMessageDirectlyResult(VerifyMessageResult request) {
+        ConsumeMessageDirectlyResult consumeMessageDirectlyResult = new ConsumeMessageDirectlyResult();
+        switch (request.getStatus().getCode().getNumber()) {
+            case Code.OK_VALUE: {
+                consumeMessageDirectlyResult.setConsumeResult(CMResult.CR_SUCCESS);
+                break;
+            }
+            case Code.FAILED_TO_CONSUME_MESSAGE_VALUE: {
+                consumeMessageDirectlyResult.setConsumeResult(CMResult.CR_LATER);
+                break;
+            }
+            case Code.MESSAGE_CORRUPTED_VALUE: {
+                consumeMessageDirectlyResult.setConsumeResult(CMResult.CR_RETURN_NULL);
+                break;
+            }
+        }
+        consumeMessageDirectlyResult.setRemark("from gRPC client");
+        return consumeMessageDirectlyResult;
+    }
+
+    protected ConsumeType buildConsumeType(ClientType clientType) {
+        switch (clientType) {
+            case SIMPLE_CONSUMER:
+                return ConsumeType.CONSUME_ACTIVELY;
+            case PUSH_CONSUMER:
+                return ConsumeType.CONSUME_PASSIVELY;
+            default:
+                throw new IllegalArgumentException("Client type is not consumer, type: " + clientType);
+        }
+    }
+
+    protected Set<SubscriptionData> buildSubscriptionDataSet(List<SubscriptionEntry> subscriptionEntryList) {
+        Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
+        for (SubscriptionEntry sub : subscriptionEntryList) {
+            String topicName = GrpcConverter.wrapResourceWithNamespace(sub.getTopic());
+            FilterExpression filterExpression = sub.getExpression();
+            subscriptionDataSet.add(buildSubscriptionData(topicName, filterExpression));
+        }
+        return subscriptionDataSet;
+    }
+
+    protected SubscriptionData buildSubscriptionData(String topicName, FilterExpression filterExpression) {
+        String expression = filterExpression.getExpression();
+        String expressionType = GrpcConverter.buildExpressionType(filterExpression.getType());
+        try {
+            return FilterAPI.build(topicName, expression, expressionType);
+        } catch (Exception e) {
+            throw new GrpcProxyException(Code.ILLEGAL_FILTER_EXPRESSION, "expression format is not correct", e);
+        }
+    }
+
+    protected class ConsumerIdsChangeListenerImpl implements ConsumerIdsChangeListener {
+
+        @Override
+        public void handle(ConsumerGroupEvent event, String group, Object... args) {
+            if (event == ConsumerGroupEvent.CLIENT_UNREGISTER) {
+                if (args == null || args.length < 1) {
+                    return;
+                }
+                if (args[0] instanceof ClientChannelInfo) {
+                    ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
+                    grpcChannelManager.removeChannel(group, clientChannelInfo.getClientId());
+                    grpcClientSettingsManager.removeClientSettings(clientChannelInfo.getClientId());
+                }
+            }
+        }
+
+        @Override
+        public void shutdown() {
+
+        }
+    }
+
+    protected class ProducerChangeListenerImpl implements ProducerChangeListener {
+
+        @Override
+        public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
+            if (event == ProducerGroupEvent.CLIENT_UNREGISTER) {
+                grpcChannelManager.removeChannel(group, clientChannelInfo.getClientId());
+                grpcClientSettingsManager.removeClientSettings(clientChannelInfo.getClientId());
+            }
+        }
+    }
+}

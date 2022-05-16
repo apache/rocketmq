@@ -1,0 +1,152 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.rocketmq.proxy.service.route;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.LoadingCache;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.proxy.common.AbstractCacheLoader;
+import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.proxy.common.Address;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.mqclient.DoNothingClientRemotingProcessor;
+import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.remoting.RPCHook;
+
+public abstract class TopicRouteService extends AbstractStartAndShutdown {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+
+    private final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
+
+    private final MQClientAPIFactory mqClientAPIFactory;
+    private final ScheduledExecutorService scheduledExecutorService;
+    private final ThreadPoolExecutor cacheRefreshExecutor;
+
+    public TopicRouteService(RPCHook rpcHook) {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryImpl("TopicRouteService_")
+        );
+        this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
+            config.getTopicRouteThreadPoolNums(),
+            config.getTopicRouteThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "TopicRouteCacheRefresh",
+            config.getTopicRouteThreadPoolQueueCapacity()
+        );
+        this.mqClientAPIFactory = new MQClientAPIFactory(
+            "TopicRouteServiceClient_",
+            1,
+            1,
+            new DoNothingClientRemotingProcessor(null),
+            rpcHook,
+            this.scheduledExecutorService
+        );
+        this.topicCache = CacheBuilder.newBuilder()
+            .maximumSize(config.getTopicRouteCacheMaxNum())
+            .refreshAfterWrite(config.getTopicRouteCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .build(new TopicRouteCacheLoader());
+
+        this.init();
+    }
+
+    protected void init() {
+        this.appendShutdown(this.scheduledExecutorService::shutdown);
+        this.appendStartAndShutdown(this.mqClientAPIFactory);
+    }
+
+    public MessageQueueView getAllMessageQueueView(String topicName) throws Exception {
+        return getCacheMessageQueueWrapper(this.topicCache, topicName);
+    }
+
+    public abstract MessageQueueView getCurrentMessageQueueView(String topicName) throws Exception;
+
+    public abstract ProxyTopicRouteData getTopicRouteForProxy(List<Address> requestHostAndPortList, String topicName) throws Exception;
+
+    public abstract String getBrokerAddr(String brokerName) throws Exception;
+
+    protected static MessageQueueView getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueView> topicCache, String key) throws Exception {
+        MessageQueueView res = topicCache.get(key);
+        if (res.isEmptyCachedQueue()) {
+            throw new MQClientException(ResponseCode.TOPIC_NOT_EXIST,
+                "No topic route info in name server for the topic: " + key);
+        }
+        return res;
+    }
+
+    protected static boolean isTopicRouteValid(TopicRouteData routeData) {
+        return routeData != null && routeData.getQueueDatas() != null && !routeData.getQueueDatas().isEmpty()
+            && routeData.getBrokerDatas() != null && !routeData.getBrokerDatas().isEmpty();
+    }
+
+    protected abstract class AbstractTopicRouteCacheLoader extends AbstractCacheLoader<String, MessageQueueView> {
+
+        public AbstractTopicRouteCacheLoader() {
+            super(cacheRefreshExecutor);
+        }
+
+        protected abstract TopicRouteData loadTopicRouteData(String topic) throws Exception;
+
+        @Override
+        public MessageQueueView getDirectly(String topic) throws Exception {
+            try {
+                TopicRouteData topicRouteData = loadTopicRouteData(topic);
+
+                if (isTopicRouteValid(topicRouteData)) {
+                    MessageQueueView tmp = new MessageQueueView(topic, topicRouteData);
+                    log.info("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
+                    return tmp;
+                }
+                return MessageQueueView.WRAPPED_EMPTY_QUEUE;
+            } catch (Exception e) {
+                if (TopicRouteHelper.isTopicNotExistError(e)) {
+                    return MessageQueueView.WRAPPED_EMPTY_QUEUE;
+                }
+                throw e;
+            }
+        }
+
+        @Override
+        protected void onErr(String key, Exception e) {
+            log.error("load topic route from namesrv failed. topic:{}", key, e);
+        }
+    }
+
+    protected class TopicRouteCacheLoader extends AbstractTopicRouteCacheLoader {
+
+        @Override
+        protected TopicRouteData loadTopicRouteData(String topic) throws Exception {
+            return mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
+        }
+    }
+}

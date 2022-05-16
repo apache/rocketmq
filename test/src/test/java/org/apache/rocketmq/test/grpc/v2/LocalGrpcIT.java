@@ -20,27 +20,31 @@ package org.apache.rocketmq.test.grpc.v2;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteResponse;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingProcessor;
-import org.apache.rocketmq.proxy.grpc.v2.service.LocalGrpcService;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class LocalGrpcIT extends GrpcBaseIT {
-    private LocalGrpcService localGrpcService;
+
+    private ServiceManager serviceManager;
+    private GrpcMessagingApplication grpcMessagingApplication;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        localGrpcService = new LocalGrpcService(brokerController1);
-        localGrpcService.start();
-        GrpcMessagingProcessor processor = new GrpcMessagingProcessor(localGrpcService);
-        setUpServer(processor, ConfigurationManager.getProxyConfig().getGrpcServerPort(), true);
+        serviceManager = ServiceManager.createForClusterMode();
+        serviceManager.start();
+        grpcMessagingApplication = GrpcMessagingApplication.create(serviceManager);
+        grpcMessagingApplication.start();
+        setUpServer(grpcMessagingApplication, ConfigurationManager.getProxyConfig().getGrpcServerPort(), true);
     }
 
     @After
     public void clean() throws Exception {
-        localGrpcService.shutdown();
+        serviceManager.shutdown();
+        grpcMessagingApplication.shutdown();
         shutdown();
     }
 

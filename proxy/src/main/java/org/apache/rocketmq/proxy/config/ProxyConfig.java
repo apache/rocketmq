@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.proxy.config;
 
-import org.apache.rocketmq.proxy.grpc.v2.adapter.ProxyMode;
+import org.apache.rocketmq.proxy.ProxyMode;
 
 public class ProxyConfig {
     public final static String CONFIG_FILE_NAME = "rmq-proxy.json";
@@ -53,6 +53,9 @@ public class ProxyConfig {
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
 
     private int channelExpiredInSeconds = 60;
+
+    private int rocketmqMQClientNum = 6;
+    private double rocketmqMQClientWorkerFactor = 0.2f;
 
     private int forwardConsumerNum = 2;
     private double forwardConsumerWorkerFactor = 0.2f;
@@ -227,6 +230,22 @@ public class ProxyConfig {
 
     public void setChannelExpiredInSeconds(int channelExpiredInSeconds) {
         this.channelExpiredInSeconds = channelExpiredInSeconds;
+    }
+
+    public int getRocketmqMQClientNum() {
+        return rocketmqMQClientNum;
+    }
+
+    public void setRocketmqMQClientNum(int rocketmqMQClientNum) {
+        this.rocketmqMQClientNum = rocketmqMQClientNum;
+    }
+
+    public double getRocketmqMQClientWorkerFactor() {
+        return rocketmqMQClientWorkerFactor;
+    }
+
+    public void setRocketmqMQClientWorkerFactor(double rocketmqMQClientWorkerFactor) {
+        this.rocketmqMQClientWorkerFactor = rocketmqMQClientWorkerFactor;
     }
 
     public int getForwardConsumerNum() {
