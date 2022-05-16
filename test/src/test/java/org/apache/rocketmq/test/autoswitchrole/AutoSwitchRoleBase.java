@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
@@ -49,20 +50,27 @@ public class AutoSwitchRoleBase {
 
     private final String storePathRootParentDir = System.getProperty("user.home") + File.separator +
         UUID.randomUUID().toString().replace("-", "");
+    private static final AtomicInteger PORT_COUNTER = new AtomicInteger(35000);
     private final String storePathRootDir = storePathRootParentDir + File.separator + "store";
     private final String StoreMessage = "Once, there was a chance for me!";
     private final byte[] MessageBody = StoreMessage.getBytes();
     private final AtomicInteger QueueId = new AtomicInteger(0);
-    protected List<BrokerController> brokerList = new ArrayList<>();
+    private static final Random random = new Random();
+    protected List<BrokerController> brokerList;
     private SocketAddress BornHost;
     private SocketAddress StoreHost;
 
     protected void initialize() {
+        this.brokerList = new ArrayList<>();
         try {
             StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
             BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         } catch (Exception ignored) {
         }
+    }
+
+    public int nextPort() {
+        return PORT_COUNTER.addAndGet(10 + random.nextInt(10));
     }
 
     public BrokerController startBroker(String namesrvAddress, int brokerId, int haPort, int brokerListenPort,
