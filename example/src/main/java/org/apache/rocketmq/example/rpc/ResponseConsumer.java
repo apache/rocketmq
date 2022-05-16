@@ -31,21 +31,24 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class ResponseConsumer {
+
+    public static final String PRODUCER_GROUP = "please_rename_unique_group_name";
+    public static final String CONSUMER_GROUP = "please_rename_unique_group_name";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "RequestTopic";
+
     public static void main(String[] args) throws InterruptedException, MQClientException {
-        String producerGroup = "please_rename_unique_group_name";
-        String consumerGroup = "please_rename_unique_group_name";
-        String topic = "RequestTopic";
 
         // create a producer to send reply message
-        DefaultMQProducer replyProducer = new DefaultMQProducer(producerGroup);
+        DefaultMQProducer replyProducer = new DefaultMQProducer(PRODUCER_GROUP);
         // You need to set namesrvAddr to the address of the local namesrv
-        replyProducer.setNamesrvAddr("127.0.0.1:9876");
+        replyProducer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         replyProducer.start();
 
         // create consumer
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
         // You need to set namesrvAddr to the address of the local namesrv
-        consumer.setNamesrvAddr("127.0.0.1:9876");
+        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 
         // recommend client configs
@@ -71,7 +74,7 @@ public class ResponseConsumer {
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
 
-        consumer.subscribe(topic, "*");
+        consumer.subscribe(TOPIC, "*");
         consumer.start();
         System.out.printf("Consumer Started.%n");
     }

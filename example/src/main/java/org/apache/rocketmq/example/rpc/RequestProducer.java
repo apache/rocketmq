@@ -23,25 +23,28 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class RequestProducer {
-    public static void main(String[] args) throws MQClientException, InterruptedException {
-        String producerGroup = "please_rename_unique_group_name";
-        String topic = "RequestTopic";
-        long ttl = 3000;
+    public static final String PRODUCER_GROUP = "please_rename_unique_group_name";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "RequestTopic";
+    public static final String TAG = "Tag";
+    public static final long TTL = 3000L;
 
-        DefaultMQProducer producer = new DefaultMQProducer(producerGroup);
+    public static void main(String[] args) throws MQClientException, InterruptedException {
+
+        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
         //You need to set namesrvAddr to the address of the local namesrv
-        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.start();
 
         try {
-            Message msg = new Message(topic,
-                "",
+            Message msg = new Message(TOPIC,
+                TAG,
                 "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
 
             long begin = System.currentTimeMillis();
-            Message retMsg = producer.request(msg, ttl);
+            Message retMsg = producer.request(msg, TTL);
             long cost = System.currentTimeMillis() - begin;
-            System.out.printf("request to <%s> cost: %d replyMessage: %s %n", topic, cost, retMsg);
+            System.out.printf("request to <%s> cost: %d replyMessage: %s %n", TOPIC, cost, retMsg);
         } catch (Exception e) {
             e.printStackTrace();
         }
