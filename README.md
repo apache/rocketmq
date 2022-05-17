@@ -40,12 +40,12 @@ It offers a variety of features:
 * [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go): RocketMQ Go Client.
 * [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
 * [RocketMQ Client Nodejs](https://github.com/apache/rocketmq-client-nodejs)
-* [RocketMQ Spring](https://github.com/apache/rocketmq-spring)
-* [RocketMQ Exporter](https://github.com/apache/rocketmq-exporter)
+* [RocketMQ Spring](https://github.com/apache/rocketmq-spring): A project which helps developers quickly integrate RocketMQ with Spring Boot
+* [RocketMQ Exporter](https://github.com/apache/rocketmq-exporter): A RocketMQ exporter for Prometheus
 * [RocketMQ Operator](https://github.com/apache/rocketmq-operator): Provides a way to run an RocketMQ cluster on Kubernetes.
 * [RocketMQ Docker](https://github.com/apache/rocketmq-docker): The Git repo of the Docker Image for Apache RocketMQ.
 * [RocketMQ Dashboard](https://github.com/apache/rocketmq-dashboard): Operation and maintenance console of RocketMQ.
-* [RocketMQ Connect](https://github.com/apache/rocketmq-connect): A tool for scalably and reliably streaming data between Apache RocketMQ and other systems.
+* [RocketMQ Connect](https://github.com/apache/rocketmq-connect): A tool for scalably and reliably streaming data between Apache RocketMQ and other systems
 * [RocketMQ MQTT](https://github.com/apache/rocketmq-mqtt): A new MQTT protocol architecture model, based on which RocketMQ can better support messages from terminals such as IoT devices and Mobile APP.
 * [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals): Apache rocketmq is incubating the ecological project warehouse, including Spark, ES, Beats and other connectors.
 * [rocketmq-site](https://github.com/apache/rocketmq-site)
