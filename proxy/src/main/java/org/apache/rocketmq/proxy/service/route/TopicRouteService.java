@@ -37,9 +37,7 @@ import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.service.mqclient.DoNothingClientRemotingProcessor;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
-import org.apache.rocketmq.remoting.RPCHook;
 
 public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -50,7 +48,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private final ScheduledExecutorService scheduledExecutorService;
     private final ThreadPoolExecutor cacheRefreshExecutor;
 
-    public TopicRouteService(RPCHook rpcHook) {
+    public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
@@ -64,13 +62,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             "TopicRouteCacheRefresh",
             config.getTopicRouteServiceThreadPoolQueueCapacity()
         );
-        this.mqClientAPIFactory = new MQClientAPIFactory(
-            "TopicRouteServiceClient_",
-            1,
-            new DoNothingClientRemotingProcessor(null),
-            rpcHook,
-            this.scheduledExecutorService
-        );
+        this.mqClientAPIFactory = mqClientAPIFactory;
         this.topicCache = CacheBuilder.newBuilder()
             .maximumSize(config.getTopicRouteServiceCacheMaxNum())
             .refreshAfterWrite(config.getTopicRouteServiceCacheExpiredInSeconds(), TimeUnit.SECONDS)

@@ -21,12 +21,12 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.common.Address;
-import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 
 public class ClusterTopicRouteService extends TopicRouteService {
 
-    public ClusterTopicRouteService(RPCHook rpcHook) {
-        super(rpcHook);
+    public ClusterTopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
+        super(mqClientAPIFactory);
     }
 
     @Override
