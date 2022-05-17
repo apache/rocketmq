@@ -34,8 +34,8 @@ public class LocalMetadataService extends AbstractMetadataService {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
 
         this.topicCache = CacheBuilder.newBuilder()
-            .maximumSize(config.getTopicRouteCacheMaxNum())
-            .refreshAfterWrite(config.getTopicRouteCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .maximumSize(config.getTopicConfigCacheMaxNum())
+            .refreshAfterWrite(config.getTopicConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
             .build(new LocalTopicConfigCacheLoader(brokerController));
     }
 

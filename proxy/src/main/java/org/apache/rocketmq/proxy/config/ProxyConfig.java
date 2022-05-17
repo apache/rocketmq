@@ -80,11 +80,9 @@ public class ProxyConfig {
     private int topicRouteServiceThreadPoolQueueCapacity = 5000;
 
     private int topicConfigCacheExpiredInSeconds = 20;
-    private int topicConfigCacheExecutorThreadNum = 3;
-    private int topicConfigCacheExecutorQueueCapacity = 1000;
     private int topicConfigCacheMaxNum = 20000;
-    private int topicConfigThreadPoolNums = 36;
-    private int topicConfigThreadPoolQueueCapacity = 50000;
+    private int metadataThreadPoolNums = 3;
+    private int metadataThreadPoolQueueCapacity = 1000;
 
     private int transactionHeartbeatThreadPoolNums = 20;
     private int transactionHeartbeatThreadPoolQueueCapacity = 200;
@@ -417,22 +415,6 @@ public class ProxyConfig {
         this.topicConfigCacheExpiredInSeconds = topicConfigCacheExpiredInSeconds;
     }
 
-    public int getTopicConfigCacheExecutorThreadNum() {
-        return topicConfigCacheExecutorThreadNum;
-    }
-
-    public void setTopicConfigCacheExecutorThreadNum(int topicConfigCacheExecutorThreadNum) {
-        this.topicConfigCacheExecutorThreadNum = topicConfigCacheExecutorThreadNum;
-    }
-
-    public int getTopicConfigCacheExecutorQueueCapacity() {
-        return topicConfigCacheExecutorQueueCapacity;
-    }
-
-    public void setTopicConfigCacheExecutorQueueCapacity(int topicConfigCacheExecutorQueueCapacity) {
-        this.topicConfigCacheExecutorQueueCapacity = topicConfigCacheExecutorQueueCapacity;
-    }
-
     public int getTopicConfigCacheMaxNum() {
         return topicConfigCacheMaxNum;
     }
@@ -441,20 +423,20 @@ public class ProxyConfig {
         this.topicConfigCacheMaxNum = topicConfigCacheMaxNum;
     }
 
-    public int getTopicConfigThreadPoolNums() {
-        return topicConfigThreadPoolNums;
+    public int getMetadataThreadPoolNums() {
+        return metadataThreadPoolNums;
     }
 
-    public void setTopicConfigThreadPoolNums(int topicConfigThreadPoolNums) {
-        this.topicConfigThreadPoolNums = topicConfigThreadPoolNums;
+    public void setMetadataThreadPoolNums(int metadataThreadPoolNums) {
+        this.metadataThreadPoolNums = metadataThreadPoolNums;
     }
 
-    public int getTopicConfigThreadPoolQueueCapacity() {
-        return topicConfigThreadPoolQueueCapacity;
+    public int getMetadataThreadPoolQueueCapacity() {
+        return metadataThreadPoolQueueCapacity;
     }
 
-    public void setTopicConfigThreadPoolQueueCapacity(int topicConfigThreadPoolQueueCapacity) {
-        this.topicConfigThreadPoolQueueCapacity = topicConfigThreadPoolQueueCapacity;
+    public void setMetadataThreadPoolQueueCapacity(int metadataThreadPoolQueueCapacity) {
+        this.metadataThreadPoolQueueCapacity = metadataThreadPoolQueueCapacity;
     }
 
     public int getTransactionHeartbeatThreadPoolNums() {

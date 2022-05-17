@@ -40,8 +40,8 @@ public class ClusterMetadataService extends AbstractMetadataService {
         this.topicRouteService = topicRouteService;
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         this.topicCache = CacheBuilder.newBuilder()
-            .maximumSize(config.getTopicRouteCacheMaxNum())
-            .refreshAfterWrite(config.getTopicRouteCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .maximumSize(config.getTopicConfigCacheMaxNum())
+            .refreshAfterWrite(config.getTopicConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
             .build(new ClusterTopicConfigCacheLoader(mqClientAPIFactory));
     }
 

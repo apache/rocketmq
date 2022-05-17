@@ -37,12 +37,12 @@ public abstract class AbstractMetadataService extends AbstractStartAndShutdown i
     public AbstractMetadataService() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
-            config.getTopicConfigThreadPoolNums(),
-            config.getTopicConfigThreadPoolNums(),
+            config.getMetadataThreadPoolNums(),
+            config.getMetadataThreadPoolNums(),
             1000 * 60,
             TimeUnit.MILLISECONDS,
             "MetadataCacheRefresh",
-            config.getTopicConfigThreadPoolQueueCapacity()
+            config.getMetadataThreadPoolQueueCapacity()
         );
     }
 
