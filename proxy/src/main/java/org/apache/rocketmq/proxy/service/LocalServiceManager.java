@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.service;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
+import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.service.message.LocalMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.relay.LocalProxyRelayService;
@@ -29,7 +30,7 @@ import org.apache.rocketmq.proxy.service.transaction.LocalTransactionService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class LocalServiceManager extends ServiceManager {
+public class LocalServiceManager extends AbstractStartAndShutdown implements ServiceManager {
 
     private final BrokerController brokerController;
     private final TopicRouteService topicRouteService;
