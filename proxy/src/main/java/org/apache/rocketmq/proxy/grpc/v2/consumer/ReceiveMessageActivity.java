@@ -63,7 +63,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             pollTime = timeRemaining;
         }
         if (pollTime <= 0) {
-            writer.write(proxyContext, Code.MESSAGE_NOT_FOUND, "no new message");
+            writer.write(proxyContext, Code.MESSAGE_NOT_FOUND, "time remaining is too small");
             return;
         }
 

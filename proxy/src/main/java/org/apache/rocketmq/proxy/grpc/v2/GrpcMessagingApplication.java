@@ -83,7 +83,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             config.getGrpcProducerThreadPoolNums(),
             1,
             TimeUnit.MINUTES,
-            "GrpcRouteThreadPool",
+            "GrpcProducerThreadPool",
             config.getGrpcProducerThreadQueueCapacity()
         );
         this.consumerThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
@@ -91,7 +91,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             config.getGrpcConsumerThreadPoolNums(),
             1,
             TimeUnit.MINUTES,
-            "GrpcRouteThreadPool",
+            "GrpcConsumerThreadPool",
             config.getGrpcConsumerThreadQueueCapacity()
         );
         this.clientManagerThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
@@ -99,7 +99,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             config.getGrpcClientManagerThreadPoolNums(),
             1,
             TimeUnit.MINUTES,
-            "GrpcRouteThreadPool",
+            "GrpcClientManagerThreadPool",
             config.getGrpcClientManagerThreadQueueCapacity()
         );
         this.transactionThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
@@ -107,7 +107,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             config.getGrpcTransactionThreadPoolNums(),
             1,
             TimeUnit.MINUTES,
-            "GrpcRouteThreadPool",
+            "GrpcTransactionThreadPool",
             config.getGrpcTransactionThreadQueueCapacity()
         );
 
