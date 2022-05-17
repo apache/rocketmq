@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcContextConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -65,6 +66,15 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             writer.write(proxyContext, Code.MESSAGE_NOT_FOUND, "no new message");
             return;
         }
+
+        long invisibleTime = Durations.toMillis(request.getInvisibleDuration());
+        if (request.getAutoRenew()) {
+            invisibleTime = Durations.toMillis(
+                this.grpcClientSettingsManager.getClientSettings(proxyContext.getVal(GrpcContextConstants.CLIENT_ID))
+                    .getSubscription().getLongPollingTimeout()
+            );
+        }
+
         String topic = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
         String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
         FilterExpression filterExpression = request.getFilterExpression();
@@ -85,7 +95,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             group,
             topic,
             request.getBatchSize(),
-            Durations.toMillis(request.getInvisibleDuration()),
+            invisibleTime,
             pollTime,
             ConsumeInitMode.MAX,
             subscriptionData,
