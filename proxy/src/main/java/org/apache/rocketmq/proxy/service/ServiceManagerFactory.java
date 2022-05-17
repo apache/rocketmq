@@ -16,24 +16,23 @@
  */
 package org.apache.rocketmq.proxy.service;
 
-import org.apache.rocketmq.broker.client.ConsumerManager;
-import org.apache.rocketmq.broker.client.ProducerManager;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.service.message.MessageService;
-import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
-import org.apache.rocketmq.proxy.service.route.TopicRouteService;
-import org.apache.rocketmq.proxy.service.transaction.TransactionService;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.remoting.RPCHook;
 
-public interface ServiceManager extends StartAndShutdown {
-    MessageService getMessageService();
+public class ServiceManagerFactory {
+    public static ServiceManager createForLocalMode(BrokerController brokerController) {
+        return createForLocalMode(brokerController, null);
+    }
 
-    TopicRouteService getTopicRouteService();
+    public static ServiceManager createForLocalMode(BrokerController brokerController, RPCHook rpcHook) {
+        return new LocalServiceManager(brokerController, rpcHook);
+    }
 
-    ProducerManager getProducerManager();
+    public static ServiceManager createForClusterMode() {
+        return createForClusterMode(null);
+    }
 
-    ConsumerManager getConsumerManager();
-
-    TransactionService getTransactionService();
-
-    ProxyRelayService getProxyOutService();
+    public static ServiceManager createForClusterMode(RPCHook rpcHook) {
+        return new ClusterServiceManager(rpcHook);
+    }
 }

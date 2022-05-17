@@ -43,6 +43,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.proxy.service.ServiceManagerFactory;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
@@ -94,7 +95,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     public static DefaultMessagingProcessor createForLocalMode(BrokerController brokerController, RPCHook rpcHook) {
-        return new DefaultMessagingProcessor(ServiceManager.createForLocalMode(brokerController, rpcHook));
+        return new DefaultMessagingProcessor(ServiceManagerFactory.createForLocalMode(brokerController, rpcHook));
     }
 
     public static DefaultMessagingProcessor createForClusterMode() {
@@ -102,7 +103,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     public static DefaultMessagingProcessor createForClusterMode(RPCHook rpcHook) {
-        return new DefaultMessagingProcessor(ServiceManager.createForClusterMode(rpcHook));
+        return new DefaultMessagingProcessor(ServiceManagerFactory.createForClusterMode(rpcHook));
     }
 
     protected void init() {
