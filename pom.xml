@@ -456,6 +456,11 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-controller</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-client</artifactId>
                 <version>${project.version}</version>
             </dependency>

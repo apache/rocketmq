@@ -35,6 +35,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-controller</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-client</artifactId>
         </dependency>
         <dependency>

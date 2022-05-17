@@ -26,9 +26,9 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncSt
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.namesrv.controller.Controller;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;

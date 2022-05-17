@@ -54,10 +54,10 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
-import org.apache.rocketmq.namesrv.controller.Controller;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -81,11 +81,6 @@ public class RouteInfoManager {
     private final NamesrvController namesrvController;
     private final NamesrvConfig namesrvConfig;
     private Controller controller;
-
-    public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController, final Controller controller) {
-        this(namesrvConfig, namesrvController);
-        this.controller = controller;
-    }
 
     public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController) {
         this.topicQueueTable = new ConcurrentHashMap<String, Map<String, QueueData>>(1024);
@@ -607,8 +602,6 @@ public class RouteInfoManager {
                     if (this.namesrvController != null && this.namesrvController.getControllerConfig().isStartupController() && this.controller != null) {
                         if (unRegisterRequest.getBrokerId() == 0) {
                             this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
-                            // Todo: Inform the master
-                            // However, because now the broker does not have the related api, so I will complete the process in the future.
                         }
                     }
                 }
@@ -1134,6 +1127,14 @@ public class RouteInfoManager {
         }
         return false;
     }
+
+    public void setController(Controller controller) {
+        this.controller = controller;
+    }
+
+    public Controller getController() {
+        return controller;
+    }
 }
 
 /**
@@ -1256,6 +1257,8 @@ class BrokerLiveInfo {
     public void setHaServerAddr(String haServerAddr) {
         this.haServerAddr = haServerAddr;
     }
+
+
 
     @Override
     public String toString() {
