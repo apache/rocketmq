@@ -37,8 +37,8 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
-import org.apache.rocketmq.proxy.service.ServiceManager;
-import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.slf4j.LoggerFactory;
 
 public class ProxyStartup {
@@ -63,11 +63,11 @@ public class ProxyStartup {
 
             ThreadPoolExecutor executor = createServerExecutor();
 
-            ServiceManager serviceManager = createServiceManager(null);
+            MessagingProcessor messagingProcessor = createMessagingProcessor();
 
             // create grpcServer
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor)
-                .addService(createServiceProcessor(serviceManager))
+                .addService(createServiceProcessor(messagingProcessor))
                 .configInterceptor()
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
@@ -94,12 +94,12 @@ public class ProxyStartup {
         log.info(new Date() + " rmq-proxy startup successfully");
     }
 
-    private static ServiceManager createServiceManager(RPCHook rpcHook) {
+    private static MessagingProcessor createMessagingProcessor() {
         String proxyModeStr = ConfigurationManager.getProxyConfig().getProxyMode();
-        ServiceManager serviceManager;
+        MessagingProcessor messagingProcessor;
 
         if (ProxyMode.isClusterMode(proxyModeStr)) {
-            serviceManager = ServiceManager.createForClusterMode(rpcHook);
+            messagingProcessor = DefaultMessagingProcessor.createForClusterMode();
         } else if (ProxyMode.isLocalMode(proxyModeStr)) {
             BrokerController brokerController = createBrokerController();
             StartAndShutdown brokerControllerWrapper = new StartAndShutdown() {
@@ -114,16 +114,16 @@ public class ProxyStartup {
                 }
             };
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(brokerControllerWrapper);
-            serviceManager = ServiceManager.createForLocalMode(brokerController, rpcHook);
+            messagingProcessor = DefaultMessagingProcessor.createForLocalMode(brokerController);
         } else {
             throw new IllegalArgumentException("try to start grpc server with wrong mode, use 'local' or 'cluster'");
         }
-        PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(serviceManager);
-        return serviceManager;
+        PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(messagingProcessor);
+        return messagingProcessor;
     }
 
-    private static GrpcMessagingApplication createServiceProcessor(ServiceManager serviceManager) {
-        GrpcMessagingApplication application = GrpcMessagingApplication.create(serviceManager);
+    private static GrpcMessagingApplication createServiceProcessor(MessagingProcessor messagingProcessor) {
+        GrpcMessagingApplication application = GrpcMessagingApplication.create(messagingProcessor);
         PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(application);
         return application;
     }

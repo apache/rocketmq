@@ -163,7 +163,10 @@ public class GrpcConverter {
         systemPropertiesBuilder.setBornTimestamp(Timestamps.fromMillis(bornTimestamp));
 
         // born_host
-        systemPropertiesBuilder.setBornHost(messageExt.getBornHostString());
+        String bornHostString = messageExt.getBornHostString();
+        if (bornHostString != null) {
+            systemPropertiesBuilder.setBornHost(bornHostString);
+        }
 
         // store_timestamp (millis)
         long storeTimestamp = messageExt.getStoreTimestamp();

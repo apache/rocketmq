@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.common;
 
 import com.google.common.net.HostAndPort;
+import java.util.Objects;
 
 public class Address {
 
@@ -49,5 +50,22 @@ public class Address {
 
     public void setHostAndPort(HostAndPort hostAndPort) {
         this.hostAndPort = hostAndPort;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Address address = (Address) o;
+        return addressScheme == address.addressScheme && Objects.equals(hostAndPort, address.hostAndPort);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(addressScheme, hostAndPort);
     }
 }

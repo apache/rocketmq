@@ -21,6 +21,8 @@ import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteResponse;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.junit.After;
 import org.junit.Before;
@@ -28,22 +30,22 @@ import org.junit.Test;
 
 public class LocalGrpcIT extends GrpcBaseIT {
 
-    private ServiceManager serviceManager;
+    private MessagingProcessor messagingProcessor;
     private GrpcMessagingApplication grpcMessagingApplication;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        serviceManager = ServiceManager.createForClusterMode();
-        serviceManager.start();
-        grpcMessagingApplication = GrpcMessagingApplication.create(serviceManager);
+        messagingProcessor = DefaultMessagingProcessor.createForClusterMode();
+        messagingProcessor.start();
+        grpcMessagingApplication = GrpcMessagingApplication.create(messagingProcessor);
         grpcMessagingApplication.start();
         setUpServer(grpcMessagingApplication, ConfigurationManager.getProxyConfig().getGrpcServerPort(), true);
     }
 
     @After
     public void clean() throws Exception {
-        serviceManager.shutdown();
+        messagingProcessor.shutdown();
         grpcMessagingApplication.shutdown();
         shutdown();
     }

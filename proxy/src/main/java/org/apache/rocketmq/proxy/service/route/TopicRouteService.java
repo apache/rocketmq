@@ -57,24 +57,23 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             new ThreadFactoryImpl("TopicRouteService_")
         );
         this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
-            config.getTopicRouteThreadPoolNums(),
-            config.getTopicRouteThreadPoolNums(),
+            config.getTopicRouteServiceThreadPoolNums(),
+            config.getTopicRouteServiceThreadPoolNums(),
             1000 * 60,
             TimeUnit.MILLISECONDS,
             "TopicRouteCacheRefresh",
-            config.getTopicRouteThreadPoolQueueCapacity()
+            config.getTopicRouteServiceThreadPoolQueueCapacity()
         );
         this.mqClientAPIFactory = new MQClientAPIFactory(
             "TopicRouteServiceClient_",
-            1,
             1,
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
             this.scheduledExecutorService
         );
         this.topicCache = CacheBuilder.newBuilder()
-            .maximumSize(config.getTopicRouteCacheMaxNum())
-            .refreshAfterWrite(config.getTopicRouteCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .maximumSize(config.getTopicRouteServiceCacheMaxNum())
+            .refreshAfterWrite(config.getTopicRouteServiceCacheExpiredInSeconds(), TimeUnit.SECONDS)
             .build(new TopicRouteCacheLoader());
 
         this.init();

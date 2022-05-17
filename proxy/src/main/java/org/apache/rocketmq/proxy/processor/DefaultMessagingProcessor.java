@@ -20,6 +20,9 @@ import io.netty.channel.Channel;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
@@ -33,16 +36,22 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.utils.FutureUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.out.ProxyOutService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class DefaultMessagingProcessor implements MessagingProcessor {
+public class DefaultMessagingProcessor extends AbstractStartAndShutdown implements MessagingProcessor {
 
     private final ServiceManager serviceManager;
     private final ProducerProcessor producerProcessor;
@@ -50,12 +59,57 @@ public class DefaultMessagingProcessor implements MessagingProcessor {
     private final TransactionProcessor transactionProcessor;
     private final ClientProcessor clientProcessor;
 
-    public DefaultMessagingProcessor(ServiceManager serviceManager) {
+    protected final ThreadPoolExecutor producerProcessorExecutor;
+    protected final ThreadPoolExecutor consumerProcessorExecutor;
+
+    protected DefaultMessagingProcessor(ServiceManager serviceManager) {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        this.producerProcessorExecutor = ThreadPoolMonitor.createAndMonitor(
+            proxyConfig.getProducerProcessorThreadPoolNums(),
+            proxyConfig.getProducerProcessorThreadPoolNums(),
+            1,
+            TimeUnit.MINUTES,
+            "ProducerProcessorExecutor",
+            proxyConfig.getProducerProcessorThreadPoolQueueCapacity()
+        );
+        this.consumerProcessorExecutor = ThreadPoolMonitor.createAndMonitor(
+            proxyConfig.getConsumerProcessorThreadPoolNums(),
+            proxyConfig.getConsumerProcessorThreadPoolNums(),
+            1,
+            TimeUnit.MINUTES,
+            "ConsumerProcessorExecutor",
+            proxyConfig.getConsumerProcessorThreadPoolQueueCapacity()
+        );
+
         this.serviceManager = serviceManager;
-        this.producerProcessor = new ProducerProcessor(this, serviceManager);
-        this.consumerProcessor = new ConsumerProcessor(this, serviceManager);
+        this.producerProcessor = new ProducerProcessor(this, serviceManager, this.producerProcessorExecutor);
+        this.consumerProcessor = new ConsumerProcessor(this, serviceManager, this.consumerProcessorExecutor);
         this.transactionProcessor = new TransactionProcessor(this, serviceManager);
         this.clientProcessor = new ClientProcessor(this, serviceManager);
+
+        this.init();
+    }
+
+    public static DefaultMessagingProcessor createForLocalMode(BrokerController brokerController) {
+        return createForLocalMode(brokerController, null);
+    }
+
+    public static DefaultMessagingProcessor createForLocalMode(BrokerController brokerController, RPCHook rpcHook) {
+        return new DefaultMessagingProcessor(ServiceManager.createForLocalMode(brokerController, rpcHook));
+    }
+
+    public static DefaultMessagingProcessor createForClusterMode() {
+        return createForClusterMode(null);
+    }
+
+    public static DefaultMessagingProcessor createForClusterMode(RPCHook rpcHook) {
+        return new DefaultMessagingProcessor(ServiceManager.createForClusterMode(rpcHook));
+    }
+
+    protected void init() {
+        this.appendStartAndShutdown(this.serviceManager);
+        this.appendShutdown(this.producerProcessorExecutor::shutdown);
+        this.appendShutdown(this.consumerProcessorExecutor::shutdown);
     }
 
     @Override
@@ -78,7 +132,8 @@ public class DefaultMessagingProcessor implements MessagingProcessor {
 
     @Override
     public void endTransaction(ProxyContext ctx, TransactionId transactionId, String messageId,
-        String producerGroup, TransactionStatus transactionStatus, boolean fromTransactionCheck, long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
+        String producerGroup, TransactionStatus transactionStatus, boolean fromTransactionCheck,
+        long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
         this.transactionProcessor.endTransaction(ctx, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, timeoutMillis);
     }
 

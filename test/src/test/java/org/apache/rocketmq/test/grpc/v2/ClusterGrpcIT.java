@@ -24,7 +24,8 @@ import java.util.Map;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
-import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -34,16 +35,16 @@ import static org.awaitility.Awaitility.await;
 
 public class ClusterGrpcIT extends GrpcBaseIT {
 
-    private ServiceManager serviceManager;
+    private MessagingProcessor messagingProcessor;
     private GrpcMessagingApplication grpcMessagingApplication;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
         ConfigurationManager.getProxyConfig().setTransactionHeartbeatPeriodSecond(3);
-        serviceManager = ServiceManager.createForClusterMode();
-        serviceManager.start();
-        grpcMessagingApplication = GrpcMessagingApplication.create(serviceManager);
+        messagingProcessor = DefaultMessagingProcessor.createForClusterMode();
+        messagingProcessor.start();
+        grpcMessagingApplication = GrpcMessagingApplication.create(messagingProcessor);
         grpcMessagingApplication.start();
         setUpServer(grpcMessagingApplication, ConfigurationManager.getProxyConfig().getGrpcServerPort(), true);
 
@@ -55,7 +56,7 @@ public class ClusterGrpcIT extends GrpcBaseIT {
 
     @After
     public void tearDown() throws Exception {
-        serviceManager.shutdown();
+        messagingProcessor.shutdown();
         grpcMessagingApplication.shutdown();
         shutdown();
     }

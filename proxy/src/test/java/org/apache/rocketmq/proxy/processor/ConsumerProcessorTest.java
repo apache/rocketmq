@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -63,7 +64,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.consumerProcessor = new ConsumerProcessor(this.messagingProcessor, this.serviceManager);
+        this.consumerProcessor = new ConsumerProcessor(this.messagingProcessor, this.serviceManager, Executors.newCachedThreadPool());
     }
 
     @Test

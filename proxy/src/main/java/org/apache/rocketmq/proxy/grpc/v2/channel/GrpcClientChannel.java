@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestH
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.service.out.ProxyChannel;
+import org.apache.rocketmq.proxy.service.out.ProxyOutResult;
 import org.apache.rocketmq.proxy.service.out.ProxyOutService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -153,7 +154,7 @@ public class GrpcClientChannel extends ProxyChannel {
     @Override
     protected CompletableFuture<Void> processGetConsumerRunningInfo(RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header,
-        CompletableFuture<ConsumerRunningInfo> responseFuture) {
+        CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> responseFuture) {
         if (!header.isJstackEnable()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -168,7 +169,7 @@ public class GrpcClientChannel extends ProxyChannel {
     @Override
     protected CompletableFuture<Void> processConsumeMessageDirectly(RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header,
-        MessageExt messageExt, CompletableFuture<ConsumeMessageDirectlyResult> responseFuture) {
+        MessageExt messageExt, CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> responseFuture) {
         this.getTelemetryCommandStreamObserver().onNext(TelemetryCommand.newBuilder()
             .setVerifyMessageCommand(VerifyMessageCommand.newBuilder()
                 .setNonce(this.grpcChannelManager.addResponseFuture(responseFuture))

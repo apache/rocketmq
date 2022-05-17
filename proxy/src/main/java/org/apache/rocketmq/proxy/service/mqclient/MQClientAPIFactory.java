@@ -35,17 +35,15 @@ public class MQClientAPIFactory implements StartAndShutdown {
     private MQClientAPIExt[] clients;
     private final String namePrefix;
     private final int clientNum;
-    private final int bootstrapWorkerThreads;
     private final ClientRemotingProcessor clientRemotingProcessor;
     private final RPCHook rpcHook;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    public MQClientAPIFactory(String namePrefix, int clientNum, int bootstrapWorkerThreads,
+    public MQClientAPIFactory(String namePrefix, int clientNum,
         ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook, ScheduledExecutorService scheduledExecutorService) {
         this.namePrefix = namePrefix;
         this.clientNum = clientNum;
-        this.bootstrapWorkerThreads = bootstrapWorkerThreads;
         this.clientRemotingProcessor = clientRemotingProcessor;
         this.rpcHook = rpcHook;
         this.scheduledExecutorService = scheduledExecutorService;
@@ -93,8 +91,6 @@ public class MQClientAPIFactory implements StartAndShutdown {
         clientConfig.setInstanceName(instanceName);
 
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
-        nettyClientConfig.setBootstrapWorkerThreads(bootstrapWorkerThreads);
-        nettyClientConfig.setDisableNettyWorkerGroup(true);
         nettyClientConfig.setDisableCallbackExecutor(true);
 
         MQClientAPIExt mqClientAPIExt = new MQClientAPIExt(clientConfig, nettyClientConfig,

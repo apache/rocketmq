@@ -17,8 +17,98 @@
 
 package org.apache.rocketmq.proxy.processor;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ProducerProcessorTest extends BaseProcessorTest {
 
+    private static final String PRODUCER_GROUP = "producerGroup";
+    private static final String CONSUMER_GROUP = "consumerGroup";
+    private static final String TOPIC = "topic";
+
+    private ProducerProcessor producerProcessor;
+
+    @Before
+    public void before() throws Throwable {
+        super.before();
+        this.producerProcessor = new ProducerProcessor(this.messagingProcessor, this.serviceManager, Executors.newCachedThreadPool());
+    }
+
+    @Test
+    public void testSendMessage() throws Throwable {
+        ArgumentCaptor<SendMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(SendMessageRequestHeader.class);
+        when(this.messageService.sendMessage(any(), any(), any(), requestHeaderArgumentCaptor.capture(), anyLong()))
+        .thenReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
+
+        List<MessageExt> messageExtList = new ArrayList<>();
+        MessageExt messageExt = createMessageExt(MixAll.getRetryTopic(CONSUMER_GROUP), "tag", 0, 0);
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_RECONSUME_TIME, "1");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_MAX_RECONSUME_TIMES, "16");
+        messageExtList.add(messageExt);
+        SelectableMessageQueue messageQueue = mock(SelectableMessageQueue.class);
+
+        SendResult sendResult = this.producerProcessor.sendMessage(
+            createContext(),
+            (ctx, messageQueueView) -> messageQueue,
+            PRODUCER_GROUP,
+            messageExtList,
+            3000
+        ).get();
+
+        assertNotNull(sendResult);
+        SendMessageRequestHeader requestHeader = requestHeaderArgumentCaptor.getValue();
+        assertEquals(PRODUCER_GROUP, requestHeader.getProducerGroup());
+        assertEquals(MixAll.getRetryTopic(CONSUMER_GROUP), requestHeader.getTopic());
+        assertEquals(1, requestHeader.getReconsumeTimes().intValue());
+        assertEquals(16, requestHeader.getMaxReconsumeTimes().intValue());
+    }
+
+    @Test
+    public void testForwardMessageToDeadLetterQueue() throws Throwable {
+        ArgumentCaptor<ConsumerSendMsgBackRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(ConsumerSendMsgBackRequestHeader.class);
+        when(this.messageService.sendMessageBack(any(), any(), anyString(), requestHeaderArgumentCaptor.capture(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(mock(RemotingCommand.class)));
+
+        MessageExt messageExt = createMessageExt(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP), "", 16, 3000);
+        RemotingCommand remotingCommand = this.producerProcessor.forwardMessageToDeadLetterQueue(
+            createContext(),
+            ReceiptHandle.create(messageExt),
+            messageExt.getMsgId(),
+            CONSUMER_GROUP,
+            TOPIC,
+            3000
+        ).get();
+
+        assertNotNull(remotingCommand);
+        ConsumerSendMsgBackRequestHeader requestHeader = requestHeaderArgumentCaptor.getValue();
+        assertEquals(messageExt.getTopic(), requestHeader.getOriginTopic());
+        assertEquals(messageExt.getMsgId(), requestHeader.getOriginMsgId());
+        assertEquals(CONSUMER_GROUP, requestHeader.getGroup());
+    }
 }

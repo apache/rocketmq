@@ -25,13 +25,12 @@ import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Status;
 import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
 import io.grpc.Context;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.util.HashSet;
 import java.util.List;
@@ -46,6 +45,7 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.filter.FilterAPI;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.CMResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
@@ -54,17 +54,17 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
-import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcContextConstants;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
-import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.out.ProxyOutResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public class ClientActivity extends AbstractMessingActivity {
@@ -142,7 +142,8 @@ public class ClientActivity extends AbstractMessingActivity {
         return future;
     }
 
-    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx, NotifyClientTerminationRequest request) {
+    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+        NotifyClientTerminationRequest request) {
         CompletableFuture<NotifyClientTerminationResponse> future = new CompletableFuture<>();
 
         try {
@@ -197,17 +198,12 @@ public class ClientActivity extends AbstractMessingActivity {
                         break;
                     }
                     case THREAD_STACK_TRACE: {
-                        reportThreadStackTrace(ctx, request.getThreadStackTrace());
+                        reportThreadStackTrace(ctx, request.getStatus(), request.getThreadStackTrace());
                         break;
                     }
                     case VERIFY_MESSAGE_RESULT: {
-                        reportVerifyMessageResult(ctx, request.getVerifyMessageResult());
+                        reportVerifyMessageResult(ctx, request.getStatus(), request.getVerifyMessageResult());
                         break;
-                    }
-                    default: {
-                        ResponseWriter.writeException(responseObserver, new StatusRuntimeException(
-                            Status.INVALID_ARGUMENT.withDescription("")
-                        ));
                     }
                 }
             }
@@ -224,7 +220,8 @@ public class ClientActivity extends AbstractMessingActivity {
         };
     }
 
-    protected TelemetryCommand processClientSettings(Context ctx, TelemetryCommand request, StreamObserver<TelemetryCommand> responseObserver) {
+    protected TelemetryCommand processClientSettings(Context ctx, TelemetryCommand request,
+        StreamObserver<TelemetryCommand> responseObserver) {
         ProxyContext context = createContext(ctx);
         String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
         grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
@@ -242,41 +239,49 @@ public class ClientActivity extends AbstractMessingActivity {
             consumerChannel.setClientObserver(responseObserver);
         }
         return TelemetryCommand.newBuilder()
+            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
             .setSettings(settings)
             .build();
     }
 
-    protected void reportThreadStackTrace(Context ctx, ThreadStackTrace request) {
+    protected void reportThreadStackTrace(Context ctx, Status status, ThreadStackTrace request) {
         String nonce = request.getNonce();
         String threadStack = request.getThreadStackTrace();
-        CompletableFuture<ConsumerRunningInfo> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
+        CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
         if (responseFuture != null) {
             try {
-                ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
-                runningInfo.setJstack(threadStack);
-                responseFuture.complete(runningInfo);
+                if (status.getCode().equals(Code.OK)) {
+                    ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
+                    runningInfo.setJstack(threadStack);
+                    responseFuture.complete(new ProxyOutResult<>(ResponseCode.SUCCESS, "", runningInfo));
+                } else if (status.getCode().equals(Code.VERIFY_MESSAGE_FORBIDDEN)) {
+                    responseFuture.complete(new ProxyOutResult<>(ResponseCode.NO_PERMISSION, "forbidden to verify message", null));
+                } else {
+                    responseFuture.complete(new ProxyOutResult<>(ResponseCode.SYSTEM_ERROR, "verify message failed", null));
+                }
             } catch (Throwable t) {
                 responseFuture.completeExceptionally(t);
             }
         }
     }
 
-    protected void reportVerifyMessageResult(Context ctx, VerifyMessageResult request) {
+    protected void reportVerifyMessageResult(Context ctx, Status status, VerifyMessageResult request) {
         String nonce = request.getNonce();
-        CompletableFuture<ConsumeMessageDirectlyResult> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
+        CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
         if (responseFuture != null) {
             try {
-                ConsumeMessageDirectlyResult result = this.buildConsumeMessageDirectlyResult(request);
-                responseFuture.complete(result);
+                ConsumeMessageDirectlyResult result = this.buildConsumeMessageDirectlyResult(status, request);
+                responseFuture.complete(new ProxyOutResult<>(ResponseCode.SUCCESS, "", result));
             } catch (Throwable t) {
                 responseFuture.completeExceptionally(t);
             }
         }
     }
 
-    protected ConsumeMessageDirectlyResult buildConsumeMessageDirectlyResult(VerifyMessageResult request) {
+    protected ConsumeMessageDirectlyResult buildConsumeMessageDirectlyResult(Status status,
+        VerifyMessageResult request) {
         ConsumeMessageDirectlyResult consumeMessageDirectlyResult = new ConsumeMessageDirectlyResult();
-        switch (request.getStatus().getCode().getNumber()) {
+        switch (status.getCode().getNumber()) {
             case Code.OK_VALUE: {
                 consumeMessageDirectlyResult.setConsumeResult(CMResult.CR_SUCCESS);
                 break;

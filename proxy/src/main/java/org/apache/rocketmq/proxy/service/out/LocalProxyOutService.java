@@ -36,27 +36,30 @@ public class LocalProxyOutService implements ProxyOutService {
     }
 
     @Override
-    public CompletableFuture<ConsumerRunningInfo> processGetConsumerRunningInfo(RemotingCommand command,
+    public CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header) {
-        CompletableFuture<ConsumerRunningInfo> future = new CompletableFuture<>();
-        future.thenAccept(consumerRunningInfo -> {
-            RemotingServer remotingServer = this.brokerController.getRemotingServer();
-            if (remotingServer instanceof NettyRemotingAbstract) {
-                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
-                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "from gRPC client");
-                remotingCommand.setOpaque(command.getOpaque());
-                ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
-                runningInfo.setJstack(consumerRunningInfo.getJstack());
-                remotingCommand.setBody(runningInfo.encode());
+        CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> future = new CompletableFuture<>();
+        future.thenAccept(proxyOutResult -> {
+            if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
+                ConsumerRunningInfo consumerRunningInfo = proxyOutResult.getResult();
+                RemotingServer remotingServer = this.brokerController.getRemotingServer();
+                if (remotingServer instanceof NettyRemotingAbstract) {
+                    NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+                    RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "from gRPC client");
+                    remotingCommand.setOpaque(command.getOpaque());
+                    ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
+                    runningInfo.setJstack(consumerRunningInfo.getJstack());
+                    remotingCommand.setBody(runningInfo.encode());
 
-                // nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel(ctx)), remotingCommand);
+                    // nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel(ctx)), remotingCommand);
+                }
             }
         });
         return future;
     }
 
     @Override
-    public CompletableFuture<ConsumeMessageDirectlyResult> processConsumeMessageDirectly(RemotingCommand command,
+    public CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header) {
         return null;
     }

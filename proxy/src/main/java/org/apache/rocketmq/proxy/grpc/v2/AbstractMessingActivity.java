@@ -37,6 +37,6 @@ public abstract class AbstractMessingActivity {
     protected ProxyContext createContext(Context ctx) {
         return ProxyContext.create()
             .withVal(GrpcContextConstants.CLIENT_ID, InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID))
-            .withVal(GrpcContextConstants.LANGUAGE, LanguageCode.valueOf(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE)));
+            .withVal(GrpcContextConstants.LANGUAGE, LanguageCode.valueOf(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LANGUAGE)));
     }
 }

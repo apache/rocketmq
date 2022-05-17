@@ -21,6 +21,7 @@ import org.apache.rocketmq.proxy.ProxyMode;
 
 public class ProxyConfig {
     public final static String CONFIG_FILE_NAME = "rmq-proxy.json";
+    private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
 
     /**
      * configuration for ThreadPoolMonitor
@@ -41,9 +42,9 @@ public class ProxyConfig {
     private String grpcTlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
     private String grpcTlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     private int grpcBossLoopNum = 1;
-    private int grpcWorkerLoopNum = Runtime.getRuntime().availableProcessors() * 2;
+    private int grpcWorkerLoopNum = PROCESSOR_NUMBER * 2;
     private boolean enableGrpcEpoll = false;
-    private int grpcThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
+    private int grpcThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int grpcThreadPoolQueueCapacity = 100000;
     private String brokerConfigPath = ConfigurationManager.getProxyHome() + "/conf/broker.conf";
     /**
@@ -55,21 +56,28 @@ public class ProxyConfig {
     private int channelExpiredInSeconds = 60;
 
     private int rocketmqMQClientNum = 6;
-    private double rocketmqMQClientWorkerFactor = 0.2f;
 
-    private int forwardConsumerNum = 2;
-    private double forwardConsumerWorkerFactor = 0.2f;
-    private int forwardProducerNum = 2;
-    private double forwardProducerWorkerFactor = 0.2f;
-    private int defaultForwardClientNum = 2;
-    private double defaultForwardClientWorkerFactor = 0.2f;
+    private long grpcProxyOutRequestTimeoutSecond = 5;
+    private int grpcProducerThreadPoolNums = PROCESSOR_NUMBER;
+    private int grpcProducerThreadQueueCapacity = 10000;
+    private int grpcConsumerThreadPoolNums = PROCESSOR_NUMBER;
+    private int grpcConsumerThreadQueueCapacity = 10000;
+    private int grpcRouteThreadPoolNums = PROCESSOR_NUMBER;
+    private int grpcRouteThreadQueueCapacity = 10000;
+    private int grpcClientManagerThreadPoolNums = PROCESSOR_NUMBER;
+    private int grpcClientManagerThreadQueueCapacity = 10000;
+    private int grpcTransactionThreadPoolNums = PROCESSOR_NUMBER;
+    private int grpcTransactionThreadQueueCapacity = 10000;
 
-    private int topicRouteCacheExpiredInSeconds = 20;
-    private int topicRouteCacheExecutorThreadNum = 3;
-    private int topicRouteCacheExecutorQueueCapacity = 1000;
-    private int topicRouteCacheMaxNum = 20000;
-    private int topicRouteThreadPoolNums = 36;
-    private int topicRouteThreadPoolQueueCapacity = 50000;
+    private int producerProcessorThreadPoolNums = PROCESSOR_NUMBER;
+    private int producerProcessorThreadPoolQueueCapacity = 10000;
+    private int consumerProcessorThreadPoolNums = PROCESSOR_NUMBER;
+    private int consumerProcessorThreadPoolQueueCapacity = 10000;
+
+    private int topicRouteServiceCacheExpiredInSeconds = 20;
+    private int topicRouteServiceCacheMaxNum = 20000;
+    private int topicRouteServiceThreadPoolNums = PROCESSOR_NUMBER;
+    private int topicRouteServiceThreadPoolQueueCapacity = 5000;
 
     private int transactionHeartbeatThreadPoolNums = 20;
     private int transactionHeartbeatThreadPoolQueueCapacity = 200;
@@ -240,108 +248,156 @@ public class ProxyConfig {
         this.rocketmqMQClientNum = rocketmqMQClientNum;
     }
 
-    public double getRocketmqMQClientWorkerFactor() {
-        return rocketmqMQClientWorkerFactor;
+    public long getGrpcProxyOutRequestTimeoutSecond() {
+        return grpcProxyOutRequestTimeoutSecond;
     }
 
-    public void setRocketmqMQClientWorkerFactor(double rocketmqMQClientWorkerFactor) {
-        this.rocketmqMQClientWorkerFactor = rocketmqMQClientWorkerFactor;
+    public void setGrpcProxyOutRequestTimeoutSecond(long grpcProxyOutRequestTimeoutSecond) {
+        this.grpcProxyOutRequestTimeoutSecond = grpcProxyOutRequestTimeoutSecond;
     }
 
-    public int getForwardConsumerNum() {
-        return forwardConsumerNum;
+    public int getGrpcProducerThreadPoolNums() {
+        return grpcProducerThreadPoolNums;
     }
 
-    public void setForwardConsumerNum(int forwardConsumerNum) {
-        this.forwardConsumerNum = forwardConsumerNum;
+    public void setGrpcProducerThreadPoolNums(int grpcProducerThreadPoolNums) {
+        this.grpcProducerThreadPoolNums = grpcProducerThreadPoolNums;
     }
 
-    public double getForwardConsumerWorkerFactor() {
-        return forwardConsumerWorkerFactor;
+    public int getGrpcProducerThreadQueueCapacity() {
+        return grpcProducerThreadQueueCapacity;
     }
 
-    public void setForwardConsumerWorkerFactor(double forwardConsumerWorkerFactor) {
-        this.forwardConsumerWorkerFactor = forwardConsumerWorkerFactor;
+    public void setGrpcProducerThreadQueueCapacity(int grpcProducerThreadQueueCapacity) {
+        this.grpcProducerThreadQueueCapacity = grpcProducerThreadQueueCapacity;
     }
 
-    public int getForwardProducerNum() {
-        return forwardProducerNum;
+    public int getGrpcConsumerThreadPoolNums() {
+        return grpcConsumerThreadPoolNums;
     }
 
-    public void setForwardProducerNum(int forwardProducerNum) {
-        this.forwardProducerNum = forwardProducerNum;
+    public void setGrpcConsumerThreadPoolNums(int grpcConsumerThreadPoolNums) {
+        this.grpcConsumerThreadPoolNums = grpcConsumerThreadPoolNums;
     }
 
-    public double getForwardProducerWorkerFactor() {
-        return forwardProducerWorkerFactor;
+    public int getGrpcConsumerThreadQueueCapacity() {
+        return grpcConsumerThreadQueueCapacity;
     }
 
-    public void setForwardProducerWorkerFactor(double forwardProducerWorkerFactor) {
-        this.forwardProducerWorkerFactor = forwardProducerWorkerFactor;
+    public void setGrpcConsumerThreadQueueCapacity(int grpcConsumerThreadQueueCapacity) {
+        this.grpcConsumerThreadQueueCapacity = grpcConsumerThreadQueueCapacity;
     }
 
-    public int getDefaultForwardClientNum() {
-        return defaultForwardClientNum;
+    public int getGrpcRouteThreadPoolNums() {
+        return grpcRouteThreadPoolNums;
     }
 
-    public void setDefaultForwardClientNum(int defaultForwardClientNum) {
-        this.defaultForwardClientNum = defaultForwardClientNum;
+    public void setGrpcRouteThreadPoolNums(int grpcRouteThreadPoolNums) {
+        this.grpcRouteThreadPoolNums = grpcRouteThreadPoolNums;
     }
 
-    public double getDefaultForwardClientWorkerFactor() {
-        return defaultForwardClientWorkerFactor;
+    public int getGrpcRouteThreadQueueCapacity() {
+        return grpcRouteThreadQueueCapacity;
     }
 
-    public void setDefaultForwardClientWorkerFactor(double defaultForwardClientWorkerFactor) {
-        this.defaultForwardClientWorkerFactor = defaultForwardClientWorkerFactor;
+    public void setGrpcRouteThreadQueueCapacity(int grpcRouteThreadQueueCapacity) {
+        this.grpcRouteThreadQueueCapacity = grpcRouteThreadQueueCapacity;
     }
 
-    public int getTopicRouteCacheExpiredInSeconds() {
-        return topicRouteCacheExpiredInSeconds;
+    public int getGrpcClientManagerThreadPoolNums() {
+        return grpcClientManagerThreadPoolNums;
     }
 
-    public void setTopicRouteCacheExpiredInSeconds(int topicRouteCacheExpiredInSeconds) {
-        this.topicRouteCacheExpiredInSeconds = topicRouteCacheExpiredInSeconds;
+    public void setGrpcClientManagerThreadPoolNums(int grpcClientManagerThreadPoolNums) {
+        this.grpcClientManagerThreadPoolNums = grpcClientManagerThreadPoolNums;
     }
 
-    public int getTopicRouteCacheExecutorThreadNum() {
-        return topicRouteCacheExecutorThreadNum;
+    public int getGrpcClientManagerThreadQueueCapacity() {
+        return grpcClientManagerThreadQueueCapacity;
     }
 
-    public void setTopicRouteCacheExecutorThreadNum(int topicRouteCacheExecutorThreadNum) {
-        this.topicRouteCacheExecutorThreadNum = topicRouteCacheExecutorThreadNum;
+    public void setGrpcClientManagerThreadQueueCapacity(int grpcClientManagerThreadQueueCapacity) {
+        this.grpcClientManagerThreadQueueCapacity = grpcClientManagerThreadQueueCapacity;
     }
 
-    public int getTopicRouteCacheExecutorQueueCapacity() {
-        return topicRouteCacheExecutorQueueCapacity;
+    public int getGrpcTransactionThreadPoolNums() {
+        return grpcTransactionThreadPoolNums;
     }
 
-    public void setTopicRouteCacheExecutorQueueCapacity(int topicRouteCacheExecutorQueueCapacity) {
-        this.topicRouteCacheExecutorQueueCapacity = topicRouteCacheExecutorQueueCapacity;
+    public void setGrpcTransactionThreadPoolNums(int grpcTransactionThreadPoolNums) {
+        this.grpcTransactionThreadPoolNums = grpcTransactionThreadPoolNums;
     }
 
-    public int getTopicRouteCacheMaxNum() {
-        return topicRouteCacheMaxNum;
+    public int getGrpcTransactionThreadQueueCapacity() {
+        return grpcTransactionThreadQueueCapacity;
     }
 
-    public void setTopicRouteCacheMaxNum(int topicRouteCacheMaxNum) {
-        this.topicRouteCacheMaxNum = topicRouteCacheMaxNum;
+    public void setGrpcTransactionThreadQueueCapacity(int grpcTransactionThreadQueueCapacity) {
+        this.grpcTransactionThreadQueueCapacity = grpcTransactionThreadQueueCapacity;
     }
 
-    public int getTopicRouteThreadPoolNums() {
-        return topicRouteThreadPoolNums;
+    public int getProducerProcessorThreadPoolNums() {
+        return producerProcessorThreadPoolNums;
     }
 
-    public void setTopicRouteThreadPoolNums(int topicRouteThreadPoolNums) {
-        this.topicRouteThreadPoolNums = topicRouteThreadPoolNums;
+    public void setProducerProcessorThreadPoolNums(int producerProcessorThreadPoolNums) {
+        this.producerProcessorThreadPoolNums = producerProcessorThreadPoolNums;
     }
 
-    public int getTopicRouteThreadPoolQueueCapacity() {
-        return topicRouteThreadPoolQueueCapacity;
+    public int getProducerProcessorThreadPoolQueueCapacity() {
+        return producerProcessorThreadPoolQueueCapacity;
     }
 
-    public void setTopicRouteThreadPoolQueueCapacity(int topicRouteThreadPoolQueueCapacity) {
-        this.topicRouteThreadPoolQueueCapacity = topicRouteThreadPoolQueueCapacity;
+    public void setProducerProcessorThreadPoolQueueCapacity(int producerProcessorThreadPoolQueueCapacity) {
+        this.producerProcessorThreadPoolQueueCapacity = producerProcessorThreadPoolQueueCapacity;
+    }
+
+    public int getConsumerProcessorThreadPoolNums() {
+        return consumerProcessorThreadPoolNums;
+    }
+
+    public void setConsumerProcessorThreadPoolNums(int consumerProcessorThreadPoolNums) {
+        this.consumerProcessorThreadPoolNums = consumerProcessorThreadPoolNums;
+    }
+
+    public int getConsumerProcessorThreadPoolQueueCapacity() {
+        return consumerProcessorThreadPoolQueueCapacity;
+    }
+
+    public void setConsumerProcessorThreadPoolQueueCapacity(int consumerProcessorThreadPoolQueueCapacity) {
+        this.consumerProcessorThreadPoolQueueCapacity = consumerProcessorThreadPoolQueueCapacity;
+    }
+
+    public int getTopicRouteServiceCacheExpiredInSeconds() {
+        return topicRouteServiceCacheExpiredInSeconds;
+    }
+
+    public void setTopicRouteServiceCacheExpiredInSeconds(int topicRouteServiceCacheExpiredInSeconds) {
+        this.topicRouteServiceCacheExpiredInSeconds = topicRouteServiceCacheExpiredInSeconds;
+    }
+
+    public int getTopicRouteServiceCacheMaxNum() {
+        return topicRouteServiceCacheMaxNum;
+    }
+
+    public void setTopicRouteServiceCacheMaxNum(int topicRouteServiceCacheMaxNum) {
+        this.topicRouteServiceCacheMaxNum = topicRouteServiceCacheMaxNum;
+    }
+
+    public int getTopicRouteServiceThreadPoolNums() {
+        return topicRouteServiceThreadPoolNums;
+    }
+
+    public void setTopicRouteServiceThreadPoolNums(int topicRouteServiceThreadPoolNums) {
+        this.topicRouteServiceThreadPoolNums = topicRouteServiceThreadPoolNums;
+    }
+
+    public int getTopicRouteServiceThreadPoolQueueCapacity() {
+        return topicRouteServiceThreadPoolQueueCapacity;
+    }
+
+    public void setTopicRouteServiceThreadPoolQueueCapacity(int topicRouteServiceThreadPoolQueueCapacity) {
+        this.topicRouteServiceThreadPoolQueueCapacity = topicRouteServiceThreadPoolQueueCapacity;
     }
 
     public int getTransactionHeartbeatThreadPoolNums() {

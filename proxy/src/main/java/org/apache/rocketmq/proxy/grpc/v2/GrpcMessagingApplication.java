@@ -21,6 +21,7 @@ import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
 import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
+import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
@@ -43,167 +44,360 @@ import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
-import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServiceImplBase implements StartAndShutdown {
 
     private final GrpcMessingActivity grpcMessingActivity;
 
+    protected ThreadPoolExecutor routeThreadPoolExecutor;
+    protected ThreadPoolExecutor producerThreadPoolExecutor;
+    protected ThreadPoolExecutor consumerThreadPoolExecutor;
+    protected ThreadPoolExecutor clientManagerThreadPoolExecutor;
+    protected ThreadPoolExecutor transactionThreadPoolExecutor;
+
     protected GrpcMessagingApplication(GrpcMessingActivity grpcMessingActivity) {
         this.grpcMessingActivity = grpcMessingActivity;
+
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        this.routeThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
+            config.getGrpcRouteThreadPoolNums(),
+            config.getGrpcRouteThreadPoolNums(),
+            1,
+            TimeUnit.MINUTES,
+            "GrpcRouteThreadPool",
+            config.getGrpcRouteThreadQueueCapacity()
+        );
+        this.producerThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
+            config.getGrpcProducerThreadPoolNums(),
+            config.getGrpcProducerThreadPoolNums(),
+            1,
+            TimeUnit.MINUTES,
+            "GrpcRouteThreadPool",
+            config.getGrpcProducerThreadQueueCapacity()
+        );
+        this.consumerThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
+            config.getGrpcConsumerThreadPoolNums(),
+            config.getGrpcConsumerThreadPoolNums(),
+            1,
+            TimeUnit.MINUTES,
+            "GrpcRouteThreadPool",
+            config.getGrpcConsumerThreadQueueCapacity()
+        );
+        this.clientManagerThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
+            config.getGrpcClientManagerThreadPoolNums(),
+            config.getGrpcClientManagerThreadPoolNums(),
+            1,
+            TimeUnit.MINUTES,
+            "GrpcRouteThreadPool",
+            config.getGrpcClientManagerThreadQueueCapacity()
+        );
+        this.transactionThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
+            config.getGrpcTransactionThreadPoolNums(),
+            config.getGrpcTransactionThreadPoolNums(),
+            1,
+            TimeUnit.MINUTES,
+            "GrpcRouteThreadPool",
+            config.getGrpcTransactionThreadQueueCapacity()
+        );
+
+        this.init();
     }
 
-    public static GrpcMessagingApplication create(ServiceManager serviceManager) {
+    protected void init() {
+        GrpcTaskRejectedExecutionHandler rejectedExecutionHandler = new GrpcTaskRejectedExecutionHandler();
+        this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+        this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+        this.producerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+        this.consumerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+        this.clientManagerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+        this.transactionThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+    }
+
+    public static GrpcMessagingApplication create(MessagingProcessor messagingProcessor) {
         return new GrpcMessagingApplication(new DefaultGrpcMessingActivity(
-            serviceManager
+            messagingProcessor
         ));
+    }
+
+    protected Status flowLimitStatus() {
+        return ResponseBuilder.buildStatus(Code.TOO_MANY_REQUESTS, "flow limit");
     }
 
     protected Status convertExceptionToStatus(Throwable t) {
         return ResponseBuilder.buildStatus(t);
     }
 
+    protected <T> void addExecutor(ExecutorService executor, Runnable runnable, StreamObserver<T> responseObserver,
+        T executeRejectResponse) {
+        executor.submit(new GrpcTask<T>(runnable, responseObserver, executeRejectResponse));
+    }
+
     @Override
     public void queryRoute(QueryRouteRequest request, StreamObserver<QueryRouteResponse> responseObserver) {
-        CompletableFuture<QueryRouteResponse> future = grpcMessingActivity.queryRoute(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    QueryRouteResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.routeThreadPoolExecutor,
+            () -> {
+                CompletableFuture<QueryRouteResponse> future = grpcMessingActivity.queryRoute(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            QueryRouteResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            QueryRouteResponse.newBuilder().setStatus(flowLimitStatus()).build());
     }
 
     @Override
     public void heartbeat(HeartbeatRequest request, StreamObserver<HeartbeatResponse> responseObserver) {
-        CompletableFuture<HeartbeatResponse> future = grpcMessingActivity.heartbeat(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    HeartbeatResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.clientManagerThreadPoolExecutor,
+            () -> {
+                CompletableFuture<HeartbeatResponse> future = grpcMessingActivity.heartbeat(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            HeartbeatResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            HeartbeatResponse.newBuilder().setStatus(flowLimitStatus()).build());
     }
 
     @Override
     public void sendMessage(SendMessageRequest request, StreamObserver<SendMessageResponse> responseObserver) {
-        CompletableFuture<SendMessageResponse> future = grpcMessingActivity.sendMessage(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    SendMessageResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.producerThreadPoolExecutor,
+            () -> {
+                CompletableFuture<SendMessageResponse> future = grpcMessingActivity.sendMessage(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            SendMessageResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            SendMessageResponse.newBuilder().setStatus(flowLimitStatus()).build());
     }
 
     @Override
     public void queryAssignment(QueryAssignmentRequest request,
         StreamObserver<QueryAssignmentResponse> responseObserver) {
-        CompletableFuture<QueryAssignmentResponse> future = grpcMessingActivity.queryAssignment(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    QueryAssignmentResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.routeThreadPoolExecutor,
+            () -> {
+                CompletableFuture<QueryAssignmentResponse> future = grpcMessingActivity.queryAssignment(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            QueryAssignmentResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            QueryAssignmentResponse.newBuilder().setStatus(flowLimitStatus()).build());
     }
 
     @Override
     public void receiveMessage(ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
-        grpcMessingActivity.receiveMessage(Context.current(), request, responseObserver);
+        Context ctx = Context.current();
+        this.addExecutor(this.consumerThreadPoolExecutor,
+            () -> grpcMessingActivity.receiveMessage(ctx, request, responseObserver),
+            responseObserver,
+            ReceiveMessageResponse.newBuilder().setStatus(flowLimitStatus()).build());
+
     }
 
     @Override
     public void ackMessage(AckMessageRequest request, StreamObserver<AckMessageResponse> responseObserver) {
-        CompletableFuture<AckMessageResponse> future = grpcMessingActivity.ackMessage(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    AckMessageResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.consumerThreadPoolExecutor,
+            () -> {
+                CompletableFuture<AckMessageResponse> future = grpcMessingActivity.ackMessage(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            AckMessageResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            AckMessageResponse.newBuilder().setStatus(flowLimitStatus()).build());
+
     }
 
     @Override
     public void forwardMessageToDeadLetterQueue(ForwardMessageToDeadLetterQueueRequest request,
         StreamObserver<ForwardMessageToDeadLetterQueueResponse> responseObserver) {
-        CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = grpcMessingActivity.forwardMessageToDeadLetterQueue(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    ForwardMessageToDeadLetterQueueResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.producerThreadPoolExecutor,
+            () -> {
+                CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = grpcMessingActivity.forwardMessageToDeadLetterQueue(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            ForwardMessageToDeadLetterQueueResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            ForwardMessageToDeadLetterQueueResponse.newBuilder().setStatus(flowLimitStatus()).build());
     }
 
     @Override
     public void endTransaction(EndTransactionRequest request, StreamObserver<EndTransactionResponse> responseObserver) {
-        CompletableFuture<EndTransactionResponse> future = grpcMessingActivity.endTransaction(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    EndTransactionResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.transactionThreadPoolExecutor,
+            () -> {
+                CompletableFuture<EndTransactionResponse> future = grpcMessingActivity.endTransaction(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            EndTransactionResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            EndTransactionResponse.newBuilder().setStatus(flowLimitStatus()).build());
     }
 
     @Override
     public void notifyClientTermination(NotifyClientTerminationRequest request,
         StreamObserver<NotifyClientTerminationResponse> responseObserver) {
-        CompletableFuture<NotifyClientTerminationResponse> future = grpcMessingActivity.notifyClientTermination(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    NotifyClientTerminationResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.clientManagerThreadPoolExecutor,
+            () -> {
+                CompletableFuture<NotifyClientTerminationResponse> future = grpcMessingActivity.notifyClientTermination(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            NotifyClientTerminationResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            NotifyClientTerminationResponse.newBuilder().setStatus(flowLimitStatus()).build());
+
     }
 
     @Override
     public void changeInvisibleDuration(ChangeInvisibleDurationRequest request,
         StreamObserver<ChangeInvisibleDurationResponse> responseObserver) {
-        CompletableFuture<ChangeInvisibleDurationResponse> future = grpcMessingActivity.changeInvisibleDuration(Context.current(), request);
-        future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
-            .exceptionally(e -> {
-                ResponseWriter.write(
-                    responseObserver,
-                    ChangeInvisibleDurationResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
-                );
-                return null;
-            });
+        Context ctx = Context.current();
+        this.addExecutor(this.consumerThreadPoolExecutor,
+            () -> {
+                CompletableFuture<ChangeInvisibleDurationResponse> future = grpcMessingActivity.changeInvisibleDuration(ctx, request);
+                future.thenAccept(response -> ResponseWriter.write(responseObserver, response))
+                    .exceptionally(e -> {
+                        ResponseWriter.write(
+                            responseObserver,
+                            ChangeInvisibleDurationResponse.newBuilder().setStatus(convertExceptionToStatus(e)).build()
+                        );
+                        return null;
+                    });
+            },
+            responseObserver,
+            ChangeInvisibleDurationResponse.newBuilder().setStatus(flowLimitStatus()).build());
+
     }
 
     @Override
     public StreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
-        return grpcMessingActivity.telemetry(Context.current(), responseObserver);
+        StreamObserver<TelemetryCommand> responseTelemetryCommand = grpcMessingActivity.telemetry(Context.current(), responseObserver);
+        return new StreamObserver<TelemetryCommand>() {
+            @Override
+            public void onNext(TelemetryCommand value) {
+                addExecutor(clientManagerThreadPoolExecutor,
+                    () -> responseTelemetryCommand.onNext(value),
+                    responseObserver,
+                    TelemetryCommand.newBuilder().setStatus(flowLimitStatus()).build());
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                responseTelemetryCommand.onError(t);
+            }
+
+            @Override
+            public void onCompleted() {
+                responseTelemetryCommand.onCompleted();
+            }
+        };
     }
 
     @Override
     public void shutdown() throws Exception {
         this.grpcMessingActivity.shutdown();
+
+        this.routeThreadPoolExecutor.shutdown();
+        this.routeThreadPoolExecutor.shutdown();
+        this.producerThreadPoolExecutor.shutdown();
+        this.consumerThreadPoolExecutor.shutdown();
+        this.clientManagerThreadPoolExecutor.shutdown();
+        this.transactionThreadPoolExecutor.shutdown();
     }
 
     @Override
     public void start() throws Exception {
         this.grpcMessingActivity.start();
+    }
+
+    protected static class GrpcTask<T> implements Runnable {
+
+        private final Runnable runnable;
+        private final T executeRejectResponse;
+        private final StreamObserver<T> streamObserver;
+
+        public GrpcTask(Runnable runnable, StreamObserver<T> streamObserver, T executeRejectResponse) {
+            this.runnable = runnable;
+            this.streamObserver = streamObserver;
+            this.executeRejectResponse = executeRejectResponse;
+        }
+
+        @Override
+        public void run() {
+            this.runnable.run();
+        }
+    }
+
+    protected static class GrpcTaskRejectedExecutionHandler implements RejectedExecutionHandler {
+
+        @Override
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+            if (r instanceof GrpcTask) {
+                GrpcTask grpcTask = (GrpcTask) r;
+                ResponseWriter.write(grpcTask.streamObserver, grpcTask.executeRejectResponse);
+            }
+        }
     }
 }

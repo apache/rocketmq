@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.processor;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
@@ -31,15 +32,19 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
+import org.apache.rocketmq.proxy.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ProducerProcessor extends AbstractProcessor {
 
+    private final ExecutorService executor;
+
     public ProducerProcessor(MessagingProcessor messagingProcessor,
-        ServiceManager serviceManager) {
+        ServiceManager serviceManager, ExecutorService executor) {
         super(messagingProcessor, serviceManager);
+        this.executor = executor;
     }
 
     public CompletableFuture<SendResult> sendMessage(ProxyContext ctx, QueueSelector queueSelector,
@@ -55,7 +60,7 @@ public class ProducerProcessor extends AbstractProcessor {
 
             SendMessageRequestHeader requestHeader = buildSendMessageRequestHeader(messageExtList, producerGroup, messageQueue.getQueueId());
 
-            return this.serviceManager.getMessageService().sendMessage(
+            future = this.serviceManager.getMessageService().sendMessage(
                 ctx,
                 messageQueue,
                 messageExtList,
@@ -64,7 +69,7 @@ public class ProducerProcessor extends AbstractProcessor {
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
-        return future;
+        return FutureUtils.addExecutor(future, this.executor);
     }
 
     protected SendMessageRequestHeader buildSendMessageRequestHeader(List<MessageExt> messageExtList,
@@ -107,6 +112,10 @@ public class ProducerProcessor extends AbstractProcessor {
         String messageId, String groupName, String topicName, long timeoutMillis) {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
+            if (handle.getCommitLogOffset() < 0) {
+                throw new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "commit log offset is empty");
+            }
+
             ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
             consumerSendMsgBackRequestHeader.setOffset(handle.getCommitLogOffset());
             consumerSendMsgBackRequestHeader.setGroup(groupName);
@@ -115,22 +124,22 @@ public class ProducerProcessor extends AbstractProcessor {
             consumerSendMsgBackRequestHeader.setOriginTopic(handle.getRealTopic(topicName, groupName));
             consumerSendMsgBackRequestHeader.setMaxReconsumeTimes(0);
 
-            return this.serviceManager.getMessageService().sendMessageBack(
+            future = this.serviceManager.getMessageService().sendMessageBack(
                 ctx,
                 handle,
                 messageId,
                 consumerSendMsgBackRequestHeader,
                 timeoutMillis
-            ).whenComplete((remotingCommand, t) -> {
+            ).whenCompleteAsync((remotingCommand, t) -> {
                 if (t == null && remotingCommand.getCode() == ResponseCode.SUCCESS) {
                     this.messagingProcessor.ackMessage(ctx, handle, messageId,
                         groupName, topicName, timeoutMillis);
                 }
-            });
+            }, this.executor);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
-        return future;
+        return FutureUtils.addExecutor(future, this.executor);
     }
 
 }
