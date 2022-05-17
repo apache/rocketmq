@@ -17,12 +17,12 @@
 
 package org.apache.rocketmq.proxy.service.relay;
 
-public class ProxyOutResult<T> {
+public class ProxyRelayResult<T> {
     private int code;
     private String remark;
     private T result;
 
-    public ProxyOutResult(int code, String remark, T result) {
+    public ProxyRelayResult(int code, String remark, T result) {
         this.code = code;
         this.remark = remark;
         this.result = result;

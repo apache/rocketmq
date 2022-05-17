@@ -33,7 +33,7 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.service.relay.ProxyOutResult;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 
 public class GrpcChannelManager implements StartAndShutdown {
@@ -89,13 +89,13 @@ public class GrpcChannelManager implements StartAndShutdown {
         return channelRef.get();
     }
 
-    public <T> String addResponseFuture(CompletableFuture<ProxyOutResult<T>> responseFuture) {
+    public <T> String addResponseFuture(CompletableFuture<ProxyRelayResult<T>> responseFuture) {
         String nonce = this.nextNonce();
         this.resultNonceFutureMap.put(nonce, new ResultFuture<>(responseFuture));
         return nonce;
     }
 
-    public <T> CompletableFuture<ProxyOutResult<T>> getAndRemoveResponseFuture(String nonce) {
+    public <T> CompletableFuture<ProxyRelayResult<T>> getAndRemoveResponseFuture(String nonce) {
         ResultFuture<T> resultFuture = this.resultNonceFutureMap.remove(nonce);
         if (resultFuture != null) {
             return resultFuture.future;
@@ -120,7 +120,7 @@ public class GrpcChannelManager implements StartAndShutdown {
             if (System.currentTimeMillis() - resultFuture.createTime > timeOutMs) {
                 resultFuture = this.resultNonceFutureMap.remove(nonce);
                 if (resultFuture != null) {
-                    resultFuture.future.complete(new ProxyOutResult<>(ResponseCode.SYSTEM_BUSY, "call remote timeout", null));
+                    resultFuture.future.complete(new ProxyRelayResult<>(ResponseCode.SYSTEM_BUSY, "call remote timeout", null));
                 }
             }
         }
@@ -137,10 +137,10 @@ public class GrpcChannelManager implements StartAndShutdown {
     }
 
     protected static class ResultFuture<T> {
-        public CompletableFuture<ProxyOutResult<T>> future;
+        public CompletableFuture<ProxyRelayResult<T>> future;
         public long createTime = System.currentTimeMillis();
 
-        public ResultFuture(CompletableFuture<ProxyOutResult<T>> future) {
+        public ResultFuture(CompletableFuture<ProxyRelayResult<T>> future) {
             this.future = future;
         }
     }

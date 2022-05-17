@@ -64,7 +64,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.service.relay.ProxyOutResult;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public class ClientActivity extends AbstractMessingActivity {
@@ -247,17 +247,17 @@ public class ClientActivity extends AbstractMessingActivity {
     protected void reportThreadStackTrace(Context ctx, Status status, ThreadStackTrace request) {
         String nonce = request.getNonce();
         String threadStack = request.getThreadStackTrace();
-        CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
         if (responseFuture != null) {
             try {
                 if (status.getCode().equals(Code.OK)) {
                     ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
                     runningInfo.setJstack(threadStack);
-                    responseFuture.complete(new ProxyOutResult<>(ResponseCode.SUCCESS, "", runningInfo));
+                    responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, "", runningInfo));
                 } else if (status.getCode().equals(Code.VERIFY_MESSAGE_FORBIDDEN)) {
-                    responseFuture.complete(new ProxyOutResult<>(ResponseCode.NO_PERMISSION, "forbidden to verify message", null));
+                    responseFuture.complete(new ProxyRelayResult<>(ResponseCode.NO_PERMISSION, "forbidden to verify message", null));
                 } else {
-                    responseFuture.complete(new ProxyOutResult<>(ResponseCode.SYSTEM_ERROR, "verify message failed", null));
+                    responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SYSTEM_ERROR, "verify message failed", null));
                 }
             } catch (Throwable t) {
                 responseFuture.completeExceptionally(t);
@@ -267,11 +267,11 @@ public class ClientActivity extends AbstractMessingActivity {
 
     protected void reportVerifyMessageResult(Context ctx, Status status, VerifyMessageResult request) {
         String nonce = request.getNonce();
-        CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
+        CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
         if (responseFuture != null) {
             try {
                 ConsumeMessageDirectlyResult result = this.buildConsumeMessageDirectlyResult(status, request);
-                responseFuture.complete(new ProxyOutResult<>(ResponseCode.SUCCESS, "", result));
+                responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, "", result));
             } catch (Throwable t) {
                 responseFuture.completeExceptionally(t);
             }
