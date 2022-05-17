@@ -36,9 +36,9 @@ public class LocalProxyRelayService implements ProxyRelayService {
     }
 
     @Override
-    public CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(RemotingCommand command,
+    public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header) {
-        CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> future = new CompletableFuture<>();
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future = new CompletableFuture<>();
         future.thenAccept(proxyOutResult -> {
             if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
                 ConsumerRunningInfo consumerRunningInfo = proxyOutResult.getResult();
@@ -59,7 +59,7 @@ public class LocalProxyRelayService implements ProxyRelayService {
     }
 
     @Override
-    public CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(RemotingCommand command,
+    public CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header) {
         return null;
     }
