@@ -35,9 +35,9 @@ import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
-import org.apache.rocketmq.proxy.service.out.ProxyChannel;
-import org.apache.rocketmq.proxy.service.out.ProxyOutResult;
-import org.apache.rocketmq.proxy.service.out.ProxyOutService;
+import org.apache.rocketmq.proxy.service.relay.ProxyChannel;
+import org.apache.rocketmq.proxy.service.relay.ProxyOutResult;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -54,8 +54,8 @@ public class GrpcClientChannel extends ProxyChannel {
     private final String remoteAddress;
     private final String localAddress;
 
-    public GrpcClientChannel(ProxyOutService proxyOutService, GrpcChannelManager grpcChannelManager, Context ctx, String group, String clientId) {
-        super(proxyOutService, null, new GrpcChannelId(group, clientId));
+    public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcChannelManager grpcChannelManager, Context ctx, String group, String clientId) {
+        super(proxyRelayService, null, new GrpcChannelId(group, clientId));
         this.grpcChannelManager = grpcChannelManager;
         this.remoteAddress = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.REMOTE_ADDRESS);
         this.localAddress = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LOCAL_ADDRESS);

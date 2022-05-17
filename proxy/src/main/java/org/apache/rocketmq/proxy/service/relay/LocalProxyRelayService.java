@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.service.out;
+package org.apache.rocketmq.proxy.service.relay;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
@@ -27,11 +27,11 @@ import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class LocalProxyOutService implements ProxyOutService {
+public class LocalProxyRelayService implements ProxyRelayService {
 
     private final BrokerController brokerController;
 
-    public LocalProxyOutService(BrokerController brokerController) {
+    public LocalProxyRelayService(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 

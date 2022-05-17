@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.service.out;
+package org.apache.rocketmq.proxy.service.relay;
 
 import io.netty.channel.AbstractChannel;
 import io.netty.channel.Channel;
@@ -47,16 +47,16 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public abstract class ProxyChannel extends AbstractChannel {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    protected final ProxyOutService proxyOutService;
+    protected final ProxyRelayService proxyRelayService;
 
-    protected ProxyChannel(ProxyOutService proxyOutService, Channel parent) {
+    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent) {
         super(parent);
-        this.proxyOutService = proxyOutService;
+        this.proxyRelayService = proxyRelayService;
     }
 
-    protected ProxyChannel(ProxyOutService proxyOutService, Channel parent, ChannelId id) {
+    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id) {
         super(parent, id);
-        this.proxyOutService = proxyOutService;
+        this.proxyRelayService = proxyRelayService;
     }
 
     @Override
@@ -78,14 +78,14 @@ public abstract class ProxyChannel extends AbstractChannel {
                     case RequestCode.GET_CONSUMER_RUNNING_INFO: {
                         GetConsumerRunningInfoRequestHeader header = (GetConsumerRunningInfoRequestHeader) command.readCustomHeader();
                         processFuture = this.processGetConsumerRunningInfo(command, header,
-                            this.proxyOutService.processGetConsumerRunningInfo(command, header));
+                            this.proxyRelayService.processGetConsumerRunningInfo(command, header));
                         break;
                     }
                     case RequestCode.CONSUME_MESSAGE_DIRECTLY: {
                         ConsumeMessageDirectlyResultRequestHeader header = (ConsumeMessageDirectlyResultRequestHeader) command.readCustomHeader();
                         MessageExt messageExt = MessageDecoder.decode(ByteBuffer.wrap(command.getBody()), true, false, false);
                         processFuture = this.processConsumeMessageDirectly(command, header, messageExt,
-                            this.proxyOutService.processConsumeMessageDirectly(command, header));
+                            this.proxyRelayService.processConsumeMessageDirectly(command, header));
                         break;
                     }
                     default:

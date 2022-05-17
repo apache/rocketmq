@@ -35,8 +35,8 @@ import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.message.ClusterMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.mqclient.DoNothingClientRemotingProcessor;
-import org.apache.rocketmq.proxy.service.out.ClusterProxyOutService;
-import org.apache.rocketmq.proxy.service.out.ProxyOutService;
+import org.apache.rocketmq.proxy.service.relay.ClusterProxyRelayService;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ClusterTopicRouteService;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.transaction.ClusterTransactionService;
@@ -51,7 +51,7 @@ public class ClusterServiceManager extends ServiceManager {
     private final ConsumerManager consumerManager;
     private final TopicRouteService topicRouteService;
     private final MessageService messageService;
-    private final ProxyOutService proxyOutService;
+    private final ProxyRelayService proxyRelayService;
 
     private final ScheduledExecutorService scheduledExecutorService;
     private final MQClientAPIFactory mqClientAPIFactory;
@@ -72,7 +72,7 @@ public class ClusterServiceManager extends ServiceManager {
         this.topicRouteService = new ClusterTopicRouteService(rpcHook);
         this.messageService = new ClusterMessageService(this.topicRouteService, this.mqClientAPIFactory);
         this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, rpcHook);
-        this.proxyOutService = new ClusterProxyOutService();
+        this.proxyRelayService = new ClusterProxyRelayService();
 
         this.init();
     }
@@ -121,8 +121,8 @@ public class ClusterServiceManager extends ServiceManager {
     }
 
     @Override
-    public ProxyOutService getProxyOutService() {
-        return this.proxyOutService;
+    public ProxyRelayService getProxyOutService() {
+        return this.proxyRelayService;
     }
 
     protected static class ConsumerIdsChangeListenerImpl implements ConsumerIdsChangeListener {

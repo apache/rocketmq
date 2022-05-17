@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.service.out;
+package org.apache.rocketmq.proxy.service.relay;
 
 public class ProxyOutResult<T> {
     private int code;

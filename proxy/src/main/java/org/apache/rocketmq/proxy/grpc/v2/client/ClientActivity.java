@@ -64,7 +64,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.service.out.ProxyOutResult;
+import org.apache.rocketmq.proxy.service.relay.ProxyOutResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public class ClientActivity extends AbstractMessingActivity {

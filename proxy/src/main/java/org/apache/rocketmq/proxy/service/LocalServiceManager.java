@@ -21,8 +21,8 @@ import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.proxy.service.message.LocalMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
-import org.apache.rocketmq.proxy.service.out.LocalProxyOutService;
-import org.apache.rocketmq.proxy.service.out.ProxyOutService;
+import org.apache.rocketmq.proxy.service.relay.LocalProxyRelayService;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.LocalTopicRouteService;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.transaction.LocalTransactionService;
@@ -35,14 +35,14 @@ public class LocalServiceManager extends ServiceManager {
     private final TopicRouteService topicRouteService;
     private final MessageService messageService;
     private final TransactionService transactionService;
-    private final ProxyOutService proxyOutService;
+    private final ProxyRelayService proxyRelayService;
 
     public LocalServiceManager(BrokerController brokerController, RPCHook rpcHook) {
         this.brokerController = brokerController;
         this.messageService = new LocalMessageService(brokerController, rpcHook);
         this.topicRouteService = new LocalTopicRouteService(brokerController, rpcHook);
         this.transactionService = new LocalTransactionService();
-        this.proxyOutService = new LocalProxyOutService(brokerController);
+        this.proxyRelayService = new LocalProxyRelayService(brokerController);
 
         this.init();
     }
@@ -77,8 +77,8 @@ public class LocalServiceManager extends ServiceManager {
     }
 
     @Override
-    public ProxyOutService getProxyOutService() {
-        return this.proxyOutService;
+    public ProxyRelayService getProxyOutService() {
+        return this.proxyRelayService;
     }
 
 }
