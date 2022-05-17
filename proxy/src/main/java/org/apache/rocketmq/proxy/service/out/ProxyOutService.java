@@ -25,12 +25,12 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface ProxyOutService {
 
-    CompletableFuture<ConsumerRunningInfo> processGetConsumerRunningInfo(
+    CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
         RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header
     );
 
-    CompletableFuture<ConsumeMessageDirectlyResult> processConsumeMessageDirectly(
+    CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
         RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header
     );

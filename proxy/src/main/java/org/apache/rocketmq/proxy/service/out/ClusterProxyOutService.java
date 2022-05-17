@@ -29,14 +29,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class ClusterProxyOutService implements ProxyOutService {
 
     @Override
-    public CompletableFuture<ConsumerRunningInfo> processGetConsumerRunningInfo(RemotingCommand command,
+    public CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header) {
-        return new CompletableFuture<>();
+        return null;
     }
 
-    @Override
-    public CompletableFuture<ConsumeMessageDirectlyResult> processConsumeMessageDirectly(RemotingCommand command,
-        ConsumeMessageDirectlyResultRequestHeader header) {
-        return new CompletableFuture<>();
+    @Override public CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
+        RemotingCommand command, ConsumeMessageDirectlyResultRequestHeader header) {
+        return null;
     }
 }

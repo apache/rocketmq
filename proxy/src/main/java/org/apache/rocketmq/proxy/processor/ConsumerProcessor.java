@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.processor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
@@ -35,6 +36,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
+import org.apache.rocketmq.proxy.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
@@ -42,9 +44,12 @@ import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 public class ConsumerProcessor extends AbstractProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    private final ExecutorService executor;
+
     public ConsumerProcessor(MessagingProcessor messagingProcessor,
-        ServiceManager serviceManager) {
+        ServiceManager serviceManager, ExecutorService executor) {
         super(messagingProcessor, serviceManager);
+        this.executor = executor;
     }
 
     public CompletableFuture<PopResult> popMessage(
@@ -86,12 +91,12 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setExp(subscriptionData.getSubString());
             requestHeader.setOrder(fifo);
 
-            return this.serviceManager.getMessageService().popMessage(
+            future = this.serviceManager.getMessageService().popMessage(
                 ctx,
                 messageQueue,
                 requestHeader,
                 timeoutMillis)
-                .thenApply(popResult -> {
+                .thenApplyAsync(popResult -> {
                     if (PopStatus.FOUND.equals(popResult.getPopStatus()) &&
                         popResult.getMsgFoundList() != null &&
                         !popResult.getMsgFoundList().isEmpty() &&
@@ -134,11 +139,11 @@ public class ConsumerProcessor extends AbstractProcessor {
                         popResult.setMsgFoundList(messageExtList);
                     }
                     return popResult;
-                });
+                }, this.executor);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
-        return future;
+        return FutureUtils.addExecutor(future, this.executor);
     }
 
     public CompletableFuture<AckResult> ackMessage(
@@ -160,7 +165,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             ackMessageRequestHeader.setExtraInfo(handle.getReceiptHandle());
             ackMessageRequestHeader.setOffset(handle.getOffset());
 
-            return this.serviceManager.getMessageService().ackMessage(
+            future = this.serviceManager.getMessageService().ackMessage(
                 ctx,
                 handle,
                 messageId,
@@ -169,7 +174,7 @@ public class ConsumerProcessor extends AbstractProcessor {
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
-        return future;
+        return FutureUtils.addExecutor(future, this.executor);
     }
 
     public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle,
@@ -186,7 +191,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
             changeInvisibleTimeRequestHeader.setInvisibleTime(invisibleTime);
 
-            return this.serviceManager.getMessageService().changeInvisibleTime(
+            future = this.serviceManager.getMessageService().changeInvisibleTime(
                 ctx,
                 handle,
                 messageId,
@@ -195,6 +200,6 @@ public class ConsumerProcessor extends AbstractProcessor {
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
-        return future;
+        return FutureUtils.addExecutor(future, this.executor);
     }
 }

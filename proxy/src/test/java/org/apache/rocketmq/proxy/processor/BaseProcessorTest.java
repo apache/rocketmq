@@ -17,13 +17,11 @@
 
 package org.apache.rocketmq.proxy.processor;
 
-import io.netty.util.internal.MathUtil;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.UUID;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
-import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -94,10 +92,10 @@ public class BaseProcessorTest extends InitConfigAndLoggerTest {
         messageExt.setReconsumeTimes(reconsumeTimes);
         messageExt.setBody(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         messageExt.setMsgId(MessageClientIDSetter.createUniqID());
-        messageExt.setCommitLogOffset(RANDOM.nextInt());
+        messageExt.setCommitLogOffset(RANDOM.nextInt(Integer.MAX_VALUE));
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_POP_CK,
-            ExtraInfoUtil.buildExtraInfo(RANDOM.nextInt(), System.currentTimeMillis(), invisibleTime,
-                RANDOM.nextInt(), topic, "mockBroker", RANDOM.nextInt(), RANDOM.nextInt()));
+            ExtraInfoUtil.buildExtraInfo(RANDOM.nextInt(Integer.MAX_VALUE), System.currentTimeMillis(), invisibleTime,
+                RANDOM.nextInt(Integer.MAX_VALUE), topic, "mockBroker", RANDOM.nextInt(Integer.MAX_VALUE), RANDOM.nextInt(Integer.MAX_VALUE)));
         return messageExt;
     }
 }

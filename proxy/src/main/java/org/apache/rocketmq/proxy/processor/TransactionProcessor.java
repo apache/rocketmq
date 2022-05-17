@@ -31,8 +31,9 @@ public class TransactionProcessor extends AbstractProcessor {
         super(messagingProcessor, serviceManager);
     }
 
-    void endTransaction(ProxyContext ctx, TransactionId transactionId, String messageId,String producerGroup,
-        TransactionStatus transactionStatus, boolean fromTransactionCheck, long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
+    void endTransaction(ProxyContext ctx, TransactionId transactionId, String messageId, String producerGroup,
+        TransactionStatus transactionStatus, boolean fromTransactionCheck, long timeoutMillis)
+        throws MQBrokerException, RemotingException, InterruptedException {
 
         EndTransactionRequestHeader requestHeader = buildEndTransactionRequestHeader(transactionId, messageId,
             producerGroup, transactionStatus, fromTransactionCheck);
@@ -44,11 +45,8 @@ public class TransactionProcessor extends AbstractProcessor {
         );
     }
 
-    protected EndTransactionRequestHeader buildEndTransactionRequestHeader(TransactionId transactionId, String messageId,String producerGroup,
-        TransactionStatus transactionStatus, boolean fromTransactionCheck) {
-        long transactionStateTableOffset = transactionId.getTranStateTableOffset();
-        long commitLogOffset = transactionId.getCommitLogOffset();
-
+    protected EndTransactionRequestHeader buildEndTransactionRequestHeader(TransactionId transactionId,
+        String messageId, String producerGroup, TransactionStatus transactionStatus, boolean fromTransactionCheck) {
         int commitOrRollback;
         switch (transactionStatus) {
             case COMMIT:
@@ -66,8 +64,8 @@ public class TransactionProcessor extends AbstractProcessor {
         endTransactionRequestHeader.setProducerGroup(producerGroup);
         endTransactionRequestHeader.setMsgId(messageId);
         endTransactionRequestHeader.setTransactionId(transactionId.getBrokerTransactionId());
-        endTransactionRequestHeader.setTranStateTableOffset(transactionStateTableOffset);
-        endTransactionRequestHeader.setCommitLogOffset(commitLogOffset);
+        endTransactionRequestHeader.setTranStateTableOffset(transactionId.getTranStateTableOffset());
+        endTransactionRequestHeader.setCommitLogOffset(transactionId.getCommitLogOffset());
         endTransactionRequestHeader.setCommitOrRollback(commitOrRollback);
         endTransactionRequestHeader.setFromTransactionCheck(fromTransactionCheck);
 

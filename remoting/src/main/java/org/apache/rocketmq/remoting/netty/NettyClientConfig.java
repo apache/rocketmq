@@ -17,7 +17,6 @@
 package org.apache.rocketmq.remoting.netty;
 
 public class NettyClientConfig {
-    private int bootstrapWorkerThreads = 1;
     /**
      * Worker thread number
      */
@@ -44,19 +43,11 @@ public class NettyClientConfig {
 
     private boolean useTLS;
 
-    private boolean disableCallbackExecutor = false;
-    private boolean disableNettyWorkerGroup = false;
-
     private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
     private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
 
-    public int getBootstrapWorkerThreads() {
-        return bootstrapWorkerThreads;
-    }
-
-    public void setBootstrapWorkerThreads(int bootstrapWorkerThreads) {
-        this.bootstrapWorkerThreads = bootstrapWorkerThreads;
-    }
+    private boolean disableCallbackExecutor = false;
+    private boolean disableNettyWorkerGroup = false;
 
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;

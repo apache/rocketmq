@@ -69,7 +69,6 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
         this.mqClientAPIFactory = new MQClientAPIFactory(
             "ClusterTransaction_",
             1,
-            1,
             new ProxyClientRemotingProcessor(producerManager),
             rpcHook,
             scheduledExecutorService);

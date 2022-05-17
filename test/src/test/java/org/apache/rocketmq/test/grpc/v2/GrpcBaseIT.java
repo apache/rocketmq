@@ -171,7 +171,7 @@ public class GrpcBaseIT extends BaseConf {
         requestStreamObserver.onNext(TelemetryCommand.newBuilder()
             .setSettings(clientSettings)
             .build());
-        requestStreamObserver.onCompleted();
+        future.whenComplete((settings, throwable) -> requestStreamObserver.onCompleted());
         return future;
     }
 

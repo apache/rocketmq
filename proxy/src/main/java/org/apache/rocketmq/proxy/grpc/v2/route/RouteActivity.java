@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -50,7 +51,6 @@ import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
 public class RouteActivity extends AbstractMessingActivity {
 
     public RouteActivity(MessagingProcessor messagingProcessor,
-        
         GrpcClientSettingsManager grpcClientSettingsManager) {
         super(messagingProcessor, grpcClientSettingsManager);
     }
@@ -112,26 +112,36 @@ public class RouteActivity extends AbstractMessingActivity {
             List<Assignment> assignments = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
             for (QueueData queueData : proxyTopicRouteData.getQueueDatas()) {
-                Map<Long, Broker> brokerIdMap = brokerMap.get(queueData.getBrokerName());
-                if (brokerIdMap != null) {
-                    for (Map.Entry<Long, Broker> brokerIdEntry : brokerIdMap.entrySet()) {
+                if (PermName.isReadable(queueData.getPerm()) && queueData.getReadQueueNums() > 0) {
+                    Map<Long, Broker> brokerIdMap = brokerMap.get(queueData.getBrokerName());
+                    if (brokerIdMap != null) {
+                        Broker broker = brokerIdMap.get(MixAll.MASTER_ID);
                         MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
                             .setTopic(request.getTopic())
                             .setId(-1)
                             .setPermission(this.convertToPermission(queueData.getPerm()))
-                            .setBroker(brokerIdEntry.getValue())
+                            .setBroker(broker)
                             .build();
 
                         assignments.add(Assignment.newBuilder()
                             .setMessageQueue(defaultMessageQueue)
                             .build());
+
                     }
                 }
             }
-            QueryAssignmentResponse response = QueryAssignmentResponse.newBuilder()
-                .addAllAssignments(assignments)
-                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-                .build();
+
+            QueryAssignmentResponse response;
+            if (assignments.isEmpty()) {
+                response = QueryAssignmentResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(Code.FORBIDDEN, "no readable queue"))
+                    .build();
+            } else {
+                response = QueryAssignmentResponse.newBuilder()
+                    .addAllAssignments(assignments)
+                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                    .build();
+            }
             future.complete(response);
         } catch (Throwable t) {
             future.completeExceptionally(t);

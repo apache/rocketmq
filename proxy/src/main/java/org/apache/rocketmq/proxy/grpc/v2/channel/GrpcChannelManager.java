@@ -19,22 +19,43 @@ package org.apache.rocketmq.proxy.grpc.v2.channel;
 
 import io.grpc.Context;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.out.ProxyOutResult;
 import org.apache.rocketmq.proxy.service.out.ProxyOutService;
 
-public class GrpcChannelManager {
+public class GrpcChannelManager implements StartAndShutdown {
     private final ProxyOutService proxyOutService;
     protected final ConcurrentMap<String /* group */, Map<String, GrpcClientChannel>/* clientId */> groupClientIdChannelMap = new ConcurrentHashMap<>();
 
     protected final AtomicLong nonceIdGenerator = new AtomicLong(0);
-    protected final ConcurrentMap<String /* nonce */, CompletableFuture<?>> resultNonceFutureMap = new ConcurrentHashMap<>();
+    protected final ConcurrentMap<String /* nonce */, ResultFuture> resultNonceFutureMap = new ConcurrentHashMap<>();
+
+    protected final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactoryImpl("GrpcChannelManager_")
+    );
 
     public GrpcChannelManager(ProxyOutService proxyOutService) {
         this.proxyOutService = proxyOutService;
+    }
+
+    protected void init() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            this::scanExpireResultFuture,
+            10,  10, TimeUnit.SECONDS
+        );
     }
 
     public GrpcClientChannel createChannel(Context ctx, String group, String clientId) {
@@ -68,17 +89,59 @@ public class GrpcChannelManager {
         return channelRef.get();
     }
 
-    public String addResponseFuture(CompletableFuture<?> responseFuture) {
+    public <T> String addResponseFuture(CompletableFuture<ProxyOutResult<T>> responseFuture) {
         String nonce = this.nextNonce();
-        this.resultNonceFutureMap.put(nonce, responseFuture);
+        this.resultNonceFutureMap.put(nonce, new ResultFuture<>(responseFuture));
         return nonce;
     }
 
-    public <T> CompletableFuture<T> getAndRemoveResponseFuture(String nonce) {
-        return (CompletableFuture<T>) this.resultNonceFutureMap.remove(nonce);
+    public <T> CompletableFuture<ProxyOutResult<T>> getAndRemoveResponseFuture(String nonce) {
+        ResultFuture<T> resultFuture = this.resultNonceFutureMap.remove(nonce);
+        if (resultFuture != null) {
+            return resultFuture.future;
+        }
+        return null;
     }
 
     protected String nextNonce() {
         return String.valueOf(this.nonceIdGenerator.getAndIncrement());
+    }
+
+    protected void scanExpireResultFuture() {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        long timeOutMs = TimeUnit.SECONDS.toMillis(proxyConfig.getGrpcProxyOutRequestTimeoutSecond());
+
+        Set<String> nonceSet = this.resultNonceFutureMap.keySet();
+        for (String nonce : nonceSet) {
+            ResultFuture<?> resultFuture = this.resultNonceFutureMap.get(nonce);
+            if (resultFuture == null) {
+                continue;
+            }
+            if (System.currentTimeMillis() - resultFuture.createTime > timeOutMs) {
+                resultFuture = this.resultNonceFutureMap.remove(nonce);
+                if (resultFuture != null) {
+                    resultFuture.future.complete(new ProxyOutResult<>(ResponseCode.SYSTEM_BUSY, "call remote timeout", null));
+                }
+            }
+        }
+    }
+
+    @Override
+    public void shutdown() throws Exception {
+        this.scheduledExecutorService.shutdown();
+    }
+
+    @Override
+    public void start() throws Exception {
+
+    }
+
+    protected static class ResultFuture<T> {
+        public CompletableFuture<ProxyOutResult<T>> future;
+        public long createTime = System.currentTimeMillis();
+
+        public ResultFuture(CompletableFuture<ProxyOutResult<T>> future) {
+            this.future = future;
+        }
     }
 }

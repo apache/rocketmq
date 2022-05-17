@@ -116,13 +116,13 @@ public abstract class ProxyChannel extends AbstractChannel {
     protected abstract CompletableFuture<Void> processGetConsumerRunningInfo(
         RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header,
-        CompletableFuture<ConsumerRunningInfo> responseFuture);
+        CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> responseFuture);
 
     protected abstract CompletableFuture<Void> processConsumeMessageDirectly(
         RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header,
         MessageExt messageExt,
-        CompletableFuture<ConsumeMessageDirectlyResult> responseFuture);
+        CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> responseFuture);
 
     @Override
     public ChannelConfig config() {

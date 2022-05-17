@@ -62,12 +62,9 @@ public class ClusterServiceManager extends ServiceManager {
         this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl());
 
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        double workerFactor = proxyConfig.getRocketmqMQClientWorkerFactor();
-        int threadCount = (int) Math.ceil(Runtime.getRuntime().availableProcessors() * workerFactor);
         this.mqClientAPIFactory = new MQClientAPIFactory(
             "CLUSTER_MQ_CLIENT_",
             proxyConfig.getRocketmqMQClientNum(),
-            threadCount,
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
             scheduledExecutorService);

@@ -14,11 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.common;
 
-public enum ProxyExceptionCode {
-    FORBIDDEN,
-    RECEIPT_HANDLE_EXPIRED,
-    INVALID_BROKER_NAME,
-    INVALID_RECEIPT_HANDLE
+package org.apache.rocketmq.proxy.service.out;
+
+public class ProxyOutResult<T> {
+    private int code;
+    private String remark;
+    private T result;
+
+    public ProxyOutResult(int code, String remark, T result) {
+        this.code = code;
+        this.remark = remark;
+        this.result = result;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(int code) {
+        this.code = code;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public T getResult() {
+        return result;
+    }
+
+    public void setResult(T result) {
+        this.result = result;
+    }
 }
