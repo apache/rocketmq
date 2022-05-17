@@ -330,8 +330,8 @@ public class HAService {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
         private final AtomicReference<String> masterAddress = new AtomicReference<>();
         private final ByteBuffer reportOffset = ByteBuffer.allocate(8);
+        private final Selector selector;
         private SocketChannel socketChannel;
-        private Selector selector;
         private long lastWriteTimestamp = System.currentTimeMillis();
 
         private long currentReportedOffset = 0;
@@ -354,10 +354,9 @@ public class HAService {
         private boolean isTimeToReportOffset() {
             long interval =
                 HAService.this.defaultMessageStore.getSystemClock().now() - this.lastWriteTimestamp;
-            boolean needHeart = interval > HAService.this.defaultMessageStore.getMessageStoreConfig()
-                .getHaSendHeartbeatInterval();
 
-            return needHeart;
+            return interval > HAService.this.defaultMessageStore.getMessageStoreConfig()
+                .getHaSendHeartbeatInterval();
         }
 
         private boolean reportSlaveMaxOffset(final long maxOffset) {
