@@ -122,7 +122,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     }
 
     @Override
-    public ProxyRelayService getProxyOutService() {
+    public ProxyRelayService getProxyRelayService() {
         return this.proxyRelayService;
     }
 

@@ -78,7 +78,7 @@ public class BaseProcessorTest extends InitConfigAndLoggerTest {
         when(serviceManager.getProducerManager()).thenReturn(producerManager);
         when(serviceManager.getConsumerManager()).thenReturn(consumerManager);
         when(serviceManager.getTransactionService()).thenReturn(transactionService);
-        when(serviceManager.getProxyOutService()).thenReturn(proxyRelayService);
+        when(serviceManager.getProxyRelayService()).thenReturn(proxyRelayService);
     }
 
     protected static ProxyContext createContext() {

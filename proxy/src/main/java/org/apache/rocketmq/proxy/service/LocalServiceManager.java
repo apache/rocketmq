@@ -78,7 +78,7 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
     }
 
     @Override
-    public ProxyRelayService getProxyOutService() {
+    public ProxyRelayService getProxyRelayService() {
         return this.proxyRelayService;
     }
 
