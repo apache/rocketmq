@@ -29,7 +29,7 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 
 public class LocalTopicRouteService extends TopicRouteService {
 
@@ -37,8 +37,8 @@ public class LocalTopicRouteService extends TopicRouteService {
     private final List<BrokerData> brokerDataList;
     private final int grpcPort;
 
-    public LocalTopicRouteService(BrokerController brokerController, RPCHook rpcHook) {
-        super(rpcHook);
+    public LocalTopicRouteService(BrokerController brokerController, MQClientAPIFactory mqClientAPIFactory) {
+        super(mqClientAPIFactory);
         this.brokerController = brokerController;
         BrokerConfig brokerConfig = this.brokerController.getBrokerConfig();
         HashMap<Long, String> brokerAddrs = new HashMap<>();

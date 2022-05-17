@@ -32,12 +32,14 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.message.ClusterMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
+import org.apache.rocketmq.proxy.service.metadata.ClusterMetadataService;
+import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.mqclient.DoNothingClientRemotingProcessor;
 import org.apache.rocketmq.proxy.service.relay.ClusterProxyRelayService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
+import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.ClusterTopicRouteService;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.transaction.ClusterTransactionService;
@@ -53,9 +55,11 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     private final TopicRouteService topicRouteService;
     private final MessageService messageService;
     private final ProxyRelayService proxyRelayService;
+    private final MetadataService metadataService;
 
     private final ScheduledExecutorService scheduledExecutorService;
-    private final MQClientAPIFactory mqClientAPIFactory;
+    private final MQClientAPIFactory messagingClientAPIFactory;
+    private final MQClientAPIFactory operationClientAPIFactory;
 
     public ClusterServiceManager(RPCHook rpcHook) {
         this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
@@ -63,17 +67,25 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl());
 
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        this.mqClientAPIFactory = new MQClientAPIFactory(
+        this.messagingClientAPIFactory = new MQClientAPIFactory(
             "CLUSTER_MQ_CLIENT_",
             proxyConfig.getRocketmqMQClientNum(),
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
             scheduledExecutorService);
+        this.operationClientAPIFactory = new MQClientAPIFactory(
+            "TopicRouteServiceClient_",
+            1,
+            new DoNothingClientRemotingProcessor(null),
+            rpcHook,
+            this.scheduledExecutorService
+        );
 
-        this.topicRouteService = new ClusterTopicRouteService(rpcHook);
-        this.messageService = new ClusterMessageService(this.topicRouteService, this.mqClientAPIFactory);
+        this.topicRouteService = new ClusterTopicRouteService(operationClientAPIFactory);
+        this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory);
         this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, rpcHook);
         this.proxyRelayService = new ClusterProxyRelayService();
+        this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
 
         this.init();
     }
@@ -91,7 +103,8 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
 
         this.appendShutdown(scheduledExecutorService::shutdown);
-        this.appendStartAndShutdown(this.mqClientAPIFactory);
+        this.appendStartAndShutdown(this.messagingClientAPIFactory);
+        this.appendStartAndShutdown(this.operationClientAPIFactory);
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(this.clusterTransactionService);
     }
@@ -124,6 +137,11 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     @Override
     public ProxyRelayService getProxyRelayService() {
         return this.proxyRelayService;
+    }
+
+    @Override
+    public MetadataService getMetadataService() {
+        return this.metadataService;
     }
 
     protected static class ConsumerIdsChangeListenerImpl implements ConsumerIdsChangeListener {
