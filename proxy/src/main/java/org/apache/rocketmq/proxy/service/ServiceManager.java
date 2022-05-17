@@ -35,5 +35,5 @@ public interface ServiceManager extends StartAndShutdown {
 
     TransactionService getTransactionService();
 
-    ProxyRelayService getProxyOutService();
+    ProxyRelayService getProxyRelayService();
 }

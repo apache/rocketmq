@@ -217,7 +217,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override
     public ProxyRelayService getProxyOutService() {
-        return this.serviceManager.getProxyOutService();
+        return this.serviceManager.getProxyRelayService();
     }
 
 }
