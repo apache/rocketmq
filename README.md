@@ -49,38 +49,64 @@ $ java -version
 java version "1.8.0_121"
 ```
 
-Download the latest RocketMQ release from the Apache mirror:
+For Windows users, click [here](https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip) to download the 4.9.3 RocketMQ binary release,
+unpack it to your local disk, such as `D:\rocketmq`.
+For macOS and Linux users, execute following commands:
 ```shell
+# Download release from the Apache mirror
 $ wget https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip
+
+# Unpack the release
+$ unzip rocketmq-all-4.9.3-bin-release.zip
 ```
 
-Unpack the release:
+Prepare a terminal and change to the extracted `bin` directory:
 ```shell
-$ unzip rocketmq-all-4.9.3-bin-release.zip
-$ cd rocketmq-all-4.9.3-bin-release
+$ cd rocketmq-4.9.3/bin
 ```
 
 **1) Start NameServer**
 
-NameServer will be listening at `0.0.0.0:9876`, make sure that the port is not used by others.
+NameServer will be listening at `0.0.0.0:9876`, make sure that the port is not used by others on the local machine, and then do as follows.
 
+For macOS and Linux users:
 ```shell
-### Start Name Server
+### start Name Server
 $ nohup sh mqnamesrv &
- 
+
 ### check whether Name Server is successfully started
 $ tail -f ~/logs/rocketmqlogs/namesrv.log
 The Name Server boot success...
 ```
 
+For Windows users, you need set environment variables first:
+- From the desktop, right click the Computer icon.
+- Choose Properties from the context menu.
+- Click the Advanced system settings link.
+- Click Environment Variables.
+- Add Environment `ROCKETMQ_HOME="D:\rocketmq"`. 
+
+Then change directory to rocketmq, type and run:
+```shell
+$ mqnamesrv.cmd
+The Name Server boot success...
+```
+
 **2) Start Broker**
 
+For macOS and Linux users:
 ```shell
 ### start Broker
 $ nohup sh bin/mqbroker -n localhost:9876 &
 
 ### check whether Broker is successfully started, eg: Broker's IP is 192.168.1.2, Broker's name is broker-a
-$ tail -f ~/logs/rocketmqlogs/broker.log 
+$ tail -f ~/logs/rocketmqlogs/broker.log
+The broker[broker-a, 192.169.1.2:10911] boot success...
+```
+
+For Windows users:
+```shell
+$ mqbroker.cmd -n localhost:9876
 The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
 
