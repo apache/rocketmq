@@ -56,7 +56,7 @@ public class ReceiveMessageResponseStreamWriter {
                 case FOUND:
                     if (messageFoundList.isEmpty()) {
                         streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                            .setStatus(ResponseBuilder.buildStatus(Code.MESSAGE_NOT_FOUND, "no new message"))
+                            .setStatus(ResponseBuilder.buildStatus(Code.MESSAGE_NOT_FOUND, "no match message"))
                             .build());
                     } else {
                         streamObserver.onNext(ReceiveMessageResponse.newBuilder()
