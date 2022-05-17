@@ -37,7 +37,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.service.out.ProxyOutService;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -219,5 +219,5 @@ public interface MessagingProcessor extends StartAndShutdown {
         String topic
     );
 
-    ProxyOutService getProxyOutService();
+    ProxyRelayService getProxyOutService();
 }

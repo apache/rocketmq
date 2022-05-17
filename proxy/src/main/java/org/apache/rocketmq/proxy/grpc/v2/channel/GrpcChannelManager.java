@@ -33,11 +33,11 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.service.out.ProxyOutResult;
-import org.apache.rocketmq.proxy.service.out.ProxyOutService;
+import org.apache.rocketmq.proxy.service.relay.ProxyOutResult;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 
 public class GrpcChannelManager implements StartAndShutdown {
-    private final ProxyOutService proxyOutService;
+    private final ProxyRelayService proxyRelayService;
     protected final ConcurrentMap<String /* group */, Map<String, GrpcClientChannel>/* clientId */> groupClientIdChannelMap = new ConcurrentHashMap<>();
 
     protected final AtomicLong nonceIdGenerator = new AtomicLong(0);
@@ -47,8 +47,8 @@ public class GrpcChannelManager implements StartAndShutdown {
         new ThreadFactoryImpl("GrpcChannelManager_")
     );
 
-    public GrpcChannelManager(ProxyOutService proxyOutService) {
-        this.proxyOutService = proxyOutService;
+    public GrpcChannelManager(ProxyRelayService proxyRelayService) {
+        this.proxyRelayService = proxyRelayService;
     }
 
     protected void init() {
@@ -63,7 +63,7 @@ public class GrpcChannelManager implements StartAndShutdown {
             if (clientIdMap == null) {
                 clientIdMap = new ConcurrentHashMap<>();
             }
-            clientIdMap.computeIfAbsent(clientId, clientIdKey -> new GrpcClientChannel(proxyOutService, this, ctx, group, clientId));
+            clientIdMap.computeIfAbsent(clientId, clientIdKey -> new GrpcClientChannel(proxyRelayService, this, ctx, group, clientId));
             return clientIdMap;
         });
         return getChannel(group, clientId);

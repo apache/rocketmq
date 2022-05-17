@@ -31,7 +31,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.message.MessageService;
-import org.apache.rocketmq.proxy.service.out.ProxyOutService;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.junit.Ignore;
@@ -61,7 +61,7 @@ public class BaseProcessorTest extends InitConfigAndLoggerTest {
     @Mock
     protected TransactionService transactionService;
     @Mock
-    protected ProxyOutService proxyOutService;
+    protected ProxyRelayService proxyRelayService;
     @Mock
     protected ProducerProcessor producerProcessor;
     @Mock
@@ -78,7 +78,7 @@ public class BaseProcessorTest extends InitConfigAndLoggerTest {
         when(serviceManager.getProducerManager()).thenReturn(producerManager);
         when(serviceManager.getConsumerManager()).thenReturn(consumerManager);
         when(serviceManager.getTransactionService()).thenReturn(transactionService);
-        when(serviceManager.getProxyOutService()).thenReturn(proxyOutService);
+        when(serviceManager.getProxyOutService()).thenReturn(proxyRelayService);
     }
 
     protected static ProxyContext createContext() {

@@ -21,7 +21,7 @@ import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.service.message.MessageService;
-import org.apache.rocketmq.proxy.service.out.ProxyOutService;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -54,5 +54,5 @@ public abstract class ServiceManager extends AbstractStartAndShutdown {
 
     public abstract TransactionService getTransactionService();
 
-    public abstract ProxyOutService getProxyOutService();
+    public abstract ProxyRelayService getProxyOutService();
 }

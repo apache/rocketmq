@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.service.out;
+package org.apache.rocketmq.proxy.service.relay;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
@@ -23,15 +23,19 @@ import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public interface ProxyOutService {
+/**
+ * not implement yet
+ */
+public class ClusterProxyRelayService implements ProxyRelayService {
 
-    CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
-        RemotingCommand command,
-        GetConsumerRunningInfoRequestHeader header
-    );
+    @Override
+    public CompletableFuture<ProxyOutResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(RemotingCommand command,
+        GetConsumerRunningInfoRequestHeader header) {
+        return null;
+    }
 
-    CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
-        RemotingCommand command,
-        ConsumeMessageDirectlyResultRequestHeader header
-    );
+    @Override public CompletableFuture<ProxyOutResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
+        RemotingCommand command, ConsumeMessageDirectlyResultRequestHeader header) {
+        return null;
+    }
 }
