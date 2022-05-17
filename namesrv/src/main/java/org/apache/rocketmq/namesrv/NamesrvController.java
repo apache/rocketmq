@@ -168,7 +168,6 @@ public class NamesrvController {
                     return new FutureTaskExt<T>(runnable, value);
                 }
             };
-            this.controller.startup();
         }
 
         this.remotingClient = new NettyRemotingClient(this.nettyClientConfig);
@@ -289,6 +288,10 @@ public class NamesrvController {
         }
 
         this.routeInfoManager.start();
+
+        if (this.controllerConfig.isStartupController()) {
+            this.controller.startup();
+        }
     }
 
     public void shutdown() {
@@ -296,6 +299,9 @@ public class NamesrvController {
         this.remotingServer.shutdown();
         this.defaultExecutor.shutdown();
         this.clientRequestExecutor.shutdown();
+        if (this.controllerRequestExecutor != null) {
+            this.controllerRequestExecutor.shutdown();
+        }
         this.scheduledExecutorService.shutdown();
         this.scanExecutorService.shutdown();
         this.routeInfoManager.shutdown();

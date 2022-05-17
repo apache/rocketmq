@@ -91,7 +91,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 if (future != null) {
                     final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
                     final BrokerRegisterResponseHeader responseHeader = (BrokerRegisterResponseHeader) response.readCustomHeader();
-                    if (responseHeader.getBrokerId() > 0) {
+                    if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
                         this.heartbeatManager.registerBroker(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
                             responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel());
                     }
@@ -112,7 +112,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             }
             case BROKER_HEARTBEAT: {
                 final BrokerHeartbeatRequestHeader requestHeader = request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
-                this.heartbeatManager.brokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
+                this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
             }
             default: {
                 final String error = " request type " + request.getCode() + " not supported";

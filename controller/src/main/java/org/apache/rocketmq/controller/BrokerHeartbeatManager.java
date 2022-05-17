@@ -20,12 +20,10 @@ import io.netty.channel.Channel;
 
 public interface BrokerHeartbeatManager {
 
-    interface BrokerLifecycleListener {
-        /**
-         * Trigger when broker inactive.
-         */
-        void onBrokerInactive(final String clusterName, final String brokerAddress, final long brokerId);
-    }
+    /**
+     * Broker new heartbeat.
+     */
+    void onBrokerHeartbeat(final String clusterName, final String brokerAddr);
 
     /**
      * Start heartbeat manager.
@@ -49,7 +47,19 @@ public interface BrokerHeartbeatManager {
         final Long timeoutMillis, final Channel channel);
 
     /**
-     * Broker new heartbeat.
+     * Broker channel close
      */
-    void brokerHeartbeat(final String clusterName, final String brokerAddr);
+    void onBrokerChannelClose(final Channel channel);
+
+    /**
+     * Check whether broker active
+     */
+    boolean isBrokerActive(final String clusterName, final String brokerAddr);
+
+    interface BrokerLifecycleListener {
+        /**
+         * Trigger when broker inactive.
+         */
+        void onBrokerInactive(final String brokerName, final String brokerAddress, final long brokerId);
+    }
 }

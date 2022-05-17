@@ -17,8 +17,12 @@
 package org.apache.rocketmq.common.namesrv;
 
 import java.io.File;
+import org.apache.rocketmq.common.MixAll;
 
 public class ControllerConfig {
+
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String configStorePath = System.getProperty("user.home") + File.separator + "controller" + File.separator + "controller.properties";
 
     /**
      * Is startup the controller in this name-srv
@@ -55,6 +59,22 @@ public class ControllerConfig {
      * Whether process read event
      */
     private boolean isProcessReadEvent = false;
+
+    public String getRocketmqHome() {
+        return rocketmqHome;
+    }
+
+    public void setRocketmqHome(String rocketmqHome) {
+        this.rocketmqHome = rocketmqHome;
+    }
+
+    public String getConfigStorePath() {
+        return configStorePath;
+    }
+
+    public void setConfigStorePath(String configStorePath) {
+        this.configStorePath = configStorePath;
+    }
 
     public boolean isStartupController() {
         return isStartupController;

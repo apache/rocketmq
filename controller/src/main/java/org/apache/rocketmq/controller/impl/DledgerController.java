@@ -66,7 +66,6 @@ public class DledgerController implements Controller {
     private final DLedgerConfig dLedgerConfig;
     // Usr for checking whether the broker is alive
     private final BiPredicate<String, String> brokerAlivePredicate;
-
     private final ReplicasInfoManager replicasInfoManager;
     private final EventScheduler scheduler;
     private final EventSerializer eventSerializer;
@@ -74,11 +73,11 @@ public class DledgerController implements Controller {
     private final DledgerControllerStateMachine statemachine;
     private volatile boolean isScheduling = false;
 
-    public DledgerController(final ControllerConfig config) {
+    public DledgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
         this.controllerConfig = config;
         this.eventSerializer = new EventSerializer();
         this.scheduler = new EventScheduler();
-        this.brokerAlivePredicate = (cluster, address) -> true;
+        this.brokerAlivePredicate = brokerAlivePredicate;
 
         this.dLedgerConfig = new DLedgerConfig();
         this.dLedgerConfig.setGroup(config.getControllerDLegerGroup());

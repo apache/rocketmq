@@ -65,7 +65,7 @@ public class DledgerControllerTest {
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
 
-        final DledgerController controller = new DledgerController(config);
+        final DledgerController controller = new DledgerController(config, (str1, str2) -> true);
 
         controller.startup();
         return controller;

@@ -18,6 +18,7 @@ package org.apache.rocketmq.controller.impl;
 
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +52,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void start() {
-        this.scheduledService.scheduleAtFixedRate(this::scanNotActiveBroker, 5, this.controllerConfig.getScanNotActiveBrokerInterval(), TimeUnit.MILLISECONDS);
+        this.scheduledService.scheduleAtFixedRate(this::scanNotActiveBroker, 2000, this.controllerConfig.getScanNotActiveBrokerInterval(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -63,7 +64,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     public void scanNotActiveBroker() {
         try {
             log.info("start scanNotActiveBroker");
-            for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> next : this.brokerLiveTable.entrySet()) {
+            final Iterator<Map.Entry<BrokerAddrInfo, BrokerLiveInfo>> iterator = this.brokerLiveTable.entrySet().iterator();
+            while (iterator.hasNext()) {
+                final Map.Entry<BrokerAddrInfo, BrokerLiveInfo> next = iterator.next();
                 long last = next.getValue().lastUpdateTimestamp;
                 long timeoutMillis = next.getValue().heartbeatTimeoutMillis;
                 if ((last + timeoutMillis) < System.currentTimeMillis()) {
@@ -71,12 +74,10 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                     if (channel != null) {
                         RemotingUtil.closeChannel(channel);
                     }
+                    iterator.remove();
+                    this.executor.submit(() ->
+                        notifyBrokerInActive(next.getValue().brokerName, next.getKey().brokerAddr, next.getValue().brokerId));
                     log.warn("The broker channel expired, {} {}ms", next.getKey(), timeoutMillis);
-                    this.executor.submit(() -> {
-                        for (BrokerLifecycleListener listener : this.brokerLifecycleListeners) {
-                            listener.onBrokerInactive(next.getKey().clusterName, next.getKey().brokerAddr, next.getValue().brokerId);
-                        }
-                    });
                 }
             }
         } catch (Exception e) {
@@ -84,6 +85,11 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         }
     }
 
+    private void notifyBrokerInActive(String brokerName, String brokerAddr, Long brokerId) {
+        for (BrokerLifecycleListener listener : this.brokerLifecycleListeners) {
+            listener.onBrokerInactive(brokerName, brokerAddr, brokerId);
+        }
+    }
 
     @Override
     public void addBrokerLifecycleListener(BrokerLifecycleListener listener) {
@@ -95,7 +101,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         long brokerId, Long timeoutMillis, Channel channel) {
         final BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         final BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(addrInfo,
-            new BrokerLiveInfo(brokerId,
+            new BrokerLiveInfo(brokerName,
+                brokerId,
                 System.currentTimeMillis(),
                 timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
                 channel));
@@ -105,7 +112,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public void brokerHeartbeat(String clusterName, String brokerAddr) {
+    public void onBrokerHeartbeat(String clusterName, String brokerAddr) {
         BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
         if (prev != null) {
@@ -113,14 +120,40 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         }
     }
 
-    static class BrokerLiveInfo {
-        private long brokerId;
-        private long lastUpdateTimestamp;
-        private long heartbeatTimeoutMillis;
-        private Channel channel;
+    @Override
+    public void onBrokerChannelClose(Channel channel) {
+        synchronized (this) {
+            for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
+                if (entry.getValue().channel == channel) {
+                    this.executor.submit(() ->
+                        notifyBrokerInActive(entry.getValue().brokerName, entry.getKey().brokerAddr, entry.getValue().brokerId));
+                    break;
+                }
+            }
+        }
+    }
 
-        public BrokerLiveInfo(long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
+    @Override
+    public boolean isBrokerActive(String clusterName, String brokerAddr) {
+        final BrokerLiveInfo info = this.brokerLiveTable.get(new BrokerAddrInfo(clusterName, brokerAddr));
+        if (info != null) {
+            long last = info.lastUpdateTimestamp;
+            long timeoutMillis = info.heartbeatTimeoutMillis;
+            return (last + timeoutMillis) >= System.currentTimeMillis();
+        }
+        return false;
+    }
+
+    static class BrokerLiveInfo {
+        private final String brokerName;
+        private final long brokerId;
+        private final long heartbeatTimeoutMillis;
+        private final Channel channel;
+        private long lastUpdateTimestamp;
+
+        public BrokerLiveInfo(String brokerName, long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,
             Channel channel) {
+            this.brokerName = brokerName;
             this.brokerId = brokerId;
             this.lastUpdateTimestamp = lastUpdateTimestamp;
             this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
@@ -129,7 +162,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
         @Override public String toString() {
             return "BrokerLiveInfo{" +
-                "brokerId=" + brokerId +
+                "brokerName='" + brokerName + '\'' +
+                ", brokerId=" + brokerId +
                 ", lastUpdateTimestamp=" + lastUpdateTimestamp +
                 ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
                 ", channel=" + channel +
