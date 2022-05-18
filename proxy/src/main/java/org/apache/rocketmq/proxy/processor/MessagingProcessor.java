@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
@@ -46,6 +47,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public interface MessagingProcessor extends StartAndShutdown {
 
     long DEFAULT_TIMEOUT_MILLS = Duration.ofSeconds(2).toMillis();
+
+    SubscriptionGroupConfig getSubscriptionGroupConfig(
+        ProxyContext ctx,
+        String consumerGroupName
+    );
 
     ProxyTopicRouteData getTopicRouteDataForProxy(
         ProxyContext ctx,

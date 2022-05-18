@@ -23,6 +23,8 @@ public class ProxyConfig {
     public final static String CONFIG_FILE_NAME = "rmq-proxy.json";
     private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
 
+    private String rocketMQClusterName = "";
+
     /**
      * configuration for ThreadPoolMonitor
      */
@@ -36,7 +38,6 @@ public class ProxyConfig {
      * gRPC
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
-    private Boolean startGrpcServer = true;
     private Integer grpcServerPort = 8081;
     private boolean grpcTlsTestModeEnable = true;
     private String grpcTlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
@@ -81,6 +82,8 @@ public class ProxyConfig {
 
     private int topicConfigCacheExpiredInSeconds = 20;
     private int topicConfigCacheMaxNum = 20000;
+    private int subscriptionGroupConfigCacheExpiredInSeconds = 20;
+    private int subscriptionGroupConfigCacheMaxNum = 20000;
     private int metadataThreadPoolNums = 3;
     private int metadataThreadPoolQueueCapacity = 1000;
 
@@ -94,6 +97,14 @@ public class ProxyConfig {
     private boolean enableACL = false;
 
     private boolean enableTopicMessageTypeCheck = true;
+
+    public String getRocketMQClusterName() {
+        return rocketMQClusterName;
+    }
+
+    public void setRocketMQClusterName(String rocketMQClusterName) {
+        this.rocketMQClusterName = rocketMQClusterName;
+    }
 
     public boolean isEnablePrintJstack() {
         return enablePrintJstack;
@@ -141,14 +152,6 @@ public class ProxyConfig {
 
     public void setProxyMode(String proxyMode) {
         this.proxyMode = proxyMode;
-    }
-
-    public Boolean getStartGrpcServer() {
-        return startGrpcServer;
-    }
-
-    public void setStartGrpcServer(Boolean startGrpcServer) {
-        this.startGrpcServer = startGrpcServer;
     }
 
     public Integer getGrpcServerPort() {
@@ -421,6 +424,22 @@ public class ProxyConfig {
 
     public void setTopicConfigCacheMaxNum(int topicConfigCacheMaxNum) {
         this.topicConfigCacheMaxNum = topicConfigCacheMaxNum;
+    }
+
+    public int getSubscriptionGroupConfigCacheExpiredInSeconds() {
+        return subscriptionGroupConfigCacheExpiredInSeconds;
+    }
+
+    public void setSubscriptionGroupConfigCacheExpiredInSeconds(int subscriptionGroupConfigCacheExpiredInSeconds) {
+        this.subscriptionGroupConfigCacheExpiredInSeconds = subscriptionGroupConfigCacheExpiredInSeconds;
+    }
+
+    public int getSubscriptionGroupConfigCacheMaxNum() {
+        return subscriptionGroupConfigCacheMaxNum;
+    }
+
+    public void setSubscriptionGroupConfigCacheMaxNum(int subscriptionGroupConfigCacheMaxNum) {
+        this.subscriptionGroupConfigCacheMaxNum = subscriptionGroupConfigCacheMaxNum;
     }
 
     public int getMetadataThreadPoolNums() {

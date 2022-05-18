@@ -58,7 +58,7 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown implements GrpcMessingActivity {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private GrpcClientSettingsManager grpcClientSettingsManager;
+    private final GrpcClientSettingsManager grpcClientSettingsManager;
 
     private final ReceiveMessageActivity receiveMessageActivity;
     private final AckMessageActivity ackMessageActivity;
@@ -70,7 +70,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     private final ClientActivity clientActivity;
 
     protected DefaultGrpcMessingActivity(MessagingProcessor messagingProcessor) {
-        this.grpcClientSettingsManager = new GrpcClientSettingsManager();
+        this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, this.grpcClientSettingsManager);
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, this.grpcClientSettingsManager);

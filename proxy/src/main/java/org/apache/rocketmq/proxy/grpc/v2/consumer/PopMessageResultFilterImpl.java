@@ -21,7 +21,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.utils.FilterUtils;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.grpc.v2.GrpcContextConstants;
 import org.apache.rocketmq.proxy.processor.PopMessageResultFilter;
 
 public class PopMessageResultFilterImpl implements PopMessageResultFilter {
@@ -34,7 +33,7 @@ public class PopMessageResultFilterImpl implements PopMessageResultFilter {
 
     @Override
     public FilterResult filterMessage(ProxyContext ctx, String consumerGroup, SubscriptionData subscriptionData, MessageExt messageExt) {
-        int maxAttempts = grpcClientSettingsManager.getClientSettings(ctx.getVal(GrpcContextConstants.CLIENT_ID)).getBackoffPolicy().getMaxAttempts();
+        int maxAttempts = grpcClientSettingsManager.getClientSettings(ctx).getBackoffPolicy().getMaxAttempts();
         if (!FilterUtils.isTagMatched(subscriptionData.getTagsSet(), messageExt.getTags())) {
             return FilterResult.NO_MATCH;
         }

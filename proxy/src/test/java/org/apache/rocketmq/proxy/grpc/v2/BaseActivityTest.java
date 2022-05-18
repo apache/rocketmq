@@ -51,9 +51,11 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
     protected static final String LOCAL_ADDR = "127.0.0.1:8080";
     protected Metadata metadata = new Metadata();
 
+    protected static final String CLIENT_ID = "client-id" + UUID.randomUUID();
+
     public void before() throws Throwable {
         super.before();
-        metadata.put(InterceptorConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
+        metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
         metadata.put(InterceptorConstants.LANGUAGE, "JAVA");
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
