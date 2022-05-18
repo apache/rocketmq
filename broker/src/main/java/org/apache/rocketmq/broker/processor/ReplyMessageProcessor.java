@@ -261,7 +261,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
             case MESSAGE_ILLEGAL:
                 log.warn(
                     "the message is illegal, maybe msg body or properties length not matched. msg body length limit {}B.",
-                    this.brokerController.getMessageStoreConfig().getMaxMessageSize());
+                    this.brokerController.getMessageStoreConfig().getMaxMessageBodySize());
                 break;
             case PROPERTIES_SIZE_EXCEEDED:
                 log.warn(

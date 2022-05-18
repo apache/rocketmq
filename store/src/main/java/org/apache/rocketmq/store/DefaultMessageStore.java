@@ -388,7 +388,7 @@ public class DefaultMessageStore implements MessageStore {
             return PutMessageStatus.MESSAGE_ILLEGAL;
         }
 
-        if (messageExtBatch.getBody().length > messageStoreConfig.getMaxMessageSize()) {
+        if (messageExtBatch.getBody().length > messageStoreConfig.getMaxMessageBodySize()) {
             log.warn("PutMessages body length too long " + messageExtBatch.getBody().length);
             return PutMessageStatus.MESSAGE_ILLEGAL;
         }
@@ -912,7 +912,7 @@ public class DefaultMessageStore implements MessageStore {
         if (this.getCommitLog() instanceof DLedgerCommitLog) {
             minPhyOffset += DLedgerEntry.BODY_OFFSET;
         }
-        final int size = this.messageStoreConfig.getMaxMessageSize() * 2;
+        final int size = this.messageStoreConfig.getMaxMessageBodySize() * 2;
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
 

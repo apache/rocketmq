@@ -55,7 +55,7 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
         RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
-            (EndTransactionRequestHeader)request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
+            (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
         LOGGER.debug("Transaction request:{}", requestHeader);
         if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
             response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE);
@@ -239,7 +239,7 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
                 case PROPERTIES_SIZE_EXCEEDED:
                     response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                     response.setRemark(String.format("The message is illegal, maybe msg body or properties length not matched. msg body length limit %dB, msg properties length limit 32KB.",
-                        this.brokerController.getMessageStoreConfig().getMaxMessageSize()));
+                        this.brokerController.getMessageStoreConfig().getMaxMessageBodySize()));
                     break;
                 case SERVICE_NOT_AVAILABLE:
                     response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);

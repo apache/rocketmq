@@ -87,8 +87,8 @@ public class MessageStoreConfig {
     private int fileReservedTime = 72;
     // Flow control for ConsumeQueue
     private int putMsgIndexHightWater = 600000;
-    // The maximum size of message,default is 4M
-    private int maxMessageSize = 1024 * 1024 * 4;
+    // The maximum size of message body,default is 4M,4M only for body length,not include others.
+    private int maxMessageBodySize = 1024 * 1024 * 4;
     // Whether check the CRC32 of the records consumed.
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
@@ -284,12 +284,12 @@ public class MessageStoreConfig {
         this.cleanResourceInterval = cleanResourceInterval;
     }
 
-    public int getMaxMessageSize() {
-        return maxMessageSize;
+    public int getMaxMessageBodySize() {
+        return maxMessageBodySize;
     }
 
-    public void setMaxMessageSize(int maxMessageSize) {
-        this.maxMessageSize = maxMessageSize;
+    public void setMaxMessageBodySize(int maxMessageBodySize) {
+        this.maxMessageBodySize = maxMessageBodySize;
     }
 
     public boolean isCheckCRCOnRecover() {
