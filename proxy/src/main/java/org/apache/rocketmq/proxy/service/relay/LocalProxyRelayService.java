@@ -23,6 +23,10 @@ import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.apache.rocketmq.proxy.common.ContextVariable;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
+import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -36,8 +40,8 @@ public class LocalProxyRelayService implements ProxyRelayService {
     }
 
     @Override
-    public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(RemotingCommand command,
-        GetConsumerRunningInfoRequestHeader header) {
+    public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
+        ProxyContext context, RemotingCommand command, GetConsumerRunningInfoRequestHeader header) {
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future = new CompletableFuture<>();
         future.thenAccept(proxyOutResult -> {
             if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
@@ -50,8 +54,8 @@ public class LocalProxyRelayService implements ProxyRelayService {
                     ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
                     runningInfo.setJstack(consumerRunningInfo.getJstack());
                     remotingCommand.setBody(runningInfo.encode());
-
-                    // nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(channelManager.createChannel(ctx)), remotingCommand);
+                    SimpleChannel simpleChannel = new SimpleChannel(context.getVal(ContextVariable.REMOTE_ADDRESS), context.getVal(ContextVariable.LOCAL_ADDRESS));
+                    nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(simpleChannel), remotingCommand);
                 }
             }
         });
@@ -59,7 +63,8 @@ public class LocalProxyRelayService implements ProxyRelayService {
     }
 
     @Override
-    public CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(RemotingCommand command,
+    public CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
+        ProxyContext context, RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header) {
         return null;
     }
