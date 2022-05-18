@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -192,21 +191,34 @@ public class SendMessageActivity extends AbstractMessingActivity {
 
     protected SendMessageResponse convertToSendMessageResponse(ProxyContext ctx, SendMessageRequest request,
         SendResult result) {
-        if (result.getSendStatus() != SendStatus.SEND_OK) {
-            return SendMessageResponse.newBuilder()
-                .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "send message failed, sendStatus=" + result.getSendStatus()))
-                .build();
+        switch (result.getSendStatus()) {
+            case FLUSH_DISK_TIMEOUT:
+                return SendMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(Code.MASTER_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
+                    .build();
+            case FLUSH_SLAVE_TIMEOUT:
+                return SendMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(Code.SLAVE_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
+                    .build();
+            case SLAVE_NOT_AVAILABLE:
+                return SendMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(Code.HA_NOT_AVAILABLE, "send message failed, sendStatus=" + result.getSendStatus()))
+                    .build();
+            case SEND_OK:
+                List<SendReceipt> sendReceiptList = Lists.newArrayList();
+                sendReceiptList.add(SendReceipt.newBuilder()
+                    .setMessageId(StringUtils.defaultString(result.getMsgId()))
+                    .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
+                    .build());
+                return SendMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                    .addAllReceipts(sendReceiptList)
+                    .build();
+            default:
+                return SendMessageResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "send message failed, sendStatus=" + result.getSendStatus()))
+                    .build();
         }
-
-        List<SendReceipt> sendReceiptList = Lists.newArrayList();
-        sendReceiptList.add(SendReceipt.newBuilder()
-            .setMessageId(StringUtils.defaultString(result.getMsgId()))
-            .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
-            .build());
-        return SendMessageResponse.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-            .addAllReceipts(sendReceiptList)
-            .build();
     }
 
     protected static class SendMessageQueueSelector implements QueueSelector {
