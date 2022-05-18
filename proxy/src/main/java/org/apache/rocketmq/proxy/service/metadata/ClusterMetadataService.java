@@ -74,6 +74,12 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
             .maximumSize(config.getSubscriptionGroupConfigCacheMaxNum())
             .refreshAfterWrite(config.getSubscriptionGroupConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
             .build(new ClusterSubscriptionGroupConfigCacheLoader());
+
+        this.init();
+    }
+
+    protected void init() {
+        this.appendShutdown(this.cacheRefreshExecutor::shutdown);
     }
 
     @Override
