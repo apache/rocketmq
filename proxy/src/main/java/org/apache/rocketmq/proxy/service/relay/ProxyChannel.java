@@ -41,22 +41,30 @@ import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.proxy.common.ContextVariable;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public abstract class ProxyChannel extends AbstractChannel {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    protected final String remoteAddress;
+    protected final String localAddress;
 
     protected final ProxyRelayService proxyRelayService;
 
-    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent) {
+    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, String remoteAddress, String localAddress) {
         super(parent);
         this.proxyRelayService = proxyRelayService;
+        this.remoteAddress = remoteAddress;
+        this.localAddress = localAddress;
     }
 
-    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id) {
+    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress, String localAddress) {
         super(parent, id);
         this.proxyRelayService = proxyRelayService;
+        this.remoteAddress = remoteAddress;
+        this.localAddress = localAddress;
     }
 
     @Override
@@ -65,6 +73,9 @@ public abstract class ProxyChannel extends AbstractChannel {
 
         try {
             if (msg instanceof RemotingCommand) {
+                ProxyContext context = ProxyContext.create()
+                    .withVal(ContextVariable.REMOTE_ADDRESS, remoteAddress)
+                    .withVal(ContextVariable.REMOTE_ADDRESS, localAddress);
                 RemotingCommand command = (RemotingCommand) msg;
                 switch (command.getCode()) {
                     case RequestCode.CHECK_TRANSACTION_STATE: {
@@ -77,15 +88,15 @@ public abstract class ProxyChannel extends AbstractChannel {
                     }
                     case RequestCode.GET_CONSUMER_RUNNING_INFO: {
                         GetConsumerRunningInfoRequestHeader header = (GetConsumerRunningInfoRequestHeader) command.readCustomHeader();
-                        processFuture = this.processGetConsumerRunningInfo(command, header,
-                            this.proxyRelayService.processGetConsumerRunningInfo(command, header));
+                        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> relayFuture = this.proxyRelayService.processGetConsumerRunningInfo(context, command, header);
+                        processFuture = this.processGetConsumerRunningInfo(command, header, relayFuture);
                         break;
                     }
                     case RequestCode.CONSUME_MESSAGE_DIRECTLY: {
                         ConsumeMessageDirectlyResultRequestHeader header = (ConsumeMessageDirectlyResultRequestHeader) command.readCustomHeader();
                         MessageExt messageExt = MessageDecoder.decode(ByteBuffer.wrap(command.getBody()), true, false, false);
                         processFuture = this.processConsumeMessageDirectly(command, header, messageExt,
-                            this.proxyRelayService.processConsumeMessageDirectly(command, header));
+                            this.proxyRelayService.processConsumeMessageDirectly(context, command, header));
                         break;
                     }
                     default:

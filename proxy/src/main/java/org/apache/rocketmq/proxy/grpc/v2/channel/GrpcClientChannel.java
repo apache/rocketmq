@@ -51,14 +51,12 @@ public class GrpcClientChannel extends ProxyChannel {
     private final AtomicReference<StreamObserver<TelemetryCommand>> telemetryCommandRef = new AtomicReference<>();
     private final String group;
     private final String clientId;
-    private final String remoteAddress;
-    private final String localAddress;
 
     public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcChannelManager grpcChannelManager, Context ctx, String group, String clientId) {
-        super(proxyRelayService, null, new GrpcChannelId(group, clientId));
+        super(proxyRelayService, null, new GrpcChannelId(group, clientId),
+            InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.REMOTE_ADDRESS),
+            InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LOCAL_ADDRESS));
         this.grpcChannelManager = grpcChannelManager;
-        this.remoteAddress = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.REMOTE_ADDRESS);
-        this.localAddress = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LOCAL_ADDRESS);
         this.group = group;
         this.clientId = clientId;
     }
