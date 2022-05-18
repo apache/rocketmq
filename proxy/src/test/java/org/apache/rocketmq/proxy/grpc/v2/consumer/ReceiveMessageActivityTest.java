@@ -24,6 +24,7 @@ import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
@@ -63,6 +64,8 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
         doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
 
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+
         this.receiveMessageActivity.receiveMessage(
             createContext(),
             ReceiveMessageRequest.newBuilder()
@@ -84,6 +87,8 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
         ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
         doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
 
         PopResult popResult = new PopResult(PopStatus.NO_NEW_MSG, new ArrayList<>());
         when(this.messagingProcessor.popMessage(

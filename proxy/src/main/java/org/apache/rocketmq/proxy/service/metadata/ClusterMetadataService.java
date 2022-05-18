@@ -20,32 +20,64 @@ package org.apache.rocketmq.proxy.service.metadata;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.LoadingCache;
 import java.util.Optional;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.proxy.common.AbstractCacheLoader;
+import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 
-public class ClusterMetadataService extends AbstractMetadataService {
+public class ClusterMetadataService extends AbstractStartAndShutdown implements MetadataService {
+    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final long DEFAULT_TIMEOUT = 3000;
+
+    private final ThreadPoolExecutor cacheRefreshExecutor;
+    private final TopicRouteService topicRouteService;
+    private final MQClientAPIFactory mqClientAPIFactory;
+
     private final LoadingCache<String, TopicConfigAndQueueMapping> topicCache;
-    private TopicRouteService topicRouteService;
     private final static TopicConfigAndQueueMapping EMPTY_TOPIC_CONFIG = new TopicConfigAndQueueMapping();
+
+    private final LoadingCache<String, SubscriptionGroupConfig> subscriptionGroupConfigCache;
+    private final static SubscriptionGroupConfig EMPTY_SUBSCRIPTION_GROUP_CONFIG = new SubscriptionGroupConfig();
 
     public ClusterMetadataService(TopicRouteService topicRouteService, MQClientAPIFactory mqClientAPIFactory) {
         this.topicRouteService = topicRouteService;
+        this.mqClientAPIFactory = mqClientAPIFactory;
+
         ProxyConfig config = ConfigurationManager.getProxyConfig();
+        this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
+            config.getMetadataThreadPoolNums(),
+            config.getMetadataThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "MetadataCacheRefresh",
+            config.getMetadataThreadPoolQueueCapacity()
+        );
         this.topicCache = CacheBuilder.newBuilder()
             .maximumSize(config.getTopicConfigCacheMaxNum())
             .refreshAfterWrite(config.getTopicConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
-            .build(new ClusterTopicConfigCacheLoader(mqClientAPIFactory));
+            .build(new ClusterTopicConfigCacheLoader());
+        this.subscriptionGroupConfigCache = CacheBuilder.newBuilder()
+            .maximumSize(config.getSubscriptionGroupConfigCacheMaxNum())
+            .refreshAfterWrite(config.getSubscriptionGroupConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .build(new ClusterSubscriptionGroupConfigCacheLoader());
     }
 
-    @Override public TopicMessageType getTopicMessageType(String topic) {
+    @Override
+    public TopicMessageType getTopicMessageType(String topic) {
         TopicConfigAndQueueMapping topicConfigAndQueueMapping;
         try {
             topicConfigAndQueueMapping = topicCache.get(topic);
@@ -58,28 +90,74 @@ public class ClusterMetadataService extends AbstractMetadataService {
         return topicConfigAndQueueMapping.getTopicMessageType();
     }
 
-    protected class ClusterTopicConfigCacheLoader extends AbstractTopicConfigCacheLoader {
-        private final MQClientAPIFactory mqClientAPIFactory;
+    @Override
+    public SubscriptionGroupConfig getSubscriptionGroupConfig(String group) {
+        SubscriptionGroupConfig config;
+        try {
+            config = this.subscriptionGroupConfigCache.get(group);
+        } catch (Exception e) {
+            return null;
+        }
+        if (config == EMPTY_SUBSCRIPTION_GROUP_CONFIG) {
+            return null;
+        }
+        return config;
+    }
 
-        public ClusterTopicConfigCacheLoader(MQClientAPIFactory mqClientAPIFactory) {
-            this.mqClientAPIFactory = mqClientAPIFactory;
+    protected class ClusterSubscriptionGroupConfigCacheLoader extends AbstractCacheLoader<String, SubscriptionGroupConfig> {
+
+        public ClusterSubscriptionGroupConfigCacheLoader() {
+            super(cacheRefreshExecutor);
         }
 
-        @Override protected TopicConfigAndQueueMapping loadTopicConfig(String topic) throws Exception {
-            try {
-                Optional<BrokerData> brokerDataOptional = topicRouteService.getAllMessageQueueView(topic).getTopicRouteData().getBrokerDatas().stream().findAny();
-                if (brokerDataOptional.isPresent()) {
-                    String brokerAddress = topicRouteService.getBrokerAddr(brokerDataOptional.get().getBrokerName());
-                    return this.mqClientAPIFactory.getClient().getTopicConfig(brokerAddress, topic, 1000L);
-                }
-                return EMPTY_TOPIC_CONFIG;
-            } catch (MQClientException e) {
-                if (TopicRouteHelper.isTopicNotExistError(e)) {
-                    log.warn("topic is not exist", e);
-                    return EMPTY_TOPIC_CONFIG;
-                }
-                throw e;
+        @Override
+        protected SubscriptionGroupConfig getDirectly(String consumerGroup) throws Exception {
+            ProxyConfig config = ConfigurationManager.getProxyConfig();
+            String clusterName = config.getRocketMQClusterName();
+            Optional<BrokerData> brokerDataOptional = findOneBroker(clusterName);
+            if (brokerDataOptional.isPresent()) {
+                String brokerAddress = brokerDataOptional.get().selectBrokerAddr();
+                return mqClientAPIFactory.getClient().getSubscriptionGroupConfig(brokerAddress, consumerGroup, DEFAULT_TIMEOUT);
             }
+            return EMPTY_SUBSCRIPTION_GROUP_CONFIG;
+        }
+
+        @Override
+        protected void onErr(String consumerGroup, Exception e) {
+            log.error("load subscription config failed. consumerGroup:{}", consumerGroup, e);
+        }
+    }
+
+    protected class ClusterTopicConfigCacheLoader extends AbstractCacheLoader<String, TopicConfigAndQueueMapping> {
+
+        public ClusterTopicConfigCacheLoader() {
+            super(cacheRefreshExecutor);
+        }
+
+        @Override
+        protected TopicConfigAndQueueMapping getDirectly(String topic) throws Exception {
+            Optional<BrokerData> brokerDataOptional = findOneBroker(topic);
+            if (brokerDataOptional.isPresent()) {
+                String brokerAddress = brokerDataOptional.get().selectBrokerAddr();
+                return mqClientAPIFactory.getClient().getTopicConfig(brokerAddress, topic, DEFAULT_TIMEOUT);
+            }
+            return EMPTY_TOPIC_CONFIG;
+        }
+
+        @Override
+        protected void onErr(String key, Exception e) {
+            log.error("load topic config failed. topic:{}", key, e);
+        }
+    }
+
+    protected Optional<BrokerData> findOneBroker(String topic) throws Exception {
+        try {
+            return topicRouteService.getAllMessageQueueView(topic).getTopicRouteData().getBrokerDatas().stream().findAny();
+        } catch (MQClientException e) {
+            if (TopicRouteHelper.isTopicNotExistError(e)) {
+                return Optional.empty();
+            }
+            throw e;
         }
     }
 }

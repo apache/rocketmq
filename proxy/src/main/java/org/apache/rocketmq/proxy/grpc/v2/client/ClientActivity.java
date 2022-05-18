@@ -95,7 +95,7 @@ public class ClientActivity extends AbstractMessingActivity {
             String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
             LanguageCode languageCode = context.getVal(GrpcContextConstants.LANGUAGE);
 
-            Settings clientSettings = grpcClientSettingsManager.getClientSettings(clientId);
+            Settings clientSettings = grpcClientSettingsManager.getClientSettings(context);
             switch (clientSettings.getClientType()) {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
@@ -150,7 +150,7 @@ public class ClientActivity extends AbstractMessingActivity {
             ProxyContext context = createContext(ctx);
             String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
             LanguageCode languageCode = context.getVal(GrpcContextConstants.LANGUAGE);
-            Settings clientSettings = grpcClientSettingsManager.getClientSettings(clientId);
+            Settings clientSettings = grpcClientSettingsManager.getClientSettings(context);
 
             switch (clientSettings.getClientType()) {
                 case PRODUCER:
@@ -225,7 +225,7 @@ public class ClientActivity extends AbstractMessingActivity {
         ProxyContext context = createContext(ctx);
         String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
         grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
-        Settings settings = grpcClientSettingsManager.getClientSettings(clientId);
+        Settings settings = grpcClientSettingsManager.getClientSettings(context);
         if (settings.hasPublishing()) {
             for (Resource topic : settings.getPublishing().getTopicsList()) {
                 String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
