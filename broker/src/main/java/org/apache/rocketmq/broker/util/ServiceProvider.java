@@ -173,7 +173,7 @@ public class ServiceProvider {
                             serviceClazz.getName(),
                             objectId(serviceClazz.getClassLoader()), clazz.getName());
                     }
-                    return (T)serviceClazz.newInstance();
+                    return (T)serviceClazz.getDeclaredConstructor().newInstance();
                 } catch (ClassNotFoundException ex) {
                     if (classLoader == thisClassLoader) {
                         // Nothing more to try, onwards.

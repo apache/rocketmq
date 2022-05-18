@@ -248,10 +248,14 @@ public class RemotingCommand {
             boolean useFastEncode) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
-            objectHeader = classHeader.newInstance();
+            objectHeader = classHeader.getDeclaredConstructor().newInstance();
         } catch (InstantiationException e) {
             return null;
         } catch (IllegalAccessException e) {
+            return null;
+        } catch (InvocationTargetException e) {
+            return null;
+        } catch (NoSuchMethodException e) {
             return null;
         }
 
