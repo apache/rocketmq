@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
@@ -36,7 +37,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
+    private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 10;
     private final ScheduledExecutorService scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_"));
     private final ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
 
@@ -76,7 +77,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                     }
                     iterator.remove();
                     this.executor.submit(() ->
-                        notifyBrokerInActive(next.getValue().brokerName, next.getKey().brokerAddr, next.getValue().brokerId));
+                        notifyBrokerInActive(next.getValue().brokerName, next.getKey().getBrokerAddr(), next.getValue().brokerId));
                     log.warn("The broker channel expired, {} {}ms", next.getKey(), timeoutMillis);
                 }
             }
@@ -126,7 +127,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
             for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
                 if (entry.getValue().channel == channel) {
                     this.executor.submit(() ->
-                        notifyBrokerInActive(entry.getValue().brokerName, entry.getKey().brokerAddr, entry.getValue().brokerId));
+                        notifyBrokerInActive(entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId));
                     break;
                 }
             }
@@ -168,58 +169,6 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
                 ", channel=" + channel +
                 '}';
-        }
-    }
-
-    /**
-     * broker address information
-     */
-    static class BrokerAddrInfo {
-        private final String clusterName;
-        private final String brokerAddr;
-
-        private int hash;
-
-        public BrokerAddrInfo(String clusterName, String brokerAddr) {
-            this.clusterName = clusterName;
-            this.brokerAddr = brokerAddr;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-
-            if (obj instanceof BrokerAddrInfo) {
-                BrokerAddrInfo addr = (BrokerAddrInfo) obj;
-                return clusterName.equals(addr.clusterName) && brokerAddr.equals(addr.brokerAddr);
-            }
-            return false;
-        }
-
-        @Override
-        public int hashCode() {
-            int h = hash;
-            if (h == 0 && clusterName.length() + brokerAddr.length() > 0) {
-                for (int i = 0; i < clusterName.length(); i++) {
-                    h = 31 * h + clusterName.charAt(i);
-                }
-                h = 31 * h + '_';
-                for (int i = 0; i < brokerAddr.length(); i++) {
-                    h = 31 * h + brokerAddr.charAt(i);
-                }
-                hash = h;
-            }
-            return h;
-        }
-
-        @Override
-        public String toString() {
-            return "BrokerAddrInfo [clusterName=" + clusterName + ", brokerAddr=" + brokerAddr + "]";
         }
     }
 }
