@@ -55,7 +55,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     private final TopicRouteService topicRouteService;
     private final MessageService messageService;
     private final ProxyRelayService proxyRelayService;
-    private final MetadataService metadataService;
+    private final ClusterMetadataService metadataService;
 
     private final ScheduledExecutorService scheduledExecutorService;
     private final MQClientAPIFactory messagingClientAPIFactory;
@@ -107,6 +107,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.appendStartAndShutdown(this.operationClientAPIFactory);
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(this.clusterTransactionService);
+        this.appendStartAndShutdown(this.metadataService);
     }
 
     @Override
