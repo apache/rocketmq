@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting.protocol;
 import com.alibaba.fastjson.annotation.JSONField;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -123,11 +124,15 @@ public class RemotingCommand {
 
         if (classHeader != null) {
             try {
-                CommandCustomHeader objectHeader = classHeader.newInstance();
+                CommandCustomHeader objectHeader = classHeader.getDeclaredConstructor().newInstance();
                 cmd.customHeader = objectHeader;
             } catch (InstantiationException e) {
                 return null;
             } catch (IllegalAccessException e) {
+                return null;
+            } catch (InvocationTargetException e) {
+                return null;
+            } catch (NoSuchMethodException e) {
                 return null;
             }
         }
