@@ -17,13 +17,22 @@
 package org.apache.rocketmq.common.namesrv;
 
 import java.io.File;
+import org.apache.rocketmq.common.MixAll;
 
 public class ControllerConfig {
+
+    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String configStorePath = System.getProperty("user.home") + File.separator + "controller" + File.separator + "controller.properties";
 
     /**
      * Is startup the controller in this name-srv
      */
     private boolean isStartupController = false;
+
+    /**
+     * Interval of periodic scanning for non-active broker;
+     */
+    private long scanNotActiveBrokerInterval = 5 * 1000;
 
     /**
      * Indicates the nums of thread to handle broker or operation requests, like REGISTER_BROKER.
@@ -51,12 +60,36 @@ public class ControllerConfig {
      */
     private boolean isProcessReadEvent = false;
 
+    public String getRocketmqHome() {
+        return rocketmqHome;
+    }
+
+    public void setRocketmqHome(String rocketmqHome) {
+        this.rocketmqHome = rocketmqHome;
+    }
+
+    public String getConfigStorePath() {
+        return configStorePath;
+    }
+
+    public void setConfigStorePath(String configStorePath) {
+        this.configStorePath = configStorePath;
+    }
+
     public boolean isStartupController() {
         return isStartupController;
     }
 
     public void setStartupController(boolean startupController) {
         isStartupController = startupController;
+    }
+
+    public long getScanNotActiveBrokerInterval() {
+        return scanNotActiveBrokerInterval;
+    }
+
+    public void setScanNotActiveBrokerInterval(long scanNotActiveBrokerInterval) {
+        this.scanNotActiveBrokerInterval = scanNotActiveBrokerInterval;
     }
 
     public int getControllerThreadPoolNums() {

@@ -33,10 +33,10 @@ import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.controller.Controller;
+import org.apache.rocketmq.controller.impl.DledgerController;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.namesrv.controller.Controller;
-import org.apache.rocketmq.namesrv.controller.impl.DledgerController;
 import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
 import org.apache.rocketmq.namesrv.processor.ClientRequestProcessor;
 import org.apache.rocketmq.namesrv.processor.ClusterTestRequestProcessor;
@@ -109,10 +109,11 @@ public class NamesrvController {
         this.controllerConfig = controllerConfig;
         this.kvConfigManager = new KVConfigManager(this);
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
+        this.routeInfoManager = new RouteInfoManager(namesrvConfig, this);
         if (controllerConfig.isStartupController()) {
-            this.controller = new DledgerController(controllerConfig, this);
+            this.controller = new DledgerController(controllerConfig, this.routeInfoManager::isBrokerAlive);
+            this.routeInfoManager.setController(this.controller);
         }
-        this.routeInfoManager = new RouteInfoManager(namesrvConfig, this, this.controller);
         this.configuration = new Configuration(
             LOGGER,
             this.namesrvConfig, this.nettyServerConfig
@@ -168,7 +169,6 @@ public class NamesrvController {
                     return new FutureTaskExt<T>(runnable, value);
                 }
             };
-            this.controller.startup();
         }
 
         this.remotingClient = new NettyRemotingClient(this.nettyClientConfig);
@@ -289,6 +289,10 @@ public class NamesrvController {
         }
 
         this.routeInfoManager.start();
+
+        if (this.controllerConfig.isStartupController()) {
+            this.controller.startup();
+        }
     }
 
     public void shutdown() {
@@ -296,6 +300,9 @@ public class NamesrvController {
         this.remotingServer.shutdown();
         this.defaultExecutor.shutdown();
         this.clientRequestExecutor.shutdown();
+        if (this.controllerRequestExecutor != null) {
+            this.controllerRequestExecutor.shutdown();
+        }
         this.scheduledExecutorService.shutdown();
         this.scanExecutorService.shutdown();
         this.routeInfoManager.shutdown();

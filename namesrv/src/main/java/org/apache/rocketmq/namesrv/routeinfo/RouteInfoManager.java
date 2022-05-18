@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -54,10 +55,10 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
-import org.apache.rocketmq.namesrv.controller.Controller;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -81,11 +82,6 @@ public class RouteInfoManager {
     private final NamesrvController namesrvController;
     private final NamesrvConfig namesrvConfig;
     private Controller controller;
-
-    public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController, final Controller controller) {
-        this(namesrvConfig, namesrvController);
-        this.controller = controller;
-    }
 
     public RouteInfoManager(final NamesrvConfig namesrvConfig, NamesrvController namesrvController) {
         this.topicQueueTable = new ConcurrentHashMap<String, Map<String, QueueData>>(1024);
@@ -607,8 +603,6 @@ public class RouteInfoManager {
                     if (this.namesrvController != null && this.namesrvController.getControllerConfig().isStartupController() && this.controller != null) {
                         if (unRegisterRequest.getBrokerId() == 0) {
                             this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
-                            // Todo: Inform the master
-                            // However, because now the broker does not have the related api, so I will complete the process in the future.
                         }
                     }
                 }
@@ -1134,69 +1128,13 @@ public class RouteInfoManager {
         }
         return false;
     }
-}
 
-/**
- * broker address information
- */
-class BrokerAddrInfo {
-    private String clusterName;
-    private String brokerAddr;
-
-    private int hash;
-
-    public BrokerAddrInfo(String clusterName, String brokerAddr) {
-        this.clusterName = clusterName;
-        this.brokerAddr = brokerAddr;
+    public void setController(Controller controller) {
+        this.controller = controller;
     }
 
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public String getBrokerAddr() {
-        return brokerAddr;
-    }
-
-    public boolean isEmpty() {
-        return clusterName.isEmpty() && brokerAddr.isEmpty();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-
-        if (obj instanceof BrokerAddrInfo) {
-            BrokerAddrInfo addr = (BrokerAddrInfo) obj;
-            return clusterName.equals(addr.clusterName) && brokerAddr.equals(addr.brokerAddr);
-        }
-        return false;
-    }
-
-    @Override
-    public int hashCode() {
-        int h = hash;
-        if (h == 0 && clusterName.length() + brokerAddr.length() > 0) {
-            for (int i = 0; i < clusterName.length(); i++) {
-                h = 31 * h + clusterName.charAt(i);
-            }
-            h = 31 * h + '_';
-            for (int i = 0; i < brokerAddr.length(); i++) {
-                h = 31 * h + brokerAddr.charAt(i);
-            }
-            hash = h;
-        }
-        return h;
-    }
-
-    @Override
-    public String toString() {
-        return "BrokerAddrInfo [clusterName=" + clusterName + ", brokerAddr=" + brokerAddr + "]";
+    public Controller getController() {
+        return controller;
     }
 }
 
@@ -1256,6 +1194,8 @@ class BrokerLiveInfo {
     public void setHaServerAddr(String haServerAddr) {
         this.haServerAddr = haServerAddr;
     }
+
+
 
     @Override
     public String toString() {

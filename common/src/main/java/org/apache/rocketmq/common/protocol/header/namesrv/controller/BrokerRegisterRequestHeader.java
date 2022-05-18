@@ -17,12 +17,16 @@
 package org.apache.rocketmq.common.protocol.header.namesrv.controller;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class BrokerRegisterRequestHeader implements CommandCustomHeader {
     private String clusterName;
     private String brokerName;
     private String brokerAddress;
+    @CFNullable
+    private Long heartbeatTimeoutMillis;
+
 
     public BrokerRegisterRequestHeader() {
     }
@@ -55,6 +59,14 @@ public class BrokerRegisterRequestHeader implements CommandCustomHeader {
 
     public void setBrokerAddress(String brokerAddress) {
         this.brokerAddress = brokerAddress;
+    }
+
+    public Long getHeartbeatTimeoutMillis() {
+        return heartbeatTimeoutMillis;
+    }
+
+    public void setHeartbeatTimeoutMillis(Long heartbeatTimeoutMillis) {
+        this.heartbeatTimeoutMillis = heartbeatTimeoutMillis;
     }
 
     @Override public String toString() {

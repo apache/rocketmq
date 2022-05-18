@@ -123,6 +123,7 @@
         <module>acl</module>
         <module>example</module>
         <module>container</module>
+        <module>controller</module>
     </modules>
 
     <build>
@@ -453,6 +454,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-controller</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-client</artifactId>
