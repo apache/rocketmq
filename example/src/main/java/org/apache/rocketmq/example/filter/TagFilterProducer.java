@@ -23,15 +23,23 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class TagFilterProducer {
 
+    public static final String PRODUCER_GROUP = "please_rename_unique_group_name";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TagFilterTest";
+    public static final int MESSAGE_COUNT = 60;
+
     public static void main(String[] args) throws Exception {
 
-        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
+
+        // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
+//        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.start();
 
         String[] tags = new String[] {"TagA", "TagB", "TagC"};
 
-        for (int i = 0; i < 60; i++) {
-            Message msg = new Message("TagFilterTest",
+        for (int i = 0; i < MESSAGE_COUNT; i++) {
+            Message msg = new Message(TOPIC,
                 tags[i % tags.length],
                 "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
 

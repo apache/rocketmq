@@ -27,20 +27,23 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 public class TagFilterConsumer {
 
+    public static final String CONSUMER_GROUP = "please_rename_unique_group_name";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TagFilterTest";
+    public static final String SUB_EXPRESSION = "TagA || TagC";
+
     public static void main(String[] args) throws InterruptedException, MQClientException, IOException {
 
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
 
-        consumer.subscribe("TagFilterTest", "TagA || TagC");
+        // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
+//        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
+        consumer.subscribe(TOPIC, SUB_EXPRESSION);
 
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-            }
+        consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+            System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
 
         consumer.start();
