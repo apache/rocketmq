@@ -33,6 +33,136 @@ It offers a variety of features:
 * Lightweight real-time computing
 ----------
 
+
+## Quick Start
+
+This paragraph guides you through steps of installing RocketMQ in different ways.
+For local development and testing, only one instance will be created for each component.
+
+### Run RocketMQ locally
+
+RocketMQ runs on all major operating systems and requires only a Java JDK version 8 or higher to be installed.
+To check, run `java -version`:
+```shell
+$ java -version
+java version "1.8.0_121"
+```
+
+For Windows users, click [here](https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip) to download the 4.9.3 RocketMQ binary release,
+unpack it to your local disk, such as `D:\rocketmq`.
+For macOS and Linux users, execute following commands:
+```shell
+# Download release from the Apache mirror
+$ wget https://archive.apache.org/dist/rocketmq/4.9.3/rocketmq-all-4.9.3-bin-release.zip
+
+# Unpack the release
+$ unzip rocketmq-all-4.9.3-bin-release.zip
+```
+
+Prepare a terminal and change to the extracted `bin` directory:
+```shell
+$ cd rocketmq-4.9.3/bin
+```
+
+**1) Start NameServer**
+
+NameServer will be listening at `0.0.0.0:9876`, make sure that the port is not used by others on the local machine, and then do as follows.
+
+For macOS and Linux users:
+```shell
+### start Name Server
+$ nohup sh mqnamesrv &
+
+### check whether Name Server is successfully started
+$ tail -f ~/logs/rocketmqlogs/namesrv.log
+The Name Server boot success...
+```
+
+For Windows users, you need set environment variables first:
+- From the desktop, right click the Computer icon.
+- Choose Properties from the context menu.
+- Click the Advanced system settings link.
+- Click Environment Variables.
+- Add Environment `ROCKETMQ_HOME="D:\rocketmq"`. 
+
+Then change directory to rocketmq, type and run:
+```shell
+$ mqnamesrv.cmd
+The Name Server boot success...
+```
+
+**2) Start Broker**
+
+For macOS and Linux users:
+```shell
+### start Broker
+$ nohup sh bin/mqbroker -n localhost:9876 &
+
+### check whether Broker is successfully started, eg: Broker's IP is 192.168.1.2, Broker's name is broker-a
+$ tail -f ~/logs/rocketmqlogs/broker.log
+The broker[broker-a, 192.169.1.2:10911] boot success...
+```
+
+For Windows users:
+```shell
+$ mqbroker.cmd -n localhost:9876
+The broker[broker-a, 192.169.1.2:10911] boot success...
+```
+
+### Run RocketMQ in Docker
+
+You can run RocketMQ on your own machine within Docker containers,
+`host` network will be used to expose listening port in the container.
+
+**1) Start NameServer**
+
+```shell
+$ docker run -it --net=host apache/rocketmq ./mqnamesrv
+```
+
+**2) Start Broker**
+
+```shell
+$ docker run -it --net=host --mount source=/tmp/store,target=/home/rocketmq/store apache/rocketmq ./mqbroker -n localhost:9876
+```
+
+### Run RocketMQ in Kubernetes
+
+You can also run a RocketMQ cluster within a Kubernetes cluster using [RocketMQ Operator](https://github.com/apache/rocketmq-operator).
+Before your operations, make sure that `kubectl` and related kubeconfig file installed on your machine.
+
+**1) Install CRDs**
+```shell
+### install CRDs
+$ git clone https://github.com/apache/rocketmq-operator
+$ cd rocketmq-operator && make deploy
+
+### check whether CRDs is successfully installed
+$ kubectl get crd | grep rocketmq.apache.org
+brokers.rocketmq.apache.org                 2022-05-12T09:23:18Z
+consoles.rocketmq.apache.org                2022-05-12T09:23:19Z
+nameservices.rocketmq.apache.org            2022-05-12T09:23:18Z
+topictransfers.rocketmq.apache.org          2022-05-12T09:23:19Z
+
+### check whether operator is running
+$ kubectl get pods | grep rocketmq-operator
+rocketmq-operator-6f65c77c49-8hwmj   1/1     Running   0          93s
+```
+
+**2) Create Cluster Instance**
+```shell
+### create RocketMQ cluster resource
+$ cd example && kubectl create -f rocketmq_v1alpha1_rocketmq_cluster.yaml
+
+### check whether cluster resources is running
+$ kubectl get sts
+NAME                 READY   AGE
+broker-0-master      1/1     107m
+broker-0-replica-1   1/1     107m
+name-service         1/1     107m
+```
+
+---
 ## Apache RocketMQ Community
 * [RocketMQ Streams](https://github.com/apache/rocketmq-streams): A lightweight stream computing engine based on Apache RocketMQ.
 * [RocketMQ Flink](https://github.com/apache/rocketmq-flink): The Apache RocketMQ connector of Apache Flink that supports source and sink connector in data stream and Table.
