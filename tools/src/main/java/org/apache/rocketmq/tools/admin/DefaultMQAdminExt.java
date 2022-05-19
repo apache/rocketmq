@@ -224,11 +224,6 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public AdminToolResult<SubscriptionGroupConfig> examineSubscriptionGroupConfigConcurrent(String addr, String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        return defaultMQAdminExtImpl.examineSubscriptionGroupConfigConcurrent(addr,group);
-    }
-
-    @Override
     public TopicConfig examineTopicConfig(String addr,
         String topic) throws RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         return defaultMQAdminExtImpl.examineTopicConfig(addr, topic);
@@ -319,6 +314,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         String consumerGroup, String brokerAddr) throws InterruptedException, MQBrokerException,
         RemotingException, MQClientException {
         return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup, brokerAddr);
+    }
+
+    @Override
+    public AdminToolResult<ConsumerConnection> examineConsumerConnectionInfoConcurrent(String consumerGroup) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
+        return defaultMQAdminExtImpl.examineConsumerConnectionInfoConcurrent(consumerGroup);
     }
 
     @Override

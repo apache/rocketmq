@@ -18,6 +18,7 @@ package org.apache.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.*;
@@ -268,26 +269,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         SubscriptionGroupWrapper wrapper = this.mqClientInstance.getMQClientAPIImpl().getAllSubscriptionGroup(addr, timeoutMillis);
         return wrapper.getSubscriptionGroupTable().get(group);
-    }
-
-    @Override
-    public AdminToolResult<SubscriptionGroupConfig> examineSubscriptionGroupConfigConcurrent(String addr, String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        return adminToolExecute( () -> {
-
-            SubscriptionGroupWrapper wrapper = this.mqClientInstance.getMQClientAPIImpl().getAllSubscriptionGroup(addr, timeoutMillis);
-            ConcurrentMap<String, SubscriptionGroupConfig> cache =  wrapper.getSubscriptionGroupTable();
-            AtomicReference<SubscriptionGroupConfig> current = new AtomicReference<SubscriptionGroupConfig>();
-            for (SubscriptionGroupConfig subscriptionGroupConfig: cache.values()){
-                threadPoolExecutor.submit( () -> {
-                    if (subscriptionGroupConfig.getGroupName().equals(group)){
-                        current.set(subscriptionGroupConfig);
-                    }
-
-                } );
-            }
-
-            return AdminToolResult.success(current.get());
-        });
     }
 
     @Override public TopicConfig examineTopicConfig(String addr,
@@ -551,9 +532,77 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public AdminToolResult<ConsumerConnection> examineConsumerConnectionInfoConcurrent(String consumerGroup) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
+            return adminToolExecute(new AdminToolHandler() {
+            @Override
+            public AdminToolResult doExecute() throws Exception {
+
+                String topic = MixAll.getRetryTopic(consumerGroup);
+                TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
+
+                if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
+                    return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "topic router info not found");
+                }
+                final Map<String, QueueData> topicRouteMap = new HashMap<String, QueueData>();
+                for (QueueData queueData : topicRouteData.getQueueDatas()) {
+                    topicRouteMap.put(queueData.getBrokerName(), queueData);
+                }
+
+                final CopyOnWriteArrayList successList = new CopyOnWriteArrayList();
+                final CopyOnWriteArrayList failureList = new CopyOnWriteArrayList();
+                final CountDownLatch latch = new CountDownLatch(topicRouteData.getBrokerDatas().size());
+
+                for (final BrokerData bd : topicRouteData.getBrokerDatas()){
+                    threadPoolExecutor.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            String addr = bd.selectBrokerAddr();
+                            try{
+                                if (addr != null) {
+                                    ConsumerConnection result = mqClientInstance.getMQClientAPIImpl().getConsumerConnectionList(addr, consumerGroup, timeoutMillis);
+                                    if (Optional.ofNullable(consumerGroup).isPresent()){
+                                        successList.add(addr);
+                                    }else{
+                                        failureList.add(addr);
+                                    }
+                                }
+
+                            }catch (MQBrokerException e){
+                                if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
+                                    successList.add(addr);
+                                }else{
+                                    failureList.add(addr);
+                                    log.error(MessageFormat.format("examineConsumerConnectionInfo. addr={0}, topic={1}, group={2},timestamp={3}", addr, topic, consumerGroup, UtilAll.formatDate(new Date(), UtilAll.YYYY_MM_DD_HH_MM_SS)), e);
+
+                                }
+                            }catch (Exception e){
+                                failureList.add(addr);
+                                log.error(MessageFormat.format("examineConsumerConnectionInfo. addr={0}, topic={1}, group={2},timestamp={3}", addr, topic, consumerGroup, UtilAll.formatDate(new Date(), UtilAll.YYYY_MM_DD_HH_MM_SS)), e);
+                            }finally {
+                                latch.countDown();
+                            }
+
+                        }
+                    });
+                }
+                latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
+                BrokerOperatorResult result = new BrokerOperatorResult();
+                result.setSuccessList(successList);
+                result.setFailureList(failureList);
+                if (successList.size() == topicRouteData.getBrokerDatas().size()) {
+                    return AdminToolResult.success(result);
+                } else {
+                    return AdminToolResult.failure(AdminToolsResultCodeEnum.MQ_BROKER_ERROR, "operator failure", result);
+                }
+            }
+        });
+    }
+
+    @Override
     public ConsumerConnection examineConsumerConnectionInfo(
         String consumerGroup, String brokerAddr) throws InterruptedException, MQBrokerException,
         RemotingException, MQClientException {
+
         ConsumerConnection result =
             this.mqClientInstance.getMQClientAPIImpl().getConsumerConnectionList(brokerAddr, consumerGroup, timeoutMillis);
 
@@ -565,6 +614,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return result;
     }
 
+    //TODO
     @Override public ProducerConnection examineProducerConnectionInfo(String producerGroup,
         final String topic) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         ProducerConnection result = new ProducerConnection();

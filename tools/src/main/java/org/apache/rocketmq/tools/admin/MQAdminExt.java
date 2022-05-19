@@ -109,8 +109,6 @@ public interface MQAdminExt extends MQAdmin {
 
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr, final String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;
 
-    AdminToolResult<SubscriptionGroupConfig> examineSubscriptionGroupConfigConcurrent(final String addr, final String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;
-
     TopicStatsTable examineTopicStats(
         final String topic) throws RemotingException, MQClientException, InterruptedException,
         MQBrokerException;
@@ -149,9 +147,14 @@ public interface MQAdminExt extends MQAdmin {
         RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException, RemotingException,
         MQClientException;
 
+    AdminToolResult<ConsumerConnection> examineConsumerConnectionInfoConcurrent(final String consumerGroup) throws RemotingConnectException,
+            RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException, RemotingException,
+            MQClientException;
+
     ConsumerConnection examineConsumerConnectionInfo(
         String consumerGroup, String brokerAddr) throws InterruptedException, MQBrokerException,
         RemotingException, MQClientException;
+
 
     ProducerConnection examineProducerConnectionInfo(final String producerGroup,
         final String topic) throws RemotingException,
