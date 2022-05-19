@@ -36,7 +36,7 @@ public class PushConsumer {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
 
         // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
-        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+//        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
