@@ -28,12 +28,19 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 public class Consumer {
 
-    public static void main(String[] args) throws MQClientException {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_3");
+    public static final String CONSUMER_GROUP = "please_rename_unique_group_name_3";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TopicTest";
+    public static final String SUB_EXPRESSION = "TagA || TagC || TagD";
 
+    public static void main(String[] args) throws MQClientException {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
+
+        // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
+//        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
-        consumer.subscribe("TopicTest", "TagA || TagC || TagD");
+        consumer.subscribe(TOPIC, SUB_EXPRESSION);
 
         consumer.registerMessageListener(new MessageListenerOrderly() {
             AtomicLong consumeTimes = new AtomicLong(0);

@@ -19,35 +19,38 @@ package org.apache.rocketmq.example.ordermessage;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 import java.io.UnsupportedEncodingException;
-import java.util.List;
 
 public class Producer {
+
+    public static final String PRODUCER_GROUP = "please_rename_unique_group_name";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TopicTest";
+    public static final int MESSAGE_COUNT = 100;
+
     public static void main(String[] args) throws UnsupportedEncodingException {
         try {
-            DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+            DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
+
+            // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
+//            producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
             producer.start();
 
             String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < MESSAGE_COUNT; i++) {
                 int orderId = i % 10;
                 Message msg =
-                    new Message("TopicTestjjj", tags[i % tags.length], "KEY" + i,
+                    new Message(TOPIC, tags[i % tags.length], "KEY" + i,
                         ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = producer.send(msg, new MessageQueueSelector() {
-                    @Override
-                    public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                        Integer id = (Integer) arg;
-                        int index = id % mqs.size();
-                        return mqs.get(index);
-                    }
+                SendResult sendResult = producer.send(msg, (mqs, msg1, arg) -> {
+                    Integer id = (Integer) arg;
+                    int index = id % mqs.size();
+                    return mqs.get(index);
                 }, orderId);
 
                 System.out.printf("%s%n", sendResult);
