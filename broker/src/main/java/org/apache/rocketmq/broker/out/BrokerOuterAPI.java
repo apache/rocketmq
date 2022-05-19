@@ -25,6 +25,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -1080,4 +1081,38 @@ public class BrokerOuterAPI {
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
+
+    /**
+     * Send heartbeat to controller
+     */
+    public void sendHeartbeatToController(final String controllerAddress,
+        final String clusterName,
+        final String brokerAddr,
+        final String brokerName,
+        final Long brokerId,
+        final int timeoutMills,
+        final boolean isInBrokerContainer) {
+        if (StringUtils.isEmpty(controllerAddress)) {
+            return;
+        }
+
+        final BrokerHeartbeatRequestHeader requestHeader = new BrokerHeartbeatRequestHeader();
+        requestHeader.setClusterName(clusterName);
+        requestHeader.setBrokerAddr(brokerAddr);
+        requestHeader.setBrokerName(brokerName);
+
+        brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
+            @Override
+            public void run2() {
+                RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, requestHeader);
+
+                try {
+                    BrokerOuterAPI.this.remotingClient.invokeOneway(controllerAddress, request, timeoutMills);
+                } catch (Exception e) {
+                    LOGGER.error("Error happen when send heartbeat to controller {}", controllerAddress, e);
+                }
+            }
+        });
+    }
+
 }

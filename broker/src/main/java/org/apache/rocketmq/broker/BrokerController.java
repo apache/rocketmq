@@ -42,6 +42,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
@@ -603,7 +604,7 @@ public class BrokerController {
             }
         }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
 
-        if (!messageStoreConfig.isEnableDLegerCommitLog() && !messageStoreConfig.isDuplicationEnable() && !messageStoreConfig.isStartupControllerMode()) {
+        if (!messageStoreConfig.isEnableDLegerCommitLog() && !messageStoreConfig.isDuplicationEnable() && !brokerConfig.isStartupControllerMode()) {
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
                 if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= HA_ADDRESS_MIN_LENGTH) {
                     this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
@@ -639,7 +640,7 @@ public class BrokerController {
             }
         }
 
-        if (this.messageStoreConfig.isStartupControllerMode()) {
+        if (this.brokerConfig.isStartupControllerMode()) {
             this.updateMasterHAServerAddrPeriodically = true;
         }
     }
@@ -699,6 +700,7 @@ public class BrokerController {
 
         if (result) {
             try {
+                this.messageStoreConfig.setStartupControllerMode(this.brokerConfig.isStartupControllerMode());
                 DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig);
                 defaultMessageStore.setTopicConfigTable(topicConfigManager.getTopicConfigTable());
 
@@ -711,7 +713,7 @@ public class BrokerController {
                 MessageStorePluginContext context = new MessageStorePluginContext(this, messageStoreConfig, brokerStatsManager, messageArrivingListener);
                 this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
-                if (this.messageStoreConfig.isStartupControllerMode()) {
+                if (this.brokerConfig.isStartupControllerMode()) {
                     this.replicasManager = new ReplicasManager(this);
                 }
             } catch (IOException e) {
@@ -1452,7 +1454,7 @@ public class BrokerController {
 
         startBasicService();
 
-        if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable() && !this.messageStoreConfig.isStartupControllerMode()) {
+        if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable() && !this.brokerConfig.isStartupControllerMode()) {
             changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
             this.registerBrokerAll(true, false, true);
         }
@@ -1490,7 +1492,7 @@ public class BrokerController {
             }, 1000, this.brokerConfig.getSyncBrokerMemberGroupPeriod(), TimeUnit.MILLISECONDS));
         }
 
-        if (this.messageStoreConfig.isStartupControllerMode()) {
+        if (this.brokerConfig.isStartupControllerMode()) {
             scheduleSendHeartbeat();
         }
 
@@ -1612,7 +1614,7 @@ public class BrokerController {
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
             this.brokerConfig.isEnableSlaveActingMaster(),
             this.brokerConfig.isCompressedRegister(),
-            (this.brokerConfig.isEnableSlaveActingMaster() || this.messageStoreConfig.isStartupControllerMode()) ? this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null,
+            (this.brokerConfig.isEnableSlaveActingMaster() || this.brokerConfig.isStartupControllerMode()) ? this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null,
             this.getBrokerIdentity());
 
         handleRegisterBrokerResult(registerBrokerResultList, checkOrderConfig);
@@ -1636,6 +1638,21 @@ public class BrokerController {
                 this.brokerConfig.getBrokerId(),
                 this.brokerConfig.getSendHeartbeatTimeoutMillis(),
                 this.brokerConfig.isInBrokerContainer());
+        }
+        // If in controller mode and the controller is deployed independently
+        if (this.brokerConfig.isStartupControllerMode() && this.brokerConfig.isControllerDeployedStandAlone()) {
+            final String controllerLeaderAddress = this.replicasManager.getControllerLeaderAddress();
+            if (StringUtils.isNotEmpty(controllerLeaderAddress)) {
+                this.brokerOuterAPI.sendHeartbeatToController(
+                    controllerLeaderAddress,
+                    this.brokerConfig.getBrokerClusterName(),
+                    this.getBrokerAddr(),
+                    this.brokerConfig.getBrokerName(),
+                    this.brokerConfig.getBrokerId(),
+                    this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                    this.brokerConfig.isInBrokerContainer()
+                );
+            }
         }
     }
 

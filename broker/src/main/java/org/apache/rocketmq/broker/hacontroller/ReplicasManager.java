@@ -354,4 +354,8 @@ public class ReplicasManager {
     public int getMasterEpoch() {
         return masterEpoch;
     }
+
+    public String getControllerLeaderAddress() {
+        return controllerLeaderAddress;
+    }
 }
