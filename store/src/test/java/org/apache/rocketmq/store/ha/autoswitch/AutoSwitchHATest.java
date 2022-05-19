@@ -79,7 +79,6 @@ public class AutoSwitchHATest {
         storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + "broker1" + File.separator + "EpochFileCache");
         storeConfig1.setTotalReplicas(3);
         storeConfig1.setInSyncReplicas(2);
-        storeConfig1.setStartupControllerMode(true);
         buildMessageStoreConfig(storeConfig1, mappedFileSize);
         this.store1HaAddress = "127.0.0.1:10912";
 
@@ -91,7 +90,6 @@ public class AutoSwitchHATest {
         storeConfig2.setHaListenPort(10943);
         storeConfig2.setTotalReplicas(3);
         storeConfig2.setInSyncReplicas(2);
-        storeConfig2.setStartupControllerMode(true);
         buildMessageStoreConfig(storeConfig2, mappedFileSize);
         this.store2HaAddress = "127.0.0.1:10943";
 
@@ -106,7 +104,6 @@ public class AutoSwitchHATest {
         storeConfig3.setHaListenPort(10980);
         storeConfig3.setTotalReplicas(3);
         storeConfig3.setInSyncReplicas(2);
-        storeConfig3.setStartupControllerMode(true);
         buildMessageStoreConfig(storeConfig3, mappedFileSize);
         messageStore3 = buildMessageStore(storeConfig3, 3L);
         this.store3HaAddress = "127.0.0.1:10980";
@@ -309,6 +306,7 @@ public class AutoSwitchHATest {
         long brokerId) throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
+        brokerConfig.setStartupControllerMode(true);
         return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
     }
 
