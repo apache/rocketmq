@@ -26,9 +26,7 @@ public class ProducerWithNamespace {
     public static final String PRODUCER_GROUP = "pidTest";
     public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
     public static final int MESSAGE_COUNT = 100;
-
     public static final String TOPIC = "NAMESPACE_TOPIC";
-
     public static final String TAG = "tagTest";
 
     public static void main(String[] args) throws Exception {
