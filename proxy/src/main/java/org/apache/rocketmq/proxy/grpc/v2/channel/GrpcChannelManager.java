@@ -109,7 +109,7 @@ public class GrpcChannelManager implements StartAndShutdown {
 
     protected void scanExpireResultFuture() {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        long timeOutMs = TimeUnit.SECONDS.toMillis(proxyConfig.getGrpcProxyOutRequestTimeoutSecond());
+        long timeOutMs = TimeUnit.SECONDS.toMillis(proxyConfig.getGrpcProxyRelayRequestTimeoutInSeconds());
 
         Set<String> nonceSet = this.resultNonceFutureMap.keySet();
         for (String nonce : nonceSet) {

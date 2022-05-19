@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.config;
 
+import java.time.Duration;
 import org.apache.rocketmq.proxy.ProxyMode;
 
 public class ProxyConfig {
@@ -29,7 +30,7 @@ public class ProxyConfig {
      * configuration for ThreadPoolMonitor
      */
     private boolean enablePrintJstack = true;
-    private long printJstackInMillis = 60000;
+    private long printJstackInMillis = Duration.ofSeconds(60).toMillis();
 
     private String nameSrvAddr = "";
     private String nameSrvDomain = "";
@@ -58,7 +59,7 @@ public class ProxyConfig {
 
     private int rocketmqMQClientNum = 6;
 
-    private long grpcProxyOutRequestTimeoutSecond = 5;
+    private long grpcProxyRelayRequestTimeoutInSeconds = 5;
     private int grpcProducerThreadPoolNums = PROCESSOR_NUMBER;
     private int grpcProducerThreadQueueCapacity = 10000;
     private int grpcConsumerThreadPoolNums = PROCESSOR_NUMBER;
@@ -258,12 +259,12 @@ public class ProxyConfig {
         this.rocketmqMQClientNum = rocketmqMQClientNum;
     }
 
-    public long getGrpcProxyOutRequestTimeoutSecond() {
-        return grpcProxyOutRequestTimeoutSecond;
+    public long getGrpcProxyRelayRequestTimeoutInSeconds() {
+        return grpcProxyRelayRequestTimeoutInSeconds;
     }
 
-    public void setGrpcProxyOutRequestTimeoutSecond(long grpcProxyOutRequestTimeoutSecond) {
-        this.grpcProxyOutRequestTimeoutSecond = grpcProxyOutRequestTimeoutSecond;
+    public void setGrpcProxyRelayRequestTimeoutInSeconds(long grpcProxyRelayRequestTimeoutInSeconds) {
+        this.grpcProxyRelayRequestTimeoutInSeconds = grpcProxyRelayRequestTimeoutInSeconds;
     }
 
     public int getGrpcProducerThreadPoolNums() {

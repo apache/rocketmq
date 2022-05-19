@@ -80,18 +80,18 @@ public class ProxyStartup {
                 try {
                     PROXY_START_AND_SHUTDOWN.shutdown();
                 } catch (Exception e) {
-                    log.error("err when shutdown rmq-proxy", e);
+                    log.error("err when shutdown rocketmq-proxy", e);
                 }
             }));
         } catch (Exception e) {
-            System.err.println("find a unexpect err." + e);
+            System.err.println("find an unexpect err." + e);
             e.printStackTrace();
-            log.error("find a unexpect err.", e);
+            log.error("find an unexpect err.", e);
             System.exit(1);
         }
 
-        System.out.printf("%s%n", new Date() + " rmq-proxy startup successfully");
-        log.info(new Date() + " rmq-proxy startup successfully");
+        System.out.printf("%s%n", new Date() + " rocketmq-proxy startup successfully");
+        log.info(new Date() + " rocketmq-proxy startup successfully");
     }
 
     private static MessagingProcessor createMessagingProcessor() {
@@ -134,8 +134,9 @@ public class ProxyStartup {
     }
 
     public static ThreadPoolExecutor createServerExecutor() {
-        int threadPoolNums = ConfigurationManager.getProxyConfig().getGrpcThreadPoolNums();
-        int threadPoolQueueCapacity = ConfigurationManager.getProxyConfig().getGrpcThreadPoolQueueCapacity();
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        int threadPoolNums = config.getGrpcThreadPoolNums();
+        int threadPoolQueueCapacity = config.getGrpcThreadPoolQueueCapacity();
         ThreadPoolExecutor executor = ThreadPoolMonitor.createAndMonitor(
             threadPoolNums,
             threadPoolNums,
