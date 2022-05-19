@@ -700,7 +700,6 @@ public class BrokerController {
 
         if (result) {
             try {
-                this.messageStoreConfig.setStartupControllerMode(this.brokerConfig.isStartupControllerMode());
                 DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig);
                 defaultMessageStore.setTopicConfigTable(topicConfigManager.getTopicConfigTable());
 
