@@ -41,14 +41,14 @@ public class ResponseConsumer {
 
         // create a producer to send reply message
         DefaultMQProducer replyProducer = new DefaultMQProducer(PRODUCER_GROUP);
-        // You need to set namesrvAddr to the address of the local namesrv
-        replyProducer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
+//        replyProducer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         replyProducer.start();
 
         // create consumer
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
-        // You need to set namesrvAddr to the address of the local namesrv
-        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
+//        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 
         // recommend client configs
