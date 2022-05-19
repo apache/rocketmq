@@ -53,7 +53,8 @@ public class Producer {
          * }
          * </pre>
          */
-        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        // If the debugging source code can open comments, you need to set the namesrv Addr to the address of the local namesrv Addr
+//        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         /*
          * Launch the instance.

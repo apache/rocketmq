@@ -49,7 +49,8 @@ public class Consumer {
          * }
          * </pre>
          */
-        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        // If the debugging source code can open comments, you need to set the namesrv Addr to the address of the local namesrv Addr
+//        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         /*
          * Specify where to start in case the specific consumer group is a brand-new one.
