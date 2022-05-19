@@ -447,10 +447,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.offsetStore = offsetStore;
     }
 
+    @Override
     public boolean isUnitMode() {
         return unitMode;
     }
 
+    @Override
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
