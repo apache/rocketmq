@@ -1601,6 +1601,10 @@ public class BrokerController {
             BrokerController.LOG.info("BrokerController#doResterBrokerAll: broker has shutdown, no need to register any more.");
             return;
         }
+        Long heartbeatTimeoutMillis = (this.brokerConfig.isEnableSlaveActingMaster() ||
+            (this.brokerConfig.isStartupControllerMode() && !this.brokerConfig.isControllerDeployedStandAlone())) ?
+            this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null;
+
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
@@ -1613,44 +1617,50 @@ public class BrokerController {
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
             this.brokerConfig.isEnableSlaveActingMaster(),
             this.brokerConfig.isCompressedRegister(),
-            (this.brokerConfig.isEnableSlaveActingMaster() || this.brokerConfig.isStartupControllerMode()) ? this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null,
+            heartbeatTimeoutMillis,
             this.getBrokerIdentity());
 
         handleRegisterBrokerResult(registerBrokerResultList, checkOrderConfig);
     }
 
     protected void sendHeartbeat() {
-        if (this.brokerConfig.isCompatibleWithOldNameSrv()) {
-            this.brokerOuterAPI.sendHeartbeatViaDataVersion(
-                this.brokerConfig.getBrokerClusterName(),
-                this.getBrokerAddr(),
-                this.brokerConfig.getBrokerName(),
-                this.brokerConfig.getBrokerId(),
-                this.brokerConfig.getSendHeartbeatTimeoutMillis(),
-                this.getTopicConfigManager().getDataVersion(),
-                this.brokerConfig.isInBrokerContainer());
-        } else {
-            this.brokerOuterAPI.sendHeartbeat(
-                this.brokerConfig.getBrokerClusterName(),
-                this.getBrokerAddr(),
-                this.brokerConfig.getBrokerName(),
-                this.brokerConfig.getBrokerId(),
-                this.brokerConfig.getSendHeartbeatTimeoutMillis(),
-                this.brokerConfig.isInBrokerContainer());
+        boolean shouldSendHeartbeatToController = this.brokerConfig.isStartupControllerMode() && this.brokerConfig.isControllerDeployedStandAlone();
+        if (shouldSendHeartbeatToController) {
+            final List<String> controllerAddresses = this.replicasManager.getControllerAddresses();
+            for (String controllerAddress : controllerAddresses) {
+                if (StringUtils.isNotEmpty(controllerAddress)) {
+                    this.brokerOuterAPI.sendHeartbeatToController(
+                        controllerAddress,
+                        this.brokerConfig.getBrokerClusterName(),
+                        this.getBrokerAddr(),
+                        this.brokerConfig.getBrokerName(),
+                        this.brokerConfig.getBrokerId(),
+                        this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                        this.brokerConfig.isInBrokerContainer()
+                    );
+                }
+            }
         }
-        // If in controller mode and the controller is deployed independently
-        if (this.brokerConfig.isStartupControllerMode() && this.brokerConfig.isControllerDeployedStandAlone()) {
-            final String controllerLeaderAddress = this.replicasManager.getControllerLeaderAddress();
-            if (StringUtils.isNotEmpty(controllerLeaderAddress)) {
-                this.brokerOuterAPI.sendHeartbeatToController(
-                    controllerLeaderAddress,
+
+        boolean shouldSendHeartbeatToNameSrv = this.brokerConfig.isEnableSlaveActingMaster() || !shouldSendHeartbeatToController;
+        if (shouldSendHeartbeatToNameSrv) {
+            if (this.brokerConfig.isCompatibleWithOldNameSrv()) {
+                this.brokerOuterAPI.sendHeartbeatViaDataVersion(
                     this.brokerConfig.getBrokerClusterName(),
                     this.getBrokerAddr(),
                     this.brokerConfig.getBrokerName(),
                     this.brokerConfig.getBrokerId(),
                     this.brokerConfig.getSendHeartbeatTimeoutMillis(),
-                    this.brokerConfig.isInBrokerContainer()
-                );
+                    this.getTopicConfigManager().getDataVersion(),
+                    this.brokerConfig.isInBrokerContainer());
+            } else {
+                this.brokerOuterAPI.sendHeartbeat(
+                    this.brokerConfig.getBrokerClusterName(),
+                    this.getBrokerAddr(),
+                    this.brokerConfig.getBrokerName(),
+                    this.brokerConfig.getBrokerId(),
+                    this.brokerConfig.getSendHeartbeatTimeoutMillis(),
+                    this.brokerConfig.isInBrokerContainer());
             }
         }
     }

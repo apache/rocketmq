@@ -355,7 +355,7 @@ public class ReplicasManager {
         return masterEpoch;
     }
 
-    public String getControllerLeaderAddress() {
-        return controllerLeaderAddress;
+    public List<String> getControllerAddresses() {
+        return new ArrayList<>(this.controllerAddresses);
     }
 }

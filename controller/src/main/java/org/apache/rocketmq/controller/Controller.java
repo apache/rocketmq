@@ -51,6 +51,11 @@ public interface Controller {
     void stopScheduling();
 
     /**
+     * Whether this controller is in leader state.
+     */
+    boolean isLeaderState();
+
+    /**
      * Alter ISR of broker replicas.
      *
      * @param request AlterSyncStateSetRequestHeader
