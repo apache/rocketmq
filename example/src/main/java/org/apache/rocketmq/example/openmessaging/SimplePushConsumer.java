@@ -20,7 +20,6 @@ import io.openmessaging.Message;
 import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
 import io.openmessaging.OMSBuiltinKeys;
-import io.openmessaging.consumer.MessageListener;
 import io.openmessaging.consumer.PushConsumer;
 
 public class SimplePushConsumer {
