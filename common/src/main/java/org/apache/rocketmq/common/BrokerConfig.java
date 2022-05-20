@@ -306,7 +306,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean isControllerDeployedStandAlone = false;
 
     /**
-     * If isControllerDeployedStandAlone = false, controllerAddr should be equal to namesrv's address.
+     * If isControllerDeployedStandAlone = false, controllerAddr should be the addresses of all name-srv which running the controller instance.
      * If isControllerDeployedStandAlone = true, controllerAddr should be controller's address.
      */
     private String controllerAddr = "";
