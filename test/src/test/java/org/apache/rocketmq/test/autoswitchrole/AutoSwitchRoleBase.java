@@ -82,6 +82,7 @@ public class AutoSwitchRoleBase {
         brokerConfig.setControllerAddr(namesrvAddress);
         brokerConfig.setReplicasManagerSyncBrokerMetadataPeriod(2 * 1000);
         brokerConfig.setReplicasManagerCheckSyncStateSetPeriod(4 * 1000);
+        brokerConfig.setStartupControllerMode(true);
 
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(nettyListenPort);
@@ -110,7 +111,6 @@ public class AutoSwitchRoleBase {
         storeConfig.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + File.separator + "EpochFileCache");
         storeConfig.setTotalReplicas(3);
         storeConfig.setInSyncReplicas(2);
-        storeConfig.setStartupControllerMode(true);
 
         storeConfig.setMappedFileSizeCommitLog(mappedFileSize);
         storeConfig.setMappedFileSizeConsumeQueue(1024 * 1024);

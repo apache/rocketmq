@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
@@ -262,9 +263,13 @@ public class ReplicasInfoManager {
         if (isContainsBroker(brokerName)) {
             // If exist broker metadata, just return metadata
             final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
+            final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final String masterAddress = replicasInfo.getMasterAddress();
             response.setMasterAddress(masterAddress);
             response.setMasterEpoch(replicasInfo.getMasterEpoch());
+            if (StringUtils.isNotEmpty(request.getBrokerAddress())) {
+                response.setBrokerId(brokerInfo.getBrokerId(request.getBrokerAddress()));
+            }
             result.setBody(new SyncStateSet(replicasInfo.getSyncStateSet(), replicasInfo.getSyncStateSetEpoch()).encode());
             return result;
         }

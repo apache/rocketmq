@@ -191,7 +191,7 @@ public class DefaultMessageStore implements MessageStore {
         if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             this.haService = ServiceProvider.loadClass(ServiceProvider.HA_SERVICE_ID, HAService.class);
             if (null == this.haService) {
-                if (this.messageStoreConfig.isStartupControllerMode()) {
+                if (brokerConfig.isStartupControllerMode()) {
                     this.haService = new AutoSwitchHAService();
                     LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
                 } else {
@@ -1952,7 +1952,7 @@ public class DefaultMessageStore implements MessageStore {
                     destroyMappedFileIntervalForcibly, cleanAtOnce, deleteFileBatchMax);
                 if (deleteCount > 0) {
                     // If in the controller mode, we should notify the AutoSwitchHaService to truncateEpochFile
-                    if (DefaultMessageStore.this.messageStoreConfig.isStartupControllerMode()) {
+                    if (DefaultMessageStore.this.brokerConfig.isStartupControllerMode()) {
                         if (DefaultMessageStore.this.haService instanceof AutoSwitchHAService) {
                             final long minPhyOffset = getMinPhyOffset();
                             ((AutoSwitchHAService) DefaultMessageStore.this.haService).truncateEpochFilePrefix(minPhyOffset - 1);

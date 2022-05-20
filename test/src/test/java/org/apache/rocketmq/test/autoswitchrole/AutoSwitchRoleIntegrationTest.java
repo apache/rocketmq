@@ -115,7 +115,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         // Let master shutdown
         brokerController1.shutdown();
         this.brokerList.remove(this.brokerController1);
-        Thread.sleep(5000);
+        Thread.sleep(6000);
 
         // The slave should change to master
         assertTrue(brokerController2.getReplicasManager().isMasterState());

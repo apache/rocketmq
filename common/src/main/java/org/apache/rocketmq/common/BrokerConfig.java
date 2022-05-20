@@ -293,9 +293,23 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean lockInStrictMode = false;
 
-    private String controllerAddr = "";
-
     private boolean compatibleWithOldNameSrv = true;
+
+    /**
+     * Is startup controller mode, which support auto switch broker's role.
+     */
+    private boolean startupControllerMode = false;
+
+    /**
+     * Whether the controller is deployed independently
+     */
+    private boolean isControllerDeployedStandAlone = false;
+
+    /**
+     * If isControllerDeployedStandAlone = false, controllerAddr should be the addresses of all name-srv which running the controller instance.
+     * If isControllerDeployedStandAlone = true, controllerAddr should be controller's address.
+     */
+    private String controllerAddr = "";
 
     private long replicasManagerSyncBrokerMetadataPeriod = 5 * 1000;
 
@@ -1263,14 +1277,6 @@ public class BrokerConfig extends BrokerIdentity {
         this.lockInStrictMode = lockInStrictMode;
     }
 
-    public String getControllerAddr() {
-        return controllerAddr;
-    }
-
-    public void setControllerAddr(String controllerAddr) {
-        this.controllerAddr = controllerAddr;
-    }
-
     public boolean isIsolateLogEnable() {
         return isolateLogEnable;
     }
@@ -1285,6 +1291,30 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setCompatibleWithOldNameSrv(boolean compatibleWithOldNameSrv) {
         this.compatibleWithOldNameSrv = compatibleWithOldNameSrv;
+    }
+
+    public boolean isStartupControllerMode() {
+        return startupControllerMode;
+    }
+
+    public void setStartupControllerMode(boolean startupControllerMode) {
+        this.startupControllerMode = startupControllerMode;
+    }
+
+    public boolean isControllerDeployedStandAlone() {
+        return isControllerDeployedStandAlone;
+    }
+
+    public void setControllerDeployedStandAlone(boolean controllerDeployedStandAlone) {
+        isControllerDeployedStandAlone = controllerDeployedStandAlone;
+    }
+
+    public String getControllerAddr() {
+        return controllerAddr;
+    }
+
+    public void setControllerAddr(String controllerAddr) {
+        this.controllerAddr = controllerAddr;
     }
 
     public long getReplicasManagerSyncBrokerMetadataPeriod() {
