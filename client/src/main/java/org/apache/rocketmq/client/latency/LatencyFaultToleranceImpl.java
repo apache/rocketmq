@@ -76,7 +76,9 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             if (half <= 0) {
                 return tmpList.get(0).getName();
             } else {
-                final int i = this.whichItemWorst.incrementAndGet() % half;
+                int i = this.whichItemWorst.incrementAndGet() % half;
+                if (i < 0)
+                    i = 0;
                 return tmpList.get(i).getName();
             }
         }
