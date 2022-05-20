@@ -101,14 +101,18 @@ public class ControllerManager {
             @Override
             public void onBrokerInactive(String brokerName, String brokerAddress, long brokerId) {
                 if (brokerId == MixAll.MASTER_ID) {
-                    final CompletableFuture<RemotingCommand> future = controller.electMaster(new ElectMasterRequestHeader(brokerName));
-                    try {
-                        final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
-                        final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
-                        if (responseHeader != null) {
-                            log.info("Broker{}'s master shutdown, elect a new master:{}", brokerName, responseHeader);
+                    if (controller.isLeaderState()) {
+                        final CompletableFuture<RemotingCommand> future = controller.electMaster(new ElectMasterRequestHeader(brokerName));
+                        try {
+                            final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
+                            final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
+                            if (responseHeader != null) {
+                                log.info("Broker{}'s master shutdown, elect a new master:{}", brokerName, responseHeader);
+                            }
+                        } catch (Exception ignored) {
                         }
-                    } catch (Exception ignored) {
+                    } else {
+                        log.info("Broker{}' master shutdown", brokerName);
                     }
                 }
             }

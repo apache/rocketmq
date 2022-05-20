@@ -26,7 +26,7 @@ public class SyncStateSet extends RemotingSerializable {
     private int syncStateSetEpoch;
 
     public SyncStateSet(Set<String> syncStateSet, int syncStateSetEpoch) {
-        this.syncStateSet = syncStateSet;
+        this.syncStateSet = new HashSet<>(syncStateSet);
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 

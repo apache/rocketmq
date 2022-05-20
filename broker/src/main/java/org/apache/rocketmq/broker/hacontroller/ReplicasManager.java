@@ -63,6 +63,7 @@ public class ReplicasManager {
     private final List<String> controllerAddresses;
 
     private volatile String controllerLeaderAddress = "";
+    private volatile State state = State.INITIAL;
 
     private ScheduledFuture<?> checkSyncStateSetTaskFuture;
     private ScheduledFuture<?> slaveSyncFuture;
@@ -76,7 +77,7 @@ public class ReplicasManager {
         this.brokerController = brokerController;
         this.brokerOuterAPI = brokerController.getBrokerOuterAPI();
         this.scheduledService = Executors.newScheduledThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ScheduledService_", brokerController.getBrokerIdentity()));
-        this.executorService = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
+        this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
         final BrokerConfig brokerConfig = brokerController.getBrokerConfig();
@@ -89,19 +90,56 @@ public class ReplicasManager {
         this.haService.setLocalAddress(this.localAddress);
     }
 
+    enum State {
+        INITIAL,
+        FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
+        RUNNING,
+    }
+
     public void start() {
-        if (!schedulingSyncControllerMetadata()) {
-            return;
+        if (!startBasicService()) {
+            LOGGER.error("Failed to start replicasManager");
+            this.executorService.submit(() -> {
+                int tryTimes = 1;
+                while (!startBasicService()) {
+                    tryTimes++;
+                    LOGGER.error("Failed to start replicasManager, try times:{}, current state:{}, try it again", tryTimes, this.state);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+                LOGGER.info("Start replicasManager success, try times:{}", tryTimes);
+            });
+        }
+    }
+
+    private boolean startBasicService() {
+        if (this.state == State.INITIAL) {
+            if (schedulingSyncControllerMetadata()) {
+                LOGGER.info("First time sync controller metadata success");
+                this.state = State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE;
+            } else {
+                return false;
+            }
         }
 
-        if (!registerBroker()) {
-            return;
+        if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
+            if (registerBroker()) {
+                LOGGER.info("First time register broker success");
+                this.state = State.RUNNING;
+            } else {
+                return false;
+            }
         }
 
         schedulingSyncBrokerMetadata();
+        return true;
     }
 
     public void shutdown() {
+        this.state = State.INITIAL;
+        this.executorService.shutdown();
         this.scheduledService.shutdown();
     }
 
@@ -143,7 +181,7 @@ public class ReplicasManager {
         }
     }
 
-    public void changeToSlave(final String newMasterAddress, final int newMasterEpoch) {
+    public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, long brokerId) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to slave, brokerName={}, replicas:{}, brokerId={}", this.brokerConfig.getBrokerName(), this.localAddress, this.brokerConfig.getBrokerId());
@@ -156,6 +194,7 @@ public class ReplicasManager {
                 // Change config
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
                 this.brokerController.changeSpecialServiceStatus(false);
+                this.brokerConfig.setBrokerId(brokerId);
 
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SLAVE);
@@ -214,12 +253,11 @@ public class ReplicasManager {
         try {
             final BrokerRegisterResponseHeader registerResponse = this.brokerOuterAPI.registerBroker(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress);
             final String newMasterAddress = registerResponse.getMasterAddress();
-            this.brokerConfig.setBrokerId(registerResponse.getBrokerId());
             if (StringUtils.isNoneEmpty(newMasterAddress)) {
                 if (StringUtils.equals(newMasterAddress, this.localAddress)) {
                     changeToMaster(registerResponse.getMasterEpoch(), registerResponse.getSyncStateSetEpoch());
                 } else {
-                    changeToSlave(newMasterAddress, registerResponse.getMasterEpoch());
+                    changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), registerResponse.getBrokerId());
                 }
             }
             return true;
@@ -235,18 +273,24 @@ public class ReplicasManager {
     private void schedulingSyncBrokerMetadata() {
         this.scheduledService.scheduleAtFixedRate(() -> {
             try {
-                final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerName());
+                final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerName(), this.localAddress);
                 final GetReplicaInfoResponseHeader info = result.getObject1();
                 final SyncStateSet syncStateSet = result.getObject2();
                 final String newMasterAddress = info.getMasterAddress();
                 final int newMasterEpoch = info.getMasterEpoch();
+                final long brokerId = info.getBrokerId();
                 synchronized (this) {
                     // Check if master changed
                     if (StringUtils.isNoneEmpty(newMasterAddress) && !StringUtils.equals(this.masterAddress, newMasterAddress) && newMasterEpoch > this.masterEpoch) {
                         if (StringUtils.equals(newMasterAddress, this.localAddress)) {
                             changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch());
                         } else {
-                            changeToSlave(newMasterAddress, newMasterEpoch);
+                            if (brokerId > 0) {
+                                changeToSlave(newMasterAddress, newMasterEpoch, brokerId);
+                            } else if (brokerId < 0) {
+                                // If the brokerId is no existed, we should try register again.
+                                registerBroker();
+                            }
                         }
                     } else {
                         // Check if sync state set changed
@@ -340,7 +384,7 @@ public class ReplicasManager {
     }
 
     public SyncStateSet getSyncStateSet() {
-        return new SyncStateSet(new HashSet<>(this.syncStateSet), this.syncStateSetEpoch);
+        return new SyncStateSet(this.syncStateSet, this.syncStateSetEpoch);
     }
 
     public String getLocalAddress() {
@@ -353,5 +397,9 @@ public class ReplicasManager {
 
     public int getMasterEpoch() {
         return masterEpoch;
+    }
+
+    public List<String> getControllerAddresses() {
+        return controllerAddresses;
     }
 }
