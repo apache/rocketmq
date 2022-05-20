@@ -142,7 +142,7 @@ public class AutoSwitchHAService extends DefaultHAService {
      * an offset within the current leader epoch.
      */
     public void expandSyncStateSet(final String slaveAddress, final long slaveMaxOffset) {
-        if (!this.syncStateSet.contains(slaveAddress)) {
+        if (this.syncStateSet != null && !this.syncStateSet.contains(slaveAddress)) {
             final long confirmOffset = getConfirmOffset();
             if (slaveMaxOffset >= confirmOffset) {
                 final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
@@ -152,6 +152,8 @@ public class AutoSwitchHAService extends DefaultHAService {
                     // Notify the upper layer that syncStateSet changed.
                     System.out.println("Slave join sync state set, slave :" + slaveAddress + " offset:" + slaveMaxOffset);
                 }
+            } else {
+                System.out.println("Failed to expand, slave offset:" + slaveMaxOffset + " hw:" + confirmOffset);
             }
         }
     }
@@ -160,17 +162,16 @@ public class AutoSwitchHAService extends DefaultHAService {
      * Get confirm offset (min slaveAckOffset of all syncStateSet members)
      */
     public long getConfirmOffset() {
+        long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
         if (this.syncStateSet != null) {
             final HashSet<String> syncStateSetCopy = new HashSet<>(this.syncStateSet);
-            long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
             for (HAConnection connection : this.connectionList) {
                 if (syncStateSetCopy.contains(connection.getClientAddress())) {
                     confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
                 }
             }
-            return confirmOffset;
         }
-        return -1;
+        return confirmOffset;
     }
 
     @Override public HAClient getHAClient() {
