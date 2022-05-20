@@ -273,11 +273,12 @@ public class ReplicasManager {
     private void schedulingSyncBrokerMetadata() {
         this.scheduledService.scheduleAtFixedRate(() -> {
             try {
-                final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerName());
+                final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerName(), this.localAddress);
                 final GetReplicaInfoResponseHeader info = result.getObject1();
                 final SyncStateSet syncStateSet = result.getObject2();
                 final String newMasterAddress = info.getMasterAddress();
                 final int newMasterEpoch = info.getMasterEpoch();
+                final long brokerId = info.getBrokerId();
                 synchronized (this) {
                     // Check if master changed
                     if (StringUtils.isNoneEmpty(newMasterAddress) && !StringUtils.equals(this.masterAddress, newMasterAddress) && newMasterEpoch > this.masterEpoch) {
@@ -285,6 +286,13 @@ public class ReplicasManager {
                             changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch());
                         } else {
                             changeToSlave(newMasterAddress, newMasterEpoch);
+                            if (brokerId > 0) {
+                                this.brokerConfig.setBrokerId(brokerId);
+                                changeToSlave(newMasterAddress, newMasterEpoch);
+                            } else if (brokerId < 0) {
+                                // If the brokerId is no existed, we should try register again.
+                                registerBroker();
+                            }
                         }
                     } else {
                         // Check if sync state set changed

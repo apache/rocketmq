@@ -63,6 +63,9 @@ public class BrokerInfo {
     }
 
     public Long getBrokerId(final String address) {
-        return this.brokerIdTable.get(address);
+        if (this.brokerIdTable.containsKey(address)) {
+            return this.brokerIdTable.get(address);
+        }
+        return -1L;
     }
 }
