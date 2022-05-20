@@ -190,8 +190,10 @@ public class MQClientAPIExt extends MQClientAPIImpl {
             requestHeader.setBatch(true);
             MessageBatch msgBatch = MessageBatch.generateFromList(msgList);
             MessageClientIDSetter.setUniqID(msgBatch);
-            msgBatch.setBody(msgBatch.encode());
+            byte[] body = msgBatch.encode();
+            msgBatch.setBody(body);
 
+            request.setBody(body);
             this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
