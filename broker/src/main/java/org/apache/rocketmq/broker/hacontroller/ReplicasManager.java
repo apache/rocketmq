@@ -63,6 +63,7 @@ public class ReplicasManager {
     private final List<String> controllerAddresses;
 
     private volatile String controllerLeaderAddress = "";
+    private volatile State state = State.INITIAL;
 
     private ScheduledFuture<?> checkSyncStateSetTaskFuture;
     private ScheduledFuture<?> slaveSyncFuture;
@@ -76,7 +77,7 @@ public class ReplicasManager {
         this.brokerController = brokerController;
         this.brokerOuterAPI = brokerController.getBrokerOuterAPI();
         this.scheduledService = Executors.newScheduledThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ScheduledService_", brokerController.getBrokerIdentity()));
-        this.executorService = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
+        this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
         final BrokerConfig brokerConfig = brokerController.getBrokerConfig();
@@ -89,19 +90,56 @@ public class ReplicasManager {
         this.haService.setLocalAddress(this.localAddress);
     }
 
+    enum State {
+        INITIAL,
+        FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE,
+        RUNNING,
+    }
+
     public void start() {
-        if (!schedulingSyncControllerMetadata()) {
-            return;
+        if (!startBasicService()) {
+            LOGGER.error("Failed to start replicasManager");
+            this.executorService.submit(() -> {
+                int tryTimes = 1;
+                while (!startBasicService()) {
+                    tryTimes++;
+                    LOGGER.error("Failed to start replicasManager, try times:{}, current state:{}, try it again", tryTimes, this.state);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+                LOGGER.info("Start replicasManager success, try times:{}", tryTimes);
+            });
+        }
+    }
+
+    private boolean startBasicService() {
+        if (this.state == State.INITIAL) {
+            if (schedulingSyncControllerMetadata()) {
+                LOGGER.info("First time sync controller metadata success");
+                this.state = State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE;
+            } else {
+                return false;
+            }
         }
 
-        if (!registerBroker()) {
-            return;
+        if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
+            if (registerBroker()) {
+                LOGGER.info("First time register broker success");
+                this.state = State.RUNNING;
+            } else {
+                return false;
+            }
         }
 
         schedulingSyncBrokerMetadata();
+        return true;
     }
 
     public void shutdown() {
+        this.state = State.INITIAL;
+        this.executorService.shutdown();
         this.scheduledService.shutdown();
     }
 
