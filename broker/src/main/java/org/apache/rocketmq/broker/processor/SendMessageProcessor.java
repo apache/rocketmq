@@ -231,7 +231,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 
         CompletableFuture<PutMessageResult> putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
-        return putMessageResult.thenApply((r) -> {
+        return putMessageResult.thenApplyAsync((r) -> {
             if (r != null) {
                 switch (r.getPutMessageStatus()) {
                     case PUT_OK:
@@ -260,7 +260,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("putMessageResult is null");
             return response;
-        });
+        }, this.brokerController.getPutMessageFutureExecutor());
     }
 
 
@@ -337,9 +337,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                                                             SendMessageContext sendMessageContext,
                                                                             ChannelHandlerContext ctx,
                                                                             int queueIdInt) {
-        return putMessageResult.thenApply((r) ->
-            handlePutMessageResult(r, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt)
-        );
+        return putMessageResult.thenApplyAsync(
+                (r) -> handlePutMessageResult(r, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt),
+                this.brokerController.getPutMessageFutureExecutor());
     }
 
     private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,

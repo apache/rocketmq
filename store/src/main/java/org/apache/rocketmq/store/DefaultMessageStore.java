@@ -37,12 +37,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -125,6 +127,8 @@ public class DefaultMessageStore implements MessageStore {
 
     boolean shutDownNormal = false;
 
+    private ExecutorService asyncPutMessageCallbackExecutor;
+
     private final ScheduledExecutorService diskCheckScheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DiskCheckScheduledThread"));
 
@@ -175,6 +179,10 @@ public class DefaultMessageStore implements MessageStore {
         MappedFile.ensureDirOK(getStorePathPhysic());
         MappedFile.ensureDirOK(getStorePathLogic());
         lockFile = new RandomAccessFile(file, "rw");
+    }
+
+    public void registerAsyncPutMessageCallbackExecutorService(ExecutorService executorService) {
+        this.asyncPutMessageCallbackExecutor = executorService;
     }
 
     public void truncateDirtyLogicFiles(long phyOffset) {
@@ -465,7 +473,7 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
 
-        putResultFuture.thenAccept((result) -> {
+        Consumer<PutMessageResult> storeStatsServiceCallback = (result) -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
@@ -475,7 +483,13 @@ public class DefaultMessageStore implements MessageStore {
             if (null == result || !result.isOk()) {
                 this.storeStatsService.getPutMessageFailedTimes().add(1);
             }
-        });
+        };
+
+        if (this.asyncPutMessageCallbackExecutor != null) {
+            putResultFuture.thenAcceptAsync(storeStatsServiceCallback, this.asyncPutMessageCallbackExecutor);
+        } else {
+            putResultFuture.thenAccept(storeStatsServiceCallback);
+        }
 
         return putResultFuture;
     }
@@ -493,7 +507,7 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> resultFuture = this.commitLog.asyncPutMessages(messageExtBatch);
 
-        resultFuture.thenAccept((result) -> {
+        Consumer<PutMessageResult> storeStatsServiceCallback = (result) -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
@@ -504,7 +518,13 @@ public class DefaultMessageStore implements MessageStore {
             if (null == result || !result.isOk()) {
                 this.storeStatsService.getPutMessageFailedTimes().add(1);
             }
-        });
+        };
+
+        if (this.asyncPutMessageCallbackExecutor != null) {
+            resultFuture.thenAcceptAsync(storeStatsServiceCallback, this.asyncPutMessageCallbackExecutor);
+        } else {
+            resultFuture.thenAccept(storeStatsServiceCallback);
+        }
 
         return resultFuture;
     }

@@ -348,6 +348,8 @@ public class BrokerController {
 
             this.registerProcessor();
 
+            this.messageStore.registerAsyncPutMessageCallbackExecutorService(getPutMessageFutureExecutor());
+
             final long initialDelay = UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis();
             final long period = 1000 * 60 * 60 * 24;
             this.scheduledExecutorService.scheduleAtFixedRate(() -> {

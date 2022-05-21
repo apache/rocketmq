@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -73,6 +74,15 @@ public interface MessageStore {
      */
     default CompletableFuture<PutMessageResult> asyncPutMessages(final MessageExtBatch messageExtBatch) {
         return CompletableFuture.completedFuture(putMessages(messageExtBatch));
+    }
+
+    /**
+     * set async put message callback executor service.
+     * use for execute asyncPutMessage thenAccept or thenApply callback code.
+     * @param executorService
+     */
+    default void registerAsyncPutMessageCallbackExecutorService(ExecutorService executorService) {
+
     }
 
     /**
