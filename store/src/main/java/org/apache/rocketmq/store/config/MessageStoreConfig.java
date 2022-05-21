@@ -271,6 +271,11 @@ public class MessageStoreConfig {
     private long maxHaTransferByteInSecond = 100 * 1024 * 1024;
 
     /**
+     * The max gap time that slave doesn't catch up to master.
+     */
+    private long haMaxTimeSlaveNotCatchup = 1000 * 15;
+
+    /**
      * Sync flush offset from master when broker startup, used in upgrading from old version broker.
      */
     private boolean syncMasterFlushOffsetWhenStartup = false;
@@ -1196,6 +1201,14 @@ public class MessageStoreConfig {
 
     public void setMaxHaTransferByteInSecond(long maxHaTransferByteInSecond) {
         this.maxHaTransferByteInSecond = maxHaTransferByteInSecond;
+    }
+
+    public long getHaMaxTimeSlaveNotCatchup() {
+        return haMaxTimeSlaveNotCatchup;
+    }
+
+    public void setHaMaxTimeSlaveNotCatchup(long haMaxTimeSlaveNotCatchup) {
+        this.haMaxTimeSlaveNotCatchup = haMaxTimeSlaveNotCatchup;
     }
 
     public boolean isSyncMasterFlushOffsetWhenStartup() {

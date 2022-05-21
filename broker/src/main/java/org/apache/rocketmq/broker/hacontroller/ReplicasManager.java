@@ -134,6 +134,9 @@ public class ReplicasManager {
         }
 
         schedulingSyncBrokerMetadata();
+
+        // Register syncStateSet changed listener.
+        this.haService.registerSyncStateSetChangedListener(this::doReportSyncStateSetChanged);
         return true;
     }
 
@@ -346,7 +349,7 @@ public class ReplicasManager {
      */
     private void schedulingCheckSyncStateSet() {
         this.checkSyncStateSetTaskFuture = this.scheduledService.scheduleAtFixedRate(() -> {
-            final Set<String> newSyncStateSet = this.haService.getLatestSyncStateSet();
+            final Set<String> newSyncStateSet = this.haService.maybeShrinkInSyncStateSet();
             newSyncStateSet.add(this.localAddress);
             synchronized (this) {
                 if (this.syncStateSet != null) {
@@ -356,16 +359,20 @@ public class ReplicasManager {
                     }
                 }
             }
-            try {
-                final SyncStateSet result = this.brokerOuterAPI.alterSyncStateSet(this.controllerLeaderAddress, this.brokerConfig.getBrokerName(), this.masterAddress, this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
-                if (result != null) {
-                    changeSyncStateSet(result.getSyncStateSet(), result.getSyncStateSetEpoch());
-                }
-            } catch (final Exception e) {
-                LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch:{}, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
-                    this.brokerConfig.getBrokerName(), this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
-            }
+            doReportSyncStateSetChanged(newSyncStateSet);
         }, 3 * 1000, this.brokerConfig.getReplicasManagerCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
+    }
+
+    private void doReportSyncStateSetChanged(Set<String> newSyncStateSet) {
+        try {
+            final SyncStateSet result = this.brokerOuterAPI.alterSyncStateSet(this.controllerLeaderAddress, this.brokerConfig.getBrokerName(), this.masterAddress, this.masterEpoch, newSyncStateSet, this.syncStateSetEpoch);
+            if (result != null) {
+                changeSyncStateSet(result.getSyncStateSet(), result.getSyncStateSetEpoch());
+            }
+        } catch (final Exception e) {
+            LOGGER.error("Error happen when change sync state set, broker:{}, masterAddress:{}, masterEpoch:{}, oldSyncStateSet:{}, newSyncStateSet:{}, syncStateSetEpoch:{}",
+                this.brokerConfig.getBrokerName(), this.masterAddress, this.masterEpoch, this.syncStateSet, newSyncStateSet, this.syncStateSetEpoch, e);
+        }
     }
 
     private void stopCheckSyncStateSet() {

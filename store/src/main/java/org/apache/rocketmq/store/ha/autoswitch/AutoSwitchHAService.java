@@ -188,11 +188,12 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     /**
      * Check and maybe shrink the inSyncStateSet.
-     * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > haMaxTimeSlaveNotCatchup
+     * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
      */
-    public Set<String> maybeShrinkInSyncStateSet(long haMaxTimeSlaveNotCatchup) {
+    public Set<String> maybeShrinkInSyncStateSet() {
         this.readLock.lock();
         try {
+            final long haMaxTimeSlaveNotCatchup = this.defaultMessageStore.getMessageStoreConfig().getHaMaxTimeSlaveNotCatchup();
             final HashSet<String> newSyncStateSet = new HashSet<>(this.syncStateSet);
             for (HAConnection haConnection : this.connectionList) {
                 final AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
