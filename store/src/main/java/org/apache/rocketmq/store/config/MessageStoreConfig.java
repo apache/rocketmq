@@ -247,6 +247,12 @@ public class MessageStoreConfig {
     private int minInSyncReplicas = 1;
 
     /**
+     * Each message must be written successfully to all replicas in InSyncStateSet.
+     */
+    @ImportantField
+    private boolean allAckInSyncStateSet = false;
+
+    /**
      * Dynamically adjust in-sync replicas to provide higher availability, the real time in-sync replicas
      * will smaller than inSyncReplicas config.
      */
@@ -1158,6 +1164,14 @@ public class MessageStoreConfig {
 
     public void setMinInSyncReplicas(int minInSyncReplicas) {
         this.minInSyncReplicas = minInSyncReplicas;
+    }
+
+    public boolean isAllAckInSyncStateSet() {
+        return allAckInSyncStateSet;
+    }
+
+    public void setAllAckInSyncStateSet(boolean allAckInSyncStateSet) {
+        this.allAckInSyncStateSet = allAckInSyncStateSet;
     }
 
     public boolean isEnableAutoInSyncReplicas() {

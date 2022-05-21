@@ -141,6 +141,19 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
+    @Override public HAClient getHAClient() {
+        return this.haClient;
+    }
+
+    @Override public void updateHaMasterAddress(String newAddr) {
+        if (this.haClient != null) {
+            this.haClient.updateHaMasterAddress(newAddr);
+        }
+    }
+
+    @Override public void updateMasterAddress(String newAddr) {
+    }
+
     public void registerSyncStateSetChangedListener(final Consumer<Set<String>> listener) {
         this.syncStateSetChangedListeners.add(listener);
     }
@@ -214,11 +227,8 @@ public class AutoSwitchHAService extends DefaultHAService {
                     final HashSet<String> newSyncStateSet = new HashSet<>(this.syncStateSet);
                     newSyncStateSet.add(slaveAddress);
                     // Notify the upper layer that syncStateSet changed.
-                    LOGGER.error("Slave join sync state set, slave {}, offset{}, new syncStateSet:{}", slaveAddress, slaveMaxOffset, newSyncStateSet);
                     notifySyncStateSetChanged(newSyncStateSet);
                 }
-            } else {
-                LOGGER.error("Failed to expand,  slave {}, offset{}", slaveAddress, slaveMaxOffset);
             }
         } finally {
             this.readLock.unlock();
@@ -244,8 +254,13 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
-    @Override public HAClient getHAClient() {
-        return this.haClient;
+    public Set<String> getSyncStateSet() {
+        this.readLock.lock();
+        try {
+            return new HashSet<>(this.syncStateSet);
+        } finally {
+            this.readLock.unlock();
+        }
     }
 
     public void truncateEpochFilePrefix(final long offset) {
@@ -309,15 +324,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         LOGGER.info("AutoRecoverHAClient truncate commitLog to {}", reputFromOffset);
         this.defaultMessageStore.truncateDirtyFiles(reputFromOffset);
         return reputFromOffset;
-    }
-
-    @Override public void updateHaMasterAddress(String newAddr) {
-        if (this.haClient != null) {
-            this.haClient.updateHaMasterAddress(newAddr);
-        }
-    }
-
-    @Override public void updateMasterAddress(String newAddr) {
     }
 
     class AutoSwitchAcceptSocketService extends AcceptSocketService {

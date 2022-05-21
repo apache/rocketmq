@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.ha;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -26,6 +27,8 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAConnection;
+import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 
 /**
  * GroupTransferService Service
@@ -71,27 +74,50 @@ public class GroupTransferService extends ServiceThread {
                     boolean transferOK = false;
 
                     long deadLine = req.getDeadLine();
+                    final boolean allAckInSyncStateSet = req.isAllAckInSyncStateSet();
 
                     for (int i = 0; !transferOK && deadLine - System.nanoTime() > 0; i++) {
                         if (i > 0) {
                             this.notifyTransferObject.waitForRunning(1000);
                         }
 
-                        if (req.getAckNums() <= 1) {
+                        if (req.getAckNums() <= 1 && !allAckInSyncStateSet) {
                             transferOK = haService.getPush2SlaveMaxOffset().get() >= req.getNextOffset();
                             continue;
                         }
 
-                        int ackNums = 0;
-                        for (HAConnection conn : haService.getConnectionList()) {
-                            // TODO: We must ensure every HAConnection represents a different slave
-                            // Solution: Consider assign a unique and fixed IP:ADDR for each different slave
-                            if (conn.getSlaveAckOffset() >= req.getNextOffset()) {
-                                ackNums++;
-                            }
-                            if (ackNums >= req.getAckNums()) {
+                        if (allAckInSyncStateSet && this.haService instanceof AutoSwitchHAService) {
+                            // In this mode, we must wait for all replicas that in InSyncStateSet.
+                            final AutoSwitchHAService autoSwitchHAService = (AutoSwitchHAService) this.haService;
+                            final Set<String> syncStateSet = autoSwitchHAService.getSyncStateSet();
+                            if (syncStateSet.size() <= 1) {
+                                // Only master
                                 transferOK = true;
                                 break;
+                            }
+                            int ackNums = 0;
+                            for (HAConnection conn : haService.getConnectionList()) {
+                                final AutoSwitchHAConnection autoSwitchHAConnection = (AutoSwitchHAConnection) conn;
+                                if (syncStateSet.contains(autoSwitchHAConnection.getClientAddress()) && autoSwitchHAConnection.getSlaveAckOffset() >= req.getNextOffset()) {
+                                    ackNums ++;
+                                }
+                                if (ackNums >= syncStateSet.size()) {
+                                    transferOK = true;
+                                    break;
+                                }
+                            }
+                        } else {
+                            int ackNums = 0;
+                            for (HAConnection conn : haService.getConnectionList()) {
+                                // TODO: We must ensure every HAConnection represents a different slave
+                                // Solution: Consider assign a unique and fixed IP:ADDR for each different slave
+                                if (conn.getSlaveAckOffset() >= req.getNextOffset()) {
+                                    ackNums++;
+                                }
+                                if (ackNums >= req.getAckNums()) {
+                                    transferOK = true;
+                                    break;
+                                }
                             }
                         }
                     }

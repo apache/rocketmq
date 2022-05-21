@@ -33,6 +33,8 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MappedFileQueue;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -118,6 +120,39 @@ public class AutoSwitchHATest {
         messageStore3.start();
     }
 
+    public void init(int mappedFileSize, boolean allAckInSyncStateSet) throws Exception {
+        QUEUE_TOTAL = 1;
+        MessageBody = StoreMessage.getBytes();
+        StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+        BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+        storeConfig1 = new MessageStoreConfig();
+        storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
+        storeConfig1.setStorePathRootDir(storePathRootDir + File.separator + "broker1");
+        storeConfig1.setStorePathCommitLog(storePathRootDir + File.separator + "broker1" + File.separator + "commitlog");
+        storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + "broker1" + File.separator + "EpochFileCache");
+        storeConfig1.setAllAckInSyncStateSet(allAckInSyncStateSet);
+        buildMessageStoreConfig(storeConfig1, mappedFileSize);
+        this.store1HaAddress = "127.0.0.1:10912";
+
+        storeConfig2 = new MessageStoreConfig();
+        storeConfig2.setBrokerRole(BrokerRole.SLAVE);
+        storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + "broker2");
+        storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + "broker2" + File.separator + "commitlog");
+        storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + "broker2" + File.separator + "EpochFileCache");
+        storeConfig2.setHaListenPort(10943);
+        storeConfig2.setAllAckInSyncStateSet(allAckInSyncStateSet);
+        buildMessageStoreConfig(storeConfig2, mappedFileSize);
+        this.store2HaAddress = "127.0.0.1:10943";
+
+        messageStore1 = buildMessageStore(storeConfig1, 0L);
+        messageStore2 = buildMessageStore(storeConfig2, 1L);
+
+        assertTrue(messageStore1.load());
+        assertTrue(messageStore2.load());
+        messageStore1.start();
+        messageStore2.start();
+    }
+
     private void changeMasterAndPutMessage(DefaultMessageStore master, MessageStoreConfig masterConfig,
         DefaultMessageStore slave, long slaveId, MessageStoreConfig slaveConfig, int epoch, String masterHaAddress,
         int totalPutMessageNums) throws Exception {
@@ -150,12 +185,12 @@ public class AutoSwitchHATest {
     }
 
     @Test
-    public void testCheckSyncStateSet() throws Exception {
-        init(defaultMappedFileSize);
+    public void testOptionAllAckInSyncStateSet() throws Exception {
+        init(defaultMappedFileSize, true);
         AtomicReference<Set<String>> syncStateSet = new AtomicReference<>();
-        ((AutoSwitchHAService)this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
-        ((AutoSwitchHAService)this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
-        ((AutoSwitchHAService)this.messageStore1.getHaService()).registerSyncStateSetChangedListener((newSyncStateSet) -> {
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
+        ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).registerSyncStateSetChangedListener((newSyncStateSet) -> {
             System.out.println("Get newSyncStateSet:" + newSyncStateSet);
             syncStateSet.set(newSyncStateSet);
         });
@@ -163,9 +198,19 @@ public class AutoSwitchHATest {
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
         checkMessage(this.messageStore2, 10, 0);
 
+        // Check syncStateSet
         final Set<String> result = syncStateSet.get();
         assertTrue(result.contains("127.0.0.1:8000"));
         assertTrue(result.contains("127.0.0.1:8001"));
+
+        // Now, shutdown store2
+        this.messageStore2.shutdown();
+        this.messageStore2.destroy();
+
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(result);
+
+        final PutMessageResult putMessageResult = this.messageStore1.putMessage(buildMessage());
+        assertEquals(putMessageResult.getPutMessageStatus(), PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
     }
 
     @Test
@@ -313,12 +358,18 @@ public class AutoSwitchHATest {
     @After
     public void destroy() throws Exception {
         Thread.sleep(5000L);
-        messageStore2.shutdown();
-        messageStore2.destroy();
-        messageStore1.shutdown();
-        messageStore1.destroy();
-        messageStore3.shutdown();
-        messageStore3.destroy();
+        if (this.messageStore2 != null) {
+            messageStore2.shutdown();
+            messageStore2.destroy();
+        }
+        if (this.messageStore1 != null) {
+            messageStore1.shutdown();
+            messageStore1.destroy();
+        }
+        if (this.messageStore3 != null) {
+            messageStore3.shutdown();
+            messageStore3.destroy();
+        }
         File file = new File(storePathRootParentDir);
         UtilAll.deleteFile(file);
     }

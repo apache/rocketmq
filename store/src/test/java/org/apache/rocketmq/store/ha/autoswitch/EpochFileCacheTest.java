@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store.ha;
+package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.File;
 import java.nio.file.Paths;
 import org.apache.rocketmq.common.EpochEntry;
-import org.apache.rocketmq.store.ha.autoswitch.EpochFileCache;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
