@@ -29,7 +29,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -170,20 +169,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.writeLock.lock();
         this.syncStateSet = new HashSet<>(syncStateSet);
         this.writeLock.unlock();
-    }
-
-    public Set<String> getLatestSyncStateSet() {
-        final HashSet<String> newSyncStateSet = new HashSet<>(this.connectionList.size());
-        final long masterOffset = this.defaultMessageStore.getMaxPhyOffset();
-        for (HAConnection connection : this.connectionList) {
-            if (isInSyncSlave(masterOffset, connection)) {
-                final String slaveAddress = ((AutoSwitchHAConnection) connection).getSlaveAddress();
-                if (StringUtils.isNoneEmpty(slaveAddress)) {
-                    newSyncStateSet.add(slaveAddress);
-                }
-            }
-        }
-        return newSyncStateSet;
     }
 
     /**

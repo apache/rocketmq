@@ -196,8 +196,10 @@ public class AutoSwitchHATest {
         });
 
         changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
+        Thread.sleep(1000);
         checkMessage(this.messageStore2, 10, 0);
 
+        Thread.sleep(1000);
         // Check syncStateSet
         final Set<String> result = syncStateSet.get();
         assertTrue(result.contains("127.0.0.1:8000"));
