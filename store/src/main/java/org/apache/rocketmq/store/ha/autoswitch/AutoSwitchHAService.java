@@ -23,11 +23,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -51,10 +49,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final ExecutorService executorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("AutoSwitchHAService_Executor_"));
     private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
-    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-    private final Lock readLock = this.readWriteLock.readLock();
-    private final Lock writeLock = this.readWriteLock.writeLock();
-    private Set<String> syncStateSet;
+    private final CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
     private String localAddress;
 
     private EpochFileCache epochCache;
@@ -73,7 +68,6 @@ public class AutoSwitchHAService extends DefaultHAService {
             this.haClient = new AutoSwitchHAClient(this, defaultMessageStore, this.epochCache);
         }
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
-        this.syncStateSet = new HashSet<>();
     }
 
     @Override public void shutdown() {
@@ -166,9 +160,8 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     public void setSyncStateSet(final Set<String> syncStateSet) {
-        this.writeLock.lock();
-        this.syncStateSet = new HashSet<>(syncStateSet);
-        this.writeLock.unlock();
+        this.syncStateSet.clear();
+        this.syncStateSet.addAll(syncStateSet);
     }
 
     /**
@@ -176,23 +169,19 @@ public class AutoSwitchHAService extends DefaultHAService {
      * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
      */
     public Set<String> maybeShrinkInSyncStateSet() {
-        this.readLock.lock();
-        try {
-            final long haMaxTimeSlaveNotCatchup = this.defaultMessageStore.getMessageStoreConfig().getHaMaxTimeSlaveNotCatchup();
-            final HashSet<String> newSyncStateSet = new HashSet<>(this.syncStateSet);
-            for (HAConnection haConnection : this.connectionList) {
-                final AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
-                final String slaveAddress = connection.getSlaveAddress();
-                if (this.syncStateSet.contains(slaveAddress)) {
-                    if ((System.currentTimeMillis() - connection.getLastCatchUpTimeMs()) > haMaxTimeSlaveNotCatchup) {
-                        newSyncStateSet.remove(slaveAddress);
-                    }
+        final Set<String> currentSyncStateSet = getSyncStateSet();
+        final HashSet<String> newSyncStateSet = new HashSet<>(currentSyncStateSet);
+        final long haMaxTimeSlaveNotCatchup = this.defaultMessageStore.getMessageStoreConfig().getHaMaxTimeSlaveNotCatchup();
+        for (HAConnection haConnection : this.connectionList) {
+            final AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
+            final String slaveAddress = connection.getSlaveAddress();
+            if (currentSyncStateSet.contains(slaveAddress)) {
+                if ((System.currentTimeMillis() - connection.getLastCatchUpTimeMs()) > haMaxTimeSlaveNotCatchup) {
+                    newSyncStateSet.remove(slaveAddress);
                 }
             }
-            return newSyncStateSet;
-        } finally {
-            this.readLock.unlock();
         }
+        return newSyncStateSet;
     }
 
     /**
@@ -201,23 +190,18 @@ public class AutoSwitchHAService extends DefaultHAService {
      * an offset within the current leader epoch.
      */
     public void maybeExpandInSyncStateSet(final String slaveAddress, final long slaveMaxOffset) {
-        this.readLock.lock();
-        try {
-            if (this.syncStateSet.contains(slaveAddress)) {
-                return;
+        final Set<String> currentSyncStateSet = getSyncStateSet();
+        if (currentSyncStateSet.contains(slaveAddress)) {
+            return;
+        }
+        final long confirmOffset = getConfirmOffset();
+        if (slaveMaxOffset >= confirmOffset) {
+            final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
+            if (slaveMaxOffset >= currentLeaderEpoch.getStartOffset()) {
+                currentSyncStateSet.add(slaveAddress);
+                // Notify the upper layer that syncStateSet changed.
+                notifySyncStateSetChanged(currentSyncStateSet);
             }
-            final long confirmOffset = getConfirmOffset();
-            if (slaveMaxOffset >= confirmOffset) {
-                final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
-                if (slaveMaxOffset >= currentLeaderEpoch.getStartOffset()) {
-                    final HashSet<String> newSyncStateSet = new HashSet<>(this.syncStateSet);
-                    newSyncStateSet.add(slaveAddress);
-                    // Notify the upper layer that syncStateSet changed.
-                    notifySyncStateSetChanged(newSyncStateSet);
-                }
-            }
-        } finally {
-            this.readLock.unlock();
         }
     }
 
@@ -225,28 +209,18 @@ public class AutoSwitchHAService extends DefaultHAService {
      * Get confirm offset (min slaveAckOffset of all syncStateSet members)
      */
     public long getConfirmOffset() {
+        final Set<String> currentSyncStateSet = getSyncStateSet();
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
-        this.readLock.lock();
-        try {
-            final HashSet<String> syncStateSetCopy = new HashSet<>(this.syncStateSet);
-            for (HAConnection connection : this.connectionList) {
-                if (syncStateSetCopy.contains(connection.getClientAddress())) {
-                    confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
-                }
+        for (HAConnection connection : this.connectionList) {
+            if (currentSyncStateSet.contains(connection.getClientAddress())) {
+                confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
             }
-            return confirmOffset;
-        } finally {
-            this.readLock.unlock();
         }
+        return confirmOffset;
     }
 
     public Set<String> getSyncStateSet() {
-        this.readLock.lock();
-        try {
-            return new HashSet<>(this.syncStateSet);
-        } finally {
-            this.readLock.unlock();
-        }
+        return new HashSet<>(this.syncStateSet);
     }
 
     public void truncateEpochFilePrefix(final long offset) {
