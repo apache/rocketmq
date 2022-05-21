@@ -297,21 +297,22 @@ public class AutoSwitchHAConnection implements HAConnection {
                                         AutoSwitchHAConnection.this.isSyncFromLastFile = true;
                                     }
                                     // Flag(isAsyncLearner role)
-                                    short isAsyncLearner = byteBufferRead.getShort(readPosition + 20);
+                                    short isAsyncLearner = byteBufferRead.getShort(readPosition + 18);
                                     if (isAsyncLearner == 1) {
                                         AutoSwitchHAConnection.this.isAsyncLearner = true;
                                     }
                                     // Address
                                     if (diff >= AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength) {
                                         final byte[] addressData = new byte[addressLength];
-                                        byteBufferRead.position(readPosition + 24);
+                                        byteBufferRead.position(readPosition + 20);
                                         byteBufferRead.get(addressData);
                                         AutoSwitchHAConnection.this.slaveAddress = new String(addressData);
                                     } else {
                                         AutoSwitchHAConnection.this.slaveAddress = "";
                                     }
-                                    LOGGER.error("Receive slave handshake, syncFromLastFile:{}, slaveId:{}, slaveAddress:{}, isAsyncLearner:{}",
-                                        AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.slaveId, AutoSwitchHAConnection.this.slaveAddress, AutoSwitchHAConnection.this.isAsyncLearner);
+                                    LOGGER.info("Receive slave handshake, slaveId:{}, slaveAddress:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
+                                        AutoSwitchHAConnection.this.slaveId, AutoSwitchHAConnection.this.slaveAddress,
+                                        AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
                                     byteBufferRead.position(readSocketPos);
                                     ReadSocketService.this.processPosition += AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength;
                                 }
