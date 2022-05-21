@@ -26,12 +26,11 @@ import java.time.Duration;
  */
 public class ClientConfigurationBuilder {
     private String endpoints;
-    private SessionCredentialsProvider sessionCredentialsProvider;
-    private Duration requestTimeout;
-    private boolean enableTracing;
+    private SessionCredentialsProvider sessionCredentialsProvider = null;
+    private Duration requestTimeout = Duration.ofSeconds(3);
 
     /**
-     * Configure the endpoints with which the SDK should communicate.
+     * Configure the access point with which the SDK should communicate.
      *
      * <p>Endpoints here means address of service, complying with the following scheme(part square brackets is
      * optional).
@@ -41,32 +40,42 @@ public class ClientConfigurationBuilder {
      * <p>3. ipv6 scheme: ipv6:address:port[,address:port,...]
      * <p>4. http/https scheme: http|https://host[:port], similar to DNS scheme, if port not specified, 443 is used.
      *
-     * @param endpoints address of service.
+     * @param accessPoint address of service.
      * @return the client configuration builder instance.
      */
-    public ClientConfigurationBuilder setEndpoints(String endpoints) {
-        checkNotNull(endpoints, "endpoints should not be not null");
-        this.endpoints = endpoints;
+    public ClientConfigurationBuilder setAccessPoint(String accessPoint) {
+        checkNotNull(accessPoint, "accessPoint should not be not null");
+        this.endpoints = accessPoint;
         return this;
     }
 
     public ClientConfigurationBuilder setCredentialProvider(SessionCredentialsProvider sessionCredentialsProvider) {
-        this.sessionCredentialsProvider = checkNotNull(sessionCredentialsProvider, "credentialsProvider should not be "
-            + "null");
+        this.sessionCredentialsProvider = checkNotNull(sessionCredentialsProvider, "credentialsProvider should not " +
+            "be null");
         return this;
     }
 
+    /**
+     * Configure request timeout for ordinary RPC.
+     *
+     * <p>request timeout is 1s by default. Especially, request timeout here does not work when RPC is long-polling.
+     *
+     * @param requestTimeout RPC request timeout.
+     * @return the client configuration builder instance.
+     */
     public ClientConfigurationBuilder setRequestTimeout(Duration requestTimeout) {
         this.requestTimeout = checkNotNull(requestTimeout, "requestTimeout should not be not null");
         return this;
     }
 
-    public ClientConfigurationBuilder enableTracing(boolean enableTracing) {
-        this.enableTracing = enableTracing;
-        return this;
-    }
-
+    /**
+     * Finalize the build of {@link ClientConfiguration}.
+     *
+     * @return the client configuration builder instance.
+     */
     public ClientConfiguration build() {
-        return new ClientConfiguration(endpoints, sessionCredentialsProvider, requestTimeout, enableTracing);
+        checkNotNull(endpoints, "endpoints should not be null");
+        checkNotNull(requestTimeout, "requestTimeout should not be null");
+        return new ClientConfiguration(endpoints, sessionCredentialsProvider, requestTimeout);
     }
 }

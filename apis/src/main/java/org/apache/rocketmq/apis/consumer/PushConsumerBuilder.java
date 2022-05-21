@@ -17,10 +17,9 @@
 
 package org.apache.rocketmq.apis.consumer;
 
-import org.apache.rocketmq.apis.ClientConfiguration;
-import org.apache.rocketmq.apis.exception.ClientException;
-
 import java.util.Map;
+import org.apache.rocketmq.apis.ClientConfiguration;
+import org.apache.rocketmq.apis.ClientException;
 
 public interface PushConsumerBuilder {
     /**
@@ -40,9 +39,9 @@ public interface PushConsumerBuilder {
     PushConsumerBuilder setConsumerGroup(String consumerGroup);
 
     /**
-     * Add subscriptionExpressions for consumer.
+     * Add {@link FilterExpression} for consumer.
      *
-     * @param subscriptionExpressions subscriptions to add which use the map of topic to filterExpression.
+     * @param subscriptionExpressions subscriptions to add.
      * @return the consumer builder instance.
      */
     PushConsumerBuilder setSubscriptionExpressions(Map<String, FilterExpression> subscriptionExpressions);
@@ -77,7 +76,7 @@ public interface PushConsumerBuilder {
      * @param count thread count.
      * @return the consumer builder instance.
      */
-    PushConsumerBuilder setThreadCount(int count);
+    PushConsumerBuilder setConsumptionThreadCount(int count);
 
     /**
      * Finalize the build of {@link PushConsumer}.

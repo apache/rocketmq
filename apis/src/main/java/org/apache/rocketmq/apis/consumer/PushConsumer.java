@@ -17,31 +17,32 @@
 
 package org.apache.rocketmq.apis.consumer;
 
-import org.apache.rocketmq.apis.exception.ClientException;
-
 import java.io.Closeable;
-import java.util.Map;
+import java.io.IOException;
 
+import java.util.Map;
+import org.apache.rocketmq.apis.ClientException;
 
 /**
- * PushConsumer is a managed client which delivers messages to application through {@link MessageListener}.
+ * PushConsumer is a thread-safe rocketmq client which is used to consume message by group.
  *
- * <p>Consumers of the same group are designed to share messages from broker servers. As a result, consumers of the same
- * group must have <strong>exactly identical subscription expressions</strong>, otherwise the behavior is undefined.
+ * <p>Push consumer is fully-managed consumer, if you are confused to choose your consumer, push consumer should be
+ * your first consideration.
  *
- * <p>For a brand-new group, consumers consume messages from head of underlying queues, ignoring existing messages
- * completely. In addition to delivering messages to clients, broker servers also maintain progress in perspective of
- * group. Thus, consumers can safely restart and resume their progress automatically.</p>
+ * <p>Consumers belong to the same consumer group share messages from server,
+ * so consumer in the same group must have the same subscription expressions, otherwise the behavior is
+ * undefined. If a new consumer group's consumer is started first time, it consumes from the latest position. Once
+ * consumer is started, server records its consumption progress and derives it in subsequent startup.
  *
- * <p>There are scenarios where <a href="https://en.wikipedia.org/wiki/Fan-out_(software)">fan-out</a> is preferred,
- * recommended solution is to use dedicated group of each client.
+ * <p>You may intend to maintain different consumption progress for different consumer, different consumer group
+ * should be set in this case.
  *
- * <p>To mitigate latency, PushConsumer adopts
- * <a href="https://en.wikipedia.org/wiki/Reactive_Streams">reactive streams</a> pattern. Namely,
- * messages received from broker servers are first cached locally, amount of which is controlled by
+ * <p>To accelerate the message consumption, push consumer applies
+ * <a href="https://en.wikipedia.org/wiki/Reactive_Streams">reactive streams</a>
+ * . Messages received from server is cached locally before consumption,
  * {@link PushConsumerBuilder#setMaxCacheMessageCount(int)} and
- * {@link PushConsumerBuilder#setMaxCacheMessageSizeInBytes(int)}, and then dispatched to thread pool to achieve
- * desirable concurrency.
+ * {@link PushConsumerBuilder#setMaxCacheMessageSizeInBytes(int)} could be used to set the cache threshold in
+ * different dimension.
  */
 public interface PushConsumer extends Closeable {
     /**
@@ -54,19 +55,14 @@ public interface PushConsumer extends Closeable {
     /**
      * List the existed subscription expressions in push consumer.
      *
-     * @return map of topic to filter expression.
+     * @return collections of subscription expression.
      */
-    Map<String, FilterExpression> subscriptionExpressions();
+    Map<String, FilterExpression> getSubscriptionExpressions();
 
     /**
      * Add subscription expression dynamically.
      *
-     * <p>If first subscriptionExpression that contains topicA and tag1 is exists already in consumer, then
-     * second subscriptionExpression which contains topicA and tag2, <strong>the result is that the second one
-     * replaces the first one instead of integrating them</strong>.
-     *
-     * @param topic  new topic that need to add or update.
-     * @param filterExpression new filter expression to add or update.
+     * @param filterExpression new filter expression to add.
      * @return push consumer instance.
      */
     PushConsumer subscribe(String topic, FilterExpression filterExpression) throws ClientException;
@@ -88,8 +84,8 @@ public interface PushConsumer extends Closeable {
      * Close the push consumer and release all related resources.
      *
      * <p>Once push consumer is closed, <strong>it could not be started once again.</strong> we maintained an FSM
-     * (finite-state machine) to record the different states for each producer, which is similar to
+     * (finite-state machine) to record the different states for each producer.
      */
     @Override
-    void close();
+    void close() throws IOException;
 }

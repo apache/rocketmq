@@ -17,45 +17,40 @@
 
 package org.apache.rocketmq.apis;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Common client configuration.
  */
 public class ClientConfiguration {
-    private final String endpoints;
+    private final String accessPoint;
     private final SessionCredentialsProvider sessionCredentialsProvider;
     private final Duration requestTimeout;
-    private final boolean enableTracing;
 
     public static ClientConfigurationBuilder newBuilder() {
         return new ClientConfigurationBuilder();
     }
 
-    public ClientConfiguration(String endpoints, SessionCredentialsProvider sessionCredentialsProvider,
-        Duration requestTimeout, boolean enableTracing) {
-        this.endpoints = checkNotNull(endpoints, "endpoints should not be null");
-        this.sessionCredentialsProvider = checkNotNull(sessionCredentialsProvider, "credentialsProvider should not be"
-            + " null");
-        this.requestTimeout = checkNotNull(requestTimeout, "requestTimeout should be not null");
-        this.enableTracing = enableTracing;
+    /**
+     * The caller is supposed to have validated the arguments and handled throwing exception or
+     * logging warnings already, so we avoid repeating args check here.
+     */
+    ClientConfiguration(String accessPoint, SessionCredentialsProvider sessionCredentialsProvider, Duration requestTimeout) {
+        this.accessPoint = accessPoint;
+        this.sessionCredentialsProvider = sessionCredentialsProvider;
+        this.requestTimeout = requestTimeout;
     }
 
-    public String getEndpoints() {
-        return endpoints;
+    public String getAccessPoint() {
+        return accessPoint;
     }
 
-    public SessionCredentialsProvider getCredentialsProvider() {
-        return sessionCredentialsProvider;
+    public Optional<SessionCredentialsProvider> getCredentialsProvider() {
+        return null == sessionCredentialsProvider ? Optional.empty() : Optional.of(sessionCredentialsProvider);
     }
 
     public Duration getRequestTimeout() {
         return requestTimeout;
-    }
-
-    public boolean isEnableTracing() {
-        return enableTracing;
     }
 }

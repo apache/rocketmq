@@ -27,7 +27,7 @@ public interface MessageId {
      *
      * @return the version of message id.
      */
-    MessageIdVersion getVersion();
+    String getVersion();
 
     /**
      * The implementation <strong>must</strong> override this method, which indicates the message id using string form.

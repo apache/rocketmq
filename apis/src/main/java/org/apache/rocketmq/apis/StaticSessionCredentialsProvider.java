@@ -29,7 +29,7 @@ public class StaticSessionCredentialsProvider implements SessionCredentialsProvi
     }
 
     @Override
-    public SessionCredentials getCredentials() {
+    public SessionCredentials getSessionCredentials() {
         return credentials;
     }
 }

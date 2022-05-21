@@ -26,5 +26,5 @@ public interface SessionCredentialsProvider {
      *
      * @return provided credentials.
      */
-    SessionCredentials getCredentials();
+    SessionCredentials getSessionCredentials();
 }

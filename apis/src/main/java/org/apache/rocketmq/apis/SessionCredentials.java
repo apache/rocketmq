@@ -49,10 +49,7 @@ public class SessionCredentials {
         return accessSecret;
     }
 
-    public Optional<String> getSecurityToken() {
-        if (null == securityToken) {
-            return Optional.empty();
-        }
-        return Optional.of(securityToken);
+    public Optional<String> tryGetSecurityToken() {
+        return null == securityToken ? Optional.empty() : Optional.of(securityToken);
     }
 }

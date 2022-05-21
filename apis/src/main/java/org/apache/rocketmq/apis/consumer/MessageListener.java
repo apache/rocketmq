@@ -20,35 +20,18 @@ package org.apache.rocketmq.apis.consumer;
 import org.apache.rocketmq.apis.message.MessageView;
 
 /**
- * <p>MessageListener is used only by PushConsumer to process messages
- * synchronously.
+ * MessageListener is used only for push consumer to process message consumption synchronously.
  *
- * <p>PushConsumer will fetch messages from brokers and dispatch them to an
- * embedded thread pool in form of <code>Runnable</code> tasks to achieve desirable processing concurrency.
- *
- * <p>Refer to {@link PushConsumer} for more further specs.
- *
- * <p>
- * <strong>Thread Safety</strong>
- * This class may be called concurrently by multiple threads. Implementation should be thread safe.
- * </p>
+ * <p> Refer to {@link PushConsumer}, push consumer will get message from server
+ * and dispatch the message to backend thread pool which control by parameter threadCount to consumer message concurrently.
  */
 public interface MessageListener {
-
     /**
-     * Callback interface to handle incoming messages.
+     * The callback interface to consume message.
      *
-     * Application developers are expected to implement this interface to fulfill business requirements through
-     * processing <code>message</code> and return
-     * <code>ConsumeResult</code> accordingly.
-     *
-     * PushConsumer will, on behalf of its group, acknowledge the message to broker on success; In case of failure or
-     * unexpected exceptions were raised, it will negatively acknowledge <code>message</code>, which would potentially
-     * get re-delivered after the configured back off period.
-     *
-     * @param message The message passed to the listener.
-     * @return {@link ConsumeResult#SUCCESS} if <code>message</code> is properly processed; {@link
-     * ConsumeResult#FAILURE} otherwise.
+     * <p>You should process the {@link MessageView} and return the corresponding {@link ConsumeResult}.
+     * The consumption is successful only when {@link ConsumeResult#OK } is returned, null pointer is returned
+     * or exception is thrown would cause message consumption failure too.
      */
-    ConsumeResult onMessage(MessageView message);
+    ConsumeResult consume(MessageView messageView);
 }

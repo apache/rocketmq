@@ -22,15 +22,28 @@ import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * Filter expression is an efficient way to filter message for {@link SimpleConsumer} and {@link PushConsumer}.
+ * Consumer who applied the filter expression only can receive the filtered messages.
+ */
 public class FilterExpression {
-    public static final String TAG_EXPRESSION_SUB_ALL = "*";
-    public static final String TAG_EXPRESSION_SPLITTER = "\\|\\|";
+    private static final String TAG_EXPRESSION_SUB_ALL = "*";
+    public static final FilterExpression SUB_ALL = new FilterExpression(TAG_EXPRESSION_SUB_ALL);
+
     private final String expression;
     private final FilterExpressionType filterExpressionType;
 
     public FilterExpression(String expression, FilterExpressionType filterExpressionType) {
         this.expression = checkNotNull(expression, "expression should not be null");
         this.filterExpressionType = checkNotNull(filterExpressionType, "filterExpressionType should not be null");
+    }
+
+    public FilterExpression(String expression) {
+        this(expression, FilterExpressionType.TAG);
+    }
+
+    public FilterExpression() {
+        this(TAG_EXPRESSION_SUB_ALL);
     }
 
     public String getExpression() {
@@ -43,8 +56,12 @@ public class FilterExpression {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         FilterExpression that = (FilterExpression) o;
         return expression.equals(that.expression) && filterExpressionType == that.filterExpressionType;
     }

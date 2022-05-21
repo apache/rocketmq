@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.apis.producer;
 
-import org.apache.rocketmq.apis.exception.ClientException;
+import org.apache.rocketmq.apis.ClientException;
 
 /**
  * An entity to describe an independent transaction.

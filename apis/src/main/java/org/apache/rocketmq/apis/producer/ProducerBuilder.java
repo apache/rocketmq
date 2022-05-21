@@ -18,9 +18,8 @@
 package org.apache.rocketmq.apis.producer;
 
 import org.apache.rocketmq.apis.ClientConfiguration;
-import org.apache.rocketmq.apis.exception.ClientException;
+import org.apache.rocketmq.apis.ClientException;
 import org.apache.rocketmq.apis.message.Message;
-import org.apache.rocketmq.apis.retry.BackoffRetryPolicy;
 
 /**
  * Builder to config and start {@link Producer}.
@@ -35,7 +34,7 @@ public interface ProducerBuilder {
     ProducerBuilder setClientConfiguration(ClientConfiguration clientConfiguration);
 
     /**
-     * Declare topics ahead of message sending/preparation.
+     * Declare topics ahead of message sending.
      *
      * <p>Even though the declaration is not essential, we <strong>highly recommend</strong> to declare the topics in
      * advance, which could help to discover potential mistakes.
@@ -46,19 +45,14 @@ public interface ProducerBuilder {
     ProducerBuilder setTopics(String... topics);
 
     /**
-     * Set the threads count for {@link Producer#sendAsync(Message)}.
+     * Set the max attempts for max internal retries of message publishing.
      *
+     * <p>Internal retries are not performed for transactional message({@link Producer#send(Message, Transaction)})
+     *
+     * @param maxAttempts max attempts for max internal retries of message publishing.
      * @return the producer builder instance.
      */
-    ProducerBuilder setAsyncThreadCount(int count);
-
-    /**
-     * Set the retry policy to send message.
-     *
-     * @param retryPolicy policy to re-send message when failure encountered.
-     * @return the producer builder instance.
-     */
-    ProducerBuilder setRetryPolicy(BackoffRetryPolicy retryPolicy);
+    ProducerBuilder setMaxAttempts(int maxAttempts);
 
     /**
      * Set the transaction checker for producer.

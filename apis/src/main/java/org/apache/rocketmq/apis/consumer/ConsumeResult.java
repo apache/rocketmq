@@ -15,17 +15,15 @@
  * limitations under the License.
  */
 
-
 package org.apache.rocketmq.apis.consumer;
 
 public enum ConsumeResult {
     /**
-     * Consume message success and need commit this message.
+     * Consume message successfully.
      */
-    SUCCESS,
-
+    OK,
     /**
-     * Failed to consume the message, expecting potential delivery after configured backoff.
+     * Failed to consume message.
      */
-    FAILURE
+    ERROR
 }

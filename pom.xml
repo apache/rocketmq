@@ -107,6 +107,7 @@
 
     <modules>
         <module>apis</module>
+        <module>thinclient</module>
         <module>client</module>
         <module>common</module>
         <module>broker</module>
@@ -155,7 +156,7 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies />
+                        <banCircularDependencies/>
                     </rules>
                     <fail>true</fail>
                 </configuration>
@@ -231,13 +232,12 @@
                     <excludes>
                         <exclude>.gitignore</exclude>
                         <exclude>.travis.yml</exclude>
-                        <exclude>CONTRIBUTING.md</exclude>
-                        <exclude>bin/README.md</exclude>
+                        <exclude>**/*.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>src/test/resources/certs/*</exclude>
                         <exclude>src/test/**/*.log</exclude>
-                        <exclude>src/test/resources/META-INF/service/*</exclude>
-                        <exclude>src/main/resources/META-INF/service/*</exclude>
+                        <exclude>src/test/resources/**</exclude>
+                        <exclude>src/main/resources/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
                         <exclude>docs/**</exclude>
@@ -455,6 +455,16 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-apis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>rocketmq-thin-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -529,6 +539,26 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-proto</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>3.20.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.aliyun-mq</groupId>
+                <artifactId>rocketmq-slf4j-shaded</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.aliyun-mq</groupId>
+                <artifactId>rocketmq-logback-shaded</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.7</version>
@@ -537,6 +567,11 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>1.2.10</version>
+            </dependency>
+            <dependency>
+                <groupId>net.javacrumbs.future-converter</groupId>
+                <artifactId>future-converter-java8-guava</artifactId>
+                <version>1.2.0</version>
             </dependency>
             <dependency>
                 <groupId>commons-cli</groupId>
@@ -583,7 +618,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>19.0</version>
+                <version>31.0.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
@@ -629,6 +664,21 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
                 <version>1.1.11</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-api</artifactId>
+                <version>1.14.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-sdk</artifactId>
+                <version>1.14.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-exporter-otlp-metrics</artifactId>
+                <version>1.14.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
