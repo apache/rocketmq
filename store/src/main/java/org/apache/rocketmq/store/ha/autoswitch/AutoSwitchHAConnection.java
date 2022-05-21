@@ -135,6 +135,10 @@ public class AutoSwitchHAConnection implements HAConnection {
         return slaveAddress;
     }
 
+    public long getLastCatchUpTimeMs() {
+        return lastCatchUpTimeMs;
+    }
+
     @Override public HAConnectionState getCurrentState() {
         return currentState;
     }
@@ -300,7 +304,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     byteBufferRead.position(readSocketPos);
                                     if (slaveMaxOffset >= AutoSwitchHAConnection.this.lastMasterMaxOffset) {
                                         AutoSwitchHAConnection.this.lastCatchUpTimeMs = Math.max(AutoSwitchHAConnection.this.lastTransferTimeMs, AutoSwitchHAConnection.this.lastCatchUpTimeMs);
-                                        // AutoSwitchHAConnection.this.haService.expandSyncStateSet(AutoSwitchHAConnection.this.slaveAddress, slaveMaxOffset);
+                                        AutoSwitchHAConnection.this.haService.maybeExpandInSyncStateSet(AutoSwitchHAConnection.this.slaveAddress, slaveMaxOffset);
                                     }
 
                                     AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);

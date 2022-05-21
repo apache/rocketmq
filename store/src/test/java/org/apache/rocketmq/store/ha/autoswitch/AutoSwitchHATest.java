@@ -21,8 +21,10 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -145,6 +147,25 @@ public class AutoSwitchHATest {
             assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
             result.release();
         }
+    }
+
+    @Test
+    public void testCheckSyncStateSet() throws Exception {
+        init(defaultMappedFileSize);
+        AtomicReference<Set<String>> syncStateSet = new AtomicReference<>();
+        ((AutoSwitchHAService)this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
+        ((AutoSwitchHAService)this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
+        ((AutoSwitchHAService)this.messageStore1.getHaService()).registerSyncStateSetChangedListener((newSyncStateSet) -> {
+            System.out.println("Get newSyncStateSet:" + newSyncStateSet);
+            syncStateSet.set(newSyncStateSet);
+        });
+
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
+
+        final Set<String> result = syncStateSet.get();
+        assertTrue(result.contains("127.0.0.1:8000"));
+        assertTrue(result.contains("127.0.0.1:8001"));
     }
 
     @Test
