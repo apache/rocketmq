@@ -23,7 +23,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.config.BrokerRole;
 
 /**
  * Service to periodically check and notify for certain connection state.
@@ -65,7 +64,7 @@ public class HAConnectionStateNotificationService extends ServiceThread {
             return;
         }
 
-        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole().isSlave()) {
             if (haService.getHAClient().getCurrentState() == this.request.getExpectState()) {
                 this.request.getRequestFuture().complete(true);
                 this.request = null;

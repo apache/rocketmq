@@ -122,7 +122,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                 case SYNC_MASTER:
                     brokerConfig.setBrokerId(MixAll.MASTER_ID);
                     break;
-                case SLAVE:
+                case SLAVE: case ASYNC_LEARNER:
                     if (brokerConfig.getBrokerId() <= 0) {
                         response.setCode(ResponseCode.SYSTEM_ERROR);
                         response.setRemark("slave broker id must be > 0");

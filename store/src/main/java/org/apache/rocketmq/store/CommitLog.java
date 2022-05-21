@@ -820,7 +820,7 @@ public class CommitLog implements Swappable {
 
             boolean needAssignOffset = true;
             if (defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()
-                && defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
+                && !defaultMessageStore.getMessageStoreConfig().getBrokerRole().isSlave()) {
                 needAssignOffset = false;
             }
             if (needAssignOffset) {

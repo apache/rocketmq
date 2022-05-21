@@ -35,7 +35,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
@@ -64,7 +63,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
-        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole().isSlave()) {
             this.haClient = new AutoSwitchHAClient(this, defaultMessageStore, this.epochCache);
         }
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);

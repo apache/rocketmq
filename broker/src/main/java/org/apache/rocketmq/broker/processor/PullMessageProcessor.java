@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import java.util.List;
-
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
@@ -66,7 +65,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
@@ -284,7 +282,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     @Override
     public boolean rejectRequest() {
         if (!this.brokerController.getBrokerConfig().isSlaveReadEnable()
-            && this.brokerController.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+            && this.brokerController.getMessageStoreConfig().getBrokerRole().isSlave()) {
             return true;
         }
         return false;

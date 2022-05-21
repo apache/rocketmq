@@ -829,7 +829,7 @@ public class MessageStoreConfig {
      * @return <tt>true</tt> or <tt>false</tt>
      */
     public boolean isTransientStorePoolEnable() {
-        return transientStorePoolEnable && BrokerRole.SLAVE != getBrokerRole();
+        return transientStorePoolEnable && !getBrokerRole().isSlave();
     }
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {

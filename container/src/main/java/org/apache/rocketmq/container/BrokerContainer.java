@@ -27,11 +27,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
-import org.apache.rocketmq.container.logback.BrokerLogbackConfigurator;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -41,6 +39,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.container.logback.BrokerLogbackConfigurator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -48,7 +47,6 @@ import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerContainer implements IBrokerContainer {
@@ -266,10 +264,10 @@ public class BrokerContainer implements IBrokerContainer {
         if (storeConfig.isEnableDLegerCommitLog()) {
             return this.addDLedgerBroker(brokerConfig, storeConfig);
         } else {
-            if (brokerConfig.getBrokerId() == MixAll.MASTER_ID && storeConfig.getBrokerRole() != BrokerRole.SLAVE) {
+            if (brokerConfig.getBrokerId() == MixAll.MASTER_ID && !storeConfig.getBrokerRole().isSlave()) {
                 return this.addMasterBroker(brokerConfig, storeConfig);
             }
-            if (brokerConfig.getBrokerId() != MixAll.MASTER_ID && storeConfig.getBrokerRole() == BrokerRole.SLAVE) {
+            if (brokerConfig.getBrokerId() != MixAll.MASTER_ID && storeConfig.getBrokerRole().isSlave()) {
                 return this.addSlaveBroker(brokerConfig, storeConfig);
             }
         }

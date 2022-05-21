@@ -61,6 +61,7 @@ public class ReplicasManager {
     private final String localAddress;
     private final BrokerOuterAPI brokerOuterAPI;
     private final List<String> controllerAddresses;
+    private boolean isAsyncLearner = false;
 
     private volatile String controllerLeaderAddress = "";
     private volatile State state = State.INITIAL;
@@ -88,6 +89,9 @@ public class ReplicasManager {
         this.syncStateSet = new HashSet<>();
         this.localAddress = brokerController.getBrokerAddr();
         this.haService.setLocalAddress(this.localAddress);
+        if (brokerController.getMessageStoreConfig().getBrokerRole() == BrokerRole.ASYNC_LEARNER) {
+            this.isAsyncLearner = true;
+        }
     }
 
     enum State {
@@ -195,7 +199,7 @@ public class ReplicasManager {
                 stopCheckSyncStateSet();
 
                 // Change config
-                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
+                this.brokerController.getMessageStoreConfig().setBrokerRole(this.isAsyncLearner ? BrokerRole.ASYNC_LEARNER: BrokerRole.SLAVE);
                 this.brokerController.changeSpecialServiceStatus(false);
                 this.brokerConfig.setBrokerId(brokerId);
 
@@ -231,7 +235,7 @@ public class ReplicasManager {
     }
 
     private void handleSlaveSynchronize(final BrokerRole role) {
-        if (role == BrokerRole.SLAVE) {
+        if (role.isSlave()) {
             if (this.slaveSyncFuture != null) {
                 this.slaveSyncFuture.cancel(false);
             }
