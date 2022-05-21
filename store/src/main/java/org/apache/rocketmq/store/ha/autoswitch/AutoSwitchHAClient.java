@@ -35,6 +35,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnectionState;
@@ -44,9 +45,10 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     /**
-     * Handshake header buffer size. Schema: state ordinal + flag(isSyncFromLastFile) + slaveId + slaveAddressLength.
+     * Handshake header buffer size. Schema: state ordinal + slaveId + slaveAddressLength + Flag
+     * Flag: isSyncFromLastFile(short), isAsyncLearner(short)... we can add more flags in the future if needed
      */
-    public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 8 + 4;
+    public static final int HANDSHAKE_HEADER_SIZE = 4  + 8 + 4 + 4;
 
     /**
      * Header + slaveAddress.
@@ -96,10 +98,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * Confirm offset = min(localMaxOffset, master confirm offset).
      */
     private volatile long confirmOffset;
-
-    public static final int SYNC_FROM_LAST_FILE = -1;
-
-    public static final int SYNC_FROM_FIRST_FILE = -2;
 
     public AutoSwitchHAClient(AutoSwitchHAService haService, DefaultMessageStore defaultMessageStore,
         EpochFileCache epochCache) throws IOException {
@@ -255,16 +253,16 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         this.handshakeHeaderBuffer.limit(HANDSHAKE_SIZE);
         // Original state
         this.handshakeHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
-        // IsSyncFromLastFile
-        if (this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile()) {
-            this.handshakeHeaderBuffer.putInt(SYNC_FROM_LAST_FILE);
-        } else {
-            this.handshakeHeaderBuffer.putInt(SYNC_FROM_FIRST_FILE);
-        }
         // Slave Id
         this.handshakeHeaderBuffer.putLong(this.slaveId.get());
         // Address length
         this.handshakeHeaderBuffer.putInt(this.localAddress == null ? 0 : this.localAddress.length());
+        // IsSyncFromLastFile
+        short isSyncFromLastFile = this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile() ? (short)1 : (short) 0;
+        this.handshakeHeaderBuffer.putShort(isSyncFromLastFile);
+        // IsAsyncLearner role
+        short isAsyncLearner = this.haService.getDefaultMessageStore().getMessageStoreConfig().getBrokerRole() == BrokerRole.ASYNC_LEARNER ? (short)1 : (short) 0;
+        this.handshakeHeaderBuffer.putShort(isAsyncLearner);
         // Slave address
         this.handshakeHeaderBuffer.put(this.localAddress == null ? new byte[0] : this.localAddress.getBytes());
 

@@ -185,6 +185,19 @@ public class AutoSwitchHATest {
     }
 
     @Test
+    public void testAsyncLearnerBrokerRole() throws Exception {
+        init(defaultMappedFileSize);
+        storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
+        storeConfig2.setBrokerRole(BrokerRole.ASYNC_LEARNER);
+        messageStore1.getHaService().changeToMaster(1);
+        messageStore2.getHaService().changeToSlave("", 1, 2L);
+        messageStore2.getHaService().updateHaMasterAddress(store1HaAddress);
+        Thread.sleep(6000);
+
+        Thread.sleep(200);
+    }
+
+    @Test
     public void testOptionAllAckInSyncStateSet() throws Exception {
         init(defaultMappedFileSize, true);
         AtomicReference<Set<String>> syncStateSet = new AtomicReference<>();

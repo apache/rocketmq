@@ -19,5 +19,10 @@ package org.apache.rocketmq.store.config;
 public enum BrokerRole {
     ASYNC_MASTER,
     SYNC_MASTER,
-    SLAVE;
+    SLAVE,
+    ASYNC_LEARNER;
+
+    public boolean isSlave() {
+        return this == SLAVE || this == ASYNC_LEARNER;
+    }
 }
