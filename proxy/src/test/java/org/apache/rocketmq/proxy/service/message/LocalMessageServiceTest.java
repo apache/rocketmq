@@ -155,8 +155,8 @@ public class LocalMessageServiceTest extends InitConfigAndLoggerTest {
             return null;
         });
 
-        CompletableFuture<SendResult> future = localMessageService.sendMessage(proxyContext, null, messagesList, requestHeader, 1000L);
-        SendResult sendResult = future.get();
+        CompletableFuture<List<SendResult>> future = localMessageService.sendMessage(proxyContext, null, messagesList, requestHeader, 1000L);
+        SendResult sendResult = future.get().get(0);
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         assertThat(sendResult.getMsgId()).isEqualTo(MessageClientIDSetter.getUniqID(message));
         assertThat(sendResult.getMessageQueue())
@@ -200,8 +200,8 @@ public class LocalMessageServiceTest extends InitConfigAndLoggerTest {
             return null;
         });
 
-        CompletableFuture<SendResult> future = localMessageService.sendMessage(proxyContext, null, messagesList, requestHeader, 1000L);
-        SendResult sendResult = future.get();
+        CompletableFuture<List<SendResult>> future = localMessageService.sendMessage(proxyContext, null, messagesList, requestHeader, 1000L);
+        SendResult sendResult = future.get().get(0);
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         assertThat(sendResult.getMessageQueue())
             .isEqualTo(new MessageQueue(topic, brokerControllerMock.getBrokerConfig().getBrokerName(), queueId));
@@ -224,7 +224,7 @@ public class LocalMessageServiceTest extends InitConfigAndLoggerTest {
         Mockito.when(sendMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.any(RemotingCommand.class)))
             .thenReturn(response);
 
-        CompletableFuture<SendResult> future = localMessageService.sendMessage(proxyContext, null, messagesList, sendMessageRequestHeader, 1000L);
+        CompletableFuture<List<SendResult>> future = localMessageService.sendMessage(proxyContext, null, messagesList, sendMessageRequestHeader, 1000L);
         ExecutionException exception = catchThrowableOfType(future::get, ExecutionException.class);
         assertThat(exception.getCause()).isInstanceOf(ProxyException.class);
         assertThat(((ProxyException) exception.getCause()).getCode()).isEqualTo(ProxyExceptionCode.ILLEGAL_MESSAGE);
@@ -238,7 +238,7 @@ public class LocalMessageServiceTest extends InitConfigAndLoggerTest {
         MessageClientIDSetter.setUniqID(message);
         List<Message> messagesList = Collections.singletonList(message);
         SendMessageRequestHeader sendMessageRequestHeader = new SendMessageRequestHeader();
-        CompletableFuture<SendResult> future = localMessageService.sendMessage(proxyContext, null, messagesList, sendMessageRequestHeader, 1000L);
+        CompletableFuture<List<SendResult>> future = localMessageService.sendMessage(proxyContext, null, messagesList, sendMessageRequestHeader, 1000L);
         ExecutionException exception = catchThrowableOfType(future::get, ExecutionException.class);
         assertThat(exception.getCause()).isInstanceOf(RemotingCommandException.class);
     }
