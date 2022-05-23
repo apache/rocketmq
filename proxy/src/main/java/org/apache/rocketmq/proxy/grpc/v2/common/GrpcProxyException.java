@@ -35,6 +35,7 @@ public class GrpcProxyException extends RuntimeException {
         CODE_MAPPING.put(ProxyExceptionCode.RECEIPT_HANDLE_EXPIRED, Code.RECEIPT_HANDLE_EXPIRED);
         CODE_MAPPING.put(ProxyExceptionCode.FORBIDDEN, Code.FORBIDDEN);
         CODE_MAPPING.put(ProxyExceptionCode.ILLEGAL_MESSAGE, Code.ILLEGAL_MESSAGE);
+        CODE_MAPPING.put(ProxyExceptionCode.INTERNAL_SERVER_ERROR, Code.INTERNAL_SERVER_ERROR);
     }
 
     public GrpcProxyException(Code code, String message) {
