@@ -32,7 +32,7 @@ public class SimpleBatchProducer {
 
     public static void main(String[] args) throws Exception {
         DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
-        // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
 //        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.start();
 
