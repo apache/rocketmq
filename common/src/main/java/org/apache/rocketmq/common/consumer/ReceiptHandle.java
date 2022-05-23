@@ -66,7 +66,7 @@ public class ReceiptHandle {
         long retrieveTime = Long.parseLong(dataList.get(1));
         long invisibleTime = Long.parseLong(dataList.get(2));
         int reviveQueueId = Integer.parseInt(dataList.get(3));
-        String topic = dataList.get(4);
+        String topicType = dataList.get(4);
         String brokerName = dataList.get(5);
         int queueId = Integer.parseInt(dataList.get(6));
         long offset = Long.parseLong(dataList.get(7));
@@ -80,11 +80,10 @@ public class ReceiptHandle {
             .retrieveTime(retrieveTime)
             .invisibleTime(invisibleTime)
             .reviveQueueId(reviveQueueId)
-            .topicType(topic)
+            .topicType(topicType)
             .brokerName(brokerName)
             .queueId(queueId)
             .offset(offset)
-            .nextVisibleTime(retrieveTime + invisibleTime)
             .commitLogOffset(commitLogOffset)
             .receiptHandle(receiptHandle).build();
     }
@@ -109,7 +108,6 @@ public class ReceiptHandle {
         private long startOffset;
         private long retrieveTime;
         private long invisibleTime;
-        private long nextVisibleTime;
         private int reviveQueueId;
         private String topicType;
         private String brokerName;
@@ -136,18 +134,13 @@ public class ReceiptHandle {
             return this;
         }
 
-        public ReceiptHandle.ReceiptHandleBuilder nextVisibleTime(final long nextVisibleTime) {
-            this.nextVisibleTime = nextVisibleTime;
-            return this;
-        }
-
         public ReceiptHandle.ReceiptHandleBuilder reviveQueueId(final int reviveQueueId) {
             this.reviveQueueId = reviveQueueId;
             return this;
         }
 
-        public ReceiptHandle.ReceiptHandleBuilder topicType(final String topic) {
-            this.topicType = topic;
+        public ReceiptHandle.ReceiptHandleBuilder topicType(final String topicType) {
+            this.topicType = topicType;
             return this;
         }
 
@@ -177,13 +170,13 @@ public class ReceiptHandle {
         }
 
         public ReceiptHandle build() {
-            return new ReceiptHandle(this.startOffset, this.retrieveTime, this.invisibleTime, this.nextVisibleTime,
+            return new ReceiptHandle(this.startOffset, this.retrieveTime, this.invisibleTime, this.retrieveTime + this.invisibleTime,
                 this.reviveQueueId, this.topicType, this.brokerName, this.queueId, this.offset, this.commitLogOffset, this.receiptHandle);
         }
 
         @Override
         public String toString() {
-            return "ReceiptHandle.ReceiptHandleBuilder(startOffset=" + this.startOffset + ", retrieveTime=" + this.retrieveTime + ", invisibleTime=" + this.invisibleTime + ", nextVisibleTime=" + this.nextVisibleTime + ", reviveQueueId=" + this.reviveQueueId + ", topic=" + this.topicType + ", brokerName=" + this.brokerName + ", queueId=" + this.queueId + ", offset=" + this.offset + ", commitLogOffset=" + this.commitLogOffset + ", receiptHandle=" + this.receiptHandle + ")";
+            return "ReceiptHandle.ReceiptHandleBuilder(startOffset=" + this.startOffset + ", retrieveTime=" + this.retrieveTime + ", invisibleTime=" + this.invisibleTime + ", reviveQueueId=" + this.reviveQueueId + ", topic=" + this.topicType + ", brokerName=" + this.brokerName + ", queueId=" + this.queueId + ", offset=" + this.offset + ", commitLogOffset=" + this.commitLogOffset + ", receiptHandle=" + this.receiptHandle + ")";
         }
     }
 
