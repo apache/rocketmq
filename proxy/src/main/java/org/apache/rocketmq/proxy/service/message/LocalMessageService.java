@@ -17,13 +17,18 @@
 package org.apache.rocketmq.proxy.service.message;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.AckResult;
+import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
+import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -31,14 +36,20 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -94,7 +105,7 @@ public class LocalMessageService implements MessageService {
             }
         } catch (Exception e) {
             future.completeExceptionally(e);
-            log.error("Failed to process send message command", e);
+            log.error("Failed to process sendMessage command", e);
         } finally {
             channel.eraseInvocationContext(request.getOpaque());
         }
@@ -136,27 +147,196 @@ public class LocalMessageService implements MessageService {
     @Override
     public CompletableFuture<RemotingCommand> sendMessageBack(ProxyContext ctx, ReceiptHandle handle, String messageId,
         ConsumerSendMsgBackRequestHeader requestHeader, long timeoutMillis) {
-        return null;
+        SimpleChannel channel = channelManager.createChannel(ctx);
+        ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
+        RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        try {
+            RemotingCommand response = brokerController.getSendMessageProcessor()
+                .processRequest(channelHandlerContext, command);
+            future.complete(response);
+        } catch (Exception e) {
+            log.error("Fail to process sendMessageBack command", e);
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     @Override public void endTransactionOneway(ProxyContext ctx, TransactionId transactionId,
         EndTransactionRequestHeader requestHeader, long timeoutMillis) {
-
+        SimpleChannel channel = channelManager.createChannel(ctx);
+        ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
+        RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
+        try {
+            brokerController.getEndTransactionProcessor()
+                .processRequest(channelHandlerContext, command);
+        } catch (Exception e) {
+            log.error("Fail to process endTransaction command", e);
+        }
     }
 
     @Override public CompletableFuture<PopResult> popMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
         PopMessageRequestHeader requestHeader, long timeoutMillis) {
-        return null;
+        RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        SimpleChannel channel = channelManager.createInvocationChannel(ctx);
+        InvocationContext invocationContext = new InvocationContext(future);
+        channel.registerInvocationContext(request.getOpaque(), invocationContext);
+        ChannelHandlerContext simpleChannelHandlerContext = channel.getChannelHandlerContext();
+        try {
+            RemotingCommand response = brokerController.getPopMessageProcessor().processRequest(simpleChannelHandlerContext, request);
+            if (response != null) {
+                invocationContext.handle(response);
+            }
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+            log.error("Failed to process popMessage command", e);
+        } finally {
+            channel.eraseInvocationContext(request.getOpaque());
+        }
+        return future.thenApply(r -> {
+            PopStatus popStatus;
+            List<MessageExt> messageExtList = new ArrayList<>();
+            switch (r.getCode()) {
+                case ResponseCode.SUCCESS:
+                    popStatus = PopStatus.FOUND;
+                    ByteBuffer byteBuffer = ByteBuffer.wrap(r.getBody());
+                    messageExtList = MessageDecoder.decodes(byteBuffer);
+                    break;
+                case ResponseCode.POLLING_FULL:
+                    popStatus = PopStatus.POLLING_FULL;
+                    break;
+                case ResponseCode.POLLING_TIMEOUT:
+                case ResponseCode.PULL_NOT_FOUND:
+                    popStatus = PopStatus.POLLING_NOT_FOUND;
+                    break;
+                default:
+                    throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, r.getRemark());
+            }
+            PopResult popResult = new PopResult(popStatus, messageExtList);
+            PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) r.readCustomHeader();
+
+            if (popStatus == PopStatus.FOUND) {
+                Map<String, Long> startOffsetInfo = null;
+                Map<String, List<Long>> msgOffsetInfo = null;
+                Map<String, Integer> orderCountInfo = null;
+                if (requestHeader != null) {
+                    popResult.setInvisibleTime(responseHeader.getInvisibleTime());
+                    popResult.setPopTime(responseHeader.getPopTime());
+                    startOffsetInfo = ExtraInfoUtil.parseStartOffsetInfo(responseHeader.getStartOffsetInfo());
+                    msgOffsetInfo = ExtraInfoUtil.parseMsgOffsetInfo(responseHeader.getMsgOffsetInfo());
+                    orderCountInfo = ExtraInfoUtil.parseOrderCountInfo(responseHeader.getOrderCountInfo());
+                }
+                // <topicMark@queueId, msg queueOffset>
+                Map<String, List<Long>> sortMap = new HashMap<>(16);
+                for (MessageExt messageExt : messageExtList) {
+                    String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
+                    if (!sortMap.containsKey(key)) {
+                        sortMap.put(key, new ArrayList<>(4));
+                    }
+                    sortMap.get(key).add(messageExt.getQueueOffset());
+                }
+                Map<String, String> map = new HashMap<>(5);
+                for (MessageExt messageExt : messageExtList) {
+                    if (requestHeader != null) {
+                        if (startOffsetInfo == null) {
+                            // we should set the check point info to extraInfo field , if the command is popMsg
+                            // find pop ck offset
+                            String key = messageExt.getTopic() + messageExt.getQueueId();
+                            if (!map.containsKey(messageExt.getTopic() + messageExt.getQueueId())) {
+                                map.put(key, ExtraInfoUtil.buildExtraInfo(messageExt.getQueueOffset(), responseHeader.getPopTime(), responseHeader.getInvisibleTime(), responseHeader.getReviveQid(),
+                                    messageExt.getTopic(), messageQueue.getBrokerName(), messageExt.getQueueId()));
+                            }
+                            messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK, map.get(key) + MessageConst.KEY_SEPARATOR + messageExt.getQueueOffset());
+                        } else {
+                            String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
+                            int index = sortMap.get(key).indexOf(messageExt.getQueueOffset());
+                            Long msgQueueOffset = msgOffsetInfo.get(key).get(index);
+                            if (msgQueueOffset != messageExt.getQueueOffset()) {
+                                log.warn("Queue offset [{}] of msg is strange, not equal to the stored in msg, {}", msgQueueOffset, messageExt);
+                            }
+
+                            messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
+                                ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(key), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
+                                    responseHeader.getReviveQid(), messageExt.getTopic(), messageQueue.getBrokerName(), messageExt.getQueueId(), msgQueueOffset)
+                            );
+                            if (requestHeader.isOrder() && orderCountInfo != null) {
+                                Integer count = orderCountInfo.get(key);
+                                if (count != null && count > 0) {
+                                    messageExt.setReconsumeTimes(count);
+                                }
+                            }
+                        }
+                        messageExt.getProperties().computeIfAbsent(MessageConst.PROPERTY_FIRST_POP_TIME, k -> String.valueOf(responseHeader.getPopTime()));
+                    }
+                    messageExt.setBrokerName(messageExt.getBrokerName());
+                }
+            }
+            return popResult;
+        });
     }
 
     @Override
     public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
         ChangeInvisibleTimeRequestHeader requestHeader, long timeoutMillis) {
-        return null;
+        SimpleChannel channel = channelManager.createChannel(ctx);
+        ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
+        RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        try {
+            RemotingCommand response = brokerController.getChangeInvisibleTimeProcessor()
+                .processRequest(channelHandlerContext, command);
+            future.complete(response);
+        } catch (Exception e) {
+            log.error("Fail to process changeInvisibleTime command", e);
+            future.completeExceptionally(e);
+        }
+        return future.thenApply(r -> {
+            ChangeInvisibleTimeResponseHeader responseHeader = (ChangeInvisibleTimeResponseHeader) r.readCustomHeader();
+            AckResult ackResult = new AckResult();
+            if (ResponseCode.SUCCESS == r.getCode()) {
+                ackResult.setStatus(AckStatus.OK);
+            } else {
+                ackResult.setStatus(AckStatus.NO_EXIST);
+            }
+            ackResult.setPopTime(responseHeader.getPopTime());
+            ackResult.setExtraInfo(ReceiptHandle.builder()
+                .startOffset(handle.getStartOffset())
+                .retrieveTime(responseHeader.getPopTime())
+                .invisibleTime(responseHeader.getInvisibleTime())
+                .reviveQueueId(responseHeader.getReviveQid())
+                .topicType(handle.getTopicType())
+                .brokerName(handle.getBrokerName())
+                .queueId(handle.getQueueId())
+                .offset(handle.getOffset())
+                .build()
+                .encode());
+            return ackResult;
+        });
     }
 
     @Override public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
         AckMessageRequestHeader requestHeader, long timeoutMillis) {
-        return null;
+        SimpleChannel channel = channelManager.createChannel(ctx);
+        ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
+        RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.ACK_MESSAGE, requestHeader);
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        try {
+            RemotingCommand response = brokerController.getAckMessageProcessor()
+                .processRequest(channelHandlerContext, command);
+            future.complete(response);
+        } catch (Exception e) {
+            log.error("Fail to process ackMessage command", e);
+            future.completeExceptionally(e);
+        }
+        return future.thenApply(r -> {
+            AckResult ackResult = new AckResult();
+            if (ResponseCode.SUCCESS == r.getCode()) {
+                ackResult.setStatus(AckStatus.OK);
+            } else {
+                ackResult.setStatus(AckStatus.NO_EXIST);
+            }
+            return ackResult;
+        });
     }
 }

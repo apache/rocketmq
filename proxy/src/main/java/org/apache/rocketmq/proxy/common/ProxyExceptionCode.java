@@ -22,4 +22,5 @@ public enum ProxyExceptionCode {
     INVALID_BROKER_NAME,
     INVALID_RECEIPT_HANDLE,
     ILLEGAL_MESSAGE,
+    INTERNAL_SERVER_ERROR,
 }
