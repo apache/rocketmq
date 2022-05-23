@@ -42,8 +42,8 @@ public class OpenTracingProducer {
 
         DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
 
-        // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
-        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
+//        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.getDefaultMQProducerImpl().registerSendMessageHook(new SendMessageOpenTracingHookImpl(tracer));
         producer.start();
 
