@@ -56,6 +56,7 @@ public class ProxyConfig {
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
 
     private int channelExpiredInSeconds = 60;
+    private int contextExpiredInSeconds = 30;
 
     private int rocketmqMQClientNum = 6;
 
@@ -249,6 +250,14 @@ public class ProxyConfig {
 
     public void setChannelExpiredInSeconds(int channelExpiredInSeconds) {
         this.channelExpiredInSeconds = channelExpiredInSeconds;
+    }
+
+    public int getContextExpiredInSeconds() {
+        return contextExpiredInSeconds;
+    }
+
+    public void setContextExpiredInSeconds(int contextExpiredInSeconds) {
+        this.contextExpiredInSeconds = contextExpiredInSeconds;
     }
 
     public int getRocketmqMQClientNum() {

@@ -22,6 +22,7 @@ import io.netty.channel.AbstractChannel;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelMetadata;
 import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.channel.DefaultChannelPromise;
@@ -45,6 +46,7 @@ public class SimpleChannel extends AbstractChannel {
     protected final String localAddress;
 
     protected long lastAccessTime;
+    protected ChannelHandlerContext channelHandlerContext;
 
     /**
      * Creates a new instance.
@@ -58,6 +60,7 @@ public class SimpleChannel extends AbstractChannel {
         lastAccessTime = System.currentTimeMillis();
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;
+        this.channelHandlerContext = new SimpleChannelHandlerContext(this);
     }
 
     public SimpleChannel(String remoteAddress, String localAddress) {
@@ -164,5 +167,25 @@ public class SimpleChannel extends AbstractChannel {
         DefaultChannelPromise promise = new DefaultChannelPromise(this, GlobalEventExecutor.INSTANCE);
         promise.setSuccess();
         return promise;
+    }
+
+    public void updateLastAccessTime() {
+        this.lastAccessTime = System.currentTimeMillis();
+    }
+
+    public void registerInvocationContext(int opaque, InvocationContextInterface context) {
+
+    }
+
+    public void eraseInvocationContext(int opaque) {
+
+    }
+
+    public void clearExpireContext() {
+
+    }
+
+    public ChannelHandlerContext getChannelHandlerContext() {
+        return channelHandlerContext;
     }
 }
