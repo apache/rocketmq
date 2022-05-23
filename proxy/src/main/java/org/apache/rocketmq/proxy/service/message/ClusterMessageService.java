@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.message;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
@@ -40,7 +41,7 @@ import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class ClusterMessageService extends AbstractMessageService {
+public class ClusterMessageService implements MessageService {
 
     private final TopicRouteService topicRouteService;
     private final MQClientAPIFactory mqClientAPIFactory;
@@ -51,19 +52,21 @@ public class ClusterMessageService extends AbstractMessageService {
     }
 
     @Override
-    public CompletableFuture<SendResult> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
         List<? extends Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
-        CompletableFuture<SendResult> future;
+        CompletableFuture<List<SendResult>> future;
         if (msgList.size() == 1) {
             future = this.mqClientAPIFactory.getClient().sendMessageAsync(
                 messageQueue.getBrokerAddr(),
-                messageQueue.getBrokerName(), msgList.get(0), requestHeader, timeoutMillis);
+                messageQueue.getBrokerName(), msgList.get(0), requestHeader, timeoutMillis)
+            .thenApply(Lists::newArrayList);
         } else {
             future = this.mqClientAPIFactory.getClient().sendMessageAsync(
                 messageQueue.getBrokerAddr(),
-                messageQueue.getBrokerName(), msgList, requestHeader, timeoutMillis);
+                messageQueue.getBrokerName(), msgList, requestHeader, timeoutMillis)
+            .thenApply(Lists::newArrayList);
         }
-        return processSendMessageResponseFuture(messageQueue.getBrokerName(), requestHeader, future);
+        return future;
     }
 
     @Override

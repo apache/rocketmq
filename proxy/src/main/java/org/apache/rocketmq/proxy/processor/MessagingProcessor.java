@@ -59,7 +59,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         String topicName
     )  throws Exception;
 
-    default CompletableFuture<SendResult> sendMessage(
+    default CompletableFuture<List<SendResult>> sendMessage(
         ProxyContext ctx,
         QueueSelector queueSelector,
         String producerGroup,
@@ -68,7 +68,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         return sendMessage(ctx, queueSelector, producerGroup, msg, DEFAULT_TIMEOUT_MILLS);
     }
 
-    CompletableFuture<SendResult> sendMessage(
+    CompletableFuture<List<SendResult>> sendMessage(
         ProxyContext ctx,
         QueueSelector queueSelector,
         String producerGroup,

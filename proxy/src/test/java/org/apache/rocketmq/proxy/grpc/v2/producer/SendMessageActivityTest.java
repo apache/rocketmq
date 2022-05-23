@@ -70,7 +70,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         sendResult.setSendStatus(SendStatus.SEND_OK);
         sendResult.setMsgId(msgId);
         when(this.messagingProcessor.sendMessage(any(), any(), anyString(), any()))
-            .thenReturn(CompletableFuture.completedFuture(sendResult));
+            .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
 
         SendMessageResponse response = this.sendMessageActivity.sendMessage(
             createContext(),
@@ -92,43 +92,62 @@ public class SendMessageActivityTest extends BaseActivityTest {
         ).get();
 
         assertEquals(Code.OK, response.getStatus().getCode());
-        assertEquals(msgId, response.getReceipts(0).getMessageId());
+        assertEquals(msgId, response.getEntries(0).getMessageId());
     }
 
     @Test
     public void testConvertToSendMessageResponse() {
-        assertEquals(
-            Code.MASTER_PERSISTENCE_TIMEOUT,
-            this.sendMessageActivity.convertToSendMessageResponse(
+        {
+            SendMessageResponse response = this.sendMessageActivity.convertToSendMessageResponse(
                 ProxyContext.create(),
                 SendMessageRequest.newBuilder().build(),
-                new SendResult(SendStatus.FLUSH_DISK_TIMEOUT, null, null, null, 0)
-            ).getStatus().getCode()
-        );
-        assertEquals(
-            Code.SLAVE_PERSISTENCE_TIMEOUT,
-            this.sendMessageActivity.convertToSendMessageResponse(
+                Lists.newArrayList(new SendResult(SendStatus.FLUSH_DISK_TIMEOUT, null, null, null, 0))
+            );
+            assertEquals(Code.MASTER_PERSISTENCE_TIMEOUT, response.getStatus().getCode());
+            assertEquals(Code.MASTER_PERSISTENCE_TIMEOUT, response.getEntries(0).getStatus().getCode());
+        }
+
+        {
+            SendMessageResponse response = this.sendMessageActivity.convertToSendMessageResponse(
                 ProxyContext.create(),
                 SendMessageRequest.newBuilder().build(),
-                new SendResult(SendStatus.FLUSH_SLAVE_TIMEOUT, null, null, null, 0)
-            ).getStatus().getCode()
-        );
-        assertEquals(
-            Code.HA_NOT_AVAILABLE,
-            this.sendMessageActivity.convertToSendMessageResponse(
+                Lists.newArrayList(new SendResult(SendStatus.FLUSH_SLAVE_TIMEOUT, null, null, null, 0))
+            );
+            assertEquals(Code.SLAVE_PERSISTENCE_TIMEOUT, response.getStatus().getCode());
+            assertEquals(Code.SLAVE_PERSISTENCE_TIMEOUT, response.getEntries(0).getStatus().getCode());
+        }
+
+        {
+            SendMessageResponse response = this.sendMessageActivity.convertToSendMessageResponse(
                 ProxyContext.create(),
                 SendMessageRequest.newBuilder().build(),
-                new SendResult(SendStatus.SLAVE_NOT_AVAILABLE, null, null, null, 0)
-            ).getStatus().getCode()
-        );
-        assertEquals(
-            Code.OK,
-            this.sendMessageActivity.convertToSendMessageResponse(
+                Lists.newArrayList(new SendResult(SendStatus.SLAVE_NOT_AVAILABLE, null, null, null, 0))
+            );
+            assertEquals(Code.HA_NOT_AVAILABLE, response.getStatus().getCode());
+            assertEquals(Code.HA_NOT_AVAILABLE, response.getEntries(0).getStatus().getCode());
+        }
+
+        {
+            SendMessageResponse response = this.sendMessageActivity.convertToSendMessageResponse(
                 ProxyContext.create(),
                 SendMessageRequest.newBuilder().build(),
-                new SendResult(SendStatus.SEND_OK, null, null, null, 0)
-            ).getStatus().getCode()
-        );
+                Lists.newArrayList(new SendResult(SendStatus.SEND_OK, null, null, null, 0))
+            );
+            assertEquals(Code.OK, response.getStatus().getCode());
+            assertEquals(Code.OK, response.getEntries(0).getStatus().getCode());
+        }
+
+        {
+            SendMessageResponse response = this.sendMessageActivity.convertToSendMessageResponse(
+                ProxyContext.create(),
+                SendMessageRequest.newBuilder().build(),
+                Lists.newArrayList(
+                    new SendResult(SendStatus.SEND_OK, null, null, null, 0),
+                    new SendResult(SendStatus.SLAVE_NOT_AVAILABLE, null, null, null, 0)
+                )
+            );
+            assertEquals(Code.MULTIPLE_RESULTS, response.getStatus().getCode());
+        }
     }
 
     @Test(expected = GrpcProxyException.class)

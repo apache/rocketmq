@@ -125,7 +125,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public CompletableFuture<SendResult> sendMessage(ProxyContext ctx, QueueSelector queueSelector,
+    public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, QueueSelector queueSelector,
         String producerGroup, List<MessageExt> msg, long timeoutMillis) {
         return this.producerProcessor.sendMessage(ctx, queueSelector, producerGroup, msg, timeoutMillis);
     }
