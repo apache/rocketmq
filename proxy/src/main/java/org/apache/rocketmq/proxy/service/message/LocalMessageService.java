@@ -36,7 +36,7 @@ import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class LocalMessageService extends AbstractMessageService {
+public class LocalMessageService implements MessageService {
 
     private BrokerController brokerController;
 
@@ -44,7 +44,7 @@ public class LocalMessageService extends AbstractMessageService {
         this.brokerController = brokerController;
     }
 
-    @Override public CompletableFuture<SendResult> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    @Override public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
         List<? extends Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         return null;
     }

@@ -23,7 +23,9 @@ import apache.rocketmq.v2.AckMessageResultEntry;
 import apache.rocketmq.v2.Code;
 import io.grpc.Context;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
@@ -34,6 +36,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.checkerframework.checker.units.qual.C;
 
 public class AckMessageActivity extends AbstractMessingActivity {
 
@@ -56,13 +59,24 @@ public class AckMessageActivity extends AbstractMessingActivity {
                     future.completeExceptionally(throwable);
                     return;
                 }
+
+                Set<Code> responseCodes = new HashSet<>();
                 List<AckMessageResultEntry> entryList = new ArrayList<>();
                 for (CompletableFuture<AckMessageResultEntry> entryFuture : futures) {
-                    entryFuture.thenAccept(entryList::add);
+                    AckMessageResultEntry entryResult = entryFuture.join();
+                    responseCodes.add(entryResult.getStatus().getCode());
+                    entryList.add(entryResult);
                 }
                 AckMessageResponse.Builder responseBuilder = AckMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
                     .addAllEntries(entryList);
+                if (responseCodes.size() > 1) {
+                    responseBuilder.setStatus(ResponseBuilder.buildStatus(Code.MULTIPLE_RESULTS, Code.MULTIPLE_RESULTS.name()));
+                } else if (responseCodes.size() == 1) {
+                    Code code = responseCodes.stream().findAny().get();
+                    responseBuilder.setStatus(ResponseBuilder.buildStatus(code, code.name()));
+                } else {
+                    responseBuilder.setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "ack message result is empty"));
+                }
                 future.complete(responseBuilder.build());
             });
         } catch (Throwable t) {

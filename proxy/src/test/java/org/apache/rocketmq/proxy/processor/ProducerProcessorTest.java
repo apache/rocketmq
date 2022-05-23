@@ -22,19 +22,24 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -62,18 +67,27 @@ public class ProducerProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testSendMessage() throws Throwable {
+        String txId = MessageClientIDSetter.createUniqID();
+        String msgId = MessageClientIDSetter.createUniqID();
+
+        SendResult sendResult = new SendResult();
+        sendResult.setSendStatus(SendStatus.SEND_OK);
+        sendResult.setTransactionId(txId);
+        sendResult.setMsgId(msgId);
         ArgumentCaptor<SendMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(SendMessageRequestHeader.class);
         when(this.messageService.sendMessage(any(), any(), any(), requestHeaderArgumentCaptor.capture(), anyLong()))
-        .thenReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
+        .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
 
         List<MessageExt> messageExtList = new ArrayList<>();
         MessageExt messageExt = createMessageExt(MixAll.getRetryTopic(CONSUMER_GROUP), "tag", 0, 0);
+        messageExt.setSysFlag(MessageSysFlag.TRANSACTION_PREPARED_TYPE);
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_RECONSUME_TIME, "1");
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_MAX_RECONSUME_TIMES, "16");
         messageExtList.add(messageExt);
         SelectableMessageQueue messageQueue = mock(SelectableMessageQueue.class);
+        when(messageQueue.getBrokerName()).thenReturn("mockBroker");
 
-        SendResult sendResult = this.producerProcessor.sendMessage(
+        List<SendResult> sendResultList = this.producerProcessor.sendMessage(
             createContext(),
             (ctx, messageQueueView) -> messageQueue,
             PRODUCER_GROUP,
@@ -81,7 +95,12 @@ public class ProducerProcessorTest extends BaseProcessorTest {
             3000
         ).get();
 
-        assertNotNull(sendResult);
+        assertNotNull(sendResultList);
+        TransactionId transactionId = TransactionId.decode(sendResultList.get(0).getTransactionId());
+        assertNotNull(transactionId);
+        assertEquals(txId, transactionId.getBrokerTransactionId());
+        assertEquals("mockBroker", transactionId.getBrokerName());
+
         SendMessageRequestHeader requestHeader = requestHeaderArgumentCaptor.getValue();
         assertEquals(PRODUCER_GROUP, requestHeader.getProducerGroup());
         assertEquals(MixAll.getRetryTopic(CONSUMER_GROUP), requestHeader.getTopic());

@@ -23,9 +23,8 @@ import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
-import apache.rocketmq.v2.SendReceipt;
+import apache.rocketmq.v2.SendResultEntry;
 import apache.rocketmq.v2.SystemProperties;
-import com.beust.jcommander.internal.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.hash.Hashing;
 import com.google.protobuf.Duration;
@@ -34,8 +33,10 @@ import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import io.grpc.Context;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -190,35 +191,54 @@ public class SendMessageActivity extends AbstractMessingActivity {
     }
 
     protected SendMessageResponse convertToSendMessageResponse(ProxyContext ctx, SendMessageRequest request,
-        SendResult result) {
-        switch (result.getSendStatus()) {
-            case FLUSH_DISK_TIMEOUT:
-                return SendMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.MASTER_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
-                    .build();
-            case FLUSH_SLAVE_TIMEOUT:
-                return SendMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.SLAVE_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
-                    .build();
-            case SLAVE_NOT_AVAILABLE:
-                return SendMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.HA_NOT_AVAILABLE, "send message failed, sendStatus=" + result.getSendStatus()))
-                    .build();
-            case SEND_OK:
-                List<SendReceipt> sendReceiptList = Lists.newArrayList();
-                sendReceiptList.add(SendReceipt.newBuilder()
-                    .setMessageId(StringUtils.defaultString(result.getMsgId()))
-                    .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
-                    .build());
-                return SendMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-                    .addAllReceipts(sendReceiptList)
-                    .build();
-            default:
-                return SendMessageResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "send message failed, sendStatus=" + result.getSendStatus()))
-                    .build();
+        List<SendResult> resultList) {
+        SendMessageResponse.Builder builder = SendMessageResponse.newBuilder();
+
+        Set<Code> responseCodes = new HashSet<>();
+        for (SendResult result : resultList) {
+            SendResultEntry resultEntry;
+            switch (result.getSendStatus()) {
+                case FLUSH_DISK_TIMEOUT:
+                    resultEntry = SendResultEntry.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.MASTER_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
+                        .build();
+                    break;
+                case FLUSH_SLAVE_TIMEOUT:
+                    resultEntry = SendResultEntry.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.SLAVE_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
+                        .build();
+                    break;
+                case SLAVE_NOT_AVAILABLE:
+                    resultEntry = SendResultEntry.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.HA_NOT_AVAILABLE, "send message failed, sendStatus=" + result.getSendStatus()))
+                        .build();
+                    break;
+                case SEND_OK:
+                    resultEntry = SendResultEntry.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                        .setOffset(result.getQueueOffset())
+                        .setMessageId(StringUtils.defaultString(result.getMsgId()))
+                        .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
+                        .build();
+                    break;
+                default:
+                    resultEntry = SendResultEntry.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "send message failed, sendStatus=" + result.getSendStatus()))
+                        .build();
+                    break;
+            }
+            builder.addEntries(resultEntry);
+            responseCodes.add(resultEntry.getStatus().getCode());
         }
+        if (responseCodes.size() > 1) {
+            builder.setStatus(ResponseBuilder.buildStatus(Code.MULTIPLE_RESULTS, Code.MULTIPLE_RESULTS.name()));
+        } else if (responseCodes.size() == 1) {
+            Code code = responseCodes.stream().findAny().get();
+            builder.setStatus(ResponseBuilder.buildStatus(code, code.name()));
+        } else {
+            builder.setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "send status is empty"));
+        }
+        return builder.build();
     }
 
     protected static class SendMessageQueueSelector implements QueueSelector {

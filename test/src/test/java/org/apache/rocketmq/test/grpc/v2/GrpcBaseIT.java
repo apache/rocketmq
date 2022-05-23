@@ -336,7 +336,7 @@ public class GrpcBaseIT extends BaseConf {
         AckMessageResponse ackMessageResponse = blockingStub.ackMessage(buildAckMessageRequest(topic, group,
             AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(ackHandles.get(0)).build(),
             AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(ackHandles.get(1)).build()));
-        assertThat(ackMessageResponse.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(ackMessageResponse.getStatus().getCode()).isEqualTo(Code.MULTIPLE_RESULTS);
         int okNum = 0;
         int expireNum = 0;
         for (AckMessageResultEntry entry : ackMessageResponse.getEntriesList()) {
@@ -550,7 +550,7 @@ public class GrpcBaseIT extends BaseConf {
     public void assertSendMessage(SendMessageResponse response, String messageId) {
         assertThat(response.getStatus()
             .getCode()).isEqualTo(Code.OK);
-        assertThat(response.getReceipts(0).getMessageId()).isEqualTo(messageId);
+        assertThat(response.getEntries(0).getMessageId()).isEqualTo(messageId);
     }
 
     public Message assertAndGetReceiveMessage(List<ReceiveMessageResponse> response, String messageId) {

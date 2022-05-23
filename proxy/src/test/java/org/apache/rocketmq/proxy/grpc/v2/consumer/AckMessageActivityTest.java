@@ -82,7 +82,7 @@ public class AckMessageActivityTest extends BaseActivityTest {
                 .build()
         ).get();
 
-        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(Code.MULTIPLE_RESULTS, response.getStatus().getCode());
         assertEquals(3, response.getEntriesCount());
         assertEquals(Code.RECEIPT_HANDLE_EXPIRED, response.getEntries(0).getStatus().getCode());
         assertEquals(Code.OK, response.getEntries(1).getStatus().getCode());

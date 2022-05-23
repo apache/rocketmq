@@ -38,7 +38,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface MessageService {
 
-    CompletableFuture<SendResult> sendMessage(
+    CompletableFuture<List<SendResult>> sendMessage(
         ProxyContext ctx,
         SelectableMessageQueue messageQueue,
         List<? extends Message> msgList,
