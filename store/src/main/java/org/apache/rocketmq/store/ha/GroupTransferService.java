@@ -95,7 +95,8 @@ public class GroupTransferService extends ServiceThread {
                                 transferOK = true;
                                 break;
                             }
-                            int ackNums = 0;
+                            // Include master.
+                            int ackNums = 1;
                             for (HAConnection conn : haService.getConnectionList()) {
                                 final AutoSwitchHAConnection autoSwitchHAConnection = (AutoSwitchHAConnection) conn;
                                 if (syncStateSet.contains(autoSwitchHAConnection.getClientAddress()) && autoSwitchHAConnection.getSlaveAckOffset() >= req.getNextOffset()) {

@@ -910,7 +910,7 @@ public class CommitLog implements Swappable {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(1);
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).add(result.getWroteBytes());
 
-        return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA, this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet());
+        return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA);
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessages(final MessageExtBatch messageExtBatch) {
@@ -1042,7 +1042,7 @@ public class CommitLog implements Swappable {
         storeStatsService.getSinglePutMessageTopicTimesTotal(messageExtBatch.getTopic()).add(result.getMsgNum());
         storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).add(result.getWroteBytes());
 
-        return handleDiskFlushAndHA(putMessageResult, messageExtBatch, needAckNums, needHandleHA, this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet());
+        return handleDiskFlushAndHA(putMessageResult, messageExtBatch, needAckNums, needHandleHA);
     }
 
     private int calcNeedAckNums(int inSyncReplicas) {
@@ -1077,13 +1077,13 @@ public class CommitLog implements Swappable {
     }
 
     private CompletableFuture<PutMessageResult> handleDiskFlushAndHA(PutMessageResult putMessageResult,
-        MessageExt messageExt, int needAckNums, boolean needHandleHA, boolean allAckInSyncStateSet) {
+        MessageExt messageExt, int needAckNums, boolean needHandleHA) {
         CompletableFuture<PutMessageStatus> flushResultFuture = handleDiskFlush(putMessageResult.getAppendMessageResult(), messageExt);
         CompletableFuture<PutMessageStatus> replicaResultFuture;
         if (!needHandleHA) {
             replicaResultFuture = CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         } else {
-            replicaResultFuture = handleHA(putMessageResult.getAppendMessageResult(), putMessageResult, needAckNums, allAckInSyncStateSet);
+            replicaResultFuture = handleHA(putMessageResult.getAppendMessageResult(), putMessageResult, needAckNums);
         }
 
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
@@ -1102,7 +1102,8 @@ public class CommitLog implements Swappable {
     }
 
     private CompletableFuture<PutMessageStatus> handleHA(AppendMessageResult result, PutMessageResult putMessageResult,
-        int needAckNums, boolean allAckInSyncStateSet) {
+        int needAckNums) {
+        final boolean allAckInSyncStateSet = this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet();
         if (needAckNums <= 1 && !allAckInSyncStateSet) {
             return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         }

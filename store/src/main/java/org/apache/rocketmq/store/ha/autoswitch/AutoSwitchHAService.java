@@ -159,11 +159,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         });
     }
 
-    public void setSyncStateSet(final Set<String> syncStateSet) {
-        this.syncStateSet.clear();
-        this.syncStateSet.addAll(syncStateSet);
-    }
-
     /**
      * Check and maybe shrink the inSyncStateSet.
      * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
@@ -219,7 +214,12 @@ public class AutoSwitchHAService extends DefaultHAService {
         return confirmOffset;
     }
 
-    public Set<String> getSyncStateSet() {
+    public synchronized void setSyncStateSet(final Set<String> syncStateSet) {
+        this.syncStateSet.clear();
+        this.syncStateSet.addAll(syncStateSet);
+    }
+
+    public synchronized Set<String> getSyncStateSet() {
         return new HashSet<>(this.syncStateSet);
     }
 

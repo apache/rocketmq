@@ -172,6 +172,18 @@ public class AutoSwitchHAConnection implements HAConnection {
         }
     }
 
+    private synchronized void updateLastTransferInfo() {
+        this.lastMasterMaxOffset = this.haService.getDefaultMessageStore().getMaxPhyOffset();
+        this.lastTransferTimeMs = System.currentTimeMillis();
+    }
+
+    private synchronized void maybeExpandInSyncStateSet(long slaveMaxOffset) {
+        if (slaveMaxOffset >= this.lastMasterMaxOffset) {
+            this.lastCatchUpTimeMs = Math.max(this.lastTransferTimeMs, this.lastCatchUpTimeMs);
+            this.haService.maybeExpandInSyncStateSet(this.slaveAddress, slaveMaxOffset);
+        }
+    }
+
     class ReadSocketService extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024;
         private final Selector selector;
@@ -302,11 +314,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     }
                                     LOGGER.info("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
                                     byteBufferRead.position(readSocketPos);
-                                    if (slaveMaxOffset >= AutoSwitchHAConnection.this.lastMasterMaxOffset) {
-                                        AutoSwitchHAConnection.this.lastCatchUpTimeMs = Math.max(AutoSwitchHAConnection.this.lastTransferTimeMs, AutoSwitchHAConnection.this.lastCatchUpTimeMs);
-                                        AutoSwitchHAConnection.this.haService.maybeExpandInSyncStateSet(AutoSwitchHAConnection.this.slaveAddress, slaveMaxOffset);
-                                    }
-
+                                    maybeExpandInSyncStateSet(slaveMaxOffset);
                                     AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
                                 }
                                 break;
@@ -569,8 +577,7 @@ public class AutoSwitchHAConnection implements HAConnection {
 
                 this.transferOffset = this.nextTransferFromWhere;
                 this.nextTransferFromWhere += size;
-                AutoSwitchHAConnection.this.lastMasterMaxOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset();
-                AutoSwitchHAConnection.this.lastTransferTimeMs = System.currentTimeMillis();
+                updateLastTransferInfo();
 
                 // Build Header
                 buildTransferHeaderBuffer(this.transferOffset, size);
