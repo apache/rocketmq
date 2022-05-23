@@ -37,6 +37,7 @@ import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.metadata.ClusterMetadataService;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.mqclient.DoNothingClientRemotingProcessor;
+import org.apache.rocketmq.proxy.service.mqclient.ProxyClientRemotingProcessor;
 import org.apache.rocketmq.proxy.service.relay.ClusterProxyRelayService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
@@ -60,6 +61,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     private final ScheduledExecutorService scheduledExecutorService;
     private final MQClientAPIFactory messagingClientAPIFactory;
     private final MQClientAPIFactory operationClientAPIFactory;
+    private final MQClientAPIFactory transactionClientAPIFactory;
 
     public ClusterServiceManager(RPCHook rpcHook) {
         this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
@@ -68,7 +70,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
 
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         this.messagingClientAPIFactory = new MQClientAPIFactory(
-            "CLUSTER_MQ_CLIENT_",
+            "ClusterMQClient_",
             proxyConfig.getRocketmqMQClientNum(),
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
@@ -80,10 +82,17 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
             rpcHook,
             this.scheduledExecutorService
         );
+        this.transactionClientAPIFactory = new MQClientAPIFactory(
+            "ClusterTransaction_",
+            1,
+            new ProxyClientRemotingProcessor(producerManager),
+            rpcHook,
+            scheduledExecutorService);
 
         this.topicRouteService = new ClusterTopicRouteService(operationClientAPIFactory);
         this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory);
-        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, rpcHook);
+        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, rpcHook,
+            this.transactionClientAPIFactory);
         this.proxyRelayService = new ClusterProxyRelayService();
         this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
 
@@ -105,6 +114,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.appendShutdown(scheduledExecutorService::shutdown);
         this.appendStartAndShutdown(this.messagingClientAPIFactory);
         this.appendStartAndShutdown(this.operationClientAPIFactory);
+        this.appendStartAndShutdown(this.transactionClientAPIFactory);
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(this.clusterTransactionService);
         this.appendStartAndShutdown(this.metadataService);
