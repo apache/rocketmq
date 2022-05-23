@@ -26,13 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -44,7 +41,6 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
-import org.apache.rocketmq.proxy.service.mqclient.ProxyClientRemotingProcessor;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -57,21 +53,14 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
     private final MQClientAPIFactory mqClientAPIFactory;
     private final TopicRouteService topicRouteService;
 
-    private final ScheduledExecutorService scheduledExecutorService;
     private ThreadPoolExecutor heartbeatExecutors;
     private final Map<String /* group */, Set<ClusterData>/* cluster list */> groupClusterData = new ConcurrentHashMap<>();
     private TxHeartbeatServiceThread txHeartbeatServiceThread;
 
-    public ClusterTransactionService(TopicRouteService topicRouteService, ProducerManager producerManager, RPCHook rpcHook) {
-        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
-            new ThreadFactoryImpl("ClusterTransactionScheduledThread_"));
+    public ClusterTransactionService(TopicRouteService topicRouteService, ProducerManager producerManager, RPCHook rpcHook,
+        MQClientAPIFactory mqClientAPIFactory) {
         this.topicRouteService = topicRouteService;
-        this.mqClientAPIFactory = new MQClientAPIFactory(
-            "ClusterTransaction_",
-            1,
-            new ProxyClientRemotingProcessor(producerManager),
-            rpcHook,
-            scheduledExecutorService);
+        this.mqClientAPIFactory = mqClientAPIFactory;
     }
 
     @Override
@@ -182,6 +171,10 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
         }
     }
 
+    public Map<String, Set<ClusterData>> getGroupClusterData() {
+        return groupClusterData;
+    }
+
     protected void sendHeartBeatToCluster(String clusterName, List<HeartbeatData> heartbeatDataList) {
         if (heartbeatDataList == null) {
             return;
@@ -218,6 +211,10 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
 
         public ClusterData(String cluster) {
             this.cluster = cluster;
+        }
+
+        public String getCluster() {
+            return cluster;
         }
 
         @Override
@@ -264,7 +261,6 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         txHeartbeatServiceThread = new TxHeartbeatServiceThread();
 
-        mqClientAPIFactory.start();
         txHeartbeatServiceThread.start();
         heartbeatExecutors = ThreadPoolMonitor.createAndMonitor(
             proxyConfig.getTransactionHeartbeatThreadPoolNums(),
@@ -279,6 +275,5 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
     public void shutdown() throws Exception {
         txHeartbeatServiceThread.shutdown();
         heartbeatExecutors.shutdown();
-        mqClientAPIFactory.shutdown();
     }
 }

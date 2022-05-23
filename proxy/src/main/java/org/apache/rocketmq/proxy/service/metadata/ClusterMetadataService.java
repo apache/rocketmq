@@ -22,7 +22,6 @@ import com.google.common.cache.LoadingCache;
 import java.util.Optional;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -43,15 +42,16 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private static final long DEFAULT_TIMEOUT = 3000;
 
-    private final ThreadPoolExecutor cacheRefreshExecutor;
     private final TopicRouteService topicRouteService;
     private final MQClientAPIFactory mqClientAPIFactory;
 
-    private final LoadingCache<String, TopicConfigAndQueueMapping> topicCache;
-    private final static TopicConfigAndQueueMapping EMPTY_TOPIC_CONFIG = new TopicConfigAndQueueMapping();
+    protected final ThreadPoolExecutor cacheRefreshExecutor;
 
-    private final LoadingCache<String, SubscriptionGroupConfig> subscriptionGroupConfigCache;
-    private final static SubscriptionGroupConfig EMPTY_SUBSCRIPTION_GROUP_CONFIG = new SubscriptionGroupConfig();
+    protected final LoadingCache<String, TopicConfigAndQueueMapping> topicConfigCache;
+    protected final static TopicConfigAndQueueMapping EMPTY_TOPIC_CONFIG = new TopicConfigAndQueueMapping();
+
+    protected final LoadingCache<String, SubscriptionGroupConfig> subscriptionGroupConfigCache;
+    protected final static SubscriptionGroupConfig EMPTY_SUBSCRIPTION_GROUP_CONFIG = new SubscriptionGroupConfig();
 
     public ClusterMetadataService(TopicRouteService topicRouteService, MQClientAPIFactory mqClientAPIFactory) {
         this.topicRouteService = topicRouteService;
@@ -66,7 +66,7 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
             "MetadataCacheRefresh",
             config.getMetadataThreadPoolQueueCapacity()
         );
-        this.topicCache = CacheBuilder.newBuilder()
+        this.topicConfigCache = CacheBuilder.newBuilder()
             .maximumSize(config.getTopicConfigCacheMaxNum())
             .refreshAfterWrite(config.getTopicConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
             .build(new ClusterTopicConfigCacheLoader());
@@ -86,7 +86,7 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
     public TopicMessageType getTopicMessageType(String topic) {
         TopicConfigAndQueueMapping topicConfigAndQueueMapping;
         try {
-            topicConfigAndQueueMapping = topicCache.get(topic);
+            topicConfigAndQueueMapping = topicConfigCache.get(topic);
         } catch (Exception e) {
             return TopicMessageType.UNSPECIFIED;
         }
@@ -159,7 +159,7 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
     protected Optional<BrokerData> findOneBroker(String topic) throws Exception {
         try {
             return topicRouteService.getAllMessageQueueView(topic).getTopicRouteData().getBrokerDatas().stream().findAny();
-        } catch (MQClientException e) {
+        } catch (Exception e) {
             if (TopicRouteHelper.isTopicNotExistError(e)) {
                 return Optional.empty();
             }

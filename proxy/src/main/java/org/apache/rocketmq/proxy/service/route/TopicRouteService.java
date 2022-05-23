@@ -42,11 +42,11 @@ import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
-
     private final MQClientAPIFactory mqClientAPIFactory;
-    private final ScheduledExecutorService scheduledExecutorService;
-    private final ThreadPoolExecutor cacheRefreshExecutor;
+
+    protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
+    protected final ScheduledExecutorService scheduledExecutorService;
+    protected final ThreadPoolExecutor cacheRefreshExecutor;
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();

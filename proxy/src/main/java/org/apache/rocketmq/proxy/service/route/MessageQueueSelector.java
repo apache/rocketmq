@@ -152,16 +152,6 @@ public class MessageQueueSelector {
         return selectOneByIndex(nextIndex, onlyBroker);
     }
 
-    public final SelectableMessageQueue selectOne(String brokerName, int queueId) {
-        for (SelectableMessageQueue targetMessageQueue : queues) {
-            String queueBrokerName = targetMessageQueue.getBrokerName();
-            if (queueBrokerName.equals(brokerName) && targetMessageQueue.getQueueId() == queueId) {
-                return targetMessageQueue;
-            }
-        }
-        return null;
-    }
-
     public final SelectableMessageQueue selectOneByIndex(int index, boolean onlyBroker) {
         if (onlyBroker) {
             if (brokerActingQueues.isEmpty()) {
@@ -174,22 +164,6 @@ public class MessageQueueSelector {
             return null;
         }
         return queues.get(Math.abs(index) % queues.size());
-    }
-
-    // find next same type(but different) queue with last(normal queue or broker acting queue).
-    public final SelectableMessageQueue selectNextQueue(SelectableMessageQueue last) {
-        boolean onlyBroker = last.getQueueId() < 0;
-        SelectableMessageQueue newOne = last;
-        int count = onlyBroker ? brokerActingQueues.size() : queues.size();
-
-        for (int i = 0; i < count; i++) {
-            newOne = selectOne(onlyBroker);
-            if (!newOne.getBrokerName().equals(last.getBrokerName()) || newOne.getQueueId() != last.getQueueId()) {
-                break;
-            }
-        }
-
-        return newOne;
     }
 
     public List<SelectableMessageQueue> getQueues() {

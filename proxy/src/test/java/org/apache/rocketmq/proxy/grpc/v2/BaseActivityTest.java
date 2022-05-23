@@ -34,17 +34,15 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @Ignore
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class BaseActivityTest extends InitConfigAndLoggerTest {
     protected static final Random RANDOM = new Random();
-    @Mock
     protected MessagingProcessor messagingProcessor;
-    @Mock
     protected GrpcClientSettingsManager grpcClientSettingsManager;
-    @Mock
     protected ProxyRelayService proxyRelayService;
 
     protected static final String REMOTE_ADDR = "192.168.0.1:8080";
@@ -55,6 +53,10 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
 
     public void before() throws Throwable {
         super.before();
+        messagingProcessor = mock(MessagingProcessor.class);
+        grpcClientSettingsManager = mock(GrpcClientSettingsManager.class);
+        proxyRelayService = mock(ProxyRelayService.class);
+
         metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
         metadata.put(InterceptorConstants.LANGUAGE, "JAVA");
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);

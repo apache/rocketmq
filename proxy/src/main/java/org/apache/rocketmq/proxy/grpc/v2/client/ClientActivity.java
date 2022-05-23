@@ -129,7 +129,10 @@ public class ClientActivity extends AbstractMessingActivity {
                     break;
                 }
                 default: {
-                    throw new IllegalArgumentException("ClientType not exist " + clientSettings.getClientType());
+                    future.complete(HeartbeatResponse.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
+                        .build());
+                    return future;
                 }
             }
             future.complete(HeartbeatResponse.newBuilder()
@@ -150,7 +153,7 @@ public class ClientActivity extends AbstractMessingActivity {
             ProxyContext context = createContext(ctx);
             String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
             LanguageCode languageCode = context.getVal(GrpcContextConstants.LANGUAGE);
-            Settings clientSettings = grpcClientSettingsManager.getClientSettings(context);
+            Settings clientSettings = grpcClientSettingsManager.removeClientSettings(clientId);
 
             switch (clientSettings.getClientType()) {
                 case PRODUCER:
@@ -158,8 +161,8 @@ public class ClientActivity extends AbstractMessingActivity {
                         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                         // user topic name as producer group
                         GrpcClientChannel channel = this.grpcChannelManager.removeChannel(topicName, clientId);
-                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
                         if (channel != null) {
+                            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
                             this.messagingProcessor.unRegisterProducer(context, topicName, clientChannelInfo);
                         }
                     }
@@ -171,13 +174,16 @@ public class ClientActivity extends AbstractMessingActivity {
                     }
                     String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
                     GrpcClientChannel channel = this.grpcChannelManager.removeChannel(consumerGroup, clientId);
-                    ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
                     if (channel != null) {
+                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
                         this.messagingProcessor.unRegisterConsumer(context, consumerGroup, clientChannelInfo);
                     }
                     break;
                 default:
-                    break;
+                    future.complete(NotifyClientTerminationResponse.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
+                        .build());
+                    return future;
             }
             future.complete(NotifyClientTerminationResponse.newBuilder()
                 .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
