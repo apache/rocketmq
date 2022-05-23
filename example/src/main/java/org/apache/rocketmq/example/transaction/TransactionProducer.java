@@ -41,7 +41,7 @@ public class TransactionProducer {
         TransactionListener transactionListener = new TransactionListenerImpl();
         TransactionMQProducer producer = new TransactionMQProducer(PRODUCER_GROUP);
 
-        // If the debugging source code can open comments, you need to set the namesrvAddr to the address of the local namesrvAddr
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
 //        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000), r -> {
             Thread thread = new Thread(r);
