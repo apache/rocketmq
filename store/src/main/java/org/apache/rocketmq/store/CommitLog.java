@@ -805,17 +805,13 @@ public class CommitLog implements Swappable {
         boolean needHandleHA = needHandleHA(msg);
         int needAckNums = 1;
 
-        if (this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
-            needAckNums = -1;
-        } else {
-            if (needHandleHA) {
-                int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                    this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
-                needAckNums = calcNeedAckNums(inSyncReplicas);
-                if (needAckNums > inSyncReplicas) {
-                    // Tell the producer, don't have enough slaves to handle the send request
-                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
-                }
+        if (needHandleHA && !this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+            int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
+                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+            needAckNums = calcNeedAckNums(inSyncReplicas);
+            if (needAckNums > inSyncReplicas) {
+                // Tell the producer, don't have enough slaves to handle the send request
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
             }
         }
 
@@ -956,17 +952,13 @@ public class CommitLog implements Swappable {
         int needAckNums = 1;
         boolean needHandleHA = needHandleHA(messageExtBatch);
 
-        if (this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
-            needAckNums = -1;
-        } else {
-            if (needHandleHA) {
-                int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                    this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
-                needAckNums = calcNeedAckNums(inSyncReplicas);
-                if (needAckNums > inSyncReplicas) {
-                    // Tell the producer, don't have enough slaves to handle the send request
-                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
-                }
+        if (needHandleHA && !this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+            int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
+                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+            needAckNums = calcNeedAckNums(inSyncReplicas);
+            if (needAckNums > inSyncReplicas) {
+                // Tell the producer, don't have enough slaves to handle the send request
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
             }
         }
 
