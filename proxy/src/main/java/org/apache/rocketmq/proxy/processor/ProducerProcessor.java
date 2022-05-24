@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
@@ -65,9 +66,12 @@ public class ProducerProcessor extends AbstractProcessor {
             String topic = messageExt0.getTopic();
             if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()) {
                 if (topicMessageTypeValidator != null) {
-                    TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(topic);
-                    TopicMessageType messageType = parseFromMessageExt(messageExt0);
-                    topicMessageTypeValidator.validate(topicMessageType, messageType);
+                    // Do not check retry or dlq topic
+                    if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
+                        TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(topic);
+                        TopicMessageType messageType = parseFromMessageExt(messageExt0);
+                        topicMessageTypeValidator.validate(topicMessageType, messageType);
+                    }
                 }
             }
             SelectableMessageQueue messageQueue = queueSelector.select(ctx,

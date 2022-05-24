@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -46,6 +47,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,6 +67,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testSendMessage() throws Throwable {
+        when(metadataService.getTopicMessageType(eq(TOPIC))).thenReturn(TopicMessageType.NORMAL);
         String txId = MessageClientIDSetter.createUniqID();
         String msgId = MessageClientIDSetter.createUniqID();
 
@@ -75,6 +78,45 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         ArgumentCaptor<SendMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(SendMessageRequestHeader.class);
         when(this.messageService.sendMessage(any(), any(), any(), requestHeaderArgumentCaptor.capture(), anyLong()))
         .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
+
+        List<MessageExt> messageExtList = new ArrayList<>();
+        MessageExt messageExt = createMessageExt(TOPIC, "tag", 0, 0);
+        messageExt.setSysFlag(MessageSysFlag.TRANSACTION_PREPARED_TYPE);
+        messageExtList.add(messageExt);
+        SelectableMessageQueue messageQueue = mock(SelectableMessageQueue.class);
+        when(messageQueue.getBrokerName()).thenReturn("mockBroker");
+
+        List<SendResult> sendResultList = this.producerProcessor.sendMessage(
+            createContext(),
+            (ctx, messageQueueView) -> messageQueue,
+            PRODUCER_GROUP,
+            messageExtList,
+            3000
+        ).get();
+
+        assertNotNull(sendResultList);
+        TransactionId transactionId = TransactionId.decode(sendResultList.get(0).getTransactionId());
+        assertNotNull(transactionId);
+        assertEquals(txId, transactionId.getBrokerTransactionId());
+        assertEquals("mockBroker", transactionId.getBrokerName());
+
+        SendMessageRequestHeader requestHeader = requestHeaderArgumentCaptor.getValue();
+        assertEquals(PRODUCER_GROUP, requestHeader.getProducerGroup());
+        assertEquals(TOPIC, requestHeader.getTopic());
+    }
+
+    @Test
+    public void testSendRetryMessage() throws Throwable {
+        String txId = MessageClientIDSetter.createUniqID();
+        String msgId = MessageClientIDSetter.createUniqID();
+
+        SendResult sendResult = new SendResult();
+        sendResult.setSendStatus(SendStatus.SEND_OK);
+        sendResult.setTransactionId(txId);
+        sendResult.setMsgId(msgId);
+        ArgumentCaptor<SendMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(SendMessageRequestHeader.class);
+        when(this.messageService.sendMessage(any(), any(), any(), requestHeaderArgumentCaptor.capture(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
 
         List<MessageExt> messageExtList = new ArrayList<>();
         MessageExt messageExt = createMessageExt(MixAll.getRetryTopic(CONSUMER_GROUP), "tag", 0, 0);
