@@ -120,14 +120,14 @@ public class PlainPermissionManager {
         Map<String, DataVersion> dataVersionMap = new HashMap<>();
 
         assureAclConfigFilesExist();
-        
+
         fileList = getAllAclFiles(defaultAclDir);
         if (new File(defaultAclFile).exists() && !fileList.contains(defaultAclFile)) {
             fileList.add(defaultAclFile);
         }
 
         for (int i = 0; i < fileList.size(); i++) {
-            final String currentFile = fileList.get(i);
+            final String currentFile = MixAll.dealFilePath(fileList.get(i));
             JSONObject plainAclConfData = AclUtils.getYamlDataObject(currentFile,
                 JSONObject.class);
             if (plainAclConfData == null || plainAclConfData.isEmpty()) {
@@ -206,6 +206,7 @@ public class PlainPermissionManager {
     }
 
     public void load(String aclFilePath) {
+        aclFilePath = MixAll.dealFilePath(aclFilePath);
         Map<String, PlainAccessResource> plainAccessResourceMap = new HashMap<>();
         List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
 
@@ -351,7 +352,7 @@ public class PlainPermissionManager {
             aclPlainAccessResourceMap.put(aclFileName, accountMap);
             return AclUtils.writeDataObject(aclFileName, updateAclConfigFileVersion(aclFileName, aclAccessConfigMap));
         } else {
-            String fileName = defaultAclFile;
+            String fileName = MixAll.dealFilePath(defaultAclFile);
             //Create acl access config elements on the default acl file
             if (aclPlainAccessResourceMap.get(defaultAclFile) == null || aclPlainAccessResourceMap.get(defaultAclFile).size() == 0) {
                 try {
