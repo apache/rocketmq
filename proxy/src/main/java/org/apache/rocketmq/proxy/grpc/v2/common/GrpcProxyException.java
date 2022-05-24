@@ -36,6 +36,7 @@ public class GrpcProxyException extends RuntimeException {
         CODE_MAPPING.put(ProxyExceptionCode.FORBIDDEN, Code.FORBIDDEN);
         CODE_MAPPING.put(ProxyExceptionCode.ILLEGAL_MESSAGE, Code.ILLEGAL_MESSAGE);
         CODE_MAPPING.put(ProxyExceptionCode.INTERNAL_SERVER_ERROR, Code.INTERNAL_SERVER_ERROR);
+        CODE_MAPPING.put(ProxyExceptionCode.MESSAGE_PROPERTY_DOES_NOT_MATCH_MESSAGE_TYPE, Code.MESSAGE_PROPERTY_DOES_NOT_MATCH_MESSAGE_TYPE);
     }
 
     public GrpcProxyException(Code code, String message) {

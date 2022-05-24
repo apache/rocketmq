@@ -20,5 +20,4 @@ package org.apache.rocketmq.proxy.common;
 public class ContextVariable {
     public final static String REMOTE_ADDRESS = "remote-address";
     public final static String LOCAL_ADDRESS = "local-address";
-    public final static String MESSAGE_TYPE = "message-type";
 }
