@@ -58,10 +58,10 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     private final ProxyRelayService proxyRelayService;
     private final ClusterMetadataService metadataService;
 
-    private final ScheduledExecutorService scheduledExecutorService;
-    private final MQClientAPIFactory messagingClientAPIFactory;
-    private final MQClientAPIFactory operationClientAPIFactory;
-    private final MQClientAPIFactory transactionClientAPIFactory;
+    protected final ScheduledExecutorService scheduledExecutorService;
+    protected final MQClientAPIFactory messagingClientAPIFactory;
+    protected final MQClientAPIFactory operationClientAPIFactory;
+    protected final MQClientAPIFactory transactionClientAPIFactory;
 
     public ClusterServiceManager(RPCHook rpcHook) {
         this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
