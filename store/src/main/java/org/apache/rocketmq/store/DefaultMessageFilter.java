@@ -23,7 +23,7 @@ import java.util.Map;
 
 public class DefaultMessageFilter implements MessageFilter {
 
-    private SubscriptionData subscriptionData;
+    private final SubscriptionData subscriptionData;
 
     public DefaultMessageFilter(final SubscriptionData subscriptionData) {
         this.subscriptionData = subscriptionData;

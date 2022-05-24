@@ -106,8 +106,9 @@ public class StoreCheckpoint {
         long min = Math.min(this.physicMsgTimestamp, this.logicsMsgTimestamp);
 
         min -= 1000 * 3;
-        if (min < 0)
+        if (min < 0) {
             min = 0;
+        }
 
         return min;
     }

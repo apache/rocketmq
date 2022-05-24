@@ -273,13 +273,15 @@ public class HAConnection {
                             this.byteBufferHeader.flip();
 
                             this.lastWriteOver = this.transferData();
-                            if (!this.lastWriteOver)
+                            if (!this.lastWriteOver) {
                                 continue;
+                            }
                         }
                     } else {
                         this.lastWriteOver = this.transferData();
-                        if (!this.lastWriteOver)
+                        if (!this.lastWriteOver) {
                             continue;
+                        }
                     }
 
                     SelectMappedBufferResult selectResult =

@@ -353,8 +353,9 @@ public class MappedFileQueue {
         final boolean cleanImmediately) {
         Object[] mfs = this.copyMappedFiles(0);
 
-        if (null == mfs)
+        if (null == mfs) {
             return 0;
+        }
 
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;

@@ -571,23 +571,30 @@ public class ConsumeQueueExt {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o)
+            if (this == o) {
                 return true;
-            if (!(o instanceof CqExtUnit))
+            }
+            if (!(o instanceof CqExtUnit)) {
                 return false;
+            }
 
             CqExtUnit cqExtUnit = (CqExtUnit) o;
 
-            if (bitMapSize != cqExtUnit.bitMapSize)
+            if (bitMapSize != cqExtUnit.bitMapSize) {
                 return false;
-            if (msgStoreTime != cqExtUnit.msgStoreTime)
+            }
+            if (msgStoreTime != cqExtUnit.msgStoreTime) {
                 return false;
-            if (size != cqExtUnit.size)
+            }
+            if (size != cqExtUnit.size) {
                 return false;
-            if (tagsCode != cqExtUnit.tagsCode)
+            }
+            if (tagsCode != cqExtUnit.tagsCode) {
                 return false;
-            if (!Arrays.equals(filterBitMap, cqExtUnit.filterBitMap))
+            }
+            if (!Arrays.equals(filterBitMap, cqExtUnit.filterBitMap)) {
                 return false;
+            }
 
             return true;
         }
