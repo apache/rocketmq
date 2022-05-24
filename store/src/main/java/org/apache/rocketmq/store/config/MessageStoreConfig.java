@@ -247,6 +247,12 @@ public class MessageStoreConfig {
     private int minInSyncReplicas = 1;
 
     /**
+     * Each message must be written successfully to all replicas in InSyncStateSet.
+     */
+    @ImportantField
+    private boolean allAckInSyncStateSet = false;
+
+    /**
      * Dynamically adjust in-sync replicas to provide higher availability, the real time in-sync replicas
      * will smaller than inSyncReplicas config.
      */
@@ -263,6 +269,11 @@ public class MessageStoreConfig {
      * The max speed for one slave when transfer data in ha
      */
     private long maxHaTransferByteInSecond = 100 * 1024 * 1024;
+
+    /**
+     * The max gap time that slave doesn't catch up to master.
+     */
+    private long haMaxTimeSlaveNotCatchup = 1000 * 15;
 
     /**
      * Sync flush offset from master when broker startup, used in upgrading from old version broker.
@@ -1160,6 +1171,14 @@ public class MessageStoreConfig {
         this.minInSyncReplicas = minInSyncReplicas;
     }
 
+    public boolean isAllAckInSyncStateSet() {
+        return allAckInSyncStateSet;
+    }
+
+    public void setAllAckInSyncStateSet(boolean allAckInSyncStateSet) {
+        this.allAckInSyncStateSet = allAckInSyncStateSet;
+    }
+
     public boolean isEnableAutoInSyncReplicas() {
         return enableAutoInSyncReplicas;
     }
@@ -1182,6 +1201,14 @@ public class MessageStoreConfig {
 
     public void setMaxHaTransferByteInSecond(long maxHaTransferByteInSecond) {
         this.maxHaTransferByteInSecond = maxHaTransferByteInSecond;
+    }
+
+    public long getHaMaxTimeSlaveNotCatchup() {
+        return haMaxTimeSlaveNotCatchup;
+    }
+
+    public void setHaMaxTimeSlaveNotCatchup(long haMaxTimeSlaveNotCatchup) {
+        this.haMaxTimeSlaveNotCatchup = haMaxTimeSlaveNotCatchup;
     }
 
     public boolean isSyncMasterFlushOffsetWhenStartup() {

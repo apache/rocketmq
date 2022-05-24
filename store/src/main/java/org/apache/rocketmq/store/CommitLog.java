@@ -805,7 +805,7 @@ public class CommitLog implements Swappable {
         boolean needHandleHA = needHandleHA(msg);
         int needAckNums = 1;
 
-        if (needHandleHA) {
+        if (needHandleHA && !this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
             int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                 this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
             needAckNums = calcNeedAckNums(inSyncReplicas);
@@ -952,7 +952,7 @@ public class CommitLog implements Swappable {
         int needAckNums = 1;
         boolean needHandleHA = needHandleHA(messageExtBatch);
 
-        if (needHandleHA) {
+        if (needHandleHA && !this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
             int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                 this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
             needAckNums = calcNeedAckNums(inSyncReplicas);
@@ -1103,7 +1103,8 @@ public class CommitLog implements Swappable {
 
     private CompletableFuture<PutMessageStatus> handleHA(AppendMessageResult result, PutMessageResult putMessageResult,
         int needAckNums) {
-        if (needAckNums <= 1) {
+        final boolean allAckInSyncStateSet = this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet();
+        if (needAckNums <= 1 && !allAckInSyncStateSet) {
             return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         }
 
@@ -1123,7 +1124,7 @@ public class CommitLog implements Swappable {
 //        }
 
         // Wait enough acks from different slaves
-        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums - 1);
+        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums - 1, allAckInSyncStateSet);
         haService.putRequest(request);
         haService.getWaitNotifyObject().wakeupAll();
         return request.future();
@@ -1390,6 +1391,7 @@ public class CommitLog implements Swappable {
         private final CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
         private volatile int ackNums = 1;
         private final long deadLine;
+        private boolean allAckInSyncStateSet;
 
         public GroupCommitRequest(long nextOffset, long timeoutMillis) {
             this.nextOffset = nextOffset;
@@ -1399,6 +1401,11 @@ public class CommitLog implements Swappable {
         public GroupCommitRequest(long nextOffset, long timeoutMillis, int ackNums) {
             this(nextOffset, timeoutMillis);
             this.ackNums = ackNums;
+        }
+
+        public GroupCommitRequest(long nextOffset, long timeoutMillis, int ackNums, boolean allAckInSyncStateSet) {
+            this(nextOffset, timeoutMillis, ackNums);
+            this.allAckInSyncStateSet = allAckInSyncStateSet;
         }
 
         public long getNextOffset() {
@@ -1411,6 +1418,10 @@ public class CommitLog implements Swappable {
 
         public long getDeadLine() {
             return deadLine;
+        }
+
+        public boolean isAllAckInSyncStateSet() {
+            return allAckInSyncStateSet;
         }
 
         public void wakeupCustomer(final PutMessageStatus status) {
