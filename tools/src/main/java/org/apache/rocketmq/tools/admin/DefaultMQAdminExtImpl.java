@@ -211,6 +211,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override public void updateGlobalWhiteAddrConfig(String addr,
+        String globalWhiteAddrs) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().updateGlobalWhiteAddrsConfig(addr, globalWhiteAddrs, null, timeoutMillis);
+    }
+
+    @Override public void updateGlobalWhiteAddrConfig(String addr,
         String globalWhiteAddrs, String aclFileFullPath) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().updateGlobalWhiteAddrsConfig(addr, globalWhiteAddrs, aclFileFullPath, timeoutMillis);
     }
