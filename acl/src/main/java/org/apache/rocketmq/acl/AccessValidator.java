@@ -71,6 +71,8 @@ public interface AccessValidator {
      *
      * @return
      */
+    boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList);
+
     boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList, String aclFileFullPath);
 
     /**

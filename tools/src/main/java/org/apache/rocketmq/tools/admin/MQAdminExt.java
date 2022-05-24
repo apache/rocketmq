@@ -77,6 +77,9 @@ public interface MQAdminExt extends MQAdmin {
     void deletePlainAccessConfig(final String addr, final String accessKey) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
+    void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs)throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
     void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath)throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 

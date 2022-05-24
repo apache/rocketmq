@@ -155,6 +155,10 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.getAclConfigDataVersion();
     }
 
+    @Override public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
+        return aclPlugEngine.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList);
+    }
+
     @Override public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList, String aclFileFullPath) {
         return aclPlugEngine.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList, aclFileFullPath);
     }

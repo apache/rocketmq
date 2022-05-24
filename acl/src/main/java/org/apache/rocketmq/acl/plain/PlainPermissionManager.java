@@ -466,8 +466,12 @@ public class PlainPermissionManager {
         return false;
     }
 
+    public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList) {
+        return this.updateGlobalWhiteAddrsConfig(globalWhiteAddrsList, this.defaultAclFile);
+    }
+
     public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList, String fileName) {
-        if (fileName == null) {
+        if (fileName == null || fileName == "") {
             fileName = this.defaultAclFile;
         }
 
@@ -483,7 +487,7 @@ public class PlainPermissionManager {
         }
 
         if (!fileName.startsWith(fileHome)) {
-            log.error("Parameter value " + fileName + " is not in the directory rocketmq.home.dir");
+            log.error("Parameter value " + fileName + " is not in the directory rocketmq.home.dir " + fileHome);
             return false;
         }
 
