@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.common;
 
-public enum ProxyExceptionCode {
-    FORBIDDEN,
-    RECEIPT_HANDLE_EXPIRED,
-    INVALID_BROKER_NAME,
-    INVALID_RECEIPT_HANDLE,
-    ILLEGAL_MESSAGE,
-    INTERNAL_SERVER_ERROR,
-    TOPIC_MESSAGE_TYPE_NOT_MATCH,
+package org.apache.rocketmq.proxy.processor.validator;
+
+import org.apache.rocketmq.common.attribute.TopicMessageType;
+
+public interface TopicMessageTypeValidator {
+    /**
+     * Will throw {@link org.apache.rocketmq.proxy.common.ProxyException} if validate failed.
+     * @param topicMessageType Target topic
+     * @param messageType Message's type
+     */
+    void validate(TopicMessageType topicMessageType, TopicMessageType messageType);
 }
