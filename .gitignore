@@ -13,3 +13,5 @@ devenv
 .DS_Store
 localbin
 nohup.out
+env/store
+env/logs
