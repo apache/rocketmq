@@ -286,30 +286,29 @@ public class AutoSwitchHAConnection implements HAConnection {
                         switch (slaveState) {
                             case HANDSHAKE:
                                 if (diff >= AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE) {
+                                    final int headerSize = AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE;
                                     isSlaveSendHandshake = true;
-                                    // SlaveId
-                                    AutoSwitchHAConnection.this.slaveId = byteBufferRead.getLong(readPosition + 4);
-                                    // AddressLength
-                                    int addressLength = byteBufferRead.getInt(readPosition + 12);
                                     // Flag(isSyncFromLastFile)
-                                    short syncFromLastFileFlag = byteBufferRead.getShort(readPosition + 16);
+                                    short syncFromLastFileFlag = byteBufferRead.getShort(readPosition + headerSize - 8);
                                     if (syncFromLastFileFlag == 1) {
                                         AutoSwitchHAConnection.this.isSyncFromLastFile = true;
                                     }
                                     // Flag(isAsyncLearner role)
-                                    short isAsyncLearner = byteBufferRead.getShort(readPosition + 18);
+                                    short isAsyncLearner = byteBufferRead.getShort(readPosition + headerSize - 6);
                                     if (isAsyncLearner == 1) {
                                         AutoSwitchHAConnection.this.isAsyncLearner = true;
                                     }
-                                    // Address
-                                    if (diff >= AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength) {
-                                        final byte[] addressData = new byte[addressLength];
-                                        byteBufferRead.position(readPosition + 20);
-                                        byteBufferRead.get(addressData);
-                                        AutoSwitchHAConnection.this.slaveAddress = new String(addressData);
-                                    } else {
-                                        AutoSwitchHAConnection.this.slaveAddress = "";
+                                    // AddressLength
+                                    int addressLength = byteBufferRead.getInt(readPosition + headerSize - 4);
+                                    if (diff < AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength) {
+                                        break;
                                     }
+                                    // Address
+                                    final byte[] addressData = new byte[addressLength];
+                                    byteBufferRead.position(readPosition + headerSize);
+                                    byteBufferRead.get(addressData);
+                                    AutoSwitchHAConnection.this.slaveAddress = new String(addressData);
+
                                     LOGGER.info("Receive slave handshake, slaveId:{}, slaveAddress:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
                                         AutoSwitchHAConnection.this.slaveId, AutoSwitchHAConnection.this.slaveAddress,
                                         AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
