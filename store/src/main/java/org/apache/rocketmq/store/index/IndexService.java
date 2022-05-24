@@ -270,8 +270,9 @@ public class IndexService {
 
         for (int times = 0; null == indexFile && times < MAX_TRY_IDX_CREATE; times++) {
             indexFile = this.getAndCreateLastIndexFile();
-            if (null != indexFile)
+            if (null != indexFile) {
                 break;
+            }
 
             try {
                 log.info("Tried to create index file " + times + " times");
@@ -345,8 +346,9 @@ public class IndexService {
     }
 
     public void flush(final IndexFile f) {
-        if (null == f)
+        if (null == f) {
             return;
+        }
 
         long indexMsgTimestamp = 0;
 
