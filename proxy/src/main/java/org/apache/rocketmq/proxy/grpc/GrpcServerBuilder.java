@@ -142,11 +142,8 @@ public class GrpcServerBuilder {
 
     public GrpcServerBuilder configInterceptor() {
         // grpc interceptors, including acl, logging etc.
-        if (ConfigurationManager.getProxyConfig().isEnableACL()) {
-            List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
-            if (accessValidators.isEmpty()) {
-                throw new IllegalArgumentException("Load AccessValidator failed");
-            }
+        List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
+        if (!accessValidators.isEmpty()) {
             this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
         }
 
