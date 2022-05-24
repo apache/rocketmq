@@ -113,7 +113,7 @@ public class DLedgerCommitLog extends CommitLog {
         };
         dLedgerFileStore.addAppendHook(appendHook);
         dLedgerFileList = dLedgerFileStore.getDataFileList();
-        this.messageSerializer = new MessageSerializer(defaultMessageStore.getMessageStoreConfig().getMaxMessageBodySize());
+        this.messageSerializer = new MessageSerializer(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
 
     }
 
