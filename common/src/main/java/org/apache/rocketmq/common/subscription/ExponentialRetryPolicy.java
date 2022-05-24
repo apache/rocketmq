@@ -28,6 +28,15 @@ public class ExponentialRetryPolicy implements RetryPolicy {
     private long max = TimeUnit.HOURS.toMillis(2);
     private long multiplier = 2;
 
+    public ExponentialRetryPolicy() {
+    }
+
+    public ExponentialRetryPolicy(long initial, long max, long multiplier) {
+        this.initial = initial;
+        this.max = max;
+        this.multiplier = multiplier;
+    }
+
     public long getInitial() {
         return initial;
     }

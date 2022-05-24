@@ -75,6 +75,9 @@ public class GrpcClientSettingsManager {
     public Settings getClientSettings(ProxyContext ctx) {
         String clientId = ctx.getVal(GrpcContextConstants.CLIENT_ID);
         Settings settings = CLIENT_SETTINGS_MAP.get(clientId);
+        if (settings == null) {
+            return null;
+        }
         if (settings.hasSubscription()) {
             settings = mergeSubscriptionData(ctx, settings,
                 GrpcConverter.wrapResourceWithNamespace(settings.getSubscription().getGroup()));
@@ -141,7 +144,17 @@ public class GrpcClientSettingsManager {
         CLIENT_SETTINGS_MAP.put(clientId, settings);
     }
 
-    public Settings removeClientSettings(String clientId) {
-        return CLIENT_SETTINGS_MAP.remove(clientId);
+    public void removeClientSettings(String clientId) {
+        CLIENT_SETTINGS_MAP.remove(clientId);
+    }
+
+    public Settings removeAndGetClientSettings(ProxyContext ctx) {
+        String clientId = ctx.getVal(GrpcContextConstants.CLIENT_ID);
+        Settings settings = CLIENT_SETTINGS_MAP.remove(clientId);
+        if (settings == null) {
+            return null;
+        }
+        return mergeSubscriptionData(ctx, settings,
+            GrpcConverter.wrapResourceWithNamespace(settings.getSubscription().getGroup()));
     }
 }

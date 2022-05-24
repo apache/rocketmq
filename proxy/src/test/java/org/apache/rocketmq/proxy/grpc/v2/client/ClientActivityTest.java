@@ -49,7 +49,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -180,7 +179,7 @@ public class ClientActivityTest extends BaseActivityTest {
     public void testProducerNotifyClientTermination() throws Throwable {
         Context context = createContext();
 
-        when(this.grpcClientSettingsManager.removeClientSettings(eq(CLIENT_ID))).thenReturn(Settings.newBuilder()
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(Settings.newBuilder()
             .setClientType(ClientType.PRODUCER)
             .setPublishing(Publishing.newBuilder()
                 .addTopics(Resource.newBuilder().setName(TOPIC).build())
@@ -207,7 +206,7 @@ public class ClientActivityTest extends BaseActivityTest {
     public void testConsumerNotifyClientTermination() throws Throwable {
         Context context = createContext();
 
-        when(this.grpcClientSettingsManager.removeClientSettings(eq(CLIENT_ID))).thenReturn(Settings.newBuilder()
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
             .build());
         ArgumentCaptor<ClientChannelInfo> channelInfoArgumentCaptor = ArgumentCaptor.forClass(ClientChannelInfo.class);

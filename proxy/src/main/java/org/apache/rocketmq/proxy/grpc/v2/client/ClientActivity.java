@@ -153,7 +153,7 @@ public class ClientActivity extends AbstractMessingActivity {
             ProxyContext context = createContext(ctx);
             String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
             LanguageCode languageCode = context.getVal(GrpcContextConstants.LANGUAGE);
-            Settings clientSettings = grpcClientSettingsManager.removeClientSettings(clientId);
+            Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(context);
 
             switch (clientSettings.getClientType()) {
                 case PRODUCER:
