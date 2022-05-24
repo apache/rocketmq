@@ -33,7 +33,6 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
@@ -62,11 +61,12 @@ public class ProducerProcessor extends AbstractProcessor {
         String producerGroup, List<MessageExt> messageExtList, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future = new CompletableFuture<>();
         try {
-            String topic = messageExtList.get(0).getTopic();
+            MessageExt messageExt0 = messageExtList.get(0);
+            String topic = messageExt0.getTopic();
             if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()) {
                 if (topicMessageTypeValidator != null) {
                     TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(topic);
-                    TopicMessageType messageType = TopicMessageType.valueOf(ctx.getVal(ContextVariable.MESSAGE_TYPE));
+                    TopicMessageType messageType = parseFromMessageExt(messageExt0);
                     topicMessageTypeValidator.validate(topicMessageType, messageType);
                 }
             }

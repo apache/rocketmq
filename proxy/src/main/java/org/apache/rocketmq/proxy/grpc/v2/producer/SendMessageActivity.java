@@ -45,10 +45,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.common.ProxyException;
-import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
@@ -85,7 +82,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
             List<Message> messageList = request.getMessagesList();
             Resource topic = messageList.get(0).getTopic();
             future = this.messagingProcessor.sendMessage(
-                context.withVal(ContextVariable.MESSAGE_TYPE, topicMessageType.getValue()),
+                context,
                 new SendMessageQueueSelector(request),
                 GrpcConverter.wrapResourceWithNamespace(topic),
                 buildMessage(context, request.getMessagesList(), topic)
