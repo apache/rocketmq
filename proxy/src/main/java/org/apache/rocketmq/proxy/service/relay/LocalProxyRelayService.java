@@ -26,7 +26,6 @@ import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestH
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
-import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -44,19 +43,21 @@ public class LocalProxyRelayService implements ProxyRelayService {
         ProxyContext context, RemotingCommand command, GetConsumerRunningInfoRequestHeader header) {
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future = new CompletableFuture<>();
         future.thenAccept(proxyOutResult -> {
-            if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
-                ConsumerRunningInfo consumerRunningInfo = proxyOutResult.getResult();
-                RemotingServer remotingServer = this.brokerController.getRemotingServer();
-                if (remotingServer instanceof NettyRemotingAbstract) {
-                    NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
-                    RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "from gRPC client");
-                    remotingCommand.setOpaque(command.getOpaque());
+            RemotingServer remotingServer = this.brokerController.getRemotingServer();
+            if (remotingServer instanceof NettyRemotingAbstract) {
+                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(null);
+                remotingCommand.setOpaque(command.getOpaque());
+                remotingCommand.setCode(proxyOutResult.getCode());
+                remotingCommand.setRemark(proxyOutResult.getRemark());
+                if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
+                    ConsumerRunningInfo consumerRunningInfo = proxyOutResult.getResult();
                     ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
                     runningInfo.setJstack(consumerRunningInfo.getJstack());
                     remotingCommand.setBody(runningInfo.encode());
-                    SimpleChannel simpleChannel = new SimpleChannel(context.getVal(ContextVariable.REMOTE_ADDRESS), context.getVal(ContextVariable.LOCAL_ADDRESS));
-                    nettyRemotingAbstract.processResponseCommand(new SimpleChannelHandlerContext(simpleChannel), remotingCommand);
                 }
+                SimpleChannel simpleChannel = new SimpleChannel(context.getVal(ContextVariable.REMOTE_ADDRESS), context.getVal(ContextVariable.LOCAL_ADDRESS));
+                nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
             }
         });
         return future;
@@ -66,6 +67,23 @@ public class LocalProxyRelayService implements ProxyRelayService {
     public CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
         ProxyContext context, RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header) {
-        return null;
+        CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> future = new CompletableFuture<>();
+        future.thenAccept(proxyOutResult -> {
+            RemotingServer remotingServer = this.brokerController.getRemotingServer();
+            if (remotingServer instanceof NettyRemotingAbstract) {
+                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(null);
+                remotingCommand.setOpaque(command.getOpaque());
+                remotingCommand.setCode(proxyOutResult.getCode());
+                remotingCommand.setRemark(proxyOutResult.getRemark());
+                if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
+                    ConsumeMessageDirectlyResult consumeMessageDirectlyResult = proxyOutResult.getResult();
+                    remotingCommand.setBody(consumeMessageDirectlyResult.encode());
+                }
+                SimpleChannel simpleChannel = new SimpleChannel(context.getVal(ContextVariable.REMOTE_ADDRESS), context.getVal(ContextVariable.LOCAL_ADDRESS));
+                nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
+            }
+        });
+        return future;
     }
 }
