@@ -104,8 +104,9 @@ public class AutoSwitchHAService extends DefaultHAService {
 
         this.defaultMessageStore.recoverTopicQueueTable();
 
-        this.syncStateSet.clear();
-        this.syncStateSet.add(this.localAddress);
+        final HashSet<String> newSyncStateSet = new HashSet<>();
+        newSyncStateSet.add(this.localAddress);
+        setSyncStateSet(newSyncStateSet);
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
         return true;
     }
