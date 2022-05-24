@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.grpc.v2;
 
 import io.grpc.Context;
+import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -36,7 +37,7 @@ public abstract class AbstractMessingActivity {
 
     protected ProxyContext createContext(Context ctx) {
         return ProxyContext.create()
-            .withVal(GrpcContextConstants.CLIENT_ID, InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID))
-            .withVal(GrpcContextConstants.LANGUAGE, LanguageCode.valueOf(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LANGUAGE)));
+            .withVal(ContextVariable.CLIENT_ID, InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID))
+            .withVal(ContextVariable.LANGUAGE, LanguageCode.valueOf(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LANGUAGE)));
     }
 }

@@ -54,9 +54,9 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
-import org.apache.rocketmq.proxy.grpc.v2.GrpcContextConstants;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -92,8 +92,8 @@ public class ClientActivity extends AbstractMessingActivity {
 
         try {
             ProxyContext context = createContext(ctx);
-            String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
-            LanguageCode languageCode = context.getVal(GrpcContextConstants.LANGUAGE);
+            String clientId = context.getVal(ContextVariable.CLIENT_ID);
+            LanguageCode languageCode = context.getVal(ContextVariable.LANGUAGE);
 
             Settings clientSettings = grpcClientSettingsManager.getClientSettings(context);
             switch (clientSettings.getClientType()) {
@@ -151,8 +151,8 @@ public class ClientActivity extends AbstractMessingActivity {
 
         try {
             ProxyContext context = createContext(ctx);
-            String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
-            LanguageCode languageCode = context.getVal(GrpcContextConstants.LANGUAGE);
+            String clientId = context.getVal(ContextVariable.CLIENT_ID);
+            LanguageCode languageCode = context.getVal(ContextVariable.LANGUAGE);
             Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(context);
 
             switch (clientSettings.getClientType()) {
@@ -229,7 +229,7 @@ public class ClientActivity extends AbstractMessingActivity {
     protected TelemetryCommand processClientSettings(Context ctx, TelemetryCommand request,
         StreamObserver<TelemetryCommand> responseObserver) {
         ProxyContext context = createContext(ctx);
-        String clientId = context.getVal(GrpcContextConstants.CLIENT_ID);
+        String clientId = context.getVal(ContextVariable.CLIENT_ID);
         grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
         Settings settings = grpcClientSettingsManager.getClientSettings(context);
         if (settings.hasPublishing()) {

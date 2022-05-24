@@ -28,9 +28,9 @@ import org.apache.rocketmq.common.subscription.CustomizedRetryPolicy;
 import org.apache.rocketmq.common.subscription.ExponentialRetryPolicy;
 import org.apache.rocketmq.common.subscription.GroupRetryPolicyType;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
-import org.apache.rocketmq.proxy.grpc.v2.GrpcContextConstants;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,7 +60,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
                 .build())
             .build());
 
-        ProxyContext context = ProxyContext.create().withVal(GrpcContextConstants.CLIENT_ID, CLIENT_ID);
+        ProxyContext context = ProxyContext.create().withVal(ContextVariable.CLIENT_ID, CLIENT_ID);
 
         Settings settings = this.grpcClientSettingsManager.getClientSettings(context);
         assertEquals(settings.getBackoffPolicy(), GrpcClientSettingsManager.DEFAULT_CONSUMER_SETTINGS.getBackoffPolicy());

@@ -54,11 +54,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DefaultMessagingProcessor extends AbstractStartAndShutdown implements MessagingProcessor {
 
-    private final ServiceManager serviceManager;
-    private final ProducerProcessor producerProcessor;
-    private final ConsumerProcessor consumerProcessor;
-    private final TransactionProcessor transactionProcessor;
-    private final ClientProcessor clientProcessor;
+    protected final ServiceManager serviceManager;
+    protected final ProducerProcessor producerProcessor;
+    protected final ConsumerProcessor consumerProcessor;
+    protected final TransactionProcessor transactionProcessor;
+    protected final ClientProcessor clientProcessor;
 
     protected final ThreadPoolExecutor producerProcessorExecutor;
     protected final ThreadPoolExecutor consumerProcessorExecutor;
