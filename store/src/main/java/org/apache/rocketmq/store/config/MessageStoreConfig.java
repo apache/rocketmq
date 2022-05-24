@@ -306,7 +306,7 @@ public class MessageStoreConfig {
      */
     private boolean syncFromLastFile = false;
 
-    private boolean isAsyncLearner = false;
+    private boolean asyncLearner = false;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -1326,10 +1326,10 @@ public class MessageStoreConfig {
     }
 
     public boolean isAsyncLearner() {
-        return isAsyncLearner;
+        return asyncLearner;
     }
 
     public void setAsyncLearner(boolean asyncLearner) {
-        this.isAsyncLearner = asyncLearner;
+        this.asyncLearner = asyncLearner;
     }
 }

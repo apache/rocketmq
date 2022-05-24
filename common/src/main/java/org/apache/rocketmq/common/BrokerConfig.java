@@ -303,7 +303,7 @@ public class BrokerConfig extends BrokerIdentity {
     /**
      * Whether the controller is deployed independently
      */
-    private boolean isControllerDeployedStandAlone = false;
+    private boolean controllerDeployedStandAlone = false;
 
     /**
      * If isControllerDeployedStandAlone = false, controllerAddr should be the addresses of all name-srv which running the controller instance.
@@ -1302,11 +1302,11 @@ public class BrokerConfig extends BrokerIdentity {
     }
 
     public boolean isControllerDeployedStandAlone() {
-        return isControllerDeployedStandAlone;
+        return controllerDeployedStandAlone;
     }
 
     public void setControllerDeployedStandAlone(boolean controllerDeployedStandAlone) {
-        isControllerDeployedStandAlone = controllerDeployedStandAlone;
+        this.controllerDeployedStandAlone = controllerDeployedStandAlone;
     }
 
     public String getControllerAddr() {

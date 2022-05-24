@@ -600,7 +600,7 @@ public class RouteInfoManager {
                     }
 
                     // Check whether we need to elect a new master
-                    if (this.namesrvController != null && this.namesrvController.getControllerConfig().isStartupController() && this.controller != null) {
+                    if (this.namesrvController != null && this.namesrvController.getControllerConfig().isEnableStartupController() && this.controller != null) {
                         if (unRegisterRequest.getBrokerId() == 0) {
                             this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
                         }
