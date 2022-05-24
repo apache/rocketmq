@@ -87,6 +87,8 @@ public class MixAll {
     public static final String REPLY_MESSAGE_FLAG = "reply";
     public static final String LMQ_PREFIX = "%LMQ%";
     public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
+    public static final String MULTI_SEPARATE = "//";
+    public static final String SEPARATE_DOT = "/.";
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static String getWSAddr() {
@@ -451,4 +453,18 @@ public class MixAll {
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);
     }
+
+    public static String dealFilePath(String aclFilePath) {
+        StringBuilder sub = new StringBuilder(aclFilePath);
+        while (sub.indexOf(MULTI_SEPARATE) != -1) {
+            int index = sub.indexOf(MULTI_SEPARATE);
+            sub.delete(index, index + 1);
+        }
+        while (sub.indexOf(SEPARATE_DOT) != -1 ) {
+            int index = sub.indexOf(SEPARATE_DOT);
+            sub.delete(index, index + SEPARATE_DOT.length());
+        }
+        return sub.toString();
+    }
+
 }
