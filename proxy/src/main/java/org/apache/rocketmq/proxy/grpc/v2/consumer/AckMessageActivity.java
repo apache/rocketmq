@@ -36,7 +36,6 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.checkerframework.checker.units.qual.C;
 
 public class AckMessageActivity extends AbstractMessingActivity {
 
