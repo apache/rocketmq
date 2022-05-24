@@ -21,8 +21,4 @@ public enum BrokerRole {
     SYNC_MASTER,
     SLAVE,
     ASYNC_LEARNER;
-
-    public boolean isSlave() {
-        return this == SLAVE || this == ASYNC_LEARNER;
-    }
 }

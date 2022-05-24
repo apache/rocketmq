@@ -35,7 +35,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.FlowMonitor;
 import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnectionState;
@@ -261,7 +260,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         short isSyncFromLastFile = this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile() ? (short)1 : (short) 0;
         this.handshakeHeaderBuffer.putShort(isSyncFromLastFile);
         // IsAsyncLearner role
-        short isAsyncLearner = this.haService.getDefaultMessageStore().getMessageStoreConfig().getBrokerRole() == BrokerRole.ASYNC_LEARNER ? (short)1 : (short) 0;
+        short isAsyncLearner = this.haService.getDefaultMessageStore().getMessageStoreConfig().isAsyncLearner() ? (short)1 : (short) 0;
         this.handshakeHeaderBuffer.putShort(isAsyncLearner);
         // Slave address
         this.handshakeHeaderBuffer.put(this.localAddress == null ? new byte[0] : this.localAddress.getBytes());

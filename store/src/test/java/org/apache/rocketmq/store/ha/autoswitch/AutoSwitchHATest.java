@@ -192,7 +192,8 @@ public class AutoSwitchHATest {
         ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
 
         storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
-        storeConfig2.setBrokerRole(BrokerRole.ASYNC_LEARNER);
+        storeConfig2.setBrokerRole(BrokerRole.SLAVE);
+        storeConfig2.setAsyncLearner(true);
         messageStore1.getHaService().changeToMaster(1);
         messageStore2.getHaService().changeToSlave("", 1, 2L);
         messageStore2.getHaService().updateHaMasterAddress(store1HaAddress);
