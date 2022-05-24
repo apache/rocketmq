@@ -24,7 +24,6 @@ import com.google.common.collect.ComparisonChain;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.ChannelId;
-import java.net.SocketAddress;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -39,7 +38,6 @@ import org.apache.rocketmq.proxy.service.relay.ProxyChannel;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class GrpcClientChannel extends ProxyChannel {
@@ -115,16 +113,6 @@ public class GrpcClientChannel extends ProxyChannel {
     @Override
     public boolean isWritable() {
         return this.telemetryCommandRef.get() != null;
-    }
-
-    @Override
-    protected SocketAddress localAddress0() {
-        return RemotingUtil.string2SocketAddress(this.localAddress);
-    }
-
-    @Override
-    protected SocketAddress remoteAddress0() {
-        return RemotingUtil.string2SocketAddress(this.remoteAddress);
     }
 
     @Override

@@ -48,6 +48,13 @@ public class CustomizedRetryPolicy implements RetryPolicy {
         TimeUnit.HOURS.toMillis(2)
     };
 
+    public CustomizedRetryPolicy() {
+    }
+
+    public CustomizedRetryPolicy(long[] next) {
+        this.next = next;
+    }
+
     public long[] getNext() {
         return next;
     }

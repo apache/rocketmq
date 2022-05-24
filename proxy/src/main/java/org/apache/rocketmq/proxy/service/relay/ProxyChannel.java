@@ -44,12 +44,15 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public abstract class ProxyChannel extends AbstractChannel {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final String remoteAddress;
+    protected final SocketAddress remoteSocketAddress;
     protected final String localAddress;
+    protected final SocketAddress localSocketAddress;
 
     protected final ProxyRelayService proxyRelayService;
 
@@ -57,14 +60,18 @@ public abstract class ProxyChannel extends AbstractChannel {
         super(parent);
         this.proxyRelayService = proxyRelayService;
         this.remoteAddress = remoteAddress;
+        this.remoteSocketAddress = RemotingUtil.string2SocketAddress(remoteAddress);
         this.localAddress = localAddress;
+        this.localSocketAddress = RemotingUtil.string2SocketAddress(localAddress);
     }
 
     protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress, String localAddress) {
         super(parent, id);
         this.proxyRelayService = proxyRelayService;
         this.remoteAddress = remoteAddress;
+        this.remoteSocketAddress = RemotingUtil.string2SocketAddress(remoteAddress);
         this.localAddress = localAddress;
+        this.localSocketAddress = RemotingUtil.string2SocketAddress(localAddress);
     }
 
     @Override
@@ -178,5 +185,15 @@ public abstract class ProxyChannel extends AbstractChannel {
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
 
+    }
+
+    @Override
+    protected SocketAddress localAddress0() {
+        return this.localSocketAddress;
+    }
+
+    @Override
+    protected SocketAddress remoteAddress0() {
+        return this.remoteSocketAddress;
     }
 }
