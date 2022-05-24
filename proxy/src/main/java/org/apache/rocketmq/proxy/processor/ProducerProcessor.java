@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -32,10 +33,14 @@ import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.common.utils.FutureUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeValidator;
+import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
@@ -44,11 +49,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class ProducerProcessor extends AbstractProcessor {
 
     private final ExecutorService executor;
+    private final TopicMessageTypeValidator topicMessageTypeValidator;
 
     public ProducerProcessor(MessagingProcessor messagingProcessor,
         ServiceManager serviceManager, ExecutorService executor) {
         super(messagingProcessor, serviceManager);
         this.executor = executor;
+        this.topicMessageTypeValidator = new DefaultTopicMessageTypeValidator();
     }
 
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, QueueSelector queueSelector,
@@ -56,6 +63,13 @@ public class ProducerProcessor extends AbstractProcessor {
         CompletableFuture<List<SendResult>> future = new CompletableFuture<>();
         try {
             String topic = messageExtList.get(0).getTopic();
+            if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()) {
+                if (topicMessageTypeValidator != null) {
+                    TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(topic);
+                    TopicMessageType messageType = TopicMessageType.valueOf(ctx.getVal(ContextVariable.MESSAGE_TYPE));
+                    topicMessageTypeValidator.validate(topicMessageType, messageType);
+                }
+            }
             SelectableMessageQueue messageQueue = queueSelector.select(ctx,
                 this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(topic));
             if (messageQueue == null) {
@@ -70,18 +84,18 @@ public class ProducerProcessor extends AbstractProcessor {
                 messageExtList,
                 requestHeader,
                 timeoutMillis)
-            .thenApplyAsync(sendResultList -> {
-                for (SendResult sendResult : sendResultList) {
-                    int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
-                    if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
-                        tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
-                        StringUtils.isNotBlank(sendResult.getTransactionId())) {
-                        TransactionId transactionId = TransactionId.genByBrokerTransactionId(messageQueue.getBrokerName(), sendResult);
-                        sendResult.setTransactionId(transactionId.getProxyTransactionId());
+                .thenApplyAsync(sendResultList -> {
+                    for (SendResult sendResult : sendResultList) {
+                        int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
+                        if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
+                            tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
+                            StringUtils.isNotBlank(sendResult.getTransactionId())) {
+                            TransactionId transactionId = TransactionId.genByBrokerTransactionId(messageQueue.getBrokerName(), sendResult);
+                            sendResult.setTransactionId(transactionId.getProxyTransactionId());
+                        }
                     }
-                }
-                return sendResultList;
-            }, this.executor);
+                    return sendResultList;
+                }, this.executor);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

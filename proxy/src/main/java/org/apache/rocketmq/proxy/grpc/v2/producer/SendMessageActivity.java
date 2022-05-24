@@ -40,11 +40,15 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
@@ -52,14 +56,18 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
+import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeValidator;
+import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 
 public class SendMessageActivity extends AbstractMessingActivity {
+    private final TopicMessageTypeValidator validator;
 
     public SendMessageActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager) {
         super(messagingProcessor, grpcClientSettingsManager);
+        this.validator = new DefaultTopicMessageTypeValidator();
     }
 
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
@@ -71,10 +79,13 @@ public class SendMessageActivity extends AbstractMessingActivity {
                 throw new GrpcProxyException(Code.MESSAGE_CORRUPTED, "no message to send");
             }
 
+            MessageType messageType = parseMessageType(request.getMessagesList());
+            TopicMessageType topicMessageType = GrpcConverter.buildTopicMessageType(messageType);
+
             List<Message> messageList = request.getMessagesList();
             Resource topic = messageList.get(0).getTopic();
             future = this.messagingProcessor.sendMessage(
-                context,
+                context.withVal(ContextVariable.MESSAGE_TYPE, topicMessageType.getValue()),
                 new SendMessageQueueSelector(request),
                 GrpcConverter.wrapResourceWithNamespace(topic),
                 buildMessage(context, request.getMessagesList(), topic)
@@ -239,6 +250,18 @@ public class SendMessageActivity extends AbstractMessingActivity {
             builder.setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "send status is empty"));
         }
         return builder.build();
+    }
+
+    protected MessageType parseMessageType(List<Message> messageList) {
+        MessageType messageType = messageList.get(0).getSystemProperties().getMessageType();
+        for (Message message : messageList) {
+            MessageType messageType0 = message.getSystemProperties().getMessageType();
+            if (messageType0 != messageType) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE, "message type is not match");
+            }
+            messageType = messageType0;
+        }
+        return messageType;
     }
 
     protected static class SendMessageQueueSelector implements QueueSelector {
