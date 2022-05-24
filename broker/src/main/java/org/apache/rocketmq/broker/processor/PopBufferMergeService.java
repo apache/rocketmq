@@ -30,12 +30,13 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
@@ -69,7 +70,7 @@ public class PopBufferMergeService extends ServiceThread {
         if (this.brokerController.getBrokerConfig().isEnableSlaveActingMaster()) {
             return true;
         }
-        this.master = !brokerController.getMessageStoreConfig().getBrokerRole().isSlave();
+        this.master = brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE;
         return this.master;
     }
 

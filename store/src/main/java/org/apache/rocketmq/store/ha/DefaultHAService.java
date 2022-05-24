@@ -37,6 +37,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 public class DefaultHAService implements HAService {
 
@@ -67,7 +68,7 @@ public class DefaultHAService implements HAService {
         this.acceptSocketService =
             new DefaultAcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
-        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole().isSlave()) {
+        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
             this.haClient = new DefaultHAClient(this.defaultMessageStore);
         }
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
@@ -210,7 +211,7 @@ public class DefaultHAService implements HAService {
     @Override public HARuntimeInfo getRuntimeInfo(long masterPutWhere) {
         HARuntimeInfo info = new HARuntimeInfo();
 
-        if (this.getDefaultMessageStore().getMessageStoreConfig().getBrokerRole().isSlave()) {
+        if (BrokerRole.SLAVE.equals(this.getDefaultMessageStore().getMessageStoreConfig().getBrokerRole())) {
             info.setMaster(false);
 
             info.getHaClientRuntimeInfo().setMasterAddr(this.haClient.getHaMasterAddress());
