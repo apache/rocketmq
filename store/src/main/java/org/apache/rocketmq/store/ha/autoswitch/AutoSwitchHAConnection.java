@@ -187,7 +187,7 @@ public class AutoSwitchHAConnection implements HAConnection {
     }
 
     private synchronized void maybeExpandInSyncStateSet(long slaveMaxOffset) {
-        if (slaveMaxOffset >= this.lastMasterMaxOffset) {
+        if (!this.isAsyncLearner && slaveMaxOffset >= this.lastMasterMaxOffset) {
             this.lastCatchUpTimeMs = Math.max(this.lastTransferTimeMs, this.lastCatchUpTimeMs);
             this.haService.maybeExpandInSyncStateSet(this.slaveAddress, slaveMaxOffset);
         }
