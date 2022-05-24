@@ -33,6 +33,8 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -87,8 +89,6 @@ public class MixAll {
     public static final String REPLY_MESSAGE_FLAG = "reply";
     public static final String LMQ_PREFIX = "%LMQ%";
     public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
-    public static final String MULTI_SEPARATE = "//";
-    public static final String SEPARATE_DOT = "/.";
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static String getWSAddr() {
@@ -455,16 +455,8 @@ public class MixAll {
     }
 
     public static String dealFilePath(String aclFilePath) {
-        StringBuilder sub = new StringBuilder(aclFilePath);
-        while (sub.indexOf(MULTI_SEPARATE) != -1) {
-            int index = sub.indexOf(MULTI_SEPARATE);
-            sub.delete(index, index + 1);
-        }
-        while (sub.indexOf(SEPARATE_DOT) != -1) {
-            int index = sub.indexOf(SEPARATE_DOT);
-            sub.delete(index, index + SEPARATE_DOT.length());
-        }
-        return sub.toString();
+        Path path = Paths.get(aclFilePath);
+        return path.normalize().toString();
     }
 
 }
