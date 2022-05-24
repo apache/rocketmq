@@ -237,6 +237,7 @@ public class DefaultMessageStore implements MessageStore {
              * 3. Calculate the reput offset according to the consume queue;
              * 4. Make sure the fall-behind messages to be dispatched before starting the commitlog, especially when the broker role are automatically changed.
              */
+            // 如果允许消息重复，设置重新推送偏移量为Commitlog文件的提交偏移量，如果不允许重复推送则设置重新推送偏移为commitlog当前最大的偏移量
             long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
             for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
                 for (ConsumeQueue logic : maps.values()) {
@@ -1845,6 +1846,7 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    // ReputMessageService线程主要是根据Commitlog将消息转发到ConsumeQueue、Index等文件
     class ReputMessageService extends ServiceThread {
 
         private volatile long reputFromOffset = 0;
@@ -1882,6 +1884,9 @@ public class DefaultMessageStore implements MessageStore {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
 
+        // 当新消息达到CommitLog时，ReputMessageService线程负责将消息转发给ConsumeQueue、IndexFile，
+        // 如果Broker端开启了长轮询模式并且角色主节点，则最终将调用PullRequestHoldService线程的notifyMessageArriving方法唤醒挂起线程，
+        // 判断当前消费队列最大偏移量是否大于待拉取偏移量，如果大于则拉取消息。长轮询模式使得消息拉取能实现准实时
         private void doReput() {
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 log.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
@@ -1912,6 +1917,7 @@ public class DefaultMessageStore implements MessageStore {
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
                                             && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
                                             && DefaultMessageStore.this.messageArrivingListener != null) {
+                                        // 调用PullRequestHoldService线程的notifyMessageArriving方法唤醒挂起线程，
                                         DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                                             dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
                                             dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
