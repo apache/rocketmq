@@ -460,7 +460,7 @@ public class MixAll {
             int index = sub.indexOf(MULTI_SEPARATE);
             sub.delete(index, index + 1);
         }
-        while (sub.indexOf(SEPARATE_DOT) != -1 ) {
+        while (sub.indexOf(SEPARATE_DOT) != -1) {
             int index = sub.indexOf(SEPARATE_DOT);
             sub.delete(index, index + SEPARATE_DOT.length());
         }
