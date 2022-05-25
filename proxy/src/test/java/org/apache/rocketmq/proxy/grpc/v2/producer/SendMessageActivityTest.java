@@ -28,29 +28,41 @@ import apache.rocketmq.v2.SystemProperties;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
+import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
+import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class SendMessageActivityTest extends BaseActivityTest {
 
+    protected static final String BROKER_NAME = "broker";
+    protected static final String CLUSTER_NAME = "cluster";
+    protected static final String BROKER_ADDR = "127.0.0.1:10911";
     private static final String TOPIC = "topic";
     private static final String CONSUMER_GROUP = "consumerGroup";
 
@@ -238,5 +250,87 @@ public class SendMessageActivityTest extends BaseActivityTest {
 
         assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
         assertEquals(MessageSysFlag.TRANSACTION_PREPARED_TYPE | MessageSysFlag.COMPRESSED_FLAG, messageExt.getSysFlag());
+    }
+
+    @Test
+    public void testSendOrderMessageQueueSelector() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        QueueData queueData = new QueueData();
+        BrokerData brokerData = new BrokerData();
+        queueData.setBrokerName(BROKER_NAME);
+        queueData.setWriteQueueNums(8);
+        queueData.setPerm(PermName.PERM_WRITE);
+        topicRouteData.setQueueDatas(Lists.newArrayList(queueData));
+        brokerData.setCluster(CLUSTER_NAME);
+        brokerData.setBrokerName(BROKER_NAME);
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR);
+        brokerData.setBrokerAddrs(brokerAddrs);
+        topicRouteData.setBrokerDatas(Lists.newArrayList(brokerData));
+
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        SendMessageActivity.SendMessageQueueSelector selector1 = new SendMessageActivity.SendMessageQueueSelector(
+            SendMessageRequest.newBuilder()
+                .addMessages(Message.newBuilder()
+                    .setSystemProperties(SystemProperties.newBuilder()
+                        .setMessageGroup(String.valueOf(1))
+                        .build())
+                    .build())
+                .build()
+        );
+
+        SendMessageActivity.SendMessageQueueSelector selector2 = new SendMessageActivity.SendMessageQueueSelector(
+            SendMessageRequest.newBuilder()
+                .addMessages(Message.newBuilder()
+                    .setSystemProperties(SystemProperties.newBuilder()
+                        .setMessageGroup(String.valueOf(1))
+                        .build())
+                    .build())
+                .build()
+        );
+
+        SendMessageActivity.SendMessageQueueSelector selector3 = new SendMessageActivity.SendMessageQueueSelector(
+            SendMessageRequest.newBuilder()
+                .addMessages(Message.newBuilder()
+                    .setSystemProperties(SystemProperties.newBuilder()
+                        .setMessageGroup(String.valueOf(2))
+                        .build())
+                    .build())
+                .build()
+        );
+
+        assertEquals(selector1.select(ProxyContext.create(), messageQueueView), selector2.select(ProxyContext.create(), messageQueueView));
+        assertNotEquals(selector1.select(ProxyContext.create(), messageQueueView), selector3.select(ProxyContext.create(), messageQueueView));
+    }
+
+    @Test
+    public void testSendNormalMessageQueueSelector() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        QueueData queueData = new QueueData();
+        BrokerData brokerData = new BrokerData();
+        queueData.setBrokerName(BROKER_NAME);
+        queueData.setWriteQueueNums(2);
+        queueData.setPerm(PermName.PERM_WRITE);
+        topicRouteData.setQueueDatas(Lists.newArrayList(queueData));
+        brokerData.setCluster(CLUSTER_NAME);
+        brokerData.setBrokerName(BROKER_NAME);
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR);
+        brokerData.setBrokerAddrs(brokerAddrs);
+        topicRouteData.setBrokerDatas(Lists.newArrayList(brokerData));
+
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        SendMessageActivity.SendMessageQueueSelector selector = new SendMessageActivity.SendMessageQueueSelector(
+            SendMessageRequest.newBuilder()
+                .addMessages(Message.newBuilder().build())
+                .build()
+        );
+
+        SelectableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
+        SelectableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
+        SelectableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
+
+        assertEquals(firstSelect, thirdSelect);
+        assertNotEquals(firstSelect, secondSelect);
     }
 }

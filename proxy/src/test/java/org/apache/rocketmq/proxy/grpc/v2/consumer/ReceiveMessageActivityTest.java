@@ -28,15 +28,27 @@ import apache.rocketmq.v2.Settings;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -48,6 +60,9 @@ import static org.mockito.Mockito.when;
 
 public class ReceiveMessageActivityTest extends BaseActivityTest {
 
+    protected static final String BROKER_NAME = "broker";
+    protected static final String CLUSTER_NAME = "cluster";
+    protected static final String BROKER_ADDR = "127.0.0.1:10911";
     private static final String TOPIC = "topic";
     private static final String CONSUMER_GROUP = "consumerGroup";
     private ReceiveMessageActivity receiveMessageActivity;
@@ -119,5 +134,47 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             receiveStreamObserver
         );
         assertEquals(Code.MESSAGE_NOT_FOUND, responseArgumentCaptor.getValue().getStatus().getCode());
+    }
+
+    @Test
+    public void testReceiveMessageQueueSelector() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        List<QueueData> queueDatas = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            QueueData queueData = new QueueData();
+            queueData.setBrokerName(BROKER_NAME + i);
+            queueData.setReadQueueNums(1);
+            queueData.setPerm(PermName.PERM_READ);
+            queueDatas.add(queueData);
+        }
+        topicRouteData.setQueueDatas(queueDatas);
+
+        List<BrokerData> brokerDatas = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            BrokerData brokerData = new BrokerData();
+            brokerData.setCluster(CLUSTER_NAME);
+            brokerData.setBrokerName(BROKER_NAME + i);
+            HashMap<Long, String> brokerAddrs = new HashMap<>();
+            brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR);
+            brokerData.setBrokerAddrs(brokerAddrs);
+            brokerDatas.add(brokerData);
+        }
+        topicRouteData.setBrokerDatas(brokerDatas);
+
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
+
+        SelectableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
+        SelectableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
+        SelectableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
+
+        assertEquals(firstSelect, thirdSelect);
+        assertNotEquals(firstSelect, secondSelect);
+
+        for (int i = 0; i < 2; i++) {
+            ReceiveMessageActivity.ReceiveMessageQueueSelector selectorBrokerName =
+                new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + i);
+            assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), messageQueueView).getBrokerName());
+        }
     }
 }
