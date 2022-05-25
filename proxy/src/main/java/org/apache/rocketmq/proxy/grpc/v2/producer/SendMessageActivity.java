@@ -40,7 +40,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -53,18 +52,14 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
-import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeValidator;
-import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 
 public class SendMessageActivity extends AbstractMessingActivity {
-    private final TopicMessageTypeValidator validator;
 
     public SendMessageActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager) {
         super(messagingProcessor, grpcClientSettingsManager);
-        this.validator = new DefaultTopicMessageTypeValidator();
     }
 
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
@@ -75,9 +70,6 @@ public class SendMessageActivity extends AbstractMessingActivity {
             if (request.getMessagesCount() <= 0) {
                 throw new GrpcProxyException(Code.MESSAGE_CORRUPTED, "no message to send");
             }
-
-            MessageType messageType = parseMessageType(request.getMessagesList());
-            TopicMessageType topicMessageType = GrpcConverter.buildTopicMessageType(messageType);
 
             List<Message> messageList = request.getMessagesList();
             Resource topic = messageList.get(0).getTopic();
