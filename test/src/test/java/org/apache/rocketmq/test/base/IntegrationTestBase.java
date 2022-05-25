@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -168,6 +169,29 @@ public class IntegrationTestBase {
         return brokerController;
     }
 
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, TopicMessageType topicMessageType) {
+        long startTime = System.currentTimeMillis();
+        boolean createResult;
+
+        while (true) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("+" + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), topicMessageType.toString());
+            createResult = MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, queueNumbers, attributes);
+            if (createResult) {
+                break;
+            } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
+                Truth.assertWithMessage(String.format("topic[%s] is created failed after:%d ms", topic,
+                    System.currentTimeMillis() - startTime)).fail();
+                break;
+            } else {
+                TestUtils.waitForMoment(500);
+                continue;
+            }
+        }
+
+        return createResult;
+    }
+
     public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, CQType cqType) {
         long startTime = System.currentTimeMillis();
         boolean createResult;
@@ -195,6 +219,10 @@ public class IntegrationTestBase {
 
     public static boolean initTopic(String topic, String nsAddr, String clusterName, CQType cqType) {
         return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, cqType);
+    }
+
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, TopicMessageType topicMessageType) {
+        return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, topicMessageType);
     }
 
     public static void deleteFile(File file) {

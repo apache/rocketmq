@@ -91,6 +91,7 @@ import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
@@ -209,7 +210,7 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void testTransactionCheckThenCommit() {
-        String topic = initTopicOnSampleTopicBroker(broker1Name);
+        String topic = initTopicOnSampleTopicBroker(broker1Name, TopicMessageType.TRANSACTION);
         String group = MQRandomUtils.getRandomConsumerGroup();
 
         AtomicReference<TelemetryCommand> telemetryCommandRef = new AtomicReference<>(null);
