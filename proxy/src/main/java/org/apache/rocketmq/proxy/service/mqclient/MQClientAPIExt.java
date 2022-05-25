@@ -322,15 +322,17 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 new PullCallback() {
                     @Override
                     public void onSuccess(PullResult pullResult) {
-                        PullResultExt pullResultExt = (PullResultExt) pullResult;
-                        if (PullStatus.FOUND.equals(pullResult.getPullStatus())) {
-                            List<MessageExt> messageExtList = MessageDecoder.decodesBatch(
-                                ByteBuffer.wrap(pullResultExt.getMessageBinary()),
-                                true,
-                                false,
-                                true
-                            );
-                            pullResult.setMsgFoundList(messageExtList);
+                        if (pullResult instanceof PullResultExt) {
+                            PullResultExt pullResultExt = (PullResultExt) pullResult;
+                            if (PullStatus.FOUND.equals(pullResult.getPullStatus())) {
+                                List<MessageExt> messageExtList = MessageDecoder.decodesBatch(
+                                    ByteBuffer.wrap(pullResultExt.getMessageBinary()),
+                                    true,
+                                    false,
+                                    true
+                                );
+                                pullResult.setMsgFoundList(messageExtList);
+                            }
                         }
                         future.complete(pullResult);
                     }
