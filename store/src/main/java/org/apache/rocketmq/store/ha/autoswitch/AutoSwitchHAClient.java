@@ -438,13 +438,12 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 int diff = byteBufferRead.position() - AutoSwitchHAClient.this.processPosition;
                 if (diff >= AutoSwitchHAConnection.MSG_HEADER_SIZE) {
                     int processPosition =  AutoSwitchHAClient.this.processPosition;
-                    int headerSize = AutoSwitchHAConnection.MSG_HEADER_SIZE;
-                    int masterState = byteBufferRead.getInt(processPosition + headerSize - 36);
-                    int bodySize = byteBufferRead.getInt(processPosition + headerSize - 32);
-                    long masterOffset = byteBufferRead.getLong(processPosition + headerSize - 28);
-                    int masterEpoch = byteBufferRead.getInt(processPosition + headerSize - 20);
-                    long masterEpochStartOffset = byteBufferRead.getLong(processPosition + headerSize - 16);
-                    long confirmOffset = byteBufferRead.getLong(processPosition + headerSize - 8);
+                    int masterState = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 36);
+                    int bodySize = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 32);
+                    long masterOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 28);
+                    int masterEpoch = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 20);
+                    long masterEpochStartOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 16);
+                    long confirmOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 8);
 
                     if (masterState != AutoSwitchHAClient.this.currentState.ordinal()) {
                         AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize;
