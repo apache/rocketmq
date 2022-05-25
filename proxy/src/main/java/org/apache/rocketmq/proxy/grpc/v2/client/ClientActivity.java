@@ -82,6 +82,14 @@ public class ClientActivity extends AbstractMessingActivity {
         this.init();
     }
 
+    ClientActivity(MessagingProcessor messagingProcessor,
+        GrpcClientSettingsManager grpcClientSettingsManager,
+        GrpcChannelManager grpcChannelManager) {
+        super(messagingProcessor, grpcClientSettingsManager);
+        this.grpcChannelManager = grpcChannelManager;
+        this.init();
+    }
+
     protected void init() {
         this.messagingProcessor.registerConsumerListener(new ConsumerIdsChangeListenerImpl());
         this.messagingProcessor.registerProducerListener(new ProducerChangeListenerImpl());
