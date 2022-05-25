@@ -52,9 +52,7 @@ public class LocalProxyRelayService implements ProxyRelayService {
                 remotingCommand.setRemark(proxyOutResult.getRemark());
                 if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
                     ConsumerRunningInfo consumerRunningInfo = proxyOutResult.getResult();
-                    ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
-                    runningInfo.setJstack(consumerRunningInfo.getJstack());
-                    remotingCommand.setBody(runningInfo.encode());
+                    remotingCommand.setBody(consumerRunningInfo.encode());
                 }
                 SimpleChannel simpleChannel = new SimpleChannel(context.getVal(ContextVariable.REMOTE_ADDRESS), context.getVal(ContextVariable.LOCAL_ADDRESS));
                 nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
