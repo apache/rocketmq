@@ -31,33 +31,60 @@ import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.ThreadStackTrace;
+import apache.rocketmq.v2.VerifyMessageResult;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.CMResult;
+import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ClientActivityTest extends BaseActivityTest {
 
     private static final String TOPIC = "topic";
     private static final String CONSUMER_GROUP = "consumerGroup";
 
     private ClientActivity clientActivity;
+    @Mock
+    private GrpcChannelManager grpcChannelManagerMock;
+    @Mock
+    private CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> runningInfoFutureMock;
+    @Captor
+    ArgumentCaptor<ProxyRelayResult<ConsumerRunningInfo>> runningInfoArgumentCaptor;
+    @Mock
+    private CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> resultFutureMock;
+    @Captor
+    ArgumentCaptor<ProxyRelayResult<ConsumeMessageDirectlyResult>> resultArgumentCaptor;
 
     @Before
     public void before() throws Throwable {
@@ -153,7 +180,6 @@ public class ClientActivityTest extends BaseActivityTest {
             subscriptionDatasArgumentCaptor.capture()
         );
 
-
         HeartbeatResponse response = this.sendConsumerHeartbeat(context);
         assertEquals(Code.OK, response.getStatus().getCode());
 
@@ -225,6 +251,64 @@ public class ClientActivityTest extends BaseActivityTest {
         assertEquals(Code.OK, response.getStatus().getCode());
         ClientChannelInfo clientChannelInfo = channelInfoArgumentCaptor.getValue();
         assertClientChannelInfo(clientChannelInfo, CONSUMER_GROUP);
+    }
+
+    @Test
+    public void testReportThreadStackTrace() {
+        this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager, grpcChannelManagerMock);
+        String jstack = "jstack";
+        String nonce = "123";
+        when(grpcChannelManagerMock.getAndRemoveResponseFuture(anyString())).thenReturn((CompletableFuture) runningInfoFutureMock);
+        Context context = createContext();
+        StreamObserver<TelemetryCommand> streamObserver = clientActivity.telemetry(context, new StreamObserver<TelemetryCommand>() {
+            @Override public void onNext(TelemetryCommand value) {
+            }
+
+            @Override public void onError(Throwable t) {
+            }
+
+            @Override public void onCompleted() {
+            }
+        });
+        streamObserver.onNext(TelemetryCommand.newBuilder()
+            .setThreadStackTrace(ThreadStackTrace.newBuilder()
+                .setThreadStackTrace(jstack)
+                .setNonce(nonce)
+                .build())
+            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+            .build());
+        verify(runningInfoFutureMock, times(1)).complete(runningInfoArgumentCaptor.capture());
+        ProxyRelayResult<ConsumerRunningInfo> result = runningInfoArgumentCaptor.getValue();
+        assertThat(result.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(result.getResult().getJstack()).isEqualTo(jstack);
+    }
+
+    @Test
+    public void testReportVerifyMessageResult() {
+        this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager, grpcChannelManagerMock);
+        String nonce = "123";
+        when(grpcChannelManagerMock.getAndRemoveResponseFuture(anyString())).thenReturn((CompletableFuture) resultFutureMock);
+        Context context = createContext();
+        StreamObserver<TelemetryCommand> streamObserver = clientActivity.telemetry(context, new StreamObserver<TelemetryCommand>() {
+            @Override public void onNext(TelemetryCommand value) {
+            }
+
+            @Override public void onError(Throwable t) {
+            }
+
+            @Override public void onCompleted() {
+            }
+        });
+        streamObserver.onNext(TelemetryCommand.newBuilder()
+            .setVerifyMessageResult(VerifyMessageResult.newBuilder()
+                .setNonce(nonce)
+                .build())
+            .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+            .build());
+        verify(resultFutureMock, times(1)).complete(resultArgumentCaptor.capture());
+        ProxyRelayResult<ConsumeMessageDirectlyResult> result = resultArgumentCaptor.getValue();
+        assertThat(result.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(result.getResult().getConsumeResult()).isEqualTo(CMResult.CR_SUCCESS);
     }
 
     protected CompletableFuture<TelemetryCommand> sendClientTelemetry(Context ctx, Settings settings) {
