@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
@@ -229,19 +228,5 @@ public class GrpcConverter {
             .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(resourceNameWithNamespace))
             .setName(NamespaceUtil.withoutNamespace(resourceNameWithNamespace))
             .build();
-    }
-
-    public static TopicMessageType buildTopicMessageType(MessageType messageType) {
-        if (messageType.equals(MessageType.NORMAL)) {
-            return TopicMessageType.NORMAL;
-        } else if (messageType.equals(MessageType.FIFO)) {
-            return TopicMessageType.FIFO;
-        } else if (messageType.equals(MessageType.DELAY)) {
-            return TopicMessageType.DELAY;
-        } else if (messageType.equals(MessageType.TRANSACTION)) {
-            return TopicMessageType.TRANSACTION;
-        } else {
-            return TopicMessageType.UNSPECIFIED;
-        }
     }
 }
