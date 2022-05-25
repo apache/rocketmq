@@ -19,7 +19,6 @@ package org.apache.rocketmq.proxy.service.transaction;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.UtilAll;
@@ -135,25 +134,6 @@ public class TransactionId {
         } catch (UnknownHostException e) {
             throw new IllegalArgumentException("illegal messageId: " + messageId);
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        TransactionId id = (TransactionId) o;
-        return commitLogOffset == id.commitLogOffset && tranStateTableOffset == id.tranStateTableOffset &&
-            Objects.equals(brokerName, id.brokerName) && Objects.equals(brokerTransactionId, id.brokerTransactionId) &&
-            Objects.equals(proxyTransactionId, id.proxyTransactionId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(brokerName, brokerTransactionId, commitLogOffset, tranStateTableOffset, proxyTransactionId);
     }
 
     public static TransactionIdBuilder builder() {
