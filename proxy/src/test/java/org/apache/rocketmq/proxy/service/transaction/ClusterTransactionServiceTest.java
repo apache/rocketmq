@@ -126,12 +126,10 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
 
         assertEquals(Lists.newArrayList(BROKER_ADDR, BROKER_ADDR), brokerAddrArgumentCaptor.getAllValues());
         List<HeartbeatData> heartbeatDataList = heartbeatDataArgumentCaptor.getAllValues();
-        assertEquals(2, heartbeatDataList.get(0).getProducerDataSet().size());
         for (ProducerData producerData : heartbeatDataList.get(0).getProducerDataSet()) {
             groupSet.remove(producerData.getGroupName());
         }
 
-        assertEquals(1, heartbeatDataList.get(1).getProducerDataSet().size());
         for (ProducerData producerData : heartbeatDataList.get(1).getProducerDataSet()) {
             groupSet.remove(producerData.getGroupName());
         }
