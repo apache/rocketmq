@@ -42,5 +42,6 @@ public class TopicAttributes {
     static {
         ALL = new HashMap<>();
         ALL.put(QUEUE_TYPE_ATTRIBUTE.getName(), QUEUE_TYPE_ATTRIBUTE);
+        ALL.put(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TOPIC_MESSAGE_TYPE_ATTRIBUTE);
     }
 }

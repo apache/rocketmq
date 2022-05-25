@@ -34,10 +34,11 @@ import org.apache.rocketmq.client.consumer.MQPushConsumer;
 import org.apache.rocketmq.client.producer.MQProducer;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.MQVersion;
+import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -48,7 +49,6 @@ import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.AbstractListener;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
 import org.apache.rocketmq.test.util.MQRandomUtils;
-import org.apache.rocketmq.test.util.RandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
 import org.junit.Assert;
@@ -141,9 +141,19 @@ public class BaseConf {
         return initTopicWithName(topic);
     }
 
+    public static String initTopic(TopicMessageType topicMessageType) {
+        String topic = MQRandomUtils.getRandomTopic();
+        return initTopicWithName(topic, topicMessageType);
+    }
+
     public static String initTopicOnSampleTopicBroker(String sampleTopic) {
         String topic = MQRandomUtils.getRandomTopic();
         return initTopicOnSampleTopicBroker(topic, sampleTopic);
+    }
+
+    public static String initTopicOnSampleTopicBroker(String sampleTopic, TopicMessageType topicMessageType) {
+        String topic = MQRandomUtils.getRandomTopic();
+        return initTopicOnSampleTopicBroker(topic, sampleTopic, topicMessageType);
     }
 
     public static String initTopicWithName(String topicName) {
@@ -151,8 +161,18 @@ public class BaseConf {
         return topicName;
     }
 
+    public static String initTopicWithName(String topicName, TopicMessageType topicMessageType) {
+        IntegrationTestBase.initTopic(topicName, nsAddr, clusterName, topicMessageType);
+        return topicName;
+    }
+
     public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic) {
         IntegrationTestBase.initTopic(topicName, nsAddr, sampleTopic, CQType.SimpleCQ);
+        return topicName;
+    }
+
+    public static String initTopicOnSampleTopicBroker(String topicName, String sampleTopic, TopicMessageType topicMessageType) {
+        IntegrationTestBase.initTopic(topicName, nsAddr, sampleTopic, topicMessageType);
         return topicName;
     }
 
