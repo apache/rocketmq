@@ -306,6 +306,8 @@ public class MessageStoreConfig {
      */
     private boolean syncFromLastFile = false;
 
+    private boolean isAsyncLearner = false;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -1321,5 +1323,13 @@ public class MessageStoreConfig {
 
     public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
         this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
+    }
+
+    public boolean isAsyncLearner() {
+        return isAsyncLearner;
+    }
+
+    public void setAsyncLearner(boolean asyncLearner) {
+        this.isAsyncLearner = asyncLearner;
     }
 }

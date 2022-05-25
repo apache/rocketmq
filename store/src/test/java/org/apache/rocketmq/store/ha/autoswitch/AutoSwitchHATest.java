@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class AutoSwitchHATest {
@@ -182,6 +183,33 @@ public class AutoSwitchHATest {
             assertTrue(GetMessageStatus.FOUND.equals(result.getStatus()));
             result.release();
         }
+    }
+
+    @Test
+    public void testAsyncLearnerBrokerRole() throws Exception {
+        init(defaultMappedFileSize);
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
+        ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
+
+        storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
+        storeConfig2.setBrokerRole(BrokerRole.SLAVE);
+        storeConfig2.setAsyncLearner(true);
+        messageStore1.getHaService().changeToMaster(1);
+        messageStore2.getHaService().changeToSlave("", 1, 2L);
+        messageStore2.getHaService().updateHaMasterAddress(store1HaAddress);
+        Thread.sleep(6000);
+
+        // Put message on master
+        for (int i = 0; i < 10; i++) {
+            messageStore1.putMessage(buildMessage());
+        }
+        Thread.sleep(200);
+
+        checkMessage(messageStore2, 10, 0);
+
+        Thread.sleep(1000);
+        final Set<String> syncStateSet = ((AutoSwitchHAService) this.messageStore1.getHaService()).getSyncStateSet();
+        assertFalse(syncStateSet.contains("127.0.0.1:8001"));
     }
 
     @Test

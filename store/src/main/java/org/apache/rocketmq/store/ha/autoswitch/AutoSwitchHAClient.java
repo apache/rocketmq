@@ -44,9 +44,10 @@ import org.apache.rocketmq.store.ha.io.HAWriter;
 public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     /**
-     * Handshake header buffer size. Schema: state ordinal + flag(isSyncFromLastFile) + slaveId + slaveAddressLength.
+     * Handshake header buffer size. Schema: state ordinal + Two flags + slaveAddressLength
+     * Flag: isSyncFromLastFile(short), isAsyncLearner(short)... we can add more flags in the future if needed
      */
-    public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 8 + 4;
+    public static final int HANDSHAKE_HEADER_SIZE = 4 + 4 + 4;
 
     /**
      * Header + slaveAddress.
@@ -96,10 +97,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * Confirm offset = min(localMaxOffset, master confirm offset).
      */
     private volatile long confirmOffset;
-
-    public static final int SYNC_FROM_LAST_FILE = -1;
-
-    public static final int SYNC_FROM_FIRST_FILE = -2;
 
     public AutoSwitchHAClient(AutoSwitchHAService haService, DefaultMessageStore defaultMessageStore,
         EpochFileCache epochCache) throws IOException {
@@ -256,13 +253,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         // Original state
         this.handshakeHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
         // IsSyncFromLastFile
-        if (this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile()) {
-            this.handshakeHeaderBuffer.putInt(SYNC_FROM_LAST_FILE);
-        } else {
-            this.handshakeHeaderBuffer.putInt(SYNC_FROM_FIRST_FILE);
-        }
-        // Slave Id
-        this.handshakeHeaderBuffer.putLong(this.slaveId.get());
+        short isSyncFromLastFile = this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile() ? (short)1 : (short) 0;
+        this.handshakeHeaderBuffer.putShort(isSyncFromLastFile);
+        // IsAsyncLearner role
+        short isAsyncLearner = this.haService.getDefaultMessageStore().getMessageStoreConfig().isAsyncLearner() ? (short)1 : (short) 0;
+        this.handshakeHeaderBuffer.putShort(isAsyncLearner);
         // Address length
         this.handshakeHeaderBuffer.putInt(this.localAddress == null ? 0 : this.localAddress.length());
         // Slave address
@@ -443,12 +438,12 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 int diff = byteBufferRead.position() - AutoSwitchHAClient.this.processPosition;
                 if (diff >= AutoSwitchHAConnection.MSG_HEADER_SIZE) {
                     int processPosition =  AutoSwitchHAClient.this.processPosition;
-                    int masterState = byteBufferRead.getInt(processPosition);
-                    int bodySize = byteBufferRead.getInt(processPosition + 4);
-                    long masterOffset = byteBufferRead.getLong(processPosition + 4 + 4);
-                    int masterEpoch = byteBufferRead.getInt(processPosition + 4 + 4 + 8);
-                    long masterEpochStartOffset = byteBufferRead.getLong(processPosition + 4 + 4 + 8 + 4);
-                    long confirmOffset = byteBufferRead.getLong(processPosition + 4 + 4 + 8 + 4 + 8);
+                    int masterState = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 36);
+                    int bodySize = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 32);
+                    long masterOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 28);
+                    int masterEpoch = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 20);
+                    long masterEpochStartOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 16);
+                    long confirmOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 8);
 
                     if (masterState != AutoSwitchHAClient.this.currentState.ordinal()) {
                         AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize;
