@@ -221,6 +221,9 @@ public class PlainPermissionManagerTest {
 
         String samefilePath = file.getAbsolutePath()+"/conf/acl/.";
         String samefilePath2 = "/" +file.getAbsolutePath()+"/conf/acl";
+        String samefilePath3 = file.getAbsolutePath()+"/conf/acl/../"+file.getAbsolutePath();
+        String samefilePath4 = file.getAbsolutePath()+"/conf/acl///";
+        String samefilePath5 = file.getAbsolutePath()+"/conf/acl/./";
 
         int size = plainPermissionManager.getDataVersionMap().size();
 
@@ -228,6 +231,15 @@ public class PlainPermissionManagerTest {
         Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
 
         plainPermissionManager.load(samefilePath2);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath3);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath4);
+        Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
+
+        plainPermissionManager.load(samefilePath5);
         Assert.assertEquals(size, plainPermissionManager.getDataVersionMap().size());
 
     }
