@@ -57,7 +57,7 @@ public class ListSplitter implements Iterator<List<Message>> {
         return currIndex; 
     }
     private int calcMessageSize(Message message) {
-        int tmpSize = message.getTopic().length() + message.getBody().length(); 
+        int tmpSize = message.getTopic().length() + message.getBody().length; 
         Map<String, String> properties = message.getProperties();
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             tmpSize += entry.getKey().length() + entry.getValue().length(); 

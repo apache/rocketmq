@@ -202,6 +202,7 @@ public class AclUtilsTest {
 
     @Test
     public void expandIPTest() {
+        Assert.assertEquals(AclUtils.expandIP("::", 8), "0000:0000:0000:0000:0000:0000:0000:0000");
         Assert.assertEquals(AclUtils.expandIP("::1", 8), "0000:0000:0000:0000:0000:0000:0000:0001");
         Assert.assertEquals(AclUtils.expandIP("3::", 8), "0003:0000:0000:0000:0000:0000:0000:0000");
         Assert.assertEquals(AclUtils.expandIP("2::2", 8), "0002:0000:0000:0000:0000:0000:0000:0002");
@@ -293,23 +294,18 @@ public class AclUtilsTest {
         Assert.assertTrue(yamlDataObject == null);
     }
 
-    @Test(expected = Exception.class)
-    public void getYamlDataExceptionTest() {
-
-        AclUtils.getYamlDataObject("src/test/resources/conf/plain_acl_format_error.yml", Map.class);
-    }
 
     @Test
     public void getAclRPCHookTest() {
 
-        RPCHook errorContRPCHook = AclUtils.getAclRPCHook("src/test/resources/conf/plain_acl_format_error.yml");
-        Assert.assertNull(errorContRPCHook);
+        //RPCHook errorContRPCHook = AclUtils.getAclRPCHook("src/test/resources/conf/plain_acl_format_error.yml");
+        //Assert.assertNull(errorContRPCHook);
 
         RPCHook noFileRPCHook = AclUtils.getAclRPCHook("src/test/resources/plain_acl_format_error1.yml");
         Assert.assertNull(noFileRPCHook);
 
-        RPCHook emptyContRPCHook = AclUtils.getAclRPCHook("src/test/resources/conf/plain_acl_null.yml");
-        Assert.assertNull(emptyContRPCHook);
+        //RPCHook emptyContRPCHook = AclUtils.getAclRPCHook("src/test/resources/conf/plain_acl_null.yml");
+        //Assert.assertNull(emptyContRPCHook);
 
         RPCHook incompleteContRPCHook = AclUtils.getAclRPCHook("src/test/resources/conf/plain_acl_incomplete.yml");
         Assert.assertNull(incompleteContRPCHook);

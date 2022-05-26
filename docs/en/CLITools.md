@@ -35,7 +35,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td class=xl66 width=159 style='width:119pt'>The -c option declares the name of the cluster, which represents the cluster in which the current topic is located. (clusters are available through clusterList query)</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-h-</td>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-h</td>
   <td class=xl66 width=159 style='width:119pt'>Print help information</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
@@ -427,6 +427,14 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td class=xl68 width=87 style='width:65pt'>Declare the BrokerName</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
+   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
+   height:103.0pt;border-top:none;width:143pt'>addWritePerm</td>
+   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
+   border-top:none;width:65pt'>Add write permissions for broker from nameServer</td>
+   <td class=xl67 width=87 style='width:65pt'>-b</td>
+   <td class=xl68 width=87 style='width:65pt'>Declare the BrokerName</td>
+  </tr>
+ <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>Service address used to specify nameServer and formatted as ip:port</td>
  </tr>
@@ -807,7 +815,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td rowspan=7 height=410 class=xl69 width=87 style='border-bottom:1.0pt;
   height:307.0pt;border-top:none;width:65pt'>resetOffsetByTime</td>
   <td rowspan=7 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>Reset both offset,broker and consumer by timestamp</td>
+  border-top:none;width:65pt'>Reset consumer offset by timestamp(without client restart).</td>
   <td class=xl67 width=87 style='width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>Print help information</td>
  </tr>
@@ -825,7 +833,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-s</td>
-  <td class=xl68 width=87 style='width:65pt'>Resets the offset corresponding to this timestamp</td>
+  <td class=xl68 width=87 style='width:65pt'>Resets the offset corresponding to this timestamp in a format see -h, if you want to reset to maxOffset, the value is 'now'.</td>
  </tr>
  <tr height=188 style='height:141.0pt'>
   <td height=188 class=xl67 width=87 style='height:141.0pt;width:65pt'>-f</td>

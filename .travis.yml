@@ -4,8 +4,10 @@ notifications:
   email:
     recipients:
       - dev@rocketmq.apache.org
+    if: branch = develop OR branch = master
   on_success: change
   on_failure: always
+  
 
 language: java
 
@@ -16,8 +18,11 @@ matrix:
   # On Linux we install latest OpenJDK 1.8 from Ubuntu repositories
   - name: Linux x86_64
     arch: amd64
-#  - name: Linux aarch64
-#    arch: arm64
+  - name: Linux aarch64
+    dist: focal
+    arch: arm64-graviton2
+    group: edge
+    virt: vm
 
 cache:
   directories:
@@ -43,10 +48,11 @@ before_script:
   - ulimit -c unlimited
 
 script:
+  - mvn -B verify -DskipTests
   - travis_retry mvn -B clean apache-rat:check
-  - travis_retry mvn -B package jacoco:report coveralls:report
+  - travis_retry mvn -B install jacoco:report coveralls:report
+  - travis_retry mvn -B clean install -pl test -Pit-test
 
 after_success:
-  - mvn clean install -Pit-test
   - mvn sonar:sonar -Psonar-apache
   - bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'

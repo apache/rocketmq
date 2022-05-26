@@ -54,7 +54,7 @@
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-client</artifactId>
-    <version>4.3.0</version>
+    <version>4.9.1</version>
 </dependency>
 ```
 `gradle`
@@ -120,13 +120,15 @@ public class AsyncProducer {
                 producer.send(msg, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {
+                        countDownLatch.countDown();
                         System.out.printf("%-10d OK %s %n", index,
                             sendResult.getMsgId());
                     }
                     @Override
                     public void onException(Throwable e) {
-      	              System.out.printf("%-10d Exception %s %n", index, e);
-      	              e.printStackTrace();
+                        countDownLatch.countDown();
+      	                System.out.printf("%-10d Exception %s %n", index, e);
+      	                e.printStackTrace();
                     }
             	});
     	}
@@ -570,7 +572,7 @@ public class ListSplitter implements Iterator<List<Message>> {
         return currIndex; 
     }
     private int calcMessageSize(Message message) {
-        int tmpSize = message.getTopic().length() + message.getBody().length(); 
+        int tmpSize = message.getTopic().length() + message.getBody().length; 
         Map<String, String> properties = message.getProperties();
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             tmpSize += entry.getKey().length() + entry.getValue().length(); 

@@ -15,10 +15,10 @@ It offers a variety of features:
 * Messaging patterns including publish/subscribe, request/reply and streaming
 * Financial grade transactional message
 * Built-in fault tolerance and high availability configuration options base on [DLedger](https://github.com/openmessaging/openmessaging-storage-dledger)
-* A variety of cross language clients, such as Java, C/C++, Python, Go
+* A variety of cross language clients, such as Java, [C/C++](https://github.com/apache/rocketmq-client-cpp), [Python](https://github.com/apache/rocketmq-client-python), [Go](https://github.com/apache/rocketmq-client-go), [Node.js](https://github.com/apache/rocketmq-client-nodejs)
 * Pluggable transport protocols, such as TCP, SSL, AIO
 * Built-in message tracing capability, also support opentracing
-* Versatile big-data and streaming ecosytem integration
+* Versatile big-data and streaming ecosystem integration
 * Message retroactivity by time or offset
 * Reliable FIFO and strict ordered messaging in the same queue
 * Efficient pull and push consumption model
@@ -31,9 +31,23 @@ It offers a variety of features:
 * Feature-rich administrative dashboard for configuration, metrics and monitoring
 * Authentication and authorization
 * Free open source connectors, for both sources and sinks
-
+* Lightweight real-time computing
 ----------
 
+## Apache RocketMQ Community
+* [RocketMQ Streams](https://github.com/apache/rocketmq-streams)
+* [RocketMQ Flink](https://github.com/apache/rocketmq-flink)
+* [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
+* [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
+* [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
+* [RocketMQ Client Nodejs](https://github.com/apache/rocketmq-client-nodejs)
+* [RocketMQ Spring](https://github.com/apache/rocketmq-spring)
+* [RocketMQ Exporter](https://github.com/apache/rocketmq-exporter)
+* [RocketMQ Operator](https://github.com/apache/rocketmq-operator)
+* [RocketMQ Docker](https://github.com/apache/rocketmq-docker)
+* [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals)
+
+----------
 ## Learn it & Contact us
 * Mailing Lists: <https://rocketmq.apache.org/about/contact/>
 * Home: <https://rocketmq.apache.org>
@@ -46,9 +60,7 @@ It offers a variety of features:
 
 ----------
 
-## Apache RocketMQ Community
-* [RocketMQ Community Projects](https://github.com/apache/rocketmq-externals)
-----------
+
 
 ## Contributing
 We always welcome new contributions, whether for trivial cleanups, [big new features](https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal) or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/).

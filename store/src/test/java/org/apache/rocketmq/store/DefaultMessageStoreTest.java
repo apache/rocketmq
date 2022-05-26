@@ -34,6 +34,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -112,7 +113,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 100);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
     @Test
@@ -605,6 +606,22 @@ public class DefaultMessageStoreTest {
         }
     }
 
+    @Test
+    public void testStorePathOK() {
+        if (messageStore instanceof DefaultMessageStore) {
+            assertTrue(fileExists(((DefaultMessageStore) messageStore).getStorePathPhysic()));
+            assertTrue(fileExists(((DefaultMessageStore) messageStore).getStorePathLogic()));
+        }
+    }
+
+    private boolean fileExists(String path) {
+        if (path != null) {
+            File f = new File(path);
+            return f.exists();
+        }
+        return false;
+    }
+
     private void damageCommitlog(long offset) throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathCommitLog() + File.separator + "00000000000000000000");
@@ -623,6 +640,21 @@ public class DefaultMessageStoreTest {
         mappedByteBuffer.force();
         fileChannel.force(true);
         fileChannel.close();
+    }
+
+    @Test
+    public void testCleanUnusedLmqTopic() throws Exception {
+        String lmqTopic = "%LMQ%123";
+
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        messageExtBrokerInner.setTopic("test");
+        messageExtBrokerInner.setQueueId(0);
+        messageExtBrokerInner.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqTopic);
+        messageStore.putMessage(messageExtBrokerInner);
+
+        Thread.sleep(3000);
+        messageStore.cleanUnusedLmqTopic(lmqTopic);
+
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

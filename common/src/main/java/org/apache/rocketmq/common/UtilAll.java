@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -39,7 +38,6 @@ import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -53,12 +51,11 @@ public class UtilAll {
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYYMMDDHHMMSS = "yyyyMMddHHmmss";
     final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    final static String HOST_NAME = ManagementFactory.getRuntimeMXBean().getName(); // format: "pid@hostname"
 
     public static int getPid() {
-        RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
-        String name = runtime.getName(); // format: "pid@hostname"
         try {
-            return Integer.parseInt(name.substring(0, name.indexOf('@')));
+            return Integer.parseInt(HOST_NAME.substring(0, HOST_NAME.indexOf('@')));
         } catch (Exception e) {
             return -1;
         }
@@ -199,6 +196,11 @@ public class UtilAll {
             cal.get(Calendar.SECOND));
     }
 
+    public static boolean isPathExists(final String path) {
+        File file = new File(path);
+        return file.exists();
+    }
+
     public static double getDiskPartitionSpaceUsedPercent(final String path) {
         if (null == path || path.isEmpty()) {
             log.error("Error when measuring disk space usage, path is null or empty, path : {}", path);
@@ -218,10 +220,15 @@ public class UtilAll {
             long totalSpace = file.getTotalSpace();
 
             if (totalSpace > 0) {
-                long freeSpace = file.getFreeSpace();
-                long usedSpace = totalSpace - freeSpace;
-
-                return usedSpace / (double) totalSpace;
+                long usedSpace = totalSpace - file.getFreeSpace();
+                long usableSpace = file.getUsableSpace();
+                long entireSpace = usedSpace + usableSpace;
+                long roundNum = 0;
+                if (usedSpace * 100 % entireSpace != 0) {
+                    roundNum = 1;
+                }
+                long result = usedSpace * 100 / entireSpace + roundNum;
+                return result / 100.0;
             }
         } catch (Exception e) {
             log.error("Error when measuring disk space usage, got exception: :", e);
@@ -253,6 +260,20 @@ public class UtilAll {
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
         return new String(hexChars);
+    }
+
+    public static void writeInt(char[] buffer, int pos, int value) {
+        char[] hexArray = HEX_ARRAY;
+        for (int moveBits = 28; moveBits >= 0; moveBits -= 4) {
+            buffer[pos++] = hexArray[(value >>> moveBits) & 0x0F];
+        }
+    }
+
+    public static void writeShort(char[] buffer, int pos, int value) {
+        char[] hexArray = HEX_ARRAY;
+        for (int moveBits = 12; moveBits >= 0; moveBits -= 4) {
+            buffer[pos++] = hexArray[(value >>> moveBits) & 0x0F];
+        }
     }
 
     public static byte[] string2bytes(String hexString) {
@@ -461,7 +482,7 @@ public class UtilAll {
         if (ip.length != 4) {
             throw new RuntimeException("illegal ipv4 bytes");
         }
-    
+
         InetAddressValidator validator = InetAddressValidator.getInstance();
         return validator.isValidInet4Address(ipToIPv4Str(ip));
     }
@@ -561,27 +582,28 @@ public class UtilAll {
         }
     }
 
-    public static String list2String(List<String> list, String splitor) {
-        if (list == null || list.size() == 0) {
+    public static String join(List<String> list, String splitter) {
+        if (list == null) {
             return null;
         }
-        StringBuffer str = new StringBuffer();
+
+        StringBuilder str = new StringBuilder();
         for (int i = 0; i < list.size(); i++) {
             str.append(list.get(i));
             if (i == list.size() - 1) {
-                continue;
+                break;
             }
-            str.append(splitor);
+            str.append(splitter);
         }
         return str.toString();
     }
 
-    public static List<String> string2List(String str, String splitor) {
-        if (StringUtils.isEmpty(str)) {
+    public static List<String> split(String str, String splitter) {
+        if (str == null) {
             return null;
         }
 
-        String[] addrArray = str.split(splitor);
+        String[] addrArray = str.split(splitter);
         return Arrays.asList(addrArray);
     }
 }

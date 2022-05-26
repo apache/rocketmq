@@ -292,6 +292,13 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
             return response;
         }
 
+        if (MixAll.isLmq(topic)) {
+            this.brokerController.getMessageStore().cleanUnusedLmqTopic(topic);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        }
+
         this.brokerController.getTopicConfigManager().deleteTopicConfig(topic);
         this.brokerController.getMessageStore()
             .cleanUnusedTopic(this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
@@ -316,8 +323,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
         accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
         accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
-        accessConfig.setTopicPerms(UtilAll.string2List(requestHeader.getTopicPerms(), ","));
-        accessConfig.setGroupPerms(UtilAll.string2List(requestHeader.getGroupPerms(), ","));
+        accessConfig.setTopicPerms(UtilAll.split(requestHeader.getTopicPerms(), ","));
+        accessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
         accessConfig.setAdmin(requestHeader.isAdmin());
         try {
 
@@ -390,7 +397,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
 
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.string2List(requestHeader.getGlobalWhiteAddrs(), ","))) {
+            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.split(requestHeader.getGlobalWhiteAddrs(), ","))) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setOpaque(request.getOpaque());
                 response.markResponseType();
@@ -422,6 +429,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         try {
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
 
+            responseHeader.setAllAclFileVersion(JSON.toJSONString(accessValidator.getAllAclConfigVersion()));
             responseHeader.setVersion(accessValidator.getAclConfigVersion());
             responseHeader.setBrokerAddr(this.brokerController.getBrokerAddr());
             responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());

@@ -147,7 +147,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
 
-    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+    private final ArrayList<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
 
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
@@ -593,8 +593,19 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
         final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
         synchronized (objLock) {
-            assignedMessageQueue.setSeekOffset(messageQueue, offset);
             clearMessageQueueInCache(messageQueue);
+
+            PullTaskImpl oldPullTaskImpl = this.taskTable.get(messageQueue);
+            if (oldPullTaskImpl != null) {
+                oldPullTaskImpl.tryInterrupt();
+                this.taskTable.remove(messageQueue);
+            }
+            assignedMessageQueue.setSeekOffset(messageQueue, offset);
+            if (!this.taskTable.containsKey(messageQueue)) {
+                PullTaskImpl pullTask = new PullTaskImpl(messageQueue);
+                this.taskTable.put(messageQueue, pullTask);
+                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
+            }
         }
     }
 
@@ -718,15 +729,28 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     public class PullTaskImpl implements Runnable {
         private final MessageQueue messageQueue;
         private volatile boolean cancelled = false;
+        private Thread currentThread;
 
         public PullTaskImpl(final MessageQueue messageQueue) {
             this.messageQueue = messageQueue;
+        }
+
+        public void tryInterrupt() {
+            setCancelled(true);
+            if (currentThread == null) {
+                return;
+            }
+            if (!currentThread.isInterrupted()) {
+                currentThread.interrupt();
+            }
         }
 
         @Override
         public void run() {
 
             if (!this.isCancelled()) {
+
+                this.currentThread = Thread.currentThread();
 
                 if (assignedMessageQueue.isPaused(messageQueue)) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_PAUSE, TimeUnit.MILLISECONDS);
@@ -803,7 +827,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     } else {
                         subscriptionData = FilterAPI.buildSubscriptionData(topic, SubscriptionData.SUB_ALL);
                     }
-                    
+
                     PullResult pullResult = pull(messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize());
                     if (this.isCancelled() || processQueue.isDropped()) {
                         return;
@@ -825,6 +849,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                             break;
                     }
                     updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), processQueue);
+                } catch (InterruptedException interruptedException) {
+                    log.warn("Polling thread was interrupted.", interruptedException);
                 } catch (Throwable e) {
                     pullDelayTimeMills = pullTimeDelayMillsWhenException;
                     log.error("An error occurred in pull message process.", e);

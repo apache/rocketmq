@@ -17,18 +17,12 @@
 
 package org.apache.rocketmq.example.benchmark;
 
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicLong;
-
+import java.util.concurrent.atomic.LongAdder;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -41,6 +35,16 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
+
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Consumer {
 
@@ -71,11 +75,12 @@ public class Consumer {
 
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
-        final Timer timer = new Timer("BenchmarkTimerThread", true);
+        ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1,
+                new BasicThreadFactory.Builder().namingPattern("BenchmarkTimerThread-%d").daemon(true).build());
 
         final LinkedList<Long[]> snapshotList = new LinkedList<Long[]>();
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 snapshotList.addLast(statsBenchmarkConsumer.createSnapshot());
@@ -83,9 +88,9 @@ public class Consumer {
                     snapshotList.removeFirst();
                 }
             }
-        }, 1000, 1000);
+        }, 1000, 1000, TimeUnit.MILLISECONDS);
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new TimerTask() {
             private void printStats() {
                 if (snapshotList.size() >= 10) {
                     Long[] begin = snapshotList.getFirst();
@@ -116,9 +121,14 @@ public class Consumer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000);
+        }, 10000, 10000, TimeUnit.MILLISECONDS);
 
-        RPCHook rpcHook = aclEnable ? AclClient.getAclRPCHook() : null;
+        RPCHook rpcHook = null;
+        if (aclEnable) {
+            String ak = commandLine.hasOption("ak") ? String.valueOf(commandLine.getOptionValue("ak")) : AclClient.ACL_ACCESS_KEY;
+            String sk = commandLine.hasOption("sk") ? String.valueOf(commandLine.getOptionValue("sk")) : AclClient.ACL_SECRET_KEY;
+            rpcHook = AclClient.getAclRPCHook(ak, sk);
+        }
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group, rpcHook, new AllocateMessageQueueAveragely(), msgTraceEnable, null);
         if (commandLine.hasOption('n')) {
             String ns = commandLine.getOptionValue('n');
@@ -151,20 +161,20 @@ public class Consumer {
                 MessageExt msg = msgs.get(0);
                 long now = System.currentTimeMillis();
 
-                statsBenchmarkConsumer.getReceiveMessageTotalCount().incrementAndGet();
+                statsBenchmarkConsumer.getReceiveMessageTotalCount().increment();
 
                 long born2ConsumerRT = now - msg.getBornTimestamp();
-                statsBenchmarkConsumer.getBorn2ConsumerTotalRT().addAndGet(born2ConsumerRT);
+                statsBenchmarkConsumer.getBorn2ConsumerTotalRT().add(born2ConsumerRT);
 
                 long store2ConsumerRT = now - msg.getStoreTimestamp();
-                statsBenchmarkConsumer.getStore2ConsumerTotalRT().addAndGet(store2ConsumerRT);
+                statsBenchmarkConsumer.getStore2ConsumerTotalRT().add(store2ConsumerRT);
 
                 compareAndSetMax(statsBenchmarkConsumer.getBorn2ConsumerMaxRT(), born2ConsumerRT);
 
                 compareAndSetMax(statsBenchmarkConsumer.getStore2ConsumerMaxRT(), store2ConsumerRT);
 
                 if (ThreadLocalRandom.current().nextDouble() < failRate) {
-                    statsBenchmarkConsumer.getFailCount().incrementAndGet();
+                    statsBenchmarkConsumer.getFailCount().increment();
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 } else {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -213,6 +223,14 @@ public class Consumer {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("ak", "accessKey", true, "Acl access key, Default: 12345678");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("sk", "secretKey", true, "Acl secret key, Default: rocketmq2");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -229,39 +247,39 @@ public class Consumer {
 }
 
 class StatsBenchmarkConsumer {
-    private final AtomicLong receiveMessageTotalCount = new AtomicLong(0L);
+    private final LongAdder receiveMessageTotalCount = new LongAdder();
 
-    private final AtomicLong born2ConsumerTotalRT = new AtomicLong(0L);
+    private final LongAdder born2ConsumerTotalRT = new LongAdder();
 
-    private final AtomicLong store2ConsumerTotalRT = new AtomicLong(0L);
+    private final LongAdder store2ConsumerTotalRT = new LongAdder();
 
     private final AtomicLong born2ConsumerMaxRT = new AtomicLong(0L);
 
     private final AtomicLong store2ConsumerMaxRT = new AtomicLong(0L);
 
-    private final AtomicLong failCount = new AtomicLong(0L);
+    private final LongAdder failCount = new LongAdder();
 
     public Long[] createSnapshot() {
         Long[] snap = new Long[] {
             System.currentTimeMillis(),
-            this.receiveMessageTotalCount.get(),
-            this.born2ConsumerTotalRT.get(),
-            this.store2ConsumerTotalRT.get(),
-            this.failCount.get()
+            this.receiveMessageTotalCount.longValue(),
+            this.born2ConsumerTotalRT.longValue(),
+            this.store2ConsumerTotalRT.longValue(),
+            this.failCount.longValue()
         };
 
         return snap;
     }
 
-    public AtomicLong getReceiveMessageTotalCount() {
+    public LongAdder getReceiveMessageTotalCount() {
         return receiveMessageTotalCount;
     }
 
-    public AtomicLong getBorn2ConsumerTotalRT() {
+    public LongAdder getBorn2ConsumerTotalRT() {
         return born2ConsumerTotalRT;
     }
 
-    public AtomicLong getStore2ConsumerTotalRT() {
+    public LongAdder getStore2ConsumerTotalRT() {
         return store2ConsumerTotalRT;
     }
 
@@ -273,7 +291,7 @@ class StatsBenchmarkConsumer {
         return store2ConsumerMaxRT;
     }
 
-    public AtomicLong getFailCount() {
+    public LongAdder getFailCount() {
         return failCount;
     }
 }

@@ -23,10 +23,8 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class GetMessageResult {
 
-    private final List<SelectMappedBufferResult> messageMapedList =
-        new ArrayList<SelectMappedBufferResult>(100);
-
-    private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
+    private final List<SelectMappedBufferResult> messageMapedList;
+    private final List<ByteBuffer> messageBufferList;
 
     private GetMessageStatus status;
     private long nextBeginOffset;
@@ -40,6 +38,13 @@ public class GetMessageResult {
     private int msgCount4Commercial = 0;
 
     public GetMessageResult() {
+        messageMapedList = new ArrayList<>(100);
+        messageBufferList = new ArrayList<>(100);
+    }
+
+    public GetMessageResult(int resultSize) {
+        messageMapedList = new ArrayList<>(resultSize);
+        messageBufferList = new ArrayList<>(resultSize);
     }
 
     public GetMessageStatus getStatus() {

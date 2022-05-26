@@ -29,6 +29,10 @@ import org.apache.rocketmq.common.stats.StatsItemSet;
 
 public class BrokerStatsManager {
 
+    public static final String QUEUE_PUT_NUMS = "QUEUE_PUT_NUMS";
+    public static final String QUEUE_PUT_SIZE = "QUEUE_PUT_SIZE";
+    public static final String QUEUE_GET_NUMS = "QUEUE_GET_NUMS";
+    public static final String QUEUE_GET_SIZE = "QUEUE_GET_SIZE";
     public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
     public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
     public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";
@@ -68,12 +72,20 @@ public class BrokerStatsManager {
         "CommercialStatsThread"));
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
     private final String clusterName;
+    private final boolean enableQueueStat;
     private final MomentStatsItemSet momentStatsItemSetFallSize = new MomentStatsItemSet(GROUP_GET_FALL_SIZE, scheduledExecutorService, log);
     private final MomentStatsItemSet momentStatsItemSetFallTime = new MomentStatsItemSet(GROUP_GET_FALL_TIME, scheduledExecutorService, log);
 
-    public BrokerStatsManager(String clusterName) {
+    public BrokerStatsManager(String clusterName, boolean enableQueueStat) {
         this.clusterName = clusterName;
+        this.enableQueueStat = enableQueueStat;
 
+        if (enableQueueStat) {
+            this.statsTable.put(QUEUE_PUT_NUMS, new StatsItemSet(QUEUE_PUT_NUMS, this.scheduledExecutorService, log));
+            this.statsTable.put(QUEUE_PUT_SIZE, new StatsItemSet(QUEUE_PUT_SIZE, this.scheduledExecutorService, log));
+            this.statsTable.put(QUEUE_GET_NUMS, new StatsItemSet(QUEUE_GET_NUMS, this.scheduledExecutorService, log));
+            this.statsTable.put(QUEUE_GET_SIZE, new StatsItemSet(QUEUE_GET_SIZE, this.scheduledExecutorService, log));
+        }
         this.statsTable.put(TOPIC_PUT_NUMS, new StatsItemSet(TOPIC_PUT_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(TOPIC_PUT_SIZE, new StatsItemSet(TOPIC_PUT_SIZE, this.scheduledExecutorService, log));
         this.statsTable.put(GROUP_GET_NUMS, new StatsItemSet(GROUP_GET_NUMS, this.scheduledExecutorService, log));
@@ -124,8 +136,14 @@ public class BrokerStatsManager {
     public void onTopicDeleted(final String topic) {
         this.statsTable.get(TOPIC_PUT_NUMS).delValue(topic);
         this.statsTable.get(TOPIC_PUT_SIZE).delValue(topic);
+        if (enableQueueStat) {
+            this.statsTable.get(QUEUE_PUT_NUMS).delValueByPrefixKey(topic, "@");
+            this.statsTable.get(QUEUE_PUT_SIZE).delValueByPrefixKey(topic, "@");
+        }
         this.statsTable.get(GROUP_GET_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(GROUP_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(QUEUE_GET_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(QUEUE_GET_SIZE).delValueByPrefixKey(topic, "@");
         this.statsTable.get(SNDBCK_PUT_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(GROUP_GET_LATENCY).delValueByInfixKey(topic, "@");
         this.momentStatsItemSetFallSize.delValueByInfixKey(topic, "@");
@@ -135,10 +153,46 @@ public class BrokerStatsManager {
     public void onGroupDeleted(final String group) {
         this.statsTable.get(GROUP_GET_NUMS).delValueBySuffixKey(group, "@");
         this.statsTable.get(GROUP_GET_SIZE).delValueBySuffixKey(group, "@");
+        if (enableQueueStat) {
+            this.statsTable.get(QUEUE_GET_NUMS).delValueBySuffixKey(group, "@");
+            this.statsTable.get(QUEUE_GET_SIZE).delValueBySuffixKey(group, "@");
+        }
         this.statsTable.get(SNDBCK_PUT_NUMS).delValueBySuffixKey(group, "@");
         this.statsTable.get(GROUP_GET_LATENCY).delValueBySuffixKey(group, "@");
         this.momentStatsItemSetFallSize.delValueBySuffixKey(group, "@");
         this.momentStatsItemSetFallTime.delValueBySuffixKey(group, "@");
+    }
+
+    public void incQueuePutNums(final String topic, final Integer queueId) {
+        if (enableQueueStat) {
+            this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, queueId), 1, 1);
+        }
+    }
+
+    public void incQueuePutNums(final String topic, final Integer queueId, int num, int times) {
+        if (enableQueueStat) {
+            this.statsTable.get(QUEUE_PUT_NUMS).addValue(buildStatsKey(topic, queueId), num, times);
+        }
+    }
+
+    public void incQueuePutSize(final String topic, final Integer queueId, final int size) {
+        if (enableQueueStat) {
+            this.statsTable.get(QUEUE_PUT_SIZE).addValue(buildStatsKey(topic, queueId), size, 1);
+        }
+    }
+
+    public void incQueueGetNums(final String group, final String topic, final Integer queueId, final int incValue) {
+        if (enableQueueStat) {
+            final String statsKey = buildStatsKey(topic, queueId, group);
+            this.statsTable.get(QUEUE_GET_NUMS).addValue(statsKey, incValue, 1);
+        }
+    }
+
+    public void incQueueGetSize(final String group, final String topic, final Integer queueId, final int incValue) {
+        if (enableQueueStat) {
+            final String statsKey = buildStatsKey(topic, queueId, group);
+            this.statsTable.get(QUEUE_GET_SIZE).addValue(statsKey, incValue, 1);
+        }
     }
 
     public void incTopicPutNums(final String topic) {
@@ -159,10 +213,46 @@ public class BrokerStatsManager {
     }
 
     public String buildStatsKey(String topic, String group) {
-        StringBuffer strBuilder = new StringBuffer();
-        strBuilder.append(topic);
-        strBuilder.append("@");
-        strBuilder.append(group);
+        StringBuilder strBuilder;
+        if (topic != null && group != null) {
+            strBuilder = new StringBuilder(topic.length() + group.length() + 1);
+        } else {
+            strBuilder = new StringBuilder();
+        }
+        strBuilder.append(topic).append("@").append(group);
+        return strBuilder.toString();
+    }
+
+    public String buildStatsKey(String topic, int queueId) {
+        StringBuilder strBuilder;
+        if (topic != null) {
+            strBuilder = new StringBuilder(topic.length() + 5);
+        } else {
+            strBuilder = new StringBuilder();
+        }
+        strBuilder.append(topic).append("@").append(queueId);
+        return strBuilder.toString();
+    }
+
+    public String buildStatsKey(String topic, int queueId, String group) {
+        StringBuilder strBuilder;
+        if (topic != null && group != null) {
+            strBuilder = new StringBuilder(topic.length() + group.length() + 6);
+        } else {
+            strBuilder = new StringBuilder();
+        }
+        strBuilder.append(topic).append("@").append(queueId).append("@").append(group);
+        return strBuilder.toString();
+    }
+
+    public String buildStatsKey(int queueId, String topic, String group) {
+        StringBuilder strBuilder;
+        if (topic != null && group != null) {
+            strBuilder = new StringBuilder(topic.length() + group.length() + 6);
+        } else {
+            strBuilder = new StringBuilder();
+        }
+        strBuilder.append(queueId).append("@").append(topic).append("@").append(group);
         return strBuilder.toString();
     }
 
@@ -172,20 +262,25 @@ public class BrokerStatsManager {
     }
 
     public void incGroupGetLatency(final String group, final String topic, final int queueId, final int incValue) {
-        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
-        this.statsTable.get(GROUP_GET_LATENCY).addValue(statsKey, incValue, 1);
+        String statsKey;
+        if (enableQueueStat) {
+            statsKey = buildStatsKey(queueId, topic, group);
+        } else {
+            statsKey = buildStatsKey(topic, group);
+        }
+        this.statsTable.get(GROUP_GET_LATENCY).addRTValue(statsKey, incValue, 1);
     }
 
     public void incBrokerPutNums() {
-        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().incrementAndGet();
+        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(1);
     }
 
     public void incBrokerPutNums(final int incValue) {
-        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().addAndGet(incValue);
+        this.statsTable.get(BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
     public void incBrokerGetNums(final int incValue) {
-        this.statsTable.get(BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().addAndGet(incValue);
+        this.statsTable.get(BROKER_GET_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
     public void incSendBackNums(final String group, final String topic) {
@@ -200,13 +295,13 @@ public class BrokerStatsManager {
 
     public void recordDiskFallBehindTime(final String group, final String topic, final int queueId,
         final long fallBehind) {
-        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        final String statsKey = buildStatsKey(queueId, topic, group);
         this.momentStatsItemSetFallTime.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
 
     public void recordDiskFallBehindSize(final String group, final String topic, final int queueId,
         final long fallBehind) {
-        final String statsKey = String.format("%d@%s@%s", queueId, topic, group);
+        final String statsKey = buildStatsKey(queueId, topic, group);
         this.momentStatsItemSetFallSize.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
     }
 
@@ -217,7 +312,7 @@ public class BrokerStatsManager {
     }
 
     public String buildCommercialStatsKey(String owner, String topic, String group, String type) {
-        StringBuffer strBuilder = new StringBuffer();
+        StringBuilder strBuilder = new StringBuilder();
         strBuilder.append(owner);
         strBuilder.append("@");
         strBuilder.append(topic);
