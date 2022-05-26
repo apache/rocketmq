@@ -134,9 +134,9 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             case RequestCode.GET_NAMESRV_CONFIG:
                 return this.getConfig(ctx, request);
             case RequestCode.UPDATE_NAMESRV_NEARBYROUTE_CONFIG:
-            	return this.updateNearbyRouteConfig(ctx, request);
+                return this.updateNearbyRouteConfig(ctx, request);
             case RequestCode.GET_NAMESRV_NEARBYROUTE_CONFIG:
-            	return this.getNearbyRouteConfig(ctx, request);
+                return this.getNearbyRouteConfig(ctx, request);
             default:
                 break;
         }
@@ -602,32 +602,31 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
     }
 
     private RemotingCommand updateNearbyRouteConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-    	log.info("updateNearbyRouteConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-    	final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-    	
-    	byte[] body = request.getBody();
-    	if(body != null) {
-    		try {
-				NearbyRouteManager.INSTANCE.updateNearbyRoute(JSON.parseObject(body, NearbyRoute.class));
-			} catch (Exception e) {
-				log.error("updateNearbyRouteConfig json to NearbyRouteConfig error: ", e);
+        log.info("updateNearbyRouteConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        byte[] body = request.getBody();
+        if (body != null) {
+            try {
+                NearbyRouteManager.INSTANCE.updateNearbyRoute(JSON.parseObject(body, NearbyRoute.class));
+            } catch (Exception e) {
+                log.error("updateNearbyRouteConfig json to NearbyRouteConfig error: ", e);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("json to NearbyRouteConfig fail " + e);
                 return response;
-			}
-    	}
-    	response.setCode(ResponseCode.SUCCESS);
-    	response.setRemark(null);
-		return response;
-	}
-    
-    private RemotingCommand getNearbyRouteConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-    	final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-    	
-    	response.setBody(JSON.toJSONBytes(NearbyRouteManager.INSTANCE.getNearbyRoute()));
-    	response.setCode(ResponseCode.SUCCESS);
+            }
+        }
+        response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
-		return response;
-	}
+        return response;
+    }
+
+    private RemotingCommand getNearbyRouteConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setBody(JSON.toJSONBytes(NearbyRouteManager.INSTANCE.getNearbyRoute()));
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
     
 }

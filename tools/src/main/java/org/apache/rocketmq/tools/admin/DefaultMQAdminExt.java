@@ -598,15 +598,15 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(topic, msgId);
     }
     
-	@Override
-	public void updateNearbyRouteConfig(NearbyRoute nearbyRoute)
-			throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
-			RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
-		this.defaultMQAdminExtImpl.updateNearbyRouteConfig(nearbyRoute);
-	}
+    @Override
+    public void updateNearbyRouteConfig(NearbyRoute nearbyRoute)
+            throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
+        this.defaultMQAdminExtImpl.updateNearbyRouteConfig(nearbyRoute);
+    }
 
-	@Override
-	public NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException {
-		return this.defaultMQAdminExtImpl.getNearbyRouteConfig();
-	}
+    @Override
+    public NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException {
+        return this.defaultMQAdminExtImpl.getNearbyRouteConfig();
+    }
 }

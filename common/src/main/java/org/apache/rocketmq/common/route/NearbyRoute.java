@@ -21,33 +21,31 @@ import java.util.List;
 
 public class NearbyRoute {
 
-	private boolean nearbyRoute = false;
-	
-	private List<Network> networks = new ArrayList<Network>(4);
-	
-	private List<String> whiteRemoteAddresses = new ArrayList<String>();
-	
-	public boolean isNearbyRoute() {
-		return nearbyRoute;
-	}
+    private boolean nearbyRoute = false;
+    private List<Network> networks = new ArrayList<Network>(4);
+    private List<String> whiteRemoteAddresses = new ArrayList<String>();
 
-	public void setNearbyRoute(boolean nearbyRoute) {
-		this.nearbyRoute = nearbyRoute;
-	}
+    public boolean isNearbyRoute() {
+        return nearbyRoute;
+    }
 
-	public List<Network> getNetworks() {
-		return networks;
-	}
+    public void setNearbyRoute(boolean nearbyRoute) {
+        this.nearbyRoute = nearbyRoute;
+    }
 
-	public void setNetworks(List<Network> networks) {
-		this.networks = networks;
-	}
+    public List<Network> getNetworks() {
+        return networks;
+    }
 
-	public List<String> getWhiteRemoteAddresses() {
-		return whiteRemoteAddresses;
-	}
+    public void setNetworks(List<Network> networks) {
+        this.networks = networks;
+    }
 
-	public void setWhiteRemoteAddresses(List<String> whiteRemoteAddresses) {
-		this.whiteRemoteAddresses = whiteRemoteAddresses;
-	}
+    public List<String> getWhiteRemoteAddresses() {
+        return whiteRemoteAddresses;
+    }
+
+    public void setWhiteRemoteAddresses(List<String> whiteRemoteAddresses) {
+        this.whiteRemoteAddresses = whiteRemoteAddresses;
+    }
 }

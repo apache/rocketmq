@@ -314,17 +314,17 @@ public interface MQAdminExt extends MQAdmin {
      * @throws MQClientException
      * @throws MQBrokerException
      */
-	void updateNearbyRouteConfig(final NearbyRoute nearbyRoute)
-			throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
-			RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException;
-	
-	/**
-	 * Get nearby route config
-	 * 
-	 * @return
-	 * @throws RemotingException
-	 * @throws MQClientException
-	 * @throws InterruptedException
-	 */
-	NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException;
+    void updateNearbyRouteConfig(final NearbyRoute nearbyRoute)
+            throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException;
+
+    /**
+     * Get nearby route config
+     * 
+     * @return
+     * @throws RemotingException
+     * @throws MQClientException
+     * @throws InterruptedException
+     */
+    NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException;
 }

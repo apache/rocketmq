@@ -1147,15 +1147,15 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
     }
     
-	@Override
-	public void updateNearbyRouteConfig(NearbyRoute nearbyRoute)
-			throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
-			RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
-		this.mqClientInstance.getMQClientAPIImpl().updateNearbyRouteConfig(nearbyRoute, timeoutMillis);
-	}
+    @Override
+    public void updateNearbyRouteConfig(NearbyRoute nearbyRoute)
+            throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
+            RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().updateNearbyRouteConfig(nearbyRoute, timeoutMillis);
+    }
 
-	@Override
-	public NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException {
-		return this.mqClientInstance.getMQClientAPIImpl().getNearbyRouteConfig(timeoutMillis);
-	}
+    @Override
+    public NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().getNearbyRouteConfig(timeoutMillis);
+    }
 }

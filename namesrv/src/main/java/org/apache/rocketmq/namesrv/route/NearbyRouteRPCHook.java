@@ -25,28 +25,28 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class NearbyRouteRPCHook implements RPCHook {
 
-	@Override
-	public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+    @Override
+    public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
 
-	}
+    }
 
-	@Override
-	public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
-		if(RequestCode.GET_ROUTEINFO_BY_TOPIC != request.getCode()) {
-			return;
-		}
-		if(!NearbyRouteManager.INSTANCE.isNearbyRoute()) {
-			return;
-		}
-		if(NearbyRouteManager.INSTANCE.isWhiteRemoteAddresses(remoteAddr)){
-			return;
-		}
-		if (response == null || response.getBody() == null || ResponseCode.SUCCESS != response.getCode()) {
-			return;
-		}
-		TopicRouteData topicRouteData = RemotingSerializable.decode(response.getBody(), TopicRouteData.class);
-		
-		response.setBody(NearbyRouteManager.INSTANCE.filter(remoteAddr, topicRouteData).encode());
-	}
+    @Override
+    public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+        if (RequestCode.GET_ROUTEINFO_BY_TOPIC != request.getCode()) {
+            return;
+        }
+        if (!NearbyRouteManager.INSTANCE.isNearbyRoute()) {
+            return;
+        }
+        if (NearbyRouteManager.INSTANCE.isWhiteRemoteAddresses(remoteAddr)) {
+            return;
+        }
+        if (response == null || response.getBody() == null || ResponseCode.SUCCESS != response.getCode()) {
+            return;
+        }
+        TopicRouteData topicRouteData = RemotingSerializable.decode(response.getBody(), TopicRouteData.class);
+
+        response.setBody(NearbyRouteManager.INSTANCE.filter(remoteAddr, topicRouteData).encode());
+    }
 
 }

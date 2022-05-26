@@ -2287,35 +2287,34 @@ public class MQClientAPIImpl {
         }
     }
     
-	public void updateNearbyRouteConfig(final NearbyRoute nearbyRoute, long timeoutMillis)
-			throws UnsupportedEncodingException, MQBrokerException, InterruptedException, RemotingTimeoutException,
-			RemotingSendRequestException, RemotingConnectException, MQClientException {
+    public void updateNearbyRouteConfig(final NearbyRoute nearbyRoute, long timeoutMillis)
+            throws UnsupportedEncodingException, MQBrokerException, InterruptedException, RemotingTimeoutException,
+            RemotingSendRequestException, RemotingConnectException, MQClientException {
 
-		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_NAMESRV_NEARBYROUTE_CONFIG, null);
-		request.setBody(JSON.toJSONBytes(nearbyRoute));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_NAMESRV_NEARBYROUTE_CONFIG, null);
+        request.setBody(JSON.toJSONBytes(nearbyRoute));
 
-		RemotingCommand errResponse = null;
-		for (String namesrvAddr : this.remotingClient.getNameServerAddressList()) {
-			RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
-			assert response != null;
-			switch (response.getCode()) {
-			case ResponseCode.SUCCESS: {
-				break;
-			}
-			default:
-				errResponse = response;
-			}
-		}
+        RemotingCommand errResponse = null;
+        for (String namesrvAddr : this.remotingClient.getNameServerAddressList()) {
+            RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
+            assert response != null;
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    break;
+                }
+                default:
+                    errResponse = response;
+            }
+        }
 
-		if (errResponse != null) {
-			throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
-		}
-	}
-	
-	public NearbyRoute getNearbyRouteConfig(final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
-		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_NAMESRV_NEARBYROUTE_CONFIG, null);
-		
-		RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
-		return JSON.parseObject(response.getBody(), NearbyRoute.class);
-	}
+        if (errResponse != null) {
+            throw new MQClientException(errResponse.getCode(), errResponse.getRemark());
+        }
+    }
+
+    public NearbyRoute getNearbyRouteConfig(final long timeoutMillis) throws RemotingException, MQClientException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_NAMESRV_NEARBYROUTE_CONFIG, null);
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        return JSON.parseObject(response.getBody(), NearbyRoute.class);
+    }
 }

@@ -106,14 +106,14 @@ public class NamesrvStartup {
             System.exit(0);
         }
 
-        if(commandLine.hasOption('r')) {
-        	String file = commandLine.getOptionValue('r');
-        	if(file != null) {
-        		NearbyRouteManager.INSTANCE.load(file);
-        		System.out.printf("topic nearby route config file OK, %s%n", file);
-        	}
+        if (commandLine.hasOption('r')) {
+            String file = commandLine.getOptionValue('r');
+            if (file != null) {
+                NearbyRouteManager.INSTANCE.load(file);
+                System.out.printf("topic nearby route config file OK, %s%n", file);
+            }
         }
-        
+
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
         if (null == namesrvConfig.getRocketmqHome()) {
