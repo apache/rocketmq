@@ -671,6 +671,11 @@
                 <artifactId>protobuf-java-util</artifactId>
                 <version>3.20.1</version>
             </dependency>
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>4.1.0</version>
+            </dependency>
 
         </dependencies>
     </dependencyManagement>

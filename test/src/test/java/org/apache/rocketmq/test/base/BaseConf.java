@@ -93,7 +93,8 @@ public class BaseConf {
     }
 
     public BaseConf() {
-
+        // Add waitBrokerRegistered to BaseConf constructor to make it default for all subclasses.
+        waitBrokerRegistered(nsAddr, clusterName, brokerNum);
     }
 
     // This method can't be placed in the static block of BaseConf, which seems to lead to a strange dead lock.
@@ -102,9 +103,13 @@ public class BaseConf {
         mqAdminExt.setNamesrvAddr(nsAddr);
         try {
             mqAdminExt.start();
-            Thread.sleep(10000);
             await().atMost(30, TimeUnit.SECONDS).until(() -> {
-                List<BrokerData> brokerDatas = mqAdminExt.examineTopicRouteInfo(clusterName).getBrokerDatas();
+                List<BrokerData> brokerDatas;
+                try {
+                    brokerDatas = mqAdminExt.examineTopicRouteInfo(clusterName).getBrokerDatas();
+                } catch (Exception e) {
+                    return false;
+                }
                 return brokerDatas.size() == expectedBrokerNum;
             });
             for (BrokerController brokerController: brokerControllerList) {
