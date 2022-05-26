@@ -97,6 +97,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.util.MQRandomUtils;
@@ -537,22 +538,19 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void assertQueryRoute(QueryRouteResponse response, int messageQueueSize) {
-        assertThat(response.getStatus().getCode())
-            .withFailMessage("%s", response.getStatus().getMessage()).isEqualTo(Code.OK);
+        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()));
         assertThat(response.getMessageQueuesList().size()).isEqualTo(messageQueueSize);
         assertThat(response.getMessageQueues(0).getBroker().getEndpoints().getAddresses(0).getPort()).isEqualTo(ConfigurationManager.getProxyConfig().getGrpcServerPort());
     }
 
     public void assertQueryAssignment(QueryAssignmentResponse response, int assignmentCount) {
-        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()));
         assertThat(response.getAssignmentsCount()).isEqualTo(assignmentCount);
         assertThat(response.getAssignments(0).getMessageQueue().getBroker().getEndpoints().getAddresses(0).getPort()).isEqualTo(ConfigurationManager.getProxyConfig().getGrpcServerPort());
     }
 
     public void assertSendMessage(SendMessageResponse response, String messageId) {
-        assertThat(response.getStatus().getCode())
-            .withFailMessage("%s", response.getStatus().getMessage())
-            .isEqualTo(Code.OK);
+        assertThat(response.getStatus()).isEqualTo(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()));
         assertThat(response.getEntries(0).getMessageId()).isEqualTo(messageId);
     }
 
