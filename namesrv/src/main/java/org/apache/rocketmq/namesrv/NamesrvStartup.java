@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.namesrv.route.NearbyRouteManager;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -105,6 +106,14 @@ public class NamesrvStartup {
             System.exit(0);
         }
 
+        if(commandLine.hasOption('r')) {
+        	String file = commandLine.getOptionValue('r');
+        	if(file != null) {
+        		NearbyRouteManager.INSTANCE.load(file);
+        		System.out.printf("topic nearby route config file OK, %s%n", file);
+        	}
+        }
+        
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
         if (null == namesrvConfig.getRocketmqHome()) {
@@ -166,6 +175,9 @@ public class NamesrvStartup {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("r", "routeConfigFile", true, "Topic nearby route config file");
+        opt.setRequired(false);
+        options.addOption(opt);
         return options;
     }
 

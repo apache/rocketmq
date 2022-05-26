@@ -49,6 +49,7 @@ import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.route.NearbyRoute;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -596,4 +597,16 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.resumeCheckHalfMessage(topic, msgId);
     }
+    
+	@Override
+	public void updateNearbyRouteConfig(NearbyRoute nearbyRoute)
+			throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
+			RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException {
+		this.defaultMQAdminExtImpl.updateNearbyRouteConfig(nearbyRoute);
+	}
+
+	@Override
+	public NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException {
+		return this.defaultMQAdminExtImpl.getNearbyRouteConfig();
+	}
 }

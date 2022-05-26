@@ -48,6 +48,7 @@ import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.route.NearbyRoute;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -300,4 +301,30 @@ public interface MQAdminExt extends MQAdmin {
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
 
     boolean resumeCheckHalfMessage(final String topic, final String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+    
+    /**
+     * Update nearby route config.
+     * 
+     * @param nearbyRoute
+     * @throws InterruptedException
+     * @throws RemotingConnectException
+     * @throws UnsupportedEncodingException
+     * @throws RemotingSendRequestException
+     * @throws RemotingTimeoutException
+     * @throws MQClientException
+     * @throws MQBrokerException
+     */
+	void updateNearbyRouteConfig(final NearbyRoute nearbyRoute)
+			throws InterruptedException, RemotingConnectException, UnsupportedEncodingException,
+			RemotingSendRequestException, RemotingTimeoutException, MQClientException, MQBrokerException;
+	
+	/**
+	 * Get nearby route config
+	 * 
+	 * @return
+	 * @throws RemotingException
+	 * @throws MQClientException
+	 * @throws InterruptedException
+	 */
+	NearbyRoute getNearbyRouteConfig() throws RemotingException, MQClientException, InterruptedException;
 }
