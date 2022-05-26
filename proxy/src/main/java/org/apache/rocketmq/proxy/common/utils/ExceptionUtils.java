@@ -29,4 +29,14 @@ public class ExceptionUtils {
         }
         return throwable;
     }
+
+    public static String getErrorDetailMessage(Throwable t) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(t.getMessage()).append(". ").append(t.getClass().getSimpleName());
+
+        if (t.getStackTrace().length > 0) {
+            sb.append(". ").append(t.getStackTrace()[0]);
+        }
+        return sb.toString();
+    }
 }
