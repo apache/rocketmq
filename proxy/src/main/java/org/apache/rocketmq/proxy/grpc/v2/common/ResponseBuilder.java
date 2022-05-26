@@ -42,7 +42,7 @@ public class ResponseBuilder {
         }
 
         log.error("internal server error", t);
-        return ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "internal error");
+        return ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, ExceptionUtils.getErrorDetailMessage(t));
     }
 
     public static Status buildStatus(Code code, String message) {

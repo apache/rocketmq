@@ -537,7 +537,8 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void assertQueryRoute(QueryRouteResponse response, int messageQueueSize) {
-        assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(response.getStatus().getCode())
+            .withFailMessage("%s", response.getStatus().getMessage()).isEqualTo(Code.OK);
         assertThat(response.getMessageQueuesList().size()).isEqualTo(messageQueueSize);
         assertThat(response.getMessageQueues(0).getBroker().getEndpoints().getAddresses(0).getPort()).isEqualTo(ConfigurationManager.getProxyConfig().getGrpcServerPort());
     }
@@ -549,8 +550,9 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void assertSendMessage(SendMessageResponse response, String messageId) {
-        assertThat(response.getStatus()
-            .getCode()).isEqualTo(Code.OK);
+        assertThat(response.getStatus().getCode())
+            .withFailMessage("%s", response.getStatus().getMessage())
+            .isEqualTo(Code.OK);
         assertThat(response.getEntries(0).getMessageId()).isEqualTo(messageId);
     }
 
