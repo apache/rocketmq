@@ -330,6 +330,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 traceExecutor.submit(asyncDataSendTask);
 
                 this.clear();
+
             }
         }
 

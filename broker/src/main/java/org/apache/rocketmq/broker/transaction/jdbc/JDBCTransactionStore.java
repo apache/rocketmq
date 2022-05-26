@@ -72,7 +72,7 @@ public class JDBCTransactionStore implements TransactionStore {
 
     private boolean loadDriver() {
         try {
-            Class.forName(this.jdbcTransactionStoreConfig.getJdbcDriverClass()).newInstance();
+            Class.forName(this.jdbcTransactionStoreConfig.getJdbcDriverClass()).getDeclaredConstructor().newInstance();
             log.info("Loaded the appropriate driver, {}",
                 this.jdbcTransactionStoreConfig.getJdbcDriverClass());
             return true;
