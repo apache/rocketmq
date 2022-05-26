@@ -503,10 +503,14 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         // Normal transfer method
         private void buildTransferHeaderBuffer(long nextOffset, int bodySize) {
-            final EpochEntry entry = AutoSwitchHAConnection.this.epochCache.getEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
+            EpochEntry entry = AutoSwitchHAConnection.this.epochCache.getEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
             if (entry == null) {
                 LOGGER.error("Failed to find epochEntry with epoch {} when build msg header", AutoSwitchHAConnection.this.currentTransferEpoch);
-                return;
+                if (bodySize > 0) {
+                    return;
+                }
+                // Maybe it's used for heartbeat
+                entry = AutoSwitchHAConnection.this.epochCache.firstEntry();
             }
             // Build Header
             this.byteBufferHeader.position(0);
@@ -529,20 +533,23 @@ public class AutoSwitchHAConnection implements HAConnection {
                 currentState, bodySize, nextOffset, entry.getEpoch(), entry.getStartOffset(), confirmOffset);
         }
 
+        private boolean sendHeartbeatIfNeeded() throws Exception {
+            long interval = haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
+            if (interval > haService.getDefaultMessageStore().getMessageStoreConfig().getHaSendHeartbeatInterval()) {
+                buildTransferHeaderBuffer(this.nextTransferFromWhere, 0);
+                return this.transferData(0);
+            }
+            return true;
+        }
+
         private void transferToSlave() throws Exception {
             if (this.lastWriteOver) {
                 long interval =
                     haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
 
-                if (interval > haService.getDefaultMessageStore().getMessageStoreConfig()
-                    .getHaSendHeartbeatInterval()) {
-
-                    buildTransferHeaderBuffer(this.nextTransferFromWhere, 0);
-
-                    this.lastWriteOver = this.transferData(0);
-                    if (!this.lastWriteOver) {
-                        return;
-                    }
+                this.lastWriteOver = sendHeartbeatIfNeeded();
+                if (!this.lastWriteOver) {
+                    return;
                 }
             } else {
                 // maxTransferSize == -1 means to continue transfer remaining data.
@@ -596,6 +603,8 @@ public class AutoSwitchHAConnection implements HAConnection {
 
                 this.lastWriteOver = this.transferData(size);
             } else {
+                // If size == 0, we should update the lastCatchupTimeMs
+                AutoSwitchHAConnection.this.lastCatchUpTimeMs = System.currentTimeMillis();
                 haService.getWaitNotifyObject().allWaitForRunning(100);
             }
         }
@@ -657,6 +666,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.findEpochEntryByOffset(this.nextTransferFromWhere);
                                 if (epochEntry == null) {
                                     LOGGER.error("Failed to find an epochEntry to match slaveRequestOffset {}", this.nextTransferFromWhere);
+                                    sendHeartbeatIfNeeded();
                                     waitForRunning(500);
                                     break;
                                 }

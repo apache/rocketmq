@@ -110,7 +110,7 @@ public class NamesrvController {
         this.kvConfigManager = new KVConfigManager(this);
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         this.routeInfoManager = new RouteInfoManager(namesrvConfig, this);
-        if (controllerConfig.isStartupController()) {
+        if (controllerConfig.isEnableStartupController()) {
             this.controller = new DledgerController(controllerConfig, this.routeInfoManager::isBrokerAlive);
             this.routeInfoManager.setController(this.controller);
         }
@@ -155,7 +155,7 @@ public class NamesrvController {
             }
         };
 
-        if (this.controllerConfig.isStartupController()) {
+        if (this.controllerConfig.isEnableStartupController()) {
             this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.controllerConfig.getControllerRequestThreadPoolQueueCapacity());
             this.controllerRequestExecutor = new ThreadPoolExecutor(
                 this.controllerConfig.getControllerThreadPoolNums(),
@@ -269,7 +269,7 @@ public class NamesrvController {
 
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.defaultExecutor);
 
-            if (controllerConfig.isStartupController()) {
+            if (controllerConfig.isEnableStartupController()) {
                 final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this.controller);
                 this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
                 this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
@@ -290,7 +290,7 @@ public class NamesrvController {
 
         this.routeInfoManager.start();
 
-        if (this.controllerConfig.isStartupController()) {
+        if (this.controllerConfig.isEnableStartupController()) {
             this.controller.startup();
         }
     }

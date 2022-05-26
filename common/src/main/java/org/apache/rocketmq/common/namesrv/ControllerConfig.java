@@ -27,7 +27,7 @@ public class ControllerConfig {
     /**
      * Is startup the controller in this name-srv
      */
-    private boolean isStartupController = false;
+    private boolean enableStartupController = false;
 
     /**
      * Interval of periodic scanning for non-active broker;
@@ -76,12 +76,12 @@ public class ControllerConfig {
         this.configStorePath = configStorePath;
     }
 
-    public boolean isStartupController() {
-        return isStartupController;
+    public boolean isEnableStartupController() {
+        return enableStartupController;
     }
 
-    public void setStartupController(boolean startupController) {
-        isStartupController = startupController;
+    public void setEnableStartupController(boolean enableStartupController) {
+        this.enableStartupController = enableStartupController;
     }
 
     public long getScanNotActiveBrokerInterval() {

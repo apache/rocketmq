@@ -35,7 +35,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
@@ -64,9 +63,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
-        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
-            this.haClient = new AutoSwitchHAClient(this, defaultMessageStore, this.epochCache);
-        }
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
     }
 
@@ -80,7 +76,7 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     @Override public boolean changeToMaster(int masterEpoch) {
         final int lastEpoch = this.epochCache.lastEpoch();
-        if (masterEpoch <= lastEpoch) {
+        if (masterEpoch < lastEpoch) {
             return false;
         }
         destroyConnections();
@@ -172,6 +168,9 @@ public class AutoSwitchHAService extends DefaultHAService {
             final AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
             final String slaveAddress = connection.getSlaveAddress();
             if (currentSyncStateSet.contains(slaveAddress)) {
+                if (this.defaultMessageStore.getMaxPhyOffset() == connection.getSlaveAckOffset()) {
+                    continue;
+                }
                 if ((System.currentTimeMillis() - connection.getLastCatchUpTimeMs()) > haMaxTimeSlaveNotCatchup) {
                     newSyncStateSet.remove(slaveAddress);
                 }
