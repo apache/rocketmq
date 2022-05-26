@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.util;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -50,19 +51,19 @@ import java.util.UUID;
 import java.util.concurrent.ForkJoinPool;
 
 import static org.apache.rocketmq.common.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
+import static org.awaitility.Awaitility.await;
 
 public class MQAdminTestUtils {
     private static Logger log = Logger.getLogger(MQAdminTestUtils.class);
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
                                       int queueNum, Map<String, String> attributes) {
-        int defaultWaitTime = 5;
+        int defaultWaitTime = 30;
         return createTopic(nameSrvAddr, clusterName, topic, queueNum, attributes, defaultWaitTime);
     }
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
                                       int queueNum, Map<String, String> attributes, int waitTimeSec) {
-        boolean createResult = false;
         DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.setInstanceName(UUID.randomUUID().toString());
         mqAdminExt.setNamesrvAddr(nameSrvAddr);
@@ -72,19 +73,9 @@ public class MQAdminTestUtils {
         } catch (Exception e) {
         }
 
-        long startTime = System.currentTimeMillis();
-        while (!createResult) {
-            createResult = checkTopicExist(mqAdminExt, topic);
-            if (System.currentTimeMillis() - startTime < waitTimeSec * 1000) {
-                TestUtils.waitForMoment(100);
-            } else {
-                log.error(String.format("timeout,but create topic[%s] failed!", topic));
-                break;
-            }
-        }
-
+        await().atMost(waitTimeSec, TimeUnit.SECONDS).until(() -> checkTopicExist(mqAdminExt, topic));
         ForkJoinPool.commonPool().execute(mqAdminExt::shutdown);
-        return createResult;
+        return true;
     }
 
     private static boolean checkTopicExist(DefaultMQAdminExt mqAdminExt, String topic) {
