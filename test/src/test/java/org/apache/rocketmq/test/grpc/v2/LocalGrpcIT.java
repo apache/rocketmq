@@ -23,7 +23,6 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +35,7 @@ public class LocalGrpcIT extends GrpcBaseIT {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        ConfigurationManager.getProxyConfig().setEnableTopicMessageTypeCheck(false);
         messagingProcessor = DefaultMessagingProcessor.createForClusterMode();
         messagingProcessor.start();
         grpcMessagingApplication = GrpcMessagingApplication.create(messagingProcessor);
