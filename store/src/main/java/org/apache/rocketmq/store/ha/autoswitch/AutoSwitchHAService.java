@@ -172,6 +172,9 @@ public class AutoSwitchHAService extends DefaultHAService {
             final AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
             final String slaveAddress = connection.getSlaveAddress();
             if (currentSyncStateSet.contains(slaveAddress)) {
+                if (this.defaultMessageStore.getMaxPhyOffset() == connection.getSlaveAckOffset()) {
+                    continue;
+                }
                 if ((System.currentTimeMillis() - connection.getLastCatchUpTimeMs()) > haMaxTimeSlaveNotCatchup) {
                     newSyncStateSet.remove(slaveAddress);
                 }

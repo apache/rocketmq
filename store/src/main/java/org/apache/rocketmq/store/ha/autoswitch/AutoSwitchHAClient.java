@@ -156,14 +156,14 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     @Override public void updateMasterAddress(String newAddress) {
         String currentAddr = this.masterAddress.get();
-        if (masterAddress.compareAndSet(currentAddr, newAddress)) {
+        if (!StringUtils.equals(newAddress, currentAddr) && masterAddress.compareAndSet(currentAddr, newAddress)) {
             LOGGER.info("update master address, OLD: " + currentAddr + " NEW: " + newAddress);
         }
     }
 
     @Override public void updateHaMasterAddress(String newAddress) {
         String currentAddr = this.masterHaAddress.get();
-        if (masterHaAddress.compareAndSet(currentAddr, newAddress)) {
+        if (!StringUtils.equals(newAddress, currentAddr) && masterHaAddress.compareAndSet(currentAddr, newAddress)) {
             LOGGER.info("update master ha address, OLD: " + currentAddr + " NEW: " + newAddress);
             wakeup();
         }
@@ -253,10 +253,10 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         // Original state
         this.handshakeHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
         // IsSyncFromLastFile
-        short isSyncFromLastFile = this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile() ? (short)1 : (short) 0;
+        short isSyncFromLastFile = this.haService.getDefaultMessageStore().getMessageStoreConfig().isSyncFromLastFile() ? (short) 1 : (short) 0;
         this.handshakeHeaderBuffer.putShort(isSyncFromLastFile);
         // IsAsyncLearner role
-        short isAsyncLearner = this.haService.getDefaultMessageStore().getMessageStoreConfig().isAsyncLearner() ? (short)1 : (short) 0;
+        short isAsyncLearner = this.haService.getDefaultMessageStore().getMessageStoreConfig().isAsyncLearner() ? (short) 1 : (short) 0;
         this.handshakeHeaderBuffer.putShort(isAsyncLearner);
         // Address length
         this.handshakeHeaderBuffer.putInt(this.localAddress == null ? 0 : this.localAddress.length());
@@ -437,7 +437,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             while (true) {
                 int diff = byteBufferRead.position() - AutoSwitchHAClient.this.processPosition;
                 if (diff >= AutoSwitchHAConnection.MSG_HEADER_SIZE) {
-                    int processPosition =  AutoSwitchHAClient.this.processPosition;
+                    int processPosition = AutoSwitchHAClient.this.processPosition;
                     int masterState = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 36);
                     int bodySize = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 32);
                     long masterOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 28);
