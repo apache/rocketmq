@@ -293,6 +293,7 @@ public class MQClientInstance {
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
+        // 关键是什么时候持久化消息消费进度。原来在MQClientInstance中会启动一个定时任务，默认每5s持久化一次，可通过persistConsumerOffsetInterval设置
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -952,6 +953,7 @@ public class MQClientInstance {
     }
 
     public void doRebalance() {
+        // 遍历已注册的消费者，对消费者执行doRebalance()
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
@@ -1056,6 +1058,7 @@ public class MQClientInstance {
         return 0;
     }
 
+    // Broker为什么会存在消费组内所有消费者的信息呢？我们不妨回忆一下消费者在启动的时候会向MQClientInstance中注册消费者，然后MQClientInstance会向所有的Broker发送心跳包，心跳包中包含MQClientInstance的消费者信息。
     public List<String> findConsumerIdList(final String topic, final String group) {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
         if (null == brokerAddr) {

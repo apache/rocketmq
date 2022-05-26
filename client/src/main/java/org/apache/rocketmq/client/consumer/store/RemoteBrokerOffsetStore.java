@@ -111,6 +111,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         return -1;
     }
 
+    /**
+     * 持久化消息进度，存储文件名：${RocketMQ_HOME}/store/config/consumerOffset.json
+     * @param mqs
+     */
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
         if (null == mqs || mqs.isEmpty())

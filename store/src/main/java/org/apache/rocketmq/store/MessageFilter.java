@@ -19,6 +19,12 @@ package org.apache.rocketmq.store;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+/**
+ * 消息发送者在消息发送时如果设置了消息的tags属性，存储在消息属性中，先存储在CommitLog文件中，然后转发到消息消费队列，消息消费队列会用8个字节存储消息tag的hashcode，
+ * 之所以不直接存储tag字符串，是因为将ConumeQueue设计为定长结构，加快消息消费的加载性能
+ * 在Broker端拉取消息时，遍历ConsumeQueue，只对比消息tag的hashcode，如果匹配则返回，否则忽略该消息
+ * Consume在收到消息后，同样需要先对消息进行过滤，只是此时比较的是消息tag的值而不再是hashcode
+ */
 public interface MessageFilter {
     /**
      * match by tags code or filter bit map which is calculated when message received

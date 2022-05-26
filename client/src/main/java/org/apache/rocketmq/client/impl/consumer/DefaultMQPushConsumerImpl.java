@@ -96,6 +96,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
     private final InternalLogger log = ClientLogger.getLog();
     private final DefaultMQPushConsumer defaultMQPushConsumer;
+    // 每个DefaultMQPushConsumerImpl都持有一个单独的RebalanceImpl对象
     private final RebalanceImpl rebalanceImpl = new RebalancePushImpl(this);
     private final ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
     private final long consumerStartTimestamp = System.currentTimeMillis();
@@ -296,7 +297,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 return;
             }
         }
-
+        // 根据订阅消息构建消息拉取标记，设置subExpression、classFilter等与消息过滤相关
         final SubscriptionData subscriptionData = this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
         if (null == subscriptionData) {
             this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
@@ -333,7 +334,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 DefaultMQPushConsumerImpl.this.getConsumerStatsManager().incPullTPS(pullRequest.getConsumerGroup(),
                                     pullRequest.getMessageQueue().getTopic(), pullResult.getMsgFoundList().size());
 
-                                // 将服务端拉取到的消息存入processQueue，然后将拉取到的消息提交到consumeMessageService中供消费者消费
+                                // 将服务端拉取到的消息先存入processQueue，然后将拉取到的消息提交到consumeMessageService中供消费者消费
                                 boolean dispatchToConsume = processQueue.putMessage(pullResult.getMsgFoundList());
                                 // 消费者消费
                                 DefaultMQPushConsumerImpl.this.consumeMessageService.submitConsumeRequest(
@@ -896,6 +897,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String subExpression) throws MQClientException {
         try {
+            // 消费者订阅消息主题与消息过滤表达式。构建订阅信息并加入到RebalanceImpl中，以便RebalanceImpl进行消息队列负载
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, subExpression);
             this.rebalanceImpl.getSubscriptionInner().put(topic, subscriptionData);
             if (this.mQClientFactory != null) {
@@ -908,6 +910,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException {
         try {
+            // 消费者订阅消息主题与消息过滤表达式。构建订阅信息并加入到RebalanceImpl中，以便RebalanceImpl进行消息队列负载
             SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, "*");
             subscriptionData.setSubString(fullClassName);
             subscriptionData.setClassFilterMode(true);

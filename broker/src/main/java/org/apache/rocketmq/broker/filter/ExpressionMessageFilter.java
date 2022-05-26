@@ -67,9 +67,9 @@ public class ExpressionMessageFilter implements MessageFilter {
             return true;
         }
 
-        // by tags code.
+        // by tags code. 基于TAG模式，根据ConsumeQueue进行消息过滤时只对比tag的hashcode，所以基于TAG模式消息过滤，还需要在消息消费端对消息tag进行精确匹配
         if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
-
+            // 如果是TAG过滤模式，并且消息的tagsCode为空或tagsCode小于0，返回true，说明消息在发送时没有设置tag,如果订阅消息的TAG hashcodes集合中包含消息的tagsCode，返回true
             if (tagsCode == null) {
                 return true;
             }
@@ -114,8 +114,10 @@ public class ExpressionMessageFilter implements MessageFilter {
         return true;
     }
 
+
     @Override
     public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+        // 如果订阅信息为空，返回true；如果是类过滤模式，返回true；如果是TAG模式，返回true。该方法主要是为表达式模式SQL92服务的，根据消息属性实现类似于数据库SQL where条件过滤方式
         if (subscriptionData == null) {
             return true;
         }

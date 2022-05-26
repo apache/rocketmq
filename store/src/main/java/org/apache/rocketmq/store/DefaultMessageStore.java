@@ -606,6 +606,7 @@ public class DefaultMessageStore implements MessageStore {
                                 }
                             }
 
+                            // 根据偏移量拉取消息后，首先根据ConsumeQueue条目进行消息过滤，如果不匹配则直接跳过该条消息，继续拉取下一条消息
                             if (messageFilter != null
                                 && !messageFilter.isMatchedByConsumeQueue(isTagsCodeLegal ? tagsCode : null, extRet ? cqExtUnit : null)) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -625,6 +626,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
+                            // 如果消息根据ConsumeQueue条目通过过滤，则需要从CommitLog文件中加载整个消息体，然后根据属性进行过滤。当然如果过滤方式是TAG模式，该方法默认返回true
                             if (messageFilter != null
                                 && !messageFilter.isMatchedByCommitLog(selectResult.getByteBuffer().slice(), null)) {
                                 if (getResult.getBufferTotalSize() == 0) {

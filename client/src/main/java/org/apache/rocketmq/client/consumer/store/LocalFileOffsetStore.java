@@ -128,6 +128,10 @@ public class LocalFileOffsetStore implements OffsetStore {
         return -1;
     }
 
+    /**
+     * 持久化消息进度
+     * @param mqs
+     */
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
         if (null == mqs || mqs.isEmpty())

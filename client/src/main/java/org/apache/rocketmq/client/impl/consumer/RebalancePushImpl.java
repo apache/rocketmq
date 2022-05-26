@@ -149,6 +149,13 @@ public class RebalancePushImpl extends RebalanceImpl {
         return result;
     }
 
+    /**
+     * 从磁盘中读取到消息队列的消费进度，如果大于0则直接返回即可；如果等于-1, CONSUME_FROM_TIMESTAMP模式下会尝试去操作消息存储时间戳为消费者启动的时间戳，
+     * 如果能找到则返回找到的偏移量，否则返回0。如果小于-1，则表示该消息进度文件中存储了错误的偏移量，返回-1
+     * @param mq
+     * @return
+     * @throws MQClientException
+     */
     @Override
     public long computePullFromWhereWithException(MessageQueue mq) throws MQClientException {
         long result = -1;
