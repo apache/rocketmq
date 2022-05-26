@@ -452,8 +452,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                             masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
                         return true;
                     }
-                    LOGGER.info("Receive master msg, masterState:{}, bodySize:{}, offset:{}, masterEpoch:{}, masterEpochStartOffset:{}, confirmOffset:{}",
-                        HAConnectionState.values()[masterState], bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
 
                     if (diff >= (AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize)) {
                         switch (AutoSwitchHAClient.this.currentState) {
@@ -501,10 +499,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                 AutoSwitchHAClient.this.confirmOffset = Math.min(confirmOffset, messageStore.getMaxPhyOffset());
 
                                 if (bodySize > 0) {
-                                    final DefaultMessageStore messageStore = AutoSwitchHAClient.this.messageStore;
-                                    if (messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length)) {
-                                        LOGGER.info("Slave append master log success, from {}, size {}, epoch:{}", masterOffset, bodySize, masterEpoch);
-                                    }
+                                    AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
                                 }
 
                                 if (!reportSlaveMaxOffset()) {
