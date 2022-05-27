@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.common.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.common.protocol.body.InSyncStateData;
@@ -735,6 +736,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public InSyncStateData getInSyncStateData(String controllerAddress,
         List<String> brokers) throws RemotingException, InterruptedException, MQBrokerException {
         return this.defaultMQAdminExtImpl.getInSyncStateData(controllerAddress, brokers);
+    }
+
+    @Override public EpochEntryCache getBrokerEpochCache(
+        String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
+        return this.defaultMQAdminExtImpl.getBrokerEpochCache(brokerAddr);
     }
 
     @Override

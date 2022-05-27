@@ -31,7 +31,7 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class SyncStateDataCommand implements SubCommand {
+public class SyncStateSetCommand implements SubCommand {
     @Override
     public String commandName() {
         return "getSyncStateSet";
@@ -39,13 +39,13 @@ public class SyncStateDataCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch syncStateData for target brokers";
+        return "Fetch syncStateSet for target brokers";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("a", "controllerAddress", true, "the address of controller");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         opt = new Option("c", "clusterName", true, "which cluster");

@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.common.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.common.protocol.body.InSyncStateData;
@@ -383,7 +384,9 @@ public interface MQAdminExt extends MQAdmin {
     HARuntimeInfo getBrokerHAStatus(String brokerAddr) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, InterruptedException, MQBrokerException;
 
-    InSyncStateData getInSyncStateData(String controllerAddress, List<String> brokers) throws RemotingException, InterruptedException, MQBrokerException ;
+    InSyncStateData getInSyncStateData(String controllerAddress, List<String> brokers) throws RemotingException, InterruptedException, MQBrokerException;
+
+    EpochEntryCache getBrokerEpochCache(String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException;
 
     /**
      * Reset master flush offset in slave

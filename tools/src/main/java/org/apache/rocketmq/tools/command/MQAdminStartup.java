@@ -60,7 +60,7 @@ import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
 import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
-import org.apache.rocketmq.tools.command.ha.SyncStateDataCommand;
+import org.apache.rocketmq.tools.command.ha.SyncStateSetCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
@@ -247,7 +247,7 @@ public class MQAdminStartup {
 
         initCommand(new HAStatusSubCommand());
 
-        initCommand(new SyncStateDataCommand());
+        initCommand(new SyncStateSetCommand());
     }
 
     private static void initLogback() throws JoranException {

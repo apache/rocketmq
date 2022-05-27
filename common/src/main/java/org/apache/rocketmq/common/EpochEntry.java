@@ -17,7 +17,9 @@
 
 package org.apache.rocketmq.common;
 
-public class EpochEntry {
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
+public class EpochEntry extends RemotingSerializable {
 
     private int epoch;
     private long startOffset;

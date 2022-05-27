@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -408,5 +409,9 @@ public class ReplicasManager {
 
     public List<String> getControllerAddresses() {
         return controllerAddresses;
+    }
+
+    public List<EpochEntry> getEpochEntries() {
+        return this.haService.getEpochEntries();
     }
 }

@@ -85,6 +85,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.common.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.common.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.HARuntimeInfo;
@@ -2885,6 +2886,20 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return RemotingSerializable.decode(response.getBody(), InSyncStateData.class);
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public EpochEntryCache getBrokerEpochCache(String brokerAddr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_EPOCH_CACHE, null);
+        final RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return RemotingSerializable.decode(response.getBody(), EpochEntryCache.class);
             }
             default:
                 break;
