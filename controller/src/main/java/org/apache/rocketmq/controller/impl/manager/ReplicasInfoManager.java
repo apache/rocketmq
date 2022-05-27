@@ -280,7 +280,7 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<Void> getInSyncStateData(final List<String> brokerNames) {
+    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames) {
         final ControllerResult<Void> result = new ControllerResult<>();
         final InSyncStateData inSyncStateData = new InSyncStateData();
         for (String brokerName : brokerNames) {
@@ -289,12 +289,14 @@ public class ReplicasInfoManager {
                 final InSyncReplicasInfo replicasInfo = this.inSyncReplicasInfoTable.get(brokerName);
                 final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
                 final Set<String> syncStateSet = replicasInfo.getSyncStateSet();
+                final String master = replicasInfo.getMasterAddress();
                 final ArrayList<InSyncStateData.InSyncMember> inSyncMembers = new ArrayList<>();
                 syncStateSet.forEach(replicas -> {
-                    inSyncMembers.add(new InSyncStateData.InSyncMember(replicas, brokerInfo.getBrokerId(replicas)));
+                    long brokerId = StringUtils.equals(master, replicas) ? MixAll.MASTER_ID : brokerInfo.getBrokerId(replicas);
+                    inSyncMembers.add(new InSyncStateData.InSyncMember(replicas, brokerId));
                 });
 
-                final InSyncStateData.InSyncState inSyncState = new InSyncStateData.InSyncState(replicasInfo.getMasterAddress(), replicasInfo.getMasterEpoch(), replicasInfo.getSyncStateSetEpoch(), inSyncMembers);
+                final InSyncStateData.InSyncState inSyncState = new InSyncStateData.InSyncState(master, replicasInfo.getMasterEpoch(), replicasInfo.getSyncStateSetEpoch(), inSyncMembers);
                 inSyncStateData.addInSyncState(brokerName, inSyncState);
             }
         }
