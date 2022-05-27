@@ -262,7 +262,7 @@ public class GrpcBaseIT extends BaseConf {
             SendMessageResponse sendResponse = blockingStub.sendMessage(buildTransactionSendMessageRequest(topic, messageId));
             assertSendMessage(sendResponse, messageId);
 
-            await().atMost(java.time.Duration.ofSeconds(90)).until(() -> {
+            await().atMost(java.time.Duration.ofMinutes(2)).until(() -> {
                 if (telemetryCommandRef.get() == null) {
                     return false;
                 }
