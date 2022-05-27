@@ -2871,10 +2871,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public InSyncStateData getInSyncStateData(final String controllerAddress,
         final List<String> brokers) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException, RemotingCommandException {
+        // Get controller leader address.
         final GetMetaDataResponseHeader controllerMetaData = getControllerMetaData(controllerAddress);
         assert controllerMetaData != null;
         assert controllerMetaData.getControllerLeaderAddress() != null;
         final String leaderAddress = controllerMetaData.getControllerLeaderAddress();
+
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_SYNC_STATE_DATA, null);
         final byte[] body = RemotingSerializable.encode(brokers);
         request.setBody(body);
