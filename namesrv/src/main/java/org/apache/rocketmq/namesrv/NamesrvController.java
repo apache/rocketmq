@@ -270,7 +270,7 @@ public class NamesrvController {
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.defaultExecutor);
 
             if (controllerConfig.isEnableStartupController()) {
-                final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this.controller);
+                final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this);
                 this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
                 this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
                 this.remotingServer.registerProcessor(RequestCode.CONTROLLER_REGISTER_BROKER, controllerRequestProcessor, this.controllerRequestExecutor);
@@ -343,6 +343,10 @@ public class NamesrvController {
 
     public void setRemotingServer(RemotingServer remotingServer) {
         this.remotingServer = remotingServer;
+    }
+
+    public Controller getController() {
+        return controller;
     }
 
     public Configuration getConfiguration() {

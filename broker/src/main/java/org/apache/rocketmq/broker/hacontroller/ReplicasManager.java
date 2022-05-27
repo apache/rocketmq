@@ -333,9 +333,9 @@ public class ReplicasManager {
         for (String address : this.controllerAddresses) {
             try {
                 final GetMetaDataResponseHeader responseHeader = this.brokerOuterAPI.getControllerMetaData(address);
-                if (responseHeader != null && responseHeader.isLeader()) {
-                    this.controllerLeaderAddress = address;
-                    LOGGER.info("Change controller leader address to {}", this.controllerAddresses);
+                if (responseHeader != null && StringUtils.isNoneEmpty(responseHeader.getControllerLeaderAddress())) {
+                    this.controllerLeaderAddress = responseHeader.getControllerLeaderAddress();
+                    LOGGER.info("Change controller leader address to {}", this.controllerLeaderAddress);
                     return true;
                 }
             } catch (final Exception ignore) {
