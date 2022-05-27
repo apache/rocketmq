@@ -52,7 +52,7 @@ public class IntegrationTestBase {
     protected static final List<File> TMPE_FILES = new ArrayList<>();
     protected static final List<BrokerController> BROKER_CONTROLLERS = new ArrayList<>();
     protected static final List<NamesrvController> NAMESRV_CONTROLLERS = new ArrayList<>();
-    protected static int topicCreateTime = (int) TimeUnit.SECONDS.toSeconds(30);
+    protected static int topicCreateTime = (int) TimeUnit.SECONDS.toSeconds(60);
     public static volatile int COMMIT_LOG_SIZE = 1024 * 1024 * 100;
     protected static final int INDEX_NUM = 1000;
 
