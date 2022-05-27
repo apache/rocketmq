@@ -34,7 +34,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 public class SyncStateDataCommand implements SubCommand {
     @Override
     public String commandName() {
-        return "syncStateData";
+        return "getSyncStateSet";
     }
 
     @Override

@@ -103,7 +103,6 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 if (request.getBody() != null) {
                     final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
                     if (brokerNames != null && brokerNames.size() > 0) {
-                        log.info("Try get sync state data for brokers:{}", brokerNames);
                         final CompletableFuture<RemotingCommand> future = this.controller.getSyncStateData(brokerNames);
                         if (future != null) {
                             return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);

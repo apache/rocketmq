@@ -156,6 +156,7 @@ public class DledgerController implements Controller {
 
     @Override
     public CompletableFuture<RemotingCommand> getSyncStateData(List<String> brokerNames) {
+
         return this.scheduler.appendEvent("getSyncStateData",
             () -> this.replicasInfoManager.getInSyncStateData(brokerNames), false);
     }
