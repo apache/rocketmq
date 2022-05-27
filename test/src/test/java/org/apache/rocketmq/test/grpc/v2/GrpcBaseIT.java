@@ -242,16 +242,14 @@ public class GrpcBaseIT extends BaseConf {
             requestStreamObserver.onNext(TelemetryCommand.newBuilder()
                 .setSettings(buildProducerClientSettings(topic))
                 .build());
-            blockingStub.heartbeat(HeartbeatRequest.newBuilder()
-                .setGroup(Resource.newBuilder()
-                    .setName(group)
-                    .build())
-                .build());
+            blockingStub.heartbeat(buildHeartbeatRequest(group));
             await().atMost(java.time.Duration.ofSeconds(3)).until(() -> {
                 if (telemetryCommandRef.get() == null) {
+                    blockingStub.heartbeat(buildHeartbeatRequest(group));
                     return false;
                 }
                 if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.SETTINGS) {
+                    blockingStub.heartbeat(buildHeartbeatRequest(group));
                     return false;
                 }
                 return telemetryCommandRef.get() != null;
@@ -264,9 +262,11 @@ public class GrpcBaseIT extends BaseConf {
 
             await().atMost(java.time.Duration.ofMinutes(2)).until(() -> {
                 if (telemetryCommandRef.get() == null) {
+                    blockingStub.heartbeat(buildHeartbeatRequest(group));
                     return false;
                 }
                 if (telemetryCommandRef.get().getCommandCase() != TelemetryCommand.CommandCase.RECOVER_ORPHANED_TRANSACTION_COMMAND) {
+                    blockingStub.heartbeat(buildHeartbeatRequest(group));
                     return false;
                 }
                 return telemetryCommandRef.get() != null;
@@ -293,6 +293,14 @@ public class GrpcBaseIT extends BaseConf {
         } finally {
             requestStreamObserver.onCompleted();
         }
+    }
+
+    public HeartbeatRequest buildHeartbeatRequest(String group) {
+        return HeartbeatRequest.newBuilder()
+            .setGroup(Resource.newBuilder()
+                .setName(group)
+                .build())
+            .build();
     }
 
     public void testSimpleConsumerSendAndRecv() throws Exception {
