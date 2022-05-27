@@ -16,14 +16,23 @@
  */
 package org.apache.rocketmq.common;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
+import com.alibaba.fastjson.annotation.JSONField;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 
-import java.util.Map;
+import static org.apache.rocketmq.common.TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE;
 
 public class TopicConfig {
     private static final String SEPARATOR = " ";
     public static int defaultReadQueueNums = 16;
     public static int defaultWriteQueueNums = 16;
+    private static final TypeReference<Map<String, String>> ATTRIBUTES_TYPE_REFERENCE = new TypeReference<Map<String, String>>() {
+    };
     private String topicName;
     private int readQueueNums = defaultReadQueueNums;
     private int writeQueueNums = defaultWriteQueueNums;
@@ -31,7 +40,8 @@ public class TopicConfig {
     private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
     private int topicSysFlag = 0;
     private boolean order = false;
-    private Map<String, String> attributes;
+    // Field attributes should not have ' ' char in key or value, otherwise will lead to decode failure.
+    private Map<String, String> attributes = new HashMap<>();
 
     public TopicConfig() {
     }
@@ -69,7 +79,9 @@ public class TopicConfig {
         this.topicFilterType = other.topicFilterType;
         this.topicSysFlag = other.topicSysFlag;
         this.order = other.order;
+        this.attributes = other.attributes;
     }
+
     public String encode() {
         StringBuilder sb = new StringBuilder();
         //[0]
@@ -86,15 +98,18 @@ public class TopicConfig {
         sb.append(SEPARATOR);
         //[4]
         sb.append(this.topicFilterType);
-
-        // Leave the encode/decode [attributes] out for now
+        sb.append(SEPARATOR);
+        //[5]
+        if (attributes != null) {
+            sb.append(JSON.toJSONString(attributes));
+        }
 
         return sb.toString();
     }
 
     public boolean decode(final String in) {
         String[] strs = in.split(SEPARATOR);
-        if (strs != null && strs.length >= 5) {
+        if (strs.length >= 5) {
             this.topicName = strs[0];
 
             this.readQueueNums = Integer.parseInt(strs[1]);
@@ -104,6 +119,14 @@ public class TopicConfig {
             this.perm = Integer.parseInt(strs[3]);
 
             this.topicFilterType = TopicFilterType.valueOf(strs[4]);
+
+            if (strs.length >= 6) {
+                try {
+                    this.attributes = JSON.parseObject(strs[5], ATTRIBUTES_TYPE_REFERENCE.getType());
+                } catch (Exception e) {
+                    // ignore exception when parse failed, cause map's key/value can have ' ' char.
+                }
+            }
 
             return true;
         }
@@ -175,30 +198,56 @@ public class TopicConfig {
         this.attributes = attributes;
     }
 
+    @JSONField(serialize = false, deserialize = false)
+    public TopicMessageType getTopicMessageType() {
+        if (attributes == null) {
+            return TopicMessageType.NORMAL;
+        }
+        String content = attributes.get(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName());
+        if (content == null) {
+            return TopicMessageType.NORMAL;
+        }
+        return TopicMessageType.valueOf(content);
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public void setTopicMessageType(TopicMessageType topicMessageType) {
+        attributes.put(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), topicMessageType.getValue());
+    }
+
     @Override
     public boolean equals(Object o) {
-        if (this == o)
+        if (this == o) {
             return true;
-        if (o == null || getClass() != o.getClass())
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
+        }
 
         TopicConfig that = (TopicConfig) o;
 
-        if (readQueueNums != that.readQueueNums)
+        if (readQueueNums != that.readQueueNums) {
             return false;
-        if (writeQueueNums != that.writeQueueNums)
+        }
+        if (writeQueueNums != that.writeQueueNums) {
             return false;
-        if (perm != that.perm)
+        }
+        if (perm != that.perm) {
             return false;
-        if (topicSysFlag != that.topicSysFlag)
+        }
+        if (topicSysFlag != that.topicSysFlag) {
             return false;
-        if (order != that.order)
+        }
+        if (order != that.order) {
             return false;
-        if (topicName != null ? !topicName.equals(that.topicName) : that.topicName != null)
+        }
+        if (!Objects.equals(topicName, that.topicName)) {
             return false;
-        if (topicFilterType != that.topicFilterType)
+        }
+        if (topicFilterType != that.topicFilterType) {
             return false;
-        return attributes != null ? attributes.equals(that.attributes) : that.attributes == null;
+        }
+        return Objects.equals(attributes, that.attributes);
     }
 
     @Override
