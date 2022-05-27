@@ -17,6 +17,7 @@
 package org.apache.rocketmq.controller.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -43,6 +44,7 @@ import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ALTER_S
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ELECT_MASTER;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_METADATA_INFO;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_REPLICA_INFO;
+import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
 
 /**
@@ -113,6 +115,17 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             case BROKER_HEARTBEAT: {
                 final BrokerHeartbeatRequestHeader requestHeader = request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
                 this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
+            }
+            case CONTROLLER_GET_SYNC_STATE_DATA: {
+                if (request.getBody() != null) {
+                    final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
+                    if (brokerNames != null && brokerNames.size() > 0) {
+                        final CompletableFuture<RemotingCommand> future = this.controller.getSyncStateData(brokerNames);
+                        if (future != null) {
+                            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+                        }
+                    }
+                }
             }
             default: {
                 final String error = " request type " + request.getCode() + " not supported";

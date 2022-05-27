@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.controller;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
@@ -87,6 +88,11 @@ public interface Controller {
      * @return RemotingCommand(GetReplicaInfoResponseHeader)
      */
     CompletableFuture<RemotingCommand> getReplicaInfo(final GetReplicaInfoRequestHeader request);
+
+    /**
+     * Get inSyncStateData for target brokers, this api is used for admin tools.
+     */
+    CompletableFuture<RemotingCommand> getSyncStateData(final List<String> brokerNames);
 
     /**
      * Get Metadata of controller

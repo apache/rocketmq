@@ -155,6 +155,12 @@ public class DledgerController implements Controller {
     }
 
     @Override
+    public CompletableFuture<RemotingCommand> getSyncStateData(List<String> brokerNames) {
+        return this.scheduler.appendEvent("getSyncStateData",
+            () -> this.replicasInfoManager.getInSyncStateData(brokerNames), false);
+    }
+
+    @Override
     public RemotingCommand getControllerMetadata() {
         final MemberState state = getMemberState();
         return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr(), state.isLeader()));
