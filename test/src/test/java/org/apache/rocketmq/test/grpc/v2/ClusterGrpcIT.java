@@ -41,7 +41,6 @@ public class ClusterGrpcIT extends GrpcBaseIT {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        ConfigurationManager.getProxyConfig().setEnableTopicMessageTypeCheck(false);
         ConfigurationManager.getProxyConfig().setTransactionHeartbeatPeriodSecond(3);
         messagingProcessor = DefaultMessagingProcessor.createForClusterMode();
         messagingProcessor.start();
