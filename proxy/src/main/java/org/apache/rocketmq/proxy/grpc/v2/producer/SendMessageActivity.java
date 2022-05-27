@@ -241,18 +241,6 @@ public class SendMessageActivity extends AbstractMessingActivity {
         return builder.build();
     }
 
-    protected MessageType parseMessageType(List<Message> messageList) {
-        MessageType messageType = messageList.get(0).getSystemProperties().getMessageType();
-        for (Message message : messageList) {
-            MessageType messageType0 = message.getSystemProperties().getMessageType();
-            if (messageType0 != messageType) {
-                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE, "message type is not match");
-            }
-            messageType = messageType0;
-        }
-        return messageType;
-    }
-
     protected static class SendMessageQueueSelector implements QueueSelector {
 
         private final SendMessageRequest request;
