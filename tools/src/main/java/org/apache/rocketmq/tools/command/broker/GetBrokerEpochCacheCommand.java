@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.command.broker;
 
+import java.util.List;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -105,7 +106,12 @@ public class GetBrokerEpochCacheCommand implements SubCommand {
             final EpochEntryCache epochCache = defaultMQAdminExt.getBrokerEpochCache(brokerAddr);
             System.out.printf("\n#clusterName\t%s\n#brokerName\t%s\n#brokerAddr\t%s\n#brokerId\t%d",
                 epochCache.getClusterName(), epochCache.getBrokerName(), brokerAddr, epochCache.getBrokerId());
-            for (EpochEntry epochEntry : epochCache.getEpochList()) {
+            final List<EpochEntry> epochList = epochCache.getEpochList();
+            for (int i = 0; i < epochList.size(); i++) {
+                final EpochEntry epochEntry = epochList.get(i);
+                if (i == epochList.size() - 1) {
+                    epochEntry.setEndOffset(epochCache.getMaxOffset());
+                }
                 System.out.printf("\n#Epoch: %s", epochEntry.toString());
             }
         }

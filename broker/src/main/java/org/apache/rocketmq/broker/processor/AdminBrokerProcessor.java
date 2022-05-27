@@ -49,7 +49,6 @@ import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -2364,13 +2363,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         assert replicasManager != null;
         final BrokerConfig brokerConfig = this.brokerController.getBrokerConfig();
         final EpochEntryCache entryCache = new EpochEntryCache(brokerConfig.getBrokerClusterName(),
-            brokerConfig.getBrokerName(), brokerConfig.getBrokerId(), replicasManager.getEpochEntries());
-        final List<EpochEntry> epochList = entryCache.getEpochList();
-        if (!epochList.isEmpty()) {
-            final EpochEntry lastEntry = epochList.get(epochList.size() - 1);
-            final long maxPhyOffset = this.brokerController.getMessageStore().getMaxPhyOffset();
-            lastEntry.setEndOffset(maxPhyOffset);
-        }
+            brokerConfig.getBrokerName(), brokerConfig.getBrokerId(), replicasManager.getEpochEntries(), this.brokerController.getMessageStore().getMaxPhyOffset());
+
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setBody(entryCache.encode());
         response.setCode(ResponseCode.SUCCESS);
