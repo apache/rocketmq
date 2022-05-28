@@ -1,8 +1,8 @@
 # TLS Configuration
-This section introduce TLS configuration in Rocket MQ.
+This section introduce TLS configuration in RocketMQ.
 
 ## 1 Generate Certification Files
-User can generate certification files using OpenSSL. Suggested to gengerate files in Linux.
+User can generate certification files using OpenSSL. Suggested to generate files in Linux.
 
 ### 1.1 Generate ca.pem
 ```shell
@@ -28,7 +28,7 @@ openssl x509 -req -days 365 -in client.csr -CA ca.pem -CAkey ca_rsa_private.pem 
 ```shell
 openssl pkcs8 -topk8 -v1 PBE-SHA1-RC4-128 -in  server_rsa.key -out server.key
 ```
-### 1.7 Generateclient.key
+### 1.7 Generate client.key
 ```shell
 openssl pkcs8 -topk8 -v1 PBE-SHA1-RC4-128 -in client_rsa.key -out client.key
 ```
@@ -71,7 +71,7 @@ tls.client.trustCertPath=/opt/certFiles/ca.pem
 
 ## 3 Update Rocketmq JVM parameters
 
-Edit the configuration file under the rocketmq/bin path to make tls.properties configurations takes effect.
+Edit the configuration file under the rocketmq/bin path to make tls.properties configurations take effect.
 
 The value of "tls.config.file" needs to be replaced by the file path created in step 2.
 
