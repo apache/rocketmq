@@ -60,11 +60,17 @@ public class UtilAllTest {
         demoConfig.setDemoWidth(456);
         demoConfig.setDemoName("TestDemo");
         demoConfig.setDemoOK(true);
+        demoConfig.setDemoByte((byte) 78);
+        demoConfig.setDemoShort((short) 90);
+        demoConfig.setDemoChar('c');
         Properties properties = MixAll.object2Properties(demoConfig);
         assertThat(properties.getProperty("demoLength")).isEqualTo("123");
         assertThat(properties.getProperty("demoWidth")).isEqualTo("456");
         assertThat(properties.getProperty("demoOK")).isEqualTo("true");
         assertThat(properties.getProperty("demoName")).isEqualTo("TestDemo");
+        assertThat(properties.getProperty("demoByte")).isEqualTo("78");
+        assertThat(properties.getProperty("demoShort")).isEqualTo("90");
+        assertThat(properties.getProperty("demoChar")).isEqualTo("c");
     }
 
     @Test
@@ -127,6 +133,9 @@ public class UtilAllTest {
         private int demoLength = 0;
         private boolean demoOK = false;
         private String demoName = "haha";
+        private byte demoByte = 0;
+        private short demoShort = 0;
+        private char demoChar = 'a';
 
         int getDemoWidth() {
             return demoWidth;
@@ -158,6 +167,30 @@ public class UtilAllTest {
 
         public void setDemoName(String demoName) {
             this.demoName = demoName;
+        }
+
+        public byte getDemoByte() {
+            return demoByte;
+        }
+
+        public void setDemoByte(byte demoByte) {
+            this.demoByte = demoByte;
+        }
+
+        public short getDemoShort() {
+            return demoShort;
+        }
+
+        public void setDemoShort(short demoShort) {
+            this.demoShort = demoShort;
+        }
+
+        public char getDemoChar() {
+            return demoChar;
+        }
+
+        public void setDemoChar(char demoChar) {
+            this.demoChar = demoChar;
         }
 
         @Override

@@ -320,29 +320,40 @@ public class MixAll {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
             String mn = method.getName();
-            if (mn.startsWith("set")) {
-                try {
-                    String tmp = mn.substring(4);
-                    String first = mn.substring(3, 4);
+            if (mn.startsWith("set") && mn.length() > 3) {
+                String tmp = mn.substring(4);
+                String first = mn.substring(3, 4);
 
-                    String key = first.toLowerCase() + tmp;
-                    String property = p.getProperty(key);
+                String key = first.toLowerCase() + tmp;
+                String property = p.getProperty(key);
+                try {
                     if (property != null) {
                         Class<?>[] pt = method.getParameterTypes();
-                        if (pt != null && pt.length > 0) {
+                        if (pt != null && pt.length == 1) {
                             String cn = pt[0].getSimpleName();
                             Object arg = null;
                             if (cn.equals("int") || cn.equals("Integer")) {
                                 arg = Integer.parseInt(property);
                             } else if (cn.equals("long") || cn.equals("Long")) {
                                 arg = Long.parseLong(property);
-                            } else if (cn.equals("double") || cn.equals("Double")) {
-                                arg = Double.parseDouble(property);
-                            } else if (cn.equals("boolean") || cn.equals("Boolean")) {
-                                arg = Boolean.parseBoolean(property);
                             } else if (cn.equals("float") || cn.equals("Float")) {
                                 arg = Float.parseFloat(property);
-                            } else if (cn.equals("String")) {
+                            } else if (cn.equals("double") || cn.equals("Double")) {
+                                arg = Double.parseDouble(property);
+                            }   else if (cn.equals("boolean") || cn.equals("Boolean")) {
+                                arg = Boolean.parseBoolean(property);
+                            }else if (cn.equals("byte") || cn.equals("Byte")) {
+                                arg = Byte.parseByte(property);
+                            } else if (cn.equals("short") || cn.equals("Short")) {
+                                arg = Short.parseShort(property);
+                            } else if (cn.equals("char") || cn.equals("Character")) {
+                                char[] chars = property.toCharArray();
+                                if (chars.length != 1) {
+                                    String errorMsg = String.format("illegal char value %s for %s.", property, key);
+                                    throw new IllegalArgumentException(errorMsg);
+                                }
+                                arg = chars[0];
+                            }  else if (cn.equals("String")) {
                                 arg = property;
                             } else {
                                 continue;
@@ -350,7 +361,8 @@ public class MixAll {
                             method.invoke(object, arg);
                         }
                     }
-                } catch (Throwable ignored) {
+                } catch (Throwable ex) {
+                    log.debug("Failed to invoke method: " + mn, ex);
                 }
             }
         }
