@@ -340,9 +340,9 @@ public class MixAll {
                                 arg = Float.parseFloat(property);
                             } else if (cn.equals("double") || cn.equals("Double")) {
                                 arg = Double.parseDouble(property);
-                            }   else if (cn.equals("boolean") || cn.equals("Boolean")) {
+                            } else if (cn.equals("boolean") || cn.equals("Boolean")) {
                                 arg = Boolean.parseBoolean(property);
-                            }else if (cn.equals("byte") || cn.equals("Byte")) {
+                            } else if (cn.equals("byte") || cn.equals("Byte")) {
                                 arg = Byte.parseByte(property);
                             } else if (cn.equals("short") || cn.equals("Short")) {
                                 arg = Short.parseShort(property);
@@ -353,7 +353,7 @@ public class MixAll {
                                     throw new IllegalArgumentException(errorMsg);
                                 }
                                 arg = chars[0];
-                            }  else if (cn.equals("String")) {
+                            } else if (cn.equals("String")) {
                                 arg = property;
                             } else {
                                 continue;
