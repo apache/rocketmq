@@ -1697,7 +1697,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return ClusterInfo.decode(response.getBody(), ClusterInfo.class);
-            }case ResponseCode.BROKER_NOT_EXIST: {
+            } case ResponseCode.BROKER_NOT_EXIST: {
                 return new ClusterInfo();
             }
             default:
