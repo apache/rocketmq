@@ -543,40 +543,23 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
                     return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "topic router info not found");
                 }
-                final Map<String, QueueData> topicRouteMap = new HashMap<String, QueueData>();
-                for (QueueData queueData : topicRouteData.getQueueDatas()) {
-                    topicRouteMap.put(queueData.getBrokerName(), queueData);
-                }
 
-                final CopyOnWriteArrayList successList = new CopyOnWriteArrayList();
-                final CopyOnWriteArrayList failureList = new CopyOnWriteArrayList();
                 final CountDownLatch latch = new CountDownLatch(topicRouteData.getBrokerDatas().size());
 
+                ConsumerConnection result = new ConsumerConnection();
                 for (final BrokerData bd : topicRouteData.getBrokerDatas()){
                     threadPoolExecutor.submit(new Runnable() {
                         @Override
                         public void run() {
                             String addr = bd.selectBrokerAddr();
-                            try{
+                            try {
                                 if (addr != null) {
-                                    ConsumerConnection result = mqClientInstance.getMQClientAPIImpl().getConsumerConnectionList(addr, consumerGroup, timeoutMillis);
-                                    if (Optional.ofNullable(consumerGroup).isPresent()){
-                                        successList.add(addr);
-                                    }else{
-                                        failureList.add(addr);
-                                    }
+                                    ConsumerConnection consumerConnection = mqClientInstance.getMQClientAPIImpl().getConsumerConnectionList(addr, consumerGroup, timeoutMillis);
+                                    result.getConnectionSet().addAll(consumerConnection.getConnectionSet());
+                                    result.getSubscriptionTable().putAll(consumerConnection.getSubscriptionTable());
                                 }
 
-                            }catch (MQBrokerException e){
-                                if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
-                                    successList.add(addr);
-                                }else{
-                                    failureList.add(addr);
-                                    log.error(MessageFormat.format("examineConsumerConnectionInfo. addr={0}, topic={1}, group={2},timestamp={3}", addr, topic, consumerGroup, UtilAll.formatDate(new Date(), UtilAll.YYYY_MM_DD_HH_MM_SS)), e);
-
-                                }
                             }catch (Exception e){
-                                failureList.add(addr);
                                 log.error(MessageFormat.format("examineConsumerConnectionInfo. addr={0}, topic={1}, group={2},timestamp={3}", addr, topic, consumerGroup, UtilAll.formatDate(new Date(), UtilAll.YYYY_MM_DD_HH_MM_SS)), e);
                             }finally {
                                 latch.countDown();
@@ -586,14 +569,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     });
                 }
                 latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
-                BrokerOperatorResult result = new BrokerOperatorResult();
-                result.setSuccessList(successList);
-                result.setFailureList(failureList);
-                if (successList.size() == topicRouteData.getBrokerDatas().size()) {
-                    return AdminToolResult.success(result);
-                } else {
-                    return AdminToolResult.failure(AdminToolsResultCodeEnum.MQ_BROKER_ERROR, "operator failure", result);
-                }
+
+                return AdminToolResult.success(result);
+
             }
         });
     }

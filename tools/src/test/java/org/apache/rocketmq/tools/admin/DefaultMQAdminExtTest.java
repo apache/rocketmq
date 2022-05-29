@@ -18,6 +18,7 @@ package org.apache.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +29,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -71,16 +74,17 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
+import org.apache.rocketmq.tools.admin.common.AdminToolResult;
+import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.assertj.core.util.Maps;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -97,22 +101,29 @@ public class DefaultMQAdminExtTest {
     private static final String broker2Addr = "127.0.0.2:10911";
     private static final String topic1 = "topic_one";
     private static final String topic2 = "topic_two";
+    private static final int NAME_SERVER_PORT = 45677;
+    private static final int BROKER_PORT = 45676;
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
-    private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+    private static MQClientInstance mqClientInstance;
     private static MQClientAPIImpl mQClientAPIImpl;
     private static Properties properties = new Properties();
     private static TopicList topicList = new TopicList();
     private static TopicRouteData topicRouteData = new TopicRouteData();
     private static KVTable kvTable = new KVTable();
     private static ClusterInfo clusterInfo = new ClusterInfo();
-
+    private static ServerResponseMocker brokerMocker = mock(ServerResponseMocker.class);
+    private static ServerResponseMocker nameServerMocker = mock(ServerResponseMocker.class);
+    
     @BeforeClass
     public static void init() throws Exception {
+        
         mQClientAPIImpl = mock(MQClientAPIImpl.class);
-        defaultMQAdminExt = new DefaultMQAdminExt();
+        defaultMQAdminExt = new DefaultMQAdminExt("Test_Admin_Ext");
+        defaultMQAdminExt.setNamesrvAddr("127.0.0.1:" + NAME_SERVER_PORT);
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
-
+        mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+        
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
         field.setAccessible(true);
         field.set(defaultMQAdminExtImpl, mqClientInstance);
@@ -256,6 +267,8 @@ public class DefaultMQAdminExtTest {
     public static void terminate() throws Exception {
         if (defaultMQAdminExtImpl != null)
             defaultMQAdminExt.shutdown();
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
     @Test
@@ -312,7 +325,20 @@ public class DefaultMQAdminExtTest {
         assertThat(consumerConnection.getConsumeType()).isEqualTo(ConsumeType.CONSUME_PASSIVELY);
         assertThat(consumerConnection.getMessageModel()).isEqualTo(MessageModel.CLUSTERING);
 
-        consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo("default-consumer-group", "127.0.0.1:10911");
+        assertThat(consumerConnection.getConsumeType()).isEqualTo(ConsumeType.CONSUME_PASSIVELY);
+        assertThat(consumerConnection.getMessageModel()).isEqualTo(MessageModel.CLUSTERING);
+    }
+
+    @Test
+    public void testexamineConsumerConnectionInfoConcurrent() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+    
+        awaitUtilDefaultMQAdminExtStart();
+        
+        AdminToolResult<ConsumerConnection> adminToolResult = defaultMQAdminExt.examineConsumerConnectionInfoConcurrent("default-consumer-group");
+        ConsumerConnection consumerConnection = adminToolResult.getData();
+        assertThat(consumerConnection.getConsumeType()).isEqualTo(ConsumeType.CONSUME_PASSIVELY);
+        assertThat(consumerConnection.getMessageModel()).isEqualTo(MessageModel.CLUSTERING);
+
         assertThat(consumerConnection.getConsumeType()).isEqualTo(ConsumeType.CONSUME_PASSIVELY);
         assertThat(consumerConnection.getMessageModel()).isEqualTo(MessageModel.CLUSTERING);
     }
@@ -461,5 +487,55 @@ public class DefaultMQAdminExtTest {
     public void testExamineTopicConfig() throws MQBrokerException, RemotingException, InterruptedException {
         TopicConfig topicConfig = defaultMQAdminExt.examineTopicConfig("127.0.0.1:10911", "topic_test_examine_topicConfig");
         assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig"));
+    }
+    
+    protected static void awaitUtilDefaultMQAdminExtStart() {
+        await().atMost(Duration.ofSeconds(1000))
+            .until(() -> {
+                boolean done = true;
+                try {
+                    brokerMocker = startOneBroker();
+                    nameServerMocker = startNameServer();
+                    defaultMQAdminExtImpl.start();
+                }catch (Exception ex){
+                    done = false;
+                }
+                return done;
+            });
+    }
+    
+    private static ServerResponseMocker startNameServer() {
+        System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:" + NAME_SERVER_PORT);
+        ClusterInfo clusterInfo = new ClusterInfo();
+        
+        HashMap<String, BrokerData> brokerAddressTable = new HashMap<>();
+        BrokerData brokerData = new BrokerData();
+        brokerData.setBrokerName("mockBrokerName");
+        HashMap<Long, String> brokerAddress = new HashMap<>();
+        brokerAddress.put(1L, "127.0.0.1:" + BROKER_PORT);
+        brokerData.setBrokerAddrs(brokerAddress);
+        brokerData.setCluster("mockCluster");
+        brokerAddressTable.put("mockBrokerName", brokerData);
+        clusterInfo.setBrokerAddrTable(brokerAddressTable);
+        
+        HashMap<String, Set<String>> clusterAddressTable = new HashMap<>();
+        Set<String> brokerNames = new HashSet<>();
+        brokerNames.add("mockBrokerName");
+        clusterAddressTable.put("mockCluster", brokerNames);
+        clusterInfo.setClusterAddrTable(clusterAddressTable);
+        
+        // start name server
+        return ServerResponseMocker.startServer(NAME_SERVER_PORT, clusterInfo.encode());
+    }
+    
+    
+    private static ServerResponseMocker startOneBroker() {
+        ConsumerConnection consumerConnection = new ConsumerConnection();
+        HashSet<Connection> connectionSet = new HashSet<>();
+        Connection connection = mock(Connection.class);
+        connectionSet.add(connection);
+        consumerConnection.setConnectionSet(connectionSet);
+        // start broker
+        return ServerResponseMocker.startServer(BROKER_PORT, consumerConnection.encode());
     }
 }
