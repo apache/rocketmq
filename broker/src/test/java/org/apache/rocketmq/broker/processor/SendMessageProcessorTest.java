@@ -57,11 +57,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +91,7 @@ public class SendMessageProcessorTest {
         MessageExt messageExt = new MessageExt();
         messageExt.setTopic(topic);
         when(messageStore.lookMessageByOffset(anyLong())).thenReturn(messageExt);
+        when(brokerController.getPutMessageFutureExecutor()).thenReturn(Executors.newFixedThreadPool(4));
         sendMessageProcessor = new SendMessageProcessor(brokerController);
     }
 
