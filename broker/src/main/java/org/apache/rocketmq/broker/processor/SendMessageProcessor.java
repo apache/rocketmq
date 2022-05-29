@@ -339,7 +339,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                                                             int queueIdInt) {
         return putMessageResult.thenApplyAsync(
                 (r) -> handlePutMessageResult(r, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt),
-                this.brokerController.getPutMessageFutureExecutor());
+                this.brokerController.getPutMessageFutureExecutor()
+        );
     }
 
     private boolean handleRetryAndDLQ(SendMessageRequestHeader requestHeader, RemotingCommand response,
