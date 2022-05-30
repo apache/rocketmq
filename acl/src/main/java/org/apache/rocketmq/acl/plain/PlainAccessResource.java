@@ -36,7 +36,7 @@ import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.acl.common.AuthorizationHeader;
-import org.apache.rocketmq.acl.common.MetadataHeader;
+import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.MixAll;
@@ -172,7 +172,7 @@ public class PlainAccessResource implements AccessResource {
         return accessResource;
     }
 
-    public static PlainAccessResource parse(GeneratedMessageV3 messageV3, MetadataHeader header) {
+    public static PlainAccessResource parse(GeneratedMessageV3 messageV3, AuthenticationHeader header) {
         PlainAccessResource accessResource = new PlainAccessResource();
         String remoteAddress = header.getRemoteAddress();
         if (remoteAddress != null && remoteAddress.contains(":")) {

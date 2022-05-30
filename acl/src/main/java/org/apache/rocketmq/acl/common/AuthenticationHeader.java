@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.acl.common;
 
-public class MetadataHeader {
+public class AuthenticationHeader {
     private String remoteAddress;
     private String tenantId;
     private String namespace;
@@ -30,7 +30,7 @@ public class MetadataHeader {
     private String protocol;
     private int requestCode;
 
-    MetadataHeader(final String remoteAddress, final String tenantId, final String namespace,
+    AuthenticationHeader(final String remoteAddress, final String tenantId, final String namespace,
         final String authorization, final String datetime, final String sessionToken, final String requestId,
         final String language, final String clientVersion, final String protocol, final int requestCode) {
         this.remoteAddress = remoteAddress;
@@ -62,70 +62,70 @@ public class MetadataHeader {
         MetadataHeaderBuilder() {
         }
 
-        public MetadataHeader.MetadataHeaderBuilder remoteAddress(final String remoteAddress) {
+        public AuthenticationHeader.MetadataHeaderBuilder remoteAddress(final String remoteAddress) {
             this.remoteAddress = remoteAddress;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder tenantId(final String tenantId) {
+        public AuthenticationHeader.MetadataHeaderBuilder tenantId(final String tenantId) {
             this.tenantId = tenantId;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder namespace(final String namespace) {
+        public AuthenticationHeader.MetadataHeaderBuilder namespace(final String namespace) {
             this.namespace = namespace;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder authorization(final String authorization) {
+        public AuthenticationHeader.MetadataHeaderBuilder authorization(final String authorization) {
             this.authorization = authorization;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder datetime(final String datetime) {
+        public AuthenticationHeader.MetadataHeaderBuilder datetime(final String datetime) {
             this.datetime = datetime;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder sessionToken(final String sessionToken) {
+        public AuthenticationHeader.MetadataHeaderBuilder sessionToken(final String sessionToken) {
             this.sessionToken = sessionToken;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder requestId(final String requestId) {
+        public AuthenticationHeader.MetadataHeaderBuilder requestId(final String requestId) {
             this.requestId = requestId;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder language(final String language) {
+        public AuthenticationHeader.MetadataHeaderBuilder language(final String language) {
             this.language = language;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder clientVersion(final String clientVersion) {
+        public AuthenticationHeader.MetadataHeaderBuilder clientVersion(final String clientVersion) {
             this.clientVersion = clientVersion;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder protocol(final String protocol) {
+        public AuthenticationHeader.MetadataHeaderBuilder protocol(final String protocol) {
             this.protocol = protocol;
             return this;
         }
 
-        public MetadataHeader.MetadataHeaderBuilder requestCode(final int requestCode) {
+        public AuthenticationHeader.MetadataHeaderBuilder requestCode(final int requestCode) {
             this.requestCode = requestCode;
             return this;
         }
 
-        public MetadataHeader build() {
-            return new MetadataHeader(this.remoteAddress, this.tenantId, this.namespace, this.authorization,
+        public AuthenticationHeader build() {
+            return new AuthenticationHeader(this.remoteAddress, this.tenantId, this.namespace, this.authorization,
                 this.datetime, this.sessionToken, this.requestId, this.language, this.clientVersion, this.protocol,
                 this.requestCode);
         }
     }
 
-    public static MetadataHeader.MetadataHeaderBuilder builder() {
-        return new MetadataHeader.MetadataHeaderBuilder();
+    public static AuthenticationHeader.MetadataHeaderBuilder builder() {
+        return new AuthenticationHeader.MetadataHeaderBuilder();
     }
 
     public String getRemoteAddress() {

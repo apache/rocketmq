@@ -20,7 +20,7 @@ package org.apache.rocketmq.acl;
 import com.google.protobuf.GeneratedMessageV3;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.acl.common.MetadataHeader;
+import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.PlainAccessConfig;
@@ -43,7 +43,7 @@ public interface AccessValidator {
      * @param header
      * @return Plain access resource
      */
-    AccessResource parse(GeneratedMessageV3 messageV3, MetadataHeader header);
+    AccessResource parse(GeneratedMessageV3 messageV3, AuthenticationHeader header);
 
     /**
      * Validate the access resource.
