@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.common.MetadataHeader;
+import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.PlainAccessConfig;
@@ -40,7 +40,7 @@ public class PlainAccessValidator implements AccessValidator {
         return PlainAccessResource.parse(request, remoteAddr);
     }
 
-    @Override public AccessResource parse(GeneratedMessageV3 messageV3, MetadataHeader header) {
+    @Override public AccessResource parse(GeneratedMessageV3 messageV3, AuthenticationHeader header) {
         return PlainAccessResource.parse(messageV3, header);
     }
 
