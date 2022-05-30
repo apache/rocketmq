@@ -16,7 +16,8 @@
   limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
         <groupId>org.apache</groupId>
@@ -104,7 +105,7 @@
         <commons-cli.version>1.2</commons-cli.version>
         <netty.version>4.1.65.Final</netty.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
-        <fastjson.version>1.2.83</fastjson.version>
+        <fastjson.version>1.2.69_noneautotype</fastjson.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.4</commons-lang3.version>
@@ -205,7 +206,7 @@
                 </executions>
                 <configuration>
                     <rules>
-                        <banCircularDependencies />
+                        <banCircularDependencies/>
                     </rules>
                     <fail>true</fail>
                 </configuration>
