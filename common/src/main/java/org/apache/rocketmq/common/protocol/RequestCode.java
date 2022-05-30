@@ -190,4 +190,6 @@ public class RequestCode {
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
 
     public static final int ADD_WRITE_PERM_OF_BROKER = 327;
+
+    public static final int GET_ALL_PRODUCER_INFO = 328;
 }
