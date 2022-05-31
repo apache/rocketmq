@@ -206,19 +206,25 @@ public class ClientActivity extends AbstractMessingActivity {
         return new StreamObserver<TelemetryCommand>() {
             @Override
             public void onNext(TelemetryCommand request) {
-                switch (request.getCommandCase()) {
-                    case SETTINGS: {
-                        responseObserver.onNext(processClientSettings(ctx, request, responseObserver));
-                        break;
+                try {
+                    switch (request.getCommandCase()) {
+                        case SETTINGS: {
+                            responseObserver.onNext(processClientSettings(ctx, request, responseObserver));
+                            break;
+                        }
+                        case THREAD_STACK_TRACE: {
+                            reportThreadStackTrace(ctx, request.getStatus(), request.getThreadStackTrace());
+                            break;
+                        }
+                        case VERIFY_MESSAGE_RESULT: {
+                            reportVerifyMessageResult(ctx, request.getStatus(), request.getVerifyMessageResult());
+                            break;
+                        }
                     }
-                    case THREAD_STACK_TRACE: {
-                        reportThreadStackTrace(ctx, request.getStatus(), request.getThreadStackTrace());
-                        break;
-                    }
-                    case VERIFY_MESSAGE_RESULT: {
-                        reportVerifyMessageResult(ctx, request.getStatus(), request.getVerifyMessageResult());
-                        break;
-                    }
+                } catch (Exception e) {
+                    responseObserver.onNext(TelemetryCommand.newBuilder()
+                        .setStatus(ResponseBuilder.buildStatus(e))
+                        .build());
                 }
             }
 
