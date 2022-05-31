@@ -378,7 +378,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         }
 
         @Override
-        protected boolean transferData(int maxTransferSize) {
+        protected boolean transferData(int maxTransferSize) throws Exception {
 
             if (null != this.selectMappedBufferResult && maxTransferSize >= 0) {
                 this.selectMappedBufferResult.getByteBuffer().limit(maxTransferSize);
@@ -488,7 +488,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             return true;
         }
 
-        private boolean handshakeWithSlave() {
+        private boolean handshakeWithSlave() throws IOException {
             // Write Header
             boolean result = this.haWriter.write(this.socketChannel, this.byteBufferHeader);
 

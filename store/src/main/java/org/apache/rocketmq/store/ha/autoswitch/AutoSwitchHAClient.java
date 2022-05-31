@@ -246,7 +246,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return interval > this.messageStore.getMessageStoreConfig().getHaSendHeartbeatInterval();
     }
 
-    private boolean sendHandshakeHeader() {
+    private boolean sendHandshakeHeader() throws IOException {
         this.handshakeHeaderBuffer.position(0);
         this.handshakeHeaderBuffer.limit(HANDSHAKE_SIZE);
         // Original state
@@ -280,7 +280,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         }
     }
 
-    private boolean reportSlaveOffset(final long offsetToReport) {
+    private boolean reportSlaveOffset(final long offsetToReport) throws IOException {
         this.transferHeaderBuffer.position(0);
         this.transferHeaderBuffer.limit(TRANSFER_HEADER_SIZE);
         this.transferHeaderBuffer.putInt(this.currentState.ordinal());
@@ -289,7 +289,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return this.haWriter.write(this.socketChannel, this.transferHeaderBuffer);
     }
 
-    private boolean reportSlaveMaxOffset() {
+    private boolean reportSlaveMaxOffset() throws IOException {
         boolean result = true;
         final long maxPhyOffset = this.messageStore.getMaxPhyOffset();
         if (maxPhyOffset > this.currentReportedOffset) {
@@ -395,7 +395,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     /**
      * Compare the master and slave's epoch file, find consistent point, do truncate.
      */
-    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) {
+    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws IOException {
         if (this.epochCache.getEntrySize() == 0) {
             // If epochMap is empty, means the broker is a new replicas
             LOGGER.info("Slave local epochCache is empty, skip truncate log");
@@ -437,95 +437,98 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         @Override
         protected boolean processReadResult(ByteBuffer byteBufferRead) {
             int readSocketPos = byteBufferRead.position();
+            try {
+                while (true) {
+                    int diff = byteBufferRead.position() - AutoSwitchHAClient.this.processPosition;
+                    if (diff >= AutoSwitchHAConnection.MSG_HEADER_SIZE) {
+                        int processPosition = AutoSwitchHAClient.this.processPosition;
+                        int masterState = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 36);
+                        int bodySize = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 32);
+                        long masterOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 28);
+                        int masterEpoch = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 20);
+                        long masterEpochStartOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 16);
+                        long confirmOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 8);
 
-            while (true) {
-                int diff = byteBufferRead.position() - AutoSwitchHAClient.this.processPosition;
-                if (diff >= AutoSwitchHAConnection.MSG_HEADER_SIZE) {
-                    int processPosition = AutoSwitchHAClient.this.processPosition;
-                    int masterState = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 36);
-                    int bodySize = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 32);
-                    long masterOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 28);
-                    int masterEpoch = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 20);
-                    long masterEpochStartOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 16);
-                    long confirmOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE - 8);
+                        if (masterState != AutoSwitchHAClient.this.currentState.ordinal()) {
+                            AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize;
+                            AutoSwitchHAClient.this.waitForRunning(1);
+                            LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, offset:{}, masterEpoch:{}, masterEpochStartOffset:{}, confirmOffset:{}",
+                                masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
+                            return true;
+                        }
 
-                    if (masterState != AutoSwitchHAClient.this.currentState.ordinal()) {
-                        AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize;
-                        AutoSwitchHAClient.this.waitForRunning(1);
-                        LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, offset:{}, masterEpoch:{}, masterEpochStartOffset:{}, confirmOffset:{}",
-                            masterState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
-                        return true;
-                    }
-
-                    if (diff >= (AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize)) {
-                        switch (AutoSwitchHAClient.this.currentState) {
-                            case HANDSHAKE:
-                                AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE;
-                                // Truncate log
-                                int entrySize = AutoSwitchHAConnection.EPOCH_ENTRY_SIZE;
-                                final int entryNums = bodySize / entrySize;
-                                final ArrayList<EpochEntry> epochEntries = new ArrayList<>(entryNums);
-                                for (int i = 0; i < entryNums; i++) {
-                                    int epoch = byteBufferRead.getInt(AutoSwitchHAClient.this.processPosition + i * entrySize);
-                                    long startOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + i * entrySize + 4);
-                                    epochEntries.add(new EpochEntry(epoch, startOffset));
-                                }
-                                byteBufferRead.position(readSocketPos);
-                                AutoSwitchHAClient.this.processPosition += bodySize;
-                                LOGGER.info("Receive handshake, masterMaxPosition {}, masterEpochEntries:{}, try truncate log", masterOffset, epochEntries);
-                                if (!doTruncate(epochEntries, masterOffset)) {
-                                    waitForRunning(1000 * 2);
-                                    LOGGER.error("AutoSwitchHAClient truncate log failed in handshake state");
-                                    return false;
-                                }
-                                break;
-                            case TRANSFER:
-                                byte[] bodyData = new byte[bodySize];
-                                byteBufferRead.position(AutoSwitchHAClient.this.processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE);
-                                byteBufferRead.get(bodyData);
-                                byteBufferRead.position(readSocketPos);
-                                AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize;
-
-                                long slavePhyOffset = AutoSwitchHAClient.this.messageStore.getMaxPhyOffset();
-                                if (slavePhyOffset != 0) {
-                                    if (slavePhyOffset != masterOffset) {
-                                        LOGGER.error("master pushed offset not equal the max phy offset in slave, SLAVE: "
-                                            + slavePhyOffset + " MASTER: " + masterOffset);
+                        if (diff >= (AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize)) {
+                            switch (AutoSwitchHAClient.this.currentState) {
+                                case HANDSHAKE:
+                                    AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE;
+                                    // Truncate log
+                                    int entrySize = AutoSwitchHAConnection.EPOCH_ENTRY_SIZE;
+                                    final int entryNums = bodySize / entrySize;
+                                    final ArrayList<EpochEntry> epochEntries = new ArrayList<>(entryNums);
+                                    for (int i = 0; i < entryNums; i++) {
+                                        int epoch = byteBufferRead.getInt(AutoSwitchHAClient.this.processPosition + i * entrySize);
+                                        long startOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + i * entrySize + 4);
+                                        epochEntries.add(new EpochEntry(epoch, startOffset));
+                                    }
+                                    byteBufferRead.position(readSocketPos);
+                                    AutoSwitchHAClient.this.processPosition += bodySize;
+                                    LOGGER.info("Receive handshake, masterMaxPosition {}, masterEpochEntries:{}, try truncate log", masterOffset, epochEntries);
+                                    if (!doTruncate(epochEntries, masterOffset)) {
+                                        waitForRunning(1000 * 2);
+                                        LOGGER.error("AutoSwitchHAClient truncate log failed in handshake state");
                                         return false;
                                     }
-                                }
+                                    break;
+                                case TRANSFER:
+                                    byte[] bodyData = new byte[bodySize];
+                                    byteBufferRead.position(AutoSwitchHAClient.this.processPosition + AutoSwitchHAConnection.MSG_HEADER_SIZE);
+                                    byteBufferRead.get(bodyData);
+                                    byteBufferRead.position(readSocketPos);
+                                    AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.MSG_HEADER_SIZE + bodySize;
 
-                                // If epoch changed
-                                if (masterEpoch != AutoSwitchHAClient.this.currentReceivedEpoch) {
-                                    AutoSwitchHAClient.this.currentReceivedEpoch = masterEpoch;
-                                    AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterEpochStartOffset));
-                                }
-                                AutoSwitchHAClient.this.confirmOffset = Math.min(confirmOffset, messageStore.getMaxPhyOffset());
+                                    long slavePhyOffset = AutoSwitchHAClient.this.messageStore.getMaxPhyOffset();
+                                    if (slavePhyOffset != 0) {
+                                        if (slavePhyOffset != masterOffset) {
+                                            LOGGER.error("master pushed offset not equal the max phy offset in slave, SLAVE: "
+                                                + slavePhyOffset + " MASTER: " + masterOffset);
+                                            return false;
+                                        }
+                                    }
 
-                                if (bodySize > 0) {
-                                    AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
-                                    LOGGER.info("Append log to slave success, offset:{}", slavePhyOffset);
-                                }
+                                    // If epoch changed
+                                    if (masterEpoch != AutoSwitchHAClient.this.currentReceivedEpoch) {
+                                        AutoSwitchHAClient.this.currentReceivedEpoch = masterEpoch;
+                                        AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterEpochStartOffset));
+                                    }
+                                    AutoSwitchHAClient.this.confirmOffset = Math.min(confirmOffset, messageStore.getMaxPhyOffset());
 
-                                if (!reportSlaveMaxOffset()) {
-                                    LOGGER.error("AutoSwitchHAClient report max offset to master failed");
-                                    return false;
-                                }
-                                break;
-                            default:
-                                break;
+                                    if (bodySize > 0) {
+                                        AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
+                                        LOGGER.info("Append log to slave success, offset:{}", slavePhyOffset);
+                                    }
+
+                                    if (!reportSlaveMaxOffset()) {
+                                        LOGGER.error("AutoSwitchHAClient report max offset to master failed");
+                                        return false;
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
+                            continue;
                         }
-                        continue;
                     }
-                }
 
-                if (!byteBufferRead.hasRemaining()) {
-                    byteBufferRead.position(AutoSwitchHAClient.this.processPosition);
-                    byteBufferRead.compact();
-                    AutoSwitchHAClient.this.processPosition = 0;
-                }
+                    if (!byteBufferRead.hasRemaining()) {
+                        byteBufferRead.position(AutoSwitchHAClient.this.processPosition);
+                        byteBufferRead.compact();
+                        AutoSwitchHAClient.this.processPosition = 0;
+                    }
 
-                break;
+                    break;
+                }
+            } catch (final Exception e) {
+                LOGGER.error("Error when ha client process read request", e);
             }
             return true;
         }
