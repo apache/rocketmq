@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -157,19 +158,19 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        return "PullMessageRequestHeader [" +
-            "consumerGroup='" + consumerGroup + '\'' +
-            ", topic='" + topic + '\'' +
-            ", queueId=" + queueId +
-            ", queueOffset=" + queueOffset +
-            ", maxMsgBytes=" + maxMsgBytes +
-            ", maxMsgNums=" + maxMsgNums +
-            ", sysFlag=" + sysFlag +
-            ", commitOffset=" + commitOffset +
-            ", suspendTimeoutMillis=" + suspendTimeoutMillis +
-            ", subscription='" + subscription + '\'' +
-            ", subVersion=" + subVersion +
-            ", expressionType='" + expressionType + '\'' +
-            ']';
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("queueOffset", queueOffset)
+            .add("maxMsgBytes", maxMsgBytes)
+            .add("maxMsgNums", maxMsgNums)
+            .add("sysFlag", sysFlag)
+            .add("commitOffset", commitOffset)
+            .add("suspendTimeoutMillis", suspendTimeoutMillis)
+            .add("subscription", subscription)
+            .add("subVersion", subVersion)
+            .add("expressionType", expressionType)
+            .toString();
     }
 }

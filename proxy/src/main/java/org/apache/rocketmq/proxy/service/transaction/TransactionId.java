@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.transaction;
 
+import com.google.common.base.MoreObjects;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -180,15 +181,14 @@ public class TransactionId {
         this.proxyTransactionId = proxyTransactionId;
     }
 
-    @Override
-    public String toString() {
-        return "TransactionId{" +
-            "brokerName=" + brokerName +
-            ", brokerTransactionId='" + brokerTransactionId + '\'' +
-            ", commitLogOffset=" + commitLogOffset +
-            ", tranStateTableOffset=" + tranStateTableOffset +
-            ", gatewayTransactionId='" + proxyTransactionId + '\'' +
-            '}';
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("brokerName", brokerName)
+            .add("brokerTransactionId", brokerTransactionId)
+            .add("commitLogOffset", commitLogOffset)
+            .add("tranStateTableOffset", tranStateTableOffset)
+            .add("proxyTransactionId", proxyTransactionId)
+            .toString();
     }
 
     public static class TransactionIdBuilder {
@@ -230,15 +230,14 @@ public class TransactionId {
             return new TransactionId(brokerName, brokerTransactionId, commitLogOffset, tranStateTableOffset, proxyTransactionId);
         }
 
-        @Override
-        public String toString() {
-            return "TransactionId.TransactionIdBuilder{" +
-                "brokerName=" + brokerName +
-                ", brokerTransactionId='" + brokerTransactionId + '\'' +
-                ", commitLogOffset=" + commitLogOffset +
-                ", tranStateTableOffset=" + tranStateTableOffset +
-                ", gatewayTransactionId='" + proxyTransactionId + '\'' +
-                '}';
+        @Override public String toString() {
+            return MoreObjects.toStringHelper(this)
+                .add("brokerName", brokerName)
+                .add("brokerTransactionId", brokerTransactionId)
+                .add("commitLogOffset", commitLogOffset)
+                .add("tranStateTableOffset", tranStateTableOffset)
+                .add("proxyTransactionId", proxyTransactionId)
+                .toString();
         }
     }
 }

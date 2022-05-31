@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -166,20 +167,20 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        return "SendMessageRequestHeader [" +
-            "producerGroup='" + producerGroup + '\'' +
-            ", topic='" + topic + '\'' +
-            ", defaultTopic='" + defaultTopic + '\'' +
-            ", defaultTopicQueueNums=" + defaultTopicQueueNums +
-            ", queueId=" + queueId +
-            ", sysFlag=" + sysFlag +
-            ", bornTimestamp=" + bornTimestamp +
-            ", flag=" + flag +
-            ", properties='" + properties + '\'' +
-            ", reconsumeTimes=" + reconsumeTimes +
-            ", unitMode=" + unitMode +
-            ", batch=" + batch +
-            ", maxReconsumeTimes=" + maxReconsumeTimes +
-            ']';
+        return MoreObjects.toStringHelper(this)
+            .add("producerGroup", producerGroup)
+            .add("topic", topic)
+            .add("defaultTopic", defaultTopic)
+            .add("defaultTopicQueueNums", defaultTopicQueueNums)
+            .add("queueId", queueId)
+            .add("sysFlag", sysFlag)
+            .add("bornTimestamp", bornTimestamp)
+            .add("flag", flag)
+            .add("properties", properties)
+            .add("reconsumeTimes", reconsumeTimes)
+            .add("unitMode", unitMode)
+            .add("batch", batch)
+            .add("maxReconsumeTimes", maxReconsumeTimes)
+            .toString();
     }
 }

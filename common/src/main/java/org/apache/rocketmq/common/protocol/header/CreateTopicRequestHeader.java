@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
@@ -142,17 +143,17 @@ public class CreateTopicRequestHeader implements CommandCustomHeader {
 
     @Override
     public String toString() {
-        return "CreateTopicRequestHeader{" +
-            "topic='" + topic + '\'' +
-            ", defaultTopic='" + defaultTopic + '\'' +
-            ", readQueueNums=" + readQueueNums +
-            ", writeQueueNums=" + writeQueueNums +
-            ", perm=" + perm +
-            ", topicFilterType='" + topicFilterType + '\'' +
-            ", topicSysFlag=" + topicSysFlag +
-            ", order=" + order +
-            ", attributes='" + attributes + '\'' +
-            ", force=" + force +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("topic", topic)
+            .add("defaultTopic", defaultTopic)
+            .add("readQueueNums", readQueueNums)
+            .add("writeQueueNums", writeQueueNums)
+            .add("perm", perm)
+            .add("topicFilterType", topicFilterType)
+            .add("topicSysFlag", topicSysFlag)
+            .add("order", order)
+            .add("attributes", attributes)
+            .add("force", force)
+            .toString();
     }
 }

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -98,14 +99,14 @@ public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
 
     @Override
     public String toString() {
-        return "ConsumerSendMsgBackRequestHeader{" +
-            "offset=" + offset +
-            ", group='" + group + '\'' +
-            ", delayLevel=" + delayLevel +
-            ", originMsgId='" + originMsgId + '\'' +
-            ", originTopic='" + originTopic + '\'' +
-            ", unitMode=" + unitMode +
-            ", maxReconsumeTimes=" + maxReconsumeTimes +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("offset", offset)
+            .add("group", group)
+            .add("delayLevel", delayLevel)
+            .add("originMsgId", originMsgId)
+            .add("originTopic", originTopic)
+            .add("unitMode", unitMode)
+            .add("maxReconsumeTimes", maxReconsumeTimes)
+            .toString();
     }
 }

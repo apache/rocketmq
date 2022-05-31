@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -47,9 +48,9 @@ public class GetConsumeStatsRequestHeader implements CommandCustomHeader {
 
     @Override
     public String toString() {
-        return "GetConsumeStatsRequestHeader{" +
-            "consumerGroup='" + consumerGroup + '\'' +
-            ", topic='" + topic + '\'' +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("topic", topic)
+            .toString();
     }
 }

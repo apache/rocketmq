@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -94,15 +95,14 @@ public class ChangeInvisibleTimeRequestHeader implements CommandCustomHeader {
         this.queueId = queueId;
     }
 
-    @Override
-    public String toString() {
-        return "ChangeInvisibleTimeRequestHeader{" +
-            "consumerGroup='" + consumerGroup + '\'' +
-            ", topic='" + topic + '\'' +
-            ", queueId=" + queueId +
-            ", extraInfo='" + extraInfo + '\'' +
-            ", offset=" + offset +
-            ", invisibleTime=" + invisibleTime +
-            '}';
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("extraInfo", extraInfo)
+            .add("offset", offset)
+            .add("invisibleTime", invisibleTime)
+            .toString();
     }
 }

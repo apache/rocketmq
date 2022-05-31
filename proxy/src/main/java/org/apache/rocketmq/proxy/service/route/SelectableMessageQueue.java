@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.route;
 
+import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import org.apache.rocketmq.common.message.MessageQueue;
 
@@ -72,9 +73,9 @@ public class SelectableMessageQueue implements Comparable<SelectableMessageQueue
     }
 
     @Override public String toString() {
-        return "SelectableMessageQueue{" +
-            "messageQueue=" + messageQueue +
-            ", brokerAddr='" + brokerAddr + '\'' +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("messageQueue", messageQueue)
+            .add("brokerAddr", brokerAddr)
+            .toString();
     }
 }
