@@ -17,12 +17,13 @@
 
 package org.apache.rocketmq.common.subscription;
 
+import com.google.common.base.MoreObjects;
 import java.util.concurrent.TimeUnit;
 
 /**
  * next delay time = min(max, initial * multiplier^reconsumeTimes)
  */
-public class ExponentialRetryPolicy {
+public class ExponentialRetryPolicy implements RetryPolicy {
     private long initial = TimeUnit.SECONDS.toMillis(5);
     private long max = TimeUnit.HOURS.toMillis(2);
     private long multiplier = 2;
@@ -53,10 +54,22 @@ public class ExponentialRetryPolicy {
 
     @Override
     public String toString() {
-        return "ExponentialRetryPolicy{" +
-            "initial=" + initial +
-            ", max=" + max +
-            ", multiplier=" + multiplier +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("initial", initial)
+            .add("max", max)
+            .add("multiplier", multiplier)
+            .toString();
+    }
+
+    @Override
+    public long nextDelayDuration(int reconsumeTimes, TimeUnit timeUnit) {
+        if (reconsumeTimes < 0) {
+            reconsumeTimes = 0;
+        }
+        if (reconsumeTimes > 32) {
+            reconsumeTimes = 32;
+        }
+        long nextDelayDurationInMillis = Math.min(max, initial * (long) Math.pow(multiplier, reconsumeTimes));
+        return timeUnit.convert(nextDelayDurationInMillis, TimeUnit.MILLISECONDS);
     }
 }
