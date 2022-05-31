@@ -311,8 +311,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     byteBufferRead.position(readSocketPos);
                                     ReadSocketService.this.processPosition += AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength;
                                     LOGGER.info("Receive slave handshake, slaveId:{}, slaveAddress:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
-                                        AutoSwitchHAConnection.this.slaveId, AutoSwitchHAConnection.this.slaveAddress,
-                                        AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
+                                        AutoSwitchHAConnection.this.slaveAddress, AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
                                 }
                                 break;
                             case TRANSFER:

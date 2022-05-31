@@ -20,7 +20,6 @@ package org.apache.rocketmq.store.ha.autoswitch;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -278,7 +277,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         result = this.haReader.read(this.socketChannel, this.byteBufferRead);
         if (!result) {
             closeMasterAndWait();
-            return;
         }
     }
 
@@ -301,12 +299,18 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return result;
     }
 
-    public boolean connectMaster() throws ClosedChannelException {
+    public boolean connectMaster() throws IOException {
         if (null == this.socketChannel) {
             String addr = this.masterHaAddress.get();
             if (StringUtils.isNotEmpty(addr)) {
                 SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
-                this.socketChannel = RemotingUtil.connect(socketAddress);
+                this.socketChannel = SocketChannel.open();
+                this.socketChannel.socket().setSoLinger(false, -1);
+                this.socketChannel.socket().setTcpNoDelay(true);
+                this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
+                this.socketChannel.socket().setSendBufferSize(1024 * 64);
+                this.socketChannel.socket().connect(socketAddress, 1000 * 5);
+                this.socketChannel.configureBlocking(false);
                 if (this.socketChannel != null) {
                     this.socketChannel.register(this.selector, SelectionKey.OP_READ);
                     LOGGER.info("AutoSwitchHAClient connect to master {}", addr);
@@ -500,6 +504,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
                                 if (bodySize > 0) {
                                     AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
+                                    LOGGER.info("Append log to slave success, offset:{}", slavePhyOffset);
                                 }
 
                                 if (!reportSlaveMaxOffset()) {
