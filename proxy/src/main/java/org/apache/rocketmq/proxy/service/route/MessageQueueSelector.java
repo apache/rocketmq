@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.route;
 
+import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -192,12 +193,13 @@ public class MessageQueueSelector {
         return Objects.hash(queues, brokerActingQueues);
     }
 
-    @Override
-    public String toString() {
-        return "SelectableMessageQueue{" + "queues=" + queues +
-            ", brokers=" + brokerActingQueues +
-            ", queueIndex=" + queueIndex +
-            ", brokerIndex=" + brokerIndex +
-            '}';
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("queues", queues)
+            .add("brokerActingQueues", brokerActingQueues)
+            .add("brokerNameQueueMap", brokerNameQueueMap)
+            .add("queueIndex", queueIndex)
+            .add("brokerIndex", brokerIndex)
+            .toString();
     }
 }

@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -88,13 +89,13 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
 
     @Override
     public String toString() {
-        return "CheckTransactionStateRequestHeader{" +
-            "brokerName='" + brokerName + '\'' +
-            ", tranStateTableOffset=" + tranStateTableOffset +
-            ", commitLogOffset=" + commitLogOffset +
-            ", msgId='" + msgId + '\'' +
-            ", transactionId='" + transactionId + '\'' +
-            ", offsetMsgId='" + offsetMsgId + '\'' +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("brokerName", brokerName)
+            .add("tranStateTableOffset", tranStateTableOffset)
+            .add("commitLogOffset", commitLogOffset)
+            .add("msgId", msgId)
+            .add("transactionId", transactionId)
+            .add("offsetMsgId", offsetMsgId)
+            .toString();
     }
 }

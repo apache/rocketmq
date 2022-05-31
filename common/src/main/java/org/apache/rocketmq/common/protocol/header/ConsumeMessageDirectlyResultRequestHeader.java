@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
@@ -100,14 +101,14 @@ public class ConsumeMessageDirectlyResultRequestHeader implements CommandCustomH
 
     @Override
     public String toString() {
-        return "ConsumeMessageDirectlyResultRequestHeader{" +
-            "consumerGroup='" + consumerGroup + '\'' +
-            ", clientId='" + clientId + '\'' +
-            ", msgId='" + msgId + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            ", topic='" + topic + '\'' +
-            ", topicSysFlag=" + topicSysFlag +
-            ", groupSysFlag=" + groupSysFlag +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("clientId", clientId)
+            .add("msgId", msgId)
+            .add("brokerName", brokerName)
+            .add("topic", topic)
+            .add("topicSysFlag", topicSysFlag)
+            .add("groupSysFlag", groupSysFlag)
+            .toString();
     }
 }

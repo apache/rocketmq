@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -80,12 +81,12 @@ public class AckMessageRequestHeader implements CommandCustomHeader {
 
     @Override
     public String toString() {
-        return "AckMessageRequestHeader{" +
-            "consumerGroup='" + consumerGroup + '\'' +
-            ", topic='" + topic + '\'' +
-            ", queueId=" + queueId +
-            ", extraInfo='" + extraInfo + '\'' +
-            ", offset=" + offset +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("extraInfo", extraInfo)
+            .add("offset", offset)
+            .toString();
     }
 }
