@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.route;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 public class MessageQueueView {
@@ -52,12 +53,11 @@ public class MessageQueueView {
         return writeSelector;
     }
 
-    @Override
-    public String toString() {
-        return "MessageQueueView{" +
-            "readSelector=" + readSelector +
-            ", writeSelector=" + writeSelector +
-            ", topicRouteWrapper=" + topicRouteWrapper +
-            '}';
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("readSelector", readSelector)
+            .add("writeSelector", writeSelector)
+            .add("topicRouteWrapper", topicRouteWrapper)
+            .toString();
     }
 }

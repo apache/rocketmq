@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.acl.common;
 
+import com.google.common.base.MoreObjects;
+
 public class AuthenticationHeader {
     private String remoteAddress;
     private String tenantId;
@@ -217,19 +219,18 @@ public class AuthenticationHeader {
     }
 
     @Override public String toString() {
-        final StringBuilder sb = new StringBuilder("MetadataHeader{");
-        sb.append("remoteAddress='").append(remoteAddress).append('\'');
-        sb.append(", tenantId='").append(tenantId).append('\'');
-        sb.append(", namespace='").append(namespace).append('\'');
-        sb.append(", authorization='").append(authorization).append('\'');
-        sb.append(", datetime='").append(datetime).append('\'');
-        sb.append(", sessionToken='").append(sessionToken).append('\'');
-        sb.append(", requestId='").append(requestId).append('\'');
-        sb.append(", language='").append(language).append('\'');
-        sb.append(", clientVersion='").append(clientVersion).append('\'');
-        sb.append(", protocol='").append(protocol).append('\'');
-        sb.append(", requestCode=").append(requestCode);
-        sb.append('}');
-        return sb.toString();
+        return MoreObjects.toStringHelper(this)
+            .add("remoteAddress", remoteAddress)
+            .add("tenantId", tenantId)
+            .add("namespace", namespace)
+            .add("authorization", authorization)
+            .add("datetime", datetime)
+            .add("sessionToken", sessionToken)
+            .add("requestId", requestId)
+            .add("language", language)
+            .add("clientVersion", clientVersion)
+            .add("protocol", protocol)
+            .add("requestCode", requestCode)
+            .toString();
     }
 }
