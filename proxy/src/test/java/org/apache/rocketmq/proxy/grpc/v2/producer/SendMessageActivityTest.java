@@ -71,7 +71,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.sendMessageActivity = new SendMessageActivity(this.messagingProcessor, this.grpcClientSettingsManager);
+        this.sendMessageActivity = new SendMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
     @Test

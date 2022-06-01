@@ -45,7 +45,8 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(this.messagingProcessor, this.grpcClientSettingsManager);
+        this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, receiptHandleProcessor,
+            grpcClientSettingsManager, grpcChannelManager);
     }
 
     @Test

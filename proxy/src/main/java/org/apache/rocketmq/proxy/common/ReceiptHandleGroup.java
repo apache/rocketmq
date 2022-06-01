@@ -17,10 +17,22 @@
 
 package org.apache.rocketmq.proxy.common;
 
-public class ContextVariable {
-    public final static String REMOTE_ADDRESS = "remote-address";
-    public final static String LOCAL_ADDRESS = "local-address";
-    public static final String CLIENT_ID = "client-id";
-    public static final String LANGUAGE = "language";
-    public final static String CHANNEL_KEY = "channel-key";
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class ReceiptHandleGroup {
+    private final Map<String, MessageReceiptHandle> receiptHandleMap = new ConcurrentHashMap<>();
+
+    public void put(String key, MessageReceiptHandle value) {
+        receiptHandleMap.put(key, value);
+    }
+
+    public void remove(String key) {
+        receiptHandleMap.remove(key);
+    }
+
+    public Map<String, MessageReceiptHandle> all() {
+        return ImmutableMap.copyOf(receiptHandleMap);
+    }
 }

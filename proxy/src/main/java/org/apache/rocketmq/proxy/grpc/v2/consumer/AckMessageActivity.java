@@ -30,22 +30,29 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 
 public class AckMessageActivity extends AbstractMessingActivity {
-
-    public AckMessageActivity(MessagingProcessor messagingProcessor,
-        GrpcClientSettingsManager grpcClientSettingsManager) {
-        super(messagingProcessor, grpcClientSettingsManager);
+    protected ReceiptHandleProcessor receiptHandleProcessor;
+    public AckMessageActivity(MessagingProcessor messagingProcessor, ReceiptHandleProcessor receiptHandleProcessor,
+        GrpcClientSettingsManager grpcClientSettingsManager,
+        GrpcChannelManager grpcChannelManager) {
+        super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.receiptHandleProcessor = receiptHandleProcessor;
     }
 
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
         ProxyContext proxyContext = createContext(ctx);
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        attachChannelId(ctx, proxyContext, groupName);
         CompletableFuture<AckMessageResponse> future = new CompletableFuture<>();
 
         try {
@@ -101,12 +108,16 @@ public class AckMessageActivity extends AbstractMessingActivity {
                 ackMessageEntry.getMessageId(),
                 GrpcConverter.wrapResourceWithNamespace(request.getGroup()),
                 GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
-            ackResultFuture
-                .thenAccept(result -> future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result)))
-                .exceptionally(throwable -> {
-                    future.complete(failResult.setStatus(ResponseBuilder.buildStatus(throwable)).build());
-                    return null;
-                });
+            ackResultFuture.thenAccept(result -> {
+                if (AckStatus.OK.equals(result.getStatus())) {
+                    String channelId = ctx.getVal(ContextVariable.CHANNEL_KEY);
+                    receiptHandleProcessor.removeReceiptHandle(channelId, ackMessageEntry.getReceiptHandle());
+                }
+                future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result));
+            }).exceptionally(throwable -> {
+                future.complete(failResult.setStatus(ResponseBuilder.buildStatus(throwable)).build());
+                return null;
+            });
         } catch (Throwable t) {
             future.complete(failResult.setStatus(ResponseBuilder.buildStatus(t)).build());
         }

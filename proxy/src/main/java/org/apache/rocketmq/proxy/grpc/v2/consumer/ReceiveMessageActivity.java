@@ -25,33 +25,46 @@ import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.util.Durations;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.filter.FilterAPI;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.proxy.common.ContextVariable;
+import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
+import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 
 public class ReceiveMessageActivity extends AbstractMessingActivity {
+    protected ReceiptHandleProcessor receiptHandleProcessor;
 
-    public ReceiveMessageActivity(MessagingProcessor messagingProcessor,
-        GrpcClientSettingsManager grpcClientSettingsManager) {
-        super(messagingProcessor, grpcClientSettingsManager);
+    public ReceiveMessageActivity(MessagingProcessor messagingProcessor, ReceiptHandleProcessor receiptHandleProcessor,
+        GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
+        super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.receiptHandleProcessor = receiptHandleProcessor;
     }
 
     public void receiveMessage(Context ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
         ProxyContext proxyContext = createContext(ctx);
         ReceiveMessageResponseStreamWriter writer = createWriter(proxyContext, responseObserver);
+        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
+        attachChannelId(ctx, proxyContext, groupName);
 
         try {
             Settings settings = this.grpcClientSettingsManager.getClientSettings(proxyContext);
@@ -68,10 +81,11 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 return;
             }
 
-            long invisibleTime = Durations.toMillis(request.getInvisibleDuration());
-            if (request.getAutoRenew()) {
-                invisibleTime = Durations.toMillis(subscription.getLongPollingTimeout()
-                );
+            final long requestInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
+            long actualInvisibleTime = requestInvisibleTime;
+            ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+            if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
+                actualInvisibleTime = Math.min(actualInvisibleTime, proxyConfig.getRenewSliceTimeMillis());
             }
 
             String topic = GrpcConverter.wrapResourceWithNamespace(request.getMessageQueue().getTopic());
@@ -94,14 +108,30 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 group,
                 topic,
                 request.getBatchSize(),
-                invisibleTime,
+                actualInvisibleTime,
                 pollTime,
                 ConsumeInitMode.MAX,
                 subscriptionData,
                 fifo,
                 new PopMessageResultFilterImpl(grpcClientSettingsManager),
                 timeRemaining
-            ).thenAccept(popResult -> writer.writeAndComplete(proxyContext, request, popResult))
+            ).thenAccept(popResult -> {
+                if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
+                    List<MessageExt> messageExtList = popResult.getMsgFoundList();
+                    for (MessageExt messageExt : messageExtList) {
+                        String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+                        if (receiptHandle != null) {
+                            MessageQueue messageQueue = new MessageQueue(topic, messageExt.getBrokerName(), messageExt.getQueueId());
+                            MessageReceiptHandle messageReceiptHandle =
+                                new MessageReceiptHandle(group, messageQueue, receiptHandle, messageExt.getMsgId(),
+                                    messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), requestInvisibleTime);
+                            String channelId = proxyContext.getVal(ContextVariable.CHANNEL_KEY);
+                            receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
+                        }
+                    }
+                }
+                writer.writeAndComplete(proxyContext, request, popResult);
+            })
                 .exceptionally(t -> {
                     writer.writeAndComplete(proxyContext, request, t);
                     return null;

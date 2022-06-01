@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.common;
+package org.apache.rocketmq.proxy.common.utils;
 
-public class ContextVariable {
-    public final static String REMOTE_ADDRESS = "remote-address";
-    public final static String LOCAL_ADDRESS = "local-address";
-    public static final String CLIENT_ID = "client-id";
-    public static final String LANGUAGE = "language";
-    public final static String CHANNEL_KEY = "channel-key";
+import io.netty.channel.Channel;
+
+public class ChannelUtils {
+    public static String buildChannelKey(Channel channel, String groupName) {
+        return channel.id().asLongText() + "%" + groupName;
+    }
 }

@@ -60,7 +60,7 @@ public class EndTransactionActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.endTransactionActivity = new EndTransactionActivity(this.messagingProcessor, this.grpcClientSettingsManager);
+        this.endTransactionActivity = new EndTransactionActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
     @Test

@@ -46,8 +46,8 @@ public class ConsumerProcessor extends AbstractProcessor {
 
     private final ExecutorService executor;
 
-    public ConsumerProcessor(MessagingProcessor messagingProcessor,
-        ServiceManager serviceManager, ExecutorService executor) {
+    public ConsumerProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager,
+        ExecutorService executor) {
         super(messagingProcessor, serviceManager);
         this.executor = executor;
     }

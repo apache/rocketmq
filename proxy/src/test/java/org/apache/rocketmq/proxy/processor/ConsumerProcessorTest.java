@@ -64,7 +64,8 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.consumerProcessor = new ConsumerProcessor(this.messagingProcessor, this.serviceManager, Executors.newCachedThreadPool());
+        ReceiptHandleProcessor receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
+        this.consumerProcessor = new ConsumerProcessor(messagingProcessor, serviceManager, Executors.newCachedThreadPool());
     }
 
     @Test
