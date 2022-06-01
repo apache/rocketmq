@@ -290,7 +290,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                         HAConnectionState slaveState = HAConnectionState.values()[byteBufferRead.getInt(readPosition)];
 
                         switch (slaveState) {
-                            case HANDSHAKE: {
+                            case HANDSHAKE:
                                 // AddressLength
                                 int addressLength = byteBufferRead.getInt(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 4);
                                 if (diff < AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength) {
@@ -316,9 +316,8 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 isSlaveSendHandshake = true;
                                 byteBufferRead.position(readSocketPos);
                                 ReadSocketService.this.processPosition += AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength;
-                                LOGGER.info("Receive slave handshake, slaveId:{}, slaveAddress:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
+                                LOGGER.info("Receive slave handshake, slaveAddress:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
                                     AutoSwitchHAConnection.this.slaveAddress, AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
-                            }
                                 break;
                             case TRANSFER:
                                 long slaveMaxOffset = byteBufferRead.getLong(readPosition + 4);

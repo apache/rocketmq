@@ -498,7 +498,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
                                     if (bodySize > 0) {
                                         AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
-                                        LOGGER.info("Append log to slave success, offset:{}", slavePhyOffset);
                                     }
 
                                     if (!reportSlaveMaxOffset()) {
