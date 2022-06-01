@@ -94,7 +94,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             receiveStreamObserver
         );
 
-        assertEquals(Code.ILLEGAL_FILTER_EXPRESSION, responseArgumentCaptor.getValue().getStatus().getCode());
+        assertEquals(Code.ILLEGAL_FILTER_EXPRESSION, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
     }
 
     @Test
@@ -133,7 +133,16 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
                 .build(),
             receiveStreamObserver
         );
-        assertEquals(Code.MESSAGE_NOT_FOUND, responseArgumentCaptor.getValue().getStatus().getCode());
+        assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
+    private Code getResponseCodeFromReceiveMessageResponseList(List<ReceiveMessageResponse> responseList) {
+        for (ReceiveMessageResponse response : responseList) {
+            if (response.hasStatus()) {
+                return response.getStatus().getCode();
+            }
+        }
+        return null;
     }
 
     @Test

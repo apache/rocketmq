@@ -20,14 +20,18 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
+import com.google.protobuf.util.Timestamps;
 import io.grpc.stub.StreamObserver;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -35,7 +39,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 public class ReceiveMessageResponseStreamWriter {
-
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected static final long NACK_INVISIBLE_TIME = Duration.ofSeconds(1).toMillis();
 
     protected final MessagingProcessor messagingProcessor;
@@ -48,7 +52,7 @@ public class ReceiveMessageResponseStreamWriter {
         this.streamObserver = observer;
     }
 
-    public void write(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult) {
+    public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult) {
         PopStatus status = popResult.getPopStatus();
         List<MessageExt> messageFoundList = popResult.getMsgFoundList();
         try {
@@ -62,7 +66,7 @@ public class ReceiveMessageResponseStreamWriter {
                         streamObserver.onNext(ReceiveMessageResponse.newBuilder()
                             .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
                             .build());
-                        Iterator<MessageExt> messageIterator =  messageFoundList.iterator();
+                        Iterator<MessageExt> messageIterator = messageFoundList.iterator();
                         while (messageIterator.hasNext()) {
                             MessageExt curMessageExt = messageIterator.next();
                             Message curMessage = convertToMessage(curMessageExt);
@@ -93,9 +97,10 @@ public class ReceiveMessageResponseStreamWriter {
                     break;
             }
         } catch (Throwable t) {
-            write(ctx, request, t);
+            writeResponseWithErrorIgnore(
+                ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(t)).build());
         } finally {
-            streamObserver.onCompleted();
+            onComplete();
         }
     }
 
@@ -121,17 +126,34 @@ public class ReceiveMessageResponseStreamWriter {
         );
     }
 
-    public void write(ProxyContext ctx, Code code, String message) {
-        ResponseWriter.write(
-            streamObserver,
-            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(code, message)).build()
-        );
+    public void writeAndComplete(ProxyContext ctx, Code code, String message) {
+        writeResponseWithErrorIgnore(
+            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(code, message)).build());
+        onComplete();
     }
 
-    public void write(ProxyContext ctx, ReceiveMessageRequest request, Throwable throwable) {
-        ResponseWriter.write(
-            streamObserver,
-            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(throwable)).build()
-        );
+    public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, Throwable throwable) {
+        writeResponseWithErrorIgnore(
+            ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.buildStatus(throwable)).build());
+        onComplete();
+    }
+
+    protected void writeResponseWithErrorIgnore(ReceiveMessageResponse response) {
+        try {
+            ResponseWriter.writeResponse(streamObserver, response);
+        } catch (Exception e) {
+            log.error("err when write receive message response", e);
+        }
+    }
+
+    protected void onComplete() {
+        writeResponseWithErrorIgnore(ReceiveMessageResponse.newBuilder()
+            .setDeliveryTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+            .build());
+        try {
+            streamObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("err when complete receive message response", e);
+        }
     }
 }

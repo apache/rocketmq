@@ -51,10 +51,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
     public void receiveMessage(Context ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
         ProxyContext proxyContext = createContext(ctx);
-        ReceiveMessageResponseStreamWriter writer = new ReceiveMessageResponseStreamWriter(
-            this.messagingProcessor,
-            responseObserver
-        );
+        ReceiveMessageResponseStreamWriter writer = createWriter(proxyContext, responseObserver);
 
         try {
             Settings settings = this.grpcClientSettingsManager.getClientSettings(proxyContext);
@@ -67,7 +64,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 pollTime = timeRemaining;
             }
             if (pollTime <= 0) {
-                writer.write(proxyContext, Code.MESSAGE_NOT_FOUND, "time remaining is too small");
+                writer.writeAndComplete(proxyContext, Code.MESSAGE_NOT_FOUND, "time remaining is too small");
                 return;
             }
 
@@ -85,7 +82,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 subscriptionData = FilterAPI.build(topic, filterExpression.getExpression(),
                     GrpcConverter.buildExpressionType(filterExpression.getType()));
             } catch (Exception e) {
-                writer.write(proxyContext, Code.ILLEGAL_FILTER_EXPRESSION, e.getMessage());
+                writer.writeAndComplete(proxyContext, Code.ILLEGAL_FILTER_EXPRESSION, e.getMessage());
                 return;
             }
 
@@ -104,14 +101,21 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 fifo,
                 new PopMessageResultFilterImpl(grpcClientSettingsManager),
                 timeRemaining
-            ).thenAccept(popResult -> writer.write(proxyContext, request, popResult))
+            ).thenAccept(popResult -> writer.writeAndComplete(proxyContext, request, popResult))
                 .exceptionally(t -> {
-                    writer.write(proxyContext, request, t);
+                    writer.writeAndComplete(proxyContext, request, t);
                     return null;
                 });
         } catch (Throwable t) {
-            writer.write(proxyContext, request, t);
+            writer.writeAndComplete(proxyContext, request, t);
         }
+    }
+
+    protected ReceiveMessageResponseStreamWriter createWriter(ProxyContext ctx, StreamObserver<ReceiveMessageResponse> responseObserver) {
+        return new ReceiveMessageResponseStreamWriter(
+            this.messagingProcessor,
+            responseObserver
+        );
     }
 
     protected static class ReceiveMessageQueueSelector implements QueueSelector {

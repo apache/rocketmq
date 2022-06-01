@@ -502,14 +502,6 @@ public class GrpcBaseIT extends BaseConf {
             .build();
     }
 
-    public AckMessageRequest buildAckMessageRequest(String topic, String group, String messageId,
-        String receiptHandle) {
-        return buildAckMessageRequest(topic, group, AckMessageEntry.newBuilder()
-            .setMessageId(messageId)
-            .setReceiptHandle(receiptHandle)
-            .build());
-    }
-
     public AckMessageRequest buildAckMessageRequest(String topic, String group, AckMessageEntry... entry) {
         return AckMessageRequest.newBuilder()
             .setGroup(Resource.newBuilder()
@@ -572,15 +564,6 @@ public class GrpcBaseIT extends BaseConf {
         return response.get(1).getMessage();
     }
 
-    public void assertAllAckOk(AckMessageResponse response) {
-        assertThat(response.getStatus()
-            .getCode()).isEqualTo(Code.OK);
-        for (AckMessageResultEntry entry : response.getEntriesList()) {
-            assertThat(entry.getStatus()
-                .getCode()).isEqualTo(Code.OK);
-        }
-    }
-
     public void assertRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand command, String messageId) {
         assertThat(command.getOrphanedTransactionalMessage().getSystemProperties().getMessageId())
             .isEqualTo(messageId);
@@ -603,12 +586,6 @@ public class GrpcBaseIT extends BaseConf {
                 .setHost("127.0.0.1")
                 .setPort(port)
                 .build())
-            .build();
-    }
-
-    public Settings buildAccessPointClientSettings(int port) {
-        return Settings.newBuilder()
-            .setAccessPoint(buildEndpoints(port))
             .build();
     }
 
