@@ -18,7 +18,6 @@
 package org.apache.rocketmq.acl.common;
 
 import com.google.common.base.MoreObjects;
-import java.util.Arrays;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
