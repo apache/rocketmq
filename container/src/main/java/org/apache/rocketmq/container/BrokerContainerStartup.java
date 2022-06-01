@@ -149,7 +149,7 @@ public class BrokerContainerStartup {
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
-        if (!brokerConfig.isStartupControllerMode()) {
+        if (!brokerConfig.isEnableControllerMode()) {
             switch (messageStoreConfig.getBrokerRole()) {
                 case ASYNC_MASTER:
                 case SYNC_MASTER:

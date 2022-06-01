@@ -154,7 +154,7 @@ public class BrokerStartup {
                 }
             }
 
-            if (!brokerConfig.isStartupControllerMode()) {
+            if (!brokerConfig.isEnableControllerMode()) {
                 switch (messageStoreConfig.getBrokerRole()) {
                     case ASYNC_MASTER:
                     case SYNC_MASTER:

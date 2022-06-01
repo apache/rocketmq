@@ -46,7 +46,7 @@ import org.apache.rocketmq.store.ha.HAConnectionStateNotificationService;
  */
 public class AutoSwitchHAService extends DefaultHAService {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private final ExecutorService executorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("AutoSwitchHAService_Executor_"));
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("AutoSwitchHAService_Executor_"));
     private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
     private final CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
     private String localAddress;
@@ -144,6 +144,16 @@ public class AutoSwitchHAService extends DefaultHAService {
     @Override public void updateMasterAddress(String newAddr) {
     }
 
+    @Override public void removeConnection(HAConnection conn) {
+        final Set<String> syncStateSet = getSyncStateSet();
+        String slave = ((AutoSwitchHAConnection) conn).getSlaveAddress();
+        if (syncStateSet.contains(slave)) {
+            syncStateSet.remove(slave);
+            notifySyncStateSetChanged(syncStateSet);
+        }
+        super.removeConnection(conn);
+    }
+
     public void registerSyncStateSetChangedListener(final Consumer<Set<String>> listener) {
         this.syncStateSetChangedListeners.add(listener);
     }
@@ -168,7 +178,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             final AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
             final String slaveAddress = connection.getSlaveAddress();
             if (currentSyncStateSet.contains(slaveAddress)) {
-                if (this.defaultMessageStore.getMaxPhyOffset() == connection.getSlaveAckOffset()) {
+                if (connection.getSlaveAckOffset() < 0 || this.defaultMessageStore.getMaxPhyOffset() == connection.getSlaveAckOffset()) {
                     continue;
                 }
                 if ((System.currentTimeMillis() - connection.getLastCatchUpTimeMs()) > haMaxTimeSlaveNotCatchup) {

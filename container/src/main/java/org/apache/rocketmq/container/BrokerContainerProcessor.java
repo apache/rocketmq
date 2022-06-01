@@ -117,7 +117,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         }
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
-            if (!brokerConfig.isStartupControllerMode()) {
+            if (!brokerConfig.isEnableControllerMode()) {
                 switch (messageStoreConfig.getBrokerRole()) {
                     case ASYNC_MASTER:
                     case SYNC_MASTER:
