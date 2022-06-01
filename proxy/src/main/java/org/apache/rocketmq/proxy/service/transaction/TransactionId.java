@@ -181,7 +181,8 @@ public class TransactionId {
         this.proxyTransactionId = proxyTransactionId;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("brokerName", brokerName)
             .add("brokerTransactionId", brokerTransactionId)
@@ -230,7 +231,8 @@ public class TransactionId {
             return new TransactionId(brokerName, brokerTransactionId, commitLogOffset, tranStateTableOffset, proxyTransactionId);
         }
 
-        @Override public String toString() {
+        @Override
+        public String toString() {
             return MoreObjects.toStringHelper(this)
                 .add("brokerName", brokerName)
                 .add("brokerTransactionId", brokerTransactionId)

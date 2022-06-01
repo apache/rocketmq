@@ -67,7 +67,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
         subscriptionGroupConfig.setRetryMaxTimes(3);
         subscriptionGroupConfig.getGroupRetryPolicy().setType(GroupRetryPolicyType.CUSTOMIZED);
-        subscriptionGroupConfig.getGroupRetryPolicy().setCustomizedRetryPolicy(new CustomizedRetryPolicy(new long[]{1000}));
+        subscriptionGroupConfig.getGroupRetryPolicy().setCustomizedRetryPolicy(new CustomizedRetryPolicy(new long[] {1000}));
         settings = this.grpcClientSettingsManager.getClientSettings(context);
         assertEquals(RetryPolicy.newBuilder()
             .setMaxAttempts(3)

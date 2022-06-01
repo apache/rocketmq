@@ -35,7 +35,6 @@ public class InterceptorConstants {
     public static final Metadata.Key<String> LOCAL_ADDRESS
         = Metadata.Key.of("rpc-local-address", Metadata.ASCII_STRING_MARSHALLER);
 
-
     public static final Metadata.Key<String> AUTHORIZATION
         = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
 

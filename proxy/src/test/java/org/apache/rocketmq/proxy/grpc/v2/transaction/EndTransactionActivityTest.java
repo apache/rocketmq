@@ -91,7 +91,7 @@ public class EndTransactionActivityTest extends BaseActivityTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> parameters() {
-        Object[][] p = new Object[][]{
+        Object[][] p = new Object[][] {
             {TransactionResolution.COMMIT, TransactionSource.SOURCE_CLIENT, TransactionStatus.COMMIT, false},
             {TransactionResolution.ROLLBACK, TransactionSource.SOURCE_SERVER_CHECK, TransactionStatus.ROLLBACK, true},
             {TransactionResolution.TRANSACTION_RESOLUTION_UNSPECIFIED, TransactionSource.SOURCE_SERVER_CHECK, TransactionStatus.UNKNOWN, true},

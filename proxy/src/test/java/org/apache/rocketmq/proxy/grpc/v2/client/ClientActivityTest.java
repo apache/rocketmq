@@ -261,13 +261,16 @@ public class ClientActivityTest extends BaseActivityTest {
         when(grpcChannelManagerMock.getAndRemoveResponseFuture(anyString())).thenReturn((CompletableFuture) runningInfoFutureMock);
         Context context = createContext();
         StreamObserver<TelemetryCommand> streamObserver = clientActivity.telemetry(context, new StreamObserver<TelemetryCommand>() {
-            @Override public void onNext(TelemetryCommand value) {
+            @Override
+            public void onNext(TelemetryCommand value) {
             }
 
-            @Override public void onError(Throwable t) {
+            @Override
+            public void onError(Throwable t) {
             }
 
-            @Override public void onCompleted() {
+            @Override
+            public void onCompleted() {
             }
         });
         streamObserver.onNext(TelemetryCommand.newBuilder()
@@ -290,13 +293,16 @@ public class ClientActivityTest extends BaseActivityTest {
         when(grpcChannelManagerMock.getAndRemoveResponseFuture(anyString())).thenReturn((CompletableFuture) resultFutureMock);
         Context context = createContext();
         StreamObserver<TelemetryCommand> streamObserver = clientActivity.telemetry(context, new StreamObserver<TelemetryCommand>() {
-            @Override public void onNext(TelemetryCommand value) {
+            @Override
+            public void onNext(TelemetryCommand value) {
             }
 
-            @Override public void onError(Throwable t) {
+            @Override
+            public void onError(Throwable t) {
             }
 
-            @Override public void onCompleted() {
+            @Override
+            public void onCompleted() {
             }
         });
         streamObserver.onNext(TelemetryCommand.newBuilder()
@@ -326,7 +332,8 @@ public class ClientActivityTest extends BaseActivityTest {
 
             }
 
-            @Override public void onCompleted() {
+            @Override
+            public void onCompleted() {
 
             }
         };

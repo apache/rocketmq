@@ -72,7 +72,8 @@ public class SelectableMessageQueue implements Comparable<SelectableMessageQueue
         return brokerAddr;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("messageQueue", messageQueue)
             .add("brokerAddr", brokerAddr)

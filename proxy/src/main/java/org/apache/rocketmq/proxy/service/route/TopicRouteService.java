@@ -82,11 +82,13 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     public abstract MessageQueueView getCurrentMessageQueueView(String topicName) throws Exception;
 
-    public abstract ProxyTopicRouteData getTopicRouteForProxy(List<Address> requestHostAndPortList, String topicName) throws Exception;
+    public abstract ProxyTopicRouteData getTopicRouteForProxy(List<Address> requestHostAndPortList,
+        String topicName) throws Exception;
 
     public abstract String getBrokerAddr(String brokerName) throws Exception;
 
-    protected static MessageQueueView getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueView> topicCache, String key) throws Exception {
+    protected static MessageQueueView getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueView> topicCache,
+        String key) throws Exception {
         MessageQueueView res = topicCache.get(key);
         if (res.isEmptyCachedQueue()) {
             throw new MQClientException(ResponseCode.TOPIC_NOT_EXIST,

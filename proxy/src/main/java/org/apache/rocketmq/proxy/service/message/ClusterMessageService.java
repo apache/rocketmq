@@ -59,12 +59,12 @@ public class ClusterMessageService implements MessageService {
             future = this.mqClientAPIFactory.getClient().sendMessageAsync(
                 messageQueue.getBrokerAddr(),
                 messageQueue.getBrokerName(), msgList.get(0), requestHeader, timeoutMillis)
-            .thenApply(Lists::newArrayList);
+                .thenApply(Lists::newArrayList);
         } else {
             future = this.mqClientAPIFactory.getClient().sendMessageAsync(
                 messageQueue.getBrokerAddr(),
                 messageQueue.getBrokerName(), msgList, requestHeader, timeoutMillis)
-            .thenApply(Lists::newArrayList);
+                .thenApply(Lists::newArrayList);
         }
         return future;
     }
@@ -81,7 +81,8 @@ public class ClusterMessageService implements MessageService {
 
     @Override
     public void endTransactionOneway(ProxyContext ctx, TransactionId transactionId,
-        EndTransactionRequestHeader requestHeader, long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
+        EndTransactionRequestHeader requestHeader,
+        long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
         this.mqClientAPIFactory.getClient().endTransactionOneway(
             this.resolveBrokerAddr(transactionId.getBrokerName()),
             requestHeader,

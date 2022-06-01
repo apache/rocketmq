@@ -193,7 +193,8 @@ public class MessageQueueSelector {
         return Objects.hash(queues, brokerActingQueues);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("queues", queues)
             .add("brokerActingQueues", brokerActingQueues)

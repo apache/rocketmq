@@ -115,11 +115,13 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
     }
 
     private class LocalServiceManagerStartAndShutdown implements StartAndShutdown {
-        @Override public void start() throws Exception {
+        @Override
+        public void start() throws Exception {
             LocalServiceManager.this.scheduledExecutorService.scheduleWithFixedDelay(channelManager::scanAndCleanChannels, 5, 5, TimeUnit.MINUTES);
         }
 
-        @Override public void shutdown() throws Exception {
+        @Override
+        public void shutdown() throws Exception {
             LocalServiceManager.this.scheduledExecutorService.shutdown();
         }
     }

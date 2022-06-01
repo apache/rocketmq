@@ -25,7 +25,7 @@
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/proxy.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
-            <maxIndex>20</maxIndex>
+            <maxIndex>10</maxIndex>
         </rollingPolicy>
         <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>128MB</maxFileSize>
@@ -39,25 +39,25 @@
         <appender-ref ref="RocketmqProxyAppender_inner"/>
     </appender>
 
-    <appender name="RocketmqGrpcAppender_inner"
+    <appender name="RocketmqProxyWatermarkAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/grpc.log</file>
+        <file>${user.home}/logs/rocketmqlogs/proxy_watermark.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/grpc.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/proxy_watermark.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
-            <maxIndex>20</maxIndex>
+            <maxIndex>10</maxIndex>
         </rollingPolicy>
         <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
             <maxFileSize>128MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
-            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8}%m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="RocketmqGrpcAppender" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="RocketmqGrpcAppender_inner"/>
+    <appender name="RocketmqProxyWatermarkAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqProxyWatermarkAppender_inner"/>
     </appender>
 
     <!-- Below is the logger configuration for broker-->
@@ -408,9 +408,9 @@
         <appender-ref ref="RocketmqProxyAppender" />
     </logger>
 
-    <logger name="RocketmqGrpc" additivity="false">
+    <logger name="RocketmqProxyWatermark" additivity="false">
         <level value="INFO" />
-        <appender-ref ref="RocketmqGrpcAppender" />
+        <appender-ref ref="RocketmqProxyWatermarkAppender" />
     </logger>
 
     <root>

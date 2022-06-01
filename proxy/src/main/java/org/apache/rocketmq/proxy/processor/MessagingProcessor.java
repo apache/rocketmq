@@ -57,7 +57,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         ProxyContext ctx,
         List<Address> requestHostAndPortList,
         String topicName
-    )  throws Exception;
+    ) throws Exception;
 
     default CompletableFuture<List<SendResult>> sendMessage(
         ProxyContext ctx,

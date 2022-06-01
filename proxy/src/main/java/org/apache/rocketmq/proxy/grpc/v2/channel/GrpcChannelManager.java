@@ -54,7 +54,7 @@ public class GrpcChannelManager implements StartAndShutdown {
     protected void init() {
         this.scheduledExecutorService.scheduleAtFixedRate(
             this::scanExpireResultFuture,
-            10,  10, TimeUnit.SECONDS
+            10, 10, TimeUnit.SECONDS
         );
     }
 
@@ -77,7 +77,7 @@ public class GrpcChannelManager implements StartAndShutdown {
         return clientIdChannelMap.get(clientId);
     }
 
-    public GrpcClientChannel removeChannel(String group, String clientId)  {
+    public GrpcClientChannel removeChannel(String group, String clientId) {
         AtomicReference<GrpcClientChannel> channelRef = new AtomicReference<>();
         this.groupClientIdChannelMap.computeIfPresent(group, (groupKey, clientIdMap) -> {
             channelRef.set(clientIdMap.remove(clientId));

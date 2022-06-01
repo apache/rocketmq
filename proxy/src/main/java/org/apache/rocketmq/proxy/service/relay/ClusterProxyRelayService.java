@@ -36,7 +36,8 @@ public class ClusterProxyRelayService implements ProxyRelayService {
         return null;
     }
 
-    @Override public CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
+    @Override
+    public CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
         ProxyContext context, RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header) {
         return null;

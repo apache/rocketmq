@@ -431,7 +431,8 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
-    public CompletableFuture<Long> searchOffsetAsync(String brokerAddr, String topic, int queueId , long timestamp, long timeoutMillis) {
+    public CompletableFuture<Long> searchOffsetAsync(String brokerAddr, String topic, int queueId, long timestamp,
+        long timeoutMillis) {
         SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);

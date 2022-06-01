@@ -36,6 +36,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
  * SimpleChannel is used to handle writeAndFlush situation in processor
+ *
  * @see io.netty.channel.ChannelHandlerContext#writeAndFlush
  * @see io.netty.channel.Channel#writeAndFlush
  */
@@ -51,9 +52,9 @@ public class SimpleChannel extends AbstractChannel {
     /**
      * Creates a new instance.
      *
-     * @param parent         the parent of this channel. {@code null} if there's no parent.
-     * @param remoteAddress  Remote address
-     * @param localAddress   Local address
+     * @param parent        the parent of this channel. {@code null} if there's no parent.
+     * @param remoteAddress Remote address
+     * @param localAddress  Local address
      */
     public SimpleChannel(Channel parent, String remoteAddress, String localAddress) {
         super(parent);

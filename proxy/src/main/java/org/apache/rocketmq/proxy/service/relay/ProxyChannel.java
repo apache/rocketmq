@@ -56,7 +56,8 @@ public abstract class ProxyChannel extends AbstractChannel {
 
     protected final ProxyRelayService proxyRelayService;
 
-    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, String remoteAddress, String localAddress) {
+    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, String remoteAddress,
+        String localAddress) {
         super(parent);
         this.proxyRelayService = proxyRelayService;
         this.remoteAddress = remoteAddress;
@@ -65,7 +66,8 @@ public abstract class ProxyChannel extends AbstractChannel {
         this.localSocketAddress = RemotingUtil.string2SocketAddress(localAddress);
     }
 
-    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress, String localAddress) {
+    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress,
+        String localAddress) {
         super(parent, id);
         this.proxyRelayService = proxyRelayService;
         this.remoteAddress = remoteAddress;
