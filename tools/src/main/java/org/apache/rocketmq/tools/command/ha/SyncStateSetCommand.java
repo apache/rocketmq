@@ -56,7 +56,7 @@ public class SyncStateSetCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("f", "follow", true, "the interval(second) of get info");
+        opt = new Option("i", "interval", true, "the interval(second) of get info");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -69,11 +69,11 @@ public class SyncStateSetCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            if (commandLine.hasOption('f')) {
-                String flushSecondStr = commandLine.getOptionValue('f');
+            if (commandLine.hasOption('i')) {
+                String interval = commandLine.getOptionValue('i');
                 int flushSecond = 3;
-                if (flushSecondStr != null && !flushSecondStr.trim().equals("")) {
-                    flushSecond = Integer.parseInt(flushSecondStr);
+                if (interval != null && !interval.trim().equals("")) {
+                    flushSecond = Integer.parseInt(interval);
                 }
 
                 defaultMQAdminExt.start();
@@ -115,8 +115,8 @@ public class SyncStateSetCommand implements SubCommand {
         DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         if (brokerNames.size() > 0) {
             final InSyncStateData syncStateData = defaultMQAdminExt.getInSyncStateData(controllerAddress, brokerNames);
-            final Map<String, InSyncStateData.InSyncState> syncTable = syncStateData.getInSyncTable();
-            for (Map.Entry<String, InSyncStateData.InSyncState> next : syncTable.entrySet()) {
+            final Map<String, InSyncStateData.InSyncStateSet> syncTable = syncStateData.getInSyncStateTable();
+            for (Map.Entry<String, InSyncStateData.InSyncStateSet> next : syncTable.entrySet()) {
                 final List<InSyncStateData.InSyncMember> syncMembers = next.getValue().getInSyncMembers();
                 System.out.printf("\n#brokerName\t%s\n#MasterAddr\t%s\n#MasterEpoch\t%d\n#SyncStateSetEpoch\t%d\n#SyncStateSetMemberNums\t%d\n",
                     next.getKey(), next.getValue().getMasterAddress(), next.getValue().getMasterEpoch(), next.getValue().getSyncStateSetEpoch(),

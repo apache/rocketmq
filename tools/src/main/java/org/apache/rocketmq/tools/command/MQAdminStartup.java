@@ -40,7 +40,7 @@ import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
-import org.apache.rocketmq.tools.command.broker.GetBrokerEpochCacheCommand;
+import org.apache.rocketmq.tools.command.broker.GetBrokerEpochCommand;
 import org.apache.rocketmq.tools.command.broker.ResetMasterFlushOffsetSubCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
@@ -249,7 +249,7 @@ public class MQAdminStartup {
         initCommand(new HAStatusSubCommand());
 
         initCommand(new SyncStateSetCommand());
-        initCommand(new GetBrokerEpochCacheCommand());
+        initCommand(new GetBrokerEpochCommand());
     }
 
     private static void initLogback() throws JoranException {

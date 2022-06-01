@@ -30,13 +30,13 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class GetBrokerEpochCacheCommand implements SubCommand {
+public class GetBrokerEpochCommand implements SubCommand {
     @Override public String commandName() {
-        return "getBrokerEpochCache";
+        return "getBrokerEpoch";
     }
 
     @Override public String commandDesc() {
-        return "Fetch broker epoch entries cache";
+        return "Fetch broker epoch entries";
     }
 
     @Override public Options buildCommandlineOptions(Options options) {
@@ -48,7 +48,7 @@ public class GetBrokerEpochCacheCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("f", "follow", true, "the interval(second) of get info");
+        opt = new Option("i", "interval", true, "the interval(second) of get info");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -61,11 +61,11 @@ public class GetBrokerEpochCacheCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            if (commandLine.hasOption('f')) {
-                String flushSecondStr = commandLine.getOptionValue('f');
+            if (commandLine.hasOption('i')) {
+                String interval = commandLine.getOptionValue('i');
                 int flushSecond = 3;
-                if (flushSecondStr != null && !flushSecondStr.trim().equals("")) {
-                    flushSecond = Integer.parseInt(flushSecondStr);
+                if (interval != null && !interval.trim().equals("")) {
+                    flushSecond = Integer.parseInt(interval);
                 }
 
                 defaultMQAdminExt.start();

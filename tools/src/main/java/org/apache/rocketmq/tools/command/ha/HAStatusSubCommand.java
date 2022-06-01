@@ -55,7 +55,7 @@ public class HAStatusSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("f", "follow", true, "the interval(second) of get info");
+        opt = new Option("i", "interval", true, "the interval(second) of get info");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -68,11 +68,11 @@ public class HAStatusSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            if (commandLine.hasOption('f')) {
-                String flushSecondStr = commandLine.getOptionValue('f');
+            if (commandLine.hasOption('i')) {
+                String interval = commandLine.getOptionValue('i');
                 int flushSecond = 3;
-                if (flushSecondStr != null && !flushSecondStr.trim().equals("")) {
-                    flushSecond = Integer.parseInt(flushSecondStr);
+                if (interval != null && !interval.trim().equals("")) {
+                    flushSecond = Integer.parseInt(interval);
                 }
 
                 defaultMQAdminExt.start();
