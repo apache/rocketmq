@@ -349,7 +349,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
             @Override
             public void onError(Throwable t) {
-                log.error("telemetry onError", t);
                 responseTelemetryCommand.onError(t);
             }
 
@@ -400,8 +399,12 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         @Override
         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
             if (r instanceof GrpcTask) {
-                GrpcTask grpcTask = (GrpcTask) r;
-                ResponseWriter.write(grpcTask.streamObserver, grpcTask.executeRejectResponse);
+                try {
+                    GrpcTask grpcTask = (GrpcTask) r;
+                    ResponseWriter.write(grpcTask.streamObserver, grpcTask.executeRejectResponse);
+                } catch (Throwable t) {
+                    log.warn("write rejected error response failed", t);
+                }
             }
         }
     }
