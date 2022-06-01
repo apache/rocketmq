@@ -240,6 +240,13 @@ public class MixAll {
             if (!Modifier.isStatic(field.getModifiers())) {
                 String name = field.getName();
                 if (!name.startsWith("this")) {
+                    if (onlyImportantField) {
+                        Annotation annotation = field.getAnnotation(ImportantField.class);
+                        if (null == annotation) {
+                            continue;
+                        }
+                    }
+
                     Object value = null;
                     try {
                         field.setAccessible(true);
@@ -249,13 +256,6 @@ public class MixAll {
                         }
                     } catch (IllegalAccessException e) {
                         log.error("Failed to obtain object properties", e);
-                    }
-
-                    if (onlyImportantField) {
-                        Annotation annotation = field.getAnnotation(ImportantField.class);
-                        if (null == annotation) {
-                            continue;
-                        }
                     }
 
                     if (logger != null) {
