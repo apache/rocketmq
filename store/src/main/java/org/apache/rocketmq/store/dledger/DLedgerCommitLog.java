@@ -765,11 +765,11 @@ public class DLedgerCommitLog extends CommitLog {
 
     class MessageSerializer {
 
-        // The maximum length of the message
-        private final int maxMessageSize;
+        // The maximum length of the message body
+        private final int maxMessageBodySize;
 
         MessageSerializer(final int size) {
-            this.maxMessageSize = size;
+            this.maxMessageBodySize = size;
         }
 
         public EncodeResult serialize(final MessageExtBrokerInner msgInner) {
@@ -812,9 +812,9 @@ public class DLedgerCommitLog extends CommitLog {
             ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
             // Exceeds the maximum message
-            if (msgLen > this.maxMessageSize) {
-                DLedgerCommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
-                    + ", maxMessageSize: " + this.maxMessageSize);
+            if (bodyLength > this.maxMessageBodySize) {
+                DLedgerCommitLog.log.warn("message body size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
+                    + ", maxMessageBodySize: " + this.maxMessageBodySize);
                 return new EncodeResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED, null, key);
             }
             // Initialization of storage space
@@ -871,6 +871,14 @@ public class DLedgerCommitLog extends CommitLog {
 
             int totalMsgLen = 0;
             ByteBuffer messagesByteBuff = messageExtBatch.wrap();
+
+            int totalLength = messagesByteBuff.limit();
+            if (totalLength > this.maxMessageBodySize) {
+                CommitLog.log.warn("message body size exceeded, msg body size: " + totalLength
+                    + ", maxMessageBodySize: " + this.maxMessageBodySize);
+                throw new RuntimeException("message size exceeded");
+            }
+
             List<byte[]> batchBody = new LinkedList<>();
 
             int sysFlag = messageExtBatch.getSysFlag();
@@ -905,19 +913,7 @@ public class DLedgerCommitLog extends CommitLog {
                 final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, propertiesLen);
                 ByteBuffer msgStoreItemMemory = ByteBuffer.allocate(msgLen);
 
-                // Exceeds the maximum message
-                if (msgLen > this.maxMessageSize) {
-                    CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " +
-                            bodyLen
-                            + ", maxMessageSize: " + this.maxMessageSize);
-                    throw new RuntimeException("message size exceeded");
-                }
-
                 totalMsgLen += msgLen;
-                // Determines whether there is sufficient free space
-                if (totalMsgLen > maxMessageSize) {
-                    throw new RuntimeException("message size exceeded");
-                }
 
                 // Initialization of storage space
                 this.resetByteBuffer(msgStoreItemMemory, msgLen);
