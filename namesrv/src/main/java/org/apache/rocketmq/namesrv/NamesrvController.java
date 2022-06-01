@@ -34,7 +34,7 @@ import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.controller.Controller;
-import org.apache.rocketmq.controller.impl.DledgerController;
+import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
@@ -111,7 +111,7 @@ public class NamesrvController {
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         this.routeInfoManager = new RouteInfoManager(namesrvConfig, this);
         if (controllerConfig.isEnableStartupController()) {
-            this.controller = new DledgerController(controllerConfig, this.routeInfoManager::isBrokerAlive);
+            this.controller = new DLedgerController(controllerConfig, this.routeInfoManager::isBrokerAlive);
             this.routeInfoManager.setController(this.controller);
         }
         this.configuration = new Configuration(

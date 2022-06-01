@@ -22,7 +22,7 @@ import java.util.Set;
 /**
  * In sync replicas info, manages the master and syncStateSet of a broker.
  */
-public class InSyncReplicasInfo {
+public class SyncStateInfo {
     private final String clusterName;
     private final String brokerName;
 
@@ -32,7 +32,7 @@ public class InSyncReplicasInfo {
     private String masterAddress;
     private int masterEpoch;
 
-    public InSyncReplicasInfo(String clusterName, String brokerName, String masterAddress) {
+    public SyncStateInfo(String clusterName, String brokerName, String masterAddress) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.masterAddress = masterAddress;

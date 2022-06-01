@@ -58,7 +58,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 /**
  * The implementation of controller, based on dledger (raft).
  */
-public class DledgerController implements Controller {
+public class DLedgerController implements Controller {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final DLedgerServer dLedgerServer;
@@ -73,7 +73,7 @@ public class DledgerController implements Controller {
     private final DledgerControllerStateMachine statemachine;
     private volatile boolean isScheduling = false;
 
-    public DledgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
+    public DLedgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
         this.controllerConfig = config;
         this.eventSerializer = new EventSerializer();
         this.scheduler = new EventScheduler();
@@ -247,7 +247,7 @@ public class DledgerController implements Controller {
 
         public <T> CompletableFuture<RemotingCommand> appendEvent(final String name,
             final Supplier<ControllerResult<T>> supplier, boolean isWriteEvent) {
-            if (isStopped() || !DledgerController.this.roleHandler.isLeaderState()) {
+            if (isStopped() || !DLedgerController.this.roleHandler.isLeaderState()) {
                 final RemotingCommand command = RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "The controller is not in leader state");
                 final CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
                 future.complete(command);
@@ -300,7 +300,7 @@ public class DledgerController implements Controller {
                 final List<byte[]> eventBytes = new ArrayList<>(events.size());
                 for (final EventMessage event : events) {
                     if (event != null) {
-                        final byte[] data = DledgerController.this.eventSerializer.serialize(event);
+                        final byte[] data = DLedgerController.this.eventSerializer.serialize(event);
                         if (data != null && data.length > 0) {
                             eventBytes.add(data);
                         }
@@ -313,7 +313,7 @@ public class DledgerController implements Controller {
                     appendSuccess = appendToDledgerAndWait(request);
                 }
             } else {
-                if (DledgerController.this.controllerConfig.isProcessReadEvent()) {
+                if (DLedgerController.this.controllerConfig.isProcessReadEvent()) {
                     // Now the dledger don't have the function of Read-Index or Lease-Read,
                     // So we still need to propose an empty request to dledger.
                     final AppendEntryRequest request = new AppendEntryRequest();
@@ -368,12 +368,12 @@ public class DledgerController implements Controller {
                     case CANDIDATE:
                         this.currentRole = MemberState.Role.CANDIDATE;
                         log.info("Controller {} change role to candidate", this.selfId);
-                        DledgerController.this.stopScheduling();
+                        DLedgerController.this.stopScheduling();
                         break;
                     case FOLLOWER:
                         this.currentRole = MemberState.Role.FOLLOWER;
                         log.info("Controller {} change role to Follower, leaderId:{}", this.selfId, getMemberState().getLeaderId());
-                        DledgerController.this.stopScheduling();
+                        DLedgerController.this.stopScheduling();
                         break;
                     case LEADER: {
                         this.currentRole = MemberState.Role.LEADER;
@@ -387,7 +387,7 @@ public class DledgerController implements Controller {
                             request.setBody(new byte[0]);
                             try {
                                 if (appendToDledgerAndWait(request)) {
-                                    DledgerController.this.startScheduling();
+                                    DLedgerController.this.startScheduling();
                                     break;
                                 }
                             } catch (final Throwable e) {
@@ -413,7 +413,7 @@ public class DledgerController implements Controller {
         @Override
         public void shutdown() {
             if (this.currentRole == MemberState.Role.LEADER) {
-                DledgerController.this.stopScheduling();
+                DLedgerController.this.stopScheduling();
             }
             this.executorService.shutdown();
         }

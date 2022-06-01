@@ -408,7 +408,7 @@ public class AutoSwitchHATest {
         long brokerId) throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
-        brokerConfig.setStartupControllerMode(true);
+        brokerConfig.setEnableControllerMode(true);
         return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
     }
 

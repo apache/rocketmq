@@ -126,7 +126,7 @@ public class ReplicasManager {
         }
 
         if (this.state == State.FIRST_TIME_SYNC_CONTROLLER_METADATA_DONE) {
-            if (registerBroker()) {
+            if (registerBrokerToController()) {
                 LOGGER.info("First time register broker success");
                 this.state = State.RUNNING;
             } else {
@@ -252,10 +252,10 @@ public class ReplicasManager {
         }
     }
 
-    private boolean registerBroker() {
+    private boolean registerBrokerToController() {
         // Register this broker to controller, get brokerId and masterAddress.
         try {
-            final BrokerRegisterResponseHeader registerResponse = this.brokerOuterAPI.registerBroker(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress);
+            final BrokerRegisterResponseHeader registerResponse = this.brokerOuterAPI.registerBrokerToController(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.localAddress);
             final String newMasterAddress = registerResponse.getMasterAddress();
             if (StringUtils.isNoneEmpty(newMasterAddress)) {
                 if (StringUtils.equals(newMasterAddress, this.localAddress)) {
@@ -293,7 +293,7 @@ public class ReplicasManager {
                                 changeToSlave(newMasterAddress, newMasterEpoch, brokerId);
                             } else if (brokerId < 0) {
                                 // If the brokerId is no existed, we should try register again.
-                                registerBroker();
+                                registerBrokerToController();
                             }
                         }
                     } else {

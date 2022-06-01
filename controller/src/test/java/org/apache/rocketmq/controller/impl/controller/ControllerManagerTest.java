@@ -33,7 +33,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegis
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.controller.ControllerManager;
-import org.apache.rocketmq.controller.impl.DledgerController;
+import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
@@ -87,14 +87,14 @@ public class ControllerManagerTest {
         if (controllers.isEmpty()) {
             return null;
         }
-        DledgerController c1 = (DledgerController) controllers.get(0).getController();
+        DLedgerController c1 = (DLedgerController) controllers.get(0).getController();
         while (c1.getMemberState().getLeaderId() == null) {
             Thread.sleep(1000);
         }
         String leaderId = c1.getMemberState().getLeaderId();
         System.out.println("New leader " + leaderId);
         for (ControllerManager controllerManager : controllers) {
-            final DledgerController controller = (DledgerController) controllerManager.getController();
+            final DLedgerController controller = (DLedgerController) controllerManager.getController();
             if (controller.getMemberState().getSelfId().equals(leaderId)) {
                 return controllerManager;
             }

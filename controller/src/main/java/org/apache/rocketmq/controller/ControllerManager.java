@@ -32,8 +32,8 @@ import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
-import org.apache.rocketmq.controller.impl.DledgerController;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -94,7 +94,7 @@ public class ControllerManager {
         this.remotingClient.updateNameServerAddressList(Collections.singletonList(RemotingUtil.getLocalAddress() + ":" + this.nettyServerConfig.getListenPort()));
 
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
-        this.controller = new DledgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr));
+        this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr));
 
         // Register broker inactive listener
         this.heartbeatManager.addBrokerLifecycleListener(new BrokerHeartbeatManager.BrokerLifecycleListener() {

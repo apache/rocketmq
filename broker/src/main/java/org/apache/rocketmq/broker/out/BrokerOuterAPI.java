@@ -1040,7 +1040,7 @@ public class BrokerOuterAPI {
     /**
      * Register broker to controller
      */
-    public BrokerRegisterResponseHeader registerBroker(
+    public BrokerRegisterResponseHeader registerBrokerToController(
         final String controllerAddress, final String clusterName,
         final String brokerName, final String address) throws Exception {
 

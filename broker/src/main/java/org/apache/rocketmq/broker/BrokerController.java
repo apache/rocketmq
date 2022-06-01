@@ -604,7 +604,7 @@ public class BrokerController {
             }
         }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
 
-        if (!messageStoreConfig.isEnableDLegerCommitLog() && !messageStoreConfig.isDuplicationEnable() && !brokerConfig.isStartupControllerMode()) {
+        if (!messageStoreConfig.isEnableDLegerCommitLog() && !messageStoreConfig.isDuplicationEnable() && !brokerConfig.isEnableControllerMode()) {
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
                 if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= HA_ADDRESS_MIN_LENGTH) {
                     this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
@@ -640,7 +640,7 @@ public class BrokerController {
             }
         }
 
-        if (this.brokerConfig.isStartupControllerMode()) {
+        if (this.brokerConfig.isEnableControllerMode()) {
             this.updateMasterHAServerAddrPeriodically = true;
         }
     }
@@ -712,7 +712,7 @@ public class BrokerController {
                 MessageStorePluginContext context = new MessageStorePluginContext(this, messageStoreConfig, brokerStatsManager, messageArrivingListener);
                 this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
-                if (this.brokerConfig.isStartupControllerMode()) {
+                if (this.brokerConfig.isEnableControllerMode()) {
                     this.replicasManager = new ReplicasManager(this);
                 }
             } catch (IOException e) {
@@ -1453,7 +1453,7 @@ public class BrokerController {
 
         startBasicService();
 
-        if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable() && !this.brokerConfig.isStartupControllerMode()) {
+        if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable() && !this.brokerConfig.isEnableControllerMode()) {
             changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
             this.registerBrokerAll(true, false, true);
         }
@@ -1491,7 +1491,7 @@ public class BrokerController {
             }, 1000, this.brokerConfig.getSyncBrokerMemberGroupPeriod(), TimeUnit.MILLISECONDS));
         }
 
-        if (this.brokerConfig.isStartupControllerMode()) {
+        if (this.brokerConfig.isEnableControllerMode()) {
             scheduleSendHeartbeat();
         }
 
@@ -1602,7 +1602,7 @@ public class BrokerController {
             return;
         }
         Long heartbeatTimeoutMillis = (this.brokerConfig.isEnableSlaveActingMaster() ||
-            (this.brokerConfig.isStartupControllerMode() && !this.brokerConfig.isControllerDeployedStandAlone())) ?
+            (this.brokerConfig.isEnableControllerMode() && !this.brokerConfig.isControllerDeployedStandAlone())) ?
             this.brokerConfig.getBrokerNotActiveTimeoutMillis() : null;
 
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
@@ -1624,7 +1624,7 @@ public class BrokerController {
     }
 
     protected void sendHeartbeat() {
-        boolean shouldSendHeartbeatToController = this.brokerConfig.isStartupControllerMode() && this.brokerConfig.isControllerDeployedStandAlone();
+        boolean shouldSendHeartbeatToController = this.brokerConfig.isEnableControllerMode() && this.brokerConfig.isControllerDeployedStandAlone();
         if (shouldSendHeartbeatToController) {
             final List<String> controllerAddresses = this.replicasManager.getControllerAddresses();
             for (String controllerAddress : controllerAddresses) {

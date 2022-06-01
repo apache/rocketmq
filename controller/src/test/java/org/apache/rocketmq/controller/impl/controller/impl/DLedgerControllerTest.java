@@ -35,7 +35,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMaster
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.controller.Controller;
-import org.apache.rocketmq.controller.impl.DledgerController;
+import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.junit.After;
@@ -49,11 +49,11 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class DledgerControllerTest {
+public class DLedgerControllerTest {
     private List<String> baseDirs;
-    private List<DledgerController> controllers;
+    private List<DLedgerController> controllers;
 
-    public DledgerController launchController(final String group, final String peers, final String selfId, String storeType, final boolean isEnableElectUncleanMaster) {
+    public DLedgerController launchController(final String group, final String peers, final String selfId, String storeType, final boolean isEnableElectUncleanMaster) {
         final String path = "/tmp" + File.separator + group + File.separator + selfId;
         baseDirs.add(path);
 
@@ -65,7 +65,7 @@ public class DledgerControllerTest {
         config.setMappedFileSize(10 * 1024 * 1024);
         config.setEnableElectUncleanMaster(isEnableElectUncleanMaster);
 
-        final DledgerController controller = new DledgerController(config, (str1, str2) -> true);
+        final DLedgerController controller = new DLedgerController(config, (str1, str2) -> true);
 
         controller.startup();
         return controller;
@@ -117,17 +117,17 @@ public class DledgerControllerTest {
         return true;
     }
 
-    public DledgerController waitLeader(final List<DledgerController> controllers) throws Exception {
+    public DLedgerController waitLeader(final List<DLedgerController> controllers) throws Exception {
         if (controllers.isEmpty()) {
             return null;
         }
-        DledgerController c1 = controllers.get(0);
+        DLedgerController c1 = controllers.get(0);
         while (c1.getMemberState().getLeaderId() == null) {
             Thread.sleep(1000);
         }
         String leaderId = c1.getMemberState().getLeaderId();
         System.out.println("New leader " + leaderId);
-        for (DledgerController controller : controllers) {
+        for (DLedgerController controller : controllers) {
             if (controller.getMemberState().getSelfId().equals(leaderId)) {
                 return controller;
             }
@@ -135,17 +135,17 @@ public class DledgerControllerTest {
         return null;
     }
 
-    public DledgerController mockMetaData(boolean enableElectUncleanMaster) throws Exception {
+    public DLedgerController mockMetaData(boolean enableElectUncleanMaster) throws Exception {
         String group = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
-        DledgerController c0 = launchController(group, peers, "n0", DLedgerConfig.MEMORY, enableElectUncleanMaster);
-        DledgerController c1 = launchController(group, peers, "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster);
-        DledgerController c2 = launchController(group, peers, "n2", DLedgerConfig.MEMORY, enableElectUncleanMaster);
+        DLedgerController c0 = launchController(group, peers, "n0", DLedgerConfig.MEMORY, enableElectUncleanMaster);
+        DLedgerController c1 = launchController(group, peers, "n1", DLedgerConfig.MEMORY, enableElectUncleanMaster);
+        DLedgerController c2 = launchController(group, peers, "n2", DLedgerConfig.MEMORY, enableElectUncleanMaster);
         controllers.add(c0);
         controllers.add(c1);
         controllers.add(c2);
 
-        DledgerController leader = waitLeader(controllers);
+        DLedgerController leader = waitLeader(controllers);
 
         assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9000", true));
         assertTrue(registerNewBroker(leader, "cluster1", "broker1", "127.0.0.1:9001", true));
@@ -166,7 +166,7 @@ public class DledgerControllerTest {
 
     @Test
     public void testElectMaster() throws Exception {
-        final DledgerController leader = mockMetaData(false);
+        final DLedgerController leader = mockMetaData(false);
         final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
         final RemotingCommand resp = leader.electMaster(request).get(10, TimeUnit.SECONDS);
         final ElectMasterResponseHeader response = (ElectMasterResponseHeader) resp.readCustomHeader();
@@ -177,7 +177,7 @@ public class DledgerControllerTest {
 
     @Test
     public void testAllReplicasShutdownAndRestartWithUnEnableElectUnCleanMaster() throws Exception {
-        final DledgerController leader = mockMetaData(false);
+        final DLedgerController leader = mockMetaData(false);
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
 
@@ -215,7 +215,7 @@ public class DledgerControllerTest {
 
     @Test
     public void testEnableElectUnCleanMaster() throws Exception {
-        final DledgerController leader = mockMetaData(true);
+        final DLedgerController leader = mockMetaData(true);
         final HashSet<String> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add("127.0.0.1:9000");
 
@@ -242,12 +242,12 @@ public class DledgerControllerTest {
 
     @Test
     public void testChangeControllerLeader() throws Exception {
-        final DledgerController leader = mockMetaData(false);
+        final DLedgerController leader = mockMetaData(false);
         leader.shutdown();
         Thread.sleep(2000);
         this.controllers.remove(leader);
         // Wait leader again
-        final DledgerController newLeader = waitLeader(this.controllers);
+        final DLedgerController newLeader = waitLeader(this.controllers);
         assertNotNull(newLeader);
 
         final RemotingCommand resp = newLeader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).get(10, TimeUnit.SECONDS);

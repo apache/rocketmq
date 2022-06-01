@@ -299,8 +299,6 @@ public class MessageStoreConfig {
 
     private long maxSlaveResendLength = 256 * 1024 * 1024;
 
-    private boolean syncFromMinOffset = false;
-
     /**
      * Whether sync from lastFile when a new broker replicas join the master.
      */
@@ -1259,14 +1257,6 @@ public class MessageStoreConfig {
 
     public void setMaxSlaveResendLength(long maxSlaveResendLength) {
         this.maxSlaveResendLength = maxSlaveResendLength;
-    }
-
-    public boolean isSyncFromMinOffset() {
-        return syncFromMinOffset;
-    }
-
-    public void setSyncFromMinOffset(boolean syncFromMinOffset) {
-        this.syncFromMinOffset = syncFromMinOffset;
     }
 
     public boolean isSyncFromLastFile() {

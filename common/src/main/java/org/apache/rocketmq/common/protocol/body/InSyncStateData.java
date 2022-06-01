@@ -22,32 +22,32 @@ import java.util.Map;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class InSyncStateData extends RemotingSerializable  {
-    private Map<String/*brokerName*/, InSyncState> inSyncTable;
+    private Map<String/*brokerName*/, InSyncStateSet> inSyncStateTable;
 
     public InSyncStateData() {
-        this.inSyncTable = new HashMap<>();
+        this.inSyncStateTable = new HashMap<>();
     }
 
-    public void addInSyncState(final String brokerName, final InSyncState inSyncState) {
-        this.inSyncTable.put(brokerName, inSyncState);
+    public void addInSyncState(final String brokerName, final InSyncStateSet inSyncState) {
+        this.inSyncStateTable.put(brokerName, inSyncState);
     }
 
-    public Map<String, InSyncState> getInSyncTable() {
-        return inSyncTable;
+    public Map<String, InSyncStateSet> getInSyncStateTable() {
+        return inSyncStateTable;
     }
 
-    public void setInSyncTable(
-        Map<String, InSyncState> inSyncTable) {
-        this.inSyncTable = inSyncTable;
+    public void setInSyncStateTable(
+        Map<String, InSyncStateSet> inSyncStateTable) {
+        this.inSyncStateTable = inSyncStateTable;
     }
 
-    public static class InSyncState extends RemotingSerializable {
+    public static class InSyncStateSet extends RemotingSerializable {
         private String masterAddress;
         private int masterEpoch;
         private int syncStateSetEpoch;
         private List<InSyncMember> inSyncMembers;
 
-        public InSyncState(String masterAddress, int masterEpoch, int syncStateSetEpoch,
+        public InSyncStateSet(String masterAddress, int masterEpoch, int syncStateSetEpoch,
             List<InSyncMember> inSyncMembers) {
             this.masterAddress = masterAddress;
             this.masterEpoch = masterEpoch;

@@ -298,7 +298,7 @@ public class BrokerConfig extends BrokerIdentity {
     /**
      * Is startup controller mode, which support auto switch broker's role.
      */
-    private boolean startupControllerMode = false;
+    private boolean enableControllerMode = false;
 
     /**
      * Whether the controller is deployed independently
@@ -306,7 +306,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean controllerDeployedStandAlone = false;
 
     /**
-     * If isControllerDeployedStandAlone = false, controllerAddr should be the addresses of all name-srv which running the controller instance.
+     * If isControllerDeployedStandAlone = false, controllerAddr should be the addresses of name-srv which running the controller instance.
      * If isControllerDeployedStandAlone = true, controllerAddr should be controller's address.
      */
     private String controllerAddr = "";
@@ -1293,12 +1293,12 @@ public class BrokerConfig extends BrokerIdentity {
         this.compatibleWithOldNameSrv = compatibleWithOldNameSrv;
     }
 
-    public boolean isStartupControllerMode() {
-        return startupControllerMode;
+    public boolean isEnableControllerMode() {
+        return enableControllerMode;
     }
 
-    public void setStartupControllerMode(boolean startupControllerMode) {
-        this.startupControllerMode = startupControllerMode;
+    public void setEnableControllerMode(boolean enableControllerMode) {
+        this.enableControllerMode = enableControllerMode;
     }
 
     public boolean isControllerDeployedStandAlone() {

@@ -100,7 +100,7 @@ public class InnerBrokerController extends BrokerController {
             }, 1000, this.brokerConfig.getSyncBrokerMemberGroupPeriod(), TimeUnit.MILLISECONDS));
         }
 
-        if (this.brokerConfig.isStartupControllerMode()) {
+        if (this.brokerConfig.isEnableControllerMode()) {
             scheduleSendHeartbeat();
         }
 

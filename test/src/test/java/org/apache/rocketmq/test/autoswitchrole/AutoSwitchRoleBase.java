@@ -82,7 +82,7 @@ public class AutoSwitchRoleBase {
         brokerConfig.setControllerAddr(namesrvAddress);
         brokerConfig.setReplicasManagerSyncBrokerMetadataPeriod(2 * 1000);
         brokerConfig.setReplicasManagerCheckSyncStateSetPeriod(4 * 1000);
-        brokerConfig.setStartupControllerMode(true);
+        brokerConfig.setEnableControllerMode(true);
 
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(nettyListenPort);
@@ -128,7 +128,7 @@ public class AutoSwitchRoleBase {
         config.setControllerDLegerPeers(peers);
         config.setControllerDLegerSelfId(id);
         config.setMappedFileSize(1024 * 1024);
-        config.setControllerStorePath(storePathRootDir + File.separator + "namesrv" + id + File.separator + "DledgerController");
+        config.setControllerStorePath(storePathRootDir + File.separator + "namesrv" + id + File.separator + "DLedgerController");
         return config;
     }
 
