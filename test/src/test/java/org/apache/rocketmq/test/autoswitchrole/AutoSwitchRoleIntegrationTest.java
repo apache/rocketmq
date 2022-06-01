@@ -58,6 +58,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         final NettyServerConfig serverConfig = new NettyServerConfig();
         int namesrvPort = nextPort();
         serverConfig.setListenPort(namesrvPort);
+        System.out.println(namesrvPort);
 
         this.controllerConfig = buildControllerConfig("n0", peers);
         this.namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);

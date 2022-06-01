@@ -27,6 +27,10 @@ public class ControllerResult<T> {
     private int responseCode = ResponseCode.SUCCESS;
     private String remark;
 
+    public ControllerResult() {
+        this(null);
+    }
+
     public ControllerResult(T response) {
         this.events = new ArrayList<>();
         this.response = response;

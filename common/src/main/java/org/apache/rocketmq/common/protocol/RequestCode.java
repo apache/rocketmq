@@ -250,4 +250,8 @@ public class RequestCode {
     public static final int CONTROLLER_GET_REPLICA_INFO = 1004;
 
     public static final int CONTROLLER_GET_METADATA_INFO = 1005;
+
+    public static final int CONTROLLER_GET_SYNC_STATE_DATA = 1006;
+
+    public static final int GET_BROKER_EPOCH_CACHE = 1007;
 }

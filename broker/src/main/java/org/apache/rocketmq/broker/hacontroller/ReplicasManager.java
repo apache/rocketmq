@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.EpochEntry;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -333,9 +334,9 @@ public class ReplicasManager {
         for (String address : this.controllerAddresses) {
             try {
                 final GetMetaDataResponseHeader responseHeader = this.brokerOuterAPI.getControllerMetaData(address);
-                if (responseHeader != null && responseHeader.isLeader()) {
-                    this.controllerLeaderAddress = address;
-                    LOGGER.info("Change controller leader address to {}", this.controllerAddresses);
+                if (responseHeader != null && StringUtils.isNoneEmpty(responseHeader.getControllerLeaderAddress())) {
+                    this.controllerLeaderAddress = responseHeader.getControllerLeaderAddress();
+                    LOGGER.info("Change controller leader address to {}", this.controllerLeaderAddress);
                     return true;
                 }
             } catch (final Exception ignore) {
@@ -408,5 +409,9 @@ public class ReplicasManager {
 
     public List<String> getControllerAddresses() {
         return controllerAddresses;
+    }
+
+    public List<EpochEntry> getEpochEntries() {
+        return this.haService.getEpochEntries();
     }
 }

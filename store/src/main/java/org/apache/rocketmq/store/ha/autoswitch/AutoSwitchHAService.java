@@ -286,6 +286,10 @@ public class AutoSwitchHAService extends DefaultHAService {
         return reputFromOffset;
     }
 
+    public List<EpochEntry> getEpochEntries() {
+        return this.epochCache.getAllEntries();
+    }
+
     class AutoSwitchAcceptSocketService extends AcceptSocketService {
 
         public AutoSwitchAcceptSocketService(int port) {

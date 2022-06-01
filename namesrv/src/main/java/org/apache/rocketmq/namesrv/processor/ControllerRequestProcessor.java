@@ -17,18 +17,22 @@
 package org.apache.rocketmq.namesrv.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -38,6 +42,7 @@ import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ALTER_S
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_ELECT_MASTER;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_METADATA_INFO;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_REPLICA_INFO;
+import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
 import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
 
 /**
@@ -46,10 +51,12 @@ import static org.apache.rocketmq.common.protocol.RequestCode.CONTROLLER_REGISTE
 public class ControllerRequestProcessor implements NettyRequestProcessor {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final int WAIT_TIMEOUT_OUT = 5;
+    private final NamesrvController namesrvController;
     private final Controller controller;
 
-    public ControllerRequestProcessor(final Controller controller) {
-        this.controller = controller;
+    public ControllerRequestProcessor(final NamesrvController namesrvController) {
+        this.namesrvController = namesrvController;
+        this.controller = namesrvController.getController();
     }
 
     @Override
@@ -95,7 +102,27 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 break;
             }
             case CONTROLLER_GET_METADATA_INFO: {
-                return this.controller.getControllerMetadata();
+                final RemotingCommand response = this.controller.getControllerMetadata();
+                final GetMetaDataResponseHeader responseHeader = (GetMetaDataResponseHeader) response.readCustomHeader();
+                if (StringUtils.isNoneEmpty(responseHeader.getControllerLeaderAddress())) {
+                    final String leaderAddress = responseHeader.getControllerLeaderAddress();
+                    // Because the controller is proxy by namesrv, so we should replace the controllerAddress to namesrvAddress.
+                    final int splitIndex = StringUtils.lastIndexOf(leaderAddress, ":");
+                    final String namesrvAddress = leaderAddress.substring(0, splitIndex + 1) + this.namesrvController.getNettyServerConfig().getListenPort();
+                    responseHeader.setControllerLeaderAddress(namesrvAddress);
+                }
+                return response;
+            }
+            case CONTROLLER_GET_SYNC_STATE_DATA: {
+                if (request.getBody() != null) {
+                    final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
+                    if (brokerNames != null && brokerNames.size() > 0) {
+                        final CompletableFuture<RemotingCommand> future = this.controller.getSyncStateData(brokerNames);
+                        if (future != null) {
+                            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+                        }
+                    }
+                }
             }
             default: {
                 final String error = " request type " + request.getCode() + " not supported";
