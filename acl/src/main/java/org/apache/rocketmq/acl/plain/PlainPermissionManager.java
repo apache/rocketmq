@@ -471,7 +471,7 @@ public class PlainPermissionManager {
     }
 
     public boolean updateGlobalWhiteAddrsConfig(List<String> globalWhiteAddrsList, String fileName) {
-        if (fileName == null || fileName == "") {
+        if (fileName == null || fileName.equals("")) {
             fileName = this.defaultAclFile;
         }
 
