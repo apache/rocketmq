@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.acl.common;
 
+import com.google.common.base.MoreObjects;
 import java.util.Arrays;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
@@ -111,11 +112,11 @@ public class AuthorizationHeader {
     }
 
     @Override public String toString() {
-        return "AuthorizationHeader{" +
-            "method='" + method + '\'' +
-            ", accessKey='" + accessKey + '\'' +
-            ", signedHeaders=" + Arrays.toString(signedHeaders) +
-            ", signature='" + signature + '\'' +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("method", method)
+            .add("accessKey", accessKey)
+            .add("signedHeaders", signedHeaders)
+            .add("signature", signature)
+            .toString();
     }
 }

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.thread;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -110,15 +111,10 @@ public class ThreadPoolWrapper {
     }
 
     @Override public String toString() {
-        final StringBuilder sb = new StringBuilder("ThreadPoolWrapper{");
-        sb.append("name='")
-            .append(name)
-            .append('\'');
-        sb.append(", threadPoolExecutor=")
-            .append(threadPoolExecutor);
-        sb.append(", statusPrinters=")
-            .append(statusPrinters);
-        sb.append('}');
-        return sb.toString();
+        return MoreObjects.toStringHelper(this)
+            .add("name", name)
+            .add("threadPoolExecutor", threadPoolExecutor)
+            .add("statusPrinters", statusPrinters)
+            .toString();
     }
 }
