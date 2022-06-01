@@ -99,7 +99,7 @@ public class GroupTransferService extends ServiceThread {
                             int ackNums = 1;
                             for (HAConnection conn : haService.getConnectionList()) {
                                 final AutoSwitchHAConnection autoSwitchHAConnection = (AutoSwitchHAConnection) conn;
-                                if (syncStateSet.contains(autoSwitchHAConnection.getSlaveAddress()) && autoSwitchHAConnection.getSlaveAckOffset() >= req.getNextOffset()) {
+                                if (syncStateSet.contains(autoSwitchHAConnection.getClientAddress()) && autoSwitchHAConnection.getSlaveAckOffset() >= req.getNextOffset()) {
                                     ackNums ++;
                                 }
                                 if (ackNums >= syncStateSet.size()) {
