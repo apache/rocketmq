@@ -90,7 +90,7 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         messageExtList.add(createMessageExt(TOPIC, "tag"));
         messageExtList.add(createMessageExt(TOPIC, "tag"));
         PopResult popResult = new PopResult(PopStatus.FOUND, messageExtList);
-        writer.write(
+        writer.writeAndComplete(
             ProxyContext.create(),
             ReceiveMessageRequest.newBuilder()
                 .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
@@ -104,7 +104,7 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         );
 
         verify(streamObserver, times(1)).onCompleted();
-        verify(streamObserver, times(3)).onNext(any());
+        verify(streamObserver, times(4)).onNext(any());
         verify(this.messagingProcessor, times(1))
             .changeInvisibleTime(any(), any(), anyString(), anyString(), anyString(), anyLong());
 
@@ -122,7 +122,7 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         doNothing().when(streamObserver).onNext(responseArgumentCaptor.capture());
 
         PopResult popResult = new PopResult(PopStatus.POLLING_FULL, new ArrayList<>());
-        writer.write(
+        writer.writeAndComplete(
             ProxyContext.create(),
             ReceiveMessageRequest.newBuilder()
                 .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
@@ -135,7 +135,9 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
             popResult
         );
 
-        assertEquals(Code.TOO_MANY_REQUESTS, responseArgumentCaptor.getValue().getStatus().getCode());
+        ReceiveMessageResponse response = responseArgumentCaptor.getAllValues().stream().filter(ReceiveMessageResponse::hasStatus)
+            .findFirst().get();
+        assertEquals(Code.TOO_MANY_REQUESTS, response.getStatus().getCode());
     }
 
     private static MessageExt createMessageExt(String topic, String tags) {
