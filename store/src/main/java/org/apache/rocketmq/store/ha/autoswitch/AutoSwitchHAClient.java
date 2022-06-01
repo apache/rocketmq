@@ -304,13 +304,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             String addr = this.masterHaAddress.get();
             if (StringUtils.isNotEmpty(addr)) {
                 SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
-                this.socketChannel = SocketChannel.open();
-                this.socketChannel.socket().setSoLinger(false, -1);
-                this.socketChannel.socket().setTcpNoDelay(true);
-                this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
-                this.socketChannel.socket().setSendBufferSize(1024 * 64);
-                this.socketChannel.socket().connect(socketAddress, 1000 * 5);
-                this.socketChannel.configureBlocking(false);
+                this.socketChannel = RemotingUtil.connect(socketAddress);
                 if (this.socketChannel != null) {
                     this.socketChannel.register(this.selector, SelectionKey.OP_READ);
                     LOGGER.info("AutoSwitchHAClient connect to master {}", addr);
