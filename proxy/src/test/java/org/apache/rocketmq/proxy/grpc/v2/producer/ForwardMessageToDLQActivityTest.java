@@ -41,7 +41,7 @@ public class ForwardMessageToDLQActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(this.messagingProcessor, this.grpcClientSettingsManager);
+        this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
     @Test

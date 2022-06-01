@@ -23,6 +23,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelMetadata;
 import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.channel.DefaultChannelPromise;
@@ -57,7 +58,11 @@ public class SimpleChannel extends AbstractChannel {
      * @param localAddress  Local address
      */
     public SimpleChannel(Channel parent, String remoteAddress, String localAddress) {
-        super(parent);
+        this(parent, null, remoteAddress, localAddress);
+    }
+
+    public SimpleChannel(Channel parent, ChannelId id, String remoteAddress, String localAddress) {
+        super(parent, id);
         lastAccessTime = System.currentTimeMillis();
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;

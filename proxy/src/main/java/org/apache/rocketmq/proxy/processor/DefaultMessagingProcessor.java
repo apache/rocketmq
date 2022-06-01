@@ -45,6 +45,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.ServiceManagerFactory;
+import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
@@ -226,4 +227,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         return this.serviceManager.getProxyRelayService();
     }
 
+    @Override
+    public MetadataService getMetadataService() {
+        return this.serviceManager.getMetadataService();
+    }
 }

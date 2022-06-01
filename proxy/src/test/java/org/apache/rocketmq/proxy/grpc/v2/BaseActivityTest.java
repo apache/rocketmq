@@ -26,8 +26,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
@@ -42,7 +44,9 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
     protected static final Random RANDOM = new Random();
     protected MessagingProcessor messagingProcessor;
     protected GrpcClientSettingsManager grpcClientSettingsManager;
+    protected GrpcChannelManager grpcChannelManager;
     protected ProxyRelayService proxyRelayService;
+    protected ReceiptHandleProcessor receiptHandleProcessor;
 
     protected static final String REMOTE_ADDR = "192.168.0.1:8080";
     protected static final String LOCAL_ADDR = "127.0.0.1:8080";
@@ -55,12 +59,14 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
         messagingProcessor = mock(MessagingProcessor.class);
         grpcClientSettingsManager = mock(GrpcClientSettingsManager.class);
         proxyRelayService = mock(ProxyRelayService.class);
+        receiptHandleProcessor = mock(ReceiptHandleProcessor.class);
 
         metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
         metadata.put(InterceptorConstants.LANGUAGE, "JAVA");
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
         when(messagingProcessor.getProxyOutService()).thenReturn(proxyRelayService);
+        grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyOutService());
     }
 
     protected Context createContext() {

@@ -20,11 +20,12 @@ import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 
-public abstract class AbstractProcessor {
+public abstract class AbstractProcessor extends AbstractStartAndShutdown {
 
     protected MessagingProcessor messagingProcessor;
     protected ServiceManager serviceManager;

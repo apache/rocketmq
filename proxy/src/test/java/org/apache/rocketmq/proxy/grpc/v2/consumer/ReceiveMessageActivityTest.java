@@ -69,7 +69,8 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.receiveMessageActivity = new ReceiveMessageActivity(this.messagingProcessor, this.grpcClientSettingsManager);
+        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor,
+            grpcClientSettingsManager, grpcChannelManager);
     }
 
     @Test
@@ -117,8 +118,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             any(),
             anyBoolean(),
             any(),
-            anyLong()
-        )).thenReturn(CompletableFuture.completedFuture(popResult));
+            anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
 
         this.receiveMessageActivity.receiveMessage(
             createContext(),

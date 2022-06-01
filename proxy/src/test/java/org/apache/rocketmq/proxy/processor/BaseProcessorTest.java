@@ -83,6 +83,7 @@ public class BaseProcessorTest extends InitConfigAndLoggerTest {
         when(serviceManager.getTransactionService()).thenReturn(transactionService);
         when(serviceManager.getProxyRelayService()).thenReturn(proxyRelayService);
         when(serviceManager.getMetadataService()).thenReturn(metadataService);
+        when(messagingProcessor.getMetadataService()).thenReturn(metadataService);
     }
 
     protected static ProxyContext createContext() {

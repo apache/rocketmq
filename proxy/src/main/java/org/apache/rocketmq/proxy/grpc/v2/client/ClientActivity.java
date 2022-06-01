@@ -71,22 +71,10 @@ public class ClientActivity extends AbstractMessingActivity {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final GrpcChannelManager grpcChannelManager;
-
     public ClientActivity(MessagingProcessor messagingProcessor,
-        GrpcClientSettingsManager grpcClientSettingsManager) {
-        super(messagingProcessor, grpcClientSettingsManager);
-
-        this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyOutService());
-
-        this.init();
-    }
-
-    ClientActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager) {
-        super(messagingProcessor, grpcClientSettingsManager);
-        this.grpcChannelManager = grpcChannelManager;
+        super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.init();
     }
 

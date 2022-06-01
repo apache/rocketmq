@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
@@ -228,4 +229,6 @@ public interface MessagingProcessor extends StartAndShutdown {
     );
 
     ProxyRelayService getProxyOutService();
+
+    MetadataService getMetadataService();
 }

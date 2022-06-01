@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -51,8 +52,8 @@ import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
 public class RouteActivity extends AbstractMessingActivity {
 
     public RouteActivity(MessagingProcessor messagingProcessor,
-        GrpcClientSettingsManager grpcClientSettingsManager) {
-        super(messagingProcessor, grpcClientSettingsManager);
+        GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
+        super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
     public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {

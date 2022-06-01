@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.config;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.proxy.ProxyMode;
 
 public class ProxyConfig {
@@ -96,6 +97,12 @@ public class ProxyConfig {
     private int transactionHeartbeatBatchNum = 100;
 
     private long longPollingReserveTimeInMillis = 100;
+
+    private long invisibleTimeMillisWhenClear = 1000L;
+    private boolean enableProxyAutoRenew = true;
+    private long renewAheadTimeMillis = TimeUnit.SECONDS.toMillis(10);
+    private long renewSliceTimeMillis = TimeUnit.SECONDS.toMillis(60);
+    private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
 
     private boolean enableACL = false;
 
@@ -531,5 +538,45 @@ public class ProxyConfig {
 
     public void setEnableTopicMessageTypeCheck(boolean enableTopicMessageTypeCheck) {
         this.enableTopicMessageTypeCheck = enableTopicMessageTypeCheck;
+    }
+
+    public long getInvisibleTimeMillisWhenClear() {
+        return invisibleTimeMillisWhenClear;
+    }
+
+    public void setInvisibleTimeMillisWhenClear(long invisibleTimeMillisWhenClear) {
+        this.invisibleTimeMillisWhenClear = invisibleTimeMillisWhenClear;
+    }
+
+    public boolean isEnableProxyAutoRenew() {
+        return enableProxyAutoRenew;
+    }
+
+    public void setEnableProxyAutoRenew(boolean enableProxyAutoRenew) {
+        this.enableProxyAutoRenew = enableProxyAutoRenew;
+    }
+
+    public long getRenewAheadTimeMillis() {
+        return renewAheadTimeMillis;
+    }
+
+    public void setRenewAheadTimeMillis(long renewAheadTimeMillis) {
+        this.renewAheadTimeMillis = renewAheadTimeMillis;
+    }
+
+    public long getRenewSliceTimeMillis() {
+        return renewSliceTimeMillis;
+    }
+
+    public void setRenewSliceTimeMillis(long renewSliceTimeMillis) {
+        this.renewSliceTimeMillis = renewSliceTimeMillis;
+    }
+
+    public long getRenewSchedulePeriodMillis() {
+        return renewSchedulePeriodMillis;
+    }
+
+    public void setRenewSchedulePeriodMillis(long renewSchedulePeriodMillis) {
+        this.renewSchedulePeriodMillis = renewSchedulePeriodMillis;
     }
 }

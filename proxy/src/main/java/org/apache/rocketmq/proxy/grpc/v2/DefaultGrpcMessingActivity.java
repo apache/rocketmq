@@ -44,6 +44,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.AckMessageActivity;
@@ -54,11 +55,10 @@ import org.apache.rocketmq.proxy.grpc.v2.producer.SendMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.route.RouteActivity;
 import org.apache.rocketmq.proxy.grpc.v2.transaction.EndTransactionActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 
 public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown implements GrpcMessingActivity {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-
-    private final GrpcClientSettingsManager grpcClientSettingsManager;
 
     private final ReceiveMessageActivity receiveMessageActivity;
     private final AckMessageActivity ackMessageActivity;
@@ -70,16 +70,18 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     private final ClientActivity clientActivity;
 
     protected DefaultGrpcMessingActivity(MessagingProcessor messagingProcessor) {
-        this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
+        GrpcClientSettingsManager grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
+        GrpcChannelManager grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyOutService());
+        ReceiptHandleProcessor receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
 
-        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, this.grpcClientSettingsManager);
-        this.ackMessageActivity = new AckMessageActivity(messagingProcessor, this.grpcClientSettingsManager);
-        this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, this.grpcClientSettingsManager);
-        this.sendMessageActivity = new SendMessageActivity(messagingProcessor, this.grpcClientSettingsManager);
-        this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, this.grpcClientSettingsManager);
-        this.endTransactionActivity = new EndTransactionActivity(messagingProcessor, this.grpcClientSettingsManager);
-        this.routeActivity = new RouteActivity(messagingProcessor, this.grpcClientSettingsManager);
-        this.clientActivity = new ClientActivity(messagingProcessor, this.grpcClientSettingsManager);
+        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.ackMessageActivity = new AckMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.sendMessageActivity = new SendMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.endTransactionActivity = new EndTransactionActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.routeActivity = new RouteActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.clientActivity = new ClientActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
     @Override

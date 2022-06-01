@@ -77,7 +77,7 @@ public class RouteActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.routeActivity = new RouteActivity(this.messagingProcessor, this.grpcClientSettingsManager);
+        this.routeActivity = new RouteActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
     @Test

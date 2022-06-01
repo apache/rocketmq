@@ -44,6 +44,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
@@ -56,8 +57,8 @@ import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 public class SendMessageActivity extends AbstractMessingActivity {
 
     public SendMessageActivity(MessagingProcessor messagingProcessor,
-        GrpcClientSettingsManager grpcClientSettingsManager) {
-        super(messagingProcessor, grpcClientSettingsManager);
+        GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
+        super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
     public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {

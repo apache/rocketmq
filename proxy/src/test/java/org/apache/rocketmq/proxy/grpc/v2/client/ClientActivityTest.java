@@ -89,7 +89,7 @@ public class ClientActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager);
+        this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager, grpcChannelManager);
     }
 
     protected TelemetryCommand sendProducerTelemetry(Context context) throws Throwable {
