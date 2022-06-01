@@ -285,7 +285,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                     boolean processSuccess = true;
                     int readSocketPos = byteBufferRead.position();
                     int diff = byteBufferRead.position() - ReadSocketService.this.processPosition;
-                    if (diff >= Math.min(AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE, AutoSwitchHAClient.TRANSFER_HEADER_SIZE)) {
+                    if (diff >= AutoSwitchHAClient.MIN_HEADER_SIZE) {
                         int readPosition = ReadSocketService.this.processPosition;
                         HAConnectionState slaveState = HAConnectionState.values()[byteBufferRead.getInt(readPosition)];
 

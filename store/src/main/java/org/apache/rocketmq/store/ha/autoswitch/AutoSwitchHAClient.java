@@ -57,6 +57,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * Transfer header buffer size. Schema: state ordinal + maxOffset.
      */
     public static final int TRANSFER_HEADER_SIZE = 4 + 8;
+    public static final int MIN_HEADER_SIZE = Math.min(HANDSHAKE_HEADER_SIZE, TRANSFER_HEADER_SIZE);
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
     private final AtomicReference<String> masterHaAddress = new AtomicReference<>();
