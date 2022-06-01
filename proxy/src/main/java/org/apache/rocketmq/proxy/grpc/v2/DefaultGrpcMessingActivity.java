@@ -103,7 +103,8 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     }
 
     @Override
-    public void receiveMessage(Context ctx, ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver) {
+    public void receiveMessage(Context ctx, ReceiveMessageRequest request,
+        StreamObserver<ReceiveMessageResponse> responseObserver) {
         this.receiveMessageActivity.receiveMessage(ctx, request, responseObserver);
     }
 

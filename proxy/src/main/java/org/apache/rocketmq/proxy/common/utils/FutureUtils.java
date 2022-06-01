@@ -22,7 +22,8 @@ import java.util.concurrent.ExecutorService;
 
 public class FutureUtils {
 
-    public static <T> CompletableFuture<T> appendNextFuture(CompletableFuture<T> future, CompletableFuture<T> nextFuture, ExecutorService executor) {
+    public static <T> CompletableFuture<T> appendNextFuture(CompletableFuture<T> future,
+        CompletableFuture<T> nextFuture, ExecutorService executor) {
         future.whenCompleteAsync((t, throwable) -> {
             if (throwable != null) {
                 nextFuture.completeExceptionally(throwable);

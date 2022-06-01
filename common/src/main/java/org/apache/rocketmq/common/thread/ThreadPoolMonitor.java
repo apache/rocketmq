@@ -28,22 +28,30 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.logger.ProxyLogger;
-import org.apache.rocketmq.common.logger.WatermarkLogger;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class ThreadPoolMonitor {
+    private static InternalLogger jstackLogger = InternalLoggerFactory.getLogger(ThreadPoolMonitor.class);
+    private static InternalLogger waterMarkLogger = InternalLoggerFactory.getLogger(ThreadPoolMonitor.class);
+
     private static final List<ThreadPoolWrapper> MONITOR_EXECUTOR = new CopyOnWriteArrayList<>();
     private static final ScheduledExecutorService MONITOR_SCHEDULED = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat("ThreadPoolMonitor-%d").build()
     );
 
+    private static volatile long threadPoolStatusPeriodTime = TimeUnit.SECONDS.toMillis(3);
     private static volatile boolean enablePrintJstack = true;
-    private static volatile long jstackPeriodTIme = 60000;
+    private static volatile long jstackPeriodTime = 60000;
     private static volatile long jstackTime = System.currentTimeMillis();
 
-    public static void config(boolean enablePrintJstack, long jstackPeriodTime) {
+    public static void config(InternalLogger jstackLoggerConfig, InternalLogger waterMarkLoggerConfig,
+        boolean enablePrintJstack, long jstackPeriodTimeConfig, long threadPoolStatusPeriodTimeConfig) {
+        jstackLogger = jstackLoggerConfig;
+        waterMarkLogger = waterMarkLoggerConfig;
+        threadPoolStatusPeriodTime = threadPoolStatusPeriodTimeConfig;
         ThreadPoolMonitor.enablePrintJstack = enablePrintJstack;
-        jstackPeriodTIme = jstackPeriodTime;
+        jstackPeriodTime = jstackPeriodTimeConfig;
     }
 
     public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
@@ -97,15 +105,15 @@ public class ThreadPoolMonitor {
             List<ThreadPoolStatusMonitor> monitors = threadPoolWrapper.getStatusPrinters();
             for (ThreadPoolStatusMonitor monitor : monitors) {
                 double value = monitor.value(threadPoolWrapper.getThreadPoolExecutor());
-                WatermarkLogger.info(threadPoolWrapper.getName(),
+                waterMarkLogger.info("\t{}\t{}\t{}", threadPoolWrapper.getName(),
                     monitor.describe(),
                     value);
 
                 if (enablePrintJstack) {
                     if (monitor.needPrintJstack(threadPoolWrapper.getThreadPoolExecutor(), value) &&
-                        System.currentTimeMillis() - jstackTime > jstackPeriodTIme) {
+                        System.currentTimeMillis() - jstackTime > jstackPeriodTime) {
                         jstackTime = System.currentTimeMillis();
-                        ProxyLogger.LOG_JSTACK.warn("jstack start \n " + UtilAll.jstack());
+                        jstackLogger.warn("jstack start\n{}", UtilAll.jstack());
                     }
                 }
             }
@@ -113,7 +121,8 @@ public class ThreadPoolMonitor {
     }
 
     public static void init() {
-        MONITOR_SCHEDULED.scheduleAtFixedRate(ThreadPoolMonitor::logThreadPoolStatus, 20, 1, TimeUnit.SECONDS);
+        MONITOR_SCHEDULED.scheduleAtFixedRate(ThreadPoolMonitor::logThreadPoolStatus, 20,
+            threadPoolStatusPeriodTime, TimeUnit.MILLISECONDS);
     }
 
     public static void shutdown() {

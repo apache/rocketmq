@@ -48,7 +48,7 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
     GrpcMessagingApplication grpcMessagingApplication;
 
     private static final String TOPIC = "topic";
-    private static Endpoints GRPC_ENDPOINTS = Endpoints.newBuilder()
+    private static Endpoints grpcEndpoints = Endpoints.newBuilder()
         .setScheme(AddressScheme.IPv4)
         .addAddresses(Address.newBuilder().setHost("127.0.0.1").setPort(8080).build())
         .addAddresses(Address.newBuilder().setHost("127.0.0.2").setPort(8080).build())
@@ -64,7 +64,7 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
     public void testQueryRoute() {
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         QueryRouteRequest request = QueryRouteRequest.newBuilder()
-            .setEndpoints(GRPC_ENDPOINTS)
+            .setEndpoints(grpcEndpoints)
             .setTopic(Resource.newBuilder().setName(TOPIC).build())
             .build();
         Mockito.when(grpcMessingActivity.queryRoute(Mockito.any(Context.class), Mockito.eq(request)))

@@ -149,9 +149,13 @@ public class ProxyStartup {
     }
 
     public static void initThreadPoolMonitor() {
-        ThreadPoolMonitor.init();
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        ThreadPoolMonitor.config(config.isEnablePrintJstack(), config.getPrintJstackInMillis());
+        ThreadPoolMonitor.config(
+            InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME),
+            InternalLoggerFactory.getLogger(LoggerName.PROXY_WATER_MARK_LOGGER_NAME),
+            config.isEnablePrintJstack(), config.getPrintJstackInMillis(),
+            config.getPrintThreadPoolStatusInMillis());
+        ThreadPoolMonitor.init();
     }
 
     public static void initLogger() throws JoranException {

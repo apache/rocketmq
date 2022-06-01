@@ -111,7 +111,8 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
         }
     }
 
-    protected ReceiveMessageResponseStreamWriter createWriter(ProxyContext ctx, StreamObserver<ReceiveMessageResponse> responseObserver) {
+    protected ReceiveMessageResponseStreamWriter createWriter(ProxyContext ctx,
+        StreamObserver<ReceiveMessageResponse> responseObserver) {
         return new ReceiveMessageResponseStreamWriter(
             this.messagingProcessor,
             responseObserver

@@ -53,7 +53,8 @@ public class MessageQueueView {
         return writeSelector;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("readSelector", readSelector)
             .add("writeSelector", writeSelector)

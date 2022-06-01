@@ -75,7 +75,8 @@ public class LocalMessageService implements MessageService {
         this.channelManager = channelManager;
     }
 
-    @Override public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    @Override
+    public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
         List<? extends Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         byte[] body;
         String messageId;
@@ -162,7 +163,8 @@ public class LocalMessageService implements MessageService {
         return future;
     }
 
-    @Override public void endTransactionOneway(ProxyContext ctx, TransactionId transactionId,
+    @Override
+    public void endTransactionOneway(ProxyContext ctx, TransactionId transactionId,
         EndTransactionRequestHeader requestHeader, long timeoutMillis) {
         SimpleChannel channel = channelManager.createChannel(ctx);
         ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
@@ -175,7 +177,8 @@ public class LocalMessageService implements MessageService {
         }
     }
 
-    @Override public CompletableFuture<PopResult> popMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    @Override
+    public CompletableFuture<PopResult> popMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
         PopMessageRequestHeader requestHeader, long timeoutMillis) {
         RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
@@ -315,7 +318,8 @@ public class LocalMessageService implements MessageService {
         });
     }
 
-    @Override public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
+    @Override
+    public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
         AckMessageRequestHeader requestHeader, long timeoutMillis) {
         SimpleChannel channel = channelManager.createChannel(ctx);
         ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();

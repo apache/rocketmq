@@ -313,7 +313,6 @@ public class MQClientAPIExtTest {
         assertEquals(offset, mqClientAPI.getMaxOffsetAsync(BROKER_ADDR, TOPIC, 0, TIMEOUT).get().longValue());
     }
 
-
     @Test
     public void testSearchOffsetAsync() throws Exception {
         long offset = ThreadLocalRandom.current().nextLong();

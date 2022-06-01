@@ -24,7 +24,7 @@ public class FilterUtils {
      * Whether the message's tag matches consumerGroup's SubscriptionData
      *
      * @param tagsSet, tagSet in {@link SubscriptionData}, tagSet empty means SubscriptionData.SUB_ALL(*)
-     * @param tags, message's tags, null means not tag attached to the message.
+     * @param tags,    message's tags, null means not tag attached to the message.
      */
     public static boolean isTagMatched(Set<String> tagsSet, String tags) {
         if (tagsSet.isEmpty()) {

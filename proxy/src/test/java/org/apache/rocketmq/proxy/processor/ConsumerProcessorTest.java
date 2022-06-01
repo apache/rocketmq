@@ -58,7 +58,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
 
     private static final String CONSUMER_GROUP = "consumerGroup";
     private static final String TOPIC = "topic";
-    
+
     private ConsumerProcessor consumerProcessor;
 
     @Before

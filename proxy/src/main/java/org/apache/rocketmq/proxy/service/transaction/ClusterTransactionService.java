@@ -57,7 +57,8 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
     private final Map<String /* group */, Set<ClusterData>/* cluster list */> groupClusterData = new ConcurrentHashMap<>();
     private TxHeartbeatServiceThread txHeartbeatServiceThread;
 
-    public ClusterTransactionService(TopicRouteService topicRouteService, ProducerManager producerManager, RPCHook rpcHook,
+    public ClusterTransactionService(TopicRouteService topicRouteService, ProducerManager producerManager,
+        RPCHook rpcHook,
         MQClientAPIFactory mqClientAPIFactory) {
         this.topicRouteService = topicRouteService;
         this.mqClientAPIFactory = mqClientAPIFactory;
@@ -186,7 +187,7 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
 
     protected void sendHeartBeatToCluster(String clusterName, HeartbeatData heartbeatData) {
         try {
-            MessageQueueView messageQueue =  this.topicRouteService.getAllMessageQueueView(clusterName);
+            MessageQueueView messageQueue = this.topicRouteService.getAllMessageQueueView(clusterName);
             List<BrokerData> brokerDataList = messageQueue.getTopicRouteData().getBrokerDatas();
             if (brokerDataList == null) {
                 return;

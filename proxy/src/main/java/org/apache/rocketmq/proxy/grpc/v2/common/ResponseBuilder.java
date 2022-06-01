@@ -62,7 +62,7 @@ public class ResponseBuilder {
             .setMessage(message)
             .build();
     }
-    
+
     public static Code buildCode(int remotingResponseCode) {
         switch (remotingResponseCode) {
             case ResponseCode.SUCCESS:

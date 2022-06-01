@@ -31,6 +31,7 @@ public class ProxyConfig {
      */
     private boolean enablePrintJstack = true;
     private long printJstackInMillis = Duration.ofSeconds(60).toMillis();
+    private long printThreadPoolStatusInMillis = Duration.ofSeconds(3).toMillis();
 
     private String nameSrvAddr = "";
     private String nameSrvDomain = "";
@@ -122,6 +123,14 @@ public class ProxyConfig {
 
     public void setPrintJstackInMillis(long printJstackInMillis) {
         this.printJstackInMillis = printJstackInMillis;
+    }
+
+    public long getPrintThreadPoolStatusInMillis() {
+        return printThreadPoolStatusInMillis;
+    }
+
+    public void setPrintThreadPoolStatusInMillis(long printThreadPoolStatusInMillis) {
+        this.printThreadPoolStatusInMillis = printThreadPoolStatusInMillis;
     }
 
     public String getNameSrvAddr() {

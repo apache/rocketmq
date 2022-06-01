@@ -53,17 +53,21 @@ public interface GrpcMessingActivity extends StartAndShutdown {
 
     CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request);
 
-    void receiveMessage(Context ctx, ReceiveMessageRequest request, StreamObserver<ReceiveMessageResponse> responseObserver);
+    void receiveMessage(Context ctx, ReceiveMessageRequest request,
+        StreamObserver<ReceiveMessageResponse> responseObserver);
 
     CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request);
 
-    CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx, ForwardMessageToDeadLetterQueueRequest request);
+    CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
+        ForwardMessageToDeadLetterQueueRequest request);
 
     CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request);
 
-    CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx, NotifyClientTerminationRequest request);
+    CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+        NotifyClientTerminationRequest request);
 
-    CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx, ChangeInvisibleDurationRequest request);
+    CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+        ChangeInvisibleDurationRequest request);
 
     StreamObserver<TelemetryCommand> telemetry(Context ctx, StreamObserver<TelemetryCommand> responseObserver);
 }

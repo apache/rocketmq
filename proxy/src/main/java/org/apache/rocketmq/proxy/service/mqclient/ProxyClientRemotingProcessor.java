@@ -46,7 +46,8 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
     }
 
     @Override
-    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer, true, false, false);
         if (messageExt != null) {

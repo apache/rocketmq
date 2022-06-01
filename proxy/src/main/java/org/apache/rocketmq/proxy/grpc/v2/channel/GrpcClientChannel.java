@@ -50,7 +50,8 @@ public class GrpcClientChannel extends ProxyChannel {
     private final String group;
     private final String clientId;
 
-    public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcChannelManager grpcChannelManager, Context ctx, String group, String clientId) {
+    public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcChannelManager grpcChannelManager, Context ctx,
+        String group, String clientId) {
         super(proxyRelayService, null, new GrpcChannelId(group, clientId),
             InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.REMOTE_ADDRESS),
             InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LOCAL_ADDRESS));

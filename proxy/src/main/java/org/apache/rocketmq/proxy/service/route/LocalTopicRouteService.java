@@ -56,7 +56,8 @@ public class LocalTopicRouteService extends TopicRouteService {
     }
 
     @Override
-    public ProxyTopicRouteData getTopicRouteForProxy(List<Address> requestHostAndPortList, String topicName) throws Exception {
+    public ProxyTopicRouteData getTopicRouteForProxy(List<Address> requestHostAndPortList,
+        String topicName) throws Exception {
         MessageQueueView messageQueueView = getAllMessageQueueView(topicName);
         TopicRouteData topicRouteData = messageQueueView.getTopicRouteData();
 

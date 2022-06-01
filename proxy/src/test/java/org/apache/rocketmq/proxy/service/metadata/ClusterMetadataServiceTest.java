@@ -18,14 +18,11 @@
 package org.apache.rocketmq.proxy.service.metadata;
 
 import java.util.HashMap;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
-import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.junit.Before;
 import org.junit.Test;
 

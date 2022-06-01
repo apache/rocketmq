@@ -45,4 +45,5 @@ public class LoggerName {
     public static final String FAILOVER_LOGGER_NAME = "RocketmqFailover";
     public static final String STDOUT_LOGGER_NAME = "STDOUT";
     public static final String PROXY_LOGGER_NAME = "RocketmqProxy";
+    public static final String PROXY_WATER_MARK_LOGGER_NAME = "RocketmqProxyWatermark";
 }

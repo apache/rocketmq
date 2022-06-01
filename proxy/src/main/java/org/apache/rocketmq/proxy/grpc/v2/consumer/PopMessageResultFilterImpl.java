@@ -32,7 +32,8 @@ public class PopMessageResultFilterImpl implements PopMessageResultFilter {
     }
 
     @Override
-    public FilterResult filterMessage(ProxyContext ctx, String consumerGroup, SubscriptionData subscriptionData, MessageExt messageExt) {
+    public FilterResult filterMessage(ProxyContext ctx, String consumerGroup, SubscriptionData subscriptionData,
+        MessageExt messageExt) {
         int maxAttempts = grpcClientSettingsManager.getClientSettings(ctx).getBackoffPolicy().getMaxAttempts();
         if (!FilterUtils.isTagMatched(subscriptionData.getTagsSet(), messageExt.getTags())) {
             return FilterResult.NO_MATCH;

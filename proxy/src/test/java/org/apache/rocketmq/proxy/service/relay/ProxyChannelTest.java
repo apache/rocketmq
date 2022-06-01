@@ -18,7 +18,6 @@
 package org.apache.rocketmq.proxy.service.relay;
 
 import io.netty.channel.Channel;
-import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -40,7 +39,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -57,11 +58,13 @@ public class ProxyChannelTest {
             super(proxyRelayService, parent, remoteAddress, localAddress);
         }
 
-        @Override public boolean isOpen() {
+        @Override
+        public boolean isOpen() {
             return false;
         }
 
-        @Override public boolean isActive() {
+        @Override
+        public boolean isActive() {
             return false;
         }
     }

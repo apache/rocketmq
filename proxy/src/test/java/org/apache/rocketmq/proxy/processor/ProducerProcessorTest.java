@@ -77,7 +77,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         sendResult.setMsgId(msgId);
         ArgumentCaptor<SendMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(SendMessageRequestHeader.class);
         when(this.messageService.sendMessage(any(), any(), any(), requestHeaderArgumentCaptor.capture(), anyLong()))
-        .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
+            .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
 
         List<MessageExt> messageExtList = new ArrayList<>();
         MessageExt messageExt = createMessageExt(TOPIC, "tag", 0, 0);

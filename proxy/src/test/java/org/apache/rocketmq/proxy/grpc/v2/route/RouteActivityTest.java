@@ -58,18 +58,18 @@ public class RouteActivityTest extends BaseActivityTest {
     private static final Resource GRPC_TOPIC = Resource.newBuilder()
         .setName(TOPIC)
         .build();
-    private static Endpoints GRPC_ENDPOINTS = Endpoints.newBuilder()
+    private static Endpoints grpcEndpoints = Endpoints.newBuilder()
         .setScheme(AddressScheme.IPv4)
         .addAddresses(Address.newBuilder().setHost("127.0.0.1").setPort(8080).build())
         .addAddresses(Address.newBuilder().setHost("127.0.0.2").setPort(8080).build())
         .build();
-    private static List<org.apache.rocketmq.proxy.common.Address> ENDPOINTS_ADDRESS = new ArrayList<>();
+    private static List<org.apache.rocketmq.proxy.common.Address> addressArrayList = new ArrayList<>();
 
     static {
-        ENDPOINTS_ADDRESS.add(new org.apache.rocketmq.proxy.common.Address(
+        addressArrayList.add(new org.apache.rocketmq.proxy.common.Address(
             org.apache.rocketmq.proxy.common.Address.AddressScheme.IPv4,
             HostAndPort.fromParts("127.0.0.1", 8080)));
-        ENDPOINTS_ADDRESS.add(new org.apache.rocketmq.proxy.common.Address(
+        addressArrayList.add(new org.apache.rocketmq.proxy.common.Address(
             org.apache.rocketmq.proxy.common.Address.AddressScheme.IPv4,
             HostAndPort.fromParts("127.0.0.2", 8080)));
     }
@@ -89,16 +89,16 @@ public class RouteActivityTest extends BaseActivityTest {
         QueryRouteResponse response = this.routeActivity.queryRoute(
             createContext(),
             QueryRouteRequest.newBuilder()
-                .setEndpoints(GRPC_ENDPOINTS)
+                .setEndpoints(grpcEndpoints)
                 .setTopic(Resource.newBuilder().setName(TOPIC).build())
                 .build()
         ).get();
 
-        assertEquals(ENDPOINTS_ADDRESS, addressListCaptor.getValue());
+        assertEquals(addressArrayList, addressListCaptor.getValue());
         assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(4, response.getMessageQueuesCount());
         for (MessageQueue messageQueue : response.getMessageQueuesList()) {
-            assertEquals(GRPC_ENDPOINTS, messageQueue.getBroker().getEndpoints());
+            assertEquals(grpcEndpoints, messageQueue.getBroker().getEndpoints());
             assertEquals(Permission.READ_WRITE, messageQueue.getPermission());
         }
     }
@@ -111,7 +111,7 @@ public class RouteActivityTest extends BaseActivityTest {
         QueryRouteResponse response = this.routeActivity.queryRoute(
             createContext(),
             QueryRouteRequest.newBuilder()
-                .setEndpoints(GRPC_ENDPOINTS)
+                .setEndpoints(grpcEndpoints)
                 .setTopic(GRPC_TOPIC)
                 .build()
         ).get();
@@ -127,7 +127,7 @@ public class RouteActivityTest extends BaseActivityTest {
         QueryAssignmentResponse response = this.routeActivity.queryAssignment(
             createContext(),
             QueryAssignmentRequest.newBuilder()
-                .setEndpoints(GRPC_ENDPOINTS)
+                .setEndpoints(grpcEndpoints)
                 .setTopic(GRPC_TOPIC)
                 .build()
         ).get();
@@ -143,7 +143,7 @@ public class RouteActivityTest extends BaseActivityTest {
         QueryAssignmentResponse response = this.routeActivity.queryAssignment(
             createContext(),
             QueryAssignmentRequest.newBuilder()
-                .setEndpoints(GRPC_ENDPOINTS)
+                .setEndpoints(grpcEndpoints)
                 .setTopic(GRPC_TOPIC)
                 .build()
         ).get();
@@ -159,14 +159,14 @@ public class RouteActivityTest extends BaseActivityTest {
         QueryAssignmentResponse response = this.routeActivity.queryAssignment(
             createContext(),
             QueryAssignmentRequest.newBuilder()
-                .setEndpoints(GRPC_ENDPOINTS)
+                .setEndpoints(grpcEndpoints)
                 .setTopic(GRPC_TOPIC)
                 .build()
         ).get();
 
         assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(1, response.getAssignmentsCount());
-        assertEquals(GRPC_ENDPOINTS, response.getAssignments(0).getMessageQueue().getBroker().getEndpoints());
+        assertEquals(grpcEndpoints, response.getAssignments(0).getMessageQueue().getBroker().getEndpoints());
     }
 
     private static ProxyTopicRouteData createProxyTopicRouteData(int r, int w, int p) {
@@ -175,8 +175,8 @@ public class RouteActivityTest extends BaseActivityTest {
         ProxyTopicRouteData.ProxyBrokerData proxyBrokerData = new ProxyTopicRouteData.ProxyBrokerData();
         proxyBrokerData.setCluster(CLUSTER);
         proxyBrokerData.setBrokerName(BROKER_NAME);
-        proxyBrokerData.getBrokerAddrs().put(0L, ENDPOINTS_ADDRESS);
-        proxyBrokerData.getBrokerAddrs().put(1L, ENDPOINTS_ADDRESS);
+        proxyBrokerData.getBrokerAddrs().put(0L, addressArrayList);
+        proxyBrokerData.getBrokerAddrs().put(1L, addressArrayList);
         proxyTopicRouteData.getBrokerDatas().add(proxyBrokerData);
         return proxyTopicRouteData;
     }

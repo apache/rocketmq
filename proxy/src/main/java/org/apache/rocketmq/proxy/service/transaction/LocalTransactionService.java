@@ -18,20 +18,27 @@ package org.apache.rocketmq.proxy.service.transaction;
 
 import java.util.List;
 
+/**
+ * no need to implements, because the channel of producer will put into the broker's producerManager
+ */
 public class LocalTransactionService implements TransactionService {
-    @Override public void addTransactionSubscription(String group, List<String> topicList) {
+    @Override
+    public void addTransactionSubscription(String group, List<String> topicList) {
 
     }
 
-    @Override public void addTransactionSubscription(String group, String topic) {
+    @Override
+    public void addTransactionSubscription(String group, String topic) {
 
     }
 
-    @Override public void replaceTransactionSubscription(String group, List<String> topicList) {
+    @Override
+    public void replaceTransactionSubscription(String group, List<String> topicList) {
 
     }
 
-    @Override public void unSubscribeAllTransactionTopic(String group) {
+    @Override
+    public void unSubscribeAllTransactionTopic(String group) {
 
     }
 }
