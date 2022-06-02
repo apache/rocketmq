@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.controller;
 
-import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -37,11 +36,8 @@ import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingServer;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -56,7 +52,6 @@ public class ControllerManager {
     private final Configuration configuration;
     private Controller controller;
     private BrokerHeartbeatManager heartbeatManager;
-    private RemotingClient remotingClient;
     private RemotingServer remotingServer;
 
     private ExecutorService controllerRequestExecutor;
@@ -90,8 +85,6 @@ public class ControllerManager {
             }
         };
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
-        this.remotingClient = new NettyRemotingClient(this.nettyClientConfig);
-        this.remotingClient.updateNameServerAddressList(Collections.singletonList(RemotingUtil.getLocalAddress() + ":" + this.nettyServerConfig.getListenPort()));
 
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
         this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr));
@@ -128,7 +121,6 @@ public class ControllerManager {
 
     public void start() {
         this.remotingServer.start();
-        this.remotingClient.start();
         this.heartbeatManager.start();
         this.controller.startup();
     }

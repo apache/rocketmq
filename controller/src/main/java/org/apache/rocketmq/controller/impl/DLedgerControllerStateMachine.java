@@ -32,13 +32,13 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 /**
  * The state machine implementation of the dledger controller
  */
-public class DledgerControllerStateMachine implements StateMachine {
+public class DLedgerControllerStateMachine implements StateMachine {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final ReplicasInfoManager replicasInfoManager;
     private final EventSerializer eventSerializer;
     private final String dledgerId;
 
-    public DledgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
+    public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
         final EventSerializer eventSerializer, final String dledgerId) {
         this.replicasInfoManager = replicasInfoManager;
         this.eventSerializer = eventSerializer;
