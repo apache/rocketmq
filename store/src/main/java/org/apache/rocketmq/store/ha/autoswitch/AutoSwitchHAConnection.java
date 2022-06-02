@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.FlowMonitor;
@@ -90,8 +91,12 @@ public class AutoSwitchHAConnection implements HAConnection {
         this.socketChannel.configureBlocking(false);
         this.socketChannel.socket().setSoLinger(false, -1);
         this.socketChannel.socket().setTcpNoDelay(true);
-        this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
-        this.socketChannel.socket().setSendBufferSize(1024 * 64);
+        if (NettySystemConfig.socketSndbufSize > 0) {
+            this.socketChannel.socket().setReceiveBufferSize(NettySystemConfig.socketSndbufSize);
+        }
+        if (NettySystemConfig.socketRcvbufSize > 0) {
+            this.socketChannel.socket().setSendBufferSize(NettySystemConfig.socketRcvbufSize);
+        }
         this.writeSocketService = new WriteSocketService(this.socketChannel);
         this.readSocketService = new ReadSocketService(this.socketChannel);
         this.haService.getConnectionCount().incrementAndGet();
@@ -277,58 +282,55 @@ public class AutoSwitchHAConnection implements HAConnection {
             @Override
             protected boolean processReadResult(ByteBuffer byteBufferRead) {
                 while (true) {
+                    boolean processSuccess = true;
                     int readSocketPos = byteBufferRead.position();
                     int diff = byteBufferRead.position() - ReadSocketService.this.processPosition;
-                    if (diff >= 4) {
+                    if (diff >= AutoSwitchHAClient.MIN_HEADER_SIZE) {
                         int readPosition = ReadSocketService.this.processPosition;
                         HAConnectionState slaveState = HAConnectionState.values()[byteBufferRead.getInt(readPosition)];
 
                         switch (slaveState) {
                             case HANDSHAKE:
-                                if (diff >= AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE) {
-                                    // AddressLength
-                                    int addressLength = byteBufferRead.getInt(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 4);
-                                    if (diff < AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength) {
-                                        break;
-                                    }
-                                    // Flag(isSyncFromLastFile)
-                                    short syncFromLastFileFlag = byteBufferRead.getShort(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 8);
-                                    if (syncFromLastFileFlag == 1) {
-                                        AutoSwitchHAConnection.this.isSyncFromLastFile = true;
-                                    }
-                                    // Flag(isAsyncLearner role)
-                                    short isAsyncLearner = byteBufferRead.getShort(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 6);
-                                    if (isAsyncLearner == 1) {
-                                        AutoSwitchHAConnection.this.isAsyncLearner = true;
-                                    }
-                                    // Address
-                                    final byte[] addressData = new byte[addressLength];
-                                    byteBufferRead.position(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE);
-                                    byteBufferRead.get(addressData);
-                                    AutoSwitchHAConnection.this.slaveAddress = new String(addressData);
-
-                                    isSlaveSendHandshake = true;
-                                    byteBufferRead.position(readSocketPos);
-                                    ReadSocketService.this.processPosition += AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength;
-                                    LOGGER.info("Receive slave handshake, slaveId:{}, slaveAddress:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
-                                        AutoSwitchHAConnection.this.slaveId, AutoSwitchHAConnection.this.slaveAddress,
-                                        AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
+                                // AddressLength
+                                int addressLength = byteBufferRead.getInt(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 4);
+                                if (diff < AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength) {
+                                    processSuccess = false;
+                                    break;
                                 }
+                                // Flag(isSyncFromLastFile)
+                                short syncFromLastFileFlag = byteBufferRead.getShort(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 8);
+                                if (syncFromLastFileFlag == 1) {
+                                    AutoSwitchHAConnection.this.isSyncFromLastFile = true;
+                                }
+                                // Flag(isAsyncLearner role)
+                                short isAsyncLearner = byteBufferRead.getShort(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE - 6);
+                                if (isAsyncLearner == 1) {
+                                    AutoSwitchHAConnection.this.isAsyncLearner = true;
+                                }
+                                // Address
+                                final byte[] addressData = new byte[addressLength];
+                                byteBufferRead.position(readPosition + AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE);
+                                byteBufferRead.get(addressData);
+                                AutoSwitchHAConnection.this.slaveAddress = new String(addressData);
+
+                                isSlaveSendHandshake = true;
+                                byteBufferRead.position(readSocketPos);
+                                ReadSocketService.this.processPosition += AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE + addressLength;
+                                LOGGER.info("Receive slave handshake, slaveAddress:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
+                                    AutoSwitchHAConnection.this.slaveAddress, AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
                                 break;
                             case TRANSFER:
-                                if (diff >= AutoSwitchHAClient.TRANSFER_HEADER_SIZE) {
-                                    long slaveMaxOffset = byteBufferRead.getLong(readPosition + 4);
-                                    ReadSocketService.this.processPosition += AutoSwitchHAClient.TRANSFER_HEADER_SIZE;
+                                long slaveMaxOffset = byteBufferRead.getLong(readPosition + 4);
+                                ReadSocketService.this.processPosition += AutoSwitchHAClient.TRANSFER_HEADER_SIZE;
 
-                                    AutoSwitchHAConnection.this.slaveAckOffset = slaveMaxOffset;
-                                    if (slaveRequestOffset < 0) {
-                                        slaveRequestOffset = slaveMaxOffset;
-                                    }
-                                    byteBufferRead.position(readSocketPos);
-                                    maybeExpandInSyncStateSet(slaveMaxOffset);
-                                    AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
-                                    LOGGER.info("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
+                                AutoSwitchHAConnection.this.slaveAckOffset = slaveMaxOffset;
+                                if (slaveRequestOffset < 0) {
+                                    slaveRequestOffset = slaveMaxOffset;
                                 }
+                                byteBufferRead.position(readSocketPos);
+                                maybeExpandInSyncStateSet(slaveMaxOffset);
+                                AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
+                                LOGGER.info("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
                                 break;
                             default:
                                 LOGGER.error("Current state illegal {}", currentState);
@@ -339,7 +341,9 @@ public class AutoSwitchHAConnection implements HAConnection {
                             LOGGER.warn("Master change state from {} to {}", currentState, slaveState);
                             changeCurrentState(slaveState);
                         }
-                        continue;
+                        if (processSuccess) {
+                            continue;
+                        }
                     }
 
                     if (!byteBufferRead.hasRemaining()) {
@@ -379,7 +383,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         }
 
         @Override
-        protected boolean transferData(int maxTransferSize) {
+        protected boolean transferData(int maxTransferSize) throws Exception {
 
             if (null != this.selectMappedBufferResult && maxTransferSize >= 0) {
                 this.selectMappedBufferResult.getByteBuffer().limit(maxTransferSize);
@@ -489,7 +493,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             return true;
         }
 
-        private boolean handshakeWithSlave() {
+        private boolean handshakeWithSlave() throws IOException {
             // Write Header
             boolean result = this.haWriter.write(this.socketChannel, this.byteBufferHeader);
 

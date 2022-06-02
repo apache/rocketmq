@@ -149,20 +149,22 @@ public class BrokerContainerStartup {
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
 
-        switch (messageStoreConfig.getBrokerRole()) {
-            case ASYNC_MASTER:
-            case SYNC_MASTER:
-                brokerConfig.setBrokerId(MixAll.MASTER_ID);
-                break;
-            case SLAVE:
-                if (brokerConfig.getBrokerId() <= 0) {
-                    System.out.printf("Slave's brokerId must be > 0%n");
-                    System.exit(-3);
-                }
+        if (!brokerConfig.isEnableControllerMode()) {
+            switch (messageStoreConfig.getBrokerRole()) {
+                case ASYNC_MASTER:
+                case SYNC_MASTER:
+                    brokerConfig.setBrokerId(MixAll.MASTER_ID);
+                    break;
+                case SLAVE:
+                    if (brokerConfig.getBrokerId() <= 0) {
+                        System.out.printf("Slave's brokerId must be > 0%n");
+                        System.exit(-3);
+                    }
 
-                break;
-            default:
-                break;
+                    break;
+                default:
+                    break;
+            }
         }
 
         if (messageStoreConfig.getTotalReplicas() < messageStoreConfig.getInSyncReplicas()

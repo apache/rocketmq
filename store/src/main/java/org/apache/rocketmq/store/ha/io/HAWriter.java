@@ -30,28 +30,22 @@ public class HAWriter {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     protected final List<HAWriteHook> writeHookList = new ArrayList<>();
 
-    public boolean write(SocketChannel socketChannel, ByteBuffer byteBufferWrite) {
+    public boolean write(SocketChannel socketChannel, ByteBuffer byteBufferWrite) throws IOException {
         int writeSizeZeroTimes = 0;
         while (byteBufferWrite.hasRemaining()) {
-            try {
-                int writeSize = socketChannel.write(byteBufferWrite);
-                for (HAWriteHook writeHook : writeHookList) {
-                    writeHook.afterWrite(writeSize);
-                }
-                if (writeSize > 0) {
-                    writeSizeZeroTimes = 0;
-                } else if (writeSize == 0) {
-                    if (++writeSizeZeroTimes >= 3) {
-                        break;
-                    }
-                } else {
-                    LOGGER.info("Write socket < 0");
-                }
-            } catch (IOException e) {
-                LOGGER.info("Write socket exception", e);
-                return false;
+            int writeSize = socketChannel.write(byteBufferWrite);
+            for (HAWriteHook writeHook : writeHookList) {
+                writeHook.afterWrite(writeSize);
             }
-
+            if (writeSize > 0) {
+                writeSizeZeroTimes = 0;
+            } else if (writeSize == 0) {
+                if (++writeSizeZeroTimes >= 3) {
+                    break;
+                }
+            } else {
+                LOGGER.info("Write socket < 0");
+            }
         }
 
         return !byteBufferWrite.hasRemaining();
