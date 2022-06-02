@@ -18,10 +18,10 @@
 package org.apache.rocketmq.common.protocol.body;
 
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-import java.io.Serializable;
 
-public class ProducerInfo implements Serializable {
+public class ProducerInfo extends RemotingSerializable {
     private String clientId;
     private String remoteIP;
     private LanguageCode language;

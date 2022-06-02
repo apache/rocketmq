@@ -69,11 +69,11 @@ public class ProducerSubCommand implements SubCommand {
                 for (String group : cc.getData().keySet()) {
                     List<ProducerInfo> list = cc.getData().get(group);
                     if (list == null || list.isEmpty()) {
-                        System.out.printf("生产者组(%s)实例数为空\n", group);
+                        System.out.printf("producer group (%s) instances are empty\n", group);
                         continue;
                     }
                     for (ProducerInfo producer : list) {
-                        System.out.printf("生产者组(%s)实例: %s\n", group, producer.toString());
+                        System.out.printf("producer group (%s) instance : %s\n", group, producer.toString());
                     }
                 }
             }
