@@ -27,6 +27,7 @@ import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Encoding;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.Endpoints;
@@ -101,6 +102,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.util.MQRandomUtils;
+import org.apache.rocketmq.test.util.RandomUtils;
 import org.junit.Rule;
 
 import static org.apache.rocketmq.common.message.MessageClientIDSetter.createUniqID;
@@ -110,7 +112,7 @@ import static org.awaitility.Awaitility.await;
 
 public class GrpcBaseIT extends BaseConf {
 
-    protected final int PORT = 8082;
+    protected final int port = 8082;
     /**
      * This rule manages automatic graceful shutdown for the registered servers and channels at the end of test.
      */
@@ -121,7 +123,7 @@ public class GrpcBaseIT extends BaseConf {
     protected MessagingServiceGrpc.MessagingServiceStub stub;
     protected final Metadata header = new Metadata();
 
-    protected static final int defaultQueueNums = 8;
+    protected static final int DEFAULT_QUEUE_NUMS = 8;
 
     public void setUp() throws Exception {
         brokerController1.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
@@ -139,7 +141,7 @@ public class GrpcBaseIT extends BaseConf {
         System.setProperty(RMQ_PROXY_HOME, mockProxyHome);
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
-        ConfigurationManager.getProxyConfig().setGrpcServerPort(PORT);
+        ConfigurationManager.getProxyConfig().setGrpcServerPort(port);
         ConfigurationManager.getProxyConfig().setNameSrvAddr(nsAddr);
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
@@ -303,6 +305,30 @@ public class GrpcBaseIT extends BaseConf {
             .build();
     }
 
+    public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(broker1Name);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+
+        int maxDeliveryAttempts = 16;
+        boolean fifo = false;
+        int bodySize = 4 * 1024;
+
+        // init consumer offset
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+        receiveMessage(blockingStub, topic, group, 1);
+
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        String messageId = createUniqID();
+        SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendBigMessageRequest(topic, messageId, bodySize));
+        assertSendMessage(sendResponse, messageId);
+
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(maxDeliveryAttempts, fifo)).get();
+
+        Message message = assertAndGetReceiveMessage(receiveMessage(blockingStub, topic, group), messageId);
+        assertThat(message.getSystemProperties().getBodyEncoding()).isEqualTo(Encoding.GZIP);
+        assertThat(message.getBody().size()).isEqualTo(bodySize);
+    }
+
     public void testSimpleConsumerSendAndRecv() throws Exception {
         String topic = initTopicOnSampleTopicBroker(broker1Name);
         String group = MQRandomUtils.getRandomConsumerGroup();
@@ -432,7 +458,7 @@ public class GrpcBaseIT extends BaseConf {
 
     public QueryRouteRequest buildQueryRouteRequest(String topic) {
         return QueryRouteRequest.newBuilder()
-            .setEndpoints(buildEndpoints(PORT))
+            .setEndpoints(buildEndpoints(port))
             .setTopic(Resource.newBuilder()
                 .setName(topic)
                 .build())
@@ -441,7 +467,7 @@ public class GrpcBaseIT extends BaseConf {
 
     public QueryAssignmentRequest buildQueryAssignmentRequest(String topic, String group) {
         return QueryAssignmentRequest.newBuilder()
-            .setEndpoints(buildEndpoints(PORT))
+            .setEndpoints(buildEndpoints(port))
             .setTopic(Resource.newBuilder().setName(topic).build())
             .setGroup(Resource.newBuilder().setName(group).build())
             .build();
@@ -461,6 +487,25 @@ public class GrpcBaseIT extends BaseConf {
                     .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
                     .build())
                 .setBody(ByteString.copyFromUtf8("123"))
+                .build())
+            .build();
+    }
+
+    public SendMessageRequest buildSendBigMessageRequest(String topic, String messageId, int messageSize) {
+        return SendMessageRequest.newBuilder()
+            .addMessages(Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(topic)
+                    .build())
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId(messageId)
+                    .setQueueId(0)
+                    .setMessageType(MessageType.NORMAL)
+                    .setBodyEncoding(Encoding.GZIP)
+                    .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                    .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .build())
+                .setBody(ByteString.copyFromUtf8(RandomUtils.getStringWithCharacter(messageSize)))
                 .build())
             .build();
     }

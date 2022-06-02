@@ -69,7 +69,7 @@ public class ClusterGrpcIT extends GrpcBaseIT {
         String topic = initTopic();
 
         QueryRouteResponse response = blockingStub.queryRoute(buildQueryRouteRequest(topic));
-        assertQueryRoute(response, brokerNum * defaultQueueNums);
+        assertQueryRoute(response, brokerNum * DEFAULT_QUEUE_NUMS);
     }
 
     @Test
@@ -85,6 +85,12 @@ public class ClusterGrpcIT extends GrpcBaseIT {
     @Test
     public void testTransactionCheckThenCommit() {
         super.testTransactionCheckThenCommit();
+    }
+
+
+    @Test
+    public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecvBigMessage();
     }
 
     @Test

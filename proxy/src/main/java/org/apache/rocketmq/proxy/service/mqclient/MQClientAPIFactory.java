@@ -89,6 +89,8 @@ public class MQClientAPIFactory implements StartAndShutdown {
     protected MQClientAPIExt createAndStart(String instanceName) {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setInstanceName(instanceName);
+        clientConfig.setDecodeReadBody(true);
+        clientConfig.setDecodeDecompressBody(false);
 
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
         nettyClientConfig.setDisableCallbackExecutor(true);
