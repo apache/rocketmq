@@ -54,21 +54,22 @@ public class ProducerManager {
         Map<String, List<ProducerInfo>> map = new HashMap<>();
         for(String group: this.groupChannelTable.keySet()){
             for(Entry<Channel, ClientChannelInfo> entry: this.groupChannelTable.get(group).entrySet()){
+                ClientChannelInfo clientChannelInfo = entry.getValue();
                 if(map.containsKey(group)){
                     map.get(group).add(new ProducerInfo(
-                            entry.getValue().getClientId(),
-                            entry.getValue().getChannel().remoteAddress().toString(),
-                            entry.getValue().getLanguage(),
-                            entry.getValue().getVersion(),
-                            entry.getValue().getLastUpdateTimestamp()
+                            clientChannelInfo.getClientId(),
+                            clientChannelInfo.getChannel().remoteAddress().toString(),
+                            clientChannelInfo.getLanguage(),
+                            clientChannelInfo.getVersion(),
+                            clientChannelInfo.getLastUpdateTimestamp()
                     ));
                 }else{
                     map.put(group, new ArrayList<ProducerInfo>(Collections.singleton(new ProducerInfo(
-                            entry.getValue().getClientId(),
-                            entry.getValue().getChannel().remoteAddress().toString(),
-                            entry.getValue().getLanguage(),
-                            entry.getValue().getVersion(),
-                            entry.getValue().getLastUpdateTimestamp()
+                            clientChannelInfo.getClientId(),
+                            clientChannelInfo.getChannel().remoteAddress().toString(),
+                            clientChannelInfo.getLanguage(),
+                            clientChannelInfo.getVersion(),
+                            clientChannelInfo.getLastUpdateTimestamp()
                     ))));
                 }
             }
