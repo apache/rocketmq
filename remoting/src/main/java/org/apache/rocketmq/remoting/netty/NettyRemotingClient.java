@@ -210,14 +210,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             LOGGER.warn("Connections are insecure as SSLContext is null!");
                         }
                     }
-                    if (nettyClientConfig.isDefaultEventExecutorGroupEnable() && !nettyClientConfig.isDisableNettyWorkerGroup()) {
-                        ch.pipeline().addLast(defaultEventExecutorGroup);
-                    }
-                    ch.pipeline().addLast(//
-                        new NettyEncoder(), //
-                        new NettyDecoder(), //
-                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()), //
-                        new NettyConnectManageHandler(), //
+                    ch.pipeline().addLast(
+                        nettyClientConfig.isDisableNettyWorkerGroup() ? null : defaultEventExecutorGroup,
+                        new NettyEncoder(),
+                        new NettyDecoder(),
+                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
+                        new NettyConnectManageHandler(),
                         new NettyClientHandler());
                 }
             });
