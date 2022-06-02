@@ -57,7 +57,7 @@ public class LocalGrpcIT extends GrpcBaseIT {
         String topic = initTopic();
 
         QueryRouteResponse response = blockingStub.queryRoute(buildQueryRouteRequest(topic));
-        assertQueryRoute(response, brokerControllerList.size() * defaultQueueNums);
+        assertQueryRoute(response, brokerControllerList.size() * DEFAULT_QUEUE_NUMS);
     }
 
     @Test
@@ -73,6 +73,11 @@ public class LocalGrpcIT extends GrpcBaseIT {
     @Test
     public void testTransactionCheckThenCommit() {
         super.testTransactionCheckThenCommit();
+    }
+
+    @Test
+    public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecvBigMessage();
     }
 
     @Test

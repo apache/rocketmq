@@ -1034,7 +1034,11 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             case ResponseCode.SUCCESS:
                 popStatus = PopStatus.FOUND;
                 ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
-                msgFoundList = MessageDecoder.decodes(byteBuffer);
+                msgFoundList = MessageDecoder.decodesBatch(
+                    byteBuffer,
+                    clientConfig.isDecodeReadBody(),
+                    clientConfig.isDecodeDecompressBody(),
+                    true);
                 break;
             case ResponseCode.POLLING_FULL:
                 popStatus = PopStatus.POLLING_FULL;
