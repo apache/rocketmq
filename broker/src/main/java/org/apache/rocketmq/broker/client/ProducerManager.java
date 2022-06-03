@@ -50,12 +50,12 @@ public class ProducerManager {
         return groupChannelTable;
     }
 
-    public ProducerTableInfo getProducerTable(){
+    public ProducerTableInfo getProducerTable() {
         Map<String, List<ProducerInfo>> map = new HashMap<>();
-        for(String group: this.groupChannelTable.keySet()){
-            for(Entry<Channel, ClientChannelInfo> entry: this.groupChannelTable.get(group).entrySet()) {
+        for (String group : this.groupChannelTable.keySet()) {
+            for (Entry<Channel, ClientChannelInfo> entry: this.groupChannelTable.get(group).entrySet()) {
                 ClientChannelInfo clientChannelInfo = entry.getValue();
-                if(map.containsKey(group)) {
+                if (map.containsKey(group)) {
                     map.get(group).add(new ProducerInfo(
                             clientChannelInfo.getClientId(),
                             clientChannelInfo.getChannel().remoteAddress().toString(),
