@@ -38,7 +38,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -84,10 +83,9 @@ public class ControllerManager {
                 return new FutureTaskExt<T>(runnable, value);
             }
         };
-        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
-
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
-        this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr));
+        this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr),
+            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
 
         // Register broker inactive listener
         this.heartbeatManager.addBrokerLifecycleListener(new BrokerHeartbeatManager.BrokerLifecycleListener() {
@@ -110,7 +108,6 @@ public class ControllerManager {
                 }
             }
         });
-        this.registerProcessor();
         return true;
     }
 
@@ -122,6 +119,8 @@ public class ControllerManager {
     public void start() {
         this.remotingServer.start();
         this.heartbeatManager.start();
+        this.remotingServer = this.controller.getRemotingServer();
+        registerProcessor();
         this.controller.startup();
     }
 
@@ -150,6 +149,14 @@ public class ControllerManager {
 
     public NettyServerConfig getNettyServerConfig() {
         return nettyServerConfig;
+    }
+
+    public NettyClientConfig getNettyClientConfig() {
+        return nettyClientConfig;
+    }
+
+    public BrokerHousekeepingService getBrokerHousekeepingService() {
+        return brokerHousekeepingService;
     }
 
     public Configuration getConfiguration() {

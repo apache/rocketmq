@@ -52,7 +52,11 @@ import org.apache.rocketmq.controller.impl.event.EventSerializer;
 import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.RemotingServer;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
@@ -74,24 +78,30 @@ public class DLedgerController implements Controller {
     private volatile boolean isScheduling = false;
 
     public DLedgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
-        this.controllerConfig = config;
+        this(config, brokerAlivePredicate, null, null, null);
+    }
+
+    public DLedgerController(final ControllerConfig controllerConfig,
+        final BiPredicate<String, String> brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
+        final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener) {
+        this.controllerConfig = controllerConfig;
         this.eventSerializer = new EventSerializer();
         this.scheduler = new EventScheduler();
         this.brokerAlivePredicate = brokerAlivePredicate;
 
         this.dLedgerConfig = new DLedgerConfig();
-        this.dLedgerConfig.setGroup(config.getControllerDLegerGroup());
-        this.dLedgerConfig.setPeers(config.getControllerDLegerPeers());
-        this.dLedgerConfig.setSelfId(config.getControllerDLegerSelfId());
-        this.dLedgerConfig.setStoreBaseDir(config.getControllerStorePath());
-        this.dLedgerConfig.setMappedFileSizeForEntryData(config.getMappedFileSize());
+        this.dLedgerConfig.setGroup(controllerConfig.getControllerDLegerGroup());
+        this.dLedgerConfig.setPeers(controllerConfig.getControllerDLegerPeers());
+        this.dLedgerConfig.setSelfId(controllerConfig.getControllerDLegerSelfId());
+        this.dLedgerConfig.setStoreBaseDir(controllerConfig.getControllerStorePath());
+        this.dLedgerConfig.setMappedFileSizeForEntryData(controllerConfig.getMappedFileSize());
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
-        this.replicasInfoManager = new ReplicasInfoManager(config);
+        this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
         this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getSelfId());
 
         // Register statemachine and role handler.
-        this.dLedgerServer = new DLedgerServer(dLedgerConfig);
+        this.dLedgerServer = new DLedgerServer(dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener);
         this.dLedgerServer.registerStateMachine(this.statemachine);
         this.dLedgerServer.getdLedgerLeaderElector().addRoleChangeHandler(this.roleHandler);
     }
@@ -165,6 +175,11 @@ public class DLedgerController implements Controller {
     public RemotingCommand getControllerMetadata() {
         final MemberState state = getMemberState();
         return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr(), state.isLeader()));
+    }
+
+    @Override
+    public RemotingServer getRemotingServer() {
+        return this.dLedgerServer.getRemotingServer();
     }
 
     /**
