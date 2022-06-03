@@ -47,6 +47,7 @@ public class GetControllerMetaDataCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         String controllerAddress = commandLine.getOptionValue('a').trim();
         try {
+            defaultMQAdminExt.start();
             final GetMetaDataResponseHeader metaData = defaultMQAdminExt.getControllerMetaData(controllerAddress);
             System.out.printf("\n#ControllerGroup\t%s", metaData.getGroup());
             System.out.printf("\n#ControllerLeaderId\t%s", metaData.getControllerLeaderId());
