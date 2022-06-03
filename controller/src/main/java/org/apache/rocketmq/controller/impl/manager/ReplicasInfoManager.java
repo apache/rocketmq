@@ -49,10 +49,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 /**
- * The manager that manages the replicas info for all brokers.
- * We can think of this class as the controller's memory state machine
- * It should be noted that this class is not thread safe,
- * and the upper layer needs to ensure that it can be called sequentially
+ * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
+ * state machine It should be noted that this class is not thread safe, and the upper layer needs to ensure that it can
+ * be called sequentially
  */
 public class ReplicasInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
@@ -131,7 +130,7 @@ public class ReplicasInfoManager {
             // Generate event
             int epoch = syncStateInfo.getSyncStateSetEpoch() + 1;
             response.setNewSyncStateSetEpoch(epoch);
-            result.setBody(new org.apache.rocketmq.common.protocol.body.SyncStateSet(newSyncStateSet, epoch).encode());
+            result.setBody(new SyncStateSet(newSyncStateSet, epoch).encode());
             final AlterSyncStateSetEvent event = new AlterSyncStateSetEvent(brokerName, newSyncStateSet);
             result.addEvent(event);
             return result;
@@ -273,7 +272,7 @@ public class ReplicasInfoManager {
             if (StringUtils.isNotEmpty(request.getBrokerAddress())) {
                 response.setBrokerId(brokerInfo.getBrokerId(request.getBrokerAddress()));
             }
-            result.setBody(new org.apache.rocketmq.common.protocol.body.SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
+            result.setBody(new SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
             return result;
         }
         result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "Broker metadata is not existed");
@@ -369,8 +368,8 @@ public class ReplicasInfoManager {
             final String clusterName = event.getClusterName();
             final BrokerInfo brokerInfo = new BrokerInfo(clusterName, brokerName);
             brokerInfo.addBroker(newMaster, 1L);
-            final SyncStateInfo replicasInfo = new SyncStateInfo(clusterName, brokerName, newMaster);
-            this.syncStateSetInfoTable.put(brokerName, replicasInfo);
+            final SyncStateInfo syncStateInfo = new SyncStateInfo(clusterName, brokerName, newMaster);
+            this.syncStateSetInfoTable.put(brokerName, syncStateInfo);
             this.replicaInfoTable.put(brokerName, brokerInfo);
         }
     }
