@@ -169,6 +169,9 @@ public class ReplicasManager {
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
+                // Notify ha service, change to master
+                this.haService.changeToMaster(newMasterEpoch);
+
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
                     try {
@@ -177,8 +180,6 @@ public class ReplicasManager {
                         LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to master", e);
                         return;
                     }
-                    // Notify ha service, change to master
-                    this.haService.changeToMaster(newMasterEpoch);
                     LOGGER.info("Change broker {} to master success, masterEpoch {}, syncStateSetEpoch:{}", this.localAddress, newMasterEpoch, syncStateSetEpoch);
                 });
             }
@@ -193,6 +194,7 @@ public class ReplicasManager {
                 // Change record
                 this.masterAddress = newMasterAddress;
                 this.masterEpoch = newMasterEpoch;
+
                 stopCheckSyncStateSet();
 
                 // Change config
@@ -203,6 +205,9 @@ public class ReplicasManager {
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SLAVE);
 
+                // Notify ha service, change to slave
+                this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
+
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
                     try {
@@ -212,8 +217,6 @@ public class ReplicasManager {
                         return;
                     }
 
-                    // Notify ha service, change to slave
-                    this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
                     LOGGER.info("Change broker {} to slave, newMasterAddress:{}, newMasterEpoch:{}", this.localAddress, newMasterAddress, newMasterEpoch);
                 });
             }
