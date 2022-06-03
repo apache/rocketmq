@@ -26,6 +26,7 @@ import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
 import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -164,7 +165,14 @@ public class DLedgerController implements Controller {
     @Override
     public RemotingCommand getControllerMetadata() {
         final MemberState state = getMemberState();
-        return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(state.getLeaderId(), state.getLeaderAddr(), state.isLeader()));
+        final Map<String, String> peers = state.getPeerMap();
+        final StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> entry : peers.entrySet()) {
+            final String peer = entry.getKey() + ":" + entry.getValue();
+            sb.append(peer).append(";");
+        }
+        return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(
+            state.getGroup(), state.getLeaderId(), state.getLeaderAddr(), state.isLeader(), sb.toString()));
     }
 
     /**

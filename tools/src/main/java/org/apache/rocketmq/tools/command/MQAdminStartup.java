@@ -57,6 +57,7 @@ import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
 import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
+import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataCommand;
 import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
@@ -250,6 +251,7 @@ public class MQAdminStartup {
 
         initCommand(new SyncStateSetCommand());
         initCommand(new GetBrokerEpochCommand());
+        initCommand(new GetControllerMetaDataCommand());
     }
 
     private static void initLogback() throws JoranException {
