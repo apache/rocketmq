@@ -58,6 +58,20 @@ case $1 in
 
     echo "Send shutdown request to mqnamesrv(${pid}) OK"
     ;;
+    controller)
+
+    pid=`ps ax | grep -i 'org.apache.rocketmq.controller.ControllerStartup' |grep java | grep -v grep | awk '{print $1}'`
+    if [ -z "$pid" ] ; then
+            echo "No mqcontroller running."
+            exit -1;
+    fi
+
+    echo "The mqcontroller(${pid}) is running..."
+
+    kill ${pid}
+
+    echo "Send shutdown request to mqcontroller(${pid}) OK"
+    ;;
     *)
-    echo "Useage: mqshutdown broker | namesrv"
+    echo "Useage: mqshutdown broker | namesrv | controller"
 esac
