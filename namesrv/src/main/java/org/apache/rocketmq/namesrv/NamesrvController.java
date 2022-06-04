@@ -276,6 +276,7 @@ public class NamesrvController {
 
             if (controllerConfig.isEnableStartupController()) {
                 final RemotingServer controllerRemotingServer = this.controller.getRemotingServer();
+                assert controllerRemotingServer != null;
                 final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this);
                 controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
                 controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
