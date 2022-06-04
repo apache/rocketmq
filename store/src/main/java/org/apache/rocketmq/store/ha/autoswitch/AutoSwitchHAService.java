@@ -144,16 +144,6 @@ public class AutoSwitchHAService extends DefaultHAService {
     @Override public void updateMasterAddress(String newAddr) {
     }
 
-    @Override public void removeConnection(HAConnection conn) {
-        final Set<String> syncStateSet = getSyncStateSet();
-        String slave = ((AutoSwitchHAConnection) conn).getSlaveAddress();
-        if (syncStateSet.contains(slave)) {
-            syncStateSet.remove(slave);
-            notifySyncStateSetChanged(syncStateSet);
-        }
-        super.removeConnection(conn);
-    }
-
     public void registerSyncStateSetChangedListener(final Consumer<Set<String>> listener) {
         this.syncStateSetChangedListeners.add(listener);
     }

@@ -26,6 +26,11 @@ public interface BrokerHeartbeatManager {
     void onBrokerHeartbeat(final String clusterName, final String brokerAddr);
 
     /**
+     * Change the metadata(brokerId ..) for a broker.
+     */
+    void changeBrokerMetadata(final String clusterName, final String brokerAddr, final Long brokerId);
+
+    /**
      * Start heartbeat manager.
      */
     void start();
@@ -60,6 +65,6 @@ public interface BrokerHeartbeatManager {
         /**
          * Trigger when broker inactive.
          */
-        void onBrokerInactive(final String brokerName, final String brokerAddress, final long brokerId);
+        void onBrokerInactive(final String clusterName, final String brokerName, final String brokerAddress, final long brokerId);
     }
 }

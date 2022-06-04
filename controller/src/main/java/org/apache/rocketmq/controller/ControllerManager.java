@@ -23,13 +23,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.controller.impl.DLedgerController;
@@ -91,7 +91,7 @@ public class ControllerManager {
         // Register broker inactive listener
         this.heartbeatManager.addBrokerLifecycleListener(new BrokerHeartbeatManager.BrokerLifecycleListener() {
             @Override
-            public void onBrokerInactive(String brokerName, String brokerAddress, long brokerId) {
+            public void onBrokerInactive(String clusterName, String brokerName, String brokerAddress, long brokerId) {
                 if (brokerId == MixAll.MASTER_ID) {
                     if (controller.isLeaderState()) {
                         final CompletableFuture<RemotingCommand> future = controller.electMaster(new ElectMasterRequestHeader(brokerName));
@@ -99,7 +99,10 @@ public class ControllerManager {
                             final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
                             final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
                             if (responseHeader != null) {
-                                log.info("Broker{}'s master shutdown, elect a new master:{}", brokerName, responseHeader);
+                                log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, brokerAddress, responseHeader);
+                                if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
+                                    heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+                                }
                             }
                         } catch (Exception ignored) {
                         }
@@ -114,17 +117,10 @@ public class ControllerManager {
 
     public void registerProcessor() {
         final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONTROLLER_REGISTER_BROKER, controllerRequestProcessor, this.controllerRequestExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONTROLLER_GET_REPLICA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONTROLLER_GET_METADATA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONTROLLER_GET_SYNC_STATE_DATA, controllerRequestProcessor, this.controllerRequestExecutor);
-        this.remotingServer.registerProcessor(RequestCode.BROKER_HEARTBEAT, controllerRequestProcessor, this.controllerRequestExecutor);
+        this.remotingServer.registerDefaultProcessor(controllerRequestProcessor, this.controllerRequestExecutor);
     }
 
     public void start() {
-        this.remotingServer.start();
         this.heartbeatManager.start();
         this.remotingServer = this.controller.getRemotingServer();
         registerProcessor();
@@ -132,7 +128,6 @@ public class ControllerManager {
     }
 
     public void shutdown() {
-        this.remotingServer.shutdown();
         this.heartbeatManager.shutdown();
         this.controller.shutdown();
         this.controllerRequestExecutor.shutdown();

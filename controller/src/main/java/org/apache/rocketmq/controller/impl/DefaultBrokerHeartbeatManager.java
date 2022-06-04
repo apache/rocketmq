@@ -39,7 +39,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 10;
     private final ScheduledExecutorService scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_"));
-    private final ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
+    private final ExecutorService executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
 
     private final ControllerConfig controllerConfig;
     private final Map<BrokerAddrInfo/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
@@ -77,7 +77,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                     }
                     iterator.remove();
                     this.executor.submit(() ->
-                        notifyBrokerInActive(next.getValue().brokerName, next.getKey().getBrokerAddr(), next.getValue().brokerId));
+                        notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().brokerName, next.getKey().getBrokerAddr(), next.getValue().brokerId));
                     log.warn("The broker channel expired, {} {}ms", next.getKey(), timeoutMillis);
                 }
             }
@@ -86,9 +86,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         }
     }
 
-    private void notifyBrokerInActive(String brokerName, String brokerAddr, Long brokerId) {
+    private void notifyBrokerInActive(String clusterName, String brokerName, String brokerAddr, Long brokerId) {
         for (BrokerLifecycleListener listener : this.brokerLifecycleListeners) {
-            listener.onBrokerInactive(brokerName, brokerAddr, brokerId);
+            listener.onBrokerInactive(clusterName, brokerName, brokerAddr, brokerId);
         }
     }
 
@@ -113,6 +113,16 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
+    public void changeBrokerMetadata(String clusterName, String brokerAddr, Long brokerId) {
+        BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
+        BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
+        if (prev != null) {
+            prev.brokerId = brokerId;
+            log.info("Change broker {}'s brokerId to {}", brokerAddr, brokerId);
+        }
+    }
+
+    @Override
     public void onBrokerHeartbeat(String clusterName, String brokerAddr) {
         BrokerAddrInfo addrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
         BrokerLiveInfo prev = this.brokerLiveTable.get(addrInfo);
@@ -123,15 +133,17 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void onBrokerChannelClose(Channel channel) {
-        synchronized (this) {
-            for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
-                if (entry.getValue().channel == channel) {
-                    this.executor.submit(() ->
-                        notifyBrokerInActive(entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId));
-                    break;
-                }
+        BrokerAddrInfo addrInfo = null;
+        for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
+            if (entry.getValue().channel == channel) {
+                log.info("Channel inactive, broker {}, addr:{}, id:{}", entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId);
+                addrInfo = entry.getKey();
+                this.executor.submit(() ->
+                    notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId));
+                break;
             }
         }
+        this.brokerLiveTable.remove(addrInfo);
     }
 
     @Override
@@ -147,9 +159,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     static class BrokerLiveInfo {
         private final String brokerName;
-        private final long brokerId;
         private final long heartbeatTimeoutMillis;
         private final Channel channel;
+        private long brokerId;
         private long lastUpdateTimestamp;
 
         public BrokerLiveInfo(String brokerName, long brokerId, long lastUpdateTimestamp, long heartbeatTimeoutMillis,

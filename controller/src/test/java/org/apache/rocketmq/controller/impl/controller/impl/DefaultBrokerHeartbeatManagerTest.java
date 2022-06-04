@@ -40,7 +40,7 @@ public class DefaultBrokerHeartbeatManagerTest {
     @Test
     public void testDetectBrokerAlive() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
-        this.heartbeatManager.addBrokerLifecycleListener((brokerName, brokerAddress, brokerId) -> {
+        this.heartbeatManager.addBrokerLifecycleListener((clusterName, brokerName, brokerAddress, brokerId) -> {
             System.out.println("Broker shutdown:" + brokerAddress);
             latch.countDown();
         });

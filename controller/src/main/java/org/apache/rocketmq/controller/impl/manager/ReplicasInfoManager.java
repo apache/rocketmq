@@ -78,6 +78,15 @@ public class ReplicasInfoManager {
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
 
+            // Check whether the oldSyncStateSet is equal with newSyncStateSet
+            final Set<String> oldSyncStateSet = syncStateInfo.getSyncStateSet();
+            if (oldSyncStateSet.size() == newSyncStateSet.size() && oldSyncStateSet.containsAll(newSyncStateSet)) {
+                String err = "The newSyncStateSet is equal with oldSyncStateSet, no needed to update syncStateSet";
+                log.warn("{}", err);
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                return result;
+            }
+
             // Check master
             if (!syncStateInfo.getMasterAddress().equals(request.getMasterAddress())) {
                 String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
