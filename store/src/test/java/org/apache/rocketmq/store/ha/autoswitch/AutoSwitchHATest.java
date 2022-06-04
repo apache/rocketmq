@@ -21,6 +21,8 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -189,6 +191,7 @@ public class AutoSwitchHATest {
     public void testAsyncLearnerBrokerRole() throws Exception {
         init(defaultMappedFileSize);
         ((AutoSwitchHAService) this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
         ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
 
         storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
@@ -217,6 +220,7 @@ public class AutoSwitchHATest {
         init(defaultMappedFileSize, true);
         AtomicReference<Set<String>> syncStateSet = new AtomicReference<>();
         ((AutoSwitchHAService) this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList("127.0.0.1:8000")));
         ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
         ((AutoSwitchHAService) this.messageStore1.getHaService()).registerSyncStateSetChangedListener((newSyncStateSet) -> {
             System.out.println("Get newSyncStateSet:" + newSyncStateSet);
