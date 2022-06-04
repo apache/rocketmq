@@ -80,7 +80,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         System.out.println("Begin test");
         final MessageStore messageStore = brokerController1.getMessageStore();
         putMessage(messageStore);
-
         // Check slave message
         checkMessage(brokerController2.getMessageStore(), 10, 0);
     }
