@@ -47,6 +47,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     private ControllerConfig controllerConfig;
     private NamesrvController namesrvController;
     private String namesrvAddress;
+    private String controllerAddress;
     private BrokerController brokerController1;
     private BrokerController brokerController2;
 
@@ -54,20 +55,22 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         super.initialize();
 
         // Startup namesrv
-        final String peers = String.format("n0-localhost:%d", nextPort());
+        int controllerPort = nextPort();
+        final String peers = String.format("n0-localhost:%d", controllerPort);
+
         final NettyServerConfig serverConfig = new NettyServerConfig();
         int namesrvPort = nextPort();
         serverConfig.setListenPort(namesrvPort);
-        System.out.println(namesrvPort);
 
         this.controllerConfig = buildControllerConfig("n0", peers);
         this.namesrvController = new NamesrvController(new NamesrvConfig(), serverConfig, new NettyClientConfig(), controllerConfig);
         assertTrue(namesrvController.initialize());
         namesrvController.start();
         this.namesrvAddress = "127.0.0.1:" + namesrvPort + ";";
+        this.controllerAddress = "127.0.0.1:" + controllerPort + ";";
 
-        this.brokerController1 = startBroker(this.namesrvAddress, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SYNC_MASTER, mappedFileSize);
-        this.brokerController2 = startBroker(this.namesrvAddress, 2, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, mappedFileSize);
+        this.brokerController1 = startBroker(this.namesrvAddress, this.controllerAddress, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SYNC_MASTER, mappedFileSize);
+        this.brokerController2 = startBroker(this.namesrvAddress, this.controllerAddress, 2, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, mappedFileSize);
 
         // Wait slave connecting to master
         assertTrue(waitSlaveReady(this.brokerController2.getMessageStore()));
@@ -77,7 +80,6 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         System.out.println("Begin test");
         final MessageStore messageStore = brokerController1.getMessageStore();
         putMessage(messageStore);
-
         // Check slave message
         checkMessage(brokerController2.getMessageStore(), 10, 0);
     }
@@ -90,7 +92,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
                 return true;
             } else {
                 System.out.println("slave not ready");
-                Thread.sleep(1000);
+                Thread.sleep(2000);
                 tryTimes++;
             }
         }
@@ -123,7 +125,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
 
         // Restart old master, it should be slave
-        brokerController1 = startBroker(this.namesrvAddress, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, defaultFileSize);
+        brokerController1 = startBroker(this.namesrvAddress, this.controllerAddress, 1, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, defaultFileSize);
         waitSlaveReady(brokerController1.getMessageStore());
 
         assertFalse(brokerController1.getReplicasManager().isMasterState());
@@ -142,7 +144,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         init(defaultFileSize);
         mockData();
 
-        BrokerController broker3 = startBroker(this.namesrvAddress, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, defaultFileSize);
+        BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, defaultFileSize);
         waitSlaveReady(broker3.getMessageStore());
         Thread.sleep(6000);
 
@@ -169,7 +171,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
 
         // Step3: add broker3
-        BrokerController broker3 = startBroker(this.namesrvAddress, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
+        BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
         waitSlaveReady(broker3.getMessageStore());
         Thread.sleep(6000);
         checkMessage(broker3.getMessageStore(), 10, 0);
@@ -197,7 +199,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         checkMessage(broker2MessageStore, 10, 10);
 
         // Step6, start broker4, link to broker2, it should sync msg from epoch2(offset = 1700).
-        BrokerController broker4 = startBroker(this.namesrvAddress, 4, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
+        BrokerController broker4 = startBroker(this.namesrvAddress, this.controllerAddress, 4, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
         waitSlaveReady(broker4.getMessageStore());
         Thread.sleep(6000);
         checkMessage(broker4.getMessageStore(), 10, 10);

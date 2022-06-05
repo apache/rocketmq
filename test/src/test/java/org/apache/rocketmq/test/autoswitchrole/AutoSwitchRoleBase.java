@@ -73,13 +73,13 @@ public class AutoSwitchRoleBase {
         return PORT_COUNTER.addAndGet(10 + random.nextInt(10));
     }
 
-    public BrokerController startBroker(String namesrvAddress, int brokerId, int haPort, int brokerListenPort,
+    public BrokerController startBroker(String namesrvAddress, String controllerAddress, int brokerId, int haPort, int brokerListenPort,
         int nettyListenPort, BrokerRole expectedRole, int mappedFileSize) throws Exception {
         final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + brokerId, haPort, mappedFileSize);
         final BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setListenPort(brokerListenPort);
         brokerConfig.setNamesrvAddr(namesrvAddress);
-        brokerConfig.setControllerAddr(namesrvAddress);
+        brokerConfig.setControllerAddr(controllerAddress);
         brokerConfig.setReplicasManagerSyncBrokerMetadataPeriod(2 * 1000);
         brokerConfig.setReplicasManagerCheckSyncStateSetPeriod(4 * 1000);
         brokerConfig.setEnableControllerMode(true);

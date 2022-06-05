@@ -23,12 +23,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.Configuration;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
+import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.controller.impl.DLedgerController;
@@ -38,7 +40,6 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -52,8 +53,6 @@ public class ControllerManager {
     private final Configuration configuration;
     private Controller controller;
     private BrokerHeartbeatManager heartbeatManager;
-    private RemotingServer remotingServer;
-
     private ExecutorService controllerRequestExecutor;
     private BlockingQueue<Runnable> controllerRequestThreadPoolQueue;
 
@@ -84,15 +83,14 @@ public class ControllerManager {
                 return new FutureTaskExt<T>(runnable, value);
             }
         };
-        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
-
         this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
-        this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr));
+        this.controller = new DLedgerController(this.controllerConfig, (cluster, brokerAddr) -> this.heartbeatManager.isBrokerActive(cluster, brokerAddr),
+            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
 
         // Register broker inactive listener
         this.heartbeatManager.addBrokerLifecycleListener(new BrokerHeartbeatManager.BrokerLifecycleListener() {
             @Override
-            public void onBrokerInactive(String brokerName, String brokerAddress, long brokerId) {
+            public void onBrokerInactive(String clusterName, String brokerName, String brokerAddress, long brokerId) {
                 if (brokerId == MixAll.MASTER_ID) {
                     if (controller.isLeaderState()) {
                         final CompletableFuture<RemotingCommand> future = controller.electMaster(new ElectMasterRequestHeader(brokerName));
@@ -100,7 +98,10 @@ public class ControllerManager {
                             final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
                             final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
                             if (responseHeader != null) {
-                                log.info("Broker{}'s master shutdown, elect a new master:{}", brokerName, responseHeader);
+                                log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, brokerAddress, responseHeader);
+                                if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
+                                    heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
+                                }
                             }
                         } catch (Exception ignored) {
                         }
@@ -110,23 +111,29 @@ public class ControllerManager {
                 }
             }
         });
-        this.registerProcessor();
+        registerProcessor();
         return true;
     }
 
     public void registerProcessor() {
         final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this);
-        this.remotingServer.registerDefaultProcessor(controllerRequestProcessor, this.controllerRequestExecutor);
+        final RemotingServer controllerRemotingServer = this.controller.getRemotingServer();
+        assert controllerRemotingServer != null;
+        controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_REGISTER_BROKER, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_REPLICA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_METADATA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_SYNC_STATE_DATA, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.BROKER_HEARTBEAT, controllerRequestProcessor, this.controllerRequestExecutor);
     }
 
     public void start() {
-        this.remotingServer.start();
         this.heartbeatManager.start();
         this.controller.startup();
     }
 
     public void shutdown() {
-        this.remotingServer.shutdown();
         this.heartbeatManager.shutdown();
         this.controller.shutdown();
         this.controllerRequestExecutor.shutdown();
@@ -144,12 +151,16 @@ public class ControllerManager {
         return controller;
     }
 
-    public RemotingServer getRemotingServer() {
-        return remotingServer;
-    }
-
     public NettyServerConfig getNettyServerConfig() {
         return nettyServerConfig;
+    }
+
+    public NettyClientConfig getNettyClientConfig() {
+        return nettyClientConfig;
+    }
+
+    public BrokerHousekeepingService getBrokerHousekeepingService() {
+        return brokerHousekeepingService;
     }
 
     public Configuration getConfiguration() {

@@ -111,8 +111,13 @@ public class NamesrvController {
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         this.routeInfoManager = new RouteInfoManager(namesrvConfig, this);
         if (controllerConfig.isEnableStartupController()) {
-            this.controller = new DLedgerController(controllerConfig, this.routeInfoManager::isBrokerAlive);
-            this.routeInfoManager.setController(this.controller);
+            try {
+                final NettyServerConfig controllerNettyServerConfig = (NettyServerConfig) nettyServerConfig.clone();
+                this.controller = new DLedgerController(controllerConfig, this.routeInfoManager::isBrokerAlive,
+                    controllerNettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
+                this.routeInfoManager.setController(this.controller);
+            } catch (final CloneNotSupportedException ignored) {
+            }
         }
         this.configuration = new Configuration(
             LOGGER,
@@ -270,13 +275,15 @@ public class NamesrvController {
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.defaultExecutor);
 
             if (controllerConfig.isEnableStartupController()) {
+                final RemotingServer controllerRemotingServer = this.controller.getRemotingServer();
+                assert controllerRemotingServer != null;
                 final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this);
-                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
-                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
-                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_REGISTER_BROKER, controllerRequestProcessor, this.controllerRequestExecutor);
-                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_GET_REPLICA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
-                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_GET_METADATA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
-                this.remotingServer.registerProcessor(RequestCode.CONTROLLER_GET_SYNC_STATE_DATA, controllerRequestProcessor, this.controllerRequestExecutor);
+                controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
+                controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
+                controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_REGISTER_BROKER, controllerRequestProcessor, this.controllerRequestExecutor);
+                controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_REPLICA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
+                controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_METADATA_INFO, controllerRequestProcessor, this.controllerRequestExecutor);
+                controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_SYNC_STATE_DATA, controllerRequestProcessor, this.controllerRequestExecutor);
             }
         }
     }

@@ -24,6 +24,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncSt
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
@@ -100,4 +101,9 @@ public interface Controller {
      * @return RemotingCommand(GetControllerMetadataResponseHeader)
      */
     RemotingCommand getControllerMetadata();
+
+    /**
+     * Get the remotingServer used by the controller, the upper layer will reuse this remotingServer.
+     */
+    RemotingServer getRemotingServer();
 }
