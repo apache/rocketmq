@@ -12,7 +12,7 @@
 
 ## 核心思想
 
-![架构图](../image/controller_design_1.png)
+![架构图](../image/controller/controller_design_1.png)
 
 如图是 Controller 模式的核心架构, 介绍如下:
 

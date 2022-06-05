@@ -206,7 +206,10 @@ public class ReplicasManager {
                 handleSlaveSynchronize(BrokerRole.SLAVE);
 
                 // Notify ha service, change to slave
-                this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
+                if (!this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId())) {
+                    LOGGER.info("Failed to change ha role to slave");
+                    return;
+                }
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
@@ -290,7 +293,7 @@ public class ReplicasManager {
                 final long brokerId = info.getBrokerId();
                 synchronized (this) {
                     // Check if master changed
-                    if (StringUtils.isNoneEmpty(newMasterAddress) && !StringUtils.equals(this.masterAddress, newMasterAddress) && newMasterEpoch > this.masterEpoch) {
+                    if (StringUtils.isNoneEmpty(newMasterAddress) && newMasterEpoch > this.masterEpoch) {
                         if (StringUtils.equals(newMasterAddress, this.localAddress)) {
                             changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch());
                         } else {
@@ -344,7 +347,8 @@ public class ReplicasManager {
                     LOGGER.info("Change controller leader address to {}", this.controllerLeaderAddress);
                     return true;
                 }
-            } catch (final Exception ignore) {
+            } catch (final Exception e) {
+                LOGGER.error("Failed to update controller metadata", e);
             }
         }
         return false;
