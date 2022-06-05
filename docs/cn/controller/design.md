@@ -17,10 +17,8 @@
 如图是 Controller 模式的核心架构, 介绍如下:
 
 - DledgerController: 利⽤ DLedger ，构建⼀个保证元数据强⼀致性的 DLedger Controller 控制器，利⽤ Raft 选举会选出⼀个 Active DLedger Controller 作为主控制器，DLedger Controller 可以内嵌在 Nameserver中，也可以独立的部署。其主要作用是, 用来存储和管理 Broker 的 InSyncStateSet 列表, 并在某个 Broker 的 Master Broker 下线或⽹络隔离时，主动发出调度指令来切换 Broker 的 Master。当前 DLedger 作为⼀个基于 Raft Commitlog 存储库，正好能满⾜我们需求。
-- InSyncStateSet:  主要表示⼀个 broker 副本组中跟上 Master 的 Slave 副本加上 Master 的 集合。主要判断标准是 Master 和 Slave 之间的差距。当 Master 下线时，我们会从 InSyncStateSet 列表中选出新的 Master。 InSyncStateSet 列表的变更主要由 Master Broker 发起。Master通过定时任务判断和同步过程中完成 InSyncStateSet 的Shrink 和 Expand，并向选举组件 Controller 发起 Alter InSyncStateSet 请求。
-
+- InSyncStateSet:  主要表示⼀个 broker 副本组中跟上 Master 的 Slave 副本加上 Master 的集合。主要判断标准是 Master 和 Slave 之间的差距。当 Master 下线时，我们会从 InSyncStateSet 列表中选出新的 Master。 InSyncStateSet 列表的变更主要由 Master Broker 发起。Master通过定时任务判断和同步过程中完成 InSyncStateSet 的Shrink 和 Expand，并向选举组件 Controller 发起 Alter InSyncStateSet 请求。
 - AutoSwitchHAService:  一个新的 HAService, 在 DefaultHAService 的基础上, 支持 BrokerRole 的切换, 支持 Master 和 Slave 之间互相转换 (在 Controller 的控制下) 。此外, 该 HAService 统一了日志复制流程, 会在 HA HandShake 阶段进行日志的截断。
-
 - ReplicasManager: 作为一个中间组件, 起到承上启下的作用。对上, 可以定期同步来自 Controller 的控制指令, 对下, 可以定期监控 HAService 的状态, 并在合适的时间修改 InSyncStateSet。ReplicasManager 会定期同步 Controller 中关于该 Broker 的元数据, 当 Controller 选举出一个新的 Master 的时候, ReplicasManager 能够感知到元数据的变化, 并进行 BrokerRole 的切换。
 
 ## 日志复制
@@ -31,7 +29,7 @@
 
 对于每一任 Master, 其都有 MasterEpoch 与 StartOffset, 分别代表该 Master 的任期号与起始日志位移。
 
-需要注意的是, MasterEpoch 是由 Controller 决定的, 且起始单调递增的。
+需要注意的是, MasterEpoch 是由 Controller 决定的, 且其是单调递增的。
 
 此外, 我们还引入了 EpochFile, 用于存放 <Epoch, StartOffset> 序列。
 
@@ -63,7 +61,7 @@ Transfer 阶段:
 
 具体的日志截断算法流程如下:
 
-- 在 HandShake 阶段,  从 Master 处获取 Master 的 EpochCache 。
+- 在 HandShake 阶段,  Slave 会从 Master 处获取 Master 的 EpochCache 。
 
 - Slave ⽐较获取到的 Master EpochCahce <Startoffset，Endoffset>，从后往前依次和本地进行比对, 如果二者的 Epoch 与 StartOffset 相等,  则该 Epoch 有效，截断位点为两者中较⼩的 Endoffset，截断后修正⾃⼰的<Epoch , Startoffset> 信息，进⼊Transfer 阶 段；如果不相等，对比 Slave 前⼀个epoch，直到找到截断位点。
 
@@ -80,8 +78,7 @@ while (iterator.hasNext()) {
     
     if(masterOffset != null && 
             curEntry.getKey().getObejct1() == masterOffset.getObejct1()) {
-        truncateOffset = Math.min(curEntry.getKey().getObejct2(),
-                                  masterOffset.getObejct2());
+        truncateOffset = Math.min(curEntry.getKey().getObejct2(), masterOffset.getObejct2());
         break;
    }
 }
@@ -119,7 +116,7 @@ current state + Two flags + slaveAddressLength + slaveAddress
 
 - Current state 代表当前的 HAConnectionState, 也即 HANDSHAKE。
 
-- Two falgs 是两个状态标志位, 其中, isSyncFromLastFile 代表是否要从 Master 的最后一个文件开始复制, isAsyncLearner 代表该 Slave 是否是异步复制。
+- Two falgs 是两个状态标志位, 其中, isSyncFromLastFile 代表是否要从 Master 的最后一个文件开始复制, isAsyncLearner 代表该 Slave 是否是异步复制, 并以 Learner 的形式接入 Master。
 
 - slaveAddressLength 与 slaveAddress 代表了该 Slave 的地址, 用于后续加入 SyncStateSet 。
 
