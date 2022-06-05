@@ -22,7 +22,9 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,6 +51,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("AutoSwitchHAService_Executor_"));
     private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
     private final CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
+    private final ConcurrentHashMap<String, Long> connectionCaughtUpTimeTable = new ConcurrentHashMap<>();
     private String localAddress;
 
     private EpochFileCache epochCache;
@@ -162,15 +165,13 @@ public class AutoSwitchHAService extends DefaultHAService {
         final Set<String> currentSyncStateSet = getSyncStateSet();
         final HashSet<String> newSyncStateSet = new HashSet<>(currentSyncStateSet);
         final long haMaxTimeSlaveNotCatchup = this.defaultMessageStore.getMessageStoreConfig().getHaMaxTimeSlaveNotCatchup();
-        for (HAConnection haConnection : this.connectionList) {
-            final AutoSwitchHAConnection connection = (AutoSwitchHAConnection) haConnection;
-            final String slaveAddress = connection.getSlaveAddress();
+        for (Map.Entry<String, Long> next: this.connectionCaughtUpTimeTable.entrySet()) {
+            final String slaveAddress = next.getKey();
             if (currentSyncStateSet.contains(slaveAddress)) {
-                if (connection.getSlaveAckOffset() < 0 || this.defaultMessageStore.getMaxPhyOffset() == connection.getSlaveAckOffset()) {
-                    continue;
-                }
-                if ((System.currentTimeMillis() - connection.getLastCatchUpTimeMs()) > haMaxTimeSlaveNotCatchup) {
+                final Long lastCaughtUpTimeMs = this.connectionCaughtUpTimeTable.get(slaveAddress);
+                if ((System.currentTimeMillis() - lastCaughtUpTimeMs) > haMaxTimeSlaveNotCatchup) {
                     newSyncStateSet.remove(slaveAddress);
+                    this.connectionCaughtUpTimeTable.remove(slaveAddress);
                 }
             }
         }
@@ -196,6 +197,11 @@ public class AutoSwitchHAService extends DefaultHAService {
                 notifySyncStateSetChanged(currentSyncStateSet);
             }
         }
+    }
+
+    public void updateConnectionLastCaughtUpTime(final String slaveAddress, final long lastCaughtUpTimeMs) {
+        long prevTime = this.connectionCaughtUpTimeTable.computeIfAbsent(slaveAddress, (k) -> 0L);
+        this.connectionCaughtUpTimeTable.put(slaveAddress, Math.max(prevTime, lastCaughtUpTimeMs));
     }
 
     /**
