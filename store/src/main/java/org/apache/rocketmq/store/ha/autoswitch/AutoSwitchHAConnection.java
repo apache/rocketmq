@@ -185,7 +185,8 @@ public class AutoSwitchHAConnection implements HAConnection {
 
     private synchronized void maybeExpandInSyncStateSet(long slaveMaxOffset) {
         if (!this.isAsyncLearner && slaveMaxOffset >= this.lastMasterMaxOffset) {
-            this.haService.updateConnectionLastCaughtUpTime(this.slaveAddress, this.lastTransferTimeMs);
+            long caughtUpTimeMs = this.haService.getDefaultMessageStore().getMaxPhyOffset() == slaveMaxOffset ? System.currentTimeMillis() : this.lastTransferTimeMs;
+            this.haService.updateConnectionLastCaughtUpTime(this.slaveAddress, caughtUpTimeMs);
             this.haService.maybeExpandInSyncStateSet(this.slaveAddress, slaveMaxOffset);
         }
     }
@@ -320,9 +321,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     slaveRequestOffset = slaveMaxOffset;
                                 }
                                 byteBufferRead.position(readSocketPos);
-                                if (!haService.getSyncStateSet().contains(slaveAddress)) {
-                                    maybeExpandInSyncStateSet(slaveMaxOffset);
-                                }
+                                maybeExpandInSyncStateSet(slaveMaxOffset);
                                 AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
                                 LOGGER.info("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
                                 break;
@@ -542,19 +541,13 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         private void transferToSlave() throws Exception {
             if (this.lastWriteOver) {
-                long interval =
-                    haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
-
                 this.lastWriteOver = sendHeartbeatIfNeeded();
-                if (!this.lastWriteOver) {
-                    return;
-                }
             } else {
                 // maxTransferSize == -1 means to continue transfer remaining data.
                 this.lastWriteOver = this.transferData(-1);
-                if (!this.lastWriteOver) {
-                    return;
-                }
+            }
+            if (!this.lastWriteOver) {
+                return;
             }
 
             int size = this.getNextTransferDataSize();
