@@ -34,7 +34,7 @@ import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaI
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.controller.impl.DLedgerController;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -51,8 +51,9 @@ public class ControllerManagerTest {
     private List<String> baseDirs;
     private List<ControllerManager> controllers;
     private NettyRemotingClient remotingClient;
+    private NettyRemotingClient remotingClient1;
 
-    public ControllerManager launchManager(final String group, final String peers, final String selfId, final int listenPort) {
+    public ControllerManager launchManager(final String group, final String peers, final String selfId) {
         final String path = "/tmp" + File.separator + group + File.separator + selfId;
         baseDirs.add(path);
 
@@ -66,7 +67,6 @@ public class ControllerManagerTest {
         config.setScanNotActiveBrokerInterval(2000L);
 
         final NettyServerConfig serverConfig = new NettyServerConfig();
-        serverConfig.setListenPort(listenPort);
 
         final ControllerManager manager = new ControllerManager(config, serverConfig, new NettyClientConfig());
         manager.initialize();
@@ -81,6 +81,8 @@ public class ControllerManagerTest {
         this.controllers = new ArrayList<>();
         this.remotingClient = new NettyRemotingClient(new NettyClientConfig());
         this.remotingClient.start();
+        this.remotingClient1 = new NettyRemotingClient(new NettyClientConfig());
+        this.remotingClient1.start();
     }
 
     public ControllerManager waitLeader(final List<ControllerManager> controllers) throws Exception {
@@ -105,9 +107,9 @@ public class ControllerManagerTest {
     public void mockData() {
         String group = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
-        launchManager(group, peers, "n0", 31000);
-        launchManager(group, peers, "n1", 31001);
-        launchManager(group, peers, "n2", 31002);
+        launchManager(group, peers, "n0");
+        launchManager(group, peers, "n1");
+        launchManager(group, peers, "n2");
     }
 
     /**
@@ -115,13 +117,13 @@ public class ControllerManagerTest {
      */
     public BrokerRegisterResponseHeader registerBroker(
         final String controllerAddress, final String clusterName,
-        final String brokerName, final String address) throws Exception {
+        final String brokerName, final String address, final RemotingClient client) throws Exception {
 
         final BrokerRegisterRequestHeader requestHeader = new BrokerRegisterRequestHeader(clusterName, brokerName, address);
         // Timeout = 3000
         requestHeader.setHeartbeatTimeoutMillis(4000L);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
-        final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
+        final RemotingCommand response = client.invokeSync(controllerAddress, request, 3000);
         assert response != null;
         switch (response.getCode()) {
             case SUCCESS: {
@@ -138,14 +140,14 @@ public class ControllerManagerTest {
     public void testSomeApi() throws Exception {
         mockData();
         final ControllerManager leader = waitLeader(this.controllers);
-        String leaderAddr = RemotingUtil.getLocalAddress() + ":" + leader.getNettyServerConfig().getListenPort();
+        String leaderAddr = "localhost" + ":" + leader.getController().getRemotingServer().localListenPort();
 
         // Register two broker, the first one is master.
-        final BrokerRegisterResponseHeader responseHeader1 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8000");
+        final BrokerRegisterResponseHeader responseHeader1 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8000", this.remotingClient);
         assert responseHeader1 != null;
         assertEquals(responseHeader1.getBrokerId(), MixAll.MASTER_ID);
 
-        final BrokerRegisterResponseHeader responseHeader2 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8001");
+        final BrokerRegisterResponseHeader responseHeader2 = registerBroker(leaderAddr, "cluster1", "broker1", "127.0.0.1:8001", this.remotingClient1);
         assert responseHeader2 != null;
         assertEquals(responseHeader2.getBrokerId(), 2);
 
@@ -157,8 +159,9 @@ public class ControllerManagerTest {
             heartbeatRequestHeader.setBrokerName("broker1");
             heartbeatRequestHeader.setBrokerAddr("127.0.0.1:8001");
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, heartbeatRequestHeader);
+            System.out.println("send heartbeat success");
             try {
-                this.remotingClient.invokeOneway(leaderAddr, request, 3000);
+                final RemotingCommand remotingCommand = this.remotingClient1.invokeSync(leaderAddr, request, 3000);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -171,7 +174,7 @@ public class ControllerManagerTest {
         // The new master should be broker2.
         final GetReplicaInfoRequestHeader requestHeader = new GetReplicaInfoRequestHeader("broker1");
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_REPLICA_INFO, requestHeader);
-        final RemotingCommand response = this.remotingClient.invokeSync(leaderAddr, request, 3000);
+        final RemotingCommand response = this.remotingClient1.invokeSync(leaderAddr, request, 3000);
         final GetReplicaInfoResponseHeader responseHeader = response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
         assertEquals(responseHeader.getMasterAddress(), "127.0.0.1:8001");
 
@@ -187,5 +190,7 @@ public class ControllerManagerTest {
             System.out.println("Delete file " + dir);
             new File(dir).delete();
         }
+        this.remotingClient.shutdown();
+        this.remotingClient1.shutdown();
     }
 }

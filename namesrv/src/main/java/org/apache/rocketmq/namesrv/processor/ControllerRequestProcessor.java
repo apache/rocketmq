@@ -20,14 +20,12 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.BrokerRegisterRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -102,16 +100,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 break;
             }
             case CONTROLLER_GET_METADATA_INFO: {
-                final RemotingCommand response = this.controller.getControllerMetadata();
-                final GetMetaDataResponseHeader responseHeader = (GetMetaDataResponseHeader) response.readCustomHeader();
-                if (StringUtils.isNoneEmpty(responseHeader.getControllerLeaderAddress())) {
-                    final String leaderAddress = responseHeader.getControllerLeaderAddress();
-                    // Because the controller is proxy by namesrv, so we should replace the controllerAddress to namesrvAddress.
-                    final int splitIndex = StringUtils.lastIndexOf(leaderAddress, ":");
-                    final String namesrvAddress = leaderAddress.substring(0, splitIndex + 1) + this.namesrvController.getNettyServerConfig().getListenPort();
-                    responseHeader.setControllerLeaderAddress(namesrvAddress);
-                }
-                return response;
+                return this.controller.getControllerMetadata();
             }
             case CONTROLLER_GET_SYNC_STATE_DATA: {
                 if (request.getBody() != null) {

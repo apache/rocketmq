@@ -328,7 +328,9 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     slaveRequestOffset = slaveMaxOffset;
                                 }
                                 byteBufferRead.position(readSocketPos);
-                                maybeExpandInSyncStateSet(slaveMaxOffset);
+                                if (!haService.getSyncStateSet().contains(slaveAddress)) {
+                                    maybeExpandInSyncStateSet(slaveMaxOffset);
+                                }
                                 AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
                                 LOGGER.info("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
                                 break;

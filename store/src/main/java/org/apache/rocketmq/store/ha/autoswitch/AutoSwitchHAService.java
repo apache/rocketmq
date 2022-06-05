@@ -100,9 +100,6 @@ public class AutoSwitchHAService extends DefaultHAService {
 
         this.defaultMessageStore.recoverTopicQueueTable();
 
-        final HashSet<String> newSyncStateSet = new HashSet<>();
-        newSyncStateSet.add(this.localAddress);
-        setSyncStateSet(newSyncStateSet);
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
         return true;
     }
@@ -122,6 +119,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             this.haClient.setLocalAddress(this.localAddress);
             this.haClient.updateSlaveId(slaveId);
             this.haClient.updateMasterAddress(newMasterAddr);
+            this.haClient.updateHaMasterAddress(null);
             this.haClient.start();
             LOGGER.info("Change ha to slave success, newMasterAddress:{}, newMasterEpoch:{}", newMasterAddr, newMasterEpoch);
             return true;
@@ -142,16 +140,6 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override public void updateMasterAddress(String newAddr) {
-    }
-
-    @Override public void removeConnection(HAConnection conn) {
-        final Set<String> syncStateSet = getSyncStateSet();
-        String slave = ((AutoSwitchHAConnection) conn).getSlaveAddress();
-        if (syncStateSet.contains(slave)) {
-            syncStateSet.remove(slave);
-            notifySyncStateSetChanged(syncStateSet);
-        }
-        super.removeConnection(conn);
     }
 
     public void registerSyncStateSetChangedListener(final Consumer<Set<String>> listener) {
