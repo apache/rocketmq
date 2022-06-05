@@ -72,13 +72,13 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 long timeoutMillis = next.getValue().heartbeatTimeoutMillis;
                 if ((last + timeoutMillis) < System.currentTimeMillis()) {
                     final Channel channel = next.getValue().channel;
+                    iterator.remove();
                     if (channel != null) {
                         RemotingUtil.closeChannel(channel);
                     }
-                    iterator.remove();
                     this.executor.submit(() ->
                         notifyBrokerInActive(next.getKey().getClusterName(), next.getValue().brokerName, next.getKey().getBrokerAddr(), next.getValue().brokerId));
-                    log.warn("The broker channel expired, {} {}ms", next.getKey(), timeoutMillis);
+                    log.warn("The broker channel {} expired, brokerInfo {}, expired {}ms", next.getValue().channel, next.getKey(), timeoutMillis);
                 }
             }
         } catch (Exception e) {
@@ -136,14 +136,16 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         BrokerAddrInfo addrInfo = null;
         for (Map.Entry<BrokerAddrInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
             if (entry.getValue().channel == channel) {
-                log.info("Channel inactive, broker {}, addr:{}, id:{}", entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId);
+                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().channel, entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId);
                 addrInfo = entry.getKey();
                 this.executor.submit(() ->
                     notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().brokerName, entry.getKey().getBrokerAddr(), entry.getValue().brokerId));
                 break;
             }
         }
-        this.brokerLiveTable.remove(addrInfo);
+        if (addrInfo != null) {
+            this.brokerLiveTable.remove(addrInfo);
+        }
     }
 
     @Override
