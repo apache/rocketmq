@@ -465,7 +465,7 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
 
-        putResultFuture.thenAccept((result) -> {
+        putResultFuture.thenAccept(result -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
@@ -493,7 +493,7 @@ public class DefaultMessageStore implements MessageStore {
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> resultFuture = this.commitLog.asyncPutMessages(messageExtBatch);
 
-        resultFuture.thenAccept((result) -> {
+        resultFuture.thenAccept(result -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 log.warn("not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
