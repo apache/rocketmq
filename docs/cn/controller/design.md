@@ -6,7 +6,7 @@
 - RocketMQ 存在两套 HA 复制流程，且 Raft 模式下的复制无法利用 RocketMQ 原生的存储能力。
 - Raft 模式下, 日志复制性能并不高效。
 
-因此我们希望利用 DLedger 实现一个基于 Raft 的一致性模块（DLedger Controller），并当作一个可选的选主组件, 支持独立部署, 也可以嵌入在 Nameserver 中，Broker 通过与 Controller 的交互完成 Master 的选举, 从而解决上述问题, 我们奖该新模式称为 Controller 模式。
+因此我们希望利用 DLedger 实现一个基于 Raft 的一致性模块（DLedger Controller），并当作一个可选的选主组件, 支持独立部署, 也可以嵌入在 Nameserver 中，Broker 通过与 Controller 的交互完成 Master 的选举, 从而解决上述问题, 我们将该新模式称为 Controller 模式。
 
 # 架构
 
@@ -16,10 +16,10 @@
 
 如图是 Controller 模式的核心架构, 介绍如下:
 
-- DledgerController: 利⽤ DLedger ，构建⼀个保证元数据强⼀致性的 DLedger Controller 控制器，利⽤ Raft 选举会选出⼀个 Active DLedger Controller 作为主控制器，DLedger Controller 可以内嵌在 Nameserver中，也可以独立的部署。其主要作用是, 用来存储和管理 Broker 的 InSyncStateSet 列表, 并在某个 Broker 的 Master Broker 下线或⽹络隔离时，主动发出调度指令来切换 Broker 的 Master。当前 DLedger 作为⼀个基于 Raft Commitlog 存储库，正好能满⾜我们需求。
-- InSyncStateSet:  主要表示⼀个 broker 副本组中跟上 Master 的 Slave 副本加上 Master 的集合。主要判断标准是 Master 和 Slave 之间的差距。当 Master 下线时，我们会从 InSyncStateSet 列表中选出新的 Master。 InSyncStateSet 列表的变更主要由 Master Broker 发起。Master通过定时任务判断和同步过程中完成 InSyncStateSet 的Shrink 和 Expand，并向选举组件 Controller 发起 Alter InSyncStateSet 请求。
+- DledgerController: 利⽤ DLedger ，构建⼀个保证元数据强⼀致性的 DLedger Controller 控制器，利⽤ Raft 选举会选出⼀个 Active DLedger Controller 作为主控制器，DLedger Controller 可以内嵌在 Nameserver中，也可以独立的部署。其主要作用是, 用来存储和管理 Broker 的 SyncStateSet 列表, 并在某个 Broker 的 Master Broker 下线或⽹络隔离时，主动发出调度指令来切换 Broker 的 Master。
+- SyncStateSet:  主要表示⼀个 broker 副本组中跟上 Master 的 Slave 副本加上 Master 的集合。主要判断标准是 Master 和 Slave 之间的差距。当 Master 下线时，我们会从 SyncStateSet 列表中选出新的 Master。 SyncStateSet 列表的变更主要由 Master Broker 发起。Master通过定时任务判断和同步过程中完成 SyncStateSet 的Shrink 和 Expand，并向选举组件 Controller 发起 Alter SyncStateSet 请求。
 - AutoSwitchHAService:  一个新的 HAService, 在 DefaultHAService 的基础上, 支持 BrokerRole 的切换, 支持 Master 和 Slave 之间互相转换 (在 Controller 的控制下) 。此外, 该 HAService 统一了日志复制流程, 会在 HA HandShake 阶段进行日志的截断。
-- ReplicasManager: 作为一个中间组件, 起到承上启下的作用。对上, 可以定期同步来自 Controller 的控制指令, 对下, 可以定期监控 HAService 的状态, 并在合适的时间修改 InSyncStateSet。ReplicasManager 会定期同步 Controller 中关于该 Broker 的元数据, 当 Controller 选举出一个新的 Master 的时候, ReplicasManager 能够感知到元数据的变化, 并进行 BrokerRole 的切换。
+- ReplicasManager: 作为一个中间组件, 起到承上启下的作用。对上, 可以定期同步来自 Controller 的控制指令, 对下, 可以定期监控 HAService 的状态, 并在合适的时间修改 SyncStateSet。ReplicasManager 会定期同步 Controller 中关于该 Broker 的元数据, 当 Controller 选举出一个新的 Master 的时候, ReplicasManager 能够感知到元数据的变化, 并进行 BrokerRole 的切换。
 
 
 
@@ -159,7 +159,7 @@ Slave 收到 Master 回送的包后, 就会在本地进行上文阐述的日志�
 - Offset 当前这一批次的日志的起始偏移量。
 - Epoch: 代表当前这一批次日志所属的 MasterEpoch。
 - epochStartOffset: 代表当前这一批次日志的 MasterEpoch 对应的 StartOffset。
-- confirmOffset: 代表在 InSyncStateSet 中的副本的最小偏移量。
+- confirmOffset: 代表在 SyncStateSet 中的副本的最小偏移量。
 - Body: 日志。
 
 2.AutoSwitchHaClient (Slave) 会向 Master 发送 ACK 包:
@@ -175,19 +175,19 @@ Slave 收到 Master 回送的包后, 就会在本地进行上文阐述的日志�
 
 ### 基本流程
 
-ELectMaster 主要是在某 Broker 副本组的 Master 下线或不可访问时，重新从 InSyncStateSet 列表⾥⾯选出⼀个新的 Master，该事件由 Controller ⾃身发起。
+ELectMaster 主要是在某 Broker 副本组的 Master 下线或不可访问时，重新从 SyncStateSet 列表⾥⾯选出⼀个新的 Master，该事件由 Controller ⾃身发起。
 
 无论 Controller 是独立部署, 还是嵌入在 Namesrv 中, 其都会监听每个 Broker 的连接通道, 如果某个 Broker channel inActive 了, 就会判断该 Broker 是否为 Master, 如果是, 则会触发选主的流程。
 
-选举 Master 的⽅式⽐较简单，我们只需要在该组 Broker 所对应的 InSyncStateSet 列表中，挑选⼀个出来成为新的 Master 即可，并通过 DLedger 共识后应⽤到内存元数据，最后将结果通知对应的Broker副本组。
+选举 Master 的⽅式⽐较简单，我们只需要在该组 Broker 所对应的 SyncStateSet 列表中，挑选⼀个出来成为新的 Master 即可，并通过 DLedger 共识后应⽤到内存元数据，最后将结果通知对应的Broker副本组。
 
-### InSyncStateSet 变更
+### SyncStateSet 变更
 
-InSyncStateSet 是选主的重要依据, InSyncStateSet 列表的变更主要由 Master Broker 发起。Master通过定时任务判断和同步过程中完成 InSyncStateSet 的Shrink 和 Expand，并向选举组件 Controller 发起 Alter InSyncStateSet 请求。
+SyncStateSet 是选主的重要依据, SyncStateSet 列表的变更主要由 Master Broker 发起。Master通过定时任务判断和同步过程中完成 SyncStateSet 的Shrink 和 Expand，并向选举组件 Controller 发起 Alter SyncStateSet 请求。
 
 #### Shrink
 
-Shrink InSyncStateSet ，指把 InSyncStateSet 副本集合中那些与Master差距过⼤的副本移除，判断依据如下:
+Shrink SyncStateSet ，指把 SyncStateSet 副本集合中那些与Master差距过⼤的副本移除，判断依据如下:
 
 - 增加 haMaxTimeSlaveNotCatchUp 参数 。
 
@@ -199,8 +199,8 @@ Shrink InSyncStateSet ，指把 InSyncStateSet 副本集合中那些与Master差
 
   haMaxTimeSlaveNotCatchUp，则该 Slave 是 Out-of-sync 的 。
 
-- 如果检测到 Slave out of sync , master 会立刻和 Controller 上报, 从而 Shrink InSyncStateSet 。
+- 如果检测到 Slave out of sync , master 会立刻和 Controller 上报, 从而 Shrink SyncStateSet 。
 
 #### Expand
 
-如果⼀个 Slave 副本追赶上了 Master，Master 需要及时向Controller Alter InSyncStateSet 。加⼊InSyncStateSet 的条件是 slaveAckOffset >= ConfirmOffset（当前 InSyncStateSet  中所有副本的 MaxOffset 的最⼩值）。
+如果⼀个 Slave 副本追赶上了 Master，Master 需要及时向Controller Alter SyncStateSet 。加⼊SyncStateSet 的条件是 slaveAckOffset >= ConfirmOffset（当前 SyncStateSet  中所有副本的 MaxOffset 的最⼩值）。
