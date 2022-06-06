@@ -1675,6 +1675,16 @@ public class DefaultMessageStore implements MessageStore {
         return runningFlags;
     }
 
+    @Override
+    public void disableWrite() {
+        runningFlags.getAndMakeNotWriteable();
+    }
+
+    @Override
+    public void enableWrite() {
+        runningFlags.getAndMakeWriteable();
+    }
+
     public void doDispatch(DispatchRequest req) {
         for (CommitLogDispatcher dispatcher : this.dispatcherList) {
             dispatcher.dispatch(req);

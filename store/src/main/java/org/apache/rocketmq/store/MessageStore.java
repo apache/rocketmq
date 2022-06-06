@@ -796,4 +796,14 @@ public interface MessageStore {
      * @return whether shutdown
      */
     boolean isShutdown();
+
+    /*
+     * Make MessageStore not writeable, default is writeable
+     */
+    void disableWrite();
+
+    /*
+     * Make MessageStore not writeable, default is writeable
+     */
+    void enableWrite();
 }

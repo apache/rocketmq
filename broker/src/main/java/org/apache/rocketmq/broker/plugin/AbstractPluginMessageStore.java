@@ -531,4 +531,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override public boolean isShutdown() {
         return next.isShutdown();
     }
+
+    @Override public void disableWrite() {
+        next.disableWrite();
+    }
+
+    @Override public void enableWrite() {
+        next.enableWrite();
+    }
 }

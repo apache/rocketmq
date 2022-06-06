@@ -152,6 +152,8 @@ public class ReplicasManager {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.localAddress, newMasterEpoch);
 
+                brokerController.getMessageStore().disableWrite();
+
                 // Change record
                 this.masterAddress = this.localAddress;
                 this.masterEpoch = newMasterEpoch;
@@ -172,6 +174,8 @@ public class ReplicasManager {
                 // Notify ha service, change to master
                 this.haService.changeToMaster(newMasterEpoch);
 
+                brokerController.getMessageStore().enableWrite();
+
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
                     try {
@@ -191,6 +195,8 @@ public class ReplicasManager {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to slave, brokerName={}, replicas:{}, brokerId={}", this.brokerConfig.getBrokerName(), this.localAddress, this.brokerConfig.getBrokerId());
 
+                brokerController.getMessageStore().disableWrite();
+
                 // Change record
                 this.masterAddress = newMasterAddress;
                 this.masterEpoch = newMasterEpoch;
@@ -207,6 +213,8 @@ public class ReplicasManager {
 
                 // Notify ha service, change to slave
                 this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
+
+                brokerController.getMessageStore().enableWrite();
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
