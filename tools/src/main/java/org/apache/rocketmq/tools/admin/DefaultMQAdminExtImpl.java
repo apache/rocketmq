@@ -50,6 +50,7 @@ import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -408,6 +409,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public ProducerTableInfo getAllProducerInfo(final String brokerAddr) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return this.mqClientInstance.getMQClientAPIImpl().getAllProducerInfo(brokerAddr, timeoutMillis);
+    }
+
+    @Override
     public List<String> getNameServerAddressList() {
         return this.mqClientInstance.getMQClientAPIImpl().getNameServerAddressList();
     }
@@ -450,15 +456,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public void deleteTopicInNameServer(Set<String> addrs,
-        String topic) throws RemotingException, MQBrokerException, InterruptedException,
-        MQClientException {
+    public void deleteTopicInNameServer(Set<String> addrs, String topic, String clusterName) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException {
         if (addrs == null) {
             String ns = this.mqClientInstance.getMQClientAPIImpl().fetchNameServerAddr();
             addrs = new HashSet(Arrays.asList(ns.split(";")));
         }
         for (String addr : addrs) {
-            this.mqClientInstance.getMQClientAPIImpl().deleteTopicInNameServer(addr, topic, timeoutMillis);
+            this.mqClientInstance.getMQClientAPIImpl().deleteTopicInNameServer(addr, topic, clusterName, timeoutMillis);
         }
     }
 

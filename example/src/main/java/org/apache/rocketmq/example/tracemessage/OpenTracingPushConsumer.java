@@ -22,34 +22,34 @@ import io.jaegertracing.internal.samplers.ConstSampler;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageOpenTracingHookImpl;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.MessageExt;
-
-import java.util.List;
 
 public class OpenTracingPushConsumer {
+
+    public static final String CONSUMER_GROUP = "CID_JODIE_1";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TopicTest";
+
     public static void main(String[] args) throws InterruptedException, MQClientException {
         Tracer tracer = initTracer();
 
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
+
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
+//        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         consumer.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(new ConsumeMessageOpenTracingHookImpl(tracer));
 
-        consumer.subscribe("TopicTest", "*");
+        consumer.subscribe(TOPIC, "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
         consumer.setConsumeTimestamp("20181109221800");
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
-
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-                System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-            }
+        consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+            System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
         consumer.start();
         System.out.printf("Consumer Started.%n");
@@ -57,14 +57,14 @@ public class OpenTracingPushConsumer {
 
     private static Tracer initTracer() {
         Configuration.SamplerConfiguration samplerConfig = Configuration.SamplerConfiguration.fromEnv()
-                .withType(ConstSampler.TYPE)
-                .withParam(1);
+            .withType(ConstSampler.TYPE)
+            .withParam(1);
         Configuration.ReporterConfiguration reporterConfig = Configuration.ReporterConfiguration.fromEnv()
-                .withLogSpans(true);
+            .withLogSpans(true);
 
         Configuration config = new Configuration("rocketmq")
-                .withSampler(samplerConfig)
-                .withReporter(reporterConfig);
+            .withSampler(samplerConfig)
+            .withReporter(reporterConfig);
         GlobalTracer.registerIfAbsent(config.getTracer());
         return config.getTracer();
     }

@@ -42,6 +42,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
@@ -133,6 +134,9 @@ public interface MQAdminExt extends MQAdmin {
         final String topic) throws RemotingException,
         MQClientException, InterruptedException, MQBrokerException;
 
+    ProducerTableInfo getAllProducerInfo(final String brokerAddr) throws RemotingException,
+            MQClientException, InterruptedException, MQBrokerException;
+
     List<String> getNameServerAddressList();
 
     int wipeWritePermOfBroker(final String namesrvAddr, String brokerName) throws RemotingCommandException,
@@ -152,8 +156,7 @@ public interface MQAdminExt extends MQAdmin {
     void deleteTopicInBroker(final Set<String> addrs, final String topic) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
-    void deleteTopicInNameServer(final Set<String> addrs,
-        final String topic) throws RemotingException, MQBrokerException,
+    void deleteTopicInNameServer(final Set<String> addrs, final String topic, String clusterName) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
     void deleteSubscriptionGroup(final String addr, String groupName) throws RemotingException, MQBrokerException,

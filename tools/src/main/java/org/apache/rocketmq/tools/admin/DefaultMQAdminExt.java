@@ -43,6 +43,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.body.GroupList;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.ProducerConnection;
+import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.common.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.common.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
@@ -286,6 +287,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public ProducerTableInfo getAllProducerInfo(final String brokerAddr) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        return defaultMQAdminExtImpl.getAllProducerInfo(brokerAddr);
+    }
+
+    @Override
     public List<String> getNameServerAddressList() {
         return this.defaultMQAdminExtImpl.getNameServerAddressList();
     }
@@ -326,10 +332,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void deleteTopicInNameServer(Set<String> addrs,
-        String topic) throws RemotingException, MQBrokerException, InterruptedException,
-        MQClientException {
-        defaultMQAdminExtImpl.deleteTopicInNameServer(addrs, topic);
+    public void deleteTopicInNameServer(final Set<String> addrs, final String topic, final String clusterName) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.deleteTopicInNameServer(addrs, topic, clusterName);
     }
 
     @Override

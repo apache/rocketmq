@@ -445,7 +445,12 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         final DeleteTopicFromNamesrvRequestHeader requestHeader =
             (DeleteTopicFromNamesrvRequestHeader) request.decodeCommandCustomHeader(DeleteTopicFromNamesrvRequestHeader.class);
 
-        this.namesrvController.getRouteInfoManager().deleteTopic(requestHeader.getTopic());
+        if (requestHeader.getClusterName() != null
+            && !requestHeader.getClusterName().isEmpty()) {
+            this.namesrvController.getRouteInfoManager().deleteTopic(requestHeader.getTopic(), requestHeader.getClusterName());
+        } else {
+            this.namesrvController.getRouteInfoManager().deleteTopic(requestHeader.getTopic());
+        }
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
