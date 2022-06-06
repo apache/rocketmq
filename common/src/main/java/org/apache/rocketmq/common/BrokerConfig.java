@@ -305,15 +305,11 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean controllerDeployedStandAlone = false;
 
-    /**
-     * If isControllerDeployedStandAlone = false, controllerAddr should be the addresses of name-srv which running the controller instance.
-     * If isControllerDeployedStandAlone = true, controllerAddr should be controller's address.
-     */
     private String controllerAddr = "";
 
     private long replicasManagerSyncBrokerMetadataPeriod = 5 * 1000;
 
-    private long replicasManagerCheckSyncStateSetPeriod = 8 * 1000;
+    private long replicasManagerCheckSyncStateSetPeriod = 5 * 1000;
 
     private long replicasManagerSyncControllerMetadataPeriod = 10 * 1000;
 

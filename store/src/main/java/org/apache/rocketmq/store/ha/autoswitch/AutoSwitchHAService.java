@@ -77,9 +77,22 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.executorService.shutdown();
     }
 
+    @Override public void removeConnection(HAConnection conn) {
+        if (!defaultMessageStore.isShutdown()) {
+            final Set<String> syncStateSet = getSyncStateSet();
+            String slave = ((AutoSwitchHAConnection) conn).getSlaveAddress();
+            if (syncStateSet.contains(slave)) {
+                syncStateSet.remove(slave);
+                notifySyncStateSetChanged(syncStateSet);
+            }
+        }
+        super.removeConnection(conn);
+    }
+
     @Override public boolean changeToMaster(int masterEpoch) {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
+            LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
             return false;
         }
         destroyConnections();
@@ -110,6 +123,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     @Override public boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (newMasterEpoch < lastEpoch) {
+            LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to slave", newMasterEpoch, lastEpoch);
             return false;
         }
         try {
@@ -162,26 +176,24 @@ public class AutoSwitchHAService extends DefaultHAService {
      * A slave will be removed from inSyncStateSet if (curTime - HaConnection.lastCaughtUpTime) > option(haMaxTimeSlaveNotCatchup)
      */
     public Set<String> maybeShrinkInSyncStateSet() {
-        final Set<String> currentSyncStateSet = getSyncStateSet();
-        final HashSet<String> newSyncStateSet = new HashSet<>(currentSyncStateSet);
+        final Set<String> newSyncStateSet = getSyncStateSet();
         final long haMaxTimeSlaveNotCatchup = this.defaultMessageStore.getMessageStoreConfig().getHaMaxTimeSlaveNotCatchup();
-        for (Map.Entry<String, Long> next: this.connectionCaughtUpTimeTable.entrySet()) {
+        for (Map.Entry<String, Long> next : this.connectionCaughtUpTimeTable.entrySet()) {
             final String slaveAddress = next.getKey();
-            if (currentSyncStateSet.contains(slaveAddress)) {
+            if (newSyncStateSet.contains(slaveAddress)) {
                 final Long lastCaughtUpTimeMs = this.connectionCaughtUpTimeTable.get(slaveAddress);
                 if ((System.currentTimeMillis() - lastCaughtUpTimeMs) > haMaxTimeSlaveNotCatchup) {
                     newSyncStateSet.remove(slaveAddress);
-                    this.connectionCaughtUpTimeTable.remove(slaveAddress);
                 }
             }
         }
         return newSyncStateSet;
     }
 
+
     /**
-     * Check and maybe add the slave to inSyncStateSet.
-     * A slave will be added to inSyncStateSet if its slaveMaxOffset >= current confirmOffset, and it is caught up to
-     * an offset within the current leader epoch.
+     * Check and maybe add the slave to inSyncStateSet. A slave will be added to inSyncStateSet if its slaveMaxOffset >=
+     * current confirmOffset, and it is caught up to an offset within the current leader epoch.
      */
     public void maybeExpandInSyncStateSet(final String slaveAddress, final long slaveMaxOffset) {
         final Set<String> currentSyncStateSet = getSyncStateSet();

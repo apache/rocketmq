@@ -135,8 +135,8 @@ public class ControllerManager {
 
     public void shutdown() {
         this.heartbeatManager.shutdown();
-        this.controller.shutdown();
         this.controllerRequestExecutor.shutdown();
+        this.controller.shutdown();
     }
 
     public BrokerHeartbeatManager getHeartbeatManager() {

@@ -311,6 +311,9 @@ public class NamesrvController {
         if (this.controllerRequestExecutor != null) {
             this.controllerRequestExecutor.shutdown();
         }
+        if (this.controllerConfig.isEnableStartupController()) {
+            this.controller.shutdown();
+        }
         this.scheduledExecutorService.shutdown();
         this.scanExecutorService.shutdown();
         this.routeInfoManager.shutdown();
