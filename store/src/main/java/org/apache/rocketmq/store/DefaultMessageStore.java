@@ -1418,6 +1418,7 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
+    @Override
     public ConsumeQueueInterface findConsumeQueue(String topic, int queueId) {
         return this.consumeQueueStore.findOrCreateConsumeQueue(topic, queueId);
     }
