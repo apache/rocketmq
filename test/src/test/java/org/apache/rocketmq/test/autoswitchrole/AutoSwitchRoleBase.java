@@ -76,13 +76,13 @@ public class AutoSwitchRoleBase {
     public BrokerController startBroker(String namesrvAddress, String controllerAddress, int brokerId, int haPort, int brokerListenPort,
         int nettyListenPort, BrokerRole expectedRole, int mappedFileSize) throws Exception {
         final MessageStoreConfig storeConfig = buildMessageStoreConfig("broker" + brokerId, haPort, mappedFileSize);
-        storeConfig.setHaMaxTimeSlaveNotCatchup(4 * 1000);
+        storeConfig.setHaMaxTimeSlaveNotCatchup(3 * 1000);
         final BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setListenPort(brokerListenPort);
         brokerConfig.setNamesrvAddr(namesrvAddress);
         brokerConfig.setControllerAddr(controllerAddress);
         brokerConfig.setReplicasManagerSyncBrokerMetadataPeriod(2 * 1000);
-        brokerConfig.setReplicasManagerCheckSyncStateSetPeriod(3 * 1000);
+        brokerConfig.setReplicasManagerCheckSyncStateSetPeriod(2 * 1000);
         brokerConfig.setEnableControllerMode(true);
 
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();

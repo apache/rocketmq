@@ -206,10 +206,7 @@ public class ReplicasManager {
                 handleSlaveSynchronize(BrokerRole.SLAVE);
 
                 // Notify ha service, change to slave
-                if (!this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId())) {
-                    LOGGER.info("Failed to change ha role to slave");
-                    return;
-                }
+                this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
@@ -358,6 +355,9 @@ public class ReplicasManager {
      * Scheduling check syncStateSet.
      */
     private void schedulingCheckSyncStateSet() {
+        if (this.checkSyncStateSetTaskFuture != null) {
+            this.checkSyncStateSetTaskFuture.cancel(false);
+        }
         this.checkSyncStateSetTaskFuture = this.scheduledService.scheduleAtFixedRate(() -> {
             final Set<String> newSyncStateSet = this.haService.maybeShrinkInSyncStateSet();
             newSyncStateSet.add(this.localAddress);
@@ -388,7 +388,6 @@ public class ReplicasManager {
     private void stopCheckSyncStateSet() {
         if (this.checkSyncStateSetTaskFuture != null) {
             this.checkSyncStateSetTaskFuture.cancel(false);
-            this.checkSyncStateSetTaskFuture = null;
         }
     }
 
