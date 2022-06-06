@@ -77,6 +77,18 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.executorService.shutdown();
     }
 
+    @Override public void removeConnection(HAConnection conn) {
+        if (!defaultMessageStore.isShutdown()) {
+            final Set<String> syncStateSet = getSyncStateSet();
+            String slave = ((AutoSwitchHAConnection) conn).getSlaveAddress();
+            if (syncStateSet.contains(slave)) {
+                syncStateSet.remove(slave);
+                notifySyncStateSetChanged(syncStateSet);
+            }
+        }
+        super.removeConnection(conn);
+    }
+
     @Override public boolean changeToMaster(int masterEpoch) {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
@@ -177,6 +189,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
         return newSyncStateSet;
     }
+
 
     /**
      * Check and maybe add the slave to inSyncStateSet. A slave will be added to inSyncStateSet if its slaveMaxOffset >=

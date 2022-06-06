@@ -112,7 +112,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         // Shutdown controller2
         this.brokerController2.shutdown();
 
-        Thread.sleep(8000);
+        Thread.sleep(5000);
         syncStateSet = replicasManager.getSyncStateSet();
         assertEquals(1, syncStateSet.getSyncStateSet().size());
     }

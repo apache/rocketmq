@@ -396,7 +396,6 @@ public class DefaultMessageStore implements MessageStore {
 
             this.scheduledExecutorService.shutdown();
             try {
-
                 Thread.sleep(1000 * 3);
             } catch (InterruptedException e) {
                 LOGGER.error("shutdown Exception, ", e);
