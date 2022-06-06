@@ -193,20 +193,11 @@ public class DefaultMessageStore implements MessageStore {
                 this.haService = new DefaultHAService();
                 LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
             }
-            this.haService.init(this);
         }
 
         this.reputMessageService = new ReputMessageService();
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
-
-        if (messageStoreConfig.isTransientStorePoolEnable()) {
-            this.transientStorePool.init();
-        }
-
-        this.allocateMappedFileService.start();
-
-        this.indexService.start();
 
         this.scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
@@ -309,6 +300,17 @@ public class DefaultMessageStore implements MessageStore {
      */
     @Override
     public void start() throws Exception {
+        if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
+            this.haService.init(this);
+        }
+
+        if (messageStoreConfig.isTransientStorePoolEnable()) {
+            this.transientStorePool.init();
+        }
+
+        this.allocateMappedFileService.start();
+
+        this.indexService.start();
 
         lock = lockFile.getChannel().tryLock(0, 1, false);
         if (lock == null || lock.isShared() || !lock.isValid()) {
