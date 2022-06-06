@@ -33,6 +33,8 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -451,4 +453,10 @@ public class MixAll {
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);
     }
+
+    public static String dealFilePath(String aclFilePath) {
+        Path path = Paths.get(aclFilePath);
+        return path.normalize().toString();
+    }
+
 }
