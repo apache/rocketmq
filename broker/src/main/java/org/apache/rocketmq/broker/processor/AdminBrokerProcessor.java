@@ -124,6 +124,7 @@ import org.apache.rocketmq.common.protocol.header.GetProducerConnectionListReque
 import org.apache.rocketmq.common.protocol.header.GetSubscriptionGroupConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
+import org.apache.rocketmq.common.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumeQueueRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
@@ -299,6 +300,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.resetMasterFlushOffset(ctx, request);
             case RequestCode.GET_BROKER_EPOCH_CACHE:
                 return this.getBrokerEpochCache(ctx, request);
+            case RequestCode.NOTIFY_BROKER_ROLE_CHANGED:
+                return this.notifyBrokerRoleChanged(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -2388,6 +2391,24 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand notifyBrokerRoleChanged(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        NotifyBrokerRoleChangedRequestHeader requestHeader = request.decodeCommandCustomHeader(NotifyBrokerRoleChangedRequestHeader.class);
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        LOGGER.info("Try to change brokerRole, request:{}", requestHeader);
+
+        final ReplicasManager replicasManager = this.brokerController.getReplicasManager();
+        if (replicasManager != null) {
+            replicasManager.changeBrokerRole(requestHeader.getMasterAddress(), requestHeader.getMasterEpoch(), requestHeader.getSyncStateSetEpoch(), requestHeader.getBrokerId());
+        }
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+
         return response;
     }
 }
