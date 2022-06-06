@@ -14,35 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common.protocol.header.namesrv;
+
+package org.apache.rocketmq.common.protocol.header;
 
 import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class DeleteTopicFromNamesrvRequestHeader implements CommandCustomHeader {
-    @CFNotNull
-    private String topic;
-
-    private String clusterName;
-
+public class GetAllProducerInfoRequestHeader implements CommandCustomHeader {
     @Override
     public void checkFields() throws RemotingCommandException {
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public void setClusterName(String clusterName) {
-        this.clusterName = clusterName;
+        // To change body of implemented methods use File | Settings | File
+        // Templates.
     }
 }

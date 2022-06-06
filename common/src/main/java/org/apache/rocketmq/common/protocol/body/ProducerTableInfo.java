@@ -14,35 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common.protocol.header.namesrv;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+package org.apache.rocketmq.common.protocol.body;
 
-public class DeleteTopicFromNamesrvRequestHeader implements CommandCustomHeader {
-    @CFNotNull
-    private String topic;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-    private String clusterName;
+import java.util.List;
+import java.util.Map;
 
-    @Override
-    public void checkFields() throws RemotingCommandException {
+public class ProducerTableInfo extends RemotingSerializable {
+    public ProducerTableInfo(Map<String, List<ProducerInfo>> data) {
+        this.data = data;
     }
 
-    public String getTopic() {
-        return topic;
+    private Map<String, List<ProducerInfo>> data;
+
+    public Map<String, List<ProducerInfo>> getData() {
+        return data;
     }
 
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public void setClusterName(String clusterName) {
-        this.clusterName = clusterName;
+    public void setData(Map<String, List<ProducerInfo>> data) {
+        this.data = data;
     }
 }
