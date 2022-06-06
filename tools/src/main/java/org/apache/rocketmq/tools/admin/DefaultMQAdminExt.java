@@ -332,10 +332,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void deleteTopicInNameServer(Set<String> addrs,
-        String topic) throws RemotingException, MQBrokerException, InterruptedException,
-        MQClientException {
-        defaultMQAdminExtImpl.deleteTopicInNameServer(addrs, topic);
+    public void deleteTopicInNameServer(final Set<String> addrs, final String topic, final String clusterName) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.deleteTopicInNameServer(addrs, topic, clusterName);
     }
 
     @Override
