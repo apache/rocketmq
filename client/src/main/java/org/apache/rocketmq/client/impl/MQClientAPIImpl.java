@@ -1494,10 +1494,11 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public void deleteTopicInNameServer(final String addr, final String topic, final long timeoutMillis)
+    public void deleteTopicInNameServer(final String addr, final String topic, final String clusterName, final long timeoutMillis)
         throws RemotingException, InterruptedException, MQClientException {
         DeleteTopicFromNamesrvRequestHeader requestHeader = new DeleteTopicFromNamesrvRequestHeader();
         requestHeader.setTopic(topic);
+        requestHeader.setClusterName(clusterName);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_NAMESRV, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
