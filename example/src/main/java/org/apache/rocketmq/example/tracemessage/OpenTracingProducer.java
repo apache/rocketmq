@@ -29,19 +29,29 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class OpenTracingProducer {
+
+    public static final String PRODUCER_GROUP = "ProducerGroupName";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TopicTest";
+    public static final String TAG = "TagA";
+    public static final String KEY = "OrderID188";
+
     public static void main(String[] args) throws MQClientException {
 
         Tracer tracer = initTracer();
 
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
+        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
+
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
+//        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.getDefaultMQProducerImpl().registerSendMessageHook(new SendMessageOpenTracingHookImpl(tracer));
         producer.start();
 
         try {
-            Message msg = new Message("TopicTest",
-                    "TagA",
-                    "OrderID188",
-                    "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
+            Message msg = new Message(TOPIC,
+                TAG,
+                KEY,
+                "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
             SendResult sendResult = producer.send(msg);
             System.out.printf("%s%n", sendResult);
 
@@ -54,14 +64,14 @@ public class OpenTracingProducer {
 
     private static Tracer initTracer() {
         Configuration.SamplerConfiguration samplerConfig = Configuration.SamplerConfiguration.fromEnv()
-                .withType(ConstSampler.TYPE)
-                .withParam(1);
+            .withType(ConstSampler.TYPE)
+            .withParam(1);
         Configuration.ReporterConfiguration reporterConfig = Configuration.ReporterConfiguration.fromEnv()
-                .withLogSpans(true);
+            .withLogSpans(true);
 
         Configuration config = new Configuration("rocketmq")
-                .withSampler(samplerConfig)
-                .withReporter(reporterConfig);
+            .withSampler(samplerConfig)
+            .withReporter(reporterConfig);
         GlobalTracer.registerIfAbsent(config.getTracer());
         return config.getTracer();
     }
