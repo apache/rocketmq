@@ -77,10 +77,6 @@ public class AutoSwitchHAConnection implements HAConnection {
      * Last time ms when transfer data to slave.
      */
     private volatile long lastTransferTimeMs = 0;
-    /**
-     * Last catchup time ms when slaveAckOffset >= lastMasterMaxOffset.
-     */
-    private volatile long lastCatchUpTimeMs = 0;
 
     public AutoSwitchHAConnection(AutoSwitchHAService haService, SocketChannel socketChannel,
         EpochFileCache epochCache) throws IOException {
@@ -141,10 +137,6 @@ public class AutoSwitchHAConnection implements HAConnection {
         return slaveAddress;
     }
 
-    public long getLastCatchUpTimeMs() {
-        return lastCatchUpTimeMs;
-    }
-
     @Override public HAConnectionState getCurrentState() {
         return currentState;
     }
@@ -193,7 +185,8 @@ public class AutoSwitchHAConnection implements HAConnection {
 
     private synchronized void maybeExpandInSyncStateSet(long slaveMaxOffset) {
         if (!this.isAsyncLearner && slaveMaxOffset >= this.lastMasterMaxOffset) {
-            this.lastCatchUpTimeMs = Math.max(this.lastTransferTimeMs, this.lastCatchUpTimeMs);
+            long caughtUpTimeMs = this.haService.getDefaultMessageStore().getMaxPhyOffset() == slaveMaxOffset ? System.currentTimeMillis() : this.lastTransferTimeMs;
+            this.haService.updateConnectionLastCaughtUpTime(this.slaveAddress, caughtUpTimeMs);
             this.haService.maybeExpandInSyncStateSet(this.slaveAddress, slaveMaxOffset);
         }
     }
@@ -328,9 +321,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                     slaveRequestOffset = slaveMaxOffset;
                                 }
                                 byteBufferRead.position(readSocketPos);
-                                if (!haService.getSyncStateSet().contains(slaveAddress)) {
-                                    maybeExpandInSyncStateSet(slaveMaxOffset);
-                                }
+                                maybeExpandInSyncStateSet(slaveMaxOffset);
                                 AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
                                 LOGGER.info("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
                                 break;
@@ -550,19 +541,13 @@ public class AutoSwitchHAConnection implements HAConnection {
 
         private void transferToSlave() throws Exception {
             if (this.lastWriteOver) {
-                long interval =
-                    haService.getDefaultMessageStore().getSystemClock().now() - this.lastWriteTimestamp;
-
                 this.lastWriteOver = sendHeartbeatIfNeeded();
-                if (!this.lastWriteOver) {
-                    return;
-                }
             } else {
                 // maxTransferSize == -1 means to continue transfer remaining data.
                 this.lastWriteOver = this.transferData(-1);
-                if (!this.lastWriteOver) {
-                    return;
-                }
+            }
+            if (!this.lastWriteOver) {
+                return;
             }
 
             int size = this.getNextTransferDataSize();
@@ -610,7 +595,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                 this.lastWriteOver = this.transferData(size);
             } else {
                 // If size == 0, we should update the lastCatchupTimeMs
-                AutoSwitchHAConnection.this.lastCatchUpTimeMs = System.currentTimeMillis();
+                AutoSwitchHAConnection.this.haService.updateConnectionLastCaughtUpTime(AutoSwitchHAConnection.this.slaveAddress, System.currentTimeMillis());
                 haService.getWaitNotifyObject().allWaitForRunning(100);
             }
         }
