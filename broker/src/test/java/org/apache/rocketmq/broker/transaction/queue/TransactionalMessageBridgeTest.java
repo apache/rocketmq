@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.transaction.queue;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -42,6 +43,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -72,6 +74,8 @@ public class TransactionalMessageBridgeTest {
     public void init() {
         brokerController.setMessageStore(messageStore);
         transactionBridge = new TransactionalMessageBridge(brokerController, messageStore);
+        EscapeBridge escapeBridge = new EscapeBridge(brokerController);
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
     }
 
     @Test

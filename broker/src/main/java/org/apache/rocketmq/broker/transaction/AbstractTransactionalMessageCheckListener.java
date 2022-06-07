@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -69,6 +70,10 @@ public abstract class AbstractTransactionalMessageCheckListener {
     }
 
     public void resolveHalfMsg(final MessageExt msgExt) {
+        if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
+            LOGGER.info("Slave is acting master,stop checking half message {}", msgExt);
+            return;
+        }
         if (executorService != null) {
             executorService.execute(new Runnable() {
                 @Override

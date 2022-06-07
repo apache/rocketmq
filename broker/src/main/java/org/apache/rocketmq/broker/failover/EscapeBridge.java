@@ -115,6 +115,7 @@ public class EscapeBridge {
             try {
                 messageExt.setWaitStoreMsgOK(false);
                 SendResult sendResult = innerProducer.send(messageExt);
+                LOG.info("resend message {} to broker {}", messageExt, sendResult.getMessageQueue().getBrokerName());
                 return transformSendResult2PutResult(sendResult);
             } catch (Exception e) {
                 LOG.error("sendMessageInFailover to remote failed", e);

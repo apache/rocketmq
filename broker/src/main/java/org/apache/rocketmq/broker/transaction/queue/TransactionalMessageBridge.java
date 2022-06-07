@@ -20,6 +20,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.Message;
@@ -39,6 +40,7 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -212,6 +214,30 @@ public class TransactionalMessageBridge {
         return msgInner;
     }
 
+    //when half message needs to escape to remote broker, wrap the half message with real topic to bypass the topic validation
+    public static MessageExtBrokerInner escapeMessageTransaction(MessageExtBrokerInner msgEscape) {
+        MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        msgInner.setTopic(msgEscape.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
+        msgInner.setQueueId(Integer.parseInt(msgEscape.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
+        msgInner.setBody(msgEscape.getBody());
+        msgInner.setFlag(msgEscape.getFlag());
+        msgInner.setBornTimestamp(msgEscape.getBornTimestamp());
+        msgInner.setBornHost(msgEscape.getBornHost());
+        msgInner.setStoreHost(msgEscape.getStoreHost());
+        msgInner.setReconsumeTimes(msgEscape.getReconsumeTimes());
+        msgInner.setWaitStoreMsgOK(false);
+        msgInner.setTransactionId(msgEscape.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+        msgInner.setSysFlag(msgEscape.getSysFlag());
+        TopicFilterType topicFilterType =
+                (msgInner.getSysFlag() & MessageSysFlag.MULTI_TAGS_FLAG) == MessageSysFlag.MULTI_TAGS_FLAG ? TopicFilterType.MULTI_TAG
+                        : TopicFilterType.SINGLE_TAG;
+        long tagsCodeValue = MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
+        msgInner.setTagsCode(tagsCodeValue);
+        MessageAccessor.setProperties(msgInner, msgEscape.getProperties());
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgEscape.getProperties()));
+        return msgInner;
+    }
+
     public boolean putOpMessage(MessageExt messageExt, String opType) {
         MessageQueue messageQueue = new MessageQueue(messageExt.getTopic(),
             this.brokerController.getBrokerConfig().getBrokerName(), messageExt.getQueueId());
@@ -222,12 +248,22 @@ public class TransactionalMessageBridge {
     }
 
     public PutMessageResult putMessageReturnResult(MessageExtBrokerInner messageInner) {
+        MessageExtBrokerInner msgInner = messageInner;
         LOGGER.debug("[BUG-TO-FIX] Thread:{} msgID:{}", Thread.currentThread().getName(), messageInner.getMsgId());
-        return store.putMessage(messageInner);
+        if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole() && brokerController.isSpecialServiceRunning()) {
+            LOGGER.info("Slave is acting master,escape half message {}", messageInner);
+            msgInner = escapeMessageTransaction(messageInner);
+        }
+        return this.getBrokerController().getEscapeBridge().putMessage(msgInner);
     }
 
     public boolean putMessage(MessageExtBrokerInner messageInner) {
-        PutMessageResult putMessageResult = store.putMessage(messageInner);
+        MessageExtBrokerInner msgInner = messageInner;
+        if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole() && brokerController.isSpecialServiceRunning()) {
+            LOGGER.info("Slave is acting master,escape half message {}", messageInner);
+            msgInner = escapeMessageTransaction(messageInner);
+        }
+        PutMessageResult putMessageResult = this.getBrokerController().getEscapeBridge().putMessage(msgInner);
         if (putMessageResult != null
             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
             return true;

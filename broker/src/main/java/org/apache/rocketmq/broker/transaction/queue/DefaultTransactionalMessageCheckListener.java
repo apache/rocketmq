@@ -29,6 +29,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -45,7 +46,10 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
 
         try {
             MessageExtBrokerInner brokerInner = toMessageExtBrokerInner(msgExt);
-            PutMessageResult putMessageResult = this.getBrokerController().getMessageStore().putMessage(brokerInner);
+            if (BrokerRole.SLAVE == this.getBrokerController().getMessageStoreConfig().getBrokerRole() && this.getBrokerController().isSpecialServiceRunning()) {
+                brokerInner = TransactionalMessageBridge.escapeMessageTransaction(brokerInner);
+            }
+            PutMessageResult putMessageResult = this.getBrokerController().getEscapeBridge().putMessage(brokerInner);
             if (putMessageResult != null && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                 log.info("Put checked-too-many-time half message to TRANS_CHECK_MAXTIME_TOPIC OK. Restored in queueOffset={}, " +
                     "commitLogOffset={}, real topic={}", msgExt.getQueueOffset(), msgExt.getCommitLogOffset(), msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
