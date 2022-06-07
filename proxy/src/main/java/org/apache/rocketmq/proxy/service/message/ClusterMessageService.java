@@ -53,7 +53,7 @@ public class ClusterMessageService implements MessageService {
 
     @Override
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
-        List<? extends Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
+        List<Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future;
         if (msgList.size() == 1) {
             future = this.mqClientAPIFactory.getClient().sendMessageAsync(

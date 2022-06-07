@@ -25,10 +25,10 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
@@ -59,17 +59,17 @@ public class ProducerProcessor extends AbstractProcessor {
     }
 
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, QueueSelector queueSelector,
-        String producerGroup, List<MessageExt> messageExtList, long timeoutMillis) {
+        String producerGroup, int sysFlag, List<Message> messageList, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future = new CompletableFuture<>();
         try {
-            MessageExt messageExt0 = messageExtList.get(0);
-            String topic = messageExt0.getTopic();
+            Message message = messageList.get(0);
+            String topic = message.getTopic();
             if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()) {
                 if (topicMessageTypeValidator != null) {
                     // Do not check retry or dlq topic
                     if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
                         TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(topic);
-                        TopicMessageType messageType = parseFromMessageExt(messageExt0);
+                        TopicMessageType messageType = parseFromMessageExt(message);
                         topicMessageTypeValidator.validate(topicMessageType, messageType);
                     }
                 }
@@ -80,12 +80,12 @@ public class ProducerProcessor extends AbstractProcessor {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no writable queue");
             }
 
-            SendMessageRequestHeader requestHeader = buildSendMessageRequestHeader(messageExtList, producerGroup, messageQueue.getQueueId());
+            SendMessageRequestHeader requestHeader = buildSendMessageRequestHeader(messageList, producerGroup, sysFlag, messageQueue.getQueueId());
 
             future = this.serviceManager.getMessageService().sendMessage(
                 ctx,
                 messageQueue,
-                messageExtList,
+                messageList,
                 requestHeader,
                 timeoutMillis)
                 .thenApplyAsync(sendResultList -> {
@@ -106,23 +106,23 @@ public class ProducerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
-    protected SendMessageRequestHeader buildSendMessageRequestHeader(List<MessageExt> messageExtList,
-        String producerGroup, int queueId) {
+    protected SendMessageRequestHeader buildSendMessageRequestHeader(List<Message> messageList,
+        String producerGroup, int sysFlag, int queueId) {
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
 
-        MessageExt message = messageExtList.get(0);
+        Message message = messageList.get(0);
 
         requestHeader.setProducerGroup(producerGroup);
         requestHeader.setTopic(message.getTopic());
         requestHeader.setDefaultTopic("");
         requestHeader.setDefaultTopicQueueNums(0);
         requestHeader.setQueueId(queueId);
-        requestHeader.setSysFlag(message.getSysFlag());
+        requestHeader.setSysFlag(sysFlag);
         requestHeader.setBornTimestamp(System.currentTimeMillis());
         requestHeader.setFlag(message.getFlag());
         requestHeader.setProperties(MessageDecoder.messageProperties2String(message.getProperties()));
         requestHeader.setReconsumeTimes(0);
-        if (messageExtList.size() > 1) {
+        if (messageList.size() > 1) {
             requestHeader.setBatch(true);
         }
         if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {

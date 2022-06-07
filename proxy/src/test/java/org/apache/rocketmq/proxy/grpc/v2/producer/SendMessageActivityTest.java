@@ -37,7 +37,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -55,6 +54,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -81,7 +81,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         SendResult sendResult = new SendResult();
         sendResult.setSendStatus(SendStatus.SEND_OK);
         sendResult.setMsgId(msgId);
-        when(this.messagingProcessor.sendMessage(any(), any(), anyString(), any()))
+        when(this.messagingProcessor.sendMessage(any(), any(), anyString(), anyInt(), any()))
             .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
 
         SendMessageResponse response = this.sendMessageActivity.sendMessage(
@@ -201,7 +201,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         long deliveryTime = System.currentTimeMillis();
         String msgId = MessageClientIDSetter.createUniqID();
 
-        MessageExt messageExt = this.sendMessageActivity.buildMessage(null,
+        org.apache.rocketmq.common.message.Message messageExt = this.sendMessageActivity.buildMessage(null,
             Lists.newArrayList(
                 Message.newBuilder()
                     .setTopic(Resource.newBuilder()
@@ -228,28 +228,29 @@ public class SendMessageActivityTest extends BaseActivityTest {
     public void testTxMessage() {
         String msgId = MessageClientIDSetter.createUniqID();
 
-        MessageExt messageExt = this.sendMessageActivity.buildMessage(null,
+        Message message = Message.newBuilder()
+            .setTopic(Resource.newBuilder()
+                .setName(TOPIC)
+                .build())
+            .setSystemProperties(SystemProperties.newBuilder()
+                .setMessageId(msgId)
+                .setQueueId(0)
+                .setMessageType(MessageType.TRANSACTION)
+                .setOrphanedTransactionRecoveryDuration(Durations.fromSeconds(30))
+                .setBodyEncoding(Encoding.GZIP)
+                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                .build())
+            .setBody(ByteString.copyFromUtf8("123"))
+            .build();
+        org.apache.rocketmq.common.message.Message messageExt = this.sendMessageActivity.buildMessage(null,
             Lists.newArrayList(
-                Message.newBuilder()
-                    .setTopic(Resource.newBuilder()
-                        .setName(TOPIC)
-                        .build())
-                    .setSystemProperties(SystemProperties.newBuilder()
-                        .setMessageId(msgId)
-                        .setQueueId(0)
-                        .setMessageType(MessageType.TRANSACTION)
-                        .setOrphanedTransactionRecoveryDuration(Durations.fromSeconds(30))
-                        .setBodyEncoding(Encoding.GZIP)
-                        .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
-                        .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
-                        .build())
-                    .setBody(ByteString.copyFromUtf8("123"))
-                    .build()
+                message
             ),
             Resource.newBuilder().setName(TOPIC).build()).get(0);
 
         assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
-        assertEquals(MessageSysFlag.TRANSACTION_PREPARED_TYPE | MessageSysFlag.COMPRESSED_FLAG, messageExt.getSysFlag());
+        assertEquals(MessageSysFlag.TRANSACTION_PREPARED_TYPE | MessageSysFlag.COMPRESSED_FLAG, sendMessageActivity.buildSysFlag(message));
     }
 
     @Test

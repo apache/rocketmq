@@ -18,12 +18,10 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.net.SocketAddress;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
@@ -32,15 +30,10 @@ import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageType;
-import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.DBMsgConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -48,21 +41,24 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageType;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
@@ -574,100 +570,8 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
     }
 
-    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
-        throws RemotingCommandException {
-
-        SendMessageRequestHeaderV2 requestHeaderV2 = null;
-        SendMessageRequestHeader requestHeader = null;
-        switch (request.getCode()) {
-            case RequestCode.SEND_BATCH_MESSAGE:
-            case RequestCode.SEND_MESSAGE_V2:
-                requestHeaderV2 = decodeSendMessageHeaderV2(request);
-            case RequestCode.SEND_MESSAGE:
-                if (null == requestHeaderV2) {
-                    requestHeader =
-                        (SendMessageRequestHeader) request
-                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
-                } else {
-                    requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
-                }
-            default:
-                break;
-        }
-        return requestHeader;
-    }
-
-    static SendMessageRequestHeaderV2 decodeSendMessageHeaderV2(RemotingCommand request)
-        throws RemotingCommandException {
-        SendMessageRequestHeaderV2 r = new SendMessageRequestHeaderV2();
-        HashMap<String, String> fields = request.getExtFields();
-        if (fields == null) {
-            throw new RemotingCommandException("the ext fields is null");
-        }
-
-        String s = fields.get("a");
-        checkNotNull(s, "the custom field <a> is null");
-        r.setA(s);
-
-        s = fields.get("b");
-        checkNotNull(s, "the custom field <b> is null");
-        r.setB(s);
-
-        s = fields.get("c");
-        checkNotNull(s, "the custom field <c> is null");
-        r.setC(s);
-
-        s = fields.get("d");
-        checkNotNull(s, "the custom field <d> is null");
-        r.setD(Integer.parseInt(s));
-
-        s = fields.get("e");
-        checkNotNull(s, "the custom field <e> is null");
-        r.setE(Integer.parseInt(s));
-
-        s = fields.get("f");
-        checkNotNull(s, "the custom field <f> is null");
-        r.setF(Integer.parseInt(s));
-
-        s = fields.get("g");
-        checkNotNull(s, "the custom field <g> is null");
-        r.setG(Long.parseLong(s));
-
-        s = fields.get("h");
-        checkNotNull(s, "the custom field <h> is null");
-        r.setH(Integer.parseInt(s));
-
-        s = fields.get("i");
-        if (s != null) {
-            r.setI(s);
-        }
-
-        s = fields.get("j");
-        if (s != null) {
-            r.setJ(Integer.parseInt(s));
-        }
-
-        s = fields.get("k");
-        if (s != null) {
-            r.setK(Boolean.parseBoolean(s));
-        }
-
-        s = fields.get("l");
-        if (s != null) {
-            r.setL(Integer.parseInt(s));
-        }
-
-        s = fields.get("m");
-        if (s != null) {
-            r.setM(Boolean.parseBoolean(s));
-        }
-        return r;
-    }
-
-    private static void checkNotNull(String s, String msg) throws RemotingCommandException {
-        if (s == null) {
-            throw new RemotingCommandException(msg);
-        }
+    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request) throws RemotingCommandException {
+        return SendMessageRequestHeader.parseRequestHeader(request);
     }
 
     protected int randomQueueId(int writeQueueNums) {

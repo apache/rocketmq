@@ -30,7 +30,7 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
-import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
@@ -63,16 +63,18 @@ public interface MessagingProcessor extends StartAndShutdown {
         ProxyContext ctx,
         QueueSelector queueSelector,
         String producerGroup,
-        List<MessageExt> msg
+        int sysFlag,
+        List<Message> msg
     ) {
-        return sendMessage(ctx, queueSelector, producerGroup, msg, DEFAULT_TIMEOUT_MILLS);
+        return sendMessage(ctx, queueSelector, producerGroup, sysFlag, msg, DEFAULT_TIMEOUT_MILLS);
     }
 
     CompletableFuture<List<SendResult>> sendMessage(
         ProxyContext ctx,
         QueueSelector queueSelector,
         String producerGroup,
-        List<MessageExt> msg,
+        int sysFlag,
+        List<Message> msg,
         long timeoutMillis
     );
 

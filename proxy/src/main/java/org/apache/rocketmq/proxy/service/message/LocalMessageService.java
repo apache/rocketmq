@@ -77,7 +77,7 @@ public class LocalMessageService implements MessageService {
 
     @Override
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
-        List<? extends Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
+        List<Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         byte[] body;
         String messageId;
         if (msgList.size() > 1) {

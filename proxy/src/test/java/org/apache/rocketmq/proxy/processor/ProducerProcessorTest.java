@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -79,10 +80,9 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         when(this.messageService.sendMessage(any(), any(), any(), requestHeaderArgumentCaptor.capture(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
 
-        List<MessageExt> messageExtList = new ArrayList<>();
-        MessageExt messageExt = createMessageExt(TOPIC, "tag", 0, 0);
-        messageExt.setSysFlag(MessageSysFlag.TRANSACTION_PREPARED_TYPE);
-        messageExtList.add(messageExt);
+        List<Message> messageList = new ArrayList<>();
+        Message messageExt = createMessageExt(TOPIC, "tag", 0, 0);
+        messageList.add(messageExt);
         SelectableMessageQueue messageQueue = mock(SelectableMessageQueue.class);
         when(messageQueue.getBrokerName()).thenReturn("mockBroker");
 
@@ -90,7 +90,8 @@ public class ProducerProcessorTest extends BaseProcessorTest {
             createContext(),
             (ctx, messageQueueView) -> messageQueue,
             PRODUCER_GROUP,
-            messageExtList,
+            MessageSysFlag.TRANSACTION_PREPARED_TYPE,
+            messageList,
             3000
         ).get();
 
@@ -118,9 +119,8 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         when(this.messageService.sendMessage(any(), any(), any(), requestHeaderArgumentCaptor.capture(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
 
-        List<MessageExt> messageExtList = new ArrayList<>();
-        MessageExt messageExt = createMessageExt(MixAll.getRetryTopic(CONSUMER_GROUP), "tag", 0, 0);
-        messageExt.setSysFlag(MessageSysFlag.TRANSACTION_PREPARED_TYPE);
+        List<Message> messageExtList = new ArrayList<>();
+        Message messageExt = createMessageExt(MixAll.getRetryTopic(CONSUMER_GROUP), "tag", 0, 0);
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_RECONSUME_TIME, "1");
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_MAX_RECONSUME_TIMES, "16");
         messageExtList.add(messageExt);
@@ -131,6 +131,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
             createContext(),
             (ctx, messageQueueView) -> messageQueue,
             PRODUCER_GROUP,
+            MessageSysFlag.TRANSACTION_PREPARED_TYPE,
             messageExtList,
             3000
         ).get();

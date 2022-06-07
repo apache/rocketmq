@@ -20,7 +20,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Assert;
@@ -65,7 +65,7 @@ public class AbstractSendMessageProcessorTest {
 
     private void check(RemotingCommand command, List<Field> fields) throws Exception {
         SendMessageRequestHeaderV2 o1 = (SendMessageRequestHeaderV2) command.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
-        SendMessageRequestHeaderV2 o2 = AbstractSendMessageProcessor.decodeSendMessageHeaderV2(command);
+        SendMessageRequestHeaderV2 o2 = SendMessageRequestHeader.decodeSendMessageHeaderV2(command);
         for (Field f : fields) {
             Object value1 = f.get(o1);
             Object value2 = f.get(o2);
