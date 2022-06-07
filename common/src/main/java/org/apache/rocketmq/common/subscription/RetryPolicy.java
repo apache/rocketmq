@@ -14,10 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
 
-public interface CleanFilesHook {
-    void execute(DefaultMessageStore defaultMessageStore, long deleteCount);
+package org.apache.rocketmq.common.subscription;
 
-    String getName();
+import java.util.concurrent.TimeUnit;
+
+public interface RetryPolicy {
+    /**
+     * Compute message's next delay duration by specify reconsumeTimes
+     *
+     * @param reconsumeTimes Message reconsumeTimes
+     * @param timeUnit       Given timeUnit
+     * @return Message's nextDelayDuration in given timeUnit
+     */
+    long nextDelayDuration(int reconsumeTimes, TimeUnit timeUnit);
 }
