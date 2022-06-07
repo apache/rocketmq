@@ -31,7 +31,7 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class SyncStateSetCommand implements SubCommand {
+public class GetSyncStateSetSubCommand implements SubCommand {
     @Override
     public String commandName() {
         return "getSyncStateSet";
@@ -96,7 +96,7 @@ public class SyncStateSetCommand implements SubCommand {
 
     private void innerExec(CommandLine commandLine, Options options,
         DefaultMQAdminExt defaultMQAdminExt) throws Exception {
-        String controllerAddress = commandLine.getOptionValue('a').trim();
+        String controllerAddress = commandLine.getOptionValue('a').trim().split(";")[0];
         if (commandLine.hasOption('b')) {
             String brokerName = commandLine.getOptionValue('b').trim();
             final ArrayList<String> brokers = new ArrayList<>();
@@ -122,7 +122,7 @@ public class SyncStateSetCommand implements SubCommand {
                     next.getKey(), next.getValue().getMasterAddress(), next.getValue().getMasterEpoch(), next.getValue().getSyncStateSetEpoch(),
                     syncMembers.size());
                 for (InSyncStateData.InSyncMember member : syncMembers) {
-                    System.out.printf("\n member:\t%s", member.toString());
+                    System.out.printf("\n member:\t%s\n", member.toString());
                 }
             }
         }
