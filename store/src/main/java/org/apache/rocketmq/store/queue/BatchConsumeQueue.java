@@ -445,7 +445,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     @Override
-    public void putMessagePositionInfoWrapper(DispatchRequest request) {
+    public void dispatch(DispatchRequest request) {
         final int maxRetries = 30;
         boolean canWrite = this.messageStore.getRunningFlags().isCQWriteable();
         if (request.getMsgBaseOffset() < 0 || request.getBatchSize() < 0) {
@@ -941,7 +941,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     @Override
-    public long rollNextFile(long offset) {
+    public long rollNextFile(long nextBeginOffset) {
         return 0;
     }
 

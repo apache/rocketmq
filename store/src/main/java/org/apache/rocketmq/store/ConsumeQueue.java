@@ -425,7 +425,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     @Override
-    public void putMessagePositionInfoWrapper(DispatchRequest request) {
+    public void dispatch(DispatchRequest request) {
         final int maxRetries = 30;
         boolean canWrite = this.messageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
@@ -809,10 +809,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     @Override
-    public long rollNextFile(final long index) {
+    public long rollNextFile(final long nextBeginOffset) {
         int mappedFileSize = this.mappedFileSize;
         int totalUnitsInFile = mappedFileSize / CQ_STORE_UNIT_SIZE;
-        return index + totalUnitsInFile - index % totalUnitsInFile;
+        return nextBeginOffset + totalUnitsInFile - nextBeginOffset % totalUnitsInFile;
     }
 
     @Override

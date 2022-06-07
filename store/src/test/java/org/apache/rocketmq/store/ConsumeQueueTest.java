@@ -292,7 +292,7 @@ public class ConsumeQueueTest {
             Thread.sleep(5);
 
             ConsumeQueueInterface cq = messageStore.getConsumeQueueTable().get(topic).get(queueId);
-            Method method = ((ConsumeQueue)cq).getClass().getDeclaredMethod("putMessagePositionInfoWrapper", DispatchRequest.class);
+            Method method = ((ConsumeQueue)cq).getClass().getDeclaredMethod("dispatch", DispatchRequest.class);
 
             assertThat(method).isNotNull();
 

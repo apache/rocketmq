@@ -249,7 +249,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void truncateDirtyLogicFiles(long phyOffset) {
-        this.consumeQueueStore.truncateDirty(phyOffset);
+        this.consumeQueueStore.truncateDirtyFiles(phyOffset);
     }
 
     /**
