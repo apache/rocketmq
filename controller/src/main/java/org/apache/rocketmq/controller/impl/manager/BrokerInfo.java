@@ -62,6 +62,10 @@ public class BrokerInfo {
         return new HashSet<>(this.brokerIdTable.keySet());
     }
 
+    public HashMap<String, Long> getBrokerIdTable() {
+        return new HashMap<>(this.brokerIdTable);
+    }
+
     public Long getBrokerId(final String address) {
         if (this.brokerIdTable.containsKey(address)) {
             return this.brokerIdTable.get(address);

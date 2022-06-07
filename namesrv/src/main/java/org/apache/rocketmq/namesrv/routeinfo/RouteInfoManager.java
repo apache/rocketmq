@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -46,9 +47,11 @@ import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicList;
+import org.apache.rocketmq.common.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.common.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.common.protocol.header.namesrv.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -907,6 +910,43 @@ public class RouteInfoManager {
             RemotingCommand.createRequestCommand(RequestCode.NOTIFY_MIN_BROKER_ID_CHANGE, requestHeader);
         for (String brokerAddr : brokerAddrsNotify) {
             this.namesrvController.getRemotingClient().invokeOneway(brokerAddr, request, 300);
+        }
+    }
+
+    /**
+     * Notify master and all slaves for a broker that the master role changed.
+     */
+    private void notifyBrokerMasterChanged(final ElectMasterResponseHeader electMasterResult, final String clusterName) {
+        final BrokerMemberGroup memberGroup = electMasterResult.getBrokerMemberGroup();
+        if (memberGroup != null) {
+            // First, inform the master
+            final String master = electMasterResult.getNewMasterAddress();
+            if (StringUtils.isNoneEmpty(master) && isBrokerAlive(clusterName, master)) {
+                doNotifyBrokerRoleChanged(master, MixAll.MASTER_ID, electMasterResult);
+            }
+
+            // Then, inform all slaves
+            final Map<Long, String> brokerIdAddrs = memberGroup.getBrokerAddrs();
+            for (Map.Entry<Long, String> broker : brokerIdAddrs.entrySet()) {
+                if (!broker.getValue().equals(master) && isBrokerAlive(clusterName, broker.getValue())) {
+                    doNotifyBrokerRoleChanged(broker.getValue(), broker.getKey(), electMasterResult);
+                }
+            }
+
+        }
+    }
+
+    private void doNotifyBrokerRoleChanged(final String brokerAddr, final Long brokerId, final ElectMasterResponseHeader responseHeader) {
+        if (StringUtils.isNoneEmpty(brokerAddr)) {
+            log.info("Try notify broker {} with id {} that role changed, responseHeader:{}", brokerAddr, brokerId, responseHeader);
+            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(responseHeader.getNewMasterAddress(),
+                responseHeader.getMasterEpoch(), responseHeader.getSyncStateSetEpoch(), brokerId);
+            final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
+            try {
+                this.namesrvController.getRemotingClient().invokeOneway(brokerAddr, request, 3000);
+            } catch (final Exception e) {
+                log.error("Failed to notify broker {} with id {} that role changed", brokerAddr, brokerId, e);
+            }
         }
     }
 

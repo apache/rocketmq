@@ -2400,7 +2400,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        LOGGER.info("Try to change brokerRole, request:{}", requestHeader);
+        LOGGER.info("Receive notifyBrokerRoleChanged request, try to change brokerRole, request:{}", requestHeader);
 
         final ReplicasManager replicasManager = this.brokerController.getReplicasManager();
         if (replicasManager != null) {

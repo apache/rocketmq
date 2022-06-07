@@ -29,6 +29,13 @@ public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader
     public NotifyBrokerRoleChangedRequestHeader() {
     }
 
+    public NotifyBrokerRoleChangedRequestHeader(String masterAddress, int masterEpoch, int syncStateSetEpoch, long brokerId) {
+        this.masterAddress = masterAddress;
+        this.masterEpoch = masterEpoch;
+        this.syncStateSetEpoch = syncStateSetEpoch;
+        this.brokerId = brokerId;
+    }
+
     public String getMasterAddress() {
         return masterAddress;
     }
