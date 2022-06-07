@@ -21,7 +21,7 @@ import java.io.File;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.hacontroller.ReplicasManager;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.namesrv.ControllerConfig;
+import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.namesrv.NamesrvController;

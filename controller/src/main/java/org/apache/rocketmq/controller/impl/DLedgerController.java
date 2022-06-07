@@ -38,7 +38,7 @@ import java.util.function.Supplier;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.namesrv.ControllerConfig;
+import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
@@ -138,6 +138,10 @@ public class DLedgerController implements Controller {
     @Override
     public boolean isLeaderState() {
         return this.roleHandler.isLeaderState();
+    }
+
+    public ControllerConfig getControllerConfig() {
+        return controllerConfig;
     }
 
     @Override

@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common.namesrv;
+package org.apache.rocketmq.common;
 
 import java.io.File;
-import org.apache.rocketmq.common.MixAll;
 
 public class ControllerConfig {
 
@@ -59,6 +58,8 @@ public class ControllerConfig {
      * Whether process read event
      */
     private boolean isProcessReadEvent = false;
+
+    private volatile boolean notifyBrokerRoleChanged = true;
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -162,5 +163,13 @@ public class ControllerConfig {
 
     public void setProcessReadEvent(boolean processReadEvent) {
         isProcessReadEvent = processReadEvent;
+    }
+
+    public boolean isNotifyBrokerRoleChanged() {
+        return notifyBrokerRoleChanged;
+    }
+
+    public void setNotifyBrokerRoleChanged(boolean notifyBrokerRoleChanged) {
+        this.notifyBrokerRoleChanged = notifyBrokerRoleChanged;
     }
 }

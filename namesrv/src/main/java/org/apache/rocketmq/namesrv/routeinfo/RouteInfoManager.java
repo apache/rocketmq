@@ -61,6 +61,7 @@ import org.apache.rocketmq.common.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.controller.Controller;
+import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
@@ -614,7 +615,9 @@ public class RouteInfoManager {
                                     final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
                                     if (responseHeader != null) {
                                         log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, responseHeader);
-                                        notifyBrokerMasterChanged(responseHeader, clusterName);
+                                        if (controller instanceof DLedgerController && ((DLedgerController) controller).getControllerConfig().isNotifyBrokerRoleChanged()) {
+                                            notifyBrokerMasterChanged(responseHeader, clusterName);
+                                        }
                                     }
                                 } catch (Exception ignored) {
                                 }
@@ -931,7 +934,8 @@ public class RouteInfoManager {
     /**
      * Notify master and all slaves for a broker that the master role changed.
      */
-    private void notifyBrokerMasterChanged(final ElectMasterResponseHeader electMasterResult, final String clusterName) {
+    private void notifyBrokerMasterChanged(final ElectMasterResponseHeader electMasterResult,
+        final String clusterName) {
         final BrokerMemberGroup memberGroup = electMasterResult.getBrokerMemberGroup();
         if (memberGroup != null) {
             // First, inform the master
@@ -951,7 +955,8 @@ public class RouteInfoManager {
         }
     }
 
-    private void doNotifyBrokerRoleChanged(final String brokerAddr, final Long brokerId, final ElectMasterResponseHeader responseHeader) {
+    private void doNotifyBrokerRoleChanged(final String brokerAddr, final Long brokerId,
+        final ElectMasterResponseHeader responseHeader) {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
             log.info("Try notify broker {} with id {} that role changed, responseHeader:{}", brokerAddr, brokerId, responseHeader);
             final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(responseHeader.getNewMasterAddress(),
@@ -1249,8 +1254,6 @@ class BrokerLiveInfo {
     public void setHaServerAddr(String haServerAddr) {
         this.haServerAddr = haServerAddr;
     }
-
-
 
     @Override
     public String toString() {

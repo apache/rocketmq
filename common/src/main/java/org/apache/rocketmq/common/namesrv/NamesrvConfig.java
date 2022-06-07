@@ -71,7 +71,7 @@ public class NamesrvConfig {
 
     private volatile boolean enableTopicList = true;
 
-    private volatile boolean notifyMinBrokerIdChanged = true;
+    private volatile boolean notifyMinBrokerIdChanged = false;
 
 
     public boolean isOrderMessageEnable() {

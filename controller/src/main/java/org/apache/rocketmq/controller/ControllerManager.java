@@ -30,7 +30,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
-import org.apache.rocketmq.common.namesrv.ControllerConfig;
+import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.common.protocol.header.NotifyBrokerRoleChangedRequestHeader;
@@ -109,7 +109,10 @@ public class ControllerManager {
                                 if (StringUtils.isNotEmpty(responseHeader.getNewMasterAddress())) {
                                     heartbeatManager.changeBrokerMetadata(clusterName, responseHeader.getNewMasterAddress(), MixAll.MASTER_ID);
                                 }
-                                notifyBrokerMasterChanged(responseHeader, clusterName);
+
+                                if (controllerConfig.isNotifyBrokerRoleChanged()) {
+                                    notifyBrokerRoleChanged(responseHeader, clusterName);
+                                }
                             }
                         } catch (Exception ignored) {
                         }
@@ -126,7 +129,7 @@ public class ControllerManager {
     /**
      * Notify master and all slaves for a broker that the master role changed.
      */
-    public void notifyBrokerMasterChanged(final ElectMasterResponseHeader electMasterResult, final String clusterName) {
+    public void notifyBrokerRoleChanged(final ElectMasterResponseHeader electMasterResult, final String clusterName) {
         final BrokerMemberGroup memberGroup = electMasterResult.getBrokerMemberGroup();
         if (memberGroup != null) {
             // First, inform the master

@@ -656,7 +656,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 // Setup initial transferEpoch
                                 EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.findEpochEntryByOffset(this.nextTransferFromWhere);
                                 if (epochEntry == null) {
-                                    LOGGER.error("Failed to find an epochEntry to match slaveRequestOffset {}", this.nextTransferFromWhere);
+                                    LOGGER.error("Failed to find an epochEntry to match nextTransferFromWhere {}", this.nextTransferFromWhere);
                                     sendHeartbeatIfNeeded();
                                     waitForRunning(500);
                                     break;
