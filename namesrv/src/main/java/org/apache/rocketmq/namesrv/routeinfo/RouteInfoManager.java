@@ -28,8 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
@@ -604,8 +606,21 @@ public class RouteInfoManager {
 
                     // Check whether we need to elect a new master
                     if (this.namesrvController != null && this.namesrvController.getControllerConfig().isEnableStartupController() && this.controller != null) {
-                        if (unRegisterRequest.getBrokerId() == 0) {
-                            this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
+                        if (unRegisterRequest.getBrokerId() == MixAll.MASTER_ID) {
+                            if (this.controller.isLeaderState()) {
+                                final CompletableFuture<RemotingCommand> future = this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));
+                                try {
+                                    final RemotingCommand response = future.get(5, TimeUnit.SECONDS);
+                                    final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
+                                    if (responseHeader != null) {
+                                        log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, responseHeader);
+                                        notifyBrokerMasterChanged(responseHeader, clusterName);
+                                    }
+                                } catch (Exception ignored) {
+                                }
+                            } else {
+                                log.info("Broker {}'s master shutdown");
+                            }
                         }
                     }
                 }
