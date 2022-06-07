@@ -254,4 +254,6 @@ public class RequestCode {
     public static final int CONTROLLER_GET_SYNC_STATE_DATA = 1006;
 
     public static final int GET_BROKER_EPOCH_CACHE = 1007;
+
+    public static final int NOTIFY_BROKER_ROLE_CHANGED = 1008;
 }

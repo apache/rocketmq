@@ -14,27 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common.protocol.header.namesrv.controller;
+package org.apache.rocketmq.common.protocol.header;
 
-import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class ElectMasterResponseHeader implements CommandCustomHeader {
-    private String newMasterAddress;
+public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader {
+    private String masterAddress;
     private int masterEpoch;
     private int syncStateSetEpoch;
-    private BrokerMemberGroup brokerMemberGroup;
+    // The id of this broker.
+    private long brokerId;
 
-    public ElectMasterResponseHeader() {
+    public NotifyBrokerRoleChangedRequestHeader() {
     }
 
-    public String getNewMasterAddress() {
-        return newMasterAddress;
+    public NotifyBrokerRoleChangedRequestHeader(String masterAddress, int masterEpoch, int syncStateSetEpoch, long brokerId) {
+        this.masterAddress = masterAddress;
+        this.masterEpoch = masterEpoch;
+        this.syncStateSetEpoch = syncStateSetEpoch;
+        this.brokerId = brokerId;
     }
 
-    public void setNewMasterAddress(String newMasterAddress) {
-        this.newMasterAddress = newMasterAddress;
+    public String getMasterAddress() {
+        return masterAddress;
+    }
+
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
     }
 
     public int getMasterEpoch() {
@@ -53,24 +60,24 @@ public class ElectMasterResponseHeader implements CommandCustomHeader {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    public BrokerMemberGroup getBrokerMemberGroup() {
-        return brokerMemberGroup;
+    public long getBrokerId() {
+        return brokerId;
     }
 
-    public void setBrokerMemberGroup(BrokerMemberGroup brokerMemberGroup) {
-        this.brokerMemberGroup = brokerMemberGroup;
+    public void setBrokerId(long brokerId) {
+        this.brokerId = brokerId;
     }
 
     @Override public String toString() {
-        return "ElectMasterResponseHeader{" +
-            "newMasterAddress='" + newMasterAddress + '\'' +
+        return "NotifyBrokerRoleChangedRequestHeader{" +
+            "masterAddress='" + masterAddress + '\'' +
             ", masterEpoch=" + masterEpoch +
             ", syncStateSetEpoch=" + syncStateSetEpoch +
-            ", brokerMember=" + brokerMemberGroup +
+            ", brokerId=" + brokerId +
             '}';
     }
 
-    @Override
-    public void checkFields() throws RemotingCommandException {
+    @Override public void checkFields() throws RemotingCommandException {
+
     }
 }

@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.ControllerConfig;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.common.protocol.body.InSyncStateData;
 import org.apache.rocketmq.common.protocol.body.SyncStateSet;
 import org.apache.rocketmq.common.protocol.header.namesrv.controller.AlterSyncStateSetRequestHeader;
@@ -194,11 +195,14 @@ public class ReplicasInfoManager {
     private boolean tryElectMaster(final ControllerResult<ElectMasterResponseHeader> result, final String brokerName,
         final Set<String> candidates, final Predicate<String> filter) {
         final int masterEpoch = this.syncStateSetInfoTable.get(brokerName).getMasterEpoch();
+        final int syncStateSetEpoch = this.syncStateSetInfoTable.get(brokerName).getSyncStateSetEpoch();
         for (final String candidate : candidates) {
             if (filter.test(candidate)) {
                 final ElectMasterResponseHeader response = result.getResponse();
                 response.setNewMasterAddress(candidate);
                 response.setMasterEpoch(masterEpoch + 1);
+                response.setSyncStateSetEpoch(syncStateSetEpoch);
+                response.setBrokerMemberGroup(buildBrokerMemberGroup(brokerName));
 
                 final ElectMasterEvent event = new ElectMasterEvent(brokerName, candidate);
                 result.addEvent(event);
@@ -206,6 +210,19 @@ public class ReplicasInfoManager {
             }
         }
         return false;
+    }
+
+    private BrokerMemberGroup buildBrokerMemberGroup(final String brokerName) {
+        if (isContainsBroker(brokerName)) {
+            final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
+            final BrokerMemberGroup group = new BrokerMemberGroup(brokerInfo.getClusterName(), brokerName);
+            final HashMap<String, Long> brokerIdTable = brokerInfo.getBrokerIdTable();
+            final HashMap<Long, String> memberGroup = new HashMap<>();
+            brokerIdTable.forEach((addr, id)->memberGroup.put(id, addr));
+            group.setBrokerAddrs(memberGroup);
+            return group;
+        }
+        return null;
     }
 
     public ControllerResult<BrokerRegisterResponseHeader> registerBroker(final BrokerRegisterRequestHeader request) {

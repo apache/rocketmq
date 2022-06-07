@@ -147,6 +147,16 @@ public class ReplicasManager {
         this.scheduledService.shutdown();
     }
 
+    public synchronized void changeBrokerRole(final String newMasterAddress, final int newMasterEpoch, final int syncStateSetEpoch, final long brokerId) {
+        if (StringUtils.isNoneEmpty(newMasterAddress) && newMasterEpoch > this.masterEpoch) {
+            if (StringUtils.equals(newMasterAddress, this.localAddress)) {
+                changeToMaster(newMasterEpoch, syncStateSetEpoch);
+            } else {
+                changeToSlave(newMasterAddress, newMasterEpoch, brokerId);
+            }
+        }
+    }
+
     public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
@@ -193,7 +203,7 @@ public class ReplicasManager {
     public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, long brokerId) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
-                LOGGER.info("Begin to change to slave, brokerName={}, replicas:{}, brokerId={}", this.brokerConfig.getBrokerName(), this.localAddress, this.brokerConfig.getBrokerId());
+                LOGGER.info("Begin to change to slave, brokerName={}, replicas={}, brokerId={}", this.brokerConfig.getBrokerName(), this.localAddress, brokerId);
 
                 brokerController.getMessageStore().disableWrite();
 
