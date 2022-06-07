@@ -18,13 +18,11 @@ package org.apache.rocketmq.proxy.grpc.v2.producer;
 
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Encoding;
-import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.SendResultEntry;
-import apache.rocketmq.v2.SystemProperties;
 import com.google.common.collect.Maps;
 import com.google.common.hash.Hashing;
 import com.google.protobuf.Duration;
@@ -40,9 +38,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
@@ -71,12 +69,14 @@ public class SendMessageActivity extends AbstractMessingActivity {
                 throw new GrpcProxyException(Code.MESSAGE_CORRUPTED, "no message to send");
             }
 
-            List<Message> messageList = request.getMessagesList();
-            Resource topic = messageList.get(0).getTopic();
+            List<apache.rocketmq.v2.Message> messageList = request.getMessagesList();
+            apache.rocketmq.v2.Message message = messageList.get(0);
+            Resource topic = message.getTopic();
             future = this.messagingProcessor.sendMessage(
                 context,
                 new SendMessageQueueSelector(request),
                 GrpcConverter.wrapResourceWithNamespace(topic),
+                buildSysFlag(message),
                 buildMessage(context, request.getMessagesList(), topic)
             ).thenApply(result -> convertToSendMessageResponse(context, request, result));
         } catch (Throwable t) {
@@ -85,9 +85,9 @@ public class SendMessageActivity extends AbstractMessingActivity {
         return future;
     }
 
-    protected List<MessageExt> buildMessage(ProxyContext context, List<Message> protoMessageList, Resource topic) {
+    protected List<Message> buildMessage(ProxyContext context, List<apache.rocketmq.v2.Message> protoMessageList, Resource topic) {
         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
-        List<MessageExt> messageExtList = new ArrayList<>();
+        List<Message> messageExtList = new ArrayList<>();
         for (apache.rocketmq.v2.Message protoMessage : protoMessageList) {
             if (!protoMessage.getTopic().equals(topic)) {
                 throw new GrpcProxyException(Code.MESSAGE_CORRUPTED, "topic in message is not same");
@@ -98,33 +98,34 @@ public class SendMessageActivity extends AbstractMessingActivity {
         return messageExtList;
     }
 
-    protected MessageExt buildMessage(Message protoMessage, String producerGroup) {
+    protected Message buildMessage(apache.rocketmq.v2.Message protoMessage, String producerGroup) {
         String topicName = GrpcConverter.wrapResourceWithNamespace(protoMessage.getTopic());
 
-        MessageExt messageExt = new MessageExt();
+        Message messageExt = new Message();
         messageExt.setTopic(topicName);
         messageExt.setBody(protoMessage.getBody().toByteArray());
         Map<String, String> messageProperty = this.buildMessageProperty(protoMessage, producerGroup);
-
-        // sysFlag (body encoding & message type)
-        SystemProperties systemProperties = protoMessage.getSystemProperties();
-        int sysFlag = 0;
-        Encoding bodyEncoding = systemProperties.getBodyEncoding();
-        if (bodyEncoding.equals(Encoding.GZIP)) {
-            sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
-        }
-        // transaction
-        MessageType messageType = systemProperties.getMessageType();
-        if (messageType.equals(MessageType.TRANSACTION)) {
-            sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
-        }
-        messageExt.setSysFlag(sysFlag);
 
         MessageAccessor.setProperties(messageExt, messageProperty);
         return messageExt;
     }
 
-    protected Map<String, String> buildMessageProperty(Message message, String producerGroup) {
+    protected int buildSysFlag(apache.rocketmq.v2.Message protoMessage) {
+        // sysFlag (body encoding & message type)
+        int sysFlag = 0;
+        Encoding bodyEncoding = protoMessage.getSystemProperties().getBodyEncoding();
+        if (bodyEncoding.equals(Encoding.GZIP)) {
+            sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
+        }
+        // transaction
+        MessageType messageType = protoMessage.getSystemProperties().getMessageType();
+        if (messageType.equals(MessageType.TRANSACTION)) {
+            sysFlag |= MessageSysFlag.TRANSACTION_PREPARED_TYPE;
+        }
+        return sysFlag;
+    }
+
+    protected Map<String, String> buildMessageProperty(apache.rocketmq.v2.Message message, String producerGroup) {
         org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
         // set user properties
         Map<String, String> userProperties = message.getUserPropertiesMap();
@@ -252,7 +253,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
         @Override
         public SelectableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
             try {
-                Message message = request.getMessages(0);
+                apache.rocketmq.v2.Message message = request.getMessages(0);
                 String shardingKey = null;
                 if (request.getMessagesCount() == 1) {
                     shardingKey = message.getSystemProperties().getMessageGroup();

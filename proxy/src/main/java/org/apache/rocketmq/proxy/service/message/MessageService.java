@@ -41,7 +41,7 @@ public interface MessageService {
     CompletableFuture<List<SendResult>> sendMessage(
         ProxyContext ctx,
         SelectableMessageQueue messageQueue,
-        List<? extends Message> msgList,
+        List<Message> msgList,
         SendMessageRequestHeader requestHeader,
         long timeoutMillis
     );
