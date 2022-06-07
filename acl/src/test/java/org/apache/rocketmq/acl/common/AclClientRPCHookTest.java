@@ -50,7 +50,6 @@ public class AclClientRPCHookTest {
         requestHeader.setCommitOffset(0L);
         requestHeader.setSuspendTimeoutMillis(15000L);
         requestHeader.setSubVersion(0L);
-        requestHeader.setBrokerName("brokerName");
         RemotingCommand testPullRemotingCommand = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         SortedMap<String, String> oldContent = oldVersionParseRequestContent(testPullRemotingCommand, "ak", null);
         byte[] oldBytes = AclUtils.combineRequestContent(testPullRemotingCommand, oldContent);
@@ -72,7 +71,6 @@ public class AclClientRPCHookTest {
         requestHeader.setCommitOffset(0L);
         requestHeader.setSuspendTimeoutMillis(15000L);
         requestHeader.setSubVersion(0L);
-        requestHeader.setBrokerName("brokerName");
         RemotingCommand testPullRemotingCommand = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         testPullRemotingCommand.addExtField(MixAll.REQ_T, String.valueOf(RequestType.STREAM.getCode()));
         testPullRemotingCommand.addExtField(ACCESS_KEY, "ak");
