@@ -378,7 +378,7 @@ public class BrokerController {
 
         this.escapeBridge = new EscapeBridge(this);
 
-        if (!this.brokerConfig.isSkipPreOnline()) {
+        if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
         }
     }
