@@ -186,8 +186,6 @@ public class ReplicasManager {
 
                 brokerController.getMessageStore().enableWrite();
 
-                brokerController.setIsolated(false);
-
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
                     try {
@@ -227,8 +225,6 @@ public class ReplicasManager {
                 this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
 
                 brokerController.getMessageStore().enableWrite();
-
-                brokerController.setIsolated(false);
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
@@ -290,6 +286,8 @@ public class ReplicasManager {
                 } else {
                     changeToSlave(newMasterAddress, registerResponse.getMasterEpoch(), registerResponse.getBrokerId());
                 }
+                // Set isolated to false, make broker can register to namesrv regularly
+                brokerController.setIsolated(false);
             }
             return true;
         } catch (final Exception e) {
