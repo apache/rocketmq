@@ -162,8 +162,6 @@ public class ReplicasManager {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.localAddress, newMasterEpoch);
 
-                brokerController.getMessageStore().disableWrite();
-
                 // Change record
                 this.masterAddress = this.localAddress;
                 this.masterEpoch = newMasterEpoch;
@@ -174,17 +172,15 @@ public class ReplicasManager {
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
                 schedulingCheckSyncStateSet();
 
-                this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
-                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
-                this.brokerController.changeSpecialServiceStatus(true);
-
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
                 // Notify ha service, change to master
                 this.haService.changeToMaster(newMasterEpoch);
 
-                brokerController.getMessageStore().enableWrite();
+                this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
+                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
+                this.brokerController.changeSpecialServiceStatus(true);
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
@@ -205,8 +201,6 @@ public class ReplicasManager {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to slave, brokerName={}, replicas={}, brokerId={}", this.brokerConfig.getBrokerName(), this.localAddress, brokerId);
 
-                brokerController.getMessageStore().disableWrite();
-
                 // Change record
                 this.masterAddress = newMasterAddress;
                 this.masterEpoch = newMasterEpoch;
@@ -223,8 +217,6 @@ public class ReplicasManager {
 
                 // Notify ha service, change to slave
                 this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
-
-                brokerController.getMessageStore().enableWrite();
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
@@ -248,8 +240,6 @@ public class ReplicasManager {
                 this.syncStateSetEpoch = newSyncStateSetEpoch;
                 this.syncStateSet = new HashSet<>(newSyncStateSet);
                 this.haService.setSyncStateSet(newSyncStateSet);
-            } else {
-                LOGGER.info("Sync state set changed failed, newSyncStateSetEpoch is {} and syncStateSetEpoch is {}", newSyncStateSetEpoch, this.syncStateSetEpoch);
             }
         }
     }
@@ -361,7 +351,7 @@ public class ReplicasManager {
                 final GetMetaDataResponseHeader responseHeader = this.brokerOuterAPI.getControllerMetaData(address);
                 if (responseHeader != null && StringUtils.isNoneEmpty(responseHeader.getControllerLeaderAddress())) {
                     this.controllerLeaderAddress = responseHeader.getControllerLeaderAddress();
-                    LOGGER.info("Change controller leader address to {}", this.controllerLeaderAddress);
+                    LOGGER.info("Update controller leader address to {}", this.controllerLeaderAddress);
                     return true;
                 }
             } catch (final Exception e) {

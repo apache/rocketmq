@@ -323,7 +323,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 byteBufferRead.position(readSocketPos);
                                 maybeExpandInSyncStateSet(slaveMaxOffset);
                                 AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
-                                LOGGER.info("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
+                                LOGGER.debug("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
                                 break;
                             default:
                                 LOGGER.error("Current state illegal {}", currentState);
@@ -526,7 +526,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             final long confirmOffset = AutoSwitchHAConnection.this.haService.getConfirmOffset();
             this.byteBufferHeader.putLong(confirmOffset);
             this.byteBufferHeader.flip();
-            LOGGER.info("Master send msg, state:{}, size:{}, offset:{}, epoch:{}, epochStartOffset:{}, confirmOffset:{}",
+            LOGGER.debug("Master send msg, state:{}, size:{}, offset:{}, epoch:{}, epochStartOffset:{}, confirmOffset:{}",
                 currentState, bodySize, nextOffset, entry.getEpoch(), entry.getStartOffset(), confirmOffset);
         }
 
