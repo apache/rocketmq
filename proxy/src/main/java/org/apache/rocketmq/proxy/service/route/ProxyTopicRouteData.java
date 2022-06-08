@@ -20,7 +20,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.common.Address;
 
 public class ProxyTopicRouteData {
@@ -53,6 +56,20 @@ public class ProxyTopicRouteData {
         public void setBrokerAddrs(Map<Long, List<Address>> brokerAddrs) {
             this.brokerAddrs = brokerAddrs;
         }
+
+        public BrokerData buildBrokerData() {
+            BrokerData brokerData = new BrokerData();
+            brokerData.setCluster(cluster);
+            brokerData.setBrokerName(brokerName);
+            HashMap<Long, String> buildBrokerAddress = new HashMap<>();
+            brokerAddrs.forEach((k, v) -> {
+                if (!v.isEmpty()) {
+                    buildBrokerAddress.put(k, v.get(0).getHostAndPort().toString());
+                }
+            });
+            brokerData.setBrokerAddrs(buildBrokerAddress);
+            return brokerData;
+        }
     }
 
     private List<QueueData> queueDatas = new ArrayList<>();
@@ -70,8 +87,16 @@ public class ProxyTopicRouteData {
         return brokerDatas;
     }
 
-    public void setBrokerDatas(
-        List<ProxyBrokerData> brokerDatas) {
+    public void setBrokerDatas(List<ProxyBrokerData> brokerDatas) {
         this.brokerDatas = brokerDatas;
+    }
+
+    public TopicRouteData buildTopicRouteData() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        topicRouteData.setQueueDatas(queueDatas);
+        topicRouteData.setBrokerDatas(brokerDatas.stream()
+            .map(ProxyBrokerData::buildBrokerData)
+            .collect(Collectors.toList()));
+        return topicRouteData;
     }
 }
