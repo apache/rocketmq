@@ -186,6 +186,8 @@ public class ReplicasManager {
 
                 brokerController.getMessageStore().enableWrite();
 
+                brokerController.setIsolated(false);
+
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
                     try {
@@ -225,6 +227,8 @@ public class ReplicasManager {
                 this.haService.changeToSlave(newMasterAddress, newMasterEpoch, this.brokerConfig.getBrokerId());
 
                 brokerController.getMessageStore().enableWrite();
+
+                brokerController.setIsolated(false);
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
