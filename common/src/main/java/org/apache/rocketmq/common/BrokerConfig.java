@@ -307,11 +307,11 @@ public class BrokerConfig extends BrokerIdentity {
 
     private String controllerAddr = "";
 
-    private long replicasManagerSyncBrokerMetadataPeriod = 5 * 1000;
+    private long syncBrokerMetadataPeriod = 5 * 1000;
 
-    private long replicasManagerCheckSyncStateSetPeriod = 5 * 1000;
+    private long checkSyncStateSetPeriod = 5 * 1000;
 
-    private long replicasManagerSyncControllerMetadataPeriod = 10 * 1000;
+    private long syncControllerMetadataPeriod = 10 * 1000;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1313,27 +1313,27 @@ public class BrokerConfig extends BrokerIdentity {
         this.controllerAddr = controllerAddr;
     }
 
-    public long getReplicasManagerSyncBrokerMetadataPeriod() {
-        return replicasManagerSyncBrokerMetadataPeriod;
+    public long getSyncBrokerMetadataPeriod() {
+        return syncBrokerMetadataPeriod;
     }
 
-    public void setReplicasManagerSyncBrokerMetadataPeriod(long replicasManagerSyncBrokerMetadataPeriod) {
-        this.replicasManagerSyncBrokerMetadataPeriod = replicasManagerSyncBrokerMetadataPeriod;
+    public void setSyncBrokerMetadataPeriod(long syncBrokerMetadataPeriod) {
+        this.syncBrokerMetadataPeriod = syncBrokerMetadataPeriod;
     }
 
-    public long getReplicasManagerCheckSyncStateSetPeriod() {
-        return replicasManagerCheckSyncStateSetPeriod;
+    public long getCheckSyncStateSetPeriod() {
+        return checkSyncStateSetPeriod;
     }
 
-    public void setReplicasManagerCheckSyncStateSetPeriod(long replicasManagerCheckSyncStateSetPeriod) {
-        this.replicasManagerCheckSyncStateSetPeriod = replicasManagerCheckSyncStateSetPeriod;
+    public void setCheckSyncStateSetPeriod(long checkSyncStateSetPeriod) {
+        this.checkSyncStateSetPeriod = checkSyncStateSetPeriod;
     }
 
-    public long getReplicasManagerSyncControllerMetadataPeriod() {
-        return replicasManagerSyncControllerMetadataPeriod;
+    public long getSyncControllerMetadataPeriod() {
+        return syncControllerMetadataPeriod;
     }
 
-    public void setReplicasManagerSyncControllerMetadataPeriod(long replicasManagerSyncControllerMetadataPeriod) {
-        this.replicasManagerSyncControllerMetadataPeriod = replicasManagerSyncControllerMetadataPeriod;
+    public void setSyncControllerMetadataPeriod(long syncControllerMetadataPeriod) {
+        this.syncControllerMetadataPeriod = syncControllerMetadataPeriod;
     }
 }

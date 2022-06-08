@@ -81,8 +81,8 @@ public class AutoSwitchRoleBase {
         brokerConfig.setListenPort(brokerListenPort);
         brokerConfig.setNamesrvAddr(namesrvAddress);
         brokerConfig.setControllerAddr(controllerAddress);
-        brokerConfig.setReplicasManagerSyncBrokerMetadataPeriod(2 * 1000);
-        brokerConfig.setReplicasManagerCheckSyncStateSetPeriod(2 * 1000);
+        brokerConfig.setSyncBrokerMetadataPeriod(2 * 1000);
+        brokerConfig.setCheckSyncStateSetPeriod(2 * 1000);
         brokerConfig.setEnableControllerMode(true);
 
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();

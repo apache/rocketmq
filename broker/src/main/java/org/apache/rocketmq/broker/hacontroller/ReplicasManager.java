@@ -321,7 +321,7 @@ public class ReplicasManager {
             } catch (final Exception e) {
                 LOGGER.warn("Error happen when get broker {}'s metadata", this.brokerConfig.getBrokerName(), e);
             }
-        }, 3 * 1000, this.brokerConfig.getReplicasManagerSyncBrokerMetadataPeriod(), TimeUnit.MILLISECONDS);
+        }, 3 * 1000, this.brokerConfig.getSyncBrokerMetadataPeriod(), TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -333,7 +333,7 @@ public class ReplicasManager {
         while (tryTimes < 3) {
             boolean flag = updateControllerMetadata();
             if (flag) {
-                this.scheduledService.scheduleAtFixedRate(this::updateControllerMetadata, 1000 * 3, this.brokerConfig.getReplicasManagerSyncControllerMetadataPeriod(), TimeUnit.MILLISECONDS);
+                this.scheduledService.scheduleAtFixedRate(this::updateControllerMetadata, 1000 * 3, this.brokerConfig.getSyncControllerMetadataPeriod(), TimeUnit.MILLISECONDS);
                 return true;
             }
             tryTimes++;
@@ -380,7 +380,7 @@ public class ReplicasManager {
                 }
             }
             doReportSyncStateSetChanged(newSyncStateSet);
-        }, 3 * 1000, this.brokerConfig.getReplicasManagerCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
+        }, 3 * 1000, this.brokerConfig.getCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
     }
 
     private void doReportSyncStateSetChanged(Set<String> newSyncStateSet) {
