@@ -32,7 +32,6 @@ import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
@@ -121,9 +120,8 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                     for (MessageExt messageExt : messageExtList) {
                         String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
                         if (receiptHandle != null) {
-                            MessageQueue messageQueue = new MessageQueue(topic, messageExt.getBrokerName(), messageExt.getQueueId());
                             MessageReceiptHandle messageReceiptHandle =
-                                new MessageReceiptHandle(group, messageQueue, receiptHandle, messageExt.getMsgId(),
+                                new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
                                     messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), requestInvisibleTime);
                             String channelId = proxyContext.getVal(ContextVariable.CHANNEL_KEY);
                             receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);

@@ -134,7 +134,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         if (current - messageReceiptHandle.getTimestamp() < messageReceiptHandle.getExpectInvisibleTime()) {
             CompletableFuture<AckResult> future =
                 messagingProcessor.changeInvisibleTime(ProxyContext.create(), handle, messageReceiptHandle.getMessageId(),
-                    messageReceiptHandle.getGroup(), messageReceiptHandle.getMessageQueue().getTopic(), proxyConfig.getRenewSliceTimeMillis());
+                    messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), proxyConfig.getRenewSliceTimeMillis());
             future.thenAccept(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {
                     messageReceiptHandle.update(ackResult.getExtraInfo());
@@ -144,8 +144,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         } else {
             CompletableFuture<AckResult> future = messagingProcessor.changeInvisibleTime(ProxyContext.create(),
                 handle, messageReceiptHandle.getMessageId(), messageReceiptHandle.getGroup(),
-                messageReceiptHandle.getMessageQueue().getTopic(),
-                retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes(), TimeUnit.MILLISECONDS));
+                messageReceiptHandle.getTopic(), retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes(), TimeUnit.MILLISECONDS));
             future.thenAccept(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {
                     removeReceiptHandle(key, messageReceiptHandle.getOriginalReceiptHandle());
@@ -187,7 +186,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                         receiptHandle,
                         value0.getMessageId(),
                         value0.getGroup(),
-                        value0.getMessageQueue().getTopic(),
+                        value0.getTopic(),
                         proxyConfig.getInvisibleTimeMillisWhenClear()
                     );
                 });

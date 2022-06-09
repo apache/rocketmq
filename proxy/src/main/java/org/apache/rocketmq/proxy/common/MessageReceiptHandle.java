@@ -17,11 +17,10 @@
 
 package org.apache.rocketmq.proxy.common;
 
-import org.apache.rocketmq.common.message.MessageQueue;
-
 public class MessageReceiptHandle {
     private final String group;
-    private final MessageQueue messageQueue;
+    private final String topic;
+    private final int queueId;
     private final String messageId;
     private final long queueOffset;
     private final String originalReceiptHandle;
@@ -31,10 +30,11 @@ public class MessageReceiptHandle {
 
     private String receiptHandle;
 
-    public MessageReceiptHandle(String group, MessageQueue messageQueue, String receiptHandle, String messageId,
+    public MessageReceiptHandle(String group, String topic, int queueId, String receiptHandle, String messageId,
         long queueOffset, int reconsumeTimes, long expectInvisibleTime) {
         this.group = group;
-        this.messageQueue = messageQueue;
+        this.topic = topic;
+        this.queueId = queueId;
         this.receiptHandle = receiptHandle;
         this.originalReceiptHandle = receiptHandle;
         this.messageId = messageId;
@@ -48,8 +48,12 @@ public class MessageReceiptHandle {
         return group;
     }
 
-    public MessageQueue getMessageQueue() {
-        return messageQueue;
+    public String getTopic() {
+        return topic;
+    }
+
+    public int getQueueId() {
+        return queueId;
     }
 
     public String getReceiptHandle() {
