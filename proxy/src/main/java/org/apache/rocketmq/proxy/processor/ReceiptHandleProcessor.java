@@ -107,7 +107,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         for (Map.Entry<String, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
             String key = entry.getKey();
             ReceiptHandleGroup group = entry.getValue();
-            group.all().forEach((k, v) -> {
+            group.immutableMapView().forEach((k, v) -> {
                 ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandle());
                 long now = System.currentTimeMillis();
                 if (handle.getNextVisibleTime() - now > proxyConfig.getRenewAheadTimeMillis()) {
@@ -178,7 +178,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         receiptHandleGroupMap.computeIfPresent(key, (k, v) -> {
-                Map<String, MessageReceiptHandle> all = v.all();
+                Map<String, MessageReceiptHandle> all = v.immutableMapView();
                 all.forEach((key0, value0) -> {
                     ReceiptHandle receiptHandle = ReceiptHandle.decode(value0.getReceiptHandle());
                     messagingProcessor.changeInvisibleTime(

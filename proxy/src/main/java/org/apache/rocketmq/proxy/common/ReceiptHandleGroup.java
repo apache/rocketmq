@@ -28,11 +28,11 @@ public class ReceiptHandleGroup {
         receiptHandleMap.put(key, value);
     }
 
-    public void remove(String key) {
-        receiptHandleMap.remove(key);
+    public MessageReceiptHandle remove(String key) {
+        return receiptHandleMap.remove(key);
     }
 
-    public Map<String, MessageReceiptHandle> all() {
+    public Map<String, MessageReceiptHandle> immutableMapView() {
         return ImmutableMap.copyOf(receiptHandleMap);
     }
 }
