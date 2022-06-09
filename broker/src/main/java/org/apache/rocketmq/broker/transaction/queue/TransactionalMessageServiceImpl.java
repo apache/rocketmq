@@ -101,7 +101,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         PutMessageResult putMessageResult = putBackToHalfQueueReturnResult(msgExt);
         if (putMessageResult != null
             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
-            if(putMessageResult.isRemotePut()){
+            if (putMessageResult.isRemotePut()) {
                 log.debug("remote put half msg");
                 return true;
             }
