@@ -18,7 +18,6 @@ package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -26,11 +25,7 @@ public abstract class RemotingSerializable {
     private final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
 
     public static byte[] encode(final Object obj) {
-        final String json = toJson(obj, false);
-        if (json != null) {
-            return json.getBytes(CHARSET_UTF8);
-        }
-        return null;
+        return JSON.toJSONBytes(obj, SerializerFeature.DisableCircularReferenceDetect);
     }
 
     public static String toJson(final Object obj, boolean prettyFormat) {
@@ -38,8 +33,7 @@ public abstract class RemotingSerializable {
     }
 
     public static <T> T decode(final byte[] data, Class<T> classOfT) {
-        final String json = new String(data, CHARSET_UTF8);
-        return fromJson(json, classOfT);
+        return JSON.parseObject(data, classOfT);
     }
 
     public static <T> T fromJson(String json, Class<T> classOfT) {
@@ -47,11 +41,7 @@ public abstract class RemotingSerializable {
     }
 
     public byte[] encode() {
-        final String json = this.toJson();
-        if (json != null) {
-            return json.getBytes(CHARSET_UTF8);
-        }
-        return null;
+        return JSON.toJSONBytes(this, SerializerFeature.DisableCircularReferenceDetect);
     }
 
     /**
@@ -60,7 +50,7 @@ public abstract class RemotingSerializable {
      * @param features Features to apply
      * @return serialized data.
      */
-    public byte[] encode(SerializerFeature...features) {
+    public byte[] encode(SerializerFeature... features) {
         final String json = JSON.toJSONString(this, features);
         return json.getBytes(CHARSET_UTF8);
     }
