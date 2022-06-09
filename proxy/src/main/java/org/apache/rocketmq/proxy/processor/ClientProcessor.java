@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.processor;
 import io.netty.channel.Channel;
 import java.util.Set;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -100,5 +101,9 @@ public class ClientProcessor extends AbstractProcessor {
 
     public void registerConsumerIdsChangeListener(ConsumerIdsChangeListener listener) {
         this.serviceManager.getConsumerManager().appendConsumerIdsChangeListener(listener);
+    }
+
+    public ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup) {
+        return this.serviceManager.getConsumerManager().getConsumerGroupInfo(consumerGroup);
     }
 }
