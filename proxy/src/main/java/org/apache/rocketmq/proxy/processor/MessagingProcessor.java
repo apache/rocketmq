@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.client.consumer.AckResult;
@@ -221,6 +222,8 @@ public interface MessagingProcessor extends StartAndShutdown {
     void registerConsumerListener(
         ConsumerIdsChangeListener consumerIdsChangeListener
     );
+
+    ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup);
 
     void addTransactionSubscription(
         ProxyContext ctx,

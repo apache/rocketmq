@@ -24,6 +24,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.client.consumer.AckResult;
@@ -215,6 +216,11 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public void registerConsumerListener(ConsumerIdsChangeListener consumerIdsChangeListener) {
         this.clientProcessor.registerConsumerIdsChangeListener(consumerIdsChangeListener);
+    }
+
+    @Override
+    public ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup) {
+        return this.clientProcessor.getConsumerGroupInfo(consumerGroup);
     }
 
     @Override
