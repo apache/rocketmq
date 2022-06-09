@@ -141,15 +141,11 @@ public class CommitLog implements Swappable {
     public void start() {
         this.flushManager.start();
         log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
-        this.flushManager.start();
-        log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         flushDiskWatcher.setDaemon(true);
         flushDiskWatcher.start();
     }
 
     public void shutdown() {
-        this.flushManager.shutdown();
-        log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         this.flushManager.shutdown();
         log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         flushDiskWatcher.shutdown(true);

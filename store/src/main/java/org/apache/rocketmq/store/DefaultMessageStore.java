@@ -479,7 +479,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         if (msg.getProperties().containsKey(MessageConst.PROPERTY_INNER_NUM)
-                && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
+            && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
             LOGGER.warn("[BUG]The message had property {} but is not an inner batch", MessageConst.PROPERTY_INNER_NUM);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
@@ -499,7 +499,7 @@ public class DefaultMessageStore implements MessageStore {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 LOGGER.warn("DefaultMessageStore#putMessage: CommitLog#putMessage cost {}ms, topic={}, bodyLength={}",
-                    msg.getTopic(), msg.getBody().length);
+                    elapsedTime, msg.getTopic(), msg.getBody().length);
             }
             this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
@@ -552,15 +552,15 @@ public class DefaultMessageStore implements MessageStore {
     private PutMessageResult waitForPutResult(CompletableFuture<PutMessageResult> putMessageResultFuture) {
         try {
             int putMessageTimeout =
-                    Math.max(this.messageStoreConfig.getSyncFlushTimeout(),
-                            this.messageStoreConfig.getSlaveTimeout()) + 5000;
+                Math.max(this.messageStoreConfig.getSyncFlushTimeout(),
+                    this.messageStoreConfig.getSlaveTimeout()) + 5000;
             return putMessageResultFuture.get(putMessageTimeout, TimeUnit.MILLISECONDS);
         } catch (ExecutionException | InterruptedException e) {
             return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
         } catch (TimeoutException e) {
             LOGGER.error("usually it will never timeout, putMessageTimeout is much bigger than slaveTimeout and "
-                    + "flushTimeout so the result can be got anyway, but in some situations timeout will happen like full gc "
-                    + "process hangs or other unexpected situations.");
+                + "flushTimeout so the result can be got anyway, but in some situations timeout will happen like full gc "
+                + "process hangs or other unexpected situations.");
             return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
         }
     }
@@ -1282,7 +1282,7 @@ public class DefaultMessageStore implements MessageStore {
                             int msgIdLength = (inetSocketAddress.getAddress() instanceof Inet6Address) ? 16 + 4 + 8 : 4 + 4 + 8;
                             final ByteBuffer msgIdMemory = ByteBuffer.allocate(msgIdLength);
                             String msgId =
-                                    MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
+                                MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
                             messageIds.put(msgId, cqUnit.getQueueOffset());
                             nextOffset = cqUnit.getQueueOffset() + cqUnit.getBatchNum();
                             if (nextOffset >= maxOffset) {
@@ -1673,16 +1673,6 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public RunningFlags getRunningFlags() {
         return runningFlags;
-    }
-
-    @Override
-    public void disableWrite() {
-        runningFlags.getAndMakeNotWriteable();
-    }
-
-    @Override
-    public void enableWrite() {
-        runningFlags.getAndMakeWriteable();
     }
 
     public void doDispatch(DispatchRequest req) {
