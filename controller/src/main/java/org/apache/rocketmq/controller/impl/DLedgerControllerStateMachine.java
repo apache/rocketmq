@@ -54,8 +54,8 @@ public class DLedgerControllerStateMachine implements StateMachine {
             if (body != null && body.length > 0) {
                 final EventMessage event = this.eventSerializer.deserialize(body);
                 this.replicasInfoManager.applyEvent(event);
-                applyingSize++;
             }
+            applyingSize++;
         }
         log.info("Apply {} events on controller {}", applyingSize, this.dledgerId);
     }
