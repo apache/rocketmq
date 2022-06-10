@@ -66,7 +66,7 @@ public class ProxyStartup {
             MessagingProcessor messagingProcessor = createMessagingProcessor();
 
             // create grpcServer
-            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor)
+            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor, ConfigurationManager.getProxyConfig().getGrpcServerPort())
                 .addService(createServiceProcessor(messagingProcessor))
                 .configInterceptor()
                 .build();
