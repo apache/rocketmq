@@ -403,7 +403,6 @@ public class DLedgerController implements Controller {
                         DLedgerController.this.stopScheduling();
                         break;
                     case LEADER: {
-                        this.currentRole = MemberState.Role.LEADER;
                         log.info("Controller {} change role to leader, try process a initial proposal", this.selfId);
                         // Because the role becomes to leader, but the memory statemachine of the controller is still in the old point,
                         // some committed logs have not been applied. Therefore, we must first process an empty request to dledger,
@@ -414,6 +413,7 @@ public class DLedgerController implements Controller {
                             request.setBody(new byte[0]);
                             try {
                                 if (appendToDledgerAndWait(request)) {
+                                    this.currentRole = MemberState.Role.LEADER;
                                     DLedgerController.this.startScheduling();
                                     break;
                                 }
