@@ -19,6 +19,8 @@ package org.apache.rocketmq.remoting.netty;
 
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.util.concurrent.CompletableFuture;
+
 public interface RemotingResponseCallback {
-    void callback(RemotingCommand response);
+    CompletableFuture<RemotingCommand> callback(RemotingCommand response);
 }

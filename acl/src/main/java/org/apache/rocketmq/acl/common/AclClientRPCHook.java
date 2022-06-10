@@ -45,7 +45,7 @@ public class AclClientRPCHook implements RPCHook {
         request.addExtField(SIGNATURE, signature);
         request.addExtField(ACCESS_KEY, sessionCredentials.getAccessKey());
         
-        // The SecurityToken value is unneccessary,user can choose this one.
+        // The SecurityToken value is unnecessary,user can choose this one.
         if (sessionCredentials.getSecurityToken() != null) {
             request.addExtField(SECURITY_TOKEN, sessionCredentials.getSecurityToken());
         }
