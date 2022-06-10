@@ -157,24 +157,4 @@ public class NettyServerConfig implements Cloneable {
     public void setWriteBufferHighWaterMark(int writeBufferHighWaterMark) {
         this.writeBufferHighWaterMark = writeBufferHighWaterMark;
     }
-
-    @Override
-    public String toString() {
-        return "NettyServerConfig [" +
-                "listenPort=" + listenPort +
-                ", serverWorkerThreads=" + serverWorkerThreads +
-                ", serverCallbackExecutorThreads=" + serverCallbackExecutorThreads +
-                ", serverSelectorThreads=" + serverSelectorThreads +
-                ", serverOnewaySemaphoreValue=" + serverOnewaySemaphoreValue +
-                ", serverAsyncSemaphoreValue=" + serverAsyncSemaphoreValue +
-                ", serverChannelMaxIdleTimeSeconds=" + serverChannelMaxIdleTimeSeconds +
-                ", serverSocketSndBufSize=" + serverSocketSndBufSize +
-                ", serverSocketRcvBufSize=" + serverSocketRcvBufSize +
-                ", writeBufferHighWaterMark=" + writeBufferHighWaterMark +
-                ", writeBufferLowWaterMark=" + writeBufferLowWaterMark +
-                ", serverSocketBacklog=" + serverSocketBacklog +
-                ", serverPooledByteBufAllocatorEnable=" + serverPooledByteBufAllocatorEnable +
-                ", useEpollNativeSelector=" + useEpollNativeSelector +
-                ']';
-    }
 }

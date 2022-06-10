@@ -227,9 +227,6 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void start() throws MQClientException {
         setTraceDispatcher();
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
-
-        System.out.printf("%s%n", super.toString());
-
         this.defaultLitePullConsumerImpl.start();
         if (null != traceDispatcher) {
             try {

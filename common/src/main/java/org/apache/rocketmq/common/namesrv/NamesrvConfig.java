@@ -83,16 +83,4 @@ public class NamesrvConfig {
     public void setConfigStorePath(final String configStorePath) {
         this.configStorePath = configStorePath;
     }
-
-    @Override
-    public String toString() {
-        return "NamesrvConfig [" +
-                "rocketmqHome='" + rocketmqHome + '\'' +
-                ", kvConfigPath='" + kvConfigPath + '\'' +
-                ", configStorePath='" + configStorePath + '\'' +
-                ", productEnvName='" + productEnvName + '\'' +
-                ", clusterTest=" + clusterTest +
-                ", orderMessageEnable=" + orderMessageEnable +
-                ']';
-    }
 }
