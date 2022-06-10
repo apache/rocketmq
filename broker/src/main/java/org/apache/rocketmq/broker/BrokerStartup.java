@@ -205,9 +205,16 @@ public class BrokerStartup {
 
             log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
             MixAll.printObjectProperties(log, brokerConfig);
+            System.out.printf("%s%n", brokerConfig);
+
             MixAll.printObjectProperties(log, nettyServerConfig);
+            System.out.printf("%s%n", nettyServerConfig);
+
             MixAll.printObjectProperties(log, nettyClientConfig);
+            System.out.printf("%s%n", nettyClientConfig);
+
             MixAll.printObjectProperties(log, messageStoreConfig);
+            System.out.printf("%s%n", messageStoreConfig);
 
             final BrokerController controller = new BrokerController(
                 brokerConfig,

@@ -121,7 +121,10 @@ public class NamesrvStartup {
         log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
         MixAll.printObjectProperties(log, namesrvConfig);
+        System.out.printf("%s%n", namesrvConfig);
+
         MixAll.printObjectProperties(log, nettyServerConfig);
+        System.out.printf("%s%n", nettyServerConfig);
 
         final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 

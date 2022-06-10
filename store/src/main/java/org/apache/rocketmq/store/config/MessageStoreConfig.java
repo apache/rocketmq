@@ -822,4 +822,88 @@ public class MessageStoreConfig {
     public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
         this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
     }
+
+    @Override
+    public String toString() {
+        return "MessageStoreConfig [" +
+                "storePathRootDir='" + storePathRootDir + '\'' +
+                ", storePathCommitLog='" + storePathCommitLog + '\'' +
+                ", storePathDLedgerCommitLog='" + storePathDLedgerCommitLog + '\'' +
+                ", readOnlyCommitLogStorePaths='" + readOnlyCommitLogStorePaths + '\'' +
+                ", mappedFileSizeCommitLog=" + mappedFileSizeCommitLog +
+                ", mappedFileSizeConsumeQueue=" + mappedFileSizeConsumeQueue +
+                ", enableConsumeQueueExt=" + enableConsumeQueueExt +
+                ", mappedFileSizeConsumeQueueExt=" + mappedFileSizeConsumeQueueExt +
+                ", bitMapLengthConsumeQueueExt=" + bitMapLengthConsumeQueueExt +
+                ", flushIntervalCommitLog=" + flushIntervalCommitLog +
+                ", commitIntervalCommitLog=" + commitIntervalCommitLog +
+                ", useReentrantLockWhenPutMessage=" + useReentrantLockWhenPutMessage +
+                ", flushCommitLogTimed=" + flushCommitLogTimed +
+                ", flushIntervalConsumeQueue=" + flushIntervalConsumeQueue +
+                ", cleanResourceInterval=" + cleanResourceInterval +
+                ", deleteCommitLogFilesInterval=" + deleteCommitLogFilesInterval +
+                ", deleteConsumeQueueFilesInterval=" + deleteConsumeQueueFilesInterval +
+                ", destroyMapedFileIntervalForcibly=" + destroyMapedFileIntervalForcibly +
+                ", redeleteHangedFileInterval=" + redeleteHangedFileInterval +
+                ", deleteWhen='" + deleteWhen + '\'' +
+                ", diskMaxUsedSpaceRatio=" + diskMaxUsedSpaceRatio +
+                ", fileReservedTime=" + fileReservedTime +
+                ", putMsgIndexHightWater=" + putMsgIndexHightWater +
+                ", maxMessageSize=" + maxMessageSize +
+                ", checkCRCOnRecover=" + checkCRCOnRecover +
+                ", flushCommitLogLeastPages=" + flushCommitLogLeastPages +
+                ", commitCommitLogLeastPages=" + commitCommitLogLeastPages +
+                ", flushLeastPagesWhenWarmMapedFile=" + flushLeastPagesWhenWarmMapedFile +
+                ", flushConsumeQueueLeastPages=" + flushConsumeQueueLeastPages +
+                ", flushCommitLogThoroughInterval=" + flushCommitLogThoroughInterval +
+                ", commitCommitLogThoroughInterval=" + commitCommitLogThoroughInterval +
+                ", flushConsumeQueueThoroughInterval=" + flushConsumeQueueThoroughInterval +
+                ", maxTransferBytesOnMessageInMemory=" + maxTransferBytesOnMessageInMemory +
+                ", maxTransferCountOnMessageInMemory=" + maxTransferCountOnMessageInMemory +
+                ", maxTransferBytesOnMessageInDisk=" + maxTransferBytesOnMessageInDisk +
+                ", maxTransferCountOnMessageInDisk=" + maxTransferCountOnMessageInDisk +
+                ", accessMessageInMemoryMaxRatio=" + accessMessageInMemoryMaxRatio +
+                ", messageIndexEnable=" + messageIndexEnable +
+                ", maxHashSlotNum=" + maxHashSlotNum +
+                ", maxIndexNum=" + maxIndexNum +
+                ", maxMsgsNumBatch=" + maxMsgsNumBatch +
+                ", messageIndexSafe=" + messageIndexSafe +
+                ", haListenPort=" + haListenPort +
+                ", haSendHeartbeatInterval=" + haSendHeartbeatInterval +
+                ", haHousekeepingInterval=" + haHousekeepingInterval +
+                ", haTransferBatchSize=" + haTransferBatchSize +
+                ", haMasterAddress='" + haMasterAddress + '\'' +
+                ", haSlaveFallbehindMax=" + haSlaveFallbehindMax +
+                ", brokerRole=" + brokerRole +
+                ", flushDiskType=" + flushDiskType +
+                ", syncFlushTimeout=" + syncFlushTimeout +
+                ", slaveTimeout=" + slaveTimeout +
+                ", messageDelayLevel='" + messageDelayLevel + '\'' +
+                ", flushDelayOffsetInterval=" + flushDelayOffsetInterval +
+                ", cleanFileForciblyEnable=" + cleanFileForciblyEnable +
+                ", warmMapedFileEnable=" + warmMapedFileEnable +
+                ", offsetCheckInSlave=" + offsetCheckInSlave +
+                ", debugLockEnable=" + debugLockEnable +
+                ", duplicationEnable=" + duplicationEnable +
+                ", diskFallRecorded=" + diskFallRecorded +
+                ", osPageCacheBusyTimeOutMills=" + osPageCacheBusyTimeOutMills +
+                ", defaultQueryMaxNum=" + defaultQueryMaxNum +
+                ", transientStorePoolEnable=" + transientStorePoolEnable +
+                ", transientStorePoolSize=" + transientStorePoolSize +
+                ", fastFailIfNoBufferInStorePool=" + fastFailIfNoBufferInStorePool +
+                ", enableDLegerCommitLog=" + enableDLegerCommitLog +
+                ", dLegerGroup='" + dLegerGroup + '\'' +
+                ", dLegerPeers='" + dLegerPeers + '\'' +
+                ", dLegerSelfId='" + dLegerSelfId + '\'' +
+                ", preferredLeaderId='" + preferredLeaderId + '\'' +
+                ", isEnableBatchPush=" + isEnableBatchPush +
+                ", enableScheduleMessageStats=" + enableScheduleMessageStats +
+                ", enableLmq=" + enableLmq +
+                ", enableMultiDispatch=" + enableMultiDispatch +
+                ", maxLmqConsumeQueueNum=" + maxLmqConsumeQueueNum +
+                ", enableScheduleAsyncDeliver=" + enableScheduleAsyncDeliver +
+                ", scheduleAsyncDeliverMaxPendingLimit=" + scheduleAsyncDeliverMaxPendingLimit +
+                ", scheduleAsyncDeliverMaxResendNum2Blocked=" + scheduleAsyncDeliverMaxResendNum2Blocked +
+                ']';
+    }
 }

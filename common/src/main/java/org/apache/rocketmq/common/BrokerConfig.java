@@ -845,4 +845,90 @@ public class BrokerConfig {
     public void setIsolateLogEnable(boolean isolateLogEnable) {
         this.isolateLogEnable = isolateLogEnable;
     }
+
+    @Override
+    public String toString() {
+        return "BrokerConfig [" +
+                "rocketmqHome='" + rocketmqHome + '\'' +
+                ", namesrvAddr='" + namesrvAddr + '\'' +
+                ", brokerIP1='" + brokerIP1 + '\'' +
+                ", brokerIP2='" + brokerIP2 + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerClusterName='" + brokerClusterName + '\'' +
+                ", brokerId=" + brokerId +
+                ", brokerPermission=" + brokerPermission +
+                ", defaultTopicQueueNums=" + defaultTopicQueueNums +
+                ", autoCreateTopicEnable=" + autoCreateTopicEnable +
+                ", clusterTopicEnable=" + clusterTopicEnable +
+                ", brokerTopicEnable=" + brokerTopicEnable +
+                ", autoCreateSubscriptionGroup=" + autoCreateSubscriptionGroup +
+                ", messageStorePlugIn='" + messageStorePlugIn + '\'' +
+                ", msgTraceTopicName='" + msgTraceTopicName + '\'' +
+                ", traceTopicEnable=" + traceTopicEnable +
+                ", sendMessageThreadPoolNums=" + sendMessageThreadPoolNums +
+                ", putMessageFutureThreadPoolNums=" + putMessageFutureThreadPoolNums +
+                ", pullMessageThreadPoolNums=" + pullMessageThreadPoolNums +
+                ", processReplyMessageThreadPoolNums=" + processReplyMessageThreadPoolNums +
+                ", queryMessageThreadPoolNums=" + queryMessageThreadPoolNums +
+                ", adminBrokerThreadPoolNums=" + adminBrokerThreadPoolNums +
+                ", clientManageThreadPoolNums=" + clientManageThreadPoolNums +
+                ", consumerManageThreadPoolNums=" + consumerManageThreadPoolNums +
+                ", heartbeatThreadPoolNums=" + heartbeatThreadPoolNums +
+                ", endTransactionThreadPoolNums=" + endTransactionThreadPoolNums +
+                ", flushConsumerOffsetInterval=" + flushConsumerOffsetInterval +
+                ", flushConsumerOffsetHistoryInterval=" + flushConsumerOffsetHistoryInterval +
+                ", rejectTransactionMessage=" + rejectTransactionMessage +
+                ", fetchNamesrvAddrByAddressServer=" + fetchNamesrvAddrByAddressServer +
+                ", sendThreadPoolQueueCapacity=" + sendThreadPoolQueueCapacity +
+                ", putThreadPoolQueueCapacity=" + putThreadPoolQueueCapacity +
+                ", pullThreadPoolQueueCapacity=" + pullThreadPoolQueueCapacity +
+                ", replyThreadPoolQueueCapacity=" + replyThreadPoolQueueCapacity +
+                ", queryThreadPoolQueueCapacity=" + queryThreadPoolQueueCapacity +
+                ", clientManagerThreadPoolQueueCapacity=" + clientManagerThreadPoolQueueCapacity +
+                ", consumerManagerThreadPoolQueueCapacity=" + consumerManagerThreadPoolQueueCapacity +
+                ", heartbeatThreadPoolQueueCapacity=" + heartbeatThreadPoolQueueCapacity +
+                ", endTransactionPoolQueueCapacity=" + endTransactionPoolQueueCapacity +
+                ", filterServerNums=" + filterServerNums +
+                ", longPollingEnable=" + longPollingEnable +
+                ", shortPollingTimeMills=" + shortPollingTimeMills +
+                ", notifyConsumerIdsChangedEnable=" + notifyConsumerIdsChangedEnable +
+                ", highSpeedMode=" + highSpeedMode +
+                ", commercialEnable=" + commercialEnable +
+                ", commercialTimerCount=" + commercialTimerCount +
+                ", commercialTransCount=" + commercialTransCount +
+                ", commercialBigCount=" + commercialBigCount +
+                ", commercialBaseCount=" + commercialBaseCount +
+                ", transferMsgByHeap=" + transferMsgByHeap +
+                ", maxDelayTime=" + maxDelayTime +
+                ", regionId='" + regionId + '\'' +
+                ", registerBrokerTimeoutMills=" + registerBrokerTimeoutMills +
+                ", slaveReadEnable=" + slaveReadEnable +
+                ", disableConsumeIfConsumerReadSlowly=" + disableConsumeIfConsumerReadSlowly +
+                ", consumerFallbehindThreshold=" + consumerFallbehindThreshold +
+                ", brokerFastFailureEnable=" + brokerFastFailureEnable +
+                ", waitTimeMillsInSendQueue=" + waitTimeMillsInSendQueue +
+                ", waitTimeMillsInPullQueue=" + waitTimeMillsInPullQueue +
+                ", waitTimeMillsInHeartbeatQueue=" + waitTimeMillsInHeartbeatQueue +
+                ", waitTimeMillsInTransactionQueue=" + waitTimeMillsInTransactionQueue +
+                ", startAcceptSendRequestTimeStamp=" + startAcceptSendRequestTimeStamp +
+                ", traceOn=" + traceOn +
+                ", enableCalcFilterBitMap=" + enableCalcFilterBitMap +
+                ", expectConsumerNumUseFilter=" + expectConsumerNumUseFilter +
+                ", maxErrorRateOfBloomFilter=" + maxErrorRateOfBloomFilter +
+                ", filterDataCleanTimeSpan=" + filterDataCleanTimeSpan +
+                ", filterSupportRetry=" + filterSupportRetry +
+                ", enablePropertyFilter=" + enablePropertyFilter +
+                ", compressedRegister=" + compressedRegister +
+                ", forceRegister=" + forceRegister +
+                ", registerNameServerPeriod=" + registerNameServerPeriod +
+                ", transactionTimeOut=" + transactionTimeOut +
+                ", transactionCheckMax=" + transactionCheckMax +
+                ", transactionCheckInterval=" + transactionCheckInterval +
+                ", aclEnable=" + aclEnable +
+                ", storeReplyMessageEnable=" + storeReplyMessageEnable +
+                ", enableDetailStat=" + enableDetailStat +
+                ", autoDeleteUnusedStats=" + autoDeleteUnusedStats +
+                ", isolateLogEnable=" + isolateLogEnable +
+                ']';
+    }
 }

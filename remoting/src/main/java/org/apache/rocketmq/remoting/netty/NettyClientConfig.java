@@ -154,4 +154,24 @@ public class NettyClientConfig {
     public void setWriteBufferHighWaterMark(int writeBufferHighWaterMark) {
         this.writeBufferHighWaterMark = writeBufferHighWaterMark;
     }
+
+    @Override
+    public String toString() {
+        return "NettyClientConfig [" +
+                "clientWorkerThreads=" + clientWorkerThreads +
+                ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads +
+                ", clientOnewaySemaphoreValue=" + clientOnewaySemaphoreValue +
+                ", clientAsyncSemaphoreValue=" + clientAsyncSemaphoreValue +
+                ", connectTimeoutMillis=" + connectTimeoutMillis +
+                ", channelNotActiveInterval=" + channelNotActiveInterval +
+                ", clientChannelMaxIdleTimeSeconds=" + clientChannelMaxIdleTimeSeconds +
+                ", clientSocketSndBufSize=" + clientSocketSndBufSize +
+                ", clientSocketRcvBufSize=" + clientSocketRcvBufSize +
+                ", clientPooledByteBufAllocatorEnable=" + clientPooledByteBufAllocatorEnable +
+                ", clientCloseSocketIfTimeout=" + clientCloseSocketIfTimeout +
+                ", useTLS=" + useTLS +
+                ", writeBufferHighWaterMark=" + writeBufferHighWaterMark +
+                ", writeBufferLowWaterMark=" + writeBufferLowWaterMark +
+                ']';
+    }
 }
