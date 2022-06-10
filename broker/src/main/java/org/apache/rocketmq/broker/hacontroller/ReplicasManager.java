@@ -300,18 +300,26 @@ public class ReplicasManager {
                 final long brokerId = info.getBrokerId();
                 synchronized (this) {
                     // Check if master changed
-                    if (StringUtils.isNoneEmpty(newMasterAddress) && newMasterEpoch > this.masterEpoch) {
-                        if (StringUtils.equals(newMasterAddress, this.localAddress)) {
-                            changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch());
+                    if (newMasterEpoch > this.masterEpoch) {
+                        if (StringUtils.isNoneEmpty(newMasterAddress)) {
+                            if (StringUtils.equals(newMasterAddress, this.localAddress)) {
+                                changeToMaster(newMasterEpoch, syncStateSet.getSyncStateSetEpoch());
+                            } else {
+                                if (brokerId > 0) {
+                                    changeToSlave(newMasterAddress, newMasterEpoch, brokerId);
+                                } else if (brokerId < 0) {
+                                    // If the brokerId is no existed, we should try register again.
+                                    registerBrokerToController();
+                                }
+                            }
                         } else {
-                            if (brokerId > 0) {
-                                changeToSlave(newMasterAddress, newMasterEpoch, brokerId);
-                            } else if (brokerId < 0) {
-                                // If the brokerId is no existed, we should try register again.
+                            // In this case, the master in controller is null, so try register to controller if this broker is in syncStateSet,
+                            // which will trigger the electMasterEvent in controller.
+                            if (syncStateSet.getSyncStateSet() != null && syncStateSet.getSyncStateSet().contains(this.localAddress)) {
                                 registerBrokerToController();
                             }
                         }
-                    } else {
+                    } else if (newMasterEpoch == this.masterEpoch) {
                         // Check if sync state set changed
                         if (isMasterState()) {
                             changeSyncStateSet(syncStateSet.getSyncStateSet(), syncStateSet.getSyncStateSetEpoch());
