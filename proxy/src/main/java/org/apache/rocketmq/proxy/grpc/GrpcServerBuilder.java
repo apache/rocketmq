@@ -52,12 +52,11 @@ public class GrpcServerBuilder {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected NettyServerBuilder serverBuilder;
 
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor) {
-        return new GrpcServerBuilder(executor);
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port) {
+        return new GrpcServerBuilder(executor, port);
     }
 
-    public GrpcServerBuilder(ThreadPoolExecutor executor) {
-        int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port) {
         serverBuilder = NettyServerBuilder.forPort(port);
 
         try {
