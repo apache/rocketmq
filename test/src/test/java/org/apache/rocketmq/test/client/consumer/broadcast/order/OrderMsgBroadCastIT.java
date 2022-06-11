@@ -18,7 +18,9 @@
 package org.apache.rocketmq.test.client.consumer.broadcast.order;
 
 import java.util.List;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.client.consumer.broadcast.BaseBroadCastIT;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
@@ -39,7 +41,7 @@ import static com.google.common.truth.Truth.assertThat;
  */
 @Ignore
 public class OrderMsgBroadCastIT extends BaseBroadCastIT {
-    private static Logger logger = Logger.getLogger(OrderMsgBroadCastIT.class);
+    private static Logger logger = LogManager.getLogger(OrderMsgBroadCastIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 

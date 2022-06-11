@@ -17,14 +17,15 @@
 
 package org.apache.rocketmq.test.client.consumer.broadcast;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQBroadCastConsumer;
 import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
 public class BaseBroadCastIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(BaseBroadCastIT.class);
+    private static Logger logger = LogManager.getLogger(BaseBroadCastIT.class);
 
     public static RMQBroadCastConsumer getBroadCastConsumer(String nsAddr, String topic,
         String subExpression,

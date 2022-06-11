@@ -17,12 +17,13 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
 public class RMQSqlConsumer extends RMQNormalConsumer {
-    private static Logger logger = Logger.getLogger(RMQSqlConsumer.class);
+    private static Logger logger = LogManager.getLogger(RMQSqlConsumer.class);
     private MessageSelector selector;
 
     public RMQSqlConsumer(String nsAddr, String topic, MessageSelector selector,

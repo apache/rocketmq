@@ -21,7 +21,9 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -30,7 +32,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
 public class MQAdmin {
-    private static Logger log = Logger.getLogger(MQAdmin.class);
+    private static Logger log = LogManager.getLogger(MQAdmin.class);
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
         int queueNum) {

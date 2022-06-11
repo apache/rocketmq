@@ -21,7 +21,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
@@ -35,7 +37,7 @@ import org.apache.rocketmq.test.util.RandomUtil;
 import org.apache.rocketmq.test.util.TestUtil;
 
 public class RMQAsyncSendProducer extends AbstractMQProducer {
-    private static Logger logger = Logger
+    private static Logger logger = LogManager
         .getLogger(RMQAsyncSendProducer.class);
     private String nsAddr = null;
     private DefaultMQProducer producer = null;

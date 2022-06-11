@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.TransactionListener;
@@ -28,7 +29,7 @@ import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.sendresult.ResultWrapper;
 
 public class RMQTransactionalProducer extends AbstractMQProducer {
-    private static Logger logger  = Logger.getLogger(RMQTransactionalProducer.class);
+    private static Logger logger  = LogManager.getLogger(RMQTransactionalProducer.class);
     private TransactionMQProducer producer = null;
     private String nsAddr = null;
 

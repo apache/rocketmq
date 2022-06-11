@@ -20,7 +20,9 @@ package org.apache.rocketmq.test.client.producer.batch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -35,7 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class BatchSendIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LogManager.getLogger(TagMessageWith1ConsumerIT.class);
     private String topic = null;
     private Random random = new Random();
 

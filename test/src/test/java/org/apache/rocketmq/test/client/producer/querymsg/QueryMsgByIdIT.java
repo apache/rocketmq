@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.producer.querymsg;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.base.BaseConf;
@@ -34,7 +35,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class QueryMsgByIdIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(QueryMsgByIdIT.class);
+    private static Logger logger = LogManager.getLogger(QueryMsgByIdIT.class);
     private RMQNormalProducer producer = null;
     private RMQNormalConsumer consumer = null;
     private String topic = null;

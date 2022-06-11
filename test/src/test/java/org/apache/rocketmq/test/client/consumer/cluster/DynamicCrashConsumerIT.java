@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.consumer.cluster;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.balance.NormalMsgStaticBalanceIT;
 import org.apache.rocketmq.test.client.mq.MQAsyncProducer;
@@ -33,7 +34,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class DynamicCrashConsumerIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(NormalMsgStaticBalanceIT.class);
+    private static Logger logger = LogManager.getLogger(NormalMsgStaticBalanceIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 

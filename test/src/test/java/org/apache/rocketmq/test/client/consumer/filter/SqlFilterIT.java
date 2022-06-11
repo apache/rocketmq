@@ -22,7 +22,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -42,7 +44,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class SqlFilterIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(SqlFilterIT.class);
+    private static Logger logger = LogManager.getLogger(SqlFilterIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
     private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();

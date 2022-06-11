@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.smoke;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -31,7 +32,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class NormalMessageSendAndRecvIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(NormalMessageSendAndRecvIT.class);
+    private static Logger logger = LogManager.getLogger(NormalMessageSendAndRecvIT.class);
     private RMQNormalConsumer consumer = null;
     private RMQNormalProducer producer = null;
     private String topic = null;

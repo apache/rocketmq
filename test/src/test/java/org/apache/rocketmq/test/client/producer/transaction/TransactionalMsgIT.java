@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.producer.transaction;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.Pair;
@@ -38,7 +39,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TransactionalMsgIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TransactionalMsgIT.class);
+    private static Logger logger = LogManager.getLogger(TransactionalMsgIT.class);
     private RMQTransactionalProducer producer = null;
     private RMQNormalConsumer consumer = null;
     private String topic = null;
