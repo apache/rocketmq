@@ -1394,7 +1394,10 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long getConfirmOffset() {
         if (this.brokerConfig.isEnableControllerMode()) {
-            return ((AutoSwitchHAService)this.haService).getConfirmOffset();
+            long confirmOffset = ((AutoSwitchHAService)this.haService).getConfirmOffset();
+            if (confirmOffset > 0) {
+                return confirmOffset;
+            }
         }
         return this.commitLog.getConfirmOffset();
     }

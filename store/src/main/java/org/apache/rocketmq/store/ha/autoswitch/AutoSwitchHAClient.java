@@ -189,6 +189,10 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return this.currentState;
     }
 
+    public long getConfirmOffset() {
+        return confirmOffset;
+    }
+
     @Override public void changeCurrentState(HAConnectionState haConnectionState) {
         LOGGER.info("change state to {}", haConnectionState);
         this.currentState = haConnectionState;

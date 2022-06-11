@@ -37,6 +37,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
@@ -115,7 +116,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.epochCache.appendEntry(newEpochEntry);
 
         this.defaultMessageStore.recoverTopicQueueTable();
-
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
         return true;
     }
@@ -220,14 +220,21 @@ public class AutoSwitchHAService extends DefaultHAService {
      * Get confirm offset (min slaveAckOffset of all syncStateSet members)
      */
     public long getConfirmOffset() {
-        final Set<String> currentSyncStateSet = getSyncStateSet();
-        long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
-        for (HAConnection connection : this.connectionList) {
-            if (currentSyncStateSet.contains(connection.getClientAddress())) {
-                confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
+        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SYNC_MASTER) {
+            final Set<String> currentSyncStateSet = getSyncStateSet();
+            long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
+            for (HAConnection connection : this.connectionList) {
+                if (currentSyncStateSet.contains(connection.getClientAddress())) {
+                    confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
+                }
+            }
+            return confirmOffset;
+        } else {
+            if (this.haClient != null) {
+                return this.haClient.getConfirmOffset();
             }
         }
-        return confirmOffset;
+        return -1;
     }
 
     public synchronized void setSyncStateSet(final Set<String> syncStateSet) {
