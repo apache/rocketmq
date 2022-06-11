@@ -157,6 +157,15 @@ public class ReplicasInfoManager {
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
             final BrokerInfo brokerInfo = this.replicaInfoTable.get(brokerName);
             final Set<String> syncStateSet = syncStateInfo.getSyncStateSet();
+            // First, check whether the master is still active
+            final String oldMaster = syncStateInfo.getMasterAddress();
+            if (StringUtils.isNoneEmpty(oldMaster) && brokerAlivePredicate.test(brokerInfo.getClusterName(), oldMaster)) {
+                String err = String.format("The old master %s is still alive, not need to elect new master for broker %s", oldMaster, brokerInfo.getBrokerName());
+                log.warn("{}", err);
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, err);
+                return result;
+            }
+
             // Try elect a master in syncStateSet
             if (syncStateSet.size() > 1) {
                 boolean electSuccess = tryElectMaster(result, brokerName, syncStateSet, (candidate) ->
