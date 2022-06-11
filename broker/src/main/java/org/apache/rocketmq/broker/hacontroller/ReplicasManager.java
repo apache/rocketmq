@@ -313,11 +313,8 @@ public class ReplicasManager {
                                 }
                             }
                         } else {
-                            // In this case, the master in controller is null, so try register to controller if this broker is in syncStateSet,
-                            // which will trigger the electMasterEvent in controller.
-                            if (syncStateSet.getSyncStateSet() != null && syncStateSet.getSyncStateSet().contains(this.localAddress)) {
-                                registerBrokerToController();
-                            }
+                            // In this case, the master in controller is null, try register to controller again, this will trigger the electMasterEvent in controller.
+                            registerBrokerToController();
                         }
                     } else if (newMasterEpoch == this.masterEpoch) {
                         // Check if sync state set changed
