@@ -53,10 +53,13 @@ public class AutoSwitchHAService extends DefaultHAService {
     private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
     private final CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
     private final ConcurrentHashMap<String, Long> connectionCaughtUpTimeTable = new ConcurrentHashMap<>();
+    private volatile long confirmOffset;
+
     private String localAddress;
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
+
 
     public AutoSwitchHAService() {
     }
@@ -221,20 +224,32 @@ public class AutoSwitchHAService extends DefaultHAService {
      */
     public long getConfirmOffset() {
         if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SYNC_MASTER) {
-            final Set<String> currentSyncStateSet = getSyncStateSet();
-            long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
-            for (HAConnection connection : this.connectionList) {
-                if (currentSyncStateSet.contains(connection.getClientAddress())) {
-                    confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
-                }
+            if (this.confirmOffset <= 0) {
+                this.confirmOffset = computeConfirmOffset();
             }
-            return confirmOffset;
-        } else {
-            if (this.haClient != null) {
-                return this.haClient.getConfirmOffset();
-            }
+            return this.confirmOffset;
+        } else if (this.haClient != null) {
+            return this.haClient.getConfirmOffset();
         }
         return -1;
+    }
+
+    public void updateConfirmOffsetWhenSlaveAck(final String slaveAddress) {
+        if (this.syncStateSet.contains(slaveAddress)) {
+            this.confirmOffset = computeConfirmOffset();
+        }
+    }
+
+    private long computeConfirmOffset() {
+        final Set<String> currentSyncStateSet = getSyncStateSet();
+        long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
+        for (HAConnection connection : this.connectionList) {
+            final String slaveAddress = ((AutoSwitchHAConnection)connection).getSlaveAddress();
+            if (currentSyncStateSet.contains(slaveAddress)) {
+                confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
+            }
+        }
+        return confirmOffset;
     }
 
     public synchronized void setSyncStateSet(final Set<String> syncStateSet) {
