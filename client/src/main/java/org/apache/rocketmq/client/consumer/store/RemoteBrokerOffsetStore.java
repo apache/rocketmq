@@ -82,9 +82,8 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                     AtomicLong offset = this.offsetTable.get(mq);
                     if (offset != null) {
                         return offset.get();
-                    } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
-                        return -1;
                     }
+                    return -1;
                 }
                 case READ_FROM_STORE: {
                     try {
