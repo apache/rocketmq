@@ -108,7 +108,7 @@ public class ReplicasInfoManagerTest {
     public void testElectMaster() {
         mockMetaData();
         final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
-        final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request, (va1, va2) -> true);
+        final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request, (clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"));
         final ElectMasterResponseHeader response = cResult.getResponse();
         assertEquals(response.getMasterEpoch(), 2);
         assertFalse(response.getNewMasterAddress().isEmpty());
@@ -125,7 +125,7 @@ public class ReplicasInfoManagerTest {
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
         final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
-        final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(electRequest, (va1, va2) -> true);
+        final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(electRequest, (clusterName, brokerAddress) -> !brokerAddress.equals("127.0.0.1:9000"));
         final List<EventMessage> events = cResult.getEvents();
         assertEquals(events.size(), 1);
         final ElectMasterEvent event = (ElectMasterEvent) events.get(0);

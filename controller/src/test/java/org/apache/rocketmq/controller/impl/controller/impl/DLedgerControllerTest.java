@@ -164,10 +164,22 @@ public class DLedgerControllerTest {
         return leader;
     }
 
+    public void setBrokerAlivePredicate(DLedgerController controller, String... deathBroker) {
+        controller.setBrokerAlivePredicate((clusterName, brokerAddress) -> {
+            for (String broker : deathBroker) {
+                if (broker.equals(brokerAddress)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
     @Test
     public void testElectMaster() throws Exception {
         final DLedgerController leader = mockMetaData(false);
         final ElectMasterRequestHeader request = new ElectMasterRequestHeader("broker1");
+        setBrokerAlivePredicate(leader, "127.0.0.1:9000");
         final RemotingCommand resp = leader.electMaster(request).get(10, TimeUnit.SECONDS);
         final ElectMasterResponseHeader response = (ElectMasterResponseHeader) resp.readCustomHeader();
         assertEquals(response.getMasterEpoch(), 2);
@@ -186,6 +198,7 @@ public class DLedgerControllerTest {
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {"127.0.0.1:9000"}, not more replicas can be elected as master, it will be failed.
         final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
+        setBrokerAlivePredicate(leader, "127.0.0.1:9000");
         leader.electMaster(electRequest).get(10, TimeUnit.SECONDS);
 
         final RemotingCommand resp = leader.getReplicaInfo(new GetReplicaInfoRequestHeader("broker1")).
@@ -225,6 +238,7 @@ public class DLedgerControllerTest {
         // However, event if the syncStateSet in statemachine is {"127.0.0.1:9000"}
         // the option {enableElectUncleanMaster = true}, so the controller sill can elect a new master
         final ElectMasterRequestHeader electRequest = new ElectMasterRequestHeader("broker1");
+        setBrokerAlivePredicate(leader, "127.0.0.1:9000");
         final CompletableFuture<RemotingCommand> future = leader.electMaster(electRequest);
         future.get(10, TimeUnit.SECONDS);
 

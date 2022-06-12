@@ -69,13 +69,13 @@ public class DLedgerController implements Controller {
     private final DLedgerServer dLedgerServer;
     private final ControllerConfig controllerConfig;
     private final DLedgerConfig dLedgerConfig;
-    // Usr for checking whether the broker is alive
-    private final BiPredicate<String, String> brokerAlivePredicate;
     private final ReplicasInfoManager replicasInfoManager;
     private final EventScheduler scheduler;
     private final EventSerializer eventSerializer;
     private final RoleChangeHandler roleHandler;
     private final DLedgerControllerStateMachine statemachine;
+    // Usr for checking whether the broker is alive
+    private BiPredicate<String, String> brokerAlivePredicate;
     private volatile boolean isScheduling = false;
 
     public DLedgerController(final ControllerConfig config, final BiPredicate<String, String> brokerAlivePredicate) {
@@ -215,6 +215,10 @@ public class DLedgerController implements Controller {
     // Only for test
     public MemberState getMemberState() {
         return this.dLedgerServer.getMemberState();
+    }
+
+    public void setBrokerAlivePredicate(BiPredicate<String, String> brokerAlivePredicate) {
+        this.brokerAlivePredicate = brokerAlivePredicate;
     }
 
     /**
