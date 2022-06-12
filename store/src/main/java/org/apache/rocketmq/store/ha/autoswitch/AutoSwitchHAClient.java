@@ -499,11 +499,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                         AutoSwitchHAClient.this.currentReceivedEpoch = masterEpoch;
                                         AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterEpochStartOffset));
                                     }
-                                    AutoSwitchHAClient.this.confirmOffset = Math.min(confirmOffset, messageStore.getMaxPhyOffset());
 
                                     if (bodySize > 0) {
                                         AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
                                     }
+                                    AutoSwitchHAClient.this.confirmOffset = Math.min(confirmOffset, messageStore.getMaxPhyOffset());
 
                                     if (!reportSlaveMaxOffset()) {
                                         LOGGER.error("AutoSwitchHAClient report max offset to master failed");

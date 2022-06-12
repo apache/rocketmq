@@ -2414,6 +2414,9 @@ public class DefaultMessageStore implements MessageStore {
             if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()) {
                 return this.reputFromOffset <= DefaultMessageStore.this.commitLog.getConfirmOffset();
             }
+            if (DefaultMessageStore.this.getBrokerConfig().isEnableControllerMode()) {
+                return this.reputFromOffset <= ((AutoSwitchHAService)DefaultMessageStore.this.haService).getConfirmOffset();
+            }
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
 

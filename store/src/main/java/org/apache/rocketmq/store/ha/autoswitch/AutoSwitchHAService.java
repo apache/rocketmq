@@ -224,6 +224,10 @@ public class AutoSwitchHAService extends DefaultHAService {
      */
     public long getConfirmOffset() {
         if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SYNC_MASTER) {
+            if (this.syncStateSet.size() == 1) {
+                return this.defaultMessageStore.getMaxPhyOffset();
+            }
+            // First time compute confirmOffset.
             if (this.confirmOffset <= 0) {
                 this.confirmOffset = computeConfirmOffset();
             }
@@ -255,6 +259,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     public synchronized void setSyncStateSet(final Set<String> syncStateSet) {
         this.syncStateSet.clear();
         this.syncStateSet.addAll(syncStateSet);
+        this.confirmOffset = computeConfirmOffset();
     }
 
     public synchronized Set<String> getSyncStateSet() {
