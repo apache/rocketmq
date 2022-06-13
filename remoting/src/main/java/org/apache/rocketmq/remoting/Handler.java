@@ -22,9 +22,33 @@ import java.util.concurrent.CompletableFuture;
 
 public interface Handler {
 
+    /**
+     * Execute the first half of the handler when an incoming request is being sent(client-side) or received(server-side).
+     *
+     * @param context The handler context
+     *
+     * @param request The request
+     *
+     * @param responseFuture If the handler aborts further processing, use it to feed response.
+     *
+     * @return {@link Decision#CONTINUE} if the current handler passes OK and follow-up handlers should execute as
+     * normal; {@link Decision#STOP} if the request failed some preconditions. The handler implementation should generate
+     * and feed a response command representing the failure into <code>responseFuture</code>.
+     */
     Decision preHandle(final HandlerContext context, final RemotingCommand request,
                        final CompletableFuture<RemotingCommand> responseFuture);
 
+    /**
+     * Execute the post half of the handler when response is generated(server-side) or received(client-side).
+     *
+     * @param context The handler context.
+     *
+     * @param request The request
+     *
+     * @param response Response generated or received. Handlers may modify it according to application requirement.
+     *
+     * @return {@link Decision#CONTINUE} if follow-up handlers should execute; {@link Decision#STOP} otherwise.
+     */
     Decision postHandle(final HandlerContext context, final RemotingCommand request, final RemotingCommand response);
 
 }

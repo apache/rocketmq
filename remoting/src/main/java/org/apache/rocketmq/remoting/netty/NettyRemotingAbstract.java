@@ -45,6 +45,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.Decision;
 import org.apache.rocketmq.remoting.Handler;
+import org.apache.rocketmq.remoting.HandlerAdaptor;
 import org.apache.rocketmq.remoting.HandlerContext;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -102,12 +103,6 @@ public abstract class NettyRemotingAbstract {
      * SSL context via which to create {@link SslHandler}.
      */
     protected volatile SslContext sslContext;
-
-    /**
-     * custom rpc hooks
-     */
-    @Deprecated
-    protected List<RPCHook> rpcHooks = new ArrayList<RPCHook>();
 
     /**
      * Pluggable RPC handlers
@@ -199,25 +194,6 @@ public abstract class NettyRemotingAbstract {
         return decision;
     }
 
-
-    @Deprecated
-    protected void doBeforeRpcHooks(String addr, RemotingCommand request) {
-        if (rpcHooks.size() > 0) {
-            for (RPCHook rpcHook : rpcHooks) {
-                rpcHook.doBeforeRequest(addr, request);
-            }
-        }
-    }
-
-    @Deprecated
-    protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response) {
-        if (rpcHooks.size() > 0) {
-            for (RPCHook rpcHook : rpcHooks) {
-                rpcHook.doAfterResponse(addr, request, response);
-            }
-        }
-    }
-
     protected Decision postHandle(final HandlerContext context, final RemotingCommand request, final RemotingCommand response) {
         Decision decision = Decision.CONTINUE;
         for (Handler handler : handlers) {
@@ -232,6 +208,9 @@ public abstract class NettyRemotingAbstract {
         return decision;
     }
 
+    public void registerRPCHook(RPCHook rpcHook) {
+        handlers.add(new HandlerAdaptor(rpcHook));
+    }
 
     /**
      * Process incoming request command issued by remote peer.
@@ -250,7 +229,8 @@ public abstract class NettyRemotingAbstract {
                 public void run() {
                     try {
                         String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                        final HandlerContext handlerContext = new HandlerContextAdaptor();
+                        final HandlerContextAdaptor handlerContext = new HandlerContextAdaptor();
+                        handlerContext.setPeerAddress(remoteAddr);
                         final CompletableFuture<RemotingCommand> responseFuture = new CompletableFuture<>();
                         if (Decision.STOP == NettyRemotingAbstract.this.preHandle(handlerContext, cmd, responseFuture)) {
                             if (cmd.isOnewayRPC()) {
@@ -272,17 +252,12 @@ public abstract class NettyRemotingAbstract {
                             ctx.writeAndFlush(response);
                             return;
                         }
-                        // TODO: Remove the following line when RPC Hook reaches end of life.
-                        doBeforeRpcHooks(remoteAddr, cmd);
 
                         final RemotingResponseCallback callback = response -> {
                             Decision decision = postHandle(handlerContext, cmd, response);
                             if (Decision.STOP == decision) {
                                 log.info("One or more Handler stopped post handler chain prematurely");
                             }
-
-                            // TODO: Remove the following line when RPC Hook reaches end of life.
-                            doAfterRpcHooks(remoteAddr, cmd, response);
 
                             if (null != response) {
                                 response.setOpaque(cmd.getOpaque());
@@ -392,6 +367,12 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    private Decision executePostHandler(final ResponseFuture future) {
+        HandlerContextAdaptor handlerContext = new HandlerContextAdaptor();
+        handlerContext.setPeerAddress(RemotingHelper.parseChannelRemoteAddr(future.getProcessChannel()));
+        return postHandle(handlerContext, future.getRequest(), future.getResponseCommand());
+    }
+
     /**
      * Execute callback in callback executor. If callback executor is null, run directly in current thread
      */
@@ -404,6 +385,9 @@ public abstract class NettyRemotingAbstract {
                     @Override
                     public void run() {
                         try {
+                            if (Decision.STOP == executePostHandler(responseFuture)) {
+                                log.warn("Handler chain stopped");
+                            }
                             responseFuture.executeInvokeCallback();
                         } catch (Throwable e) {
                             log.warn("execute callback in executor exception, and callback throw", e);
@@ -422,6 +406,9 @@ public abstract class NettyRemotingAbstract {
 
         if (runInThisThread) {
             try {
+                if (Decision.STOP == executePostHandler(responseFuture)) {
+                    log.warn("Handler chain stopped");
+                }
                 responseFuture.executeInvokeCallback();
             } catch (Throwable e) {
                 log.warn("executeInvokeCallback Exception", e);
@@ -429,28 +416,6 @@ public abstract class NettyRemotingAbstract {
                 responseFuture.release();
             }
         }
-    }
-
-
-    /**
-     * Custom RPC hook.
-     * Just be compatible with the previous version, use getRPCHooks instead.
-     */
-    @Deprecated
-    protected RPCHook getRPCHook() {
-        if (rpcHooks.size() > 0) {
-            return rpcHooks.get(0);
-        }
-        return null;
-    }
-
-    /**
-     * Custom RPC hooks.
-     *
-     * @return RPC hooks if specified; null otherwise.
-     */
-    public List<RPCHook> getRPCHooks() {
-        return rpcHooks;
     }
 
 
@@ -497,7 +462,7 @@ public abstract class NettyRemotingAbstract {
         final int opaque = request.getOpaque();
 
         try {
-            final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
+            final ResponseFuture responseFuture = new ResponseFuture(channel, request, timeoutMillis, null, null);
             this.responseTable.put(opaque, responseFuture);
             final SocketAddress addr = channel.remoteAddress();
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
@@ -547,7 +512,7 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingTimeoutException("invokeAsyncImpl call timeout");
             }
 
-            final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis - costTime, invokeCallback, once);
+            final ResponseFuture responseFuture = new ResponseFuture(channel, request, timeoutMillis - costTime, invokeCallback, once);
             this.responseTable.put(opaque, responseFuture);
             try {
                 channel.writeAndFlush(request).addListener(new ChannelFutureListener() {

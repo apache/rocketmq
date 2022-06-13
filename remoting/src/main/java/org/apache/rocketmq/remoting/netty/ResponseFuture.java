@@ -24,9 +24,14 @@ import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * TODO: Rename this class to InvocationContext to better represent its semantics.
+ */
 public class ResponseFuture {
-    private final int opaque;
     private final Channel processChannel;
+
+    private final RemotingCommand request;
+
     private final long timeoutMillis;
     private final InvokeCallback invokeCallback;
     private final long beginTimestamp = System.currentTimeMillis();
@@ -39,9 +44,9 @@ public class ResponseFuture {
     private volatile boolean sendRequestOK = true;
     private volatile Throwable cause;
 
-    public ResponseFuture(Channel channel, int opaque, long timeoutMillis, InvokeCallback invokeCallback,
+    public ResponseFuture(Channel channel, RemotingCommand request, long timeoutMillis, InvokeCallback invokeCallback,
         SemaphoreReleaseOnlyOnce once) {
-        this.opaque = opaque;
+        this.request = request;
         this.processChannel = channel;
         this.timeoutMillis = timeoutMillis;
         this.invokeCallback = invokeCallback;
@@ -114,7 +119,11 @@ public class ResponseFuture {
     }
 
     public int getOpaque() {
-        return opaque;
+        return request.getOpaque();
+    }
+
+    public RemotingCommand getRequest() {
+        return request;
     }
 
     public Channel getProcessChannel() {
@@ -126,7 +135,7 @@ public class ResponseFuture {
         return "ResponseFuture [responseCommand=" + responseCommand
             + ", sendRequestOK=" + sendRequestOK
             + ", cause=" + cause
-            + ", opaque=" + opaque
+            + ", opaque=" + request.getOpaque()
             + ", processChannel=" + processChannel
             + ", timeoutMillis=" + timeoutMillis
             + ", invokeCallback=" + invokeCallback

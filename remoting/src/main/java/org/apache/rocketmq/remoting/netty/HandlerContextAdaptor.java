@@ -19,4 +19,14 @@ package org.apache.rocketmq.remoting.netty;
 import org.apache.rocketmq.remoting.HandlerContext;
 
 public class HandlerContextAdaptor implements HandlerContext {
+    private String peerAddress;
+
+    @Override
+    public String peerAddress() {
+        return this.peerAddress;
+    }
+
+    public void setPeerAddress(String peerAddress) {
+        this.peerAddress = peerAddress;
+    }
 }

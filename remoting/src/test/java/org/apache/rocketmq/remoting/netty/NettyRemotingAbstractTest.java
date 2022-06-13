@@ -37,7 +37,10 @@ public class NettyRemotingAbstractTest {
     @Test
     public void testProcessResponseCommand() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
-        ResponseFuture responseFuture = new ResponseFuture(null,1, 3000, new InvokeCallback() {
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
+        request.setOpaque(1);
+        ResponseFuture responseFuture = new ResponseFuture(null,request, 3000, new InvokeCallback() {
             @Override
             public void operationComplete(final ResponseFuture responseFuture) {
                 assertThat(semaphore.availablePermits()).isEqualTo(0);
@@ -58,7 +61,9 @@ public class NettyRemotingAbstractTest {
     @Test
     public void testProcessResponseCommand_NullCallBack() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
-        ResponseFuture responseFuture = new ResponseFuture(null,1, 3000, null,
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
+        request.setOpaque(1);
+        ResponseFuture responseFuture = new ResponseFuture(null,request, 3000, null,
             new SemaphoreReleaseOnlyOnce(semaphore));
 
         remotingAbstract.responseTable.putIfAbsent(1, responseFuture);
@@ -72,8 +77,10 @@ public class NettyRemotingAbstractTest {
 
     @Test
     public void testProcessResponseCommand_RunCallBackInCurrentThread() throws InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
+        request.setOpaque(1);
         final Semaphore semaphore = new Semaphore(0);
-        ResponseFuture responseFuture = new ResponseFuture(null,1, 3000, new InvokeCallback() {
+        ResponseFuture responseFuture = new ResponseFuture(null,request, 3000, new InvokeCallback() {
             @Override
             public void operationComplete(final ResponseFuture responseFuture) {
                 assertThat(semaphore.availablePermits()).isEqualTo(0);
@@ -94,9 +101,11 @@ public class NettyRemotingAbstractTest {
 
     @Test
     public void testScanResponseTable() {
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
         int dummyId = 1;
+        request.setOpaque(dummyId);
         // mock timeout
-        ResponseFuture responseFuture = new ResponseFuture(null, dummyId, -1000, new InvokeCallback() {
+        ResponseFuture responseFuture = new ResponseFuture(null, request, -1000, new InvokeCallback() {
             @Override
             public void operationComplete(final ResponseFuture responseFuture) {
             }

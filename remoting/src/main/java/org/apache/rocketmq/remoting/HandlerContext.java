@@ -17,4 +17,12 @@
 package org.apache.rocketmq.remoting;
 
 public interface HandlerContext {
+
+    /**
+     * Address of the peer endpoint.
+     *
+     * @return Peer address.
+     */
+    String peerAddress();
+
 }
