@@ -37,6 +37,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
@@ -52,10 +53,13 @@ public class AutoSwitchHAService extends DefaultHAService {
     private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
     private final CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
     private final ConcurrentHashMap<String, Long> connectionCaughtUpTimeTable = new ConcurrentHashMap<>();
+    private volatile long confirmOffset;
+
     private String localAddress;
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
+
 
     public AutoSwitchHAService() {
     }
@@ -115,7 +119,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.epochCache.appendEntry(newEpochEntry);
 
         this.defaultMessageStore.recoverTopicQueueTable();
-
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
         return true;
     }
@@ -220,10 +223,33 @@ public class AutoSwitchHAService extends DefaultHAService {
      * Get confirm offset (min slaveAckOffset of all syncStateSet members)
      */
     public long getConfirmOffset() {
+        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SYNC_MASTER) {
+            if (this.syncStateSet.size() == 1) {
+                return this.defaultMessageStore.getMaxPhyOffset();
+            }
+            // First time compute confirmOffset.
+            if (this.confirmOffset <= 0) {
+                this.confirmOffset = computeConfirmOffset();
+            }
+            return this.confirmOffset;
+        } else if (this.haClient != null) {
+            return this.haClient.getConfirmOffset();
+        }
+        return -1;
+    }
+
+    public void updateConfirmOffsetWhenSlaveAck(final String slaveAddress) {
+        if (this.syncStateSet.contains(slaveAddress)) {
+            this.confirmOffset = computeConfirmOffset();
+        }
+    }
+
+    private long computeConfirmOffset() {
         final Set<String> currentSyncStateSet = getSyncStateSet();
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
         for (HAConnection connection : this.connectionList) {
-            if (currentSyncStateSet.contains(connection.getClientAddress())) {
+            final String slaveAddress = ((AutoSwitchHAConnection)connection).getSlaveAddress();
+            if (currentSyncStateSet.contains(slaveAddress)) {
                 confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
             }
         }
@@ -233,6 +259,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     public synchronized void setSyncStateSet(final Set<String> syncStateSet) {
         this.syncStateSet.clear();
         this.syncStateSet.addAll(syncStateSet);
+        this.confirmOffset = computeConfirmOffset();
     }
 
     public synchronized Set<String> getSyncStateSet() {
