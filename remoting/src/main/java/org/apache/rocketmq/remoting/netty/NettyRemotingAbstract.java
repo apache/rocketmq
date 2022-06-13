@@ -209,7 +209,9 @@ public abstract class NettyRemotingAbstract {
     }
 
     public void registerRPCHook(RPCHook rpcHook) {
-        handlers.add(new HandlerAdaptor(rpcHook));
+        if (null != rpcHook) {
+            handlers.add(new HandlerAdaptor(rpcHook));
+        }
     }
 
     public void registerHandler(Handler handler) {
