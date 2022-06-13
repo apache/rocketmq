@@ -180,7 +180,7 @@ public class AutoSwitchHATest {
         for (int i = 0; i < totalPutMessageNums; i++) {
             master.putMessage(buildMessage());
         }
-        Thread.sleep(200);
+        Thread.sleep(1000);
     }
 
     private void checkMessage(final DefaultMessageStore messageStore, int totalMsgs, int startOffset) {
