@@ -23,4 +23,21 @@ public interface RemotingService {
     void shutdown();
 
     void registerRPCHook(RPCHook rpcHook);
+
+    /**
+     * Register a handler
+     * <ul>
+     *     <li>
+     *         To execute before sending requests(in perspective of clients) or before invoking corresponding processor
+     *         (in server perspective);
+     *     </li>
+     *     <li>
+     *         To execute after receiving responses(in perspective of clients) or after server processors' generation
+     *         of responses.
+     *     </li>
+     * </ul>
+     *
+     * @param handler Handler to add.
+     */
+    void registerHandler(Handler handler);
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting;
 
-import com.google.common.base.Preconditions;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
@@ -29,7 +28,9 @@ public class HandlerAdaptor implements Handler {
     private final RPCHook rpcHook;
 
     public HandlerAdaptor(RPCHook rpcHook) {
-        Preconditions.checkNotNull(rpcHook, "RpcHook should not null");
+        if (null == rpcHook) {
+            throw new RuntimeException("RpcHook may not be null");
+        }
         this.rpcHook = rpcHook;
     }
 

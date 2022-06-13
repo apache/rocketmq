@@ -212,6 +212,10 @@ public abstract class NettyRemotingAbstract {
         handlers.add(new HandlerAdaptor(rpcHook));
     }
 
+    public void registerHandler(Handler handler) {
+        handlers.add(handler);
+    }
+
     /**
      * Process incoming request command issued by remote peer.
      *

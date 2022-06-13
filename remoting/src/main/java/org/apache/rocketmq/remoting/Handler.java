@@ -20,6 +20,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * <strong>Thread Safety Requirement</strong>
+ *
+ * This handler will be invoked concurrently and its implementations are required to be thread-safe.
+ */
 public interface Handler {
 
     /**
