@@ -258,7 +258,6 @@ public class AutoSwitchHATest {
         messageStore2.getHaService().changeToSlave("", 1, 2L);
         messageStore2.getHaService().updateHaMasterAddress(store1HaAddress);
         Thread.sleep(6000);
-
         // Put message on master
         for (int i = 0; i < 10; i++) {
             messageStore1.putMessage(buildMessage());
