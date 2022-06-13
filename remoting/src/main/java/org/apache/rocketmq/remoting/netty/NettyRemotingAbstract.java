@@ -180,7 +180,7 @@ public abstract class NettyRemotingAbstract {
     }
 
 
-    //Need to be discussed
+   /* //Need to be discussed
     private Decision preHandle(final HandlerContext context, final RemotingCommand request,
                                  final CompletableFuture<RemotingCommand> responseFuture) {
         Decision decision = Decision.CONTINUE;
@@ -200,25 +200,34 @@ public abstract class NettyRemotingAbstract {
             }
         }
         return decision;
+    }*/
+
+    protected void doBeforeRpcHooks(String addr, RemotingCommand request) {
+        doBeforeRpcHooks(addr, request, null);
     }
 
 
-    protected void doBeforeRpcHooks(String addr, RemotingCommand request) {
+    protected void doBeforeRpcHooks(String addr, RemotingCommand request, HandlerContext handlerContext) {
         if (rpcHooks.size() > 0) {
             for (RPCHook rpcHook : rpcHooks) {
                 try {
+                    if (handlerContext != null
+                        && rpcHook instanceof AbstractRpcHook) {
+                        ((AbstractRpcHook) rpcHook).setContext(handlerContext);
+                    }
                     rpcHook.doBeforeRequest(addr, request);
                 } catch (Throwable e) {
                     RemotingCommand response  = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
                         e.getMessage());
                     response.setOpaque(request.getOpaque());
-                    if (rpcHook instanceof AbstractRpcHook) {
-                        ((AbstractRpcHook) rpcHook).getContext().setDecision(Decision.STOP);
-                        ((AbstractRpcHook) rpcHook).getContext().getResponseFuture().complete(response);
+                    if (handlerContext != null) {
+                        handlerContext.setDecision(Decision.STOP);
+                        handlerContext.getResponseFuture().complete(response);
                     }
                 }
-                if (rpcHook instanceof AbstractRpcHook
-                    && ((AbstractRpcHook) rpcHook).getContext().getDecision() == Decision.STOP) {
+
+                if (handlerContext != null
+                    && handlerContext.getDecision() == Decision.STOP) {
                     break;
                 }
             }
@@ -226,21 +235,30 @@ public abstract class NettyRemotingAbstract {
     }
 
     protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response) {
+        doAfterRpcHooks(addr, request, response, null);
+    }
+
+
+    protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response, HandlerContext handlerContext) {
         if (rpcHooks.size() > 0) {
             for (RPCHook rpcHook : rpcHooks) {
                 try {
+                    if (handlerContext != null
+                        && rpcHook instanceof AbstractRpcHook) {
+                        ((AbstractRpcHook) rpcHook).setContext(handlerContext);
+                    }
                     rpcHook.doAfterResponse(addr, request, response);
                 } catch (Throwable ignore) {
                 }
-                if (rpcHook instanceof AbstractRpcHook
-                    && ((AbstractRpcHook) rpcHook).getContext().getDecision() == Decision.STOP) {
+                if (handlerContext != null
+                    && handlerContext.getDecision() == Decision.STOP) {
                     break;
                 }
             }
         }
     }
 
-    //Need to be discussed
+    /*//Need to be discussed
     private Decision postHandle(final HandlerContext context, final RemotingCommand request, final RemotingCommand response) {
         Decision decision = Decision.CONTINUE;
         for (Handler handler : handlers) {
@@ -253,7 +271,7 @@ public abstract class NettyRemotingAbstract {
             }
         }
         return decision;
-    }
+    }*/
 
 
     /**
@@ -296,7 +314,7 @@ public abstract class NettyRemotingAbstract {
                             return;
                         }*/
                         // TODO: Remove the following line when RPC Hook reaches end of life.
-                        doBeforeRpcHooks(remoteAddr, cmd);
+                        doBeforeRpcHooks(remoteAddr, cmd, handlerContext);
 
                         if (Decision.STOP == handlerContext.getDecision()) {
                             if (cmd.isOnewayRPC()) {
@@ -325,8 +343,7 @@ public abstract class NettyRemotingAbstract {
                                 log.info("One or more Handler stopped post handler chain prematurely");
                             }
 */
-                            // TODO: Remove the following line when RPC Hook reaches end of life.
-                            doAfterRpcHooks(remoteAddr, cmd, response);
+                            doAfterRpcHooks(remoteAddr, cmd, response, handlerContext);
                             if (Decision.STOP == handlerContext.getDecision()) {
                                 log.info("One or more Handler stopped post handler chain prematurely");
                             }
