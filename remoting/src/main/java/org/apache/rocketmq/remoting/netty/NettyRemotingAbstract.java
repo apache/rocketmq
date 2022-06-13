@@ -184,7 +184,12 @@ public abstract class NettyRemotingAbstract {
         for (Handler handler : handlers) {
             try {
                 decision = handler.preHandle(context, request, responseFuture);
-            } catch (Throwable ignore) {
+            } catch (Throwable e) {
+                RemotingCommand response  = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                    e.getMessage());
+                response.setOpaque(request.getOpaque());
+                responseFuture.complete(response);
+                decision = Decision.STOP;
             }
 
             if (Decision.STOP == decision) {
