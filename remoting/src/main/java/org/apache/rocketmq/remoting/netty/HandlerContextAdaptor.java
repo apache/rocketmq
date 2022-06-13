@@ -16,7 +16,31 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import org.apache.rocketmq.remoting.Decision;
 import org.apache.rocketmq.remoting.HandlerContext;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class HandlerContextAdaptor implements HandlerContext {
+
+    private final Decision decision;
+
+    private final CompletableFuture<RemotingCommand> responseFuture;
+
+    public HandlerContextAdaptor(Decision decision,
+        CompletableFuture<RemotingCommand> responseFuture) {
+        this.decision = decision;
+        this.responseFuture = responseFuture;
+    }
+
+    @Override
+    public Decision getDecision() {
+        return decision;
+    }
+
+    @Override
+    public Future<RemotingCommand> getResponseFuture() {
+        return responseFuture;
+    }
 }

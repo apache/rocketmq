@@ -16,5 +16,20 @@
  */
 package org.apache.rocketmq.remoting;
 
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
 public interface HandlerContext {
+    default Decision getDecision()  {
+        return null;
+    }
+
+    default void setDecision(Decision decision) {
+
+    }
+
+
+    default CompletableFuture<RemotingCommand> getResponseFuture() {
+        return null;
+    }
 }
