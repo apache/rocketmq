@@ -231,6 +231,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 
         CompletableFuture<PutMessageResult> putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
+
         return putMessageResult.thenApplyAsync((r) -> {
             if (r != null) {
                 switch (r.getPutMessageStatus()) {
@@ -314,7 +315,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         CompletableFuture<PutMessageResult> putMessageResult = null;
         String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        if (transFlag != null && Boolean.parseBoolean(transFlag)) {
+        if (Boolean.parseBoolean(transFlag)) {
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
@@ -445,7 +446,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         PutMessageResult putMessageResult = null;
         Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        if (traFlag != null && Boolean.parseBoolean(traFlag)
+        if (Boolean.parseBoolean(traFlag)
             && !(msgInner.getReconsumeTimes() > 0 && msgInner.getDelayTimeLevel() > 0)) { //For client under version 4.6.1
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);

@@ -37,6 +37,7 @@ import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
 import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
+import org.apache.rocketmq.tools.command.broker.DeleteExpiredCommitLogSubCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
@@ -72,6 +73,7 @@ import org.apache.rocketmq.tools.command.namesrv.WipeWritePermSubCommand;
 import org.apache.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import org.apache.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import org.apache.rocketmq.tools.command.offset.SkipAccumulationSubCommand;
+import org.apache.rocketmq.tools.command.producer.ProducerSubCommand;
 import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
@@ -184,6 +186,8 @@ public class MQAdminStartup {
         initCommand(new ConsumerProgressSubCommand());
         initCommand(new ConsumerStatusSubCommand());
         initCommand(new CloneGroupOffsetCommand());
+        //for producer
+        initCommand(new ProducerSubCommand());
 
         initCommand(new ClusterListSubCommand());
         initCommand(new TopicListSubCommand());
@@ -198,6 +202,7 @@ public class MQAdminStartup {
 
         initCommand(new UpdateOrderConfCommand());
         initCommand(new CleanExpiredCQSubCommand());
+        initCommand(new DeleteExpiredCommitLogSubCommand());
         initCommand(new CleanUnusedTopicCommand());
 
         initCommand(new StartMonitoringSubCommand());
