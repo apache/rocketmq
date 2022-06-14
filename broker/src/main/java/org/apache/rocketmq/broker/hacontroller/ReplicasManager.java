@@ -147,7 +147,8 @@ public class ReplicasManager {
         this.scheduledService.shutdown();
     }
 
-    public synchronized void changeBrokerRole(final String newMasterAddress, final int newMasterEpoch, final int syncStateSetEpoch, final long brokerId) {
+    public synchronized void changeBrokerRole(final String newMasterAddress, final int newMasterEpoch,
+        final int syncStateSetEpoch, final long brokerId) {
         if (StringUtils.isNoneEmpty(newMasterAddress) && newMasterEpoch > this.masterEpoch) {
             if (StringUtils.equals(newMasterAddress, this.localAddress)) {
                 changeToMaster(newMasterEpoch, syncStateSetEpoch);
@@ -170,7 +171,6 @@ public class ReplicasManager {
                 final HashSet<String> newSyncStateSet = new HashSet<>();
                 newSyncStateSet.add(this.localAddress);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
-                schedulingCheckSyncStateSet();
 
                 // Handle the slave synchronise
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
@@ -181,6 +181,8 @@ public class ReplicasManager {
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
                 this.brokerController.changeSpecialServiceStatus(true);
+
+                schedulingCheckSyncStateSet();
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv

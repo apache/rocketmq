@@ -424,9 +424,8 @@ public class DLedgerController implements Controller {
                             } catch (final Throwable e) {
                                 log.error("Error happen when controller leader append initial request to dledger", e);
                                 tryTimes++;
-                                if (tryTimes > 2) {
+                                if (tryTimes % 3 == 0) {
                                     log.warn("Controller leader append initial log failed too many times, please wait a while");
-                                    tryTimes = 0;
                                 }
                             }
                         }

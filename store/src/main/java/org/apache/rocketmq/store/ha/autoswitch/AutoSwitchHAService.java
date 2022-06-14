@@ -53,13 +53,12 @@ public class AutoSwitchHAService extends DefaultHAService {
     private final List<Consumer<Set<String>>> syncStateSetChangedListeners = new ArrayList<>();
     private final CopyOnWriteArraySet<String> syncStateSet = new CopyOnWriteArraySet<>();
     private final ConcurrentHashMap<String, Long> connectionCaughtUpTimeTable = new ConcurrentHashMap<>();
-    private volatile long confirmOffset;
+    private volatile long confirmOffset = -1;
 
     private String localAddress;
 
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
-
 
     public AutoSwitchHAService() {
     }
@@ -107,6 +106,9 @@ public class AutoSwitchHAService extends DefaultHAService {
 
         // Truncate dirty file
         final long truncateOffset = truncateInvalidMsg();
+
+        updateConfirmOffset(computeConfirmOffset());
+
         if (truncateOffset >= 0) {
             this.epochCache.truncateSuffixByOffset(truncateOffset);
         }
@@ -117,6 +119,17 @@ public class AutoSwitchHAService extends DefaultHAService {
             this.epochCache.truncateSuffixByEpoch(masterEpoch);
         }
         this.epochCache.appendEntry(newEpochEntry);
+
+        // Waiting consume queue dispatch
+        while (defaultMessageStore.dispatchBehindBytes() > 0) {
+            try {
+                Thread.sleep(100);
+            } catch (Exception ignored) {
+
+            }
+        }
+
+        LOGGER.info("TruncateOffset is {}, confirmOffset is {}, maxPhyOffset is {}", truncateOffset, getConfirmOffset(), this.defaultMessageStore.getMaxPhyOffset());
 
         this.defaultMessageStore.recoverTopicQueueTable();
         LOGGER.info("Change ha to master success, newMasterEpoch:{}, startOffset:{}", masterEpoch, newEpochEntry.getStartOffset());
@@ -193,7 +206,6 @@ public class AutoSwitchHAService extends DefaultHAService {
         return newSyncStateSet;
     }
 
-
     /**
      * Check and maybe add the slave to inSyncStateSet. A slave will be added to inSyncStateSet if its slaveMaxOffset >=
      * current confirmOffset, and it is caught up to an offset within the current leader epoch.
@@ -220,10 +232,10 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     /**
-     * Get confirm offset (min slaveAckOffset of all syncStateSet members)
+     * Get confirm offset (min slaveAckOffset of all syncStateSet members) for master
      */
     public long getConfirmOffset() {
-        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SYNC_MASTER) {
+        if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
             if (this.syncStateSet.size() == 1) {
                 return this.defaultMessageStore.getMaxPhyOffset();
             }
@@ -231,11 +243,8 @@ public class AutoSwitchHAService extends DefaultHAService {
             if (this.confirmOffset <= 0) {
                 this.confirmOffset = computeConfirmOffset();
             }
-            return this.confirmOffset;
-        } else if (this.haClient != null) {
-            return this.haClient.getConfirmOffset();
         }
-        return -1;
+        return confirmOffset;
     }
 
     public void updateConfirmOffsetWhenSlaveAck(final String slaveAddress) {
@@ -244,11 +253,15 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
     }
 
+    public void updateConfirmOffset(long confirmOffset) {
+        this.confirmOffset = confirmOffset;
+    }
+
     private long computeConfirmOffset() {
         final Set<String> currentSyncStateSet = getSyncStateSet();
         long confirmOffset = this.defaultMessageStore.getMaxPhyOffset();
         for (HAConnection connection : this.connectionList) {
-            final String slaveAddress = ((AutoSwitchHAConnection)connection).getSlaveAddress();
+            final String slaveAddress = ((AutoSwitchHAConnection) connection).getSlaveAddress();
             if (currentSyncStateSet.contains(slaveAddress)) {
                 confirmOffset = Math.min(confirmOffset, connection.getSlaveAckOffset());
             }
@@ -324,7 +337,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
         }
 
-        LOGGER.info("AutoRecoverHAClient truncate commitLog to {}", reputFromOffset);
+        LOGGER.info("Truncate commitLog to {}", reputFromOffset);
         this.defaultMessageStore.truncateDirtyFiles(reputFromOffset);
         return reputFromOffset;
     }
