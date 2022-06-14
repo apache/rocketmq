@@ -231,7 +231,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         String topic
     );
 
-    ProxyRelayService getProxyOutService();
+    ProxyRelayService getProxyRelayService();
 
     MetadataService getMetadataService();
 }
