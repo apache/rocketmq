@@ -17,19 +17,26 @@
 package org.apache.rocketmq.proxy.service.message;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
+import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
+import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
@@ -81,6 +88,34 @@ public interface MessageService {
         ReceiptHandle handle,
         String messageId,
         AckMessageRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
+    CompletableFuture<PullResult> pullMessage(
+        ProxyContext ctx,
+        SelectableMessageQueue messageQueue,
+        PullMessageRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Void> updateConsumerOffset(
+        ProxyContext ctx,
+        SelectableMessageQueue messageQueue,
+        UpdateConsumerOffsetRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Set<MessageQueue>> lockBatchMQ(
+        ProxyContext ctx,
+        SelectableMessageQueue messageQueue,
+        LockBatchRequestBody requestBody,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Void> unlockBatchMQ(
+        ProxyContext ctx,
+        SelectableMessageQueue messageQueue,
+        UnlockBatchRequestBody requestBody,
         long timeoutMillis
     );
 }

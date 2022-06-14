@@ -195,11 +195,12 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
             for (BrokerData brokerData : brokerDataList) {
                 heartbeatExecutors.submit(() -> {
                     String brokerAddr = brokerData.selectBrokerAddr();
-                    try {
-                        this.mqClientAPIFactory.getClient().sendHeartbeatOneway(brokerAddr, heartbeatData, Duration.ofSeconds(3).toMillis());
-                    } catch (Exception e) {
-                        log.error("Send transactionHeartbeat to broker err. brokerAddr: {}", brokerAddr, e);
-                    }
+                    this.mqClientAPIFactory.getClient()
+                        .sendHeartbeatOneway(brokerAddr, heartbeatData, Duration.ofSeconds(3).toMillis())
+                        .exceptionally(t -> {
+                            log.error("Send transactionHeartbeat to broker err. brokerAddr: {}", brokerAddr, t);
+                            return null;
+                        });
                 });
             }
         } catch (Exception e) {
