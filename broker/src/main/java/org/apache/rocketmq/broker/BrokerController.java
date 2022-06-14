@@ -401,6 +401,13 @@ public class BrokerController {
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
                 log.info("Set user specified name server address: {}", this.brokerConfig.getNamesrvAddr());
+                this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+                    try {
+                        BrokerController.this.brokerOuterAPI.updateNameServerAddressList(BrokerController.this.brokerConfig.getNamesrvAddr());
+                    } catch (Throwable e) {
+                        log.error("ScheduledTask updateNameServerAddr exception", e);
+                    }
+                }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
             } else if (this.brokerConfig.isFetchNamesrvAddrByAddressServer()) {
                 this.scheduledExecutorService.scheduleAtFixedRate(() -> {
                     try {
