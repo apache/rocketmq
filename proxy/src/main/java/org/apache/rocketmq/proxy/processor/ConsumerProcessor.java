@@ -18,18 +18,29 @@
 package org.apache.rocketmq.proxy.processor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
+import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
+import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -201,5 +212,110 @@ public class ConsumerProcessor extends AbstractProcessor {
             future.completeExceptionally(t);
         }
         return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, SelectableMessageQueue selectableMessageQueue,
+        String consumerGroup, long queueOffset, int maxMsgNums, int sysFlag, long commitOffset,
+        long suspendTimeoutMillis, SubscriptionData subscriptionData, long timeoutMillis) {
+        CompletableFuture<PullResult> future = new CompletableFuture<>();
+        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setTopic(selectableMessageQueue.getTopic());
+        requestHeader.setQueueId(selectableMessageQueue.getQueueId());
+        requestHeader.setQueueOffset(queueOffset);
+        requestHeader.setMaxMsgNums(maxMsgNums);
+        requestHeader.setSysFlag(sysFlag);
+        requestHeader.setCommitOffset(commitOffset);
+        requestHeader.setSuspendTimeoutMillis(suspendTimeoutMillis);
+        requestHeader.setSubscription(subscriptionData.getSubString());
+        requestHeader.setExpressionType(subscriptionData.getExpressionType());
+        try {
+            future = serviceManager.getMessageService().pullMessage(ctx, selectableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, SelectableMessageQueue selectableMessageQueue,
+        String consumerGroup, long commitOffset, long timeoutMillis) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setTopic(selectableMessageQueue.getTopic());
+        requestHeader.setQueueId(selectableMessageQueue.getQueueId());
+        requestHeader.setCommitOffset(commitOffset);
+        try {
+            future = serviceManager.getMessageService().updateConsumerOffset(ctx, selectableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, Set<SelectableMessageQueue> mqSet,
+        String consumerGroup, String clientId, long timeoutMillis) {
+        CompletableFuture<Set<MessageQueue>> future = new CompletableFuture<>();
+        Set<MessageQueue> successSet = new CopyOnWriteArraySet<>();
+        Map<String, List<SelectableMessageQueue>> messageQueueSetMap = buildMapByBrokerName(mqSet);
+        List<CompletableFuture<Set<MessageQueue>>> futureList = new ArrayList<>();
+        messageQueueSetMap.forEach((k, v) -> {
+            LockBatchRequestBody requestBody = new LockBatchRequestBody();
+            requestBody.setConsumerGroup(consumerGroup);
+            requestBody.setClientId(clientId);
+            requestBody.setMqSet(v.stream().map(SelectableMessageQueue::getMessageQueue).collect(Collectors.toSet()));
+            CompletableFuture<Set<MessageQueue>> future0 = new CompletableFuture<>();
+            try {
+                future0 = serviceManager.getMessageService().lockBatchMQ(ctx, v.get(0), requestBody, timeoutMillis);
+                future0.thenAccept(successSet::addAll);
+            } catch (Throwable t) {
+                future0.completeExceptionally(t);
+            }
+            futureList.add(FutureUtils.addExecutor(future0, this.executor));
+        });
+        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).whenComplete((v, t) -> {
+            if (t != null) {
+                log.error("LockBatchMQ failed", t);
+            }
+            future.complete(successSet);
+        });
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, Set<SelectableMessageQueue> mqSet, String consumerGroup,
+        String clientId, long timeoutMillis) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        Map<String, List<SelectableMessageQueue>> messageQueueSetMap = buildMapByBrokerName(mqSet);
+        List<CompletableFuture<Void>> futureList = new ArrayList<>();
+        messageQueueSetMap.forEach((k, v) -> {
+            UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
+            requestBody.setConsumerGroup(consumerGroup);
+            requestBody.setClientId(clientId);
+            requestBody.setMqSet(v.stream().map(SelectableMessageQueue::getMessageQueue).collect(Collectors.toSet()));
+            CompletableFuture<Void> future0 = new CompletableFuture<>();
+            try {
+                future0 = serviceManager.getMessageService().unlockBatchMQ(ctx, v.get(0), requestBody, timeoutMillis);
+                future0.complete(null);
+            } catch (Throwable t) {
+                future0.completeExceptionally(t);
+            }
+            futureList.add(FutureUtils.addExecutor(future0, this.executor));
+        });
+        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).whenComplete((v, t) -> {
+            if (t != null) {
+                log.error("UnlockBatchMQ failed", t);
+            }
+            future.complete(null);
+        });
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public HashMap<String, List<SelectableMessageQueue>> buildMapByBrokerName(final Set<SelectableMessageQueue> mqSet) {
+        HashMap<String, List<SelectableMessageQueue>> result = new HashMap<>();
+        for (SelectableMessageQueue mq : mqSet) {
+            List<SelectableMessageQueue> mqs = result.computeIfAbsent(mq.getBrokerName(), k -> new ArrayList<>());
+            mqs.add(mq);
+        }
+        return result;
     }
 }

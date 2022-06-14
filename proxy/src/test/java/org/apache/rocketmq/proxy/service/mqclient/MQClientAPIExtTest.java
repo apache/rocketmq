@@ -51,9 +51,11 @@ import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHead
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
@@ -310,7 +312,10 @@ public class MQClientAPIExtTest {
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any());
 
-        assertEquals(offset, mqClientAPI.getMaxOffsetAsync(BROKER_ADDR, TOPIC, 0, TIMEOUT).get().longValue());
+        GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
+        requestHeader.setTopic(TOPIC);
+        requestHeader.setQueueId(0);
+        assertEquals(offset, mqClientAPI.getMaxOffset(BROKER_ADDR, requestHeader, TIMEOUT).get().longValue());
     }
 
     @Test
@@ -329,7 +334,11 @@ public class MQClientAPIExtTest {
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any());
 
-        assertEquals(offset, mqClientAPI.searchOffsetAsync(BROKER_ADDR, TOPIC, 0, System.currentTimeMillis(), TIMEOUT).get().longValue());
+        SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
+        requestHeader.setTopic(TOPIC);
+        requestHeader.setQueueId(0);
+        requestHeader.setTimestamp(System.currentTimeMillis());
+        assertEquals(offset, mqClientAPI.searchOffset(BROKER_ADDR, requestHeader, TIMEOUT).get().longValue());
     }
 
     protected MessageExt createMessage() {

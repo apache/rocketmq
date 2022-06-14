@@ -23,12 +23,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
+import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -42,6 +45,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
+import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHeader;
@@ -50,8 +55,10 @@ import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
@@ -342,5 +349,29 @@ public class LocalMessageService implements MessageService {
             }
             return ackResult;
         });
+    }
+
+    @Override
+    public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+        PullMessageRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException("pullMessage is not implemented in LocalMessageService");
+    }
+
+    @Override
+    public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, SelectableMessageQueue messageQueue,
+        UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException("updateConsumerOffset is not implemented in LocalMessageService");
+    }
+
+    @Override
+    public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, SelectableMessageQueue messageQueue,
+        LockBatchRequestBody requestBody, long timeoutMillis) {
+        throw new NotImplementedException("lockBatchMQ is not implemented in LocalMessageService");
+    }
+
+    @Override
+    public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, SelectableMessageQueue messageQueue,
+        UnlockBatchRequestBody requestBody, long timeoutMillis) {
+        throw new NotImplementedException("unlockBatchMQ is not implemented in LocalMessageService");
     }
 }
