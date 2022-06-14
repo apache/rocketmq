@@ -439,6 +439,18 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public boolean deleteExpiredCommitLog(String cluster) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, MQClientException, InterruptedException {
+        return defaultMQAdminExtImpl.deleteExpiredCommitLog(cluster);
+    }
+
+    @Override
+    public boolean deleteExpiredCommitLogByAddr(String addr) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, MQClientException, InterruptedException {
+        return defaultMQAdminExtImpl.deleteExpiredCommitLogByAddr(addr);
+    }
+
+    @Override
     public boolean cleanUnusedTopic(String cluster) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, MQClientException, InterruptedException {
         return defaultMQAdminExtImpl.cleanUnusedTopic(cluster);

@@ -205,6 +205,12 @@ public interface MQAdminExt extends MQAdmin {
     boolean cleanExpiredConsumerQueueByAddr(String addr) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, MQClientException, InterruptedException;
 
+    boolean deleteExpiredCommitLog(String cluster) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, MQClientException, InterruptedException;
+
+    boolean deleteExpiredCommitLogByAddr(String addr) throws RemotingConnectException, RemotingSendRequestException,
+        RemotingTimeoutException, MQClientException, InterruptedException;
+
     boolean cleanUnusedTopic(String cluster) throws RemotingConnectException, RemotingSendRequestException,
         RemotingTimeoutException, MQClientException, InterruptedException;
 
