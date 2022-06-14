@@ -65,8 +65,8 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
         metadata.put(InterceptorConstants.LANGUAGE, "JAVA");
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
-        when(messagingProcessor.getProxyOutService()).thenReturn(proxyRelayService);
-        grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyOutService());
+        when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
+        grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService());
     }
 
     protected Context createContext() {
