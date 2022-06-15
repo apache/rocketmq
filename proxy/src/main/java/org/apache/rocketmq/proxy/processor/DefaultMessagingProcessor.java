@@ -193,6 +193,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<Long> queryConsumerOffset(ProxyContext ctx, MessageQueue messageQueue,
+        String consumerGroup, long timeoutMillis) {
+        return this.consumerProcessor.queryConsumerOffset(ctx, messageQueue, consumerGroup, timeoutMillis);
+    }
+
+    @Override
     public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, Set<MessageQueue> mqSet,
         String consumerGroup, String clientId, long timeoutMillis) {
         return this.consumerProcessor.lockBatchMQ(ctx, mqSet, consumerGroup, clientId, timeoutMillis);
@@ -203,6 +209,16 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         String consumerGroup,
         String clientId, long timeoutMillis) {
         return this.consumerProcessor.unlockBatchMQ(ctx, mqSet, consumerGroup, clientId, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<Long> getMaxOffset(ProxyContext ctx, MessageQueue messageQueue, long timeoutMillis) {
+        return this.consumerProcessor.getMaxOffset(ctx, messageQueue, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<Long> getMinOffset(ProxyContext ctx, MessageQueue messageQueue, long timeoutMillis) {
+        return this.consumerProcessor.getMinOffset(ctx, messageQueue, timeoutMillis);
     }
 
     @Override

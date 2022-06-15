@@ -34,8 +34,11 @@ import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -140,6 +143,16 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
+    public CompletableFuture<Long> queryConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        QueryConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
+        return this.mqClientAPIFactory.getClient().queryConsumerOffsetWithFuture(
+            messageQueue.getBrokerAddr(),
+            requestHeader,
+            timeoutMillis
+        );
+    }
+
+    @Override
     public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().updateConsumerOffsetOneWay(
@@ -165,6 +178,26 @@ public class ClusterMessageService implements MessageService {
         return this.mqClientAPIFactory.getClient().unlockBatchMQOneway(
             messageQueue.getBrokerAddr(),
             requestBody,
+            timeoutMillis
+        );
+    }
+
+    @Override
+    public CompletableFuture<Long> getMaxOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        GetMaxOffsetRequestHeader requestHeader, long timeoutMillis) {
+        return this.mqClientAPIFactory.getClient().getMaxOffset(
+            messageQueue.getBrokerAddr(),
+            requestHeader,
+            timeoutMillis
+        );
+    }
+
+    @Override
+    public CompletableFuture<Long> getMinOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        GetMinOffsetRequestHeader requestHeader, long timeoutMillis) {
+        return this.mqClientAPIFactory.getClient().getMinOffset(
+            messageQueue.getBrokerAddr(),
+            requestHeader,
             timeoutMillis
         );
     }

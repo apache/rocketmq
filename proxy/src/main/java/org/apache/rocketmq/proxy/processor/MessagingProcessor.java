@@ -198,6 +198,13 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    CompletableFuture<Long> queryConsumerOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
+        String consumerGroup,
+        long timeoutMillis
+    );
+
     CompletableFuture<Set<MessageQueue>> lockBatchMQ(
         ProxyContext ctx,
         Set<MessageQueue> mqSet,
@@ -211,6 +218,18 @@ public interface MessagingProcessor extends StartAndShutdown {
         Set<MessageQueue> mqSet,
         String consumerGroup,
         String clientId,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Long> getMaxOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Long> getMinOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
         long timeoutMillis
     );
 

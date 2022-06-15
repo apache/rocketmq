@@ -38,8 +38,11 @@ import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -257,6 +260,23 @@ public class ConsumerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
+    public CompletableFuture<Long> queryConsumerOffset(ProxyContext ctx, MessageQueue messageQueue,
+        String consumerGroup, long timeoutMillis) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
+                .buildAddressableMessageQueue(messageQueue);
+            QueryConsumerOffsetRequestHeader requestHeader = new QueryConsumerOffsetRequestHeader();
+            requestHeader.setConsumerGroup(consumerGroup);
+            requestHeader.setTopic(addressableMessageQueue.getTopic());
+            requestHeader.setQueueId(addressableMessageQueue.getQueueId());
+            future = serviceManager.getMessageService().queryConsumerOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
     public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, Set<MessageQueue> mqSet,
         String consumerGroup, String clientId, long timeoutMillis) {
         CompletableFuture<Set<MessageQueue>> future = new CompletableFuture<>();
@@ -288,8 +308,7 @@ public class ConsumerProcessor extends AbstractProcessor {
     }
 
     public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, Set<MessageQueue> mqSet,
-        String consumerGroup,
-        String clientId, long timeoutMillis) {
+        String consumerGroup, String clientId, long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         Set<AddressableMessageQueue> addressableMessageQueueSet = buildAddressableSet(mqSet);
         Map<String, List<AddressableMessageQueue>> messageQueueSetMap = buildAddressableMapByBrokerName(addressableMessageQueueSet);
@@ -314,6 +333,36 @@ public class ConsumerProcessor extends AbstractProcessor {
             }
             future.complete(null);
         });
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<Long> getMaxOffset(ProxyContext ctx, MessageQueue messageQueue, long timeoutMillis) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
+                .buildAddressableMessageQueue(messageQueue);
+            GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
+            requestHeader.setTopic(addressableMessageQueue.getTopic());
+            requestHeader.setQueueId(addressableMessageQueue.getQueueId());
+            future = serviceManager.getMessageService().getMaxOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<Long> getMinOffset(ProxyContext ctx, MessageQueue messageQueue, long timeoutMillis) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
+                .buildAddressableMessageQueue(messageQueue);
+            GetMinOffsetRequestHeader requestHeader = new GetMinOffsetRequestHeader();
+            requestHeader.setTopic(addressableMessageQueue.getTopic());
+            requestHeader.setQueueId(addressableMessageQueue.getQueueId());
+            future = serviceManager.getMessageService().getMinOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
         return FutureUtils.addExecutor(future, this.executor);
     }
 
