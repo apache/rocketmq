@@ -144,7 +144,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         } else {
             CompletableFuture<AckResult> future = messagingProcessor.changeInvisibleTime(ProxyContext.create(),
                 handle, messageReceiptHandle.getMessageId(), messageReceiptHandle.getGroup(),
-                messageReceiptHandle.getTopic(), retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes(), TimeUnit.MILLISECONDS));
+                messageReceiptHandle.getTopic(), retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()));
             future.thenAccept(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {
                     removeReceiptHandle(key, messageReceiptHandle.getOriginalReceiptHandle());
