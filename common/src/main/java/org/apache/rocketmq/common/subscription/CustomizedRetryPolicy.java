@@ -68,12 +68,11 @@ public class CustomizedRetryPolicy implements RetryPolicy {
      * and old index is reconsumeTime + 3
      *
      * @param reconsumeTimes Message reconsumeTimes {@link org.apache.rocketmq.common.message.MessageExt#getReconsumeTimes}
-     * @param timeUnit       {@link TimeUnit}
      * @see <a href="https://github.com/apache/rocketmq/blob/3bddd514646826253a239f95959c14840a87034a/broker/src/main/java/org/apache/rocketmq/broker/processor/AbstractSendMessageProcessor.java#L210">org.apache.rocketmq.broker.processor.AbstractSendMessageProcessor</a>
      * @see <a href="https://github.com/apache/rocketmq/blob/3bddd514646826253a239f95959c14840a87034a/store/src/main/java/org/apache/rocketmq/store/DefaultMessageStore.java#L242">org.apache.rocketmq.store.DefaultMessageStore</a>
      */
     @Override
-    public long nextDelayDuration(int reconsumeTimes, TimeUnit timeUnit) {
+    public long nextDelayDuration(int reconsumeTimes) {
         if (reconsumeTimes < 0) {
             reconsumeTimes = 0;
         }
@@ -81,7 +80,6 @@ public class CustomizedRetryPolicy implements RetryPolicy {
         if (index >= next.length) {
             index = next.length - 1;
         }
-        long nextDelayDurationInMillis = next[index];
-        return timeUnit.convert(nextDelayDurationInMillis, TimeUnit.MILLISECONDS);
+        return next[index];
     }
 }

@@ -27,18 +27,18 @@ public class ExponentialRetryPolicyTest {
     @Test
     public void testNextDelayDuration() {
         ExponentialRetryPolicy exponentialRetryPolicy = new ExponentialRetryPolicy();
-        long actual = exponentialRetryPolicy.nextDelayDuration(0, TimeUnit.MILLISECONDS);
+        long actual = exponentialRetryPolicy.nextDelayDuration(0);
         assertThat(actual).isEqualTo(TimeUnit.SECONDS.toMillis(5));
-        actual = exponentialRetryPolicy.nextDelayDuration(10, TimeUnit.MILLISECONDS);
+        actual = exponentialRetryPolicy.nextDelayDuration(10);
         assertThat(actual).isEqualTo(TimeUnit.SECONDS.toMillis(1024 * 5));
     }
 
     @Test
     public void testNextDelayDurationOutOfRange() {
         ExponentialRetryPolicy exponentialRetryPolicy = new ExponentialRetryPolicy();
-        long actual = exponentialRetryPolicy.nextDelayDuration(-1, TimeUnit.MILLISECONDS);
+        long actual = exponentialRetryPolicy.nextDelayDuration(-1);
         assertThat(actual).isEqualTo(TimeUnit.SECONDS.toMillis(5));
-        actual = exponentialRetryPolicy.nextDelayDuration(100, TimeUnit.MILLISECONDS);
+        actual = exponentialRetryPolicy.nextDelayDuration(100);
         assertThat(actual).isEqualTo(TimeUnit.HOURS.toMillis(2));
     }
 }
