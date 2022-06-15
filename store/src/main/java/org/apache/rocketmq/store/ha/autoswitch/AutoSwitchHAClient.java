@@ -93,11 +93,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      */
     private volatile long currentReceivedEpoch;
 
-    /**
-     * Confirm offset = min(localMaxOffset, master confirm offset).
-     */
-    private volatile long confirmOffset;
-
     public AutoSwitchHAClient(AutoSwitchHAService haService, DefaultMessageStore defaultMessageStore,
         EpochFileCache epochCache) throws IOException {
         this.haService = haService;
@@ -126,9 +121,9 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         this.currentReceivedEpoch = -1;
         this.currentReportedOffset = 0;
         this.processPosition = 0;
-        this.confirmOffset = -1;
         this.lastReadTimestamp = System.currentTimeMillis();
         this.lastWriteTimestamp = System.currentTimeMillis();
+        haService.updateConfirmOffset(-1);
     }
 
     public void reOpen() throws IOException {
@@ -187,10 +182,6 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     @Override public HAConnectionState getCurrentState() {
         return this.currentState;
-    }
-
-    public long getConfirmOffset() {
-        return confirmOffset;
     }
 
     @Override public void changeCurrentState(HAConnectionState haConnectionState) {
@@ -503,7 +494,8 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                     if (bodySize > 0) {
                                         AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
                                     }
-                                    AutoSwitchHAClient.this.confirmOffset = Math.min(confirmOffset, messageStore.getMaxPhyOffset());
+
+                                    haService.updateConfirmOffset(Math.min(confirmOffset, messageStore.getMaxPhyOffset()));
 
                                     if (!reportSlaveMaxOffset()) {
                                         LOGGER.error("AutoSwitchHAClient report max offset to master failed");

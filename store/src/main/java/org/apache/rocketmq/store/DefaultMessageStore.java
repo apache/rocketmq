@@ -616,6 +616,8 @@ public class DefaultMessageStore implements MessageStore {
 
         this.reputMessageService.shutdown();
 
+        long oldReputFromOffset = this.reputMessageService.getReputFromOffset();
+
         // truncate commitLog
         this.commitLog.truncateDirtyFiles(offsetToTruncate);
 
@@ -625,7 +627,7 @@ public class DefaultMessageStore implements MessageStore {
         recoverTopicQueueTable();
 
         this.reputMessageService = new ReputMessageService();
-        this.reputMessageService.setReputFromOffset(offsetToTruncate);
+        this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
         this.reputMessageService.start();
     }
 
@@ -1394,10 +1396,7 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long getConfirmOffset() {
         if (this.brokerConfig.isEnableControllerMode()) {
-            long confirmOffset = ((AutoSwitchHAService)this.haService).getConfirmOffset();
-            if (confirmOffset > 0) {
-                return confirmOffset;
-            }
+            return ((AutoSwitchHAService) this.haService).getConfirmOffset();
         }
         return this.commitLog.getConfirmOffset();
     }
@@ -2407,7 +2406,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         public long behind() {
-            return DefaultMessageStore.this.commitLog.getConfirmOffset() - this.reputFromOffset;
+            return DefaultMessageStore.this.getConfirmOffset() - this.reputFromOffset;
         }
 
         private boolean isCommitLogAvailable() {
@@ -2415,7 +2414,7 @@ public class DefaultMessageStore implements MessageStore {
                 return this.reputFromOffset <= DefaultMessageStore.this.commitLog.getConfirmOffset();
             }
             if (DefaultMessageStore.this.getBrokerConfig().isEnableControllerMode()) {
-                return this.reputFromOffset <= ((AutoSwitchHAService)DefaultMessageStore.this.haService).getConfirmOffset();
+                return this.reputFromOffset < ((AutoSwitchHAService) DefaultMessageStore.this.haService).getConfirmOffset();
             }
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
@@ -2428,20 +2427,20 @@ public class DefaultMessageStore implements MessageStore {
             }
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
-                if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()
-                    && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
-                    break;
-                }
-
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
                         this.reputFromOffset = result.getStartOffset();
 
-                        for (int readSize = 0; readSize < result.getSize() && reputFromOffset <= DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
+                        for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
                             DispatchRequest dispatchRequest =
                                 DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
                             int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
+
+                            if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
+                                doNext = false;
+                                break;
+                            }
 
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
