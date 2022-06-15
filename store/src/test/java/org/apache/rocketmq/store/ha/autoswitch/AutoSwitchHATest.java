@@ -82,6 +82,7 @@ public class AutoSwitchHATest {
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         storeConfig1 = new MessageStoreConfig();
         storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
+        storeConfig1.setHaSendHeartbeatInterval(1000);
         storeConfig1.setStorePathRootDir(storePathRootDir + File.separator + "broker1");
         storeConfig1.setStorePathCommitLog(storePathRootDir + File.separator + "broker1" + File.separator + "commitlog");
         storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + "broker1" + File.separator + "EpochFileCache");
@@ -92,6 +93,7 @@ public class AutoSwitchHATest {
 
         storeConfig2 = new MessageStoreConfig();
         storeConfig2.setBrokerRole(BrokerRole.SLAVE);
+        storeConfig1.setHaSendHeartbeatInterval(1000);
         storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + "broker2");
         storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + "broker2" + File.separator + "commitlog");
         storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + "broker2" + File.separator + "EpochFileCache");
@@ -106,6 +108,7 @@ public class AutoSwitchHATest {
 
         storeConfig3 = new MessageStoreConfig();
         storeConfig3.setBrokerRole(BrokerRole.SLAVE);
+        storeConfig1.setHaSendHeartbeatInterval(1000);
         storeConfig3.setStorePathRootDir(storePathRootDir + File.separator + "broker3");
         storeConfig3.setStorePathCommitLog(storePathRootDir + File.separator + "broker3" + File.separator + "commitlog");
         storeConfig3.setStorePathEpochFile(storePathRootDir + File.separator + "broker3" + File.separator + "EpochFileCache");

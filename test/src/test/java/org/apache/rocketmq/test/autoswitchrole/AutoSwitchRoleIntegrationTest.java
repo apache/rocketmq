@@ -80,6 +80,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         System.out.println("Begin test");
         final MessageStore messageStore = brokerController1.getMessageStore();
         putMessage(messageStore);
+        Thread.sleep(3000);
         // Check slave message
         checkMessage(brokerController2.getMessageStore(), 10, 0);
     }
@@ -142,6 +143,8 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         final MessageStore messageStore = brokerController2.getMessageStore();
         putMessage(messageStore);
 
+        Thread.sleep(3000);
+
         // Check slave message
         checkMessage(brokerController1.getMessageStore(), 20, 0);
     }
@@ -153,11 +156,12 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
 
         BrokerController broker3 = startBroker(this.namesrvAddress, this.controllerAddress, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, defaultFileSize);
         waitSlaveReady(broker3.getMessageStore());
-        Thread.sleep(6000);
+        Thread.sleep(3000);
 
         checkMessage(broker3.getMessageStore(), 10, 0);
 
         putMessage(this.brokerController1.getMessageStore());
+        Thread.sleep(3000);
         checkMessage(broker3.getMessageStore(), 20, 0);
     }
 
@@ -167,6 +171,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         init(1700);
         // Step1: Put message
         putMessage(this.brokerController1.getMessageStore());
+        Thread.sleep(3000);
         checkMessage(this.brokerController2.getMessageStore(), 10, 0);
 
         // Step2: shutdown broker1, broker2 as master

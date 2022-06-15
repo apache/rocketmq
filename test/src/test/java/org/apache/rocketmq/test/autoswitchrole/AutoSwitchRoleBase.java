@@ -105,6 +105,7 @@ public class AutoSwitchRoleBase {
     protected MessageStoreConfig buildMessageStoreConfig(final String brokerName, final int haPort,
         final int mappedFileSize) {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setHaSendHeartbeatInterval(1000);
         storeConfig.setBrokerRole(BrokerRole.SLAVE);
         storeConfig.setHaListenPort(haPort);
         storeConfig.setStorePathRootDir(storePathRootDir + File.separator + brokerName);
