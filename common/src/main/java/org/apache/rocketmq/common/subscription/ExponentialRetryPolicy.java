@@ -62,14 +62,13 @@ public class ExponentialRetryPolicy implements RetryPolicy {
     }
 
     @Override
-    public long nextDelayDuration(int reconsumeTimes, TimeUnit timeUnit) {
+    public long nextDelayDuration(int reconsumeTimes) {
         if (reconsumeTimes < 0) {
             reconsumeTimes = 0;
         }
         if (reconsumeTimes > 32) {
             reconsumeTimes = 32;
         }
-        long nextDelayDurationInMillis = Math.min(max, initial * (long) Math.pow(multiplier, reconsumeTimes));
-        return timeUnit.convert(nextDelayDurationInMillis, TimeUnit.MILLISECONDS);
+        return Math.min(max, initial * (long) Math.pow(multiplier, reconsumeTimes));
     }
 }
