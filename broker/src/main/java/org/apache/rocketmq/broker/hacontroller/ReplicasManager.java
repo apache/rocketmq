@@ -163,8 +163,6 @@ public class ReplicasManager {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.localAddress, newMasterEpoch);
 
-                // Change record
-                this.masterAddress = this.localAddress;
                 this.masterEpoch = newMasterEpoch;
 
                 // Change sync state set
@@ -172,17 +170,24 @@ public class ReplicasManager {
                 newSyncStateSet.add(this.localAddress);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
 
-                // Handle the slave synchronise
-                handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
+                if (this.localAddress.equals(masterAddress) && brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
+                    LOGGER.warn("The broker role is already master");
+                } else {
+                    // Change record
+                    this.masterAddress = this.localAddress;
 
-                // Notify ha service, change to master
-                this.haService.changeToMaster(newMasterEpoch);
+                    // Handle the slave synchronise
+                    handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
-                this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
-                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
-                this.brokerController.changeSpecialServiceStatus(true);
+                    // Notify ha service, change to master
+                    this.haService.changeToMaster(newMasterEpoch);
 
-                schedulingCheckSyncStateSet();
+                    this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
+                    this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
+                    this.brokerController.changeSpecialServiceStatus(true);
+
+                    schedulingCheckSyncStateSet();
+                }
 
                 this.executorService.submit(() -> {
                     // Register broker to name-srv
