@@ -53,9 +53,12 @@ import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeResponseHea
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -358,6 +361,12 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
+    public CompletableFuture<Long> queryConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        QueryConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException("queryConsumerOffset is not implemented in LocalMessageService");
+    }
+
+    @Override
     public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
         throw new NotImplementedException("updateConsumerOffset is not implemented in LocalMessageService");
@@ -373,5 +382,17 @@ public class LocalMessageService implements MessageService {
     public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UnlockBatchRequestBody requestBody, long timeoutMillis) {
         throw new NotImplementedException("unlockBatchMQ is not implemented in LocalMessageService");
+    }
+
+    @Override
+    public CompletableFuture<Long> getMaxOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        GetMaxOffsetRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException("getMaxOffset is not implemented in LocalMessageService");
+    }
+
+    @Override
+    public CompletableFuture<Long> getMinOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        GetMinOffsetRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException("getMinOffset is not implemented in LocalMessageService");
     }
 }

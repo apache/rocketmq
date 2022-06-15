@@ -33,8 +33,11 @@ import org.apache.rocketmq.common.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -98,6 +101,13 @@ public interface MessageService {
         long timeoutMillis
     );
 
+    CompletableFuture<Long> queryConsumerOffset(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        QueryConsumerOffsetRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
     CompletableFuture<Void> updateConsumerOffset(
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
@@ -116,6 +126,20 @@ public interface MessageService {
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
         UnlockBatchRequestBody requestBody,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Long> getMaxOffset(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        GetMaxOffsetRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Long> getMinOffset(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        GetMinOffsetRequestHeader requestHeader,
         long timeoutMillis
     );
 }

@@ -31,6 +31,7 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.exception.OffsetNotFoundException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
@@ -55,8 +56,12 @@ import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupRequestH
 import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
@@ -65,6 +70,7 @@ import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -356,6 +362,45 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
+    public CompletableFuture<Long> queryConsumerOffsetWithFuture(
+        String brokerAddr,
+        QueryConsumerOffsetRequestHeader requestHeader,
+        long timeoutMillis
+    ) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUMER_OFFSET, requestHeader);
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    switch (response.getCode()) {
+                        case ResponseCode.SUCCESS: {
+                            try {
+                                QueryConsumerOffsetResponseHeader responseHeader =
+                                    response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
+                                future.complete(responseHeader.getOffset());
+                            } catch (RemotingCommandException e) {
+                                future.completeExceptionally(e);
+                            }
+                            break;
+                        }
+                        case ResponseCode.QUERY_NOT_FOUND: {
+                            future.completeExceptionally(new OffsetNotFoundException(response.getCode(), response.getRemark(), brokerAddr));
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                } else {
+                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
     public CompletableFuture<Void> updateConsumerOffsetOneWay(
         String brokerAddr,
         UpdateConsumerOffsetRequestHeader header,
@@ -426,6 +471,33 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                     if (ResponseCode.SUCCESS == response.getCode()) {
                         try {
                             GetMaxOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
+                            future.complete(responseHeader.getOffset());
+                        } catch (Throwable t) {
+                            future.completeExceptionally(t);
+                        }
+                    }
+                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+                } else {
+                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public CompletableFuture<Long> getMinOffset(String brokerAddr, GetMinOffsetRequestHeader requestHeader, long timeoutMillis) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MIN_OFFSET, requestHeader);
+
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    if (ResponseCode.SUCCESS == response.getCode()) {
+                        try {
+                            GetMinOffsetResponseHeader responseHeader = response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
                             future.complete(responseHeader.getOffset());
                         } catch (Throwable t) {
                             future.completeExceptionally(t);
