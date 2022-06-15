@@ -41,7 +41,7 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -172,9 +172,9 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
         ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
 
-        SelectableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
-        SelectableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
-        SelectableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
 
         assertEquals(firstSelect, thirdSelect);
         assertNotEquals(firstSelect, secondSelect);

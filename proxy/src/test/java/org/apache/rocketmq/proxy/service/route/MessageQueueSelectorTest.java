@@ -39,16 +39,16 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
         assertEquals(3, messageQueueSelector.getQueues().size());
         assertEquals(1, messageQueueSelector.getBrokerActingQueues().size());
         for (int i = 0; i < messageQueueSelector.getQueues().size(); i++) {
-            SelectableMessageQueue messageQueue = messageQueueSelector.getQueues().get(i);
+            AddressableMessageQueue messageQueue = messageQueueSelector.getQueues().get(i);
             assertEquals(i, messageQueue.getQueueId());
         }
 
-        SelectableMessageQueue brokerQueue = messageQueueSelector.getQueueByBrokerName(BROKER_NAME);
+        AddressableMessageQueue brokerQueue = messageQueueSelector.getQueueByBrokerName(BROKER_NAME);
         assertEquals(brokerQueue, messageQueueSelector.getBrokerActingQueues().get(0));
         assertEquals(brokerQueue, messageQueueSelector.selectOne(true));
         assertEquals(brokerQueue, messageQueueSelector.selectOneByIndex(3, true));
 
-        SelectableMessageQueue queue = messageQueueSelector.selectOne(false);
+        AddressableMessageQueue queue = messageQueueSelector.selectOne(false);
         messageQueueSelector.selectOne(false);
         messageQueueSelector.selectOne(false);
         assertEquals(queue, messageQueueSelector.selectOne(false));
@@ -67,16 +67,16 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
         assertEquals(3, messageQueueSelector.getQueues().size());
         assertEquals(1, messageQueueSelector.getBrokerActingQueues().size());
         for (int i = 0; i < messageQueueSelector.getQueues().size(); i++) {
-            SelectableMessageQueue messageQueue = messageQueueSelector.getQueues().get(i);
+            AddressableMessageQueue messageQueue = messageQueueSelector.getQueues().get(i);
             assertEquals(i, messageQueue.getQueueId());
         }
 
-        SelectableMessageQueue brokerQueue = messageQueueSelector.getQueueByBrokerName(BROKER_NAME);
+        AddressableMessageQueue brokerQueue = messageQueueSelector.getQueueByBrokerName(BROKER_NAME);
         assertEquals(brokerQueue, messageQueueSelector.getBrokerActingQueues().get(0));
         assertEquals(brokerQueue, messageQueueSelector.selectOne(true));
         assertEquals(brokerQueue, messageQueueSelector.selectOneByIndex(3, true));
 
-        SelectableMessageQueue queue = messageQueueSelector.selectOne(false);
+        AddressableMessageQueue queue = messageQueueSelector.selectOne(false);
         messageQueueSelector.selectOne(false);
         messageQueueSelector.selectOne(false);
         assertEquals(queue, messageQueueSelector.selectOne(false));

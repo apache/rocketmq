@@ -42,7 +42,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.service.ServiceManager;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -74,7 +74,7 @@ public class ProducerProcessor extends AbstractProcessor {
                     }
                 }
             }
-            SelectableMessageQueue messageQueue = queueSelector.select(ctx,
+            AddressableMessageQueue messageQueue = queueSelector.select(ctx,
                 this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(topic));
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no writable queue");

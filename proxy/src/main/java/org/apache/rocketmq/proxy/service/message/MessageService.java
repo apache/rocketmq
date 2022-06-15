@@ -38,7 +38,7 @@ import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -47,7 +47,7 @@ public interface MessageService {
 
     CompletableFuture<List<SendResult>> sendMessage(
         ProxyContext ctx,
-        SelectableMessageQueue messageQueue,
+        AddressableMessageQueue messageQueue,
         List<Message> msgList,
         SendMessageRequestHeader requestHeader,
         long timeoutMillis
@@ -70,7 +70,7 @@ public interface MessageService {
 
     CompletableFuture<PopResult> popMessage(
         ProxyContext ctx,
-        SelectableMessageQueue messageQueue,
+        AddressableMessageQueue messageQueue,
         PopMessageRequestHeader requestHeader,
         long timeoutMillis
     );
@@ -93,28 +93,28 @@ public interface MessageService {
 
     CompletableFuture<PullResult> pullMessage(
         ProxyContext ctx,
-        SelectableMessageQueue messageQueue,
+        AddressableMessageQueue messageQueue,
         PullMessageRequestHeader requestHeader,
         long timeoutMillis
     );
 
     CompletableFuture<Void> updateConsumerOffset(
         ProxyContext ctx,
-        SelectableMessageQueue messageQueue,
+        AddressableMessageQueue messageQueue,
         UpdateConsumerOffsetRequestHeader requestHeader,
         long timeoutMillis
     );
 
     CompletableFuture<Set<MessageQueue>> lockBatchMQ(
         ProxyContext ctx,
-        SelectableMessageQueue messageQueue,
+        AddressableMessageQueue messageQueue,
         LockBatchRequestBody requestBody,
         long timeoutMillis
     );
 
     CompletableFuture<Void> unlockBatchMQ(
         ProxyContext ctx,
-        SelectableMessageQueue messageQueue,
+        AddressableMessageQueue messageQueue,
         UnlockBatchRequestBody requestBody,
         long timeoutMillis
     );

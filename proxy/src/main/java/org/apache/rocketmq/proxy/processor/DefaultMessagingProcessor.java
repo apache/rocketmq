@@ -51,7 +51,6 @@ import org.apache.rocketmq.proxy.service.ServiceManagerFactory;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -180,27 +179,28 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, SelectableMessageQueue selectableMessageQueue,
-        String consumerGroup, long queueOffset, int maxMsgNums, int sysFlag, long commitOffset,
-        long suspendTimeoutMillis, SubscriptionData subscriptionData, long timeoutMillis) {
-        return this.consumerProcessor.pullMessage(ctx, selectableMessageQueue, consumerGroup, queueOffset, maxMsgNums,
+    public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, MessageQueue messageQueue, String consumerGroup,
+        long queueOffset, int maxMsgNums, int sysFlag, long commitOffset, long suspendTimeoutMillis,
+        SubscriptionData subscriptionData, long timeoutMillis) {
+        return this.consumerProcessor.pullMessage(ctx, messageQueue, consumerGroup, queueOffset, maxMsgNums,
             sysFlag, commitOffset, suspendTimeoutMillis, subscriptionData, timeoutMillis);
     }
 
     @Override
-    public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, SelectableMessageQueue selectableMessageQueue,
+    public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, MessageQueue messageQueue,
         String consumerGroup, long commitOffset, long timeoutMillis) {
-        return this.consumerProcessor.updateConsumerOffset(ctx, selectableMessageQueue, consumerGroup, commitOffset, timeoutMillis);
+        return this.consumerProcessor.updateConsumerOffset(ctx, messageQueue, consumerGroup, commitOffset, timeoutMillis);
     }
 
     @Override
-    public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, Set<SelectableMessageQueue> mqSet,
+    public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, Set<MessageQueue> mqSet,
         String consumerGroup, String clientId, long timeoutMillis) {
         return this.consumerProcessor.lockBatchMQ(ctx, mqSet, consumerGroup, clientId, timeoutMillis);
     }
 
     @Override
-    public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, Set<SelectableMessageQueue> mqSet, String consumerGroup,
+    public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, Set<MessageQueue> mqSet,
+        String consumerGroup,
         String clientId, long timeoutMillis) {
         return this.consumerProcessor.unlockBatchMQ(ctx, mqSet, consumerGroup, clientId, timeoutMillis);
     }

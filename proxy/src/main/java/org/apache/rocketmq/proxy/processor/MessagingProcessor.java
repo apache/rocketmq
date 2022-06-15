@@ -44,7 +44,6 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -180,7 +179,7 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     CompletableFuture<PullResult> pullMessage(
         ProxyContext ctx,
-        SelectableMessageQueue selectableMessageQueue,
+        MessageQueue messageQueue,
         String consumerGroup,
         long queueOffset,
         int maxMsgNums,
@@ -193,7 +192,7 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     CompletableFuture<Void> updateConsumerOffset(
         ProxyContext ctx,
-        SelectableMessageQueue selectableMessageQueue,
+        MessageQueue messageQueue,
         String consumerGroup,
         long commitOffset,
         long timeoutMillis
@@ -201,7 +200,7 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     CompletableFuture<Set<MessageQueue>> lockBatchMQ(
         ProxyContext ctx,
-        Set<SelectableMessageQueue> mqSet,
+        Set<MessageQueue> mqSet,
         String consumerGroup,
         String clientId,
         long timeoutMillis
@@ -209,7 +208,7 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     CompletableFuture<Void> unlockBatchMQ(
         ProxyContext ctx,
-        Set<SelectableMessageQueue> mqSet,
+        Set<MessageQueue> mqSet,
         String consumerGroup,
         String clientId,
         long timeoutMillis
