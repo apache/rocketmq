@@ -349,7 +349,6 @@ public class CommitLog implements Swappable {
                 this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
             }
 
-
         } else {
             // Commitlog case files are deleted
             log.warn("The commitlog files are deleted, and delete the consume queue files");
@@ -803,13 +802,18 @@ public class CommitLog implements Swappable {
         boolean needHandleHA = needHandleHA(msg);
         int needAckNums = 1;
 
-        if (needHandleHA && !this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
-            int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
-            needAckNums = calcNeedAckNums(inSyncReplicas);
-            if (needAckNums > inSyncReplicas) {
-                // Tell the producer, don't have enough slaves to handle the send request
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+        if (needHandleHA) {
+            if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode() && this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+                // -1 means all ack in SyncStateSet
+                needAckNums = -1;
+            } else {
+                int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
+                    this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+                needAckNums = calcNeedAckNums(inSyncReplicas);
+                if (needAckNums > inSyncReplicas) {
+                    // Tell the producer, don't have enough slaves to handle the send request
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+                }
             }
         }
 
@@ -1101,8 +1105,7 @@ public class CommitLog implements Swappable {
 
     private CompletableFuture<PutMessageStatus> handleHA(AppendMessageResult result, PutMessageResult putMessageResult,
         int needAckNums) {
-        final boolean allAckInSyncStateSet = this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet();
-        if (needAckNums <= 1 && !allAckInSyncStateSet) {
+        if (needAckNums >= 0 && needAckNums <= 1) {
             return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
         }
 
@@ -1122,7 +1125,7 @@ public class CommitLog implements Swappable {
 //        }
 
         // Wait enough acks from different slaves
-        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums - 1, allAckInSyncStateSet);
+        GroupCommitRequest request = new GroupCommitRequest(nextOffset, this.defaultMessageStore.getMessageStoreConfig().getSlaveTimeout(), needAckNums);
         haService.putRequest(request);
         haService.getWaitNotifyObject().wakeupAll();
         return request.future();
@@ -1389,7 +1392,6 @@ public class CommitLog implements Swappable {
         private final CompletableFuture<PutMessageStatus> flushOKFuture = new CompletableFuture<>();
         private volatile int ackNums = 1;
         private final long deadLine;
-        private boolean allAckInSyncStateSet;
 
         public GroupCommitRequest(long nextOffset, long timeoutMillis) {
             this.nextOffset = nextOffset;
@@ -1399,11 +1401,6 @@ public class CommitLog implements Swappable {
         public GroupCommitRequest(long nextOffset, long timeoutMillis, int ackNums) {
             this(nextOffset, timeoutMillis);
             this.ackNums = ackNums;
-        }
-
-        public GroupCommitRequest(long nextOffset, long timeoutMillis, int ackNums, boolean allAckInSyncStateSet) {
-            this(nextOffset, timeoutMillis, ackNums);
-            this.allAckInSyncStateSet = allAckInSyncStateSet;
         }
 
         public long getNextOffset() {
@@ -1416,10 +1413,6 @@ public class CommitLog implements Swappable {
 
         public long getDeadLine() {
             return deadLine;
-        }
-
-        public boolean isAllAckInSyncStateSet() {
-            return allAckInSyncStateSet;
         }
 
         public void wakeupCustomer(final PutMessageStatus status) {

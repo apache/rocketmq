@@ -74,14 +74,14 @@ public class GroupTransferService extends ServiceThread {
                     boolean transferOK = false;
 
                     long deadLine = req.getDeadLine();
-                    final boolean allAckInSyncStateSet = req.isAllAckInSyncStateSet();
+                    final boolean allAckInSyncStateSet = req.getAckNums() == -1;
 
                     for (int i = 0; !transferOK && deadLine - System.nanoTime() > 0; i++) {
                         if (i > 0) {
                             this.notifyTransferObject.waitForRunning(1000);
                         }
 
-                        if (req.getAckNums() <= 1 && !allAckInSyncStateSet) {
+                        if (!allAckInSyncStateSet && req.getAckNums() <= 1) {
                             transferOK = haService.getPush2SlaveMaxOffset().get() >= req.getNextOffset();
                             continue;
                         }
@@ -95,12 +95,12 @@ public class GroupTransferService extends ServiceThread {
                                 transferOK = true;
                                 break;
                             }
-                            // Include master.
+                            // Include master
                             int ackNums = 1;
                             for (HAConnection conn : haService.getConnectionList()) {
                                 final AutoSwitchHAConnection autoSwitchHAConnection = (AutoSwitchHAConnection) conn;
                                 if (syncStateSet.contains(autoSwitchHAConnection.getSlaveAddress()) && autoSwitchHAConnection.getSlaveAckOffset() >= req.getNextOffset()) {
-                                    ackNums ++;
+                                    ackNums++;
                                 }
                                 if (ackNums >= syncStateSet.size()) {
                                     transferOK = true;
@@ -108,7 +108,8 @@ public class GroupTransferService extends ServiceThread {
                                 }
                             }
                         } else {
-                            int ackNums = 0;
+                            // Include master
+                            int ackNums = 1;
                             for (HAConnection conn : haService.getConnectionList()) {
                                 // TODO: We must ensure every HAConnection represents a different slave
                                 // Solution: Consider assign a unique and fixed IP:ADDR for each different slave
