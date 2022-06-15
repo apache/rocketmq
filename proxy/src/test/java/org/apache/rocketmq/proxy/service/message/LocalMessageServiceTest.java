@@ -66,7 +66,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.service.channel.ChannelManager;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Before;
@@ -318,7 +318,7 @@ public class LocalMessageServiceTest extends InitConfigAndLoggerTest {
             return null;
         });
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, queueId);
-        CompletableFuture<PopResult> future = localMessageService.popMessage(proxyContext, new SelectableMessageQueue(messageQueue, ""), requestHeader, 1000L);
+        CompletableFuture<PopResult> future = localMessageService.popMessage(proxyContext, new AddressableMessageQueue(messageQueue, ""), requestHeader, 1000L);
         PopResult popResult = future.get();
         assertThat(popResult.getPopTime()).isEqualTo(popTime);
         assertThat(popResult.getInvisibleTime()).isEqualTo(invisibleTime);

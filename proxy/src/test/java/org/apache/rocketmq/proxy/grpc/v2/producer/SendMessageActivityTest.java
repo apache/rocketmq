@@ -45,7 +45,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
@@ -327,9 +327,9 @@ public class SendMessageActivityTest extends BaseActivityTest {
                 .build()
         );
 
-        SelectableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
-        SelectableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
-        SelectableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
 
         assertEquals(firstSelect, thirdSelect);
         assertNotEquals(firstSelect, secondSelect);

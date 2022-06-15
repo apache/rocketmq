@@ -37,10 +37,10 @@ public class MessageQueueSelector {
     private static final int BROKER_ACTING_QUEUE_ID = -1;
 
     // multiple queues for brokers with queueId : normal
-    private final List<SelectableMessageQueue> queues = new ArrayList<>();
+    private final List<AddressableMessageQueue> queues = new ArrayList<>();
     // one queue for brokers with queueId : -1
-    private final List<SelectableMessageQueue> brokerActingQueues = new ArrayList<>();
-    private final Map<String, SelectableMessageQueue> brokerNameQueueMap = new ConcurrentHashMap<>();
+    private final List<AddressableMessageQueue> brokerActingQueues = new ArrayList<>();
+    private final Map<String, AddressableMessageQueue> brokerNameQueueMap = new ConcurrentHashMap<>();
     private final AtomicInteger queueIndex;
     private final AtomicInteger brokerIndex;
 
@@ -56,8 +56,8 @@ public class MessageQueueSelector {
         this.brokerIndex = new AtomicInteger(Math.abs(new Random().nextInt()));
     }
 
-    private static List<SelectableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
-        Set<SelectableMessageQueue> queueSet = new HashSet<>();
+    private static List<AddressableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
+        Set<AddressableMessageQueue> queueSet = new HashSet<>();
         List<QueueData> qds = topicRoute.getQueueDatas();
         if (qds == null) {
             return new ArrayList<>();
@@ -71,7 +71,7 @@ public class MessageQueueSelector {
                 }
 
                 for (int i = 0; i < qd.getReadQueueNums(); i++) {
-                    SelectableMessageQueue mq = new SelectableMessageQueue(
+                    AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), qd.getBrokerName(), i),
                         brokerAddr);
                     queueSet.add(mq);
@@ -82,8 +82,8 @@ public class MessageQueueSelector {
         return queueSet.stream().sorted().collect(Collectors.toList());
     }
 
-    private static List<SelectableMessageQueue> buildWrite(TopicRouteWrapper topicRoute) {
-        Set<SelectableMessageQueue> queueSet = new HashSet<>();
+    private static List<AddressableMessageQueue> buildWrite(TopicRouteWrapper topicRoute) {
+        Set<AddressableMessageQueue> queueSet = new HashSet<>();
         // order topic route.
         if (StringUtils.isNotBlank(topicRoute.getOrderTopicConf())) {
             String[] brokers = topicRoute.getOrderTopicConf().split(";");
@@ -97,7 +97,7 @@ public class MessageQueueSelector {
 
                 int nums = Integer.parseInt(item[1]);
                 for (int i = 0; i < nums; i++) {
-                    SelectableMessageQueue mq = new SelectableMessageQueue(
+                    AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), brokerName, i),
                         brokerAddr);
                     queueSet.add(mq);
@@ -117,7 +117,7 @@ public class MessageQueueSelector {
                     }
 
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
-                        SelectableMessageQueue mq = new SelectableMessageQueue(
+                        AddressableMessageQueue mq = new AddressableMessageQueue(
                             new MessageQueue(topicRoute.getTopicName(), qd.getBrokerName(), i),
                             brokerAddr);
                         queueSet.add(mq);
@@ -129,9 +129,9 @@ public class MessageQueueSelector {
         return queueSet.stream().sorted().collect(Collectors.toList());
     }
 
-    private void buildBrokerActingQueues(String topic, List<SelectableMessageQueue> normalQueues) {
-        for (SelectableMessageQueue mq : normalQueues) {
-            SelectableMessageQueue brokerActingQueue = new SelectableMessageQueue(
+    private void buildBrokerActingQueues(String topic, List<AddressableMessageQueue> normalQueues) {
+        for (AddressableMessageQueue mq : normalQueues) {
+            AddressableMessageQueue brokerActingQueue = new AddressableMessageQueue(
                 new MessageQueue(topic, mq.getMessageQueue().getBrokerName(), BROKER_ACTING_QUEUE_ID),
                 mq.getBrokerAddr());
 
@@ -144,16 +144,16 @@ public class MessageQueueSelector {
         Collections.sort(brokerActingQueues);
     }
 
-    public final SelectableMessageQueue getQueueByBrokerName(String brokerName) {
+    public final AddressableMessageQueue getQueueByBrokerName(String brokerName) {
         return this.brokerNameQueueMap.get(brokerName);
     }
 
-    public final SelectableMessageQueue selectOne(boolean onlyBroker) {
+    public final AddressableMessageQueue selectOne(boolean onlyBroker) {
         int nextIndex = onlyBroker ? brokerIndex.getAndIncrement() : queueIndex.getAndIncrement();
         return selectOneByIndex(nextIndex, onlyBroker);
     }
 
-    public final SelectableMessageQueue selectOneByIndex(int index, boolean onlyBroker) {
+    public final AddressableMessageQueue selectOneByIndex(int index, boolean onlyBroker) {
         if (onlyBroker) {
             if (brokerActingQueues.isEmpty()) {
                 return null;
@@ -167,11 +167,11 @@ public class MessageQueueSelector {
         return queues.get(Math.abs(index) % queues.size());
     }
 
-    public List<SelectableMessageQueue> getQueues() {
+    public List<AddressableMessageQueue> getQueues() {
         return queues;
     }
 
-    public List<SelectableMessageQueue> getBrokerActingQueues() {
+    public List<AddressableMessageQueue> getBrokerActingQueues() {
         return brokerActingQueues;
     }
 

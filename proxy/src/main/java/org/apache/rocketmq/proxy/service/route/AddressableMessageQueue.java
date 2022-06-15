@@ -20,18 +20,18 @@ import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import org.apache.rocketmq.common.message.MessageQueue;
 
-public class SelectableMessageQueue implements Comparable<SelectableMessageQueue> {
+public class AddressableMessageQueue implements Comparable<AddressableMessageQueue> {
 
     private final MessageQueue messageQueue;
     private final String brokerAddr;
 
-    public SelectableMessageQueue(MessageQueue messageQueue, String brokerAddr) {
+    public AddressableMessageQueue(MessageQueue messageQueue, String brokerAddr) {
         this.messageQueue = messageQueue;
         this.brokerAddr = brokerAddr;
     }
 
     @Override
-    public int compareTo(SelectableMessageQueue o) {
+    public int compareTo(AddressableMessageQueue o) {
         return messageQueue.compareTo(o.messageQueue);
     }
 
@@ -40,10 +40,10 @@ public class SelectableMessageQueue implements Comparable<SelectableMessageQueue
         if (this == o) {
             return true;
         }
-        if (!(o instanceof SelectableMessageQueue)) {
+        if (!(o instanceof AddressableMessageQueue)) {
             return false;
         }
-        SelectableMessageQueue queue = (SelectableMessageQueue) o;
+        AddressableMessageQueue queue = (AddressableMessageQueue) o;
         return Objects.equals(messageQueue, queue.messageQueue);
     }
 

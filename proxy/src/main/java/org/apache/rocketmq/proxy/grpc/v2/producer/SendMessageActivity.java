@@ -52,7 +52,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 
 public class SendMessageActivity extends AbstractMessingActivity {
 
@@ -252,17 +252,17 @@ public class SendMessageActivity extends AbstractMessingActivity {
         }
 
         @Override
-        public SelectableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
+        public AddressableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
             try {
                 apache.rocketmq.v2.Message message = request.getMessages(0);
                 String shardingKey = null;
                 if (request.getMessagesCount() == 1) {
                     shardingKey = message.getSystemProperties().getMessageGroup();
                 }
-                SelectableMessageQueue targetMessageQueue;
+                AddressableMessageQueue targetMessageQueue;
                 if (StringUtils.isNotEmpty(shardingKey)) {
                     // With shardingKey
-                    List<SelectableMessageQueue> writeQueues = messageQueueView.getWriteSelector().getQueues();
+                    List<AddressableMessageQueue> writeQueues = messageQueueView.getWriteSelector().getQueues();
                     int bucket = Hashing.consistentHash(shardingKey.hashCode(), writeQueues.size());
                     targetMessageQueue = writeQueues.get(bucket);
                 } else {

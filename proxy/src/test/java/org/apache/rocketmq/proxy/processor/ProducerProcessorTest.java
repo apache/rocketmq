@@ -35,7 +35,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.assertj.core.util.Lists;
@@ -83,7 +83,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         List<Message> messageList = new ArrayList<>();
         Message messageExt = createMessageExt(TOPIC, "tag", 0, 0);
         messageList.add(messageExt);
-        SelectableMessageQueue messageQueue = mock(SelectableMessageQueue.class);
+        AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
         when(messageQueue.getBrokerName()).thenReturn("mockBroker");
 
         List<SendResult> sendResultList = this.producerProcessor.sendMessage(
@@ -124,7 +124,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_RECONSUME_TIME, "1");
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_MAX_RECONSUME_TIMES, "16");
         messageExtList.add(messageExt);
-        SelectableMessageQueue messageQueue = mock(SelectableMessageQueue.class);
+        AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
         when(messageQueue.getBrokerName()).thenReturn("mockBroker");
 
         List<SendResult> sendResultList = this.producerProcessor.sendMessage(

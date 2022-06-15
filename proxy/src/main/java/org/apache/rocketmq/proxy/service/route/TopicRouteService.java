@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -86,6 +87,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         String topicName) throws Exception;
 
     public abstract String getBrokerAddr(String brokerName) throws Exception;
+
+    public abstract AddressableMessageQueue buildAddressableMessageQueue(MessageQueue messageQueue) throws Exception;
 
     protected static MessageQueueView getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueView> topicCache,
         String key) throws Exception {

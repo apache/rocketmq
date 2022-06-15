@@ -42,7 +42,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -58,7 +58,7 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         List<Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future;
         if (msgList.size() == 1) {
@@ -98,7 +98,7 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<PopResult> popMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<PopResult> popMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         PopMessageRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().popMessageAsync(
             messageQueue.getBrokerAddr(),
@@ -130,7 +130,7 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         PullMessageRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().pullMessageAsync(
             messageQueue.getBrokerAddr(),
@@ -140,7 +140,7 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().updateConsumerOffsetOneWay(
             messageQueue.getBrokerAddr(),
@@ -150,7 +150,7 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, AddressableMessageQueue messageQueue,
         LockBatchRequestBody requestBody, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().lockBatchMQWithFuture(
             messageQueue.getBrokerAddr(),
@@ -160,7 +160,7 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UnlockBatchRequestBody requestBody, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().unlockBatchMQOneway(
             messageQueue.getBrokerAddr(),

@@ -47,7 +47,7 @@ import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 
 public class ReceiveMessageActivity extends AbstractMessingActivity {
     protected ReceiptHandleProcessor receiptHandleProcessor;
@@ -156,19 +156,19 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
         }
 
         @Override
-        public SelectableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
+        public AddressableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
             try {
-                SelectableMessageQueue selectableMessageQueue = null;
+                AddressableMessageQueue addressableMessageQueue = null;
                 MessageQueueSelector messageQueueSelector = messageQueueView.getReadSelector();
 
                 if (StringUtils.isNotBlank(brokerName)) {
-                    selectableMessageQueue = messageQueueSelector.getQueueByBrokerName(brokerName);
+                    addressableMessageQueue = messageQueueSelector.getQueueByBrokerName(brokerName);
                 }
 
-                if (selectableMessageQueue == null) {
-                    selectableMessageQueue = messageQueueSelector.selectOne(true);
+                if (addressableMessageQueue == null) {
+                    addressableMessageQueue = messageQueueSelector.selectOne(true);
                 }
-                return selectableMessageQueue;
+                return addressableMessageQueue;
             } catch (Throwable t) {
                 return null;
             }

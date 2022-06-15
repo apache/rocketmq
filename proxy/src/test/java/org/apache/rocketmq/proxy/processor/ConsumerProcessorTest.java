@@ -39,7 +39,7 @@ import org.apache.rocketmq.common.protocol.header.ChangeInvisibleTimeRequestHead
 import org.apache.rocketmq.common.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,7 +72,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     public void testPopMessage() throws Throwable {
         final String tag = "tag";
         final long invisibleTime = Duration.ofSeconds(15).toMillis();
-        ArgumentCaptor<SelectableMessageQueue> messageQueueArgumentCaptor = ArgumentCaptor.forClass(SelectableMessageQueue.class);
+        ArgumentCaptor<AddressableMessageQueue> messageQueueArgumentCaptor = ArgumentCaptor.forClass(AddressableMessageQueue.class);
         ArgumentCaptor<PopMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(PopMessageRequestHeader.class);
 
         List<MessageExt> messageExtList = new ArrayList<>();
@@ -94,7 +94,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), any(), toDLQMessageIdArgumentCaptor.capture(), anyString(), anyString(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(mock(RemotingCommand.class)));
 
-        SelectableMessageQueue messageQueue = mock(SelectableMessageQueue.class);
+        AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
         PopResult popResult = this.consumerProcessor.popMessage(
             createContext(),
             (ctx, messageQueueView) -> messageQueue,

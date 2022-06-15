@@ -65,7 +65,7 @@ import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.channel.ChannelManager;
 import org.apache.rocketmq.proxy.service.channel.InvocationContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
-import org.apache.rocketmq.proxy.service.route.SelectableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -83,7 +83,7 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         List<Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         byte[] body;
         String messageId;
@@ -185,7 +185,7 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<PopResult> popMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<PopResult> popMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         PopMessageRequestHeader requestHeader, long timeoutMillis) {
         RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
@@ -352,25 +352,25 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<PullResult> pullMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         PullMessageRequestHeader requestHeader, long timeoutMillis) {
         throw new NotImplementedException("pullMessage is not implemented in LocalMessageService");
     }
 
     @Override
-    public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
         throw new NotImplementedException("updateConsumerOffset is not implemented in LocalMessageService");
     }
 
     @Override
-    public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, AddressableMessageQueue messageQueue,
         LockBatchRequestBody requestBody, long timeoutMillis) {
         throw new NotImplementedException("lockBatchMQ is not implemented in LocalMessageService");
     }
 
     @Override
-    public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, SelectableMessageQueue messageQueue,
+    public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UnlockBatchRequestBody requestBody, long timeoutMillis) {
         throw new NotImplementedException("unlockBatchMQ is not implemented in LocalMessageService");
     }

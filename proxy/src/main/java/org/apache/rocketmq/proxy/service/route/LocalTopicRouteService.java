@@ -24,6 +24,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -84,6 +85,12 @@ public class LocalTopicRouteService extends TopicRouteService {
     @Override
     public String getBrokerAddr(String brokerName) throws Exception {
         return this.brokerController.getBrokerAddr();
+    }
+
+    @Override
+    public AddressableMessageQueue buildAddressableMessageQueue(MessageQueue messageQueue) throws Exception {
+        String brokerAddress = getBrokerAddr(messageQueue.getBrokerName());
+        return new AddressableMessageQueue(messageQueue, brokerAddress);
     }
 
     protected TopicRouteData toTopicRouteData(TopicConfig topicConfig) {

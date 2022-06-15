@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.service.route;
 
 import java.util.List;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.common.Address;
@@ -62,5 +63,11 @@ public class ClusterTopicRouteService extends TopicRouteService {
             return null;
         }
         return brokerDataList.get(0).getBrokerAddrs().get(MixAll.MASTER_ID);
+    }
+
+    @Override
+    public AddressableMessageQueue buildAddressableMessageQueue(MessageQueue messageQueue) throws Exception {
+        String brokerAddress = getBrokerAddr(messageQueue.getBrokerName());
+        return new AddressableMessageQueue(messageQueue, brokerAddress);
     }
 }
