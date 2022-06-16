@@ -805,7 +805,7 @@ public class CommitLog implements Swappable {
         if (needHandleHA) {
             if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode() && this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
                 // -1 means all ack in SyncStateSet
-                needAckNums = -1;
+                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET_NUM;
             } else {
                 int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                     this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
@@ -954,13 +954,18 @@ public class CommitLog implements Swappable {
         int needAckNums = 1;
         boolean needHandleHA = needHandleHA(messageExtBatch);
 
-        if (needHandleHA && !this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
-            int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
-                this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
-            needAckNums = calcNeedAckNums(inSyncReplicas);
-            if (needAckNums > inSyncReplicas) {
-                // Tell the producer, don't have enough slaves to handle the send request
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+        if (needHandleHA) {
+            if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode() && this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
+                // -1 means all ack in SyncStateSet
+                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET_NUM;
+            } else {
+                int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
+                    this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
+                needAckNums = calcNeedAckNums(inSyncReplicas);
+                if (needAckNums > inSyncReplicas) {
+                    // Tell the producer, don't have enough slaves to handle the send request
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
+                }
             }
         }
 
