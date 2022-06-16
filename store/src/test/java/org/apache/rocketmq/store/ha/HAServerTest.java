@@ -193,10 +193,10 @@ public class HAServerTest {
 
     @Test
     public void putRequest_MultipleAckAndRequests() throws IOException, ExecutionException, InterruptedException {
-        CommitLog.GroupCommitRequest oneAck = new CommitLog.GroupCommitRequest(124, 4000,1);
+        CommitLog.GroupCommitRequest oneAck = new CommitLog.GroupCommitRequest(124, 4000,2);
         this.haService.putRequest(oneAck);
 
-        CommitLog.GroupCommitRequest twoAck = new CommitLog.GroupCommitRequest(124,4000, 2);
+        CommitLog.GroupCommitRequest twoAck = new CommitLog.GroupCommitRequest(124,4000, 3);
         this.haService.putRequest(twoAck);
 
         DefaultMessageStore messageStore = mockMessageStore();
@@ -213,7 +213,7 @@ public class HAServerTest {
         doReturn(128L).when(messageStore).getMasterFlushedOffset();
         setUpOneHAClient(messageStore);
 
-        twoAck = new CommitLog.GroupCommitRequest(124, 4000,2);
+        twoAck = new CommitLog.GroupCommitRequest(124, 4000,3);
         this.haService.putRequest(twoAck);
         assertThat(twoAck.future().get()).isEqualTo(PutMessageStatus.PUT_OK);
     }
