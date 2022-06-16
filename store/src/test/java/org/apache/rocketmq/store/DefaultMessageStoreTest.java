@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -654,6 +655,30 @@ public class DefaultMessageStoreTest {
 
         Thread.sleep(3000);
         messageStore.cleanUnusedLmqTopic(lmqTopic);
+
+    }
+
+    @Test
+    public void testEncodeLongMessage() throws Exception{
+        MessageExtBrokerInner messageExtBrokerInner = buildMessage();
+        Class clazz = messageStore.getClass();
+
+        Field fieldCommitLog = clazz.getDeclaredField("commitLog");
+        fieldCommitLog.setAccessible(true);
+        CommitLog commitLog = (CommitLog) fieldCommitLog.get(messageStore);
+
+        Field fieldMessageStoreConfig = clazz.getDeclaredField("messageStoreConfig");
+        fieldMessageStoreConfig.setAccessible(true);
+        MessageStoreConfig messageStoreConfig = (MessageStoreConfig) fieldMessageStoreConfig.get(messageStore);
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
+
+        CommitLog.PutMessageThreadLocal putMessageThreadLocal = commitLog.getPutMessageThreadLocal().get();
+        PutMessageResult encodeResult1 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult1 == null);
+
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize() + 1]);
+        PutMessageResult encodeResult2 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult2.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
 
     }
 
