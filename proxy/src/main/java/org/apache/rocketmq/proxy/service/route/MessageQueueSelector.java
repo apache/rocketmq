@@ -144,16 +144,30 @@ public class MessageQueueSelector {
         Collections.sort(brokerActingQueues);
     }
 
-    public final AddressableMessageQueue getQueueByBrokerName(String brokerName) {
+    public AddressableMessageQueue getQueueByBrokerName(String brokerName) {
         return this.brokerNameQueueMap.get(brokerName);
     }
 
-    public final AddressableMessageQueue selectOne(boolean onlyBroker) {
+    public AddressableMessageQueue selectOne(boolean onlyBroker) {
         int nextIndex = onlyBroker ? brokerIndex.getAndIncrement() : queueIndex.getAndIncrement();
         return selectOneByIndex(nextIndex, onlyBroker);
     }
 
-    public final AddressableMessageQueue selectOneByIndex(int index, boolean onlyBroker) {
+    public AddressableMessageQueue selectNextOne(AddressableMessageQueue last) {
+        boolean onlyBroker = last.getQueueId() < 0;
+        AddressableMessageQueue newOne = last;
+        int count = onlyBroker ? brokerActingQueues.size() : queues.size();
+
+        for (int i = 0; i < count; i++) {
+            newOne = selectOne(onlyBroker);
+            if (!newOne.getBrokerName().equals(last.getBrokerName()) || newOne.getQueueId() != last.getQueueId()) {
+                break;
+            }
+        }
+        return newOne;
+    }
+
+    public AddressableMessageQueue selectOneByIndex(int index, boolean onlyBroker) {
         if (onlyBroker) {
             if (brokerActingQueues.isEmpty()) {
                 return null;
