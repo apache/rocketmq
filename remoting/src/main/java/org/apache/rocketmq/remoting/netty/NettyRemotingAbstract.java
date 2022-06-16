@@ -44,9 +44,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.Decision;
-import org.apache.rocketmq.remoting.Handler;
-import org.apache.rocketmq.remoting.HandlerAdaptor;
-import org.apache.rocketmq.remoting.HandlerContext;
+import org.apache.rocketmq.remoting.Interceptor;
+import org.apache.rocketmq.remoting.InterceptorAdaptor;
+import org.apache.rocketmq.remoting.InterceptorContext;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.Pair;
@@ -105,9 +105,9 @@ public abstract class NettyRemotingAbstract {
     protected volatile SslContext sslContext;
 
     /**
-     * Pluggable RPC handlers
+     * Pluggable RPC interceptors
      */
-    protected List<Handler> handlers = new ArrayList<>();
+    protected List<Interceptor> interceptors = new ArrayList<>();
 
 
     static {
@@ -173,12 +173,12 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    protected Decision preHandle(final HandlerContext context, final RemotingCommand request,
+    protected Decision preHandle(final InterceptorContext context, final RemotingCommand request,
                                  final CompletableFuture<RemotingCommand> responseFuture) {
         Decision decision = Decision.CONTINUE;
-        for (Handler handler : handlers) {
+        for (Interceptor interceptor : interceptors) {
             try {
-                decision = handler.preHandle(context, request, responseFuture);
+                decision = interceptor.preHandle(context, request, responseFuture);
             } catch (Throwable e) {
                 RemotingCommand response  = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
                     e.getMessage());
@@ -194,11 +194,11 @@ public abstract class NettyRemotingAbstract {
         return decision;
     }
 
-    protected Decision postHandle(final HandlerContext context, final RemotingCommand request, final RemotingCommand response) {
+    protected Decision postHandle(final InterceptorContext context, final RemotingCommand request, final RemotingCommand response) {
         Decision decision = Decision.CONTINUE;
-        for (Handler handler : handlers) {
+        for (Interceptor interceptor : interceptors) {
             try {
-                decision = handler.postHandle(context, request, response);
+                decision = interceptor.postHandle(context, request, response);
             } catch (Throwable ignore) {
             }
             if (Decision.STOP == decision) {
@@ -210,12 +210,12 @@ public abstract class NettyRemotingAbstract {
 
     public void registerRPCHook(RPCHook rpcHook) {
         if (null != rpcHook) {
-            handlers.add(new HandlerAdaptor(rpcHook));
+            interceptors.add(new InterceptorAdaptor(rpcHook));
         }
     }
 
-    public void registerHandler(Handler handler) {
-        handlers.add(handler);
+    public void registerInterceptor(Interceptor interceptor) {
+        interceptors.add(interceptor);
     }
 
     /**
@@ -235,7 +235,7 @@ public abstract class NettyRemotingAbstract {
                 public void run() {
                     try {
                         String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                        final HandlerContextAdaptor handlerContext = new HandlerContextAdaptor();
+                        final InterceptorContextAdaptor handlerContext = new InterceptorContextAdaptor();
                         handlerContext.setPeerAddress(remoteAddr);
                         final CompletableFuture<RemotingCommand> responseFuture = new CompletableFuture<>();
                         if (Decision.STOP == NettyRemotingAbstract.this.preHandle(handlerContext, cmd, responseFuture)) {
@@ -374,7 +374,7 @@ public abstract class NettyRemotingAbstract {
     }
 
     private Decision executePostHandler(final ResponseFuture future) {
-        HandlerContextAdaptor handlerContext = new HandlerContextAdaptor();
+        InterceptorContextAdaptor handlerContext = new InterceptorContextAdaptor();
         handlerContext.setPeerAddress(RemotingHelper.parseChannelRemoteAddr(future.getProcessChannel()));
         return postHandle(handlerContext, future.getRequest(), future.getResponseCommand());
     }

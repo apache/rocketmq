@@ -379,7 +379,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         long beginStartTime = System.currentTimeMillis();
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
-            final HandlerContextAdaptor handlerContext = new HandlerContextAdaptor();
+            final InterceptorContextAdaptor handlerContext = new InterceptorContextAdaptor();
             handlerContext.setPeerAddress(addr);
             try {
                 CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
@@ -546,7 +546,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         long beginStartTime = System.currentTimeMillis();
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
-            final HandlerContextAdaptor handlerContext = new HandlerContextAdaptor();
+            final InterceptorContextAdaptor handlerContext = new InterceptorContextAdaptor();
             handlerContext.setPeerAddress(addr);
             try {
                 CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
@@ -590,7 +590,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
-            final HandlerContextAdaptor handlerContext = new HandlerContextAdaptor();
+            final InterceptorContextAdaptor handlerContext = new InterceptorContextAdaptor();
             handlerContext.setPeerAddress(addr);
             try {
                 CompletableFuture<RemotingCommand> future = new CompletableFuture<>();

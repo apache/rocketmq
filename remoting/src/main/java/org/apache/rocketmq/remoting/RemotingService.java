@@ -25,7 +25,7 @@ public interface RemotingService {
     void registerRPCHook(RPCHook rpcHook);
 
     /**
-     * Register a handler
+     * Register an interceptor
      * <ul>
      *     <li>
      *         To execute before sending requests(in perspective of clients) or before invoking corresponding processor
@@ -37,7 +37,7 @@ public interface RemotingService {
      *     </li>
      * </ul>
      *
-     * @param handler Handler to add.
+     * @param interceptor Handler to add.
      */
-    void registerHandler(Handler handler);
+    void registerInterceptor(Interceptor interceptor);
 }

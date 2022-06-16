@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import org.apache.rocketmq.remoting.HandlerContext;
+import org.apache.rocketmq.remoting.InterceptorContext;
 
-public class HandlerContextAdaptor implements HandlerContext {
+public class InterceptorContextAdaptor implements InterceptorContext {
     private String peerAddress;
 
     @Override

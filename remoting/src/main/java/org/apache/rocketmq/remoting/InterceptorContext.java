@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.remoting;
 
-public interface HandlerContext {
+public interface InterceptorContext {
 
     /**
      * Address of the peer endpoint.

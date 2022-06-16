@@ -21,13 +21,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
 /**
- * Provide a handler adaptor over RpcHook.
+ * Provide an interceptor adaptor over RpcHook.
  */
-public class HandlerAdaptor implements Handler {
+public class InterceptorAdaptor implements Interceptor {
 
     private final RPCHook rpcHook;
 
-    public HandlerAdaptor(RPCHook rpcHook) {
+    public InterceptorAdaptor(RPCHook rpcHook) {
         if (null == rpcHook) {
             throw new RuntimeException("RpcHook may not be null");
         }
@@ -35,7 +35,7 @@ public class HandlerAdaptor implements Handler {
     }
 
     @Override
-    public Decision preHandle(HandlerContext context, RemotingCommand request,
+    public Decision preHandle(InterceptorContext context, RemotingCommand request,
         CompletableFuture<RemotingCommand> responseFuture) {
         try {
             rpcHook.doBeforeRequest(context.peerAddress(), request);
@@ -48,7 +48,7 @@ public class HandlerAdaptor implements Handler {
         return Decision.CONTINUE;
     }
 
-    @Override public Decision postHandle(HandlerContext context, RemotingCommand request,
+    @Override public Decision postHandle(InterceptorContext context, RemotingCommand request,
         RemotingCommand response) {
         try {
             rpcHook.doAfterResponse(context.peerAddress(), request, response);
