@@ -2,9 +2,8 @@
 
 当前 RocketMQ Raft 模式主要是利用 DLedger Commitlog 替换原来的 Commitlog，使 Commitlog 拥有选举复制能力，但这也造成了一些问题：
 
-- Raft 模式下，Broker组内副本数必须是三副本及以上。
+- Raft 模式下，Broker组内副本数必须是三副本及以上，副本的ACK也必须遵循多数派协议。
 - RocketMQ 存在两套 HA 复制流程，且 Raft 模式下的复制无法利用 RocketMQ 原生的存储能力。
-- Raft 模式下, 日志复制性能并不高效。
 
 因此我们希望利用 DLedger 实现一个基于 Raft 的一致性模块（DLedger Controller），并当作一个可选的选主组件, 支持独立部署, 也可以嵌入在 Nameserver 中，Broker 通过与 Controller 的交互完成 Master 的选举, 从而解决上述问题, 我们将该新模式称为 Controller 模式。
 
@@ -27,7 +26,7 @@
 
 ![image-20220605213143645](../image/controller/quick-start/controller.png)
 
-如果, 是 DledgerController 的核心设计:
+如图是 DledgerController 的核心设计:
 
 - DLedgerController 可以内嵌在 Namesrv 中, 也可以独立的部署。
 - Active DLedgerController 是 DLedger 选举出来的 Leader, 其会接受来自客户端的事件请求, 并通过 DLedger 发起共识, 最后应用到内存元数据状态机中。
@@ -195,11 +194,9 @@ Shrink SyncStateSet ，指把 SyncStateSet 副本集合中那些与Master差距�
 
 - ReadSocketService 接收到 slaveAckOffset 时若 slaveAckOffset >= lastMasterMaxOffset 则将lastCaughtUpTimeMs 更新为 lastTransferTimeMs。
 
-- Master 端通过定时任务扫描每一个 HaConnection, 如果 (cur_time - connection.lastCaughtUpTimeMs) >
+- Master 端通过定时任务扫描每一个 HaConnection, 如果 (cur_time - connection.lastCaughtUpTimeMs) > haMaxTimeSlaveNotCatchUp，则该 Slave 是 Out-of-sync 的。
 
-  haMaxTimeSlaveNotCatchUp，则该 Slave 是 Out-of-sync 的 。
-
-- 如果检测到 Slave out of sync , master 会立刻和 Controller 上报, 从而 Shrink SyncStateSet 。
+- 如果检测到 Slave out of sync , master 会立刻和 Controller 上报, 从而 Shrink SyncStateSet。
 
 #### Expand
 

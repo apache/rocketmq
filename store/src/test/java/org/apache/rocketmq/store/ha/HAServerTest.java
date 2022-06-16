@@ -176,7 +176,7 @@ public class HAServerTest {
 
     @Test
     public void putRequest_SingleAck() throws IOException, ExecutionException, InterruptedException, TimeoutException {
-        CommitLog.GroupCommitRequest request = new CommitLog.GroupCommitRequest(124, 4000,1);
+        CommitLog.GroupCommitRequest request = new CommitLog.GroupCommitRequest(124, 4000, 1);
         this.haService.putRequest(request);
 
         assertThat(request.future().get()).isEqualTo(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
@@ -186,17 +186,17 @@ public class HAServerTest {
         doReturn(124L).when(messageStore).getMasterFlushedOffset();
         setUpOneHAClient(messageStore);
 
-        request = new CommitLog.GroupCommitRequest(124, 4000,1);
+        request = new CommitLog.GroupCommitRequest(124, 4000, 1);
         this.haService.putRequest(request);
         assertThat(request.future().get()).isEqualTo(PutMessageStatus.PUT_OK);
     }
 
     @Test
     public void putRequest_MultipleAckAndRequests() throws IOException, ExecutionException, InterruptedException {
-        CommitLog.GroupCommitRequest oneAck = new CommitLog.GroupCommitRequest(124, 4000,1);
+        CommitLog.GroupCommitRequest oneAck = new CommitLog.GroupCommitRequest(124, 4000, 2);
         this.haService.putRequest(oneAck);
 
-        CommitLog.GroupCommitRequest twoAck = new CommitLog.GroupCommitRequest(124,4000, 2);
+        CommitLog.GroupCommitRequest twoAck = new CommitLog.GroupCommitRequest(124, 4000, 3);
         this.haService.putRequest(twoAck);
 
         DefaultMessageStore messageStore = mockMessageStore();
@@ -207,13 +207,12 @@ public class HAServerTest {
         assertThat(oneAck.future().get()).isEqualTo(PutMessageStatus.PUT_OK);
         assertThat(twoAck.future().get()).isEqualTo(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
 
-
         messageStore = mockMessageStore();
         doReturn(128L).when(messageStore).getMaxPhyOffset();
         doReturn(128L).when(messageStore).getMasterFlushedOffset();
         setUpOneHAClient(messageStore);
 
-        twoAck = new CommitLog.GroupCommitRequest(124, 4000,2);
+        twoAck = new CommitLog.GroupCommitRequest(124, 4000, 3);
         this.haService.putRequest(twoAck);
         assertThat(twoAck.future().get()).isEqualTo(PutMessageStatus.PUT_OK);
     }
