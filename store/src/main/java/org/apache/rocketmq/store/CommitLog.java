@@ -1491,14 +1491,6 @@ public class CommitLog {
             this.maxMessageSize = maxMessageSize;
         }
 
-        MessageExtEncoder(final int maxMessageBodySize, final int maxMessageSize){
-            ByteBufAllocator alloc = UnpooledByteBufAllocator.DEFAULT;
-            byteBuf = alloc.directBuffer(maxMessageSize);
-            this.maxMessageBodySize = maxMessageBodySize;
-            this.maxMessageSize = maxMessageSize;
-        }
-
-
         protected PutMessageResult encode(MessageExtBrokerInner msgInner) {
             this.byteBuf.clear();
             /**
@@ -1712,11 +1704,6 @@ public class CommitLog {
 
         PutMessageThreadLocal(int maxMessageBodySize) {
             encoder = new MessageExtEncoder(maxMessageBodySize);
-            keyBuilder = new StringBuilder();
-        }
-
-        PutMessageThreadLocal(int maxMessageBodySize, int maxMessageSize){
-            encoder = new MessageExtEncoder(maxMessageBodySize, maxMessageSize);
             keyBuilder = new StringBuilder();
         }
 
