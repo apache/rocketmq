@@ -1,4 +1,4 @@
-# Controller mode 快速搭建
+# Controller mode quick start
 
 ## 前言
 
@@ -6,7 +6,7 @@
 
 详细的新集群部署和旧集群升级指南请参考 [部署指南](deploy_guide.md)。
 
-## 编译 Rocketmq 源码
+## 编译 RocketMQ 源码
 
 `git clone https://github.com/apache/rocketmq.git`
 
