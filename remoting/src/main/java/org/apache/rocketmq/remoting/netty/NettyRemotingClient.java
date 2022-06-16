@@ -62,7 +62,6 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.Decision;
 import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.common.Pair;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -388,7 +387,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 if (Decision.STOP == decision) {
                     RemotingCommand response;
                     try {
-                       response = future.get();
+                        response = future.get();
                     } catch (ExecutionException e) {
                         response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
                             "Stopped by handler chain");
