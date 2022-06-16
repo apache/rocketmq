@@ -75,7 +75,7 @@ public class GroupTransferService extends ServiceThread {
                     boolean transferOK = false;
 
                     long deadLine = req.getDeadLine();
-                    final boolean allAckInSyncStateSet = req.getAckNums() == MixAll.ALL_ACK_IN_SYNC_STATE_SET_NUM;
+                    final boolean allAckInSyncStateSet = req.getAckNums() == MixAll.ALL_ACK_IN_SYNC_STATE_SET;
 
                     for (int i = 0; !transferOK && deadLine - System.nanoTime() > 0; i++) {
                         if (i > 0) {

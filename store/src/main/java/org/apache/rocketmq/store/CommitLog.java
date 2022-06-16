@@ -805,7 +805,7 @@ public class CommitLog implements Swappable {
         if (needHandleHA) {
             if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode() && this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
                 // -1 means all ack in SyncStateSet
-                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET_NUM;
+                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
             } else {
                 int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                     this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
@@ -957,7 +957,7 @@ public class CommitLog implements Swappable {
         if (needHandleHA) {
             if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode() && this.defaultMessageStore.getMessageStoreConfig().isAllAckInSyncStateSet()) {
                 // -1 means all ack in SyncStateSet
-                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET_NUM;
+                needAckNums = MixAll.ALL_ACK_IN_SYNC_STATE_SET;
             } else {
                 int inSyncReplicas = Math.min(this.defaultMessageStore.getAliveReplicaNumInGroup(),
                     this.defaultMessageStore.getHaService().inSyncSlaveNums(currOffset) + 1);
