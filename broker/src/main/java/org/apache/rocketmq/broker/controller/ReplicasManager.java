@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.broker.hacontroller;
+package org.apache.rocketmq.broker.controller;
 
 import java.util.ArrayList;
 import java.util.Arrays;
