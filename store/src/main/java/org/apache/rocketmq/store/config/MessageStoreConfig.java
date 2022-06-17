@@ -33,7 +33,7 @@ public class MessageStoreConfig {
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
 
-    //The directory in which the commitlog is kept
+    //The directory in which the epochFile is kept
     @ImportantField
     private String storePathEpochFile = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "epochFileCheckpoint";
