@@ -22,5 +22,4 @@ public class ContextVariable {
     public final static String LOCAL_ADDRESS = "local-address";
     public static final String CLIENT_ID = "client-id";
     public static final String LANGUAGE = "language";
-    public final static String CHANNEL_KEY = "channel-key";
 }

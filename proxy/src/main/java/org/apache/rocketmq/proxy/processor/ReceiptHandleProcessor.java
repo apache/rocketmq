@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.processor;
 
-import io.netty.channel.Channel;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +41,6 @@ import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ReceiptHandleGroup;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
-import org.apache.rocketmq.proxy.common.utils.ChannelUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.slf4j.Logger;
@@ -70,8 +68,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                     }
                     if (args[0] instanceof ClientChannelInfo) {
                         ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
-                        Channel channel = clientChannelInfo.getChannel();
-                        clearGroup(ChannelUtils.buildChannelKey(channel, group));
+                        clearGroup(buildKey(clientChannelInfo.getClientId(), group));
                     }
                 }
             }
@@ -153,7 +150,16 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         }
     }
 
-    public void addReceiptHandle(String key, String receiptHandle,
+    protected String buildKey(String clientID, String group) {
+        return clientID + "%" + group;
+    }
+
+    public void addReceiptHandle(String clientID, String group, String receiptHandle,
+        MessageReceiptHandle messageReceiptHandle) {
+        this.addReceiptHandle(buildKey(clientID, group), receiptHandle, messageReceiptHandle);
+    }
+
+    protected void addReceiptHandle(String key, String receiptHandle,
         MessageReceiptHandle messageReceiptHandle) {
         if (key == null) {
             return;
@@ -162,7 +168,11 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             k -> new ReceiptHandleGroup()).put(receiptHandle, messageReceiptHandle);
     }
 
-    public void removeReceiptHandle(String key, String receiptHandle) {
+    public void removeReceiptHandle(String clientID, String group, String receiptHandle) {
+        this.removeReceiptHandle(buildKey(clientID, group), receiptHandle);
+    }
+
+    protected void removeReceiptHandle(String key, String receiptHandle) {
         if (key == null) {
             return;
         }
@@ -193,9 +203,5 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                 return null;
             }
         );
-    }
-
-    protected String keyWithChannelId(String channelId, String groupName) {
-        return channelId + "%" + groupName;
     }
 }

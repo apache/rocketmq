@@ -17,10 +17,8 @@
 package org.apache.rocketmq.proxy.grpc.v2;
 
 import io.grpc.Context;
-import io.netty.channel.Channel;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.common.utils.ChannelUtils;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -41,16 +39,11 @@ public abstract class AbstractMessingActivity {
     }
 
     protected ProxyContext createContext(Context ctx) {
+        String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
         return ProxyContext.create()
             .withVal(ContextVariable.LOCAL_ADDRESS, InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LOCAL_ADDRESS))
             .withVal(ContextVariable.REMOTE_ADDRESS, InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.REMOTE_ADDRESS))
-            .withVal(ContextVariable.CLIENT_ID, InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID))
+            .withVal(ContextVariable.CLIENT_ID, clientId)
             .withVal(ContextVariable.LANGUAGE, LanguageCode.valueOf(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LANGUAGE)));
-    }
-
-    protected void attachChannelId(Context ctx, ProxyContext context, String groupName) {
-        String clientId = context.getVal(ContextVariable.CLIENT_ID);
-        Channel channel = grpcChannelManager.createChannel(ctx, groupName, clientId);
-        context.withVal(ContextVariable.CHANNEL_KEY, ChannelUtils.buildChannelKey(channel, groupName));
     }
 }

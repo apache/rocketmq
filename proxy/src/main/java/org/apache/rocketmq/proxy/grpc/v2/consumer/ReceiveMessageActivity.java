@@ -62,8 +62,6 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
         StreamObserver<ReceiveMessageResponse> responseObserver) {
         ProxyContext proxyContext = createContext(ctx);
         ReceiveMessageResponseStreamWriter writer = createWriter(proxyContext, responseObserver);
-        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-        attachChannelId(ctx, proxyContext, groupName);
 
         try {
             Settings settings = this.grpcClientSettingsManager.getClientSettings(proxyContext);
@@ -123,8 +121,8 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                             MessageReceiptHandle messageReceiptHandle =
                                 new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
                                     messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), requestInvisibleTime);
-                            String channelId = proxyContext.getVal(ContextVariable.CHANNEL_KEY);
-                            receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
+                            String clientID = proxyContext.getVal(ContextVariable.CLIENT_ID);
+                            receiptHandleProcessor.addReceiptHandle(clientID, group, receiptHandle, messageReceiptHandle);
                         }
                     }
                 }
