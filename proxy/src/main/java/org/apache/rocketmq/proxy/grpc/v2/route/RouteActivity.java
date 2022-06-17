@@ -30,7 +30,6 @@ import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.Resource;
 import com.google.common.net.HostAndPort;
-import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,14 +55,13 @@ public class RouteActivity extends AbstractMessingActivity {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
-    public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
+    public CompletableFuture<QueryRouteResponse> queryRoute(ProxyContext ctx, QueryRouteRequest request) {
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         try {
-            ProxyContext context = createContext(ctx);
             List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
 
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
-                context,
+                ctx,
                 addressList,
                 GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
 
@@ -98,15 +96,15 @@ public class RouteActivity extends AbstractMessingActivity {
         return future;
     }
 
-    public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
+    public CompletableFuture<QueryAssignmentResponse> queryAssignment(ProxyContext ctx,
+        QueryAssignmentRequest request) {
         CompletableFuture<QueryAssignmentResponse> future = new CompletableFuture<>();
 
         try {
-            ProxyContext context = createContext(ctx);
             List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
 
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
-                context,
+                ctx,
                 addressList,
                 GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
 

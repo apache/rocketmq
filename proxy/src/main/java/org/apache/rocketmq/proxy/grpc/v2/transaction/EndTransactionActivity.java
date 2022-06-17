@@ -21,7 +21,6 @@ import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.TransactionResolution;
 import apache.rocketmq.v2.TransactionSource;
-import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
@@ -40,10 +39,9 @@ public class EndTransactionActivity extends AbstractMessingActivity {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
-    public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
+    public CompletableFuture<EndTransactionResponse> endTransaction(ProxyContext ctx, EndTransactionRequest request) {
         CompletableFuture<EndTransactionResponse> future = new CompletableFuture<>();
         try {
-            ProxyContext context = createContext(ctx);
             TransactionId transactionId = TransactionId.decode(request.getTransactionId());
             TransactionStatus transactionStatus = TransactionStatus.UNKNOWN;
             TransactionResolution transactionResolution = request.getResolution();
@@ -58,7 +56,7 @@ public class EndTransactionActivity extends AbstractMessingActivity {
                     break;
             }
             this.messagingProcessor.endTransaction(
-                context,
+                ctx,
                 transactionId,
                 request.getMessageId(),
                 GrpcConverter.wrapResourceWithNamespace(request.getTopic()),

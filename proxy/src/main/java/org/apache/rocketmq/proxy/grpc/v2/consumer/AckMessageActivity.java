@@ -21,7 +21,6 @@ import apache.rocketmq.v2.AckMessageRequest;
 import apache.rocketmq.v2.AckMessageResponse;
 import apache.rocketmq.v2.AckMessageResultEntry;
 import apache.rocketmq.v2.Code;
-import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -42,6 +40,7 @@ import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 
 public class AckMessageActivity extends AbstractMessingActivity {
     protected ReceiptHandleProcessor receiptHandleProcessor;
+
     public AckMessageActivity(MessagingProcessor messagingProcessor, ReceiptHandleProcessor receiptHandleProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager) {
@@ -49,14 +48,13 @@ public class AckMessageActivity extends AbstractMessingActivity {
         this.receiptHandleProcessor = receiptHandleProcessor;
     }
 
-    public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
-        ProxyContext proxyContext = createContext(ctx);
+    public CompletableFuture<AckMessageResponse> ackMessage(ProxyContext ctx, AckMessageRequest request) {
         CompletableFuture<AckMessageResponse> future = new CompletableFuture<>();
 
         try {
             CompletableFuture<AckMessageResultEntry>[] futures = new CompletableFuture[request.getEntriesCount()];
             for (int i = 0; i < request.getEntriesCount(); i++) {
-                futures[i] = processAckMessage(proxyContext, request, request.getEntries(i));
+                futures[i] = processAckMessage(ctx, request, request.getEntries(i));
             }
             CompletableFuture.allOf(futures).whenComplete((val, throwable) -> {
                 if (throwable != null) {
@@ -109,8 +107,7 @@ public class AckMessageActivity extends AbstractMessingActivity {
                 GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
             ackResultFuture.thenAccept(result -> {
                 if (AckStatus.OK.equals(result.getStatus())) {
-                    String clientID = ctx.getVal(ContextVariable.CLIENT_ID);
-                    receiptHandleProcessor.removeReceiptHandle(clientID, group, ackMessageEntry.getReceiptHandle());
+                    receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, ackMessageEntry.getReceiptHandle());
                 }
                 future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result));
             }).exceptionally(throwable -> {

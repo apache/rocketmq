@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
-import io.grpc.Context;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -30,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -58,7 +58,7 @@ public class GrpcChannelManager implements StartAndShutdown {
         );
     }
 
-    public GrpcClientChannel createChannel(Context ctx, String group, String clientId) {
+    public GrpcClientChannel createChannel(ProxyContext ctx, String group, String clientId) {
         this.groupClientIdChannelMap.compute(group, (groupKey, clientIdMap) -> {
             if (clientIdMap == null) {
                 clientIdMap = new ConcurrentHashMap<>();

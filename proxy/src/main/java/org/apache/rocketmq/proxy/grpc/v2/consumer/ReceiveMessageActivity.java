@@ -23,17 +23,15 @@ import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.util.Durations;
-import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -45,9 +43,9 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
+import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
-import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 
 public class ReceiveMessageActivity extends AbstractMessingActivity {
     protected ReceiptHandleProcessor receiptHandleProcessor;
@@ -58,23 +56,25 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
         this.receiptHandleProcessor = receiptHandleProcessor;
     }
 
-    public void receiveMessage(Context ctx, ReceiveMessageRequest request,
+    public void receiveMessage(ProxyContext ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
-        ProxyContext proxyContext = createContext(ctx);
-        ReceiveMessageResponseStreamWriter writer = createWriter(proxyContext, responseObserver);
+        ReceiveMessageResponseStreamWriter writer = createWriter(ctx, responseObserver);
 
         try {
-            Settings settings = this.grpcClientSettingsManager.getClientSettings(proxyContext);
+            Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
             Subscription subscription = settings.getSubscription();
             boolean fifo = subscription.getFifo();
 
-            long timeRemaining = ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
+            Long timeRemaining = ctx.getRemainingMs();
+            if (timeRemaining == null) {
+                timeRemaining = Duration.ofSeconds(20).toMillis();
+            }
             long pollTime = timeRemaining - ConfigurationManager.getProxyConfig().getLongPollingReserveTimeInMillis();
             if (pollTime <= 0) {
                 pollTime = timeRemaining;
             }
             if (pollTime <= 0) {
-                writer.writeAndComplete(proxyContext, Code.MESSAGE_NOT_FOUND, "time remaining is too small");
+                writer.writeAndComplete(ctx, Code.MESSAGE_NOT_FOUND, "time remaining is too small");
                 return;
             }
 
@@ -93,12 +93,12 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 subscriptionData = FilterAPI.build(topic, filterExpression.getExpression(),
                     GrpcConverter.buildExpressionType(filterExpression.getType()));
             } catch (Exception e) {
-                writer.writeAndComplete(proxyContext, Code.ILLEGAL_FILTER_EXPRESSION, e.getMessage());
+                writer.writeAndComplete(ctx, Code.ILLEGAL_FILTER_EXPRESSION, e.getMessage());
                 return;
             }
 
             this.messagingProcessor.popMessage(
-                proxyContext,
+                ctx,
                 new ReceiveMessageQueueSelector(
                     request.getMessageQueue().getBroker().getName()
                 ),
@@ -121,19 +121,18 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                             MessageReceiptHandle messageReceiptHandle =
                                 new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
                                     messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), requestInvisibleTime);
-                            String clientID = proxyContext.getVal(ContextVariable.CLIENT_ID);
-                            receiptHandleProcessor.addReceiptHandle(clientID, group, receiptHandle, messageReceiptHandle);
+                            receiptHandleProcessor.addReceiptHandle(ctx.getClientID(), group, receiptHandle, messageReceiptHandle);
                         }
                     }
                 }
-                writer.writeAndComplete(proxyContext, request, popResult);
+                writer.writeAndComplete(ctx, request, popResult);
             })
                 .exceptionally(t -> {
-                    writer.writeAndComplete(proxyContext, request, t);
+                    writer.writeAndComplete(ctx, request, t);
                     return null;
                 });
         } catch (Throwable t) {
-            writer.writeAndComplete(proxyContext, request, t);
+            writer.writeAndComplete(ctx, request, t);
         }
     }
 

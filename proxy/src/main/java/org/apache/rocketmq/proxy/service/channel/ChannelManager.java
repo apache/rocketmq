@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,8 +45,8 @@ public class ChannelManager {
 
     public SimpleChannel createInvocationChannel(ProxyContext context) {
         final String clientId = anonymousChannelId(InvocationChannel.class.getName(), context);
-        final String clientHost = context.getVal(ContextVariable.REMOTE_ADDRESS);
-        final String localAddress = context.getVal(ContextVariable.LOCAL_ADDRESS);
+        final String clientHost = context.getRemoteAddress();
+        final String localAddress = context.getLocalAddress();
         if (Strings.isNullOrEmpty(clientId)) {
             log.warn("ClientId is unexpected null or empty");
             return new InvocationChannel(clientHost, localAddress);
@@ -59,19 +58,19 @@ public class ChannelManager {
     }
 
     private String anonymousChannelId(ProxyContext context) {
-        final String clientHost = context.getVal(ContextVariable.REMOTE_ADDRESS);
-        final String localAddress = context.getVal(ContextVariable.LOCAL_ADDRESS);
+        final String clientHost = context.getRemoteAddress();
+        final String localAddress = context.getLocalAddress();
         return clientHost + "@" + localAddress;
     }
 
     private String anonymousChannelId(String key, ProxyContext context) {
-        final String clientHost = context.getVal(ContextVariable.REMOTE_ADDRESS);
-        final String localAddress = context.getVal(ContextVariable.LOCAL_ADDRESS);
+        final String clientHost = context.getRemoteAddress();
+        final String localAddress = context.getLocalAddress();
         return key + "@" + clientHost + "@" + localAddress;
     }
 
     private SimpleChannel createChannelInner(ProxyContext context) {
-        return new SimpleChannel(context.getVal(ContextVariable.REMOTE_ADDRESS), context.getVal(ContextVariable.LOCAL_ADDRESS));
+        return new SimpleChannel(context.getRemoteAddress(), context.getLocalAddress());
     }
 
     public void scanAndCleanChannels() {

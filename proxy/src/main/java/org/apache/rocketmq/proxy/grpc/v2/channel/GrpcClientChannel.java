@@ -21,7 +21,6 @@ import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.VerifyMessageCommand;
 import com.google.common.collect.ComparisonChain;
-import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.ChannelId;
 import java.util.concurrent.CompletableFuture;
@@ -32,7 +31,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.service.relay.ProxyChannel;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
@@ -50,11 +49,12 @@ public class GrpcClientChannel extends ProxyChannel {
     private final String group;
     private final String clientId;
 
-    public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcChannelManager grpcChannelManager, Context ctx,
+    public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcChannelManager grpcChannelManager,
+        ProxyContext ctx,
         String group, String clientId) {
         super(proxyRelayService, null, new GrpcChannelId(group, clientId),
-            InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.REMOTE_ADDRESS),
-            InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LOCAL_ADDRESS));
+            ctx.getRemoteAddress(),
+            ctx.getLocalAddress());
         this.grpcChannelManager = grpcChannelManager;
         this.group = group;
         this.clientId = clientId;
