@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.namesrv.processor;
 
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
@@ -363,9 +362,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 topicRouteData.setOrderTopicConf(orderTopicConf);
             }
 
-            byte[] content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
-                    SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
-                    SerializerFeature.MapSortField);
+            byte[] content = topicRouteData.encode();
             response.setBody(content);
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);

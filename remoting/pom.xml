@@ -40,12 +40,5 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-logging</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.9.0</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>
