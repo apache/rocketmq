@@ -87,6 +87,6 @@ Broker若设置enableControllerMode=false，则仍然以之前方式运行。若
 
 可以带数据进行原地升级，对于每组Broker，停机主、备Broker，**保证主、备的Commitlog对齐**（可以在升级前禁写该组Broker一段时间，或则通过拷贝方式保证一致），升级包后重新启动即可。
 
-（1）原DLedger模式升级到Controller切换架构
+（2）原DLedger模式升级到Controller切换架构
 
 由于原DLedger模式消息数据格式与Master-Slave下数据格式存在区别，不提供带数据原地升级的路径。在部署多组Broker的情况下，可以禁写某一组Broker一段时间（只要确认存量消息被全部消费即可，比如根据消息的保存时间来决定），然后清空store目录下除config/topics.json、subscriptionGroup.json下（保留topic和订阅关系的元数据）的其他文件后，进行空盘升级。
