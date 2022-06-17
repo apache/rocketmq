@@ -30,7 +30,6 @@ import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
-import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +53,6 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -83,15 +81,14 @@ public class ClientActivity extends AbstractMessingActivity {
         this.messagingProcessor.registerProducerListener(new ProducerChangeListenerImpl());
     }
 
-    public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+    public CompletableFuture<HeartbeatResponse> heartbeat(ProxyContext ctx, HeartbeatRequest request) {
         CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
 
         try {
-            ProxyContext context = createContext(ctx);
-            String clientId = context.getVal(ContextVariable.CLIENT_ID);
-            LanguageCode languageCode = context.getVal(ContextVariable.LANGUAGE);
+            String clientId = ctx.getClientID();
+            LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
 
-            Settings clientSettings = grpcClientSettingsManager.getClientSettings(context);
+            Settings clientSettings = grpcClientSettingsManager.getClientSettings(ctx);
             switch (clientSettings.getClientType()) {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
@@ -99,8 +96,8 @@ public class ClientActivity extends AbstractMessingActivity {
                         GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
                         // use topic name as producer group
-                        this.messagingProcessor.registerProducer(context, topicName, clientChannelInfo);
-                        this.messagingProcessor.addTransactionSubscription(context, topicName, topicName);
+                        this.messagingProcessor.registerProducer(ctx, topicName, clientChannelInfo);
+                        this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
                     }
                     break;
                 }
@@ -114,7 +111,7 @@ public class ClientActivity extends AbstractMessingActivity {
                     ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
 
                     this.messagingProcessor.registerConsumer(
-                        context,
+                        ctx,
                         consumerGroup,
                         clientChannelInfo,
                         this.buildConsumeType(clientSettings.getClientType()),
@@ -141,15 +138,14 @@ public class ClientActivity extends AbstractMessingActivity {
         return future;
     }
 
-    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(ProxyContext ctx,
         NotifyClientTerminationRequest request) {
         CompletableFuture<NotifyClientTerminationResponse> future = new CompletableFuture<>();
 
         try {
-            ProxyContext context = createContext(ctx);
-            String clientId = context.getVal(ContextVariable.CLIENT_ID);
-            LanguageCode languageCode = context.getVal(ContextVariable.LANGUAGE);
-            Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(context);
+            String clientId = ctx.getClientID();
+            LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
+            Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(ctx);
 
             switch (clientSettings.getClientType()) {
                 case PRODUCER:
@@ -159,7 +155,7 @@ public class ClientActivity extends AbstractMessingActivity {
                         GrpcClientChannel channel = this.grpcChannelManager.removeChannel(topicName, clientId);
                         if (channel != null) {
                             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
-                            this.messagingProcessor.unRegisterProducer(context, topicName, clientChannelInfo);
+                            this.messagingProcessor.unRegisterProducer(ctx, topicName, clientChannelInfo);
                         }
                     }
                     break;
@@ -172,7 +168,7 @@ public class ClientActivity extends AbstractMessingActivity {
                     GrpcClientChannel channel = this.grpcChannelManager.removeChannel(consumerGroup, clientId);
                     if (channel != null) {
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
-                        this.messagingProcessor.unRegisterConsumer(context, consumerGroup, clientChannelInfo);
+                        this.messagingProcessor.unRegisterConsumer(ctx, consumerGroup, clientChannelInfo);
                     }
                     break;
                 default:
@@ -190,7 +186,8 @@ public class ClientActivity extends AbstractMessingActivity {
         return future;
     }
 
-    public StreamObserver<TelemetryCommand> telemetry(Context ctx, StreamObserver<TelemetryCommand> responseObserver) {
+    public StreamObserver<TelemetryCommand> telemetry(ProxyContext ctx,
+        StreamObserver<TelemetryCommand> responseObserver) {
         return new StreamObserver<TelemetryCommand>() {
             @Override
             public void onNext(TelemetryCommand request) {
@@ -228,12 +225,11 @@ public class ClientActivity extends AbstractMessingActivity {
         };
     }
 
-    protected TelemetryCommand processClientSettings(Context ctx, TelemetryCommand request,
+    protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request,
         StreamObserver<TelemetryCommand> responseObserver) {
-        ProxyContext context = createContext(ctx);
-        String clientId = context.getVal(ContextVariable.CLIENT_ID);
+        String clientId = ctx.getClientID();
         grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
-        Settings settings = grpcClientSettingsManager.getClientSettings(context);
+        Settings settings = grpcClientSettingsManager.getClientSettings(ctx);
         if (settings.hasPublishing()) {
             for (Resource topic : settings.getPublishing().getTopicsList()) {
                 String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
@@ -252,7 +248,7 @@ public class ClientActivity extends AbstractMessingActivity {
             .build();
     }
 
-    protected void reportThreadStackTrace(Context ctx, Status status, ThreadStackTrace request) {
+    protected void reportThreadStackTrace(ProxyContext ctx, Status status, ThreadStackTrace request) {
         String nonce = request.getNonce();
         String threadStack = request.getThreadStackTrace();
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
@@ -273,7 +269,7 @@ public class ClientActivity extends AbstractMessingActivity {
         }
     }
 
-    protected void reportVerifyMessageResult(Context ctx, Status status, VerifyMessageResult request) {
+    protected void reportVerifyMessageResult(ProxyContext ctx, Status status, VerifyMessageResult request) {
         String nonce = request.getNonce();
         CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture = this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
         if (responseFuture != null) {

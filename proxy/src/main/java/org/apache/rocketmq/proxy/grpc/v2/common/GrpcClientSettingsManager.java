@@ -35,7 +35,6 @@ import org.apache.rocketmq.common.subscription.ExponentialRetryPolicy;
 import org.apache.rocketmq.common.subscription.GroupRetryPolicy;
 import org.apache.rocketmq.common.subscription.GroupRetryPolicyType;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -73,7 +72,7 @@ public class GrpcClientSettingsManager {
     }
 
     public Settings getClientSettings(ProxyContext ctx) {
-        String clientId = ctx.getVal(ContextVariable.CLIENT_ID);
+        String clientId = ctx.getClientID();
         Settings settings = CLIENT_SETTINGS_MAP.get(clientId);
         if (settings == null) {
             return null;
@@ -149,7 +148,7 @@ public class GrpcClientSettingsManager {
     }
 
     public Settings removeAndGetClientSettings(ProxyContext ctx) {
-        String clientId = ctx.getVal(ContextVariable.CLIENT_ID);
+        String clientId = ctx.getClientID();
         Settings settings = CLIENT_SETTINGS_MAP.remove(clientId);
         if (settings == null) {
             return null;

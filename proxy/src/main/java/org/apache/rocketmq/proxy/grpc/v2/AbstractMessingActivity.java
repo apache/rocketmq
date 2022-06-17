@@ -16,14 +16,9 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2;
 
-import io.grpc.Context;
-import org.apache.rocketmq.proxy.common.ContextVariable;
-import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public abstract class AbstractMessingActivity {
 
@@ -36,14 +31,5 @@ public abstract class AbstractMessingActivity {
         this.messagingProcessor = messagingProcessor;
         this.grpcClientSettingsManager = grpcClientSettingsManager;
         this.grpcChannelManager = grpcChannelManager;
-    }
-
-    protected ProxyContext createContext(Context ctx) {
-        String clientId = InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID);
-        return ProxyContext.create()
-            .withVal(ContextVariable.LOCAL_ADDRESS, InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LOCAL_ADDRESS))
-            .withVal(ContextVariable.REMOTE_ADDRESS, InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.REMOTE_ADDRESS))
-            .withVal(ContextVariable.CLIENT_ID, clientId)
-            .withVal(ContextVariable.LANGUAGE, LanguageCode.valueOf(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LANGUAGE)));
     }
 }

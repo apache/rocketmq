@@ -17,13 +17,13 @@
 
 package org.apache.rocketmq.proxy.grpc.v2;
 
-import io.grpc.Context;
 import io.grpc.Metadata;
+import java.time.Duration;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.proxy.common.ContextVariable;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
 import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -53,6 +53,7 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
     protected Metadata metadata = new Metadata();
 
     protected static final String CLIENT_ID = "client-id" + UUID.randomUUID();
+    protected static final String JAVA = "JAVA";
 
     public void before() throws Throwable {
         super.before();
@@ -62,17 +63,20 @@ public class BaseActivityTest extends InitConfigAndLoggerTest {
         receiptHandleProcessor = mock(ReceiptHandleProcessor.class);
 
         metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
-        metadata.put(InterceptorConstants.LANGUAGE, "JAVA");
+        metadata.put(InterceptorConstants.LANGUAGE, JAVA);
         metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
         metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
         when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
         grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService());
     }
 
-    protected Context createContext() {
-        Context context = Context.current();
-        return context.withValue(InterceptorConstants.METADATA, metadata)
-            .withDeadlineAfter(10, TimeUnit.SECONDS, Executors.newSingleThreadScheduledExecutor());
+    protected ProxyContext createContext() {
+        return ProxyContext.create()
+            .withVal(ContextVariable.CLIENT_ID, CLIENT_ID)
+            .withVal(ContextVariable.LANGUAGE, JAVA)
+            .withVal(ContextVariable.REMOTE_ADDRESS, REMOTE_ADDR)
+            .withVal(ContextVariable.LOCAL_ADDRESS, LOCAL_ADDR)
+            .withVal(ContextVariable.REMAINING_MS, Duration.ofSeconds(10).toMillis());
     }
 
     protected static String buildReceiptHandle(String topic, long popTime, long invisibleTime) {

@@ -37,13 +37,13 @@ import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.TelemetryCommand;
-import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -85,61 +85,63 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     }
 
     @Override
-    public CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request) {
+    public CompletableFuture<QueryRouteResponse> queryRoute(ProxyContext ctx, QueryRouteRequest request) {
         return this.routeActivity.queryRoute(ctx, request);
     }
 
     @Override
-    public CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request) {
+    public CompletableFuture<HeartbeatResponse> heartbeat(ProxyContext ctx, HeartbeatRequest request) {
         return this.clientActivity.heartbeat(ctx, request);
     }
 
     @Override
-    public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
+    public CompletableFuture<SendMessageResponse> sendMessage(ProxyContext ctx, SendMessageRequest request) {
         return this.sendMessageActivity.sendMessage(ctx, request);
     }
 
     @Override
-    public CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request) {
+    public CompletableFuture<QueryAssignmentResponse> queryAssignment(ProxyContext ctx,
+        QueryAssignmentRequest request) {
         return this.routeActivity.queryAssignment(ctx, request);
     }
 
     @Override
-    public void receiveMessage(Context ctx, ReceiveMessageRequest request,
+    public void receiveMessage(ProxyContext ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
         this.receiveMessageActivity.receiveMessage(ctx, request, responseObserver);
     }
 
     @Override
-    public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
+    public CompletableFuture<AckMessageResponse> ackMessage(ProxyContext ctx, AckMessageRequest request) {
         return this.ackMessageActivity.ackMessage(ctx, request);
     }
 
     @Override
-    public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
+    public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(ProxyContext ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
         return this.forwardMessageToDLQActivity.forwardMessageToDeadLetterQueue(ctx, request);
     }
 
     @Override
-    public CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request) {
+    public CompletableFuture<EndTransactionResponse> endTransaction(ProxyContext ctx, EndTransactionRequest request) {
         return this.endTransactionActivity.endTransaction(ctx, request);
     }
 
     @Override
-    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(ProxyContext ctx,
         NotifyClientTerminationRequest request) {
         return this.clientActivity.notifyClientTermination(ctx, request);
     }
 
     @Override
-    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(ProxyContext ctx,
         ChangeInvisibleDurationRequest request) {
         return this.changeInvisibleDurationActivity.changeInvisibleDuration(ctx, request);
     }
 
     @Override
-    public StreamObserver<TelemetryCommand> telemetry(Context ctx, StreamObserver<TelemetryCommand> responseObserver) {
+    public StreamObserver<TelemetryCommand> telemetry(ProxyContext ctx,
+        StreamObserver<TelemetryCommand> responseObserver) {
         return this.clientActivity.telemetry(ctx, responseObserver);
     }
 }

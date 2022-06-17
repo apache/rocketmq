@@ -39,4 +39,50 @@ public class ProxyContext {
     public <T> T getVal(String key) {
         return (T) this.value.get(key);
     }
+
+    public ProxyContext setLocalAddress(String localAddress) {
+        this.withVal(ContextVariable.LOCAL_ADDRESS, localAddress);
+        return this;
+    }
+
+    public String getLocalAddress() {
+        return this.getVal(ContextVariable.LOCAL_ADDRESS);
+    }
+
+    public ProxyContext setRemoteAddress(String remoteAddress) {
+        this.withVal(ContextVariable.REMOTE_ADDRESS, remoteAddress);
+        return this;
+    }
+
+    public String getRemoteAddress() {
+        return this.getVal(ContextVariable.REMOTE_ADDRESS);
+    }
+
+    public ProxyContext setClientID(String clientID) {
+        this.withVal(ContextVariable.CLIENT_ID, clientID);
+        return this;
+    }
+
+    public String getClientID() {
+        return this.getVal(ContextVariable.CLIENT_ID);
+    }
+
+    public ProxyContext setLanguage(String language) {
+        this.withVal(ContextVariable.LANGUAGE, language);
+        return this;
+    }
+
+    public String getLanguage() {
+        return this.getVal(ContextVariable.LANGUAGE);
+    }
+
+    public ProxyContext setRemainingMs(Long remainingMs) {
+        this.withVal(ContextVariable.REMAINING_MS, remainingMs);
+        return this;
+    }
+
+    public Long getRemainingMs() {
+        return this.getVal(ContextVariable.REMAINING_MS);
+    }
+
 }

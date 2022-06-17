@@ -26,9 +26,13 @@ import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.Resource;
 import io.grpc.Context;
+import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigAndLoggerTest;
+import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +45,10 @@ import static org.awaitility.Awaitility.await;
 
 @RunWith(MockitoJUnitRunner.class)
 public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
+    protected static final String REMOTE_ADDR = "192.168.0.1:8080";
+    protected static final String LOCAL_ADDR = "127.0.0.1:8080";
+    protected static final String CLIENT_ID = "client-id" + UUID.randomUUID();
+    protected static final String JAVA = "JAVA";
     @Mock
     StreamObserver<QueryRouteResponse> queryRouteResponseStreamObserver;
     @Mock
@@ -62,12 +70,21 @@ public class GrpcMessagingApplicationTest extends InitConfigAndLoggerTest {
 
     @Test
     public void testQueryRoute() {
+        Metadata metadata = new Metadata();
+        metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
+        metadata.put(InterceptorConstants.LANGUAGE, JAVA);
+        metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
+        metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
+        Context.current()
+            .withValue(InterceptorConstants.METADATA, metadata)
+            .attach();
+
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         QueryRouteRequest request = QueryRouteRequest.newBuilder()
             .setEndpoints(grpcEndpoints)
             .setTopic(Resource.newBuilder().setName(TOPIC).build())
             .build();
-        Mockito.when(grpcMessingActivity.queryRoute(Mockito.any(Context.class), Mockito.eq(request)))
+        Mockito.when(grpcMessingActivity.queryRoute(Mockito.any(ProxyContext.class), Mockito.eq(request)))
             .thenReturn(future);
         QueryRouteResponse response = QueryRouteResponse.newBuilder()
             .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))

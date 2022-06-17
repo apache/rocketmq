@@ -460,7 +460,8 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
-    public CompletableFuture<Long> getMaxOffset(String brokerAddr, GetMaxOffsetRequestHeader requestHeader, long timeoutMillis) {
+    public CompletableFuture<Long> getMaxOffset(String brokerAddr, GetMaxOffsetRequestHeader requestHeader,
+        long timeoutMillis) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
 
         CompletableFuture<Long> future = new CompletableFuture<>();
@@ -487,7 +488,8 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
-    public CompletableFuture<Long> getMinOffset(String brokerAddr, GetMinOffsetRequestHeader requestHeader, long timeoutMillis) {
+    public CompletableFuture<Long> getMinOffset(String brokerAddr, GetMinOffsetRequestHeader requestHeader,
+        long timeoutMillis) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MIN_OFFSET, requestHeader);
 
         CompletableFuture<Long> future = new CompletableFuture<>();

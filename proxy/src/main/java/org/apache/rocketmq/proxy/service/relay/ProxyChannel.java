@@ -40,7 +40,6 @@ import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.service.transaction.TransactionId;
@@ -54,14 +53,16 @@ public abstract class ProxyChannel extends SimpleChannel {
 
     protected final ProxyRelayService proxyRelayService;
 
-    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, String remoteAddress, String localAddress) {
+    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, String remoteAddress,
+        String localAddress) {
         super(parent, remoteAddress, localAddress);
         this.proxyRelayService = proxyRelayService;
         this.remoteSocketAddress = RemotingUtil.string2SocketAddress(remoteAddress);
         this.localSocketAddress = RemotingUtil.string2SocketAddress(localAddress);
     }
 
-    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress, String localAddress) {
+    protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress,
+        String localAddress) {
         super(parent, id, remoteAddress, localAddress);
         this.proxyRelayService = proxyRelayService;
         this.remoteSocketAddress = RemotingUtil.string2SocketAddress(remoteAddress);
@@ -75,8 +76,8 @@ public abstract class ProxyChannel extends SimpleChannel {
         try {
             if (msg instanceof RemotingCommand) {
                 ProxyContext context = ProxyContext.create()
-                    .withVal(ContextVariable.REMOTE_ADDRESS, remoteAddress)
-                    .withVal(ContextVariable.REMOTE_ADDRESS, localAddress);
+                    .setRemoteAddress(remoteAddress)
+                    .setLocalAddress(localAddress);
                 RemotingCommand command = (RemotingCommand) msg;
                 switch (command.getCode()) {
                     case RequestCode.CHECK_TRANSACTION_STATE: {

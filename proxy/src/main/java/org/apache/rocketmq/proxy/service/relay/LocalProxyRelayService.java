@@ -23,7 +23,6 @@ import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -54,7 +53,7 @@ public class LocalProxyRelayService implements ProxyRelayService {
                     ConsumerRunningInfo consumerRunningInfo = proxyOutResult.getResult();
                     remotingCommand.setBody(consumerRunningInfo.encode());
                 }
-                SimpleChannel simpleChannel = new SimpleChannel(context.getVal(ContextVariable.REMOTE_ADDRESS), context.getVal(ContextVariable.LOCAL_ADDRESS));
+                SimpleChannel simpleChannel = new SimpleChannel(context.getRemoteAddress(), context.getLocalAddress());
                 nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
             }
         });
@@ -78,7 +77,7 @@ public class LocalProxyRelayService implements ProxyRelayService {
                     ConsumeMessageDirectlyResult consumeMessageDirectlyResult = proxyOutResult.getResult();
                     remotingCommand.setBody(consumeMessageDirectlyResult.encode());
                 }
-                SimpleChannel simpleChannel = new SimpleChannel(context.getVal(ContextVariable.REMOTE_ADDRESS), context.getVal(ContextVariable.LOCAL_ADDRESS));
+                SimpleChannel simpleChannel = new SimpleChannel(context.getRemoteAddress(), context.getLocalAddress());
                 nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
             }
         });

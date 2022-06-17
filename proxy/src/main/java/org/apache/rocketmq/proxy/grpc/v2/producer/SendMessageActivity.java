@@ -29,7 +29,6 @@ import com.google.protobuf.Duration;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
-import io.grpc.Context;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -51,8 +50,8 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
-import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
+import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 
 public class SendMessageActivity extends AbstractMessingActivity {
 
@@ -61,8 +60,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
-    public CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request) {
-        ProxyContext context = createContext(ctx);
+    public CompletableFuture<SendMessageResponse> sendMessage(ProxyContext ctx, SendMessageRequest request) {
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
 
         try {
@@ -74,19 +72,20 @@ public class SendMessageActivity extends AbstractMessingActivity {
             apache.rocketmq.v2.Message message = messageList.get(0);
             Resource topic = message.getTopic();
             future = this.messagingProcessor.sendMessage(
-                context,
+                ctx,
                 new SendMessageQueueSelector(request),
                 GrpcConverter.wrapResourceWithNamespace(topic),
                 buildSysFlag(message),
-                buildMessage(context, request.getMessagesList(), topic)
-            ).thenApply(result -> convertToSendMessageResponse(context, request, result));
+                buildMessage(ctx, request.getMessagesList(), topic)
+            ).thenApply(result -> convertToSendMessageResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
         return future;
     }
 
-    protected List<Message> buildMessage(ProxyContext context, List<apache.rocketmq.v2.Message> protoMessageList, Resource topic) {
+    protected List<Message> buildMessage(ProxyContext context, List<apache.rocketmq.v2.Message> protoMessageList,
+        Resource topic) {
         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
         List<Message> messageExtList = new ArrayList<>();
         for (apache.rocketmq.v2.Message protoMessage : protoMessageList) {

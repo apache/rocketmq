@@ -104,11 +104,11 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .thenReturn(CompletableFuture.completedFuture(ackResult));
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
-            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat((r) -> r.getInvisibleTime() == invisibleTime), Mockito.eq(messageId),
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat(r -> r.getInvisibleTime() == invisibleTime), Mockito.eq(messageId),
                 Mockito.eq(group), Mockito.eq(topic), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
-            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat((r) -> r.getInvisibleTime() == newInvisibleTime), Mockito.eq(messageId),
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat(r -> r.getInvisibleTime() == newInvisibleTime), Mockito.eq(messageId),
                 Mockito.eq(group), Mockito.eq(topic), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
     }
 
@@ -137,7 +137,6 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(messageId),
                 Mockito.eq(group), Mockito.eq(topic), Mockito.eq(groupConfig.getGroupRetryPolicy().getRetryPolicy().nextDelayDuration(reconsumeTimes)));
     }
-
 
     @Test
     public void testRenewReceiptHandleWhenNotArrivingTime() {

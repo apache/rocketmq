@@ -38,36 +38,36 @@ import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.TelemetryCommand;
-import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.StartAndShutdown;
 
 public interface GrpcMessingActivity extends StartAndShutdown {
 
-    CompletableFuture<QueryRouteResponse> queryRoute(Context ctx, QueryRouteRequest request);
+    CompletableFuture<QueryRouteResponse> queryRoute(ProxyContext ctx, QueryRouteRequest request);
 
-    CompletableFuture<HeartbeatResponse> heartbeat(Context ctx, HeartbeatRequest request);
+    CompletableFuture<HeartbeatResponse> heartbeat(ProxyContext ctx, HeartbeatRequest request);
 
-    CompletableFuture<SendMessageResponse> sendMessage(Context ctx, SendMessageRequest request);
+    CompletableFuture<SendMessageResponse> sendMessage(ProxyContext ctx, SendMessageRequest request);
 
-    CompletableFuture<QueryAssignmentResponse> queryAssignment(Context ctx, QueryAssignmentRequest request);
+    CompletableFuture<QueryAssignmentResponse> queryAssignment(ProxyContext ctx, QueryAssignmentRequest request);
 
-    void receiveMessage(Context ctx, ReceiveMessageRequest request,
+    void receiveMessage(ProxyContext ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver);
 
-    CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request);
+    CompletableFuture<AckMessageResponse> ackMessage(ProxyContext ctx, AckMessageRequest request);
 
-    CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
+    CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(ProxyContext ctx,
         ForwardMessageToDeadLetterQueueRequest request);
 
-    CompletableFuture<EndTransactionResponse> endTransaction(Context ctx, EndTransactionRequest request);
+    CompletableFuture<EndTransactionResponse> endTransaction(ProxyContext ctx, EndTransactionRequest request);
 
-    CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(Context ctx,
+    CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(ProxyContext ctx,
         NotifyClientTerminationRequest request);
 
-    CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+    CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(ProxyContext ctx,
         ChangeInvisibleDurationRequest request);
 
-    StreamObserver<TelemetryCommand> telemetry(Context ctx, StreamObserver<TelemetryCommand> responseObserver);
+    StreamObserver<TelemetryCommand> telemetry(ProxyContext ctx, StreamObserver<TelemetryCommand> responseObserver);
 }

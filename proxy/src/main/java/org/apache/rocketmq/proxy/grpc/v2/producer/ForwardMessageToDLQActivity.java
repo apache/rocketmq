@@ -18,7 +18,6 @@ package org.apache.rocketmq.proxy.grpc.v2.producer;
 
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
-import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -37,15 +36,14 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
-    public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(Context ctx,
+    public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(ProxyContext ctx,
         ForwardMessageToDeadLetterQueueRequest request) {
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = new CompletableFuture<>();
         try {
-            ProxyContext context = createContext(ctx);
             ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
 
             return this.messagingProcessor.forwardMessageToDeadLetterQueue(
-                context,
+                ctx,
                 receiptHandle,
                 request.getMessageId(),
                 GrpcConverter.wrapResourceWithNamespace(request.getGroup()),
@@ -57,7 +55,7 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
         return future;
     }
 
-    protected ForwardMessageToDeadLetterQueueResponse convertToForwardMessageToDeadLetterQueueResponse(Context ctx,
+    protected ForwardMessageToDeadLetterQueueResponse convertToForwardMessageToDeadLetterQueueResponse(ProxyContext ctx,
         RemotingCommand result) {
         return ForwardMessageToDeadLetterQueueResponse.newBuilder()
             .setStatus(ResponseBuilder.buildStatus(result.getCode(), result.getRemark()))

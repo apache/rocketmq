@@ -20,12 +20,10 @@ import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
 import com.google.protobuf.util.Durations;
-import io.grpc.Context;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
-import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -38,15 +36,15 @@ import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
     protected ReceiptHandleProcessor receiptHandleProcessor;
 
-    public ChangeInvisibleDurationActivity(MessagingProcessor messagingProcessor, ReceiptHandleProcessor receiptHandleProcessor,
+    public ChangeInvisibleDurationActivity(MessagingProcessor messagingProcessor,
+        ReceiptHandleProcessor receiptHandleProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.receiptHandleProcessor = receiptHandleProcessor;
     }
 
-    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(Context ctx,
+    public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(ProxyContext ctx,
         ChangeInvisibleDurationRequest request) {
-        ProxyContext context = createContext(ctx);
         CompletableFuture<ChangeInvisibleDurationResponse> future = new CompletableFuture<>();
 
         try {
@@ -54,7 +52,7 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
 
             String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
             return this.messagingProcessor.changeInvisibleTime(
-                context,
+                ctx,
                 receiptHandle,
                 request.getMessageId(),
                 group,
@@ -62,10 +60,9 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
                 Durations.toMillis(request.getInvisibleDuration())
             ).thenApply(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {
-                    String clientID = context.getVal(ContextVariable.CLIENT_ID);
-                    receiptHandleProcessor.removeReceiptHandle(clientID, group, receiptHandle.getReceiptHandle());
+                    receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, receiptHandle.getReceiptHandle());
                 }
-                return convertToChangeInvisibleDurationResponse(context, request, ackResult);
+                return convertToChangeInvisibleDurationResponse(ctx, request, ackResult);
             });
         } catch (Throwable t) {
             future.completeExceptionally(t);

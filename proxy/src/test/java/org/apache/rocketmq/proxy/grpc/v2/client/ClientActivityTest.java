@@ -33,7 +33,6 @@ import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
-import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -43,6 +42,7 @@ import org.apache.rocketmq.common.protocol.body.CMResult;
 import org.apache.rocketmq.common.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
@@ -92,7 +92,7 @@ public class ClientActivityTest extends BaseActivityTest {
         this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager, grpcChannelManager);
     }
 
-    protected TelemetryCommand sendProducerTelemetry(Context context) throws Throwable {
+    protected TelemetryCommand sendProducerTelemetry(ProxyContext context) throws Throwable {
         return this.sendClientTelemetry(
             context,
             Settings.newBuilder()
@@ -103,7 +103,7 @@ public class ClientActivityTest extends BaseActivityTest {
                 .build()).get();
     }
 
-    protected HeartbeatResponse sendProducerHeartbeat(Context context) throws Throwable {
+    protected HeartbeatResponse sendProducerHeartbeat(ProxyContext context) throws Throwable {
         return this.clientActivity.heartbeat(context, HeartbeatRequest.newBuilder()
             .setClientType(ClientType.PRODUCER)
             .build()).get();
@@ -111,7 +111,7 @@ public class ClientActivityTest extends BaseActivityTest {
 
     @Test
     public void testProducerHeartbeat() throws Throwable {
-        Context context = createContext();
+        ProxyContext context = createContext();
 
         this.sendProducerTelemetry(context);
 
@@ -140,7 +140,7 @@ public class ClientActivityTest extends BaseActivityTest {
         assertEquals(Lists.newArrayList(TOPIC), txProducerTopicArgumentCaptor.getAllValues());
     }
 
-    protected TelemetryCommand sendConsumerTelemetry(Context context) throws Throwable {
+    protected TelemetryCommand sendConsumerTelemetry(ProxyContext context) throws Throwable {
         return this.sendClientTelemetry(
             context,
             Settings.newBuilder()
@@ -157,7 +157,7 @@ public class ClientActivityTest extends BaseActivityTest {
                 .build()).get();
     }
 
-    protected HeartbeatResponse sendConsumerHeartbeat(Context context) throws Throwable {
+    protected HeartbeatResponse sendConsumerHeartbeat(ProxyContext context) throws Throwable {
         return this.clientActivity.heartbeat(context, HeartbeatRequest.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
             .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
@@ -166,7 +166,7 @@ public class ClientActivityTest extends BaseActivityTest {
 
     @Test
     public void testConsumerHeartbeat() throws Throwable {
-        Context context = createContext();
+        ProxyContext context = createContext();
         this.sendConsumerTelemetry(context);
 
         ArgumentCaptor<Set<SubscriptionData>> subscriptionDatasArgumentCaptor = ArgumentCaptor.forClass(Set.class);
@@ -203,7 +203,7 @@ public class ClientActivityTest extends BaseActivityTest {
 
     @Test
     public void testProducerNotifyClientTermination() throws Throwable {
-        Context context = createContext();
+        ProxyContext context = createContext();
 
         when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(Settings.newBuilder()
             .setClientType(ClientType.PRODUCER)
@@ -230,7 +230,7 @@ public class ClientActivityTest extends BaseActivityTest {
 
     @Test
     public void testConsumerNotifyClientTermination() throws Throwable {
-        Context context = createContext();
+        ProxyContext context = createContext();
 
         when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
@@ -259,7 +259,7 @@ public class ClientActivityTest extends BaseActivityTest {
         String jstack = "jstack";
         String nonce = "123";
         when(grpcChannelManagerMock.getAndRemoveResponseFuture(anyString())).thenReturn((CompletableFuture) runningInfoFutureMock);
-        Context context = createContext();
+        ProxyContext context = createContext();
         StreamObserver<TelemetryCommand> streamObserver = clientActivity.telemetry(context, new StreamObserver<TelemetryCommand>() {
             @Override
             public void onNext(TelemetryCommand value) {
@@ -291,7 +291,7 @@ public class ClientActivityTest extends BaseActivityTest {
         this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager, grpcChannelManagerMock);
         String nonce = "123";
         when(grpcChannelManagerMock.getAndRemoveResponseFuture(anyString())).thenReturn((CompletableFuture) resultFutureMock);
-        Context context = createContext();
+        ProxyContext context = createContext();
         StreamObserver<TelemetryCommand> streamObserver = clientActivity.telemetry(context, new StreamObserver<TelemetryCommand>() {
             @Override
             public void onNext(TelemetryCommand value) {
@@ -317,7 +317,7 @@ public class ClientActivityTest extends BaseActivityTest {
         assertThat(result.getResult().getConsumeResult()).isEqualTo(CMResult.CR_SUCCESS);
     }
 
-    protected CompletableFuture<TelemetryCommand> sendClientTelemetry(Context ctx, Settings settings) {
+    protected CompletableFuture<TelemetryCommand> sendClientTelemetry(ProxyContext ctx, Settings settings) {
         when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(settings);
 
         CompletableFuture<TelemetryCommand> future = new CompletableFuture<>();
