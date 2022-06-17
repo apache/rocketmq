@@ -606,7 +606,7 @@ public class RouteInfoManager {
                     }
 
                     // Check whether we need to elect a new master
-                    if (this.namesrvController != null && this.namesrvController.getControllerConfig().isEnableStartupController() && this.controller != null) {
+                    if (this.namesrvController != null && this.namesrvController.getControllerConfig().isEnableControllerInNamesrv() && this.controller != null) {
                         if (unRegisterRequest.getBrokerId() == MixAll.MASTER_ID) {
                             if (this.controller.isLeaderState()) {
                                 final CompletableFuture<RemotingCommand> future = this.controller.electMaster(new ElectMasterRequestHeader(unRegisterRequest.getBrokerName()));

@@ -125,7 +125,7 @@ public class AutoSwitchRoleBase {
 
     protected ControllerConfig buildControllerConfig(final String id, final String peers) {
         final ControllerConfig config = new ControllerConfig();
-        config.setEnableStartupController(true);
+        config.setEnableControllerInNamesrv(true);
         config.setControllerDLegerGroup("group1");
         config.setControllerDLegerPeers(peers);
         config.setControllerDLegerSelfId(id);

@@ -110,7 +110,7 @@ public class NamesrvController {
         this.kvConfigManager = new KVConfigManager(this);
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         this.routeInfoManager = new RouteInfoManager(namesrvConfig, this);
-        if (controllerConfig.isEnableStartupController()) {
+        if (controllerConfig.isEnableControllerInNamesrv()) {
             try {
                 final NettyServerConfig controllerNettyServerConfig = (NettyServerConfig) nettyServerConfig.clone();
                 this.controller = new DLedgerController(controllerConfig, this.routeInfoManager::isBrokerAlive,
@@ -160,7 +160,7 @@ public class NamesrvController {
             }
         };
 
-        if (this.controllerConfig.isEnableStartupController()) {
+        if (this.controllerConfig.isEnableControllerInNamesrv()) {
             this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.controllerConfig.getControllerRequestThreadPoolQueueCapacity());
             this.controllerRequestExecutor = new ThreadPoolExecutor(
                 this.controllerConfig.getControllerThreadPoolNums(),
@@ -274,7 +274,7 @@ public class NamesrvController {
 
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.defaultExecutor);
 
-            if (controllerConfig.isEnableStartupController()) {
+            if (controllerConfig.isEnableControllerInNamesrv()) {
                 final RemotingServer controllerRemotingServer = this.controller.getRemotingServer();
                 assert controllerRemotingServer != null;
                 final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this);
@@ -298,7 +298,7 @@ public class NamesrvController {
 
         this.routeInfoManager.start();
 
-        if (this.controllerConfig.isEnableStartupController()) {
+        if (this.controllerConfig.isEnableControllerInNamesrv()) {
             this.controller.startup();
         }
     }
@@ -311,7 +311,7 @@ public class NamesrvController {
         if (this.controllerRequestExecutor != null) {
             this.controllerRequestExecutor.shutdown();
         }
-        if (this.controllerConfig.isEnableStartupController()) {
+        if (this.controllerConfig.isEnableControllerInNamesrv()) {
             this.controller.shutdown();
         }
         this.scheduledExecutorService.shutdown();

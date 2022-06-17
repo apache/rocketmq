@@ -4,7 +4,7 @@
 
 该文档主要介绍如何快速构建和部署基于 Controller 的可以自动切换的 RocketMQ 集群。
 
-详细的新集群部署和旧集群升级指南请参考 [部署指南](deploy_guide.md)。
+详细的新集群部署和旧集群升级指南请参考 [部署指南](deploy.md)。
 
 ## 编译 RocketMQ 源码
 
