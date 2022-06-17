@@ -51,8 +51,6 @@ public class AckMessageActivity extends AbstractMessingActivity {
 
     public CompletableFuture<AckMessageResponse> ackMessage(Context ctx, AckMessageRequest request) {
         ProxyContext proxyContext = createContext(ctx);
-        String groupName = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
-        attachChannelId(ctx, proxyContext, groupName);
         CompletableFuture<AckMessageResponse> future = new CompletableFuture<>();
 
         try {
@@ -102,16 +100,17 @@ public class AckMessageActivity extends AbstractMessingActivity {
         try {
             ReceiptHandle receiptHandle = ReceiptHandle.decode(ackMessageEntry.getReceiptHandle());
 
+            String group = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
             CompletableFuture<AckResult> ackResultFuture = this.messagingProcessor.ackMessage(
                 ctx,
                 receiptHandle,
                 ackMessageEntry.getMessageId(),
-                GrpcConverter.wrapResourceWithNamespace(request.getGroup()),
+                group,
                 GrpcConverter.wrapResourceWithNamespace(request.getTopic()));
             ackResultFuture.thenAccept(result -> {
                 if (AckStatus.OK.equals(result.getStatus())) {
-                    String channelId = ctx.getVal(ContextVariable.CHANNEL_KEY);
-                    receiptHandleProcessor.removeReceiptHandle(channelId, ackMessageEntry.getReceiptHandle());
+                    String clientID = ctx.getVal(ContextVariable.CLIENT_ID);
+                    receiptHandleProcessor.removeReceiptHandle(clientID, group, ackMessageEntry.getReceiptHandle());
                 }
                 future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result));
             }).exceptionally(throwable -> {

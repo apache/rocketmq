@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.common.protocol.heartbeat.ProducerData;
@@ -111,11 +112,11 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
 
         ArgumentCaptor<String> brokerAddrArgumentCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<HeartbeatData> heartbeatDataArgumentCaptor = ArgumentCaptor.forClass(HeartbeatData.class);
-        doNothing().when(mqClientAPIExt).sendHeartbeatOneway(
+        when(mqClientAPIExt.sendHeartbeatOneway(
             brokerAddrArgumentCaptor.capture(),
             heartbeatDataArgumentCaptor.capture(),
             anyLong()
-        );
+        )).thenReturn(CompletableFuture.completedFuture(null));
 
         this.clusterTransactionService.scanProducerHeartBeat();
 

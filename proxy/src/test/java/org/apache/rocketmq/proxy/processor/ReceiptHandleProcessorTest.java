@@ -59,7 +59,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Before
     public void setup() {
-        context.withVal(ContextVariable.CHANNEL_KEY, "channel-id");
+        context.withVal(ContextVariable.CLIENT_ID, "channel-id");
         receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
         Mockito.doNothing().when(messagingProcessor).registerConsumerListener(Mockito.any(ConsumerIdsChangeListener.class));
         messageReceiptHandle = new MessageReceiptHandle(group, topic, queueId, receiptHandle, messageId, offset,
@@ -68,7 +68,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testAddReceiptHandle() {
-        String channelId = context.getVal(ContextVariable.CHANNEL_KEY);
+        String channelId = context.getVal(ContextVariable.CLIENT_ID);
         receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(new SubscriptionGroupConfig());
         receiptHandleProcessor.scheduleRenewTask();
@@ -79,7 +79,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testRenewReceiptHandle() {
-        String channelId = context.getVal(ContextVariable.CHANNEL_KEY);
+        String channelId = context.getVal(ContextVariable.CLIENT_ID);
         receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(groupConfig);
@@ -128,7 +128,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .build().encode();
         messageReceiptHandle = new MessageReceiptHandle(group, topic, queueId, receiptHandle, messageId, offset,
             reconsumeTimes, newInvisibleTime);
-        String channelId = context.getVal(ContextVariable.CHANNEL_KEY);
+        String channelId = context.getVal(ContextVariable.CLIENT_ID);
         receiptHandleProcessor.addReceiptHandle(channelId, newReceiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(groupConfig);
@@ -154,7 +154,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .build().encode();
         messageReceiptHandle = new MessageReceiptHandle(group, topic, queueId, newReceiptHandle, messageId, offset,
             reconsumeTimes, invisibleTime);
-        String channelId = context.getVal(ContextVariable.CHANNEL_KEY);
+        String channelId = context.getVal(ContextVariable.CLIENT_ID);
         receiptHandleProcessor.addReceiptHandle(channelId, newReceiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(groupConfig);
@@ -166,7 +166,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testRemoveReceiptHandle() {
-        String channelId = context.getVal(ContextVariable.CHANNEL_KEY);
+        String channelId = context.getVal(ContextVariable.CLIENT_ID);
         receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
         receiptHandleProcessor.removeReceiptHandle(channelId, receiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
@@ -179,7 +179,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testClearGroup() {
-        String channelId = context.getVal(ContextVariable.CHANNEL_KEY);
+        String channelId = context.getVal(ContextVariable.CLIENT_ID);
         receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
         receiptHandleProcessor.clearGroup(channelId);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
