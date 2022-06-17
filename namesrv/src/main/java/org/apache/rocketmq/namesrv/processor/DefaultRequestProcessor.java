@@ -365,8 +365,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             }
 
             byte[] content;
-            Boolean standardJsonOly = requestHeader.getAcceptStandardJsonOnly();
-            if (request.getVersion() >= Version.V4_9_4.ordinal() || (null != standardJsonOly && standardJsonOly)) {
+            Boolean standardJsonOnly = requestHeader.getAcceptStandardJsonOnly();
+            if (request.getVersion() >= Version.V4_9_4.ordinal() || (null != standardJsonOnly && standardJsonOnly)) {
                 content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
                     SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
                     SerializerFeature.MapSortField);
