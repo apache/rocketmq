@@ -56,12 +56,12 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
  */
 public class ReplicasInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private final boolean enableElectUncleanMaster;
+    private final ControllerConfig controllerConfig;
     private final Map<String/* brokerName */, BrokerInfo> replicaInfoTable;
     private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
 
     public ReplicasInfoManager(final ControllerConfig config) {
-        this.enableElectUncleanMaster = config.isEnableElectUncleanMaster();
+        this.controllerConfig = config;
         this.replicaInfoTable = new HashMap<>();
         this.syncStateSetInfoTable = new HashMap<>();
     }
@@ -176,7 +176,7 @@ public class ReplicasInfoManager {
             }
 
             // Try elect a master in lagging replicas if enableElectUncleanMaster = true
-            if (enableElectUncleanMaster) {
+            if (controllerConfig.isEnableElectUncleanMaster()) {
                 boolean electSuccess = tryElectMaster(result, brokerName, brokerInfo.getAllBroker(), (candidate) ->
                     !candidate.equals(syncStateInfo.getMasterAddress()) && brokerAlivePredicate.test(brokerInfo.getClusterName(), candidate));
                 if (electSuccess) {
@@ -267,7 +267,7 @@ public class ReplicasInfoManager {
                 // If the master is not alive, we should elect a new master:
                 // Case1: This replicas was in sync state set list
                 // Case2: The option {EnableElectUncleanMaster} is true
-                canBeElectedAsMaster = syncStateInfo.getSyncStateSet().contains(brokerAddress) || this.enableElectUncleanMaster;
+                canBeElectedAsMaster = syncStateInfo.getSyncStateSet().contains(brokerAddress) || this.controllerConfig.isEnableElectUncleanMaster();
             }
         } else {
             // If the broker's metadata does not exist in the state machine, the replicas can be elected as master directly.

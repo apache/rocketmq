@@ -20,7 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * In sync replicas info, manages the master and syncStateSet of a broker.
+ * Manages the syncStateSet of broker replicas.
  */
 public class SyncStateInfo {
     private final String clusterName;

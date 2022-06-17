@@ -58,7 +58,7 @@ public interface Controller {
     boolean isLeaderState();
 
     /**
-     * Alter ISR of broker replicas.
+     * Alter SyncStateSet of broker replicas.
      *
      * @param request AlterSyncStateSetRequestHeader
      * @return RemotingCommand(AlterSyncStateSetResponseHeader)
@@ -91,16 +91,16 @@ public interface Controller {
     CompletableFuture<RemotingCommand> getReplicaInfo(final GetReplicaInfoRequestHeader request);
 
     /**
-     * Get inSyncStateData for target brokers, this api is used for admin tools.
-     */
-    CompletableFuture<RemotingCommand> getSyncStateData(final List<String> brokerNames);
-
-    /**
      * Get Metadata of controller
      *
      * @return RemotingCommand(GetControllerMetadataResponseHeader)
      */
     RemotingCommand getControllerMetadata();
+
+    /**
+     * Get inSyncStateData for target brokers, this api is used for admin tools.
+     */
+    CompletableFuture<RemotingCommand> getSyncStateData(final List<String> brokerNames);
 
     /**
      * Get the remotingServer used by the controller, the upper layer will reuse this remotingServer.
