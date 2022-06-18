@@ -367,11 +367,6 @@ public abstract class RebalanceImpl {
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
-                if (isOrder && !this.lock(mq)) {
-                    log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
-                    continue;
-                }
-
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = new ProcessQueue();
 
@@ -388,6 +383,12 @@ public abstract class RebalanceImpl {
                     if (pre != null) {
                         log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
                     } else {
+                        if (isOrder && !this.lock(mq)) {
+                            processQueueTable.remove(mq);
+                            log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
+                            continue;
+                        }
+                        
                         log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
                         PullRequest pullRequest = new PullRequest();
                         pullRequest.setConsumerGroup(consumerGroup);
