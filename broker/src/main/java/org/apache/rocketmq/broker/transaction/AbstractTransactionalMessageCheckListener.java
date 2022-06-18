@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 public abstract class AbstractTransactionalMessageCheckListener {
     private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -69,6 +70,11 @@ public abstract class AbstractTransactionalMessageCheckListener {
     }
 
     public void resolveHalfMsg(final MessageExt msgExt) {
+        if (brokerController.isSpecialServiceRunning() && BrokerRole.SLAVE == brokerController.getMessageStoreConfig()
+                .getBrokerRole()) {
+            LOGGER.info("the current slave is proxy master, msg: {}", msgExt);
+            return;
+        }
         if (executorService != null) {
             executorService.execute(new Runnable() {
                 @Override

@@ -31,6 +31,7 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 
 import java.util.concurrent.ThreadLocalRandom;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 public class DefaultTransactionalMessageCheckListener extends AbstractTransactionalMessageCheckListener {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -44,8 +45,14 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
         log.error("MsgExt:{} has been checked too many times, so discard it by moving it to system topic TRANS_CHECK_MAXTIME_TOPIC", msgExt);
 
         try {
+            PutMessageResult putMessageResult;
             MessageExtBrokerInner brokerInner = toMessageExtBrokerInner(msgExt);
-            PutMessageResult putMessageResult = this.getBrokerController().getMessageStore().putMessage(brokerInner);
+            if (this.getBrokerController().isSpecialServiceRunning() && BrokerRole.SLAVE == this.getBrokerController()
+                    .getMessageStoreConfig().getBrokerRole()) {
+                putMessageResult = this.getBrokerController().getEscapeBridge().putMessage(brokerInner);
+            } else {
+                putMessageResult = this.getBrokerController().getMessageStore().putMessage(brokerInner);
+            }
             if (putMessageResult != null && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                 log.info("Put checked-too-many-time half message to TRANS_CHECK_MAXTIME_TOPIC OK. Restored in queueOffset={}, " +
                     "commitLogOffset={}, real topic={}", msgExt.getQueueOffset(), msgExt.getCommitLogOffset(), msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));

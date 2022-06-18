@@ -296,7 +296,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         } else {
             PutMessageResult putMessageResult = null;
             if (sendTransactionPrepareMessage) {
-                putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
+                if (brokerController.isSpecialServiceRunning()
+                        && BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
+                    putMessageResult = brokerController.getEscapeBridge().putMessage(msgInner);
+                } else {
+                    putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
+                }
             } else {
                 putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
             }

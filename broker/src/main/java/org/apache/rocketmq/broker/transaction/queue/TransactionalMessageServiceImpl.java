@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 public class TransactionalMessageServiceImpl implements TransactionalMessageService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -101,6 +102,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         PutMessageResult putMessageResult = putBackToHalfQueueReturnResult(msgExt);
         if (putMessageResult != null
             && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+            if (putMessageResult.isRemotePut()) {
+                return true;
+            }
             msgExt.setQueueOffset(
                 putMessageResult.getAppendMessageResult().getLogicsOffset());
             msgExt.setCommitLogOffset(
@@ -354,7 +358,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         PutMessageResult putMessageResult = null;
         try {
             MessageExtBrokerInner msgInner = transactionalMessageBridge.renewHalfMessageInner(messageExt);
-            putMessageResult = transactionalMessageBridge.putMessageReturnResult(msgInner);
+            if (this.transactionalMessageBridge.getBrokerController().isSpecialServiceRunning()
+                    && BrokerRole.SLAVE == this.transactionalMessageBridge.getBrokerController().getMessageStoreConfig()
+                    .getBrokerRole()) {
+                putMessageResult = transactionalMessageBridge.getBrokerController().getEscapeBridge().putMessage(msgInner);
+            } else {
+                putMessageResult = transactionalMessageBridge.putMessageReturnResult(msgInner);
+            }
         } catch (Exception e) {
             log.warn("PutBackToHalfQueueReturnResult error", e);
         }
