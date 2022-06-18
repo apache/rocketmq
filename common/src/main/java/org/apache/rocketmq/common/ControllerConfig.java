@@ -26,7 +26,7 @@ public class ControllerConfig {
     /**
      * Is startup the controller in this name-srv
      */
-    private boolean enableStartupController = false;
+    private boolean enableControllerInNamesrv = false;
 
     /**
      * Interval of periodic scanning for non-active broker;
@@ -59,6 +59,9 @@ public class ControllerConfig {
      */
     private boolean isProcessReadEvent = false;
 
+    /**
+     * Whether notify broker when its role changed
+     */
     private volatile boolean notifyBrokerRoleChanged = true;
 
     public String getRocketmqHome() {
@@ -77,12 +80,12 @@ public class ControllerConfig {
         this.configStorePath = configStorePath;
     }
 
-    public boolean isEnableStartupController() {
-        return enableStartupController;
+    public boolean isEnableControllerInNamesrv() {
+        return enableControllerInNamesrv;
     }
 
-    public void setEnableStartupController(boolean enableStartupController) {
-        this.enableStartupController = enableStartupController;
+    public void setEnableControllerInNamesrv(boolean enableControllerInNamesrv) {
+        this.enableControllerInNamesrv = enableControllerInNamesrv;
     }
 
     public long getScanNotActiveBrokerInterval() {
