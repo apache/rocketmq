@@ -324,7 +324,6 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 maybeExpandInSyncStateSet(slaveMaxOffset);
                                 AutoSwitchHAConnection.this.haService.updateConfirmOffsetWhenSlaveAck(AutoSwitchHAConnection.this.slaveAddress);
                                 AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
-                                LOGGER.debug("slave[" + clientAddress + "] request offset " + slaveMaxOffset);
                                 break;
                             default:
                                 LOGGER.error("Current state illegal {}", currentState);
@@ -527,8 +526,6 @@ public class AutoSwitchHAConnection implements HAConnection {
             final long confirmOffset = AutoSwitchHAConnection.this.haService.getConfirmOffset();
             this.byteBufferHeader.putLong(confirmOffset);
             this.byteBufferHeader.flip();
-            LOGGER.debug("Master send msg, state:{}, size:{}, offset:{}, epoch:{}, epochStartOffset:{}, confirmOffset:{}",
-                currentState, bodySize, nextOffset, entry.getEpoch(), entry.getStartOffset(), confirmOffset);
         }
 
         private boolean sendHeartbeatIfNeeded() throws Exception {
