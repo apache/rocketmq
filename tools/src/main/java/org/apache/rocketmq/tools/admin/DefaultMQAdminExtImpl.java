@@ -51,6 +51,7 @@ import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.common.protocol.body.ProducerTableInfo;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -320,8 +321,18 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         if (result.getOffsetTable().isEmpty()) {
-            throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE,
-                "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+            ConsumerConnection connection;
+            try {
+                connection = this.examineConsumerConnectionInfo(consumerGroup);
+            } catch (Exception e) {
+                throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE,
+                    "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not online");
+            }
+
+            if (connection.getMessageModel().equals(MessageModel.BROADCASTING)) {
+                throw new MQClientException(ResponseCode.CONSUME_BROADCASTING,
+                    "Not found the consumer group consume stats, because return offset table is empty, the consumer using in broadcast model");
+            }
         }
 
         return result;
@@ -911,15 +922,21 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     } catch (MQClientException e) {
                         if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
                             mt.setTrackType(TrackType.NOT_ONLINE);
+                            mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
                         }
-                        mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
+                        if (ResponseCode.CONSUME_BROADCASTING == e.getResponseCode()) {
+                            mt.setTrackType(TrackType.CONSUME_BROADCASTING);
+                        }
                         result.add(mt);
                         continue;
                     } catch (MQBrokerException e) {
                         if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
                             mt.setTrackType(TrackType.NOT_ONLINE);
+                            mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
                         }
-                        mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
+                        if (ResponseCode.CONSUME_BROADCASTING == e.getResponseCode()) {
+                            mt.setTrackType(TrackType.CONSUME_BROADCASTING);
+                        }
                         result.add(mt);
                         continue;
                     } catch (Exception e) {
