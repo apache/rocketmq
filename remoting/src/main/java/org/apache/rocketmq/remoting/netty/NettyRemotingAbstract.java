@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -170,56 +171,70 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    protected void doBeforeRpcHooks(String addr, RemotingCommand request) {
-        doBeforeRpcHooks(addr, request, null);
+    protected RemotingCommand getResponseFromRpcHookContext(RPCHookContext rpcHookContext) {
+        if (RPCHookContext.Decision.STOP == rpcHookContext.getDecision()) {
+            RemotingCommand response;
+            if (rpcHookContext.getResponseFuture() != null
+                && rpcHookContext.getResponseFuture().isDone()) {
+                try {
+                    response = rpcHookContext.getResponseFuture().get();
+                } catch (ExecutionException|InterruptedException e) {
+                    response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                        "Stopped by handler chain, but get result failed");
+                }
+            } else {
+                final String message = "A handle is incorrectly implemented. " +
+                    "It stopped the handler chain without setting ResponseFuture";
+                log.warn(message);
+                response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                    message);
+            }
+            return response;
+        }
+        return null;
     }
 
 
-    protected void doBeforeRpcHooks(String addr, RemotingCommand request, RPCHookContext rpcContext) {
+    protected void doBeforeRpcHooks(String addr, RemotingCommand request, RPCHookContext rpcHookContext) {
         if (rpcHooks.size() > 0) {
             for (RPCHook rpcHook : rpcHooks) {
                 try {
-                    if (rpcContext != null
+                    if (rpcHookContext != null
                         && rpcHook instanceof AbstractRpcHook) {
-                        ((AbstractRpcHook) rpcHook).setContext(rpcContext);
+                        ((AbstractRpcHook) rpcHook).setContext(rpcHookContext);
                     }
                     rpcHook.doBeforeRequest(addr, request);
                 } catch (Throwable e) {
                     RemotingCommand response  = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
-                        e.getMessage());
+                        "Exception from RPCHook:" + e.getMessage());
                     response.setOpaque(request.getOpaque());
-                    if (rpcContext != null) {
-                        rpcContext.setDecision(RPCHookContext.Decision.STOP);
-                        rpcContext.getResponseFuture().complete(response);
+                    if (rpcHookContext != null) {
+                        rpcHookContext.setDecision(RPCHookContext.Decision.STOP);
+                        rpcHookContext.setResponseFuture(CompletableFuture.completedFuture(response));
                     }
                 }
 
-                if (rpcContext != null
-                    && rpcContext.getDecision() == RPCHookContext.Decision.STOP) {
+                if (rpcHookContext != null
+                    && rpcHookContext.getDecision() == RPCHookContext.Decision.STOP) {
                     break;
                 }
             }
         }
     }
 
-    protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response) {
-        doAfterRpcHooks(addr, request, response, null);
-    }
-
-
-    protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response, RPCHookContext handlerContext) {
+    protected void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response, RPCHookContext rpcHookContext) {
         if (rpcHooks.size() > 0) {
             for (RPCHook rpcHook : rpcHooks) {
                 try {
-                    if (handlerContext != null
+                    if (rpcHookContext != null
                         && rpcHook instanceof AbstractRpcHook) {
-                        ((AbstractRpcHook) rpcHook).setContext(handlerContext);
+                        ((AbstractRpcHook) rpcHook).setContext(rpcHookContext);
                     }
                     rpcHook.doAfterResponse(addr, request, response);
                 } catch (Throwable ignore) {
                 }
-                if (handlerContext != null
-                    && handlerContext.getDecision() == RPCHookContext.Decision.STOP) {
+                if (rpcHookContext != null
+                    && rpcHookContext.getDecision() == RPCHookContext.Decision.STOP) {
                     break;
                 }
             }
@@ -244,34 +259,22 @@ public abstract class NettyRemotingAbstract {
                 public void run() {
                     try {
                         String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                        final CompletableFuture<RemotingCommand> responseFuture = new CompletableFuture<>();
-                        final RPCHookContext handlerContext = new DefaultRPCHookContext(responseFuture);
-                        doBeforeRpcHooks(remoteAddr, cmd, handlerContext);
-                        if (RPCHookContext.Decision.STOP == handlerContext.getDecision()) {
+                        final RPCHookContext rpcHookContext = new DefaultRPCHookContext();
+                        doBeforeRpcHooks(remoteAddr, cmd, rpcHookContext);
+                        if (RPCHookContext.Decision.STOP == rpcHookContext.getDecision()) {
                             if (cmd.isOnewayRPC()) {
                                 return;
                             }
-                            // Write response back to clients, which normally explains why the associated request
-                            // fails handler chain.
-                            RemotingCommand response;
-                            if (responseFuture.isDone()) {
-                                response = responseFuture.get();
-                            } else {
-                                final String message = "A handle is incorrectly implemented. " +
-                                    "It stopped the handler chain without setting ResponseFuture";
-                                log.warn(message);
-                                response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
-                                    message);
-                            }
+                            RemotingCommand response = getResponseFromRpcHookContext(rpcHookContext);
                             response.setOpaque(opaque);
                             ctx.writeAndFlush(response);
                             return;
                         }
 
                         final RemotingResponseCallback callback = response -> {
-                            doAfterRpcHooks(remoteAddr, cmd, response, handlerContext);
-                            if (RPCHookContext.Decision.STOP == handlerContext.getDecision()) {
-                                log.info("One or more Handler stopped post handler chain prematurely");
+                            doAfterRpcHooks(remoteAddr, cmd, response, rpcHookContext);
+                            if (RPCHookContext.Decision.STOP == rpcHookContext.getDecision()) {
+                                log.info("The RPCHook chain stopped during post process, this may should not happen");
                             }
                             if (null != response) {
                                 response.setOpaque(cmd.getOpaque());

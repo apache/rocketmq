@@ -16,25 +16,26 @@
  */
 package org.apache.rocketmq.remoting;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * If the decision is set to STOP, the responseFuture should be set too.
+ */
 public interface RPCHookContext {
     enum Decision {
         CONTINUE,
         STOP,
     }
 
-    default Decision getDecision()  {
-        return null;
-    }
+    Decision getDecision();
 
-    default void setDecision(Decision decision) {
+    void setDecision(Decision decision);
 
-    }
+    void setResponseFuture(Future<RemotingCommand> responseFuture);
 
+    Future<RemotingCommand> getResponseFuture();
 
-    default CompletableFuture<RemotingCommand> getResponseFuture() {
-        return null;
-    }
+    void clear();
+
 }

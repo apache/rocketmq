@@ -17,22 +17,23 @@
 package org.apache.rocketmq.remoting.netty;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import org.apache.rocketmq.remoting.RPCHookContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DefaultRPCHookContext implements RPCHookContext {
 
-    private final Decision decision;
+    private Decision decision;
 
-    private final CompletableFuture<RemotingCommand> responseFuture;
+    //Make it compatible in 1.6
+    private Future<RemotingCommand> responseFuture;
 
-    public DefaultRPCHookContext(CompletableFuture<RemotingCommand> responseFuture) {
-        this(Decision.CONTINUE, responseFuture);
+    public DefaultRPCHookContext() {
+        this.decision = Decision.CONTINUE;
     }
 
-    public DefaultRPCHookContext(Decision decision,
-        CompletableFuture<RemotingCommand> responseFuture) {
-        this.decision = decision;
+
+    public void setResponseFuture(Future<RemotingCommand> responseFuture) {
         this.responseFuture = responseFuture;
     }
 
@@ -41,8 +42,17 @@ public class DefaultRPCHookContext implements RPCHookContext {
         return decision;
     }
 
+    @Override public void setDecision(Decision decision) {
+        this.decision = decision;
+    }
+
     @Override
-    public CompletableFuture<RemotingCommand> getResponseFuture() {
+    public Future<RemotingCommand> getResponseFuture() {
         return responseFuture;
+    }
+
+    @Override public void clear() {
+        this.decision = Decision.CONTINUE;
+        this.responseFuture = null;
     }
 }
