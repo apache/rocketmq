@@ -586,4 +586,32 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         }
         return future;
     }
+
+    public CompletableFuture<RemotingCommand> invoke(String brokerAddr, RemotingCommand request, long timeoutMillis) {
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        try {
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    future.complete(response);
+                } else {
+                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+            });
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    public CompletableFuture<Void> invokeOneway(String brokerAddr, RemotingCommand request, long timeoutMillis) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            this.getRemotingClient().invokeOneway(brokerAddr, request, timeoutMillis);
+            future.complete(null);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
 }
