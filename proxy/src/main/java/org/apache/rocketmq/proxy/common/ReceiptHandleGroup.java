@@ -17,22 +17,60 @@
 
 package org.apache.rocketmq.proxy.common;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ReceiptHandleGroup {
-    private final Map<String, MessageReceiptHandle> receiptHandleMap = new ConcurrentHashMap<>();
+    private final Map<String /* msgID */, Map<String /* original handle */, MessageReceiptHandle>> receiptHandleMap = new ConcurrentHashMap<>();
 
-    public void put(String key, MessageReceiptHandle value) {
-        receiptHandleMap.put(key, value);
+    public void put(String msgID, String handle, MessageReceiptHandle value) {
+        Map<String, MessageReceiptHandle> handleMap = receiptHandleMap.computeIfAbsent(msgID, msgIDKey -> new ConcurrentHashMap<>());
+        handleMap.put(handle, value);
     }
 
-    public MessageReceiptHandle remove(String key) {
-        return receiptHandleMap.remove(key);
+    public boolean isEmpty() {
+        return this.receiptHandleMap.isEmpty();
     }
 
-    public Map<String, MessageReceiptHandle> immutableMapView() {
-        return ImmutableMap.copyOf(receiptHandleMap);
+    public MessageReceiptHandle remove(String msgID, String handle) {
+        AtomicReference<MessageReceiptHandle> resRef = new AtomicReference<>();
+        receiptHandleMap.computeIfPresent(msgID, (msgIDKey, handleMap) -> {
+            resRef.set(handleMap.remove(handle));
+            if (handleMap.isEmpty()) {
+                return null;
+            }
+            return handleMap;
+        });
+        return resRef.get();
+    }
+
+    public MessageReceiptHandle removeOne(String msgID) {
+        AtomicReference<MessageReceiptHandle> resRef = new AtomicReference<>();
+        receiptHandleMap.computeIfPresent(msgID, (msgIDKey, handleMap) -> {
+            if (handleMap.isEmpty()) {
+                return null;
+            }
+            Optional<String> handleKey = handleMap.keySet().stream().findAny();
+            resRef.set(handleMap.remove(handleKey.get()));
+            if (handleMap.isEmpty()) {
+                return null;
+            }
+            return handleMap;
+        });
+        return resRef.get();
+    }
+
+    public interface DataScanner {
+        void onData(String msgID, String handle, MessageReceiptHandle receiptHandle);
+    }
+
+    public void scan(DataScanner scanner) {
+        this.receiptHandleMap.forEach((msgID, handleMap) -> {
+            handleMap.forEach((handleStr, v) -> {
+                scanner.onData(msgID, handleStr, v);
+            });
+        });
     }
 }

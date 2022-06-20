@@ -60,7 +60,7 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
                 Durations.toMillis(request.getInvisibleDuration())
             ).thenApply(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {
-                    receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, receiptHandle.getReceiptHandle());
+                    receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, request.getMessageId(), receiptHandle.getReceiptHandle());
                 }
                 return convertToChangeInvisibleDurationResponse(ctx, request, ackResult);
             });
