@@ -212,6 +212,8 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return this.getSystemTopicListFromBroker(ctx, request);
             case RequestCode.CLEAN_EXPIRED_CONSUMEQUEUE:
                 return this.cleanExpiredConsumeQueue();
+            case RequestCode.DELETE_EXPIRED_COMMITLOG:
+                return this.deleteExpiredCommitLog();
             case RequestCode.CLEAN_UNUSED_TOPIC:
                 return this.cleanUnusedTopic();
             case RequestCode.GET_CONSUMER_RUNNING_INFO:
@@ -1182,6 +1184,16 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         brokerController.getMessageStore().cleanExpiredConsumerQueue();
         log.warn("invoke cleanExpiredConsumeQueue end.");
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    public RemotingCommand deleteExpiredCommitLog() {
+        log.warn("invoke deleteExpiredCommitLog start.");
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        brokerController.getMessageStore().executeDeleteFilesManually();
+        log.warn("invoke deleteExpiredCommitLog end.");
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

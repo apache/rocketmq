@@ -62,6 +62,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
     private static InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
@@ -363,9 +364,16 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 topicRouteData.setOrderTopicConf(orderTopicConf);
             }
 
-            byte[] content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
+            byte[] content;
+            Boolean standardJsonOnly = requestHeader.getAcceptStandardJsonOnly();
+            if (request.getVersion() >= Version.V4_9_4.ordinal() || (null != standardJsonOnly && standardJsonOnly)) {
+                content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
                     SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
                     SerializerFeature.MapSortField);
+            } else {
+                content = RemotingSerializable.encode(topicRouteData);
+            }
+
             response.setBody(content);
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);

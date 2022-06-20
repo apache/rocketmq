@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.CommitLog.MessageExtEncoder;
+import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 
 /**
  * not-thread-safe
@@ -34,10 +35,22 @@ public class MultiDispatch {
     private final StringBuilder keyBuilder = new StringBuilder();
     private final DefaultMessageStore messageStore;
     private final CommitLog commitLog;
+    private boolean isDLedger;
 
     public MultiDispatch(DefaultMessageStore messageStore, CommitLog commitLog) {
         this.messageStore = messageStore;
         this.commitLog = commitLog;
+        isDLedger = commitLog instanceof DLedgerCommitLog;
+    }
+
+    public boolean isMultiDispatchMsg(MessageExtBrokerInner msg) {
+        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch()) {
+            return false;
+        }
+        if (StringUtils.isBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))) {
+            return false;
+        }
+        return true;
     }
 
     public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
@@ -83,7 +96,11 @@ public class MultiDispatch {
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
             StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
         removeWaitStorePropertyString(msgInner);
-        return rebuildMsgInner(msgInner);
+        if (isDLedger) {
+            return true;
+        } else {
+            return rebuildMsgInner(msgInner);
+        }
     }
 
     private void removeWaitStorePropertyString(MessageExtBrokerInner msgInner) {
