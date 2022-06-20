@@ -17,18 +17,20 @@
 package org.apache.rocketmq.remoting.netty;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import org.apache.rocketmq.remoting.Decision;
-import org.apache.rocketmq.remoting.HandlerContext;
+import org.apache.rocketmq.remoting.RPCHookContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class HandlerContextAdaptor implements HandlerContext {
+public class DefaultRPCHookContext implements RPCHookContext {
 
     private final Decision decision;
 
     private final CompletableFuture<RemotingCommand> responseFuture;
 
-    public HandlerContextAdaptor(Decision decision,
+    public DefaultRPCHookContext(CompletableFuture<RemotingCommand> responseFuture) {
+        this(Decision.CONTINUE, responseFuture);
+    }
+
+    public DefaultRPCHookContext(Decision decision,
         CompletableFuture<RemotingCommand> responseFuture) {
         this.decision = decision;
         this.responseFuture = responseFuture;
@@ -40,7 +42,7 @@ public class HandlerContextAdaptor implements HandlerContext {
     }
 
     @Override
-    public Future<RemotingCommand> getResponseFuture() {
+    public CompletableFuture<RemotingCommand> getResponseFuture() {
         return responseFuture;
     }
 }

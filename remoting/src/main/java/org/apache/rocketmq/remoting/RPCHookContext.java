@@ -19,7 +19,12 @@ package org.apache.rocketmq.remoting;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public interface HandlerContext {
+public interface RPCHookContext {
+    enum Decision {
+        CONTINUE,
+        STOP,
+    }
+
     default Decision getDecision()  {
         return null;
     }
