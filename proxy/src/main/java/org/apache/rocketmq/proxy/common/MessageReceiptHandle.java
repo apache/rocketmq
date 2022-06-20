@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.proxy.common;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
+
 public class MessageReceiptHandle {
     private final String group;
     private final String topic;
@@ -42,6 +45,44 @@ public class MessageReceiptHandle {
         this.reconsumeTimes = reconsumeTimes;
         this.expectInvisibleTime = expectInvisibleTime;
         this.timestamp = System.currentTimeMillis();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        MessageReceiptHandle handle = (MessageReceiptHandle) o;
+        return queueId == handle.queueId && queueOffset == handle.queueOffset && timestamp == handle.timestamp
+            && reconsumeTimes == handle.reconsumeTimes && expectInvisibleTime == handle.expectInvisibleTime
+            && Objects.equal(group, handle.group) && Objects.equal(topic, handle.topic)
+            && Objects.equal(messageId, handle.messageId) && Objects.equal(originalReceiptHandle, handle.originalReceiptHandle)
+            && Objects.equal(receiptHandle, handle.receiptHandle);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(group, topic, queueId, messageId, queueOffset, originalReceiptHandle, timestamp,
+            reconsumeTimes, expectInvisibleTime, receiptHandle);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("group", group)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("messageId", messageId)
+            .add("queueOffset", queueOffset)
+            .add("originalReceiptHandle", originalReceiptHandle)
+            .add("timestamp", timestamp)
+            .add("reconsumeTimes", reconsumeTimes)
+            .add("expectInvisibleTime", expectInvisibleTime)
+            .add("receiptHandle", receiptHandle)
+            .toString();
     }
 
     public String getGroup() {

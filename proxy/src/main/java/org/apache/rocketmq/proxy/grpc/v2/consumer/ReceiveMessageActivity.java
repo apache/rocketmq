@@ -121,7 +121,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                             MessageReceiptHandle messageReceiptHandle =
                                 new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
                                     messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), requestInvisibleTime);
-                            receiptHandleProcessor.addReceiptHandle(ctx.getClientID(), group, receiptHandle, messageReceiptHandle);
+                            receiptHandleProcessor.addReceiptHandle(ctx.getClientID(), group, messageExt.getMsgId(), receiptHandle, messageReceiptHandle);
                         }
                     }
                 }

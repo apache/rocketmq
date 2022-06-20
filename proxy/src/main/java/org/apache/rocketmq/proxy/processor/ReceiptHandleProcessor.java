@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
@@ -104,7 +105,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         for (Map.Entry<String, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
             String key = entry.getKey();
             ReceiptHandleGroup group = entry.getValue();
-            group.immutableMapView().forEach((k, v) -> {
+            group.scan((msgID, handleStr, v) -> {
                 ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandle());
                 long now = System.currentTimeMillis();
                 if (handle.getNextVisibleTime() - now > proxyConfig.getRenewAheadTimeMillis()) {
@@ -117,14 +118,14 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                     return;
                 }
                 RetryPolicy retryPolicy = subscriptionGroupConfig.getGroupRetryPolicy().getRetryPolicy();
-                renewalWorkerService.submit(() -> renewMessage(key, v, handle, retryPolicy));
+                renewalWorkerService.submit(() -> renewMessage(key, msgID, v, handle, retryPolicy));
             });
         }
 
         log.info("scan for renewal done.");
     }
 
-    protected void renewMessage(String key, MessageReceiptHandle messageReceiptHandle,
+    protected void renewMessage(String key, String msgID, MessageReceiptHandle messageReceiptHandle,
         ReceiptHandle handle, RetryPolicy retryPolicy) {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         long current = System.currentTimeMillis();
@@ -135,7 +136,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             future.thenAccept(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {
                     messageReceiptHandle.update(ackResult.getExtraInfo());
-                    addReceiptHandle(key, messageReceiptHandle.getOriginalReceiptHandle(), messageReceiptHandle);
+                    addReceiptHandle(key, msgID, messageReceiptHandle.getOriginalReceiptHandle(), messageReceiptHandle);
                 }
             });
         } else {
@@ -144,7 +145,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                 messageReceiptHandle.getTopic(), retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()));
             future.thenAccept(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {
-                    removeReceiptHandle(key, messageReceiptHandle.getOriginalReceiptHandle());
+                    removeReceiptHandle(key, msgID, messageReceiptHandle.getOriginalReceiptHandle());
                 }
             });
         }
@@ -154,32 +155,54 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         return clientID + "%" + group;
     }
 
-    public void addReceiptHandle(String clientID, String group, String receiptHandle,
+    public void addReceiptHandle(String clientID, String group, String msgID, String receiptHandle,
         MessageReceiptHandle messageReceiptHandle) {
-        this.addReceiptHandle(buildKey(clientID, group), receiptHandle, messageReceiptHandle);
+        this.addReceiptHandle(buildKey(clientID, group), msgID, receiptHandle, messageReceiptHandle);
     }
 
-    protected void addReceiptHandle(String key, String receiptHandle,
+    protected void addReceiptHandle(String key, String msgID, String receiptHandle,
         MessageReceiptHandle messageReceiptHandle) {
         if (key == null) {
             return;
         }
         receiptHandleGroupMap.computeIfAbsent(key,
-            k -> new ReceiptHandleGroup()).put(receiptHandle, messageReceiptHandle);
+            k -> new ReceiptHandleGroup()).put(msgID, receiptHandle, messageReceiptHandle);
     }
 
-    public void removeReceiptHandle(String clientID, String group, String receiptHandle) {
-        this.removeReceiptHandle(buildKey(clientID, group), receiptHandle);
+    public void removeReceiptHandle(String clientID, String group, String msgID, String receiptHandle) {
+        this.removeReceiptHandle(buildKey(clientID, group), msgID, receiptHandle);
     }
 
-    protected void removeReceiptHandle(String key, String receiptHandle) {
+    protected void removeReceiptHandle(String key, String msgID, String receiptHandle) {
         if (key == null) {
             return;
         }
         receiptHandleGroupMap.computeIfPresent(key, (k, v) -> {
-            v.remove(receiptHandle);
+            v.remove(msgID, receiptHandle);
+            if (v.isEmpty()) {
+                return null;
+            }
             return v;
         });
+    }
+
+    public MessageReceiptHandle removeOneReceiptHandle(String clientID, String group, String msgID) {
+        return removeOneReceiptHandle(buildKey(clientID, group), msgID);
+    }
+
+    protected MessageReceiptHandle removeOneReceiptHandle(String key, String msgID) {
+        if (key == null) {
+            return null;
+        }
+        AtomicReference<MessageReceiptHandle> res = new AtomicReference<>();
+        receiptHandleGroupMap.computeIfPresent(key, (k, v) -> {
+            res.set(v.removeOne(msgID));
+            if (v.isEmpty()) {
+                return null;
+            }
+            return v;
+        });
+        return res.get();
     }
 
     public void clearGroup(String key) {
@@ -188,8 +211,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         receiptHandleGroupMap.computeIfPresent(key, (k, v) -> {
-                Map<String, MessageReceiptHandle> all = v.immutableMapView();
-                all.forEach((key0, value0) -> {
+                v.scan((msgID, handle, value0) -> {
                     ReceiptHandle receiptHandle = ReceiptHandle.decode(value0.getReceiptHandle());
                     messagingProcessor.changeInvisibleTime(
                         ProxyContext.create(),

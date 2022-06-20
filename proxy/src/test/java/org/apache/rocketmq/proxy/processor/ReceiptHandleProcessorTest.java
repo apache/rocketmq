@@ -22,6 +22,7 @@ import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
@@ -32,57 +33,58 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class ReceiptHandleProcessorTest extends BaseProcessorTest {
-    ReceiptHandleProcessor receiptHandleProcessor;
+    private ReceiptHandleProcessor receiptHandleProcessor;
 
-    ProxyContext context = ProxyContext.create();
-    String group = "group";
-    String topic = "topic";
-    String brokerName = "broker";
-    int queueId = 1;
-    String messageId = "messageId";
-    long offset = 123L;
-    long invisibleTime = 100000L;
-    int reconsumeTimes = 1;
-    MessageReceiptHandle messageReceiptHandle;
+    private static final ProxyContext PROXY_CONTEXT = ProxyContext.create();
+    private static final String GROUP = "group";
+    private static final String TOPIC = "topic";
+    private static final String BROKER_NAME = "broker";
+    private static final int QUEUE_ID = 1;
+    private static final String MESSAGE_ID = "messageId";
+    private static final long OFFSET = 123L;
+    private static final long INVISIBLE_TIME = 100000L;
+    private static final int RECONSUME_TIMES = 1;
+    private static final String MSG_ID = MessageClientIDSetter.createUniqID();
+    private MessageReceiptHandle messageReceiptHandle;
 
-    String receiptHandle = ReceiptHandle.builder()
+    private final String receiptHandle = ReceiptHandle.builder()
         .startOffset(0L)
         .retrieveTime(0)
-        .invisibleTime(invisibleTime)
+        .invisibleTime(INVISIBLE_TIME)
         .reviveQueueId(1)
         .topicType(ReceiptHandle.NORMAL_TOPIC)
-        .brokerName(brokerName)
-        .queueId(queueId)
-        .offset(offset)
+        .brokerName(BROKER_NAME)
+        .queueId(QUEUE_ID)
+        .offset(OFFSET)
         .commitLogOffset(0L)
         .build().encode();
 
     @Before
     public void setup() {
-        context.withVal(ContextVariable.CLIENT_ID, "channel-id");
+        PROXY_CONTEXT.withVal(ContextVariable.CLIENT_ID, "channel-id");
         receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
         Mockito.doNothing().when(messagingProcessor).registerConsumerListener(Mockito.any(ConsumerIdsChangeListener.class));
-        messageReceiptHandle = new MessageReceiptHandle(group, topic, queueId, receiptHandle, messageId, offset,
-            reconsumeTimes, invisibleTime);
+        messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
+            RECONSUME_TIMES, INVISIBLE_TIME);
     }
 
     @Test
     public void testAddReceiptHandle() {
-        String channelId = context.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
-        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(new SubscriptionGroupConfig());
+        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
+        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, receiptHandle, messageReceiptHandle);
+        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(new SubscriptionGroupConfig());
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
-            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(messageId),
-                Mockito.eq(group), Mockito.eq(topic), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
     }
 
     @Test
     public void testRenewReceiptHandle() {
-        String channelId = context.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
+        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
+        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, receiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
-        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(groupConfig);
+        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         long newInvisibleTime = 2000L;
         ReceiptHandle newReceiptHandleClass = ReceiptHandle.builder()
             .startOffset(0L)
@@ -90,26 +92,26 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .invisibleTime(newInvisibleTime)
             .reviveQueueId(1)
             .topicType(ReceiptHandle.NORMAL_TOPIC)
-            .brokerName(brokerName)
-            .queueId(queueId)
-            .offset(offset)
+            .brokerName(BROKER_NAME)
+            .queueId(QUEUE_ID)
+            .offset(OFFSET)
             .commitLogOffset(0L)
             .build();
         String newReceiptHandle = newReceiptHandleClass.encode();
         AckResult ackResult = new AckResult();
         ackResult.setStatus(AckStatus.OK);
         ackResult.setExtraInfo(newReceiptHandle);
-        Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(messageId),
-            Mockito.eq(group), Mockito.eq(topic), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis())))
+        Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
+            Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis())))
             .thenReturn(CompletableFuture.completedFuture(ackResult));
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
-            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat(r -> r.getInvisibleTime() == invisibleTime), Mockito.eq(messageId),
-                Mockito.eq(group), Mockito.eq(topic), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat(r -> r.getInvisibleTime() == INVISIBLE_TIME), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
-            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat(r -> r.getInvisibleTime() == newInvisibleTime), Mockito.eq(messageId),
-                Mockito.eq(group), Mockito.eq(topic), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat(r -> r.getInvisibleTime() == newInvisibleTime), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getRenewSliceTimeMillis()));
     }
 
     @Test
@@ -121,21 +123,21 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .invisibleTime(newInvisibleTime)
             .reviveQueueId(1)
             .topicType(ReceiptHandle.NORMAL_TOPIC)
-            .brokerName(brokerName)
-            .queueId(queueId)
-            .offset(offset)
+            .brokerName(BROKER_NAME)
+            .queueId(QUEUE_ID)
+            .offset(OFFSET)
             .commitLogOffset(0L)
             .build().encode();
-        messageReceiptHandle = new MessageReceiptHandle(group, topic, queueId, receiptHandle, messageId, offset,
-            reconsumeTimes, newInvisibleTime);
-        String channelId = context.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, newReceiptHandle, messageReceiptHandle);
+        messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
+            RECONSUME_TIMES, newInvisibleTime);
+        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
+        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, newReceiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
-        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(groupConfig);
+        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
-            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(messageId),
-                Mockito.eq(group), Mockito.eq(topic), Mockito.eq(groupConfig.getGroupRetryPolicy().getRetryPolicy().nextDelayDuration(reconsumeTimes)));
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(groupConfig.getGroupRetryPolicy().getRetryPolicy().nextDelayDuration(RECONSUME_TIMES)));
     }
 
     @Test
@@ -143,20 +145,20 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
         String newReceiptHandle = ReceiptHandle.builder()
             .startOffset(0L)
             .retrieveTime(System.currentTimeMillis())
-            .invisibleTime(invisibleTime)
+            .invisibleTime(INVISIBLE_TIME)
             .reviveQueueId(1)
             .topicType(ReceiptHandle.NORMAL_TOPIC)
-            .brokerName(brokerName)
-            .queueId(queueId)
-            .offset(offset)
+            .brokerName(BROKER_NAME)
+            .queueId(QUEUE_ID)
+            .offset(OFFSET)
             .commitLogOffset(0L)
             .build().encode();
-        messageReceiptHandle = new MessageReceiptHandle(group, topic, queueId, newReceiptHandle, messageId, offset,
-            reconsumeTimes, invisibleTime);
-        String channelId = context.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, newReceiptHandle, messageReceiptHandle);
+        messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, newReceiptHandle, MESSAGE_ID, OFFSET,
+            RECONSUME_TIMES, INVISIBLE_TIME);
+        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
+        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, newReceiptHandle, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
-        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(groupConfig);
+        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(0))
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.anyString(),
@@ -165,11 +167,11 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testRemoveReceiptHandle() {
-        String channelId = context.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
-        receiptHandleProcessor.removeReceiptHandle(channelId, receiptHandle);
+        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
+        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, receiptHandle, messageReceiptHandle);
+        receiptHandleProcessor.removeReceiptHandle(channelId, MSG_ID, receiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
-        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(groupConfig);
+        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(0))
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.anyString(),
@@ -178,14 +180,14 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testClearGroup() {
-        String channelId = context.getVal(ContextVariable.CLIENT_ID);
-        receiptHandleProcessor.addReceiptHandle(channelId, receiptHandle, messageReceiptHandle);
+        String channelId = PROXY_CONTEXT.getVal(ContextVariable.CLIENT_ID);
+        receiptHandleProcessor.addReceiptHandle(channelId, MSG_ID, receiptHandle, messageReceiptHandle);
         receiptHandleProcessor.clearGroup(channelId);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
-        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(group))).thenReturn(groupConfig);
+        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleProcessor.scheduleRenewTask();
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
-            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(messageId),
-                Mockito.eq(group), Mockito.eq(topic), Mockito.eq(ConfigurationManager.getProxyConfig().getInvisibleTimeMillisWhenClear()));
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getInvisibleTimeMillisWhenClear()));
     }
 }
