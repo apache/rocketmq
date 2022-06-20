@@ -100,6 +100,10 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         });
     }
 
+    protected ProxyContext createContext(String actionName) {
+        return ProxyContext.createForInner(this.getClass().getSimpleName() + actionName);
+    }
+
     protected void scheduleRenewTask() {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         for (Map.Entry<String, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
@@ -128,10 +132,11 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
     protected void renewMessage(String key, String msgID, MessageReceiptHandle messageReceiptHandle,
         ReceiptHandle handle, RetryPolicy retryPolicy) {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        ProxyContext context = createContext("RenewMessage");
         long current = System.currentTimeMillis();
         if (current - messageReceiptHandle.getTimestamp() < messageReceiptHandle.getExpectInvisibleTime()) {
             CompletableFuture<AckResult> future =
-                messagingProcessor.changeInvisibleTime(ProxyContext.create(), handle, messageReceiptHandle.getMessageId(),
+                messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
                     messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), proxyConfig.getRenewSliceTimeMillis());
             future.thenAccept(ackResult -> {
                 if (AckStatus.OK.equals(ackResult.getStatus())) {
@@ -140,7 +145,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                 }
             });
         } else {
-            CompletableFuture<AckResult> future = messagingProcessor.changeInvisibleTime(ProxyContext.create(),
+            CompletableFuture<AckResult> future = messagingProcessor.changeInvisibleTime(context,
                 handle, messageReceiptHandle.getMessageId(), messageReceiptHandle.getGroup(),
                 messageReceiptHandle.getTopic(), retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()));
             future.thenAccept(ackResult -> {
@@ -212,11 +217,12 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             return;
         }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        ProxyContext context = createContext("ClearGroup");
         receiptHandleGroupMap.computeIfPresent(key, (k, v) -> {
                 v.scan((msgID, handle, value0) -> {
                     ReceiptHandle receiptHandle = ReceiptHandle.decode(value0.getReceiptHandle());
                     messagingProcessor.changeInvisibleTime(
-                        ProxyContext.create(),
+                        context,
                         receiptHandle,
                         value0.getMessageId(),
                         value0.getGroup(),
