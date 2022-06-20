@@ -169,21 +169,23 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             k -> new ReceiptHandleGroup()).put(msgID, receiptHandle, messageReceiptHandle);
     }
 
-    public void removeReceiptHandle(String clientID, String group, String msgID, String receiptHandle) {
-        this.removeReceiptHandle(buildKey(clientID, group), msgID, receiptHandle);
+    public MessageReceiptHandle removeReceiptHandle(String clientID, String group, String msgID, String receiptHandle) {
+        return this.removeReceiptHandle(buildKey(clientID, group), msgID, receiptHandle);
     }
 
-    protected void removeReceiptHandle(String key, String msgID, String receiptHandle) {
+    protected MessageReceiptHandle removeReceiptHandle(String key, String msgID, String receiptHandle) {
         if (key == null) {
-            return;
+            return null;
         }
+        AtomicReference<MessageReceiptHandle> res = new AtomicReference<>();
         receiptHandleGroupMap.computeIfPresent(key, (k, v) -> {
-            v.remove(msgID, receiptHandle);
+            res.set(v.remove(msgID, receiptHandle));
             if (v.isEmpty()) {
                 return null;
             }
             return v;
         });
+        return res.get();
     }
 
     public MessageReceiptHandle removeOneReceiptHandle(String clientID, String group, String msgID) {
