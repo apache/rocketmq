@@ -42,12 +42,14 @@ import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Status;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Context;
+import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -164,15 +166,21 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     protected ProxyContext createContext() {
         Context ctx = Context.current();
+        Metadata headers = InterceptorConstants.METADATA.get(ctx);
         ProxyContext context = ProxyContext.create()
-            .setLocalAddress(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LOCAL_ADDRESS))
-            .setRemoteAddress(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.REMOTE_ADDRESS))
-            .setClientID(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.CLIENT_ID))
-            .setLanguage(InterceptorConstants.METADATA.get(ctx).get(InterceptorConstants.LANGUAGE));
+            .setLocalAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.LOCAL_ADDRESS))
+            .setRemoteAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.REMOTE_ADDRESS))
+            .setClientID(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_ID))
+            .setLanguage(getDefaultStringMetadataInfo(headers, InterceptorConstants.LANGUAGE))
+            .setAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.RPC_NAME));
         if (ctx.getDeadline() != null) {
             context.setRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
         }
         return context;
+    }
+
+    protected String getDefaultStringMetadataInfo(Metadata headers, Metadata.Key<String> key) {
+        return StringUtils.defaultString(headers.get(key));
     }
 
     @Override

@@ -21,10 +21,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ProxyContext {
+    public static final String INNER_ACTION_PREFIX = "Inner";
     private final Map<String, Object> value = new HashMap<>();
 
     public static ProxyContext create() {
         return new ProxyContext();
+    }
+
+    public static ProxyContext createForInner(String actionName) {
+        return create().setAction(INNER_ACTION_PREFIX + actionName);
+    }
+
+    public static ProxyContext createForInner(Class<?> clazz) {
+        return createForInner(clazz.getSimpleName());
     }
 
     public Map<String, Object> getValue() {
@@ -83,6 +92,15 @@ public class ProxyContext {
 
     public Long getRemainingMs() {
         return this.getVal(ContextVariable.REMAINING_MS);
+    }
+
+    public ProxyContext setAction(String action) {
+        this.withVal(ContextVariable.ACTION, action);
+        return this;
+    }
+
+    public String getAction() {
+        return this.getVal(ContextVariable.ACTION);
     }
 
 }
