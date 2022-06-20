@@ -33,8 +33,8 @@
 
 - [Cluster Deployment](dledger/deploy_guide.md)：introduce how to deploy Dledger in cluster.
 
-- [GRPC Proxy Deployment](proxy/deploy_guide.md)
-Introduce how to deploy gRPC proxy (both `Local` mode and `Cluster` mode).
+- [Proxy Deployment](proxy/deploy_guide.md)
+  Introduce how to deploy proxy (both `Local` mode and `Cluster` mode).
 
 ### 5. Operation and maintenance management
 - [Operation](operation.md)：introduce RocketMQ's deployment modes that including single-master mode, multi-master mode, multi-master multi-slave mode and so on, as well as the usage of operation tool mqadmin.
