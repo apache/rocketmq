@@ -147,7 +147,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     protected <V, T> void addExecutor(ExecutorService executor, ProxyContext context, V request, Runnable runnable,
         StreamObserver<T> responseObserver,
         T executeRejectResponse) {
-        executor.submit(new GrpcTask<V, T>(runnable, request, responseObserver, executeRejectResponse));
+        executor.submit(new GrpcTask<>(runnable, context, request, responseObserver, executeRejectResponse));
     }
 
     protected <V, T> void writeResponse(ProxyContext context, V request, T response, StreamObserver<T> responseObserver,
@@ -358,12 +358,14 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     protected static class GrpcTask<V, T> implements Runnable {
 
         protected final Runnable runnable;
+        protected final ProxyContext context;
         protected final V request;
         protected final T executeRejectResponse;
         protected final StreamObserver<T> streamObserver;
 
-        public GrpcTask(Runnable runnable, V request, StreamObserver<T> streamObserver, T executeRejectResponse) {
+        public GrpcTask(Runnable runnable, ProxyContext context, V request, StreamObserver<T> streamObserver, T executeRejectResponse) {
             this.runnable = runnable;
+            this.context = context;
             this.streamObserver = streamObserver;
             this.request = request;
             this.executeRejectResponse = executeRejectResponse;
@@ -375,14 +377,18 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         }
     }
 
-    protected static class GrpcTaskRejectedExecutionHandler implements RejectedExecutionHandler {
+    protected class GrpcTaskRejectedExecutionHandler implements RejectedExecutionHandler {
+
+        public GrpcTaskRejectedExecutionHandler() {
+
+        }
 
         @Override
         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
             if (r instanceof GrpcTask) {
                 try {
                     GrpcTask grpcTask = (GrpcTask) r;
-                    ResponseWriter.write(grpcTask.streamObserver, grpcTask.executeRejectResponse);
+                    writeResponse(grpcTask.context, grpcTask.request, grpcTask.executeRejectResponse, grpcTask.streamObserver, null, null);
                 } catch (Throwable t) {
                     log.warn("write rejected error response failed", t);
                 }
