@@ -47,9 +47,10 @@ public class AuthenticationInterceptor implements ServerInterceptor {
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<R>(next.startCall(call, headers)) {
             @Override
             public void onMessage(R message) {
+                GeneratedMessageV3 messageV3 = (GeneratedMessageV3) message;
+                headers.put(InterceptorConstants.RPC_NAME, messageV3.getDescriptorForType().getFullName());
                 if (ConfigurationManager.getProxyConfig().isEnableACL()) {
                     try {
-                        GeneratedMessageV3 messageV3 = (GeneratedMessageV3) message;
                         AuthenticationHeader authenticationHeader = AuthenticationHeader.builder()
                             .remoteAddress(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS))
                             .namespace(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.NAMESPACE_ID))
@@ -79,15 +80,11 @@ public class AuthenticationInterceptor implements ServerInterceptor {
         for (AccessValidator accessValidator : accessValidatorList) {
             AccessResource accessResource = accessValidator.parse(messageV3, authenticationHeader);
             accessValidator.validate(accessResource);
-            addHeader(headers, messageV3, accessResource);
-        }
-    }
 
-    protected void addHeader(Metadata headers, GeneratedMessageV3 messageV3, AccessResource accessResource) {
-        headers.put(InterceptorConstants.RPC_NAME, messageV3.getDescriptorForType().getFullName());
-        if (accessResource instanceof PlainAccessResource) {
-            PlainAccessResource plainAccessResource = (PlainAccessResource) accessResource;
-            headers.put(InterceptorConstants.AUTHORIZATION_AK, plainAccessResource.getAccessKey());
+            if (accessResource instanceof PlainAccessResource) {
+                PlainAccessResource plainAccessResource = (PlainAccessResource) accessResource;
+                headers.put(InterceptorConstants.AUTHORIZATION_AK, plainAccessResource.getAccessKey());
+            }
         }
     }
 }
