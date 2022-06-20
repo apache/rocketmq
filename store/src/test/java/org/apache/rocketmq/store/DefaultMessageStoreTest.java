@@ -659,26 +659,28 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testEncodeLongMessage() throws Exception{
+    public void testPutLongMessage() throws Exception{
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
-        Class clazz = messageStore.getClass();
+        CommitLog commitLog = ((DefaultMessageStore) messageStore).getCommitLog();
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
 
-        Field fieldCommitLog = clazz.getDeclaredField("commitLog");
-        fieldCommitLog.setAccessible(true);
-        CommitLog commitLog = (CommitLog) fieldCommitLog.get(messageStore);
-
-        Field fieldMessageStoreConfig = clazz.getDeclaredField("messageStoreConfig");
-        fieldMessageStoreConfig.setAccessible(true);
-        MessageStoreConfig messageStoreConfig = (MessageStoreConfig) fieldMessageStoreConfig.get(messageStore);
+        //body size, topic size, properties size exactly equal to max size
         messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
-
+        messageExtBrokerInner.setTopic(new String(new byte[127]));
+        messageExtBrokerInner.setPropertiesString(new String(new byte[Short.MAX_VALUE]));
         CommitLog.PutMessageThreadLocal putMessageThreadLocal = commitLog.getPutMessageThreadLocal().get();
         PutMessageResult encodeResult1 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
         assertTrue(encodeResult1 == null);
 
+        //body size exactly more than max message body size
         messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize() + 1]);
         PutMessageResult encodeResult2 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
         assertTrue(encodeResult2.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
+
+        //body size exactly equal to max message size
+        messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize() + 64 * 1024]);
+        PutMessageResult encodeResult3 = putMessageThreadLocal.getEncoder().encode(messageExtBrokerInner);
+        assertTrue(encodeResult3.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
 
     }
 
