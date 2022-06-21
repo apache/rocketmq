@@ -36,6 +36,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
@@ -163,6 +164,15 @@ public class CommitLog {
         return this.mappedFileQueue.getFlushedWhere();
     }
 
+    public boolean getData(final long offset, final int size, final ByteBuffer byteBuffer) {
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
+        if (mappedFile != null) {
+            int pos = (int) (offset % mappedFileSize);
+            return mappedFile.getData(pos, size, byteBuffer);
+        }
+        return false;
+    }
     public long getMaxOffset() {
         return this.mappedFileQueue.getMaxOffset();
     }
@@ -596,6 +606,79 @@ public class CommitLog {
         return beginTimeInLock;
     }
 
+    private boolean isRolledTimerMessage(MessageExtBrokerInner msg) {
+        return TimerMessageStore.TIMER_TOPIC.equals(msg.getTopic());
+    }
+
+    public boolean checkIfTimerMessage(MessageExtBrokerInner msg) {
+        if (msg.getDelayTimeLevel() > 0) {
+            if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS)) {
+                MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELIVER_MS);
+            }
+            if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) {
+                MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_SEC);
+            }
+            return false;
+            //return this.defaultMessageStore.getMessageStoreConfig().isTimerInterceptDelayLevel();
+        }
+        //double check
+        if (TimerMessageStore.TIMER_TOPIC.equals(msg.getTopic()) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_OUT_MS)) {
+            return false;
+        }
+        return null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC);
+    }
+    private PutMessageResult transformTimerMessage(MessageExtBrokerInner msg) {
+        //do transform
+        int delayLevel = msg.getDelayTimeLevel();
+        if (msg.getDelayTimeLevel() > 0) {
+            if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
+                msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
+            }
+            delayLevel = msg.getDelayTimeLevel();
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TIMER_DELIVER_MS, this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(msg.getDelayTimeLevel(),
+                    System.currentTimeMillis()) + "");
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_LEVEL, delayLevel + "");
+            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
+        }
+        long deliverMs;
+        try {
+            if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
+                deliverMs = System.currentTimeMillis() + Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) * 1000;
+            } else if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
+                deliverMs = System.currentTimeMillis() + Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
+            } else {
+                deliverMs = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+            }
+        } catch (Exception e) {
+            return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
+        }
+        if (deliverMs > System.currentTimeMillis()) {
+            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > this.defaultMessageStore.getMessageStoreConfig().getTimerMaxDelaySec() * 1000) {
+                return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
+            }
+
+            int timerPrecisionMs = this.defaultMessageStore.getTimerMessageStore().getPrecisionMs();
+            if (deliverMs % timerPrecisionMs == 0) {
+                deliverMs -= timerPrecisionMs;
+            } else {
+                deliverMs = deliverMs / timerPrecisionMs * timerPrecisionMs;
+            }
+
+            if (this.defaultMessageStore.getTimerMessageStore().isReject(deliverMs)) {
+                return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL, null);
+            }
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TIMER_OUT_MS, deliverMs + "");
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+            msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+            msg.setTopic(TimerMessageStore.TIMER_TOPIC);
+            msg.setQueueId(0);
+        } else if (null != msg.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)) {
+            return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
+        }
+        return null;
+    }
+
     private String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
         keyBuilder.setLength(0);
         keyBuilder.append(messageExt.getTopic());
@@ -620,6 +703,18 @@ public class CommitLog {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            if (!isRolledTimerMessage(msg)) {
+                if (checkIfTimerMessage(msg)) {
+                    if (!this.defaultMessageStore.getMessageStoreConfig().isTimerWheelEnable()) {
+                        //wheel timer is not enabled, reject the message
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null));
+                    }
+                    PutMessageResult tranformRes = transformTimerMessage(msg);
+                    if (null != tranformRes) {
+                        return CompletableFuture.completedFuture(tranformRes);
+                    }
+                }
+            }
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {

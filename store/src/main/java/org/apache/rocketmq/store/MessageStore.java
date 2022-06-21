@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
@@ -25,6 +26,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 /**
  * This class defines contracting interfaces to implement, allowing third-party vendor to use customized message store.
@@ -54,6 +56,7 @@ public interface MessageStore {
      * Destroy this message store. Generally, all persistent files should be removed after invocation.
      */
     void destroy();
+    public boolean getData(long offset, int size, ByteBuffer byteBuffer);
 
     /** Store a message into store in async manner, the processor can process the next request
      *  rather than wait for result
@@ -124,6 +127,10 @@ public interface MessageStore {
      */
     long getMinOffsetInQueue(final String topic, final int queueId);
 
+    TimerMessageStore getTimerMessageStore();
+
+    void setTimerMessageStore(TimerMessageStore timerMessageStore);
+
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.
      *
@@ -175,7 +182,7 @@ public interface MessageStore {
      * @return message store running info.
      */
     String getRunningDataInfo();
-
+    long getTimingMessageCount(String topic);
     /**
      * Message store runtime information, which should generally contains various statistical information.
      *

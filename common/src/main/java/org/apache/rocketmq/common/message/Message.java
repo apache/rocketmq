@@ -214,4 +214,12 @@ public class Message implements Serializable {
             ", transactionId='" + transactionId + '\'' +
             '}';
     }
+
+    public void setDelayTimeSec(long sec) {
+        this.putProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC, String.valueOf(sec));
+    }
+
+    public void setDelayTimeMs(long ms) {
+        this.putProperty(MessageConst.PROPERTY_TIMER_DELAY_MS, String.valueOf(ms));
+    }
 }

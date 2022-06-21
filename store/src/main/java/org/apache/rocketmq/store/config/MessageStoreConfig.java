@@ -40,6 +40,48 @@ public class MessageStoreConfig {
 
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
+
+    // TimerLog file size, default is 100M
+    private int mappedFileSizeTimerLog = 100 * 1024 * 1024;
+
+    private int timerPrecisionMs = 1000;
+
+    private int timerRollWindowSlot = 3600 * 24 * 2;
+    private int timerRollWindowSec = 3600 * 24 * 2;
+    private int timerFlushIntervalMs = 1000;
+    private int timerGetMessageThreadNum = 3;
+    private int timerPutMessageThreadNum = 3;
+
+    private boolean timerEnableDisruptor = false;
+
+    private boolean timerEnableCheckMetrics = true;
+    private boolean timerInterceptDelayLevel = false;
+    private int timerMaxDelaySec = 3600 * 24 * 3;
+    private boolean timerWheelEnable = true;
+
+    /**
+     * 1. Register to broker after (startTime + disappearTimeAfterStart)
+     * 2. Internal msg exchange will start after (startTime + disappearTimeAfterStart)
+     *  A. PopReviveService
+     *  B. TimerDequeueGetService
+     */
+    @ImportantField
+    private int disappearTimeAfterStart = -1;
+
+    private boolean timerStopEnqueue = false;
+
+    private String timerCheckMetricsWhen = "05";
+
+    private boolean timerSkipUnknownError = false;
+    private boolean timerWarmEnable = false;
+    private boolean timerStopDequeue = false;
+
+    private int timerCongestNumEachSec = Integer.MAX_VALUE;
+    private int timerCongestNumEachSlot = Integer.MAX_VALUE;
+
+    private int timerMetricSmallThreshold = 1000000;
+    private int timerProgressLogIntervalMs = 10 * 1000;
+
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -822,4 +864,136 @@ public class MessageStoreConfig {
     public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
         this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
     }
+
+    public int getMappedFileSizeTimerLog() {
+        return mappedFileSizeTimerLog;
+    }
+    public void setMappedFileSizeTimerLog(final int mappedFileSizeTimerLog) {
+        this.mappedFileSizeTimerLog = mappedFileSizeTimerLog;
+    }
+
+    public int getTimerPrecisionMs() {
+        return timerPrecisionMs;
+    }
+    public void setTimerPrecisionMs(int timerPrecisionMs) {
+        int[] candidates = {100, 200, 500, 1000};
+        for (int i = 1; i < candidates.length; i++) {
+            if (timerPrecisionMs < candidates[i]) {
+                this.timerPrecisionMs = candidates[i - 1];
+                return;
+            }
+        }
+        this.timerPrecisionMs = candidates[candidates.length - 1];
+    }
+    public int getTimerRollWindowSlot() {
+        return timerRollWindowSlot;
+    }
+    public int getTimerGetMessageThreadNum() {
+        return timerGetMessageThreadNum;
+    }
+
+    public void setTimerGetMessageThreadNum(int timerGetMessageThreadNum) {
+        this.timerGetMessageThreadNum = timerGetMessageThreadNum;
+    }
+
+    public int getTimerPutMessageThreadNum() {
+        return timerPutMessageThreadNum;
+    }
+    public void setTimerPutMessageThreadNum(int timerPutMessageThreadNum) {
+        this.timerPutMessageThreadNum = timerPutMessageThreadNum;
+    }
+    public boolean isTimerEnableDisruptor() {
+        return timerEnableDisruptor;
+    }
+    public int getDisappearTimeAfterStart() {
+        return disappearTimeAfterStart;
+    }
+
+    public boolean isTimerEnableCheckMetrics() {
+        return timerEnableCheckMetrics;
+    }
+
+    public void setTimerEnableCheckMetrics(boolean timerEnableCheckMetrics) {
+        this.timerEnableCheckMetrics = timerEnableCheckMetrics;
+    }
+    public boolean isTimerStopEnqueue() {
+        return timerStopEnqueue;
+    }
+    public void setTimerStopEnqueue(boolean timerStopEnqueue) {
+        this.timerStopEnqueue = timerStopEnqueue;
+    }
+    public String getTimerCheckMetricsWhen() {
+        return timerCheckMetricsWhen;
+    }
+
+    public boolean isTimerSkipUnknownError() {
+        return timerSkipUnknownError;
+    }
+
+    public boolean isTimerWarmEnable() {
+        return timerWarmEnable;
+    }
+
+    public boolean isTimerWheelEnable() {
+        return timerWheelEnable;
+    }
+    public void setTimerWheelEnable(boolean timerWheelEnable) {
+        this.timerWheelEnable = timerWheelEnable;
+    }
+
+    public boolean isTimerStopDequeue() {
+        return timerStopDequeue;
+    }
+
+    public int getTimerMetricSmallThreshold() {
+        return timerMetricSmallThreshold;
+    }
+
+    public void setTimerMetricSmallThreshold(int timerMetricSmallThreshold) {
+        this.timerMetricSmallThreshold = timerMetricSmallThreshold;
+    }
+
+    public int getTimerCongestNumEachSlot() {
+        return timerCongestNumEachSlot;
+    }
+    public void setTimerCongestNumEachSec(int timerCongestNumEachSec) {
+        this.timerCongestNumEachSec = timerCongestNumEachSec;
+        // In order to get this value from messageStoreConfig properties file created before v4.4.1.
+        this.timerCongestNumEachSlot = timerCongestNumEachSec;
+    }
+    public int getTimerFlushIntervalMs() {
+        return timerFlushIntervalMs;
+    }
+
+    public void setTimerFlushIntervalMs(final int timerFlushIntervalMs) {
+        this.timerFlushIntervalMs = timerFlushIntervalMs;
+    }
+    public void setTimerRollWindowSec(final int timerRollWindowSec) {
+        this.timerRollWindowSec = timerRollWindowSec;
+        this.timerRollWindowSlot = timerRollWindowSec;
+    }
+    public int getTimerProgressLogIntervalMs() {
+        return timerProgressLogIntervalMs;
+    }
+
+    public void setTimerProgressLogIntervalMs(final int timerProgressLogIntervalMs) {
+        this.timerProgressLogIntervalMs = timerProgressLogIntervalMs;
+    }
+
+    public boolean isTimerInterceptDelayLevel() {
+        return timerInterceptDelayLevel;
+    }
+
+    public void setTimerInterceptDelayLevel(boolean timerInterceptDelayLevel) {
+        this.timerInterceptDelayLevel = timerInterceptDelayLevel;
+    }
+
+    public int getTimerMaxDelaySec() {
+        return timerMaxDelaySec;
+    }
+    public void setTimerMaxDelaySec(final int timerMaxDelaySec) {
+        this.timerMaxDelaySec = timerMaxDelaySec;
+    }
+
+
 }

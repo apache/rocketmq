@@ -14,22 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.timer;
 
-public enum PutMessageStatus {
-    PUT_OK,
-    FLUSH_DISK_TIMEOUT,
-    FLUSH_SLAVE_TIMEOUT,
-    SLAVE_NOT_AVAILABLE,
-    SERVICE_NOT_AVAILABLE,
-    CREATE_MAPEDFILE_FAILED,
-    MESSAGE_ILLEGAL,
-    PROPERTIES_SIZE_EXCEEDED,
-    OS_PAGECACHE_BUSY,
-    UNKNOWN_ERROR,
-    LMQ_CONSUME_QUEUE_NUM_EXCEEDED,
-    CREATE_MAPPED_FILE_FAILED,
-    WHEEL_TIMER_FLOW_CONTROL,
-    WHEEL_TIMER_MSG_ILLEGAL,
-    WHEEL_TIMER_NOT_ENABLE
+public class Slot {
+    public static final short SIZE = 32;
+    public final long timeMs;
+    public final long firstPos;
+    public final long lastPos;
+    public final int num;
+    public final int magic; //no use now, just keep it
+
+    public Slot(long timeMs, long firstPos, long lastPos) {
+        this.timeMs = timeMs;
+        this.firstPos = firstPos;
+        this.lastPos = lastPos;
+        this.num = 0;
+        this.magic = 0;
+    }
+
+    public Slot(long timeMs, long firstPos, long lastPos, int num, int magic) {
+        this.timeMs = timeMs;
+        this.firstPos = firstPos;
+        this.lastPos = lastPos;
+        this.num = num;
+        this.magic = magic;
+    }
 }
