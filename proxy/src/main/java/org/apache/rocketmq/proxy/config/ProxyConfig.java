@@ -108,6 +108,10 @@ public class ProxyConfig {
 
     private boolean enableTopicMessageTypeCheck = true;
 
+    private int metricCollectorMode = MetricCollectorMode.OFF.getOrdinal();
+    // Example address: 127.0.0.1:1234
+    private String metricCollectorAddress = "";
+
     public String getRocketMQClusterName() {
         return rocketMQClusterName;
     }
@@ -578,5 +582,21 @@ public class ProxyConfig {
 
     public void setRenewSchedulePeriodMillis(long renewSchedulePeriodMillis) {
         this.renewSchedulePeriodMillis = renewSchedulePeriodMillis;
+    }
+
+    public int getMetricCollectorMode() {
+        return metricCollectorMode;
+    }
+
+    public void setMetricCollectorMode(int metricCollectorMode) {
+        this.metricCollectorMode = metricCollectorMode;
+    }
+
+    public String getMetricCollectorAddress() {
+        return metricCollectorAddress;
+    }
+
+    public void setMetricCollectorAddress(String metricCollectorAddress) {
+        this.metricCollectorAddress = metricCollectorAddress;
     }
 }

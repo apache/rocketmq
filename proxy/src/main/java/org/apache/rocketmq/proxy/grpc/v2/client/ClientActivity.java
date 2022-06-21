@@ -16,11 +16,15 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.client;
 
+import apache.rocketmq.v2.Address;
+import apache.rocketmq.v2.AddressScheme;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
+import apache.rocketmq.v2.Metric;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.Resource;
@@ -54,6 +58,9 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.MetricCollectorMode;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
@@ -230,6 +237,31 @@ public class ClientActivity extends AbstractMessingActivity {
         String clientId = ctx.getClientID();
         grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
         Settings settings = grpcClientSettingsManager.getClientSettings(ctx);
+        // Construct metric according to the proxy config
+        final ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        final MetricCollectorMode metricCollectorMode =
+            MetricCollectorMode.getEnumByOrdinal(proxyConfig.getMetricCollectorMode());
+        final String metricCollectorAddress = proxyConfig.getMetricCollectorAddress();
+        final Metric.Builder metricBuilder = Metric.newBuilder();
+        switch (metricCollectorMode) {
+            case ON:
+                final String[] split = metricCollectorAddress.split(":");
+                final String host = split[0];
+                final int port = Integer.parseInt(split[1]);
+                Address address = Address.newBuilder().setHost(host).setPort(port).build();
+                final Endpoints endpoints = Endpoints.newBuilder().setScheme(AddressScheme.IPv4)
+                    .addAddresses(address).build();
+                metricBuilder.setOn(true).setEndpoints(endpoints);
+                break;
+            case PROXY:
+                metricBuilder.setOn(true).setEndpoints(settings.getAccessPoint());
+            case OFF:
+            default:
+                metricBuilder.setOn(false);
+                break;
+        }
+        Metric metric = metricBuilder.build();
+        settings = settings.toBuilder().setMetric(metric).build();
         if (settings.hasPublishing()) {
             for (Resource topic : settings.getPublishing().getTopicsList()) {
                 String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
