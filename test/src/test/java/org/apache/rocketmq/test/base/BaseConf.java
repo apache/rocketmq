@@ -25,6 +25,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
@@ -68,6 +69,13 @@ public class BaseConf {
 
     }
 
+    public List<BrokerController> getControllers() {
+        List<BrokerController> controllers = new ArrayList<>();
+        controllers.add(brokerController1);
+        controllers.add(brokerController2);
+        return controllers;
+    }
+
     public static String initTopic() {
         String topic = MQRandomUtils.getRandomTopic();
         return initTopicWithName(topic);
@@ -89,11 +97,16 @@ public class BaseConf {
     }
 
     public static RMQNormalProducer getProducer(String nsAddr, String topic) {
-        return getProducer(nsAddr, topic, false);
+        return getProducer(nsAddr, topic, false, null);
     }
 
     public static RMQNormalProducer getProducer(String nsAddr, String topic, boolean useTLS) {
-        RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, useTLS);
+        return getProducer(nsAddr, topic, useTLS, null);
+    }
+
+
+    public static RMQNormalProducer getProducer(String nsAddr, String topic, boolean useTLS, RPCHook rpcHook) {
+        RMQNormalProducer producer = new RMQNormalProducer(nsAddr, topic, useTLS, rpcHook);
         if (debug) {
             producer.setDebug();
         }

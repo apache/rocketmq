@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.sendresult.ResultWrapper;
 
@@ -34,13 +35,13 @@ public class RMQNormalProducer extends AbstractMQProducer {
     private String nsAddr = null;
 
     public RMQNormalProducer(String nsAddr, String topic) {
-        this(nsAddr, topic, false);
+        this(nsAddr, topic, false, null);
     }
 
-    public RMQNormalProducer(String nsAddr, String topic, boolean useTLS) {
+    public RMQNormalProducer(String nsAddr, String topic, boolean useTLS, RPCHook rpcHook) {
         super(topic);
         this.nsAddr = nsAddr;
-        create(useTLS);
+        create(useTLS, rpcHook);
         start();
     }
 
@@ -56,7 +57,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
         this.producerInstanceName = producerInstanceName;
         this.nsAddr = nsAddr;
 
-        create(useTLS);
+        create(useTLS, null);
         start();
     }
 
@@ -68,8 +69,8 @@ public class RMQNormalProducer extends AbstractMQProducer {
         this.producer = producer;
     }
 
-    protected void create(boolean useTLS) {
-        producer = new DefaultMQProducer();
+    protected void create(boolean useTLS, RPCHook rpcHook) {
+        producer = new DefaultMQProducer(rpcHook);
         producer.setProducerGroup(getProducerGroupName());
         producer.setInstanceName(getProducerInstanceName());
         producer.setUseTLS(useTLS);
