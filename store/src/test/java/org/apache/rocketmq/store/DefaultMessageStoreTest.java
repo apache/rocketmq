@@ -664,6 +664,7 @@ public class DefaultMessageStoreTest {
         CommitLog commitLog = ((DefaultMessageStore) messageStore).getCommitLog();
         MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
 
+        
         //body size, topic size, properties size exactly equal to max size
         messageExtBrokerInner.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
         messageExtBrokerInner.setTopic(new String(new byte[127]));
