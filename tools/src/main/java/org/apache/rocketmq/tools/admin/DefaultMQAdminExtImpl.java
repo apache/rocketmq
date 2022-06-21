@@ -330,8 +330,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             }
 
             if (connection.getMessageModel().equals(MessageModel.BROADCASTING)) {
-                throw new MQClientException(ResponseCode.CONSUME_BROADCASTING,
-                    "Not found the consumer group consume stats, because return offset table is empty, the consumer using in broadcast model");
+                throw new MQClientException(ResponseCode.BROADCAST_CONSUMPTION,
+                    "Not found the consumer group consume stats, because return offset table is empty, the consumer is under the broadcast mode");
             }
         }
 
@@ -924,7 +924,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                             mt.setTrackType(TrackType.NOT_ONLINE);
                             mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
                         }
-                        if (ResponseCode.CONSUME_BROADCASTING == e.getResponseCode()) {
+                        if (ResponseCode.BROADCAST_CONSUMPTION == e.getResponseCode()) {
                             mt.setTrackType(TrackType.CONSUME_BROADCASTING);
                         }
                         result.add(mt);
@@ -934,7 +934,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                             mt.setTrackType(TrackType.NOT_ONLINE);
                             mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
                         }
-                        if (ResponseCode.CONSUME_BROADCASTING == e.getResponseCode()) {
+                        if (ResponseCode.BROADCAST_CONSUMPTION == e.getResponseCode()) {
                             mt.setTrackType(TrackType.CONSUME_BROADCASTING);
                         }
                         result.add(mt);

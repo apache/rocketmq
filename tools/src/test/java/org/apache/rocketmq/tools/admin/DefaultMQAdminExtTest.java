@@ -323,12 +323,12 @@ public class DefaultMQAdminExtTest {
             assertThat(e instanceof MQClientException).isTrue();
             assertThat(((MQClientException) e).getResponseCode()).isEqualTo(ResponseCode.CONSUMER_NOT_ONLINE);
         }
-        // CONSUME_BROADCASTING
+        // BROADCAST_CONSUMPTION
         try {
             defaultMQAdminExt.examineConsumeStats("default-consumer-group", "unit-test");
         } catch (Exception e) {
             assertThat(e instanceof MQClientException).isTrue();
-            assertThat(((MQClientException) e).getResponseCode()).isEqualTo(ResponseCode.CONSUME_BROADCASTING);
+            assertThat(((MQClientException) e).getResponseCode()).isEqualTo(ResponseCode.BROADCAST_CONSUMPTION);
         }
     }
 
