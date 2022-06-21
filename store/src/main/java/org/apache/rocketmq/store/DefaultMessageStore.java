@@ -68,7 +68,9 @@ import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
+import org.apache.rocketmq.store.schedule.DelayTimeService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
+import org.apache.rocketmq.store.schedule.ScheduleMessageServiceV2;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class DefaultMessageStore implements MessageStore {
@@ -95,6 +97,10 @@ public class DefaultMessageStore implements MessageStore {
     private final HAService haService;
 
     private final ScheduleMessageService scheduleMessageService;
+
+    private final ScheduleMessageServiceV2 scheduleMessageServiceV2;
+
+    private final DelayTimeService delayTimeService;
 
     private final StoreStatsService storeStatsService;
 
@@ -156,6 +162,9 @@ public class DefaultMessageStore implements MessageStore {
 
         this.scheduleMessageService = new ScheduleMessageService(this);
 
+        delayTimeService  = new DelayTimeService(this);
+        this.scheduleMessageServiceV2 = new ScheduleMessageServiceV2(this, delayTimeService);
+
         this.transientStorePool = new TransientStorePool(messageStoreConfig);
 
         if (messageStoreConfig.isTransientStorePoolEnable()) {
@@ -169,6 +178,7 @@ public class DefaultMessageStore implements MessageStore {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
+        this.dispatcherList.addFirst(new CommitLogDispatcherBuildDelayTime());
 
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         MappedFile.ensureDirOK(file.getParent());
@@ -208,6 +218,8 @@ public class DefaultMessageStore implements MessageStore {
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
 
                 this.indexService.load(lastExitOK);
+
+                this.delayTimeService.load(lastExitOK);
 
                 this.recover(lastExitOK);
 
@@ -299,10 +311,14 @@ public class DefaultMessageStore implements MessageStore {
         this.flushConsumeQueueService.start();
         this.commitLog.start();
         this.storeStatsService.start();
+        delayTimeService.start();
 
         this.createTempFile();
         this.addScheduleTask();
         this.shutdown = false;
+        if (messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE) {
+            scheduleMessageServiceV2.start();
+        }
     }
 
     public void shutdown() {
@@ -320,6 +336,9 @@ public class DefaultMessageStore implements MessageStore {
 
             if (this.scheduleMessageService != null) {
                 this.scheduleMessageService.shutdown();
+            }
+            if (this.scheduleMessageServiceV2 != null) {
+                this.scheduleMessageServiceV2.shutdown();
             }
             if (this.haService != null) {
                 this.haService.shutdown();
@@ -1058,6 +1077,7 @@ public class DefaultMessageStore implements MessageStore {
             String topic = next.getKey();
 
             if (!topics.contains(topic) && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)
+                    &&!topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC_V2)
                     && !topic.equals(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC)
                     && !MixAll.isLmq(topic)) {
                 ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
@@ -1090,7 +1110,7 @@ public class DefaultMessageStore implements MessageStore {
         while (it.hasNext()) {
             Entry<String, ConcurrentMap<Integer, ConsumeQueue>> next = it.next();
             String topic = next.getKey();
-            if (!topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
+            if (!topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC) && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC_V2)) {
                 ConcurrentMap<Integer, ConsumeQueue> queueTable = next.getValue();
                 Iterator<Entry<Integer, ConsumeQueue>> itQT = queueTable.entrySet().iterator();
                 while (itQT.hasNext()) {
@@ -1396,6 +1416,7 @@ public class DefaultMessageStore implements MessageStore {
                 cq.getValue().checkSelf();
             }
         }
+        delayTimeService.checkSelf();
     }
 
     private boolean isTempFileExist() {
@@ -1531,6 +1552,10 @@ public class DefaultMessageStore implements MessageStore {
         return scheduleMessageService;
     }
 
+    public ScheduleMessageServiceV2 getScheduleMessageServiceV2() {
+        return scheduleMessageServiceV2;
+    }
+
     public RunningFlags getRunningFlags() {
         return runningFlags;
     }
@@ -1657,6 +1682,15 @@ public class DefaultMessageStore implements MessageStore {
         public void dispatch(DispatchRequest request) {
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
                 DefaultMessageStore.this.indexService.buildIndex(request);
+            }
+        }
+    }
+
+    class CommitLogDispatcherBuildDelayTime implements CommitLogDispatcher {
+        @Override
+        public void dispatch(DispatchRequest request) {
+            if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC_V2.equals(request.getTopic())) {
+                DefaultMessageStore.this.scheduleMessageServiceV2.buildDelayTime(request);
             }
         }
     }

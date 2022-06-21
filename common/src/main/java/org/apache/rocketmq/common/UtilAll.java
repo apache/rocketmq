@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -121,6 +123,31 @@ public class UtilAll {
         return String.format("%04d%02d%02d%02d%02d%02d%03d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
             cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND),
             cal.get(Calendar.MILLISECOND));
+    }
+
+    public static long humanStringToTimeMillis(String str) {
+        if (StringUtils.isBlank(str)) {
+            return 0;
+        }
+        int len = str.length();
+        if (len != 17){
+            return 0;
+        }
+        try{
+            int year = Integer.parseInt(str.substring(0, 4));
+            int month = Integer.parseInt(str.substring(4, 6));
+            int dayOfMonth = Integer.parseInt(str.substring(6, 8));
+            int hourOfDay = Integer.parseInt(str.substring(8, 10));
+            int minute = Integer.parseInt(str.substring(10, 12));
+            int second = Integer.parseInt(str.substring(12, 14));
+            int millisecond = Integer.parseInt(str.substring(14, 17));
+            Calendar cal = Calendar.getInstance();
+            cal.set(year, month-1, dayOfMonth, hourOfDay, minute, second);
+            cal.set(Calendar.MILLISECOND, millisecond);
+            return cal.getTimeInMillis();
+        }catch (Exception e){
+            return 0;
+        }
     }
 
     public static long computeNextMorningTimeMillis() {

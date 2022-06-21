@@ -48,6 +48,10 @@ public class StorePathConfigHelper {
         return rootDir + File.separator + "config" + File.separator + "delayOffset.json";
     }
 
+    public static String getDelayTimeOffsetStorePath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "delayTimeOffset.json";
+    }
+
     public static String getTranStateTableStorePath(final String rootDir) {
         return rootDir + File.separator + "transaction" + File.separator + "statetable";
     }

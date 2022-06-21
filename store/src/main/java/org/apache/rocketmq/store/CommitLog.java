@@ -395,6 +395,20 @@ public class CommitLog {
                         }
                     }
                 }
+
+                // timing message processing v2
+                {
+                    String delayTimeStr = propertiesMap.get(MessageConst.PROPERTY_DELAY_TIME);
+                    if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC_V2.equals(topic) && delayTimeStr != null) {
+                        long delayTime = Long.parseLong(delayTimeStr);
+                        if (delayTime > this.defaultMessageStore.getScheduleMessageServiceV2().getMaxDelayTime()) {
+                            delayTime = this.defaultMessageStore.getScheduleMessageServiceV2().getMaxDelayTime();
+                        }
+                        if (delayTime > 0) {
+                            tagsCode = storeTimestamp + delayTime;
+                        }
+                    }
+                }
             }
 
             int readLength = calMsgLength(sysFlag, bodyLen, topicLen, propertiesLength);
@@ -573,7 +587,7 @@ public class CommitLog {
                 return true;
             }
         } else {
-            if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
+            if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampDelay()) {
                 log.info("find check timestamp, {} {}",
                     storeTimestamp,
                     UtilAll.timeMillisToHumanString(storeTimestamp));
@@ -629,6 +643,22 @@ public class CommitLog {
                 topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
                 int queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 
+                // Backup real topic, queueId
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+
+                msg.setTopic(topic);
+                msg.setQueueId(queueId);
+            }
+
+            if (msg.getDelayTime() > 0) {
+                if (msg.getDelayTime() > this.defaultMessageStore.getScheduleMessageServiceV2().getMaxDelayTime()) {
+                    msg.setDelayTime(this.defaultMessageStore.getScheduleMessageServiceV2().getMaxDelayTime());
+                }
+
+                topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC_V2;
+                int queueId = 0;
                 // Backup real topic, queueId
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));

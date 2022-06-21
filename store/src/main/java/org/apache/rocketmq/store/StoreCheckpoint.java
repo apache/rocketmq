@@ -35,6 +35,7 @@ public class StoreCheckpoint {
     private volatile long physicMsgTimestamp = 0;
     private volatile long logicsMsgTimestamp = 0;
     private volatile long indexMsgTimestamp = 0;
+    private volatile long delayTimeTimestamp = 0;
 
     public StoreCheckpoint(final String scpPath) throws IOException {
         File file = new File(scpPath);
@@ -50,6 +51,7 @@ public class StoreCheckpoint {
             this.physicMsgTimestamp = this.mappedByteBuffer.getLong(0);
             this.logicsMsgTimestamp = this.mappedByteBuffer.getLong(8);
             this.indexMsgTimestamp = this.mappedByteBuffer.getLong(16);
+            this.delayTimeTimestamp = this.mappedByteBuffer.getLong(24);
 
             log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", "
                 + UtilAll.timeMillisToHumanString(this.physicMsgTimestamp));
@@ -57,6 +59,8 @@ public class StoreCheckpoint {
                 + UtilAll.timeMillisToHumanString(this.logicsMsgTimestamp));
             log.info("store checkpoint file indexMsgTimestamp " + this.indexMsgTimestamp + ", "
                 + UtilAll.timeMillisToHumanString(this.indexMsgTimestamp));
+            log.info("store checkpoint file delayTimeTimestamp " + this.delayTimeTimestamp + ", "
+                + UtilAll.timeMillisToHumanString(this.delayTimeTimestamp));
         } else {
             log.info("store checkpoint file not exists, " + scpPath);
         }
@@ -79,6 +83,7 @@ public class StoreCheckpoint {
         this.mappedByteBuffer.putLong(0, this.physicMsgTimestamp);
         this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
         this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
+        this.mappedByteBuffer.putLong(24, this.delayTimeTimestamp);
         this.mappedByteBuffer.force();
     }
 
@@ -99,7 +104,7 @@ public class StoreCheckpoint {
     }
 
     public long getMinTimestampIndex() {
-        return Math.min(this.getMinTimestamp(), this.indexMsgTimestamp);
+        return Math.min(this.getMinTimestampDelay(), this.indexMsgTimestamp);
     }
 
     public long getMinTimestamp() {
@@ -112,6 +117,13 @@ public class StoreCheckpoint {
         return min;
     }
 
+    public long getMinTimestampDelay() {
+        if (delayTimeTimestamp == 0) {
+            return getMinTimestamp();
+        }
+        return Math.min(this.getMinTimestamp(), this.delayTimeTimestamp);
+    }
+
     public long getIndexMsgTimestamp() {
         return indexMsgTimestamp;
     }
@@ -120,4 +132,11 @@ public class StoreCheckpoint {
         this.indexMsgTimestamp = indexMsgTimestamp;
     }
 
+    public long getDelayTimeTimestamp() {
+        return delayTimeTimestamp;
+    }
+
+    public void setDelayTimeTimestamp(long delayTimeTimestamp) {
+        this.delayTimeTimestamp = delayTimeTimestamp;
+    }
 }

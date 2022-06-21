@@ -54,6 +54,7 @@ public class MessageConst {
     public static final String PROPERTY_MESSAGE_TYPE = "MSG_TYPE";
     public static final String PROPERTY_INNER_MULTI_DISPATCH = "INNER_MULTI_DISPATCH";
     public static final String PROPERTY_INNER_MULTI_QUEUE_OFFSET = "INNER_MULTI_QUEUE_OFFSET";
+    public static final String PROPERTY_DELAY_TIME = "DELAY_TIME";
 
     public static final String KEY_SEPARATOR = " ";
 
@@ -91,5 +92,6 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_CLUSTER);
         STRING_HASH_SET.add(PROPERTY_MESSAGE_TYPE);
         STRING_HASH_SET.add(PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+        STRING_HASH_SET.add(PROPERTY_DELAY_TIME);
     }
 }

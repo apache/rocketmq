@@ -408,6 +408,22 @@ public class DLedgerCommitLog extends CommitLog {
                 msg.setTopic(topic);
                 msg.setQueueId(queueId);
             }
+
+            if (msg.getDelayTime() > 0) {
+                if (msg.getDelayTime() > this.defaultMessageStore.getScheduleMessageServiceV2().getMaxDelayTime()) {
+                    msg.setDelayTime(this.defaultMessageStore.getScheduleMessageServiceV2().getMaxDelayTime());
+                }
+
+                String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC_V2;
+                int queueId = 0;
+                // Backup real topic, queueId
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+
+                msg.setTopic(topic);
+                msg.setQueueId(queueId);
+            }
         }
 
         InetSocketAddress bornSocketAddress = (InetSocketAddress) msg.getBornHost();

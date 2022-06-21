@@ -38,6 +38,11 @@ public class MessageStoreConfig {
 
     private String readOnlyCommitLogStorePaths = null;
 
+    // DelayTimeLine file seconds, default is about 60 day
+    private int delayTimeLineSeconds = 60 * 24 * 60 * 60;
+    // linklog file size, default is 24M
+    private int mappedFileSizeDelayLinkLog = 20 * 1024 * 1024;
+
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
     // ConsumeQueue file size,default is 30W
@@ -214,6 +219,14 @@ public class MessageStoreConfig {
         return mappedFileSizeCommitLog;
     }
 
+    public int getDelayTimeLineSeconds() {
+        return delayTimeLineSeconds;
+    }
+
+    public int getMappedFileSizeDelayLinkLog() {
+        return mappedFileSizeDelayLinkLog;
+    }
+
     public void setMappedFileSizeCommitLog(int mappedFileSizeCommitLog) {
         this.mappedFileSizeCommitLog = mappedFileSizeCommitLog;
     }
@@ -309,6 +322,14 @@ public class MessageStoreConfig {
             return storePathRootDir + File.separator + "commitlog";
         }
         return storePathCommitLog;
+    }
+
+    public String getStorePathDelayTimeLine() {
+        return storePathRootDir + File.separator + "delaytimeline";
+    }
+
+    public String getStorePathDelayLinkLog() {
+        return storePathRootDir +  File.separator + "linklog";
     }
 
     public void setStorePathCommitLog(String storePathCommitLog) {
