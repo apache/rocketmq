@@ -60,6 +60,9 @@ import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown implements GrpcMessingActivity {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    protected GrpcClientSettingsManager grpcClientSettingsManager;
+    protected GrpcChannelManager grpcChannelManager;
+    protected ReceiptHandleProcessor receiptHandleProcessor;
     protected ReceiveMessageActivity receiveMessageActivity;
     protected AckMessageActivity ackMessageActivity;
     protected ChangeInvisibleDurationActivity changeInvisibleDurationActivity;
@@ -70,9 +73,9 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     protected ClientActivity clientActivity;
 
     protected DefaultGrpcMessingActivity(MessagingProcessor messagingProcessor) {
-        GrpcClientSettingsManager grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
-        GrpcChannelManager grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService());
-        ReceiptHandleProcessor receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
+        this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
+        this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService());
+        this.receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
