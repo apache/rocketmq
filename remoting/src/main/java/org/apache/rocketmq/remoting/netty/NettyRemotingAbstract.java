@@ -178,7 +178,7 @@ public abstract class NettyRemotingAbstract {
                 && rpcHookContext.getResponseFuture().isDone()) {
                 try {
                     response = rpcHookContext.getResponseFuture().get();
-                } catch (ExecutionException|InterruptedException e) {
+                } catch (ExecutionException | InterruptedException e) {
                     response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
                         "Stopped by handler chain, but get result failed");
                 }

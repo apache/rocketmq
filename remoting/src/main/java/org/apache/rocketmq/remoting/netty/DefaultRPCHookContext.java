@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import org.apache.rocketmq.remoting.RPCHookContext;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
