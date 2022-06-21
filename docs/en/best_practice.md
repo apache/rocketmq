@@ -58,7 +58,7 @@ Message send successfully, but slave is not available.It will return SLAVE_NOT_A
 ### 1.2 Handling of message send failure
 Send method of producer itself supports internal retry. The logic of retry is as follows:
 - At most twice.
-- Try next broker when sync send mode, try current broker when async mode. The total elapsed time of this method does not exceed the value of sendMsgTimeout(default is 10s).
+- Try next broker when sync send mode, try current broker when async mode. The total elapsed time of this method does not exceed the value of sendMsgTimeout(default is 3s).
 - It will not be retried when the message is sent to the Broker with a timeout exception.
 
 The strategy above ensures the success of message sending to some extent.If the business has a high requirement for message reliability, it is recommended to add the corresponding retry logic:
