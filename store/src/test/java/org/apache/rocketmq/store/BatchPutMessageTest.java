@@ -41,6 +41,7 @@ import java.util.Map;
 
 import static org.apache.rocketmq.common.message.MessageDecoder.messageProperties2String;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class BatchPutMessageTest {
@@ -186,6 +187,31 @@ public class BatchPutMessageTest {
         }
 
     }
+    private String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
+        keyBuilder.setLength(0);
+        keyBuilder.append(messageExt.getTopic());
+        keyBuilder.append('-');
+        keyBuilder.append(messageExt.getQueueId());
+        return keyBuilder.toString();
+    }
+
+    @Test
+    public void testPutLongBatchMessage() throws Exception{
+        String topic = "batch-long-topic";
+        MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
+        CommitLog commitLog = ((DefaultMessageStore) messageStore).getCommitLog();
+        CommitLog.PutMessageThreadLocal putMessageThreadLocal = commitLog.getPutMessageThreadLocal().get();
+
+        MessageExtBatch messageExtBatch = new MessageExtBatch();
+        messageExtBatch.setBody(new byte[messageStoreConfig.getMaxMessageSize() + 1]);
+        messageExtBatch.setTopic(topic);
+        CommitLog.PutMessageContext putMessageContext = new CommitLog.PutMessageContext(generateKey(
+                putMessageThreadLocal.getKeyBuilder(), messageExtBatch));
+        RuntimeException runtimeException = assertThrows(RuntimeException.class,
+                () -> putMessageThreadLocal.getEncoder().encode(messageExtBatch, putMessageContext));
+        assertThat("message body size exceeded").isEqualTo(runtimeException.getMessage());
+    }
+
 
     private int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {
         final int msgLen = 4 //TOTALSIZE
