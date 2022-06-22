@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -75,7 +76,12 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
+import org.apache.rocketmq.tools.admin.common.AdminToolResult;
+import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
+import org.assertj.core.util.Maps;
+import org.junit.*;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.assertj.core.util.Maps;
@@ -94,15 +100,16 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQAdminExtTest {
-    private static final String broker1Addr = "127.0.0.1:10911";
+    private static final String broker1Addr = "127.0.0.1:45676";
     private static final String broker1Name = "default-broker";
     private static final String cluster = "default-cluster";
     private static final String broker2Name = "broker-test";
-    private static final String broker2Addr = "127.0.0.2:10911";
-    private static final String topic1 = "topic_one";
-    private static final String topic2 = "topic_two";
+    private static final String broker2Addr = "127.0.0.2:45676";
+    private static final String topic1 = "%RETRY%default-consumer-group";
+    private static final String topic2 = "%RETRY%default-consumer-group_1";
     private static final int NAME_SERVER_PORT = 45677;
     private static final int BROKER_PORT = 45676;
+    protected static int topicCreateTime = 30 * 1000;
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private static MQClientInstance mqClientInstance;
@@ -117,11 +124,10 @@ public class DefaultMQAdminExtTest {
     
     @BeforeClass
     public static void init() throws Exception {
-        
         mQClientAPIImpl = mock(MQClientAPIImpl.class);
         defaultMQAdminExt = new DefaultMQAdminExt("Test_Admin_Ext");
         defaultMQAdminExt.setNamesrvAddr("127.0.0.1:" + NAME_SERVER_PORT);
-        defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
+        defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 40000);
         mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
         
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
@@ -140,34 +146,33 @@ public class DefaultMQAdminExtTest {
         when(mQClientAPIImpl.getBrokerConfig(anyString(), anyLong())).thenReturn(properties);
 
         Set<String> topicSet = new HashSet<>();
-        topicSet.add(topic1);
-        topicSet.add(topic2);
+        topicSet.add("topic_one");
+        topicSet.add("topic_two");
         topicList.setTopicList(topicSet);
         when(mQClientAPIImpl.getTopicListFromNameServer(anyLong())).thenReturn(topicList);
 
         List<BrokerData> brokerDatas = new ArrayList<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(MixAll.MASTER_ID, broker1Addr);
+        brokerAddrs.put(1234l, "127.0.0.1:10911");
         BrokerData brokerData = new BrokerData();
-        brokerData.setCluster(cluster);
-        brokerData.setBrokerName(broker1Name);
+        brokerData.setCluster("default-cluster");
+        brokerData.setBrokerName("default-broker");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDatas.add(brokerData);
-        brokerDatas.add(new BrokerData(cluster, broker2Name, (HashMap<Long, String>) Maps.newHashMap(MixAll.MASTER_ID, broker2Addr)));
         topicRouteData.setBrokerDatas(brokerDatas);
         topicRouteData.setQueueDatas(new ArrayList<QueueData>());
         topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
 
         HashMap<String, String> result = new HashMap<>();
-        result.put("id", String.valueOf(MixAll.MASTER_ID));
-        result.put("brokerName", broker1Name);
+        result.put("id", "1234");
+        result.put("brokerName", "default-broker");
         kvTable.setTable(result);
         when(mQClientAPIImpl.getBrokerRuntimeInfo(anyString(), anyLong())).thenReturn(kvTable);
 
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
-        brokerAddrTable.put(broker1Name, brokerData);
-        brokerAddrTable.put(broker2Name, new BrokerData());
+        brokerAddrTable.put("default-broker", brokerData);
+        brokerAddrTable.put("broker-test", new BrokerData());
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         clusterInfo.setClusterAddrTable(new HashMap<String, Set<String>>());
         when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
@@ -334,6 +339,15 @@ public class DefaultMQAdminExtTest {
     
         awaitUtilDefaultMQAdminExtStart();
         
+          //TODO init topic
+//        IntegrationTestBase.initTopic(topic1, "localhost:"+NAME_SERVER_PORT, cluster, 1, CQType.SimpleCQ)
+    
+        defaultMQAdminExt.setNamesrvAddr("localhost:"+NAME_SERVER_PORT);
+    
+        defaultMQAdminExt.setCreateTopicKey(topic1);
+        defaultMQAdminExt.createTopic(broker1Addr,topic1, 8,new HashMap<>());
+        defaultMQAdminExt.createTopic(broker1Addr,topic2,8,new HashMap<>());
+        
         AdminToolResult<ConsumerConnection> adminToolResult = defaultMQAdminExt.examineConsumerConnectionInfoConcurrent("default-consumer-group");
         ConsumerConnection consumerConnection = adminToolResult.getData();
         assertThat(consumerConnection.getConsumeType()).isEqualTo(ConsumeType.CONSUME_PASSIVELY);
@@ -489,6 +503,7 @@ public class DefaultMQAdminExtTest {
         assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig"));
     }
     
+    
     protected static void awaitUtilDefaultMQAdminExtStart() {
         await().atMost(Duration.ofSeconds(1000))
             .until(() -> {
@@ -497,7 +512,7 @@ public class DefaultMQAdminExtTest {
                     brokerMocker = startOneBroker();
                     nameServerMocker = startNameServer();
                     defaultMQAdminExtImpl.start();
-                }catch (Exception ex){
+                } catch (Exception ex){
                     done = false;
                 }
                 return done;
