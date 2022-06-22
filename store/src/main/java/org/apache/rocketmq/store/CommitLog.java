@@ -1630,12 +1630,6 @@ public class CommitLog {
                                                                      : propertiesLen + batchPropLen;
                 final int msgLen = calMsgLength(messageExtBatch.getSysFlag(), bodyLen, topicLength, totalPropLen);
 
-                if (msgLen > this.maxMessageSize) {
-                    CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + totalLength
-                            + ", maxMessageSize: " + this.maxMessageSize);
-                    throw new RuntimeException("message size exceeded");
-                }
-
                 // 1 TOTALSIZE
                 this.byteBuf.writeInt(msgLen);
                 // 2 MAGICCODE

@@ -28,9 +28,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -43,6 +41,7 @@ import java.util.Map;
 
 import static org.apache.rocketmq.common.message.MessageDecoder.messageProperties2String;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class BatchPutMessageTest {
@@ -68,9 +67,6 @@ public class BatchPutMessageTest {
 
         UtilAll.deleteFile(new File(System.getProperty("user.home") + File.separator + "putmessagesteststore"));
     }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private MessageStore buildMessageStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -201,8 +197,6 @@ public class BatchPutMessageTest {
 
     @Test
     public void testPutLongBatchMessage() throws Exception{
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("message body size exceeded");
         String topic = "batch-long-topic";
         MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
         CommitLog commitLog = ((DefaultMessageStore) messageStore).getCommitLog();
@@ -213,16 +207,9 @@ public class BatchPutMessageTest {
         messageExtBatch.setTopic(topic);
         CommitLog.PutMessageContext putMessageContext = new CommitLog.PutMessageContext(generateKey(
                 putMessageThreadLocal.getKeyBuilder(), messageExtBatch));
-        putMessageThreadLocal.getEncoder().encode(messageExtBatch, putMessageContext);
-
-
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("message size exceeded");
-        messageExtBatch.setBody(new byte[messageStoreConfig.getMaxMessageSize()]);
-        messageExtBatch.setTopic(new String(new byte[64 * 1024]));
-        putMessageContext = new CommitLog.PutMessageContext(generateKey(
-                putMessageThreadLocal.getKeyBuilder(), messageExtBatch));
-        putMessageThreadLocal.getEncoder().encode(messageExtBatch, putMessageContext);
+        RuntimeException runtimeException = assertThrows(RuntimeException.class,
+                () -> putMessageThreadLocal.getEncoder().encode(messageExtBatch, putMessageContext));
+        assertThat("message body size exceeded").isEqualTo(runtimeException.getMessage());
     }
 
 
