@@ -27,7 +27,6 @@ public class MetricCollectorModeTest {
         Assert.assertEquals(MetricCollectorMode.OFF, MetricCollectorMode.getEnumByOrdinal(0));
         Assert.assertEquals(MetricCollectorMode.ON, MetricCollectorMode.getEnumByOrdinal(1));
         Assert.assertEquals(MetricCollectorMode.PROXY, MetricCollectorMode.getEnumByOrdinal(2));
-        Assert.assertEquals(MetricCollectorMode.OFF, MetricCollectorMode.getEnumByOrdinal(2));
     }
 
 }
