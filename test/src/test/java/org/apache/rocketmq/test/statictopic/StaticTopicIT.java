@@ -309,7 +309,7 @@ public class StaticTopicIT extends BaseConf {
         long start = System.currentTimeMillis();
 
         int queueNum = 10;
-        int msgEachQueue = 100;
+        int msgEachQueue = 10;
         //create static topic
         {
             Set<String> targetBrokers = ImmutableSet.of(broker1Name);
