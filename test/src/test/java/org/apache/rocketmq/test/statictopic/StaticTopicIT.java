@@ -346,8 +346,8 @@ public class StaticTopicIT extends BaseConf {
         RMQNormalConsumer consumer = getConsumer(nsAddr, group, topic, "*", new RMQNormalListener());
         long start = System.currentTimeMillis();
 
-        int queueNum = 10;
-        int msgEachQueue = 100;
+        int queueNum = 5;
+        int msgEachQueue = 10;
         //create static topic
         {
             Set<String> targetBrokers = ImmutableSet.of(broker1Name);
