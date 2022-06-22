@@ -209,6 +209,7 @@ public class StaticTopicIT extends BaseConf {
         /*System.out.println("produce:" + producer.getAllMsgBody().size());
         System.out.println("consume:" + consumer.getListener().getAllMsgBody().size());*/
 
+        Assert.assertEquals(producer.getAllMsgBody().size(), consumer.getListener().getAllMsgBody().size());
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                 consumer.getListener().getAllMsgBody()))
                 .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -340,7 +341,7 @@ public class StaticTopicIT extends BaseConf {
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, (i + 1) * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
         }
 
-        TestUtils.waitForSeconds(20);
+        TestUtils.waitForSeconds(1);
         consumeStats = defaultMQAdminExt.examineConsumeStats(group);
 
         messageQueues = producer.getMessageQueue();
