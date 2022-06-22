@@ -344,6 +344,7 @@ public class DefaultMQAdminExtTest {
     
         defaultMQAdminExt.setNamesrvAddr("localhost:"+NAME_SERVER_PORT);
     
+        //FIXME: IntegrationTestBase.initTopic replace defaultMQAdminExt.createTopic
         defaultMQAdminExt.setCreateTopicKey(topic1);
         defaultMQAdminExt.createTopic(broker1Addr,topic1, 8,new HashMap<>());
         defaultMQAdminExt.createTopic(broker1Addr,topic2,8,new HashMap<>());
