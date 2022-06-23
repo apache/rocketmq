@@ -27,6 +27,7 @@ import io.grpc.stub.StreamObserver;
 import java.time.Duration;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.filter.FilterAPI;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -114,14 +115,16 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 timeRemaining
             ).thenAccept(popResult -> {
                 if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                    List<MessageExt> messageExtList = popResult.getMsgFoundList();
-                    for (MessageExt messageExt : messageExtList) {
-                        String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
-                        if (receiptHandle != null) {
-                            MessageReceiptHandle messageReceiptHandle =
-                                new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
-                                    messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), requestInvisibleTime);
-                            receiptHandleProcessor.addReceiptHandle(ctx.getClientID(), group, messageExt.getMsgId(), receiptHandle, messageReceiptHandle);
+                    if (PopStatus.FOUND.equals(popResult.getPopStatus())) {
+                        List<MessageExt> messageExtList = popResult.getMsgFoundList();
+                        for (MessageExt messageExt : messageExtList) {
+                            String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+                            if (receiptHandle != null) {
+                                MessageReceiptHandle messageReceiptHandle =
+                                    new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
+                                        messageExt.getQueueOffset(), messageExt.getReconsumeTimes(), requestInvisibleTime);
+                                receiptHandleProcessor.addReceiptHandle(ctx.getClientID(), group, messageExt.getMsgId(), receiptHandle, messageReceiptHandle);
+                            }
                         }
                     }
                 }
