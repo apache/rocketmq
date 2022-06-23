@@ -18,7 +18,7 @@ consumer.setNamesrvAddr("192.168.0.1:9876;192.168.0.2:9876");
 ```text
 -Drocketmq.namesrv.addr=192.168.0.1:9876;192.168.0.2:9876  
 ```
-- Specified ```Name Server``` address in the envionment variables
+- Specified ```Name Server``` address in the environment variables
 
 ```text
 export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876   
@@ -59,11 +59,11 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | producerGroup                    | DEFAULT_PRODUCER | The name of the Producer group. If multiple producers belong to one application and send the same message, they should be grouped into the same group |
 | createTopicKey                   | TBW102           | When a message is sent, topics that do not exist on the server are automatically created and a Key is specified that can be used to configure the default route to the topic where the message is sent.|
 | defaultTopicQueueNums            | 4                | The number of default queue when sending messages and auto created topic which not exists the server|
-| sendMsgTimeout                   | 10000            | Timeout time of sending message in milliseconds                           |
+| sendMsgTimeout                   | 3000             | Timeout time of sending message in milliseconds                           |
 | compressMsgBodyOverHowmuch       | 4096             | The message Body begins to compress beyond the size(the Consumer gets the message automatically unzipped.), unit of byte|
 | retryAnotherBrokerWhenNotStoreOK | FALSE            | If send message and return sendResult but sendStatus!=SEND_OK, Whether to resend |
 | retryTimesWhenSendFailed         | 2                | If send message failed, maximum number of retries, this parameter only works for synchronous send mode|
-| maxMessageSize                   | 4MB              | Client limit message size, over it may error. Server also limit so need to work with server |
+| maxMessageSize                   | 4MB              | Client limit message body size, over it may error. Server also limit so need to work with server |
 | transactionCheckListener         |                  | The transaction message looks back to the listener, if you want send transaction message, you must setup this
 | checkThreadPoolMinSize           | 1                | Minimum of thread in thread pool when Broker look back Producer transaction status                     |
 | checkThreadPoolMaxSize           | 1                | Maximum of thread in thread pool when Broker look back Producer transaction status                     |

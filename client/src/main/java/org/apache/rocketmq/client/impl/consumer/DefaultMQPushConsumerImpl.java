@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -958,12 +959,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.consumeOrderly = consumeOrderly;
     }
 
-    public void resetOffsetByTimeStamp(long timeStamp)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public void resetOffsetByTimeStamp(long timeStamp) throws MQClientException {
         for (String topic : rebalanceImpl.getSubscriptionInner().keySet()) {
             Set<MessageQueue> mqs = rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
-            Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>();
-            if (mqs != null) {
+            if (CollectionUtils.isNotEmpty(mqs)) {
+                Map<MessageQueue, Long> offsetTable = new HashMap<MessageQueue, Long>(mqs.size(), 1);
                 for (MessageQueue mq : mqs) {
                     long offset = searchOffset(mq, timeStamp);
                     offsetTable.put(mq, offset);
@@ -999,11 +999,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     @Override
     public Set<SubscriptionData> subscriptions() {
-        Set<SubscriptionData> subSet = new HashSet<SubscriptionData>();
-
-        subSet.addAll(this.rebalanceImpl.getSubscriptionInner().values());
-
-        return subSet;
+        return new HashSet<SubscriptionData>(this.rebalanceImpl.getSubscriptionInner().values());
     }
 
     @Override

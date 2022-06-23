@@ -63,6 +63,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 import org.apache.rocketmq.store.stats.BrokerStats;
@@ -185,6 +186,23 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateTopicOnSlave() throws Exception {
+        // setup
+        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
+        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+
+        // test on slave
+        String topic = "TEST_CREATE_TOPIC";
+        RemotingCommand request = buildCreateTopicRequest(topic);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
+            "please execute it from master broker.");
+    }
+
+    @Test
     public void testDeleteTopic() throws Exception {
         //test system topic
         for (String topic : systemTopicSet) {
@@ -198,6 +216,22 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = buildDeleteTopicRequest(topic);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteTopicOnSlave() throws Exception {
+        // setup
+        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
+        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+
+        String topic = "TEST_DELETE_TOPIC";
+        RemotingCommand request = buildDeleteTopicRequest(topic);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
+            "please execute it from master broker.");
     }
 
     @Test
@@ -337,6 +371,30 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateSubscriptionGroupOnSlave() throws RemotingCommandException {
+        // Setup
+        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
+        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+
+        // Test
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setBrokerId(1);
+        subscriptionGroupConfig.setGroupName("groupId");
+        subscriptionGroupConfig.setConsumeEnable(Boolean.TRUE);
+        subscriptionGroupConfig.setConsumeBroadcastEnable(Boolean.TRUE);
+        subscriptionGroupConfig.setRetryMaxTimes(111);
+        subscriptionGroupConfig.setConsumeFromMinEnable(Boolean.TRUE);
+        request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
+            "please execute it from master broker.");
+    }
+
+    @Test
     public void testGetAllSubscriptionGroup() throws RemotingCommandException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
@@ -350,6 +408,24 @@ public class AdminBrokerProcessorTest {
         request.addExtField("removeOffset", "true");
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupOnSlave() throws RemotingCommandException {
+        // Setup
+        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
+        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
+        defaultMessageStore = mock(DefaultMessageStore.class);
+        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+
+        // Test
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, null);
+        request.addExtField("groupName", "GID-Group-Name");
+        request.addExtField("removeOffset", "true");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
+            "please execute it from master broker.");
     }
 
     @Test
@@ -385,6 +461,13 @@ public class AdminBrokerProcessorTest {
         request.addExtField("producerGroup", "ProducerGroupId");
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testGetAllProducerInfo() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_PRODUCER_INFO, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
     @Test

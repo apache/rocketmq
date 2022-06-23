@@ -38,9 +38,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
-import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
@@ -54,7 +52,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * It's fine to tune fields which exposes getter/setter methods, but keep in mind, all of them should work well out of
  * box for most scenarios. </p>
  *
- * This class aggregates various <code>send</code> methods to deliver messages to brokers. Each of them has pros and
+ * This class aggregates various <code>send</code> methods to deliver messages to broker(s). Each of them has pros and
  * cons; you'd better understand strengths and weakness of them before actually coding. </p>
  *
  * <p> <strong>Thread Safety:</strong> After configuring and starting process, this class can be regarded as thread-safe
@@ -82,7 +80,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * For non-transactional messages, it does not matter as long as it's unique per process. </p>
      *
-     * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
+     * See <a href="http://rocketmq.apache.org/docs/core-concept/">core concepts</a> for more discussion.
      */
     private String producerGroup;
 
@@ -126,7 +124,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
     /**
-     * Maximum allowed message size in bytes.
+     * Maximum allowed message body size in bytes.
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 
@@ -264,7 +262,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void setUseTLS(boolean useTLS) {
         super.setUseTLS(useTLS);
-        if (traceDispatcher != null && traceDispatcher instanceof AsyncTraceDispatcher) {
+        if (traceDispatcher instanceof AsyncTraceDispatcher) {
             ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
         }
     }
@@ -317,7 +315,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Send message in synchronous mode. This method returns only when the sending procedure totally completes. </p>
      *
      * <strong>Warn:</strong> this method has internal retry-mechanism, that is, internal implementation will retry
-     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may potentially
+     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may be potentially
      * delivered to broker(s). It's up to the application developers to resolve potential duplication issue.
      *
      * @param msg Message to send.
@@ -580,7 +578,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Send request message in synchronous mode. This method returns only when the consumer consume the request message and reply a message. </p>
      *
      * <strong>Warn:</strong> this method has internal retry-mechanism, that is, internal implementation will retry
-     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may potentially
+     * {@link #retryTimesWhenSendFailed} times before claiming failure. As a result, multiple messages may be potentially
      * delivered to broker(s). It's up to the application developers to resolve potential duplication issue.
      *
      * @param msg request message to send
@@ -824,7 +822,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Query earliest message store time.
+     * Query the earliest message store time.
      *
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
@@ -896,9 +894,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            MessageId oldMsgId = MessageDecoder.decodeMessageId(msgId);
             return this.viewMessage(msgId);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         return this.defaultMQProducerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
     }
