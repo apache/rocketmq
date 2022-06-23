@@ -98,7 +98,6 @@ public class StaticTopicIT extends BaseConf {
         }
     }
 
-    @Ignore
     @Test
     public void testCommandsWithBrokers() throws Exception {
         //This case is used to mock the env to test the command manually
@@ -106,7 +105,7 @@ public class StaticTopicIT extends BaseConf {
         RMQNormalProducer producer = getProducer(nsAddr, topic);
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
         int queueNum = 10;
-        int msgEachQueue = 100;
+        int msgEachQueue = 10;
         {
             Set<String> brokers = ImmutableSet.of(broker1Name);
             MQAdminTestUtils.createStaticTopicWithCommand(topic, queueNum, brokers, null, nsAddr);
@@ -117,7 +116,7 @@ public class StaticTopicIT extends BaseConf {
         {
             Set<String> brokers = ImmutableSet.of(broker2Name);
             MQAdminTestUtils.remappingStaticTopicWithCommand(topic, brokers, null, nsAddr);
-            Thread.sleep(500);
+            Thread.sleep(1000);
             sendMessagesAndCheck(producer, brokers, topic, queueNum, msgEachQueue, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
             consumeMessagesAndCheck(producer, consumer, topic, queueNum, msgEachQueue, 0, 2);
         }
