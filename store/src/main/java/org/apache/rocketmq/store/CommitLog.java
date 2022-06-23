@@ -604,6 +604,13 @@ public class CommitLog {
         return keyBuilder.toString();
     }
 
+    public void updateMaxMessageSize(PutMessageThreadLocal putMessageThreadLocal){
+        int newMaxMessageSize = this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize();
+        if(putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize){
+            putMessageThreadLocal.getEncoder().updateEncoderBufferCapacity(newMaxMessageSize);
+        }
+    }
+
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
         msg.setStoreTimestamp(System.currentTimeMillis());
@@ -650,6 +657,7 @@ public class CommitLog {
         }
 
         PutMessageThreadLocal putMessageThreadLocal = this.putMessageThreadLocal.get();
+        updateMaxMessageSize(putMessageThreadLocal);
         if (!multiDispatch.isMultiDispatchMsg(msg)) {
             PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
             if (encodeResult != null) {
@@ -768,6 +776,7 @@ public class CommitLog {
 
         //fine-grained lock instead of the coarse-grained
         PutMessageThreadLocal pmThreadLocal = this.putMessageThreadLocal.get();
+        updateMaxMessageSize(pmThreadLocal);
         MessageExtEncoder batchEncoder = pmThreadLocal.getEncoder();
 
         PutMessageContext putMessageContext = new PutMessageContext(generateKey(pmThreadLocal.getKeyBuilder(), messageExtBatch));
@@ -1481,13 +1490,14 @@ public class CommitLog {
     public static class MessageExtEncoder {
         private final ByteBuf byteBuf;
         // The maximum length of the message body.
-        private final int maxMessageBodySize;
+        private int maxMessageBodySize;
         // The maximum length of the full message.
-        private final int maxMessageSize;
+        private int maxMessageSize;
         MessageExtEncoder(final int maxMessageBodySize) {
             ByteBufAllocator alloc = UnpooledByteBufAllocator.DEFAULT;
             //Reserve 64kb for encoding buffer outside body
-            int maxMessageSize = maxMessageBodySize + 64 * 1024;
+            int maxMessageSize = Integer.MAX_VALUE - maxMessageBodySize >= 64 * 1024 ?
+                    maxMessageBodySize + 64 * 1024 : Integer.MAX_VALUE;
             byteBuf = alloc.directBuffer(maxMessageSize);
             this.maxMessageBodySize = maxMessageBodySize;
             this.maxMessageSize = maxMessageSize;
@@ -1691,6 +1701,17 @@ public class CommitLog {
 
         public ByteBuffer getEncoderBuffer() {
             return this.byteBuf.nioBuffer();
+        }
+
+        public int getMaxMessageBodySize(){
+            return this.maxMessageBodySize;
+        }
+
+        public void updateEncoderBufferCapacity(int newMaxMessageBodySize){
+            this.maxMessageBodySize = newMaxMessageBodySize;
+            this.maxMessageSize = Integer.MAX_VALUE - newMaxMessageBodySize >= 64 * 1024 ?
+                    this.maxMessageBodySize + 64 * 1024 : Integer.MAX_VALUE;
+            this.byteBuf.capacity(this.maxMessageSize);
         }
     }
 
