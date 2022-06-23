@@ -33,6 +33,8 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -50,6 +52,7 @@ public class MixAll {
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
+    public static final String MESSAGE_COMPRESS_TYPE = "rocketmq.message.compressType";
     public static final String MESSAGE_COMPRESS_LEVEL = "rocketmq.message.compressLevel";
     public static final String DEFAULT_NAMESRV_ADDR_LOOKUP = "jmenv.tbsite.net";
     public static final String WS_DOMAIN_NAME = System.getProperty("rocketmq.namesrv.domain", DEFAULT_NAMESRV_ADDR_LOOKUP);
@@ -86,6 +89,7 @@ public class MixAll {
     public static final String REPLY_MESSAGE_FLAG = "reply";
     public static final String LMQ_PREFIX = "%LMQ%";
     public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
+    public static final String REQ_T = "ReqT";
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static String getWSAddr() {
@@ -239,6 +243,13 @@ public class MixAll {
             if (!Modifier.isStatic(field.getModifiers())) {
                 String name = field.getName();
                 if (!name.startsWith("this")) {
+                    if (onlyImportantField) {
+                        Annotation annotation = field.getAnnotation(ImportantField.class);
+                        if (null == annotation) {
+                            continue;
+                        }
+                    }
+
                     Object value = null;
                     try {
                         field.setAccessible(true);
@@ -248,13 +259,6 @@ public class MixAll {
                         }
                     } catch (IllegalAccessException e) {
                         log.error("Failed to obtain object properties", e);
-                    }
-
-                    if (onlyImportantField) {
-                        Annotation annotation = field.getAnnotation(ImportantField.class);
-                        if (null == annotation) {
-                            continue;
-                        }
                     }
 
                     if (logger != null) {
@@ -450,4 +454,10 @@ public class MixAll {
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);
     }
+
+    public static String dealFilePath(String aclFilePath) {
+        Path path = Paths.get(aclFilePath);
+        return path.normalize().toString();
+    }
+
 }

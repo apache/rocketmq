@@ -15,6 +15,8 @@ public class ScheduledMessageConsumer {
     public static void main(String[] args) throws Exception {
         // Instantiate message consumer
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ExampleConsumer");
+        // Specify name server addresses
+        consumer.setNamesrvAddr("localhost:9876");
         // Subscribe topics
         consumer.subscribe("TestTopic", "*");
         // Register message listener
@@ -46,6 +48,8 @@ public class ScheduledMessageProducer {
     public static void main(String[] args) throws Exception {
         // Instantiate a producer to send scheduled messages
         DefaultMQProducer producer = new DefaultMQProducer("ExampleProducerGroup");
+        // Specify name server addresses
+        producer.setNamesrvAddr("localhost:9876");
         // Launch producer
         producer.start();
         int totalMessagesToSend = 100;
