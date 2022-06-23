@@ -268,7 +268,7 @@ DefaultMQProducer、TransactionMQProducer、DefaultMQPushConsumer、DefaultMQPul
 | compressMsgBodyOverHowmuch       | 4096             | 消息Body超过多大开始压缩（Consumer收到消息会自动解压缩），单位字节 |
 | retryAnotherBrokerWhenNotStoreOK | FALSE            | 如果发送消息返回sendResult，但是sendStatus!=SEND_OK，是否重试发送 |
 | retryTimesWhenSendFailed         | 2                | 如果消息发送失败，最大重试次数，该参数只对同步发送模式起作用 |
-| maxMessageSize                   | 4MB              | 客户端限制的消息大小，超过报错，同时服务端也会限制，所以需要跟服务端配合使用。 |
+| maxMessageSize                   | 4MB              | 客户端限制的消息体大小，超过报错，同时服务端也会限制，所以需要跟服务端配合使用。 |
 | transactionCheckListener         |                  | 事务消息回查监听器，如果发送事务消息，必须设置               |
 | checkThreadPoolMinSize           | 1                | Broker回查Producer事务状态时，线程池最小线程数                     |
 | checkThreadPoolMaxSize           | 1                | Broker回查Producer事务状态时，线程池最大线程数                     |

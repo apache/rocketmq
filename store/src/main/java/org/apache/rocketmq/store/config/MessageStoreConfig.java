@@ -87,7 +87,7 @@ public class MessageStoreConfig {
     private int fileReservedTime = 72;
     // Flow control for ConsumeQueue
     private int putMsgIndexHightWater = 600000;
-    // The maximum size of message,default is 4M
+    // The maximum size of message body,default is 4M,4M only for body length,not include others.
     private int maxMessageSize = 1024 * 1024 * 4;
     // Whether check the CRC32 of the records consumed.
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.

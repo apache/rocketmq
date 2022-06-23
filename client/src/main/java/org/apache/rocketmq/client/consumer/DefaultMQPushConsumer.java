@@ -185,7 +185,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
      *
      * <p>
-     * The size of a message only measured by message body, so it's not accurate
+     * The size(MB) of a message only measured by message body, so it's not accurate
      */
     private int pullThresholdSizeForQueue = 100;
 
@@ -417,7 +417,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void setUseTLS(boolean useTLS) {
         super.setUseTLS(useTLS);
-        if (traceDispatcher != null && traceDispatcher instanceof AsyncTraceDispatcher) {
+        if (traceDispatcher instanceof AsyncTraceDispatcher) {
             ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
         }
     }
@@ -640,7 +640,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     public void setSubscription(Map<String, String> subscription) {
-        Map<String, String> subscriptionWithNamespace = new HashMap<String, String>();
+        Map<String, String> subscriptionWithNamespace = new HashMap<String, String>(subscription.size(), 1);
         for (Entry<String, String> topicEntry : subscription.entrySet()) {
             subscriptionWithNamespace.put(withNamespace(topicEntry.getKey()), topicEntry.getValue());
         }
@@ -860,10 +860,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.postSubscriptionWhenPull = postSubscriptionWhenPull;
     }
 
+    @Override
     public boolean isUnitMode() {
         return unitMode;
     }
 
+    @Override
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }

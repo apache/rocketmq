@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
@@ -89,7 +88,7 @@ public class FileWatchService extends ServiceThread {
         log.info(this.getServiceName() + " service end");
     }
 
-    private String hash(String filePath) throws IOException, NoSuchAlgorithmException {
+    private String hash(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         md.update(Files.readAllBytes(path));
         byte[] hash = md.digest();

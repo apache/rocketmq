@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 public interface LitePullConsumer {
 
@@ -159,6 +160,9 @@ public interface LitePullConsumer {
      * Manually commit consume offset.
      */
     void commitSync();
+
+
+    void commit(final Set<MessageQueue> messageQueues, boolean persist);
 
     /**
      * Get the last committed offset for the given message queue.
