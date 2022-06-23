@@ -1242,7 +1242,7 @@ public class MQClientAPIImpl {
                     (QueryConsumerOffsetResponseHeader) response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
                 return responseHeader.getOffset();
             }
-            case ResponseCode.PULL_NOT_FOUND: {
+            case ResponseCode.QUERY_NOT_FOUND: {
                 throw new OffsetNotFoundException(response.getCode(), response.getRemark(), addr);
             }
             default:
