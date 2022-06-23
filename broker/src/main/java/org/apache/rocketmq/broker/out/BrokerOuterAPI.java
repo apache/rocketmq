@@ -86,7 +86,7 @@ public class BrokerOuterAPI {
     public String fetchNameServerAddr() {
         try {
             String addrs = this.topAddressing.fetchNSAddr();
-            if (addrs != null) {
+            if (addrs != null && !UtilAll.isBlank(addrs)) {
                 if (!addrs.equals(this.nameSrvAddr)) {
                     log.info("name server address changed, old: {} new: {}", this.nameSrvAddr, addrs);
                     this.updateNameServerAddressList(addrs);
