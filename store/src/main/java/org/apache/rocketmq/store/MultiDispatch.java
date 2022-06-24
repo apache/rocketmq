@@ -116,8 +116,17 @@ public class MultiDispatch {
         }
     }
 
+    public void updateMaxMessageSize(CommitLog.PutMessageThreadLocal putMessageThreadLocal){
+        int newMaxMessageSize = this.messageStore.getMessageStoreConfig().getMaxMessageSize();
+        if(putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize){
+            putMessageThreadLocal.getEncoder().updateEncoderBufferCapacity(newMaxMessageSize);
+        }
+    }
+
     private boolean rebuildMsgInner(MessageExtBrokerInner msgInner) {
-        MessageExtEncoder encoder = this.commitLog.getPutMessageThreadLocal().get().getEncoder();
+        CommitLog.PutMessageThreadLocal putMessageThreadLocal = this.commitLog.getPutMessageThreadLocal().get();
+        updateMaxMessageSize(putMessageThreadLocal);
+        MessageExtEncoder encoder = putMessageThreadLocal.getEncoder();
         PutMessageResult encodeResult = encoder.encode(msgInner);
         if (encodeResult != null) {
             LOGGER.error("rebuild msgInner for multiDispatch", encodeResult);

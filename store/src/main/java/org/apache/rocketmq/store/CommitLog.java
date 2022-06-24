@@ -1488,7 +1488,7 @@ public class CommitLog {
     }
 
     public static class MessageExtEncoder {
-        private final ByteBuf byteBuf;
+        private ByteBuf byteBuf;
         // The maximum length of the message body.
         private int maxMessageBodySize;
         // The maximum length of the full message.
