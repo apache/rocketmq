@@ -165,7 +165,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             traceProducerInstance.setSendMsgTimeout(5000);
             traceProducerInstance.setVipChannelEnabled(false);
             // The max size of message is 128K
-            traceProducerInstance.setMaxMessageSize(maxMsgSize - 10 * 1000);
+            traceProducerInstance.setMaxMessageSize(maxMsgSize);
         }
         return traceProducerInstance;
     }
@@ -324,7 +324,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             initFirstBeanAddTime();
             this.traceTransferBeanList.add(traceTransferBean);
             this.currentMsgSize += traceTransferBean.getTransData().length();
-            if (currentMsgSize >= traceProducer.getMaxMessageSize()) {
+            if (currentMsgSize >= traceProducer.getMaxMessageSize() - 10 * 1000) {
                 List<TraceTransferBean> dataToSend = new ArrayList(traceTransferBeanList);
                 AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(traceTopicName, regionId, dataToSend);
                 traceExecutor.submit(asyncDataSendTask);
