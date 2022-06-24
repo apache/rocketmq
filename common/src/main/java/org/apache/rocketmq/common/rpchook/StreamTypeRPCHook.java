@@ -15,30 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.client.common;
+package org.apache.rocketmq.common.rpchook;
 
-import java.util.Random;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestType;
 
-public class ThreadLocalIndex {
-    private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
-    private final Random random = new Random();
-    private final static int POSITIVE_MASK = 0x7FFFFFFF;
-
-    public int incrementAndGet() {
-        Integer index = this.threadLocalIndex.get();
-        if (null == index) {
-            index = Math.abs(random.nextInt());
-            this.threadLocalIndex.set(index);
-        }
-
-        this.threadLocalIndex.set(++index);
-        return Math.abs(index & POSITIVE_MASK);
+public class StreamTypeRPCHook implements RPCHook {
+    @Override public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+        request.addExtField(MixAll.REQ_T, String.valueOf(RequestType.STREAM.getCode()));
     }
 
-    @Override
-    public String toString() {
-        return "ThreadLocalIndex{" +
-            "threadLocalIndex=" + threadLocalIndex.get() +
-            '}';
+    @Override public void doAfterResponse(String remoteAddr, RemotingCommand request,
+        RemotingCommand response) {
+
     }
 }

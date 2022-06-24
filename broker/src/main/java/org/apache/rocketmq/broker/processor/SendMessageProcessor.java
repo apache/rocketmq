@@ -231,7 +231,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 
         CompletableFuture<PutMessageResult> putMessageResult = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
-        return putMessageResult.thenApply((r) -> {
+        return putMessageResult.thenApply(r -> {
             if (r != null) {
                 switch (r.getPutMessageStatus()) {
                     case PUT_OK:
@@ -337,7 +337,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                                                             SendMessageContext sendMessageContext,
                                                                             ChannelHandlerContext ctx,
                                                                             int queueIdInt) {
-        return putMessageResult.thenApply((r) ->
+        return putMessageResult.thenApply(r ->
             handlePutMessageResult(r, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt)
         );
     }

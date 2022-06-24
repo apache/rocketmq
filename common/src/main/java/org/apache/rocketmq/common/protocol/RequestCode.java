@@ -193,7 +193,10 @@ public class RequestCode {
 
     public static final int GET_ALL_PRODUCER_INFO = 328;
 
-    public static final int UPDATE_NAMESRV_NEARBYROUTE_CONFIG = 329;
+    public static final int DELETE_EXPIRED_COMMITLOG = 329;
+    
+    public static final int UPDATE_NAMESRV_NEARBYROUTE_CONFIG = 330;
 
-    public static final int GET_NAMESRV_NEARBYROUTE_CONFIG = 330;
+    public static final int GET_NAMESRV_NEARBYROUTE_CONFIG = 331;
+
 }

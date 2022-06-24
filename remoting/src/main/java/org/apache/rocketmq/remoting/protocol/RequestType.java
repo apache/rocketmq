@@ -15,30 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.client.common;
+package org.apache.rocketmq.remoting.protocol;
 
-import java.util.Random;
+public enum RequestType {
+    STREAM((byte) 0);
 
-public class ThreadLocalIndex {
-    private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
-    private final Random random = new Random();
-    private final static int POSITIVE_MASK = 0x7FFFFFFF;
+    private final byte code;
 
-    public int incrementAndGet() {
-        Integer index = this.threadLocalIndex.get();
-        if (null == index) {
-            index = Math.abs(random.nextInt());
-            this.threadLocalIndex.set(index);
-        }
-
-        this.threadLocalIndex.set(++index);
-        return Math.abs(index & POSITIVE_MASK);
+    RequestType(byte code) {
+        this.code = code;
     }
 
-    @Override
-    public String toString() {
-        return "ThreadLocalIndex{" +
-            "threadLocalIndex=" + threadLocalIndex.get() +
-            '}';
+    public static RequestType valueOf(byte code) {
+        for (RequestType requestType : RequestType.values()) {
+            if (requestType.getCode() == code) {
+                return requestType;
+            }
+        }
+        return null;
+    }
+
+    public byte getCode() {
+        return code;
     }
 }

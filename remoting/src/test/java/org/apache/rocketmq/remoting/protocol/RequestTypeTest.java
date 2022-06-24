@@ -15,30 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.client.common;
+package org.apache.rocketmq.remoting.protocol;
 
-import java.util.Random;
+import org.junit.Test;
 
-public class ThreadLocalIndex {
-    private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
-    private final Random random = new Random();
-    private final static int POSITIVE_MASK = 0x7FFFFFFF;
+import static org.assertj.core.api.Assertions.assertThat;
 
-    public int incrementAndGet() {
-        Integer index = this.threadLocalIndex.get();
-        if (null == index) {
-            index = Math.abs(random.nextInt());
-            this.threadLocalIndex.set(index);
-        }
+public class RequestTypeTest {
+    @Test
+    public void testValueOf() {
+        RequestType requestType = RequestType.valueOf(RequestType.STREAM.getCode());
+        assertThat(requestType).isEqualTo(RequestType.STREAM);
 
-        this.threadLocalIndex.set(++index);
-        return Math.abs(index & POSITIVE_MASK);
-    }
-
-    @Override
-    public String toString() {
-        return "ThreadLocalIndex{" +
-            "threadLocalIndex=" + threadLocalIndex.get() +
-            '}';
+        requestType = RequestType.valueOf((byte) 1);
+        assertThat(requestType).isNull();
     }
 }
