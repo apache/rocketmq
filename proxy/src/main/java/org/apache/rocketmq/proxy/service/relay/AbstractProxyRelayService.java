@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.service.relay;
 
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -40,8 +41,10 @@ public abstract class AbstractProxyRelayService implements ProxyRelayService {
     public RelayData<TransactionData, Void> processCheckTransactionState(ProxyContext context,
         RemotingCommand command, CheckTransactionStateRequestHeader header, MessageExt messageExt) {
         CompletableFuture<ProxyRelayResult<Void>> future = new CompletableFuture<>();
+        String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
         TransactionData transactionData = transactionService.addTransactionDataByBrokerAddr(
             command.getExtFields().get(ProxyUtils.BROKER_ADDR),
+            group,
             header.getTranStateTableOffset(),
             header.getCommitLogOffset(),
             header.getTransactionId(),
@@ -51,7 +54,7 @@ public abstract class AbstractProxyRelayService implements ProxyRelayService {
                 String.format("add transaction data failed. request:%s, message:%s", command, messageExt));
         }
         future.exceptionally(throwable -> {
-            this.transactionService.onSendCheckTransactionStateFailed(context, transactionData);
+            this.transactionService.onSendCheckTransactionStateFailed(context, group, transactionData);
             return null;
         });
         return new RelayData<>(transactionData, future);

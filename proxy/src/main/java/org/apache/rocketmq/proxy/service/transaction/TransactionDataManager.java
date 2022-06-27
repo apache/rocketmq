@@ -38,11 +38,15 @@ public class TransactionDataManager implements StartAndShutdown {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected final AtomicLong maxTransactionDataExpireTime = new AtomicLong(System.currentTimeMillis());
-    protected final Map<String /* transaction id */, NavigableSet<TransactionData>> transactionIdDataMap = new ConcurrentHashMap<>();
+    protected final Map<String /* producerGroup@transactionId */, NavigableSet<TransactionData>> transactionIdDataMap = new ConcurrentHashMap<>();
     protected final TransactionDataCleaner transactionDataCleaner = new TransactionDataCleaner();
 
-    public void addTransactionData(String transactionId, TransactionData transactionData) {
-        this.transactionIdDataMap.compute(transactionId, (transactionIdKey, dataSet) -> {
+    protected String buildKey(String producerGroup, String transactionId) {
+        return producerGroup + "@" + transactionId;
+    }
+
+    public void addTransactionData(String producerGroup, String transactionId, TransactionData transactionData) {
+        this.transactionIdDataMap.compute(buildKey(producerGroup, transactionId), (key, dataSet) -> {
             if (dataSet == null) {
                 dataSet = new ConcurrentSkipListSet<>();
             }
@@ -51,10 +55,10 @@ public class TransactionDataManager implements StartAndShutdown {
         });
     }
 
-    public TransactionData pollFirstNoExpireTransactionData(String transactionId) {
+    public TransactionData pollFirstNoExpireTransactionData(String producerGroup, String transactionId) {
         AtomicReference<TransactionData> res = new AtomicReference<>();
         long currTimestamp = System.currentTimeMillis();
-        this.transactionIdDataMap.computeIfPresent(transactionId, (transactionIdKey, dataSet) -> {
+        this.transactionIdDataMap.computeIfPresent(buildKey(producerGroup, transactionId), (key, dataSet) -> {
             TransactionData data = dataSet.pollFirst();
             while (data != null && data.getExpireTime() < currTimestamp) {
                 data = dataSet.pollFirst();
@@ -70,8 +74,8 @@ public class TransactionDataManager implements StartAndShutdown {
         return res.get();
     }
 
-    public void removeTransactionData(String transactionId, TransactionData transactionData) {
-        this.transactionIdDataMap.computeIfPresent(transactionId, (transactionIdKey, dataSet) -> {
+    public void removeTransactionData(String producerGroup, String transactionId, TransactionData transactionData) {
+        this.transactionIdDataMap.computeIfPresent(buildKey(producerGroup, transactionId), (key, dataSet) -> {
             dataSet.remove(transactionData);
             if (dataSet.isEmpty()) {
                 return null;

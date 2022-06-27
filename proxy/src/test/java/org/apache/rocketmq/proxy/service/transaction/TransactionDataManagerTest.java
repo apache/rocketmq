@@ -32,7 +32,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
-
+    private static final String PRODUCER_GROUP = "producerGroup";
     private static final Random RANDOM = new Random();
     private TransactionDataManager transactionDataManager;
 
@@ -51,15 +51,16 @@ public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
     public void testAddAndRemove() {
         TransactionData transactionData1 = createTransactionData();
         TransactionData transactionData2 = createTransactionData(transactionData1.getTransactionId());
-        this.transactionDataManager.addTransactionData(transactionData1.getTransactionId(), transactionData1);
-        this.transactionDataManager.addTransactionData(transactionData1.getTransactionId(), transactionData2);
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, transactionData1.getTransactionId(), transactionData1);
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, transactionData1.getTransactionId(), transactionData2);
 
         assertEquals(1, this.transactionDataManager.transactionIdDataMap.size());
-        assertEquals(2, this.transactionDataManager.transactionIdDataMap.get(transactionData1.getTransactionId()).size());
+        assertEquals(2, this.transactionDataManager.transactionIdDataMap.get(
+            transactionDataManager.buildKey(PRODUCER_GROUP, transactionData1.getTransactionId())).size());
 
-        this.transactionDataManager.removeTransactionData(transactionData1.getTransactionId(), transactionData1);
+        this.transactionDataManager.removeTransactionData(PRODUCER_GROUP, transactionData1.getTransactionId(), transactionData1);
         assertEquals(1, this.transactionDataManager.transactionIdDataMap.size());
-        this.transactionDataManager.removeTransactionData(transactionData1.getTransactionId(), transactionData2);
+        this.transactionDataManager.removeTransactionData(PRODUCER_GROUP, transactionData1.getTransactionId(), transactionData2);
         assertEquals(0, this.transactionDataManager.transactionIdDataMap.size());
     }
 
@@ -69,10 +70,10 @@ public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
         TransactionData transactionData1 = createTransactionData(txId, System.currentTimeMillis() - Duration.ofMinutes(2).toMillis());
         TransactionData transactionData2 = createTransactionData(txId);
 
-        this.transactionDataManager.addTransactionData(txId, transactionData1);
-        this.transactionDataManager.addTransactionData(txId, transactionData2);
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId, transactionData1);
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId, transactionData2);
 
-        TransactionData resTransactionData = this.transactionDataManager.pollFirstNoExpireTransactionData(txId);
+        TransactionData resTransactionData = this.transactionDataManager.pollFirstNoExpireTransactionData(PRODUCER_GROUP, txId);
         assertSame(transactionData2, resTransactionData);
         assertTrue(this.transactionDataManager.transactionIdDataMap.isEmpty());
     }
@@ -80,12 +81,12 @@ public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
     @Test
     public void testCleanExpire() {
         String txId = MessageClientIDSetter.createUniqID();
-        this.transactionDataManager.addTransactionData(txId,
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId,
             createTransactionData(txId, System.currentTimeMillis(), Duration.ofMillis(100).toMillis()));
-        this.transactionDataManager.addTransactionData(txId,
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId,
             createTransactionData(txId, System.currentTimeMillis(), Duration.ofMillis(500).toMillis()));
 
-        this.transactionDataManager.addTransactionData(MessageClientIDSetter.createUniqID(),
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, MessageClientIDSetter.createUniqID(),
             createTransactionData(txId, System.currentTimeMillis(), Duration.ofMillis(1000).toMillis()));
 
         await().atMost(Duration.ofSeconds(2)).until(() -> {
@@ -97,12 +98,12 @@ public class TransactionDataManagerTest extends InitConfigAndLoggerTest {
     @Test
     public void testWaitTransactionDataClear() throws InterruptedException {
         String txId = MessageClientIDSetter.createUniqID();
-        this.transactionDataManager.addTransactionData(txId,
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId,
             createTransactionData(txId, System.currentTimeMillis(), Duration.ofMillis(100).toMillis()));
-        this.transactionDataManager.addTransactionData(txId,
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, txId,
             createTransactionData(txId, System.currentTimeMillis(), Duration.ofMillis(500).toMillis()));
 
-        this.transactionDataManager.addTransactionData(MessageClientIDSetter.createUniqID(),
+        this.transactionDataManager.addTransactionData(PRODUCER_GROUP, MessageClientIDSetter.createUniqID(),
             createTransactionData(txId, System.currentTimeMillis(), Duration.ofMillis(1000).toMillis()));
 
         StopWatch stopWatch = new StopWatch();

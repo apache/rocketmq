@@ -30,14 +30,14 @@ public interface TransactionService {
 
     void unSubscribeAllTransactionTopic(String group);
 
-    TransactionData addTransactionDataByBrokerAddr(String brokerAddr, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    TransactionData addTransactionDataByBrokerAddr(String brokerAddr, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message);
 
-    TransactionData addTransactionDataByBrokerName(String brokerName, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    TransactionData addTransactionDataByBrokerName(String brokerName, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message);
 
     EndTransactionRequestData genEndTransactionRequestHeader(String producerGroup, Integer commitOrRollback,
         boolean fromTransactionCheck, String msgId, String transactionId);
 
-    void onSendCheckTransactionStateFailed(ProxyContext context, TransactionData transactionData);
+    void onSendCheckTransactionStateFailed(ProxyContext context, String producerGroup, TransactionData transactionData);
 }

@@ -34,7 +34,8 @@ import static org.junit.Assert.assertNull;
 
 public class AbstractTransactionServiceTest extends InitConfigAndLoggerTest {
 
-    private static final String BROKER_NAME = "mockBorker";
+    private static final String BROKER_NAME = "mockBroker";
+    private static final String PRODUCER_GROUP = "producerGroup";
     private static final Random RANDOM = new Random();
 
     public static class MockAbstractTransactionServiceTest extends AbstractTransactionService {
@@ -81,6 +82,7 @@ public class AbstractTransactionServiceTest extends InitConfigAndLoggerTest {
 
         TransactionData transactionData = transactionService.addTransactionDataByBrokerName(
             BROKER_NAME,
+            PRODUCER_GROUP,
             RANDOM.nextLong(),
             RANDOM.nextLong(),
             txId,
@@ -89,7 +91,7 @@ public class AbstractTransactionServiceTest extends InitConfigAndLoggerTest {
         assertNotNull(transactionData);
 
         EndTransactionRequestData requestData = transactionService.genEndTransactionRequestHeader(
-            "group",
+            PRODUCER_GROUP,
             MessageSysFlag.TRANSACTION_COMMIT_TYPE,
             true,
             txId,
@@ -118,14 +120,15 @@ public class AbstractTransactionServiceTest extends InitConfigAndLoggerTest {
 
         TransactionData transactionData = transactionService.addTransactionDataByBrokerName(
             BROKER_NAME,
+            PRODUCER_GROUP,
             RANDOM.nextLong(),
             RANDOM.nextLong(),
             txId,
             message
         );
-        transactionService.onSendCheckTransactionStateFailed(ProxyContext.createForInner(this.getClass()), transactionData);
+        transactionService.onSendCheckTransactionStateFailed(ProxyContext.createForInner(this.getClass()), PRODUCER_GROUP, transactionData);
         assertNull(transactionService.genEndTransactionRequestHeader(
-            "group",
+            PRODUCER_GROUP,
             MessageSysFlag.TRANSACTION_COMMIT_TYPE,
             true,
             txId,

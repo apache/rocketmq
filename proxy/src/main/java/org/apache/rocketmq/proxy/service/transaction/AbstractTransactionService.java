@@ -31,13 +31,13 @@ public abstract class AbstractTransactionService implements TransactionService, 
     protected TransactionDataManager transactionDataManager = new TransactionDataManager();
 
     @Override
-    public TransactionData addTransactionDataByBrokerAddr(String brokerAddr, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    public TransactionData addTransactionDataByBrokerAddr(String brokerAddr, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message) {
-        return this.addTransactionDataByBrokerName(this.getBrokerNameByAddr(brokerAddr), tranStateTableOffset, commitLogOffset, transactionId, message);
+        return this.addTransactionDataByBrokerName(this.getBrokerNameByAddr(brokerAddr), producerGroup, tranStateTableOffset, commitLogOffset, transactionId, message);
     }
 
     @Override
-    public TransactionData addTransactionDataByBrokerName(String brokerName, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    public TransactionData addTransactionDataByBrokerName(String brokerName, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message) {
         if (StringUtils.isBlank(brokerName)) {
             return null;
@@ -49,6 +49,7 @@ public abstract class AbstractTransactionService implements TransactionService, 
             System.currentTimeMillis(), checkImmunityTime);
 
         this.transactionDataManager.addTransactionData(
+            producerGroup,
             transactionId,
             transactionData
         );
@@ -58,7 +59,7 @@ public abstract class AbstractTransactionService implements TransactionService, 
     @Override
     public EndTransactionRequestData genEndTransactionRequestHeader(String producerGroup, Integer commitOrRollback,
         boolean fromTransactionCheck, String msgId, String transactionId) {
-        TransactionData transactionData = this.transactionDataManager.pollFirstNoExpireTransactionData(transactionId);
+        TransactionData transactionData = this.transactionDataManager.pollFirstNoExpireTransactionData(producerGroup, transactionId);
         if (transactionData == null) {
             return null;
         }
@@ -74,8 +75,8 @@ public abstract class AbstractTransactionService implements TransactionService, 
     }
 
     @Override
-    public void onSendCheckTransactionStateFailed(ProxyContext context, TransactionData transactionData) {
-        this.transactionDataManager.removeTransactionData(transactionData.getTransactionId(), transactionData);
+    public void onSendCheckTransactionStateFailed(ProxyContext context, String producerGroup, TransactionData transactionData) {
+        this.transactionDataManager.removeTransactionData(producerGroup, transactionData.getTransactionId(), transactionData);
     }
 
     protected long parseCheckImmunityTime(Message message) {
