@@ -17,23 +17,24 @@
 
 package org.apache.rocketmq.proxy.processor;
 
-import java.util.Random;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
+import org.apache.rocketmq.proxy.service.transaction.EndTransactionRequestData;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 
 public class TransactionProcessorTest extends BaseProcessorTest {
 
-    private Random random = new Random();
     private static final String PRODUCER_GROUP = "producerGroup";
     private TransactionProcessor transactionProcessor;
 
@@ -51,18 +52,14 @@ public class TransactionProcessorTest extends BaseProcessorTest {
     }
 
     protected void testEndTransaction(int sysFlag, TransactionStatus transactionStatus) throws Throwable {
-        ArgumentCaptor<EndTransactionRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(EndTransactionRequestHeader.class);
-        doNothing().when(this.messageService).endTransactionOneway(any(), any(), requestHeaderArgumentCaptor.capture(), anyLong());
+        doNothing().when(this.messageService).endTransactionOneway(any(), any(), any(), anyLong());
+        ArgumentCaptor<Integer> commitOrRollbackCaptor = ArgumentCaptor.forClass(Integer.class);
+        when(transactionService.genEndTransactionRequestHeader(anyString(), commitOrRollbackCaptor.capture(), anyBoolean(), anyString(), anyString()))
+            .thenReturn(new EndTransactionRequestData("brokerName", new EndTransactionRequestHeader()));
 
-        TransactionId transactionId = TransactionId.genByBrokerTransactionId(
-            "brokerName",
-            "orgTxId",
-            random.nextLong(),
-            random.nextLong()
-        );
         this.transactionProcessor.endTransaction(
             createContext(),
-            transactionId,
+            "transactionId",
             "msgId",
             PRODUCER_GROUP,
             transactionStatus,
@@ -70,11 +67,7 @@ public class TransactionProcessorTest extends BaseProcessorTest {
             3000
         );
 
-        EndTransactionRequestHeader requestHeader = requestHeaderArgumentCaptor.getValue();
-        assertEquals(sysFlag, requestHeader.getCommitOrRollback().intValue());
-        assertEquals(transactionId.getBrokerTransactionId(), requestHeader.getTransactionId());
-        assertEquals(transactionId.getCommitLogOffset(), requestHeader.getCommitLogOffset().longValue());
-        assertEquals(transactionId.getTranStateTableOffset(), requestHeader.getTranStateTableOffset().longValue());
+        assertEquals(sysFlag, commitOrRollbackCaptor.getValue().intValue());
 
         reset(this.messageService);
     }

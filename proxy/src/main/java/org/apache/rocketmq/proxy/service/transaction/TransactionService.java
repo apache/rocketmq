@@ -17,6 +17,8 @@
 package org.apache.rocketmq.proxy.service.transaction;
 
 import java.util.List;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 
 public interface TransactionService {
 
@@ -27,4 +29,15 @@ public interface TransactionService {
     void replaceTransactionSubscription(String group, List<String> topicList);
 
     void unSubscribeAllTransactionTopic(String group);
+
+    TransactionData addTransactionDataByBrokerAddr(String brokerAddr, long tranStateTableOffset, long commitLogOffset, String transactionId,
+        Message message);
+
+    TransactionData addTransactionDataByBrokerName(String brokerName, long tranStateTableOffset, long commitLogOffset, String transactionId,
+        Message message);
+
+    EndTransactionRequestData genEndTransactionRequestHeader(String producerGroup, Integer commitOrRollback,
+        boolean fromTransactionCheck, String msgId, String transactionId);
+
+    void onSendCheckTransactionStateFailed(ProxyContext context, TransactionData transactionData);
 }

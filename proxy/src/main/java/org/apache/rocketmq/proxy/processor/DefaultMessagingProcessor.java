@@ -51,7 +51,6 @@ import org.apache.rocketmq.proxy.service.ServiceManagerFactory;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -141,8 +140,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public void endTransaction(ProxyContext ctx, TransactionId transactionId, String messageId,
-        String producerGroup, TransactionStatus transactionStatus, boolean fromTransactionCheck,
+    public void endTransaction(ProxyContext ctx, String transactionId, String messageId, String producerGroup,
+        TransactionStatus transactionStatus, boolean fromTransactionCheck,
         long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
         this.transactionProcessor.endTransaction(ctx, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, timeoutMillis);
     }

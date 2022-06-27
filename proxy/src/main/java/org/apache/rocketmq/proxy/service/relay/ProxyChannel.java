@@ -42,7 +42,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
+import org.apache.rocketmq.proxy.service.transaction.TransactionData;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -83,9 +83,8 @@ public abstract class ProxyChannel extends SimpleChannel {
                     case RequestCode.CHECK_TRANSACTION_STATE: {
                         CheckTransactionStateRequestHeader header = (CheckTransactionStateRequestHeader) command.readCustomHeader();
                         MessageExt messageExt = MessageDecoder.decode(ByteBuffer.wrap(command.getBody()), true, false, false);
-                        TransactionId transactionId = TransactionId.genByBrokerTransactionId(header.getBrokerName(),
-                            header.getTransactionId(), messageExt.getCommitLogOffset(), messageExt.getQueueOffset());
-                        processFuture = this.processCheckTransaction(header, messageExt, transactionId);
+                        RelayData<TransactionData, Void> relayData = this.proxyRelayService.processCheckTransactionState(context, command, header, messageExt);
+                        processFuture = this.processCheckTransaction(header, messageExt, relayData.getProcessResult(), relayData.getRelayFuture());
                         break;
                     }
                     case RequestCode.GET_CONSUMER_RUNNING_INFO: {
@@ -123,8 +122,11 @@ public abstract class ProxyChannel extends SimpleChannel {
 
     protected abstract CompletableFuture<Void> processOtherMessage(Object msg);
 
-    protected abstract CompletableFuture<Void> processCheckTransaction(CheckTransactionStateRequestHeader header,
-        MessageExt messageExt, TransactionId transactionId);
+    protected abstract CompletableFuture<Void> processCheckTransaction(
+        CheckTransactionStateRequestHeader header,
+        MessageExt messageExt,
+        TransactionData transactionData,
+        CompletableFuture<ProxyRelayResult<Void>> responseFuture);
 
     protected abstract CompletableFuture<Void> processGetConsumerRunningInfo(
         RemotingCommand command,

@@ -30,7 +30,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
+import org.apache.rocketmq.proxy.service.transaction.TransactionData;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Test;
@@ -43,6 +43,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -71,6 +72,9 @@ public class ProxyChannelTest {
 
     @Test
     public void testWriteAndFlush() throws Exception {
+        when(this.proxyRelayService.processCheckTransactionState(any(), any(), any(), any()))
+            .thenReturn(new RelayData<>(mock(TransactionData.class), new CompletableFuture<>()));
+
         ArgumentCaptor<ConsumeMessageDirectlyResultRequestHeader> consumeMessageDirectlyArgumentCaptor =
             ArgumentCaptor.forClass(ConsumeMessageDirectlyResultRequestHeader.class);
         when(this.proxyRelayService.processConsumeMessageDirectly(any(), any(), consumeMessageDirectlyArgumentCaptor.capture()))
@@ -82,7 +86,6 @@ public class ProxyChannelTest {
             .thenReturn(new CompletableFuture<>());
 
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
-        checkTransactionStateRequestHeader.setBrokerName("broker");
         checkTransactionStateRequestHeader.setTransactionId(MessageClientIDSetter.createUniqID());
         RemotingCommand checkTransactionRequest = RemotingCommand.createRequestCommand(RequestCode.CHECK_TRANSACTION_STATE, checkTransactionStateRequestHeader);
         MessageExt transactionMessageExt = new MessageExt();
@@ -120,7 +123,7 @@ public class ProxyChannelTest {
 
             @Override
             protected CompletableFuture<Void> processCheckTransaction(CheckTransactionStateRequestHeader header,
-                MessageExt messageExt, TransactionId transactionId) {
+                MessageExt messageExt, TransactionData transactionData, CompletableFuture<ProxyRelayResult<Void>> responseFuture) {
                 assertEquals(checkTransactionStateRequestHeader, header);
                 assertArrayEquals(transactionMessageExt.getBody(), messageExt.getBody());
                 return CompletableFuture.completedFuture(null);

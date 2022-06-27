@@ -32,6 +32,7 @@ import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -69,8 +70,8 @@ import org.apache.rocketmq.proxy.service.channel.ChannelManager;
 import org.apache.rocketmq.proxy.service.channel.InvocationContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -174,8 +175,8 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
-    public void endTransactionOneway(ProxyContext ctx, TransactionId transactionId,
-        EndTransactionRequestHeader requestHeader, long timeoutMillis) {
+    public void endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
+        long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
         SimpleChannel channel = channelManager.createChannel(ctx);
         ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
         RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);

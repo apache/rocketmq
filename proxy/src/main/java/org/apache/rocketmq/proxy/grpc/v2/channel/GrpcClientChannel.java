@@ -36,7 +36,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.service.relay.ProxyChannel;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
+import org.apache.rocketmq.proxy.service.transaction.TransactionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class GrpcClientChannel extends ProxyChannel {
@@ -127,15 +127,23 @@ public class GrpcClientChannel extends ProxyChannel {
 
     @Override
     protected CompletableFuture<Void> processCheckTransaction(CheckTransactionStateRequestHeader header,
-        MessageExt messageExt, TransactionId transactionId) {
-        this.getTelemetryCommandStreamObserver().onNext(TelemetryCommand.newBuilder()
-            .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
-                .setTransactionId(transactionId.getProxyTransactionId())
-                .setOrphanedTransactionalMessage(GrpcConverter.buildMessage(messageExt))
-                .setMessageQueue(GrpcConverter.buildMessageQueue(messageExt, header.getBrokerName()))
-                .build())
-            .build());
-        return CompletableFuture.completedFuture(null);
+        MessageExt messageExt, TransactionData transactionData, CompletableFuture<ProxyRelayResult<Void>> responseFuture) {
+        CompletableFuture<Void> writeFuture = new CompletableFuture<>();
+        try {
+            this.getTelemetryCommandStreamObserver().onNext(TelemetryCommand.newBuilder()
+                .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
+                    .setTransactionId(transactionData.getTransactionId())
+                    .setOrphanedTransactionalMessage(GrpcConverter.buildMessage(messageExt))
+                    .setMessageQueue(GrpcConverter.buildMessageQueue(messageExt, transactionData.getBrokerName()))
+                    .build())
+                .build());
+            responseFuture.complete(null);
+            writeFuture.complete(null);
+        } catch (Throwable t) {
+            responseFuture.completeExceptionally(t);
+            writeFuture.completeExceptionally(t);
+        }
+        return writeFuture;
     }
 
     @Override

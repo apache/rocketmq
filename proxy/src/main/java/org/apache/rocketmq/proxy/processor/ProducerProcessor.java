@@ -24,16 +24,20 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
@@ -43,11 +47,10 @@ import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeVali
 import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ProducerProcessor extends AbstractProcessor {
-
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final ExecutorService executor;
     private final TopicMessageTypeValidator topicMessageTypeValidator;
 
@@ -94,8 +97,7 @@ public class ProducerProcessor extends AbstractProcessor {
                         if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
                             tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
                             StringUtils.isNotBlank(sendResult.getTransactionId())) {
-                            TransactionId transactionId = TransactionId.genByBrokerTransactionId(messageQueue.getBrokerName(), sendResult);
-                            sendResult.setTransactionId(transactionId.getProxyTransactionId());
+                            fillTransactionData(messageQueue, sendResult, messageList);
                         }
                     }
                     return sendResultList;
@@ -104,6 +106,26 @@ public class ProducerProcessor extends AbstractProcessor {
             future.completeExceptionally(t);
         }
         return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    protected void fillTransactionData(AddressableMessageQueue messageQueue, SendResult sendResult, List<Message> messageList) {
+        try {
+            MessageId id;
+            if (sendResult.getOffsetMsgId() != null) {
+                id = MessageDecoder.decodeMessageId(sendResult.getOffsetMsgId());
+            } else {
+                id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
+            }
+            this.serviceManager.getTransactionService().addTransactionDataByBrokerName(
+                messageQueue.getBrokerName(),
+                sendResult.getQueueOffset(),
+                id.getOffset(),
+                sendResult.getTransactionId(),
+                messageList.get(0)
+            );
+        } catch (Throwable t) {
+            log.warn("fillTransactionData failed. messageQueue: {}, sendResult: {}", messageQueue, sendResult, t);
+        }
     }
 
     protected SendMessageRequestHeader buildSendMessageRequestHeader(List<Message> messageList,

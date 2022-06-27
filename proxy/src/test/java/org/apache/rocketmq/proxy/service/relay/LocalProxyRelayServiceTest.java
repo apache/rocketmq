@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
+import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Before;
@@ -46,11 +47,13 @@ public class LocalProxyRelayServiceTest {
     @Mock
     private BrokerController brokerControllerMock;
     @Mock
+    private TransactionService transactionService;
+    @Mock
     private NettyRemotingServer nettyRemotingServerMock;
 
     @Before
     public void setUp() {
-        localProxyRelayService = new LocalProxyRelayService(brokerControllerMock);
+        localProxyRelayService = new LocalProxyRelayService(brokerControllerMock, transactionService);
         Mockito.when(brokerControllerMock.getRemotingServer()).thenReturn(nettyRemotingServerMock);
     }
 
