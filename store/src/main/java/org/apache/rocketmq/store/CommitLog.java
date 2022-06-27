@@ -1709,6 +1709,7 @@ public class CommitLog {
 
         public void updateEncoderBufferCapacity(int newMaxMessageBodySize){
             this.maxMessageBodySize = newMaxMessageBodySize;
+            //Reserve 64kb for encoding buffer outside body
             this.maxMessageSize = Integer.MAX_VALUE - newMaxMessageBodySize >= 64 * 1024 ?
                     this.maxMessageBodySize + 64 * 1024 : Integer.MAX_VALUE;
             this.byteBuf.capacity(this.maxMessageSize);
