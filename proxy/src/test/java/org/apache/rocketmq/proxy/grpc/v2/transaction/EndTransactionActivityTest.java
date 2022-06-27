@@ -28,7 +28,6 @@ import java.util.Collection;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.processor.TransactionStatus;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,9 +76,7 @@ public class EndTransactionActivityTest extends BaseActivityTest {
                 .setResolution(resolution)
                 .setTopic(Resource.newBuilder().setName("topic").build())
                 .setMessageId(MessageClientIDSetter.createUniqID())
-                .setTransactionId(
-                    TransactionId.genByBrokerTransactionId("brokerName", "0", 0, 0)
-                        .getProxyTransactionId())
+                .setTransactionId(MessageClientIDSetter.createUniqID())
                 .setSource(source)
                 .build()
         ).get();

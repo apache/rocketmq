@@ -17,11 +17,10 @@
 package org.apache.rocketmq.proxy.processor;
 
 import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.ServiceManager;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
+import org.apache.rocketmq.proxy.service.transaction.EndTransactionRequestData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class TransactionProcessor extends AbstractProcessor {
@@ -31,45 +30,37 @@ public class TransactionProcessor extends AbstractProcessor {
         super(messagingProcessor, serviceManager);
     }
 
-    void endTransaction(ProxyContext ctx, TransactionId transactionId, String messageId, String producerGroup,
+    void endTransaction(ProxyContext ctx, String transactionId, String messageId, String producerGroup,
         TransactionStatus transactionStatus, boolean fromTransactionCheck, long timeoutMillis)
         throws MQBrokerException, RemotingException, InterruptedException {
 
-        EndTransactionRequestHeader requestHeader = buildEndTransactionRequestHeader(transactionId, messageId,
-            producerGroup, transactionStatus, fromTransactionCheck);
+        EndTransactionRequestData headerData = serviceManager.getTransactionService().genEndTransactionRequestHeader(
+            producerGroup,
+            buildCommitOrRollback(transactionStatus),
+            fromTransactionCheck,
+            messageId,
+            transactionId
+        );
+        if (headerData == null) {
+            return;
+        }
         this.serviceManager.getMessageService().endTransactionOneway(
             ctx,
-            transactionId,
-            requestHeader,
+            headerData.getBrokerName(),
+            headerData.getRequestHeader(),
             timeoutMillis
         );
     }
 
-    protected EndTransactionRequestHeader buildEndTransactionRequestHeader(TransactionId transactionId,
-        String messageId, String producerGroup, TransactionStatus transactionStatus, boolean fromTransactionCheck) {
-        int commitOrRollback;
+    protected int buildCommitOrRollback(TransactionStatus transactionStatus) {
         switch (transactionStatus) {
             case COMMIT:
-                commitOrRollback = MessageSysFlag.TRANSACTION_COMMIT_TYPE;
-                break;
+                return MessageSysFlag.TRANSACTION_COMMIT_TYPE;
             case ROLLBACK:
-                commitOrRollback = MessageSysFlag.TRANSACTION_ROLLBACK_TYPE;
-                break;
+                return MessageSysFlag.TRANSACTION_ROLLBACK_TYPE;
             default:
-                commitOrRollback = MessageSysFlag.TRANSACTION_NOT_TYPE;
-                break;
+                return MessageSysFlag.TRANSACTION_NOT_TYPE;
         }
-
-        EndTransactionRequestHeader endTransactionRequestHeader = new EndTransactionRequestHeader();
-        endTransactionRequestHeader.setProducerGroup(producerGroup);
-        endTransactionRequestHeader.setMsgId(messageId);
-        endTransactionRequestHeader.setTransactionId(transactionId.getBrokerTransactionId());
-        endTransactionRequestHeader.setTranStateTableOffset(transactionId.getTranStateTableOffset());
-        endTransactionRequestHeader.setCommitLogOffset(transactionId.getCommitLogOffset());
-        endTransactionRequestHeader.setCommitOrRollback(commitOrRollback);
-        endTransactionRequestHeader.setFromTransactionCheck(fromTransactionCheck);
-
-        return endTransactionRequestHeader;
     }
 
     public void addTransactionSubscription(ProxyContext ctx, String producerGroup, String topic) {

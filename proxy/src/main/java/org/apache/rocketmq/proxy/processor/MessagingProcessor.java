@@ -44,7 +44,6 @@ import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -103,7 +102,7 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     default void endTransaction(
         ProxyContext ctx,
-        TransactionId transactionId,
+        String transactionId,
         String messageId,
         String producerGroup,
         TransactionStatus transactionStatus,
@@ -114,7 +113,7 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     void endTransaction(
         ProxyContext ctx,
-        TransactionId transactionId,
+        String transactionId,
         String messageId,
         String producerGroup,
         TransactionStatus transactionStatus,

@@ -67,8 +67,8 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
             scheduledExecutorService
         );
         this.topicRouteService = new LocalTopicRouteService(brokerController, mqClientAPIFactory);
-        this.transactionService = new LocalTransactionService();
-        this.proxyRelayService = new LocalProxyRelayService(brokerController);
+        this.transactionService = new LocalTransactionService(brokerController.getBrokerConfig());
+        this.proxyRelayService = new LocalProxyRelayService(brokerController, this.transactionService);
         this.metadataService = new LocalMetadataService(brokerController);
         this.init();
     }

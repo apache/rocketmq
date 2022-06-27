@@ -42,7 +42,6 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -66,7 +65,7 @@ public interface MessageService {
 
     void endTransactionOneway(
         ProxyContext ctx,
-        TransactionId transactionId,
+        String brokerName,
         EndTransactionRequestHeader requestHeader,
         long timeoutMillis
     ) throws MQBrokerException, RemotingException, InterruptedException;

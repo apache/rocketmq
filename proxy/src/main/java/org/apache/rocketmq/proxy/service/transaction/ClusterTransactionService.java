@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -37,7 +39,6 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
@@ -45,7 +46,7 @@ import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.RPCHook;
 
-public class ClusterTransactionService implements StartAndShutdown, TransactionService {
+public class ClusterTransactionService extends AbstractTransactionService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private static final String TRANS_HEARTBEAT_CLIENT_ID = "rmq-proxy-producer-client";
@@ -55,6 +56,7 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
 
     private ThreadPoolExecutor heartbeatExecutors;
     private final Map<String /* group */, Set<ClusterData>/* cluster list */> groupClusterData = new ConcurrentHashMap<>();
+    private final AtomicReference<Map<String /* brokerAddr */, String /* brokerName */>> brokerAddrNameMapRef = new AtomicReference<>();
     private TxHeartbeatServiceThread txHeartbeatServiceThread;
 
     public ClusterTransactionService(TopicRouteService topicRouteService, ProducerManager producerManager,
@@ -180,12 +182,14 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
         if (heartbeatDataList == null) {
             return;
         }
+        Map<String, String> brokerAddrNameMap = new ConcurrentHashMap<>();
         for (HeartbeatData heartbeatData : heartbeatDataList) {
-            sendHeartBeatToCluster(clusterName, heartbeatData);
+            sendHeartBeatToCluster(clusterName, heartbeatData, brokerAddrNameMap);
         }
+        this.brokerAddrNameMapRef.set(brokerAddrNameMap);
     }
 
-    protected void sendHeartBeatToCluster(String clusterName, HeartbeatData heartbeatData) {
+    protected void sendHeartBeatToCluster(String clusterName, HeartbeatData heartbeatData, Map<String, String> brokerAddrNameMap) {
         try {
             MessageQueueView messageQueue = this.topicRouteService.getAllMessageQueueView(clusterName);
             List<BrokerData> brokerDataList = messageQueue.getTopicRouteData().getBrokerDatas();
@@ -193,6 +197,7 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
                 return;
             }
             for (BrokerData brokerData : brokerDataList) {
+                brokerAddrNameMap.put(brokerData.selectBrokerAddr(), brokerData.getBrokerName());
                 heartbeatExecutors.submit(() -> {
                     String brokerAddr = brokerData.selectBrokerAddr();
                     this.mqClientAPIFactory.getClient()
@@ -206,6 +211,14 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
         } catch (Exception e) {
             log.error("get broker add in cluster failed in tx. clusterName: {}", clusterName, e);
         }
+    }
+
+    @Override
+    protected String getBrokerNameByAddr(String brokerAddr) {
+        if (StringUtils.isBlank(brokerAddr)) {
+            return null;
+        }
+        return brokerAddrNameMapRef.get().get(brokerAddr);
     }
 
     static class ClusterData {
@@ -263,6 +276,7 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         txHeartbeatServiceThread = new TxHeartbeatServiceThread();
 
+        super.start();
         txHeartbeatServiceThread.start();
         heartbeatExecutors = ThreadPoolMonitor.createAndMonitor(
             proxyConfig.getTransactionHeartbeatThreadPoolNums(),
@@ -277,5 +291,6 @@ public class ClusterTransactionService implements StartAndShutdown, TransactionS
     public void shutdown() throws Exception {
         txHeartbeatServiceThread.shutdown();
         heartbeatExecutors.shutdown();
+        super.shutdown();
     }
 }

@@ -26,7 +26,6 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
-    private String brokerName;
     @CFNotNull
     private Long tranStateTableOffset;
     @CFNotNull
@@ -37,14 +36,6 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
-    }
-
-    public String getBrokerName() {
-        return brokerName;
-    }
-
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
     }
 
     public Long getTranStateTableOffset() {
@@ -90,7 +81,6 @@ public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("brokerName", brokerName)
             .add("tranStateTableOffset", tranStateTableOffset)
             .add("commitLogOffset", commitLogOffset)
             .add("msgId", msgId)

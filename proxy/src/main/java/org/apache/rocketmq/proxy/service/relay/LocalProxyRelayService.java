@@ -25,15 +25,17 @@ import org.apache.rocketmq.common.protocol.header.ConsumeMessageDirectlyResultRe
 import org.apache.rocketmq.common.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
+import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class LocalProxyRelayService implements ProxyRelayService {
+public class LocalProxyRelayService extends AbstractProxyRelayService {
 
     private final BrokerController brokerController;
 
-    public LocalProxyRelayService(BrokerController brokerController) {
+    public LocalProxyRelayService(BrokerController brokerController, TransactionService transactionService) {
+        super(transactionService);
         this.brokerController = brokerController;
     }
 

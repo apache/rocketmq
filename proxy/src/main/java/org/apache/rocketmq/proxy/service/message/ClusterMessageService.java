@@ -47,7 +47,6 @@ import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
-import org.apache.rocketmq.proxy.service.transaction.TransactionId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -89,11 +88,10 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public void endTransactionOneway(ProxyContext ctx, TransactionId transactionId,
-        EndTransactionRequestHeader requestHeader,
+    public void endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
         long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
         this.mqClientAPIFactory.getClient().endTransactionOneway(
-            this.resolveBrokerAddr(transactionId.getBrokerName()),
+            this.resolveBrokerAddr(brokerName),
             requestHeader,
             "end transaction from proxy",
             timeoutMillis

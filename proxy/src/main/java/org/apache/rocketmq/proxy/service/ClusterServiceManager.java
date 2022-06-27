@@ -50,18 +50,18 @@ import org.apache.rocketmq.remoting.RPCHook;
 public class ClusterServiceManager extends AbstractStartAndShutdown implements ServiceManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final ClusterTransactionService clusterTransactionService;
-    private final ProducerManager producerManager;
-    private final ConsumerManager consumerManager;
-    private final TopicRouteService topicRouteService;
-    private final MessageService messageService;
-    private final ProxyRelayService proxyRelayService;
-    private final ClusterMetadataService metadataService;
+    protected ClusterTransactionService clusterTransactionService;
+    protected ProducerManager producerManager;
+    protected ConsumerManager consumerManager;
+    protected TopicRouteService topicRouteService;
+    protected MessageService messageService;
+    protected ProxyRelayService proxyRelayService;
+    protected ClusterMetadataService metadataService;
 
-    protected final ScheduledExecutorService scheduledExecutorService;
-    protected final MQClientAPIFactory messagingClientAPIFactory;
-    protected final MQClientAPIFactory operationClientAPIFactory;
-    protected final MQClientAPIFactory transactionClientAPIFactory;
+    protected ScheduledExecutorService scheduledExecutorService;
+    protected MQClientAPIFactory messagingClientAPIFactory;
+    protected MQClientAPIFactory operationClientAPIFactory;
+    protected MQClientAPIFactory transactionClientAPIFactory;
 
     public ClusterServiceManager(RPCHook rpcHook) {
         this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
@@ -93,7 +93,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory);
         this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, rpcHook,
             this.transactionClientAPIFactory);
-        this.proxyRelayService = new ClusterProxyRelayService();
+        this.proxyRelayService = new ClusterProxyRelayService(this.clusterTransactionService);
         this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
 
         this.init();
