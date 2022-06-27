@@ -38,7 +38,7 @@ public class MessageExtEncoder {
     // The maximum length of the message
     private final int maxMessageSize;
 
-    MessageExtEncoder(final int size) {
+    public MessageExtEncoder(final int size) {
         this.encoderBuffer = ByteBuffer.allocateDirect(size);
         this.maxMessageSize = size;
     }
@@ -77,7 +77,7 @@ public class MessageExtEncoder {
         byteBuffer.putInt(inetSocketAddress.getPort());
     }
 
-    protected PutMessageResult encode(MessageExtBrokerInner msgInner) {
+    public PutMessageResult encode(MessageExtBrokerInner msgInner) {
         /**
          * Serialize message
          */
@@ -154,7 +154,7 @@ public class MessageExtEncoder {
         return null;
     }
 
-    protected ByteBuffer encode(final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
+    public ByteBuffer encode(final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
         encoderBuffer.clear(); //not thread-safe
         int totalMsgLen = 0;
         ByteBuffer messagesByteBuff = messageExtBatch.wrap();

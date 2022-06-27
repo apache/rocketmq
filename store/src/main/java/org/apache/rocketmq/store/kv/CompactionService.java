@@ -63,7 +63,7 @@ public class CompactionService extends ServiceThread {
             TopicPartitionOffset tpo = new TopicPartitionOffset(topic, queueId, physicalOffset);
             compactionMsgQ.offer(tpo);
             this.wakeup();
-        } // else skip
+        } // else skip if message isn't compaction
     }
 
     public GetMessageResult getMessage(final String group, final String topic, final int queueId,
