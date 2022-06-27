@@ -97,7 +97,7 @@ public class ProducerProcessor extends AbstractProcessor {
                         if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
                             tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
                             StringUtils.isNotBlank(sendResult.getTransactionId())) {
-                            fillTransactionData(messageQueue, sendResult, messageList);
+                            fillTransactionData(producerGroup, messageQueue, sendResult, messageList);
                         }
                     }
                     return sendResultList;
@@ -108,7 +108,7 @@ public class ProducerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
-    protected void fillTransactionData(AddressableMessageQueue messageQueue, SendResult sendResult, List<Message> messageList) {
+    protected void fillTransactionData(String producerGroup, AddressableMessageQueue messageQueue, SendResult sendResult, List<Message> messageList) {
         try {
             MessageId id;
             if (sendResult.getOffsetMsgId() != null) {
@@ -118,6 +118,7 @@ public class ProducerProcessor extends AbstractProcessor {
             }
             this.serviceManager.getTransactionService().addTransactionDataByBrokerName(
                 messageQueue.getBrokerName(),
+                producerGroup,
                 sendResult.getQueueOffset(),
                 id.getOffset(),
                 sendResult.getTransactionId(),

@@ -98,6 +98,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         ArgumentCaptor<Long> commitLogOffsetCaptor = ArgumentCaptor.forClass(Long.class);
         when(transactionService.addTransactionDataByBrokerName(
             brokerNameCaptor.capture(),
+            anyString(),
             tranStateTableOffsetCaptor.capture(),
             commitLogOffsetCaptor.capture(),
             anyString(), any())).thenReturn(mock(TransactionData.class));
@@ -151,6 +152,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         ArgumentCaptor<Long> commitLogOffsetCaptor = ArgumentCaptor.forClass(Long.class);
         when(transactionService.addTransactionDataByBrokerName(
             brokerNameCaptor.capture(),
+            anyString(),
             tranStateTableOffsetCaptor.capture(),
             commitLogOffsetCaptor.capture(),
             anyString(), any())).thenReturn(mock(TransactionData.class));
