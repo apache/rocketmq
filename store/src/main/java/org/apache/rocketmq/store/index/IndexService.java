@@ -366,7 +366,18 @@ public class IndexService {
 
     }
 
+    // fix issue 4463
     public void shutdown() {
-
+        if (!indexFileList.isEmpty()) {
+            final IndexFile indexFile = indexFileList.get(indexFileList.size() - 1);
+            long indexMsgTimestamp = 0;
+            if (indexFile.isWriteFull()) {
+                indexMsgTimestamp = indexFile.getEndTimestamp();
+            }
+            indexFile.flush();
+            if (indexMsgTimestamp > 0) {
+                this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
+            }
+        }
     }
 }
