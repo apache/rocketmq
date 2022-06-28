@@ -88,7 +88,7 @@ public class StoreTestUtil {
         ArrayList<IndexFile> indexFileList = (ArrayList<IndexFile>) field2.get(indexService);
 
         for (IndexFile f : indexFileList) {
-            indexService.flush(f);
+            indexService.flush(f, true);
         }
     }
 

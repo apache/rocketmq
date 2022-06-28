@@ -332,7 +332,7 @@ public class IndexService {
                 Thread flushThread = new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        IndexService.this.flush(flushThisFile);
+                        IndexService.this.flush(flushThisFile, true);
                     }
                 }, "FlushIndexFileThread");
 
@@ -344,7 +344,7 @@ public class IndexService {
         return indexFile;
     }
 
-    public void flush(final IndexFile f) {
+    public void flush(final IndexFile f, boolean forceFlush) {
         if (null == f)
             return;
 
@@ -358,7 +358,9 @@ public class IndexService {
 
         if (indexMsgTimestamp > 0) {
             this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
-            this.defaultMessageStore.getStoreCheckpoint().flush();
+            if (forceFlush) {
+                this.defaultMessageStore.getStoreCheckpoint().flush();
+            }
         }
     }
 
@@ -370,14 +372,7 @@ public class IndexService {
     public void shutdown() {
         if (!indexFileList.isEmpty()) {
             final IndexFile indexFile = indexFileList.get(indexFileList.size() - 1);
-            long indexMsgTimestamp = 0;
-            if (indexFile.isWriteFull()) {
-                indexMsgTimestamp = indexFile.getEndTimestamp();
-            }
-            indexFile.flush();
-            if (indexMsgTimestamp > 0) {
-                this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
-            }
+            flush(indexFile, false);
         }
     }
 }
