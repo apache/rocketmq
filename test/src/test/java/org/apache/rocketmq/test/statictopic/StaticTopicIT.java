@@ -21,6 +21,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
@@ -76,6 +79,7 @@ public class StaticTopicIT extends BaseConf {
         defaultMQAdminExt.start();
     }
 
+
     @Test
     public void testCommandsWithCluster() throws Exception {
         //This case is used to mock the env to test the command manually
@@ -93,8 +97,8 @@ public class StaticTopicIT extends BaseConf {
         }
         {
             MQAdminTestUtils.remappingStaticTopicWithCommand(topic, null, clusterName, nsAddr);
-            Thread.sleep(500);
-            sendMessagesAndCheck(producer, getBrokers(), topic, queueNum, msgEachQueue, 100);
+            awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), consumer.getConsumer(), defaultMQAdminExt);
+            sendMessagesAndCheck(producer, getBrokers(), topic, queueNum, msgEachQueue, msgEachQueue);
         }
     }
 
@@ -105,7 +109,7 @@ public class StaticTopicIT extends BaseConf {
         RMQNormalProducer producer = getProducer(nsAddr, topic);
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
         int queueNum = 10;
-        int msgEachQueue = 10;
+        int msgEachQueue = 100;
         {
             Set<String> brokers = ImmutableSet.of(broker1Name);
             MQAdminTestUtils.createStaticTopicWithCommand(topic, queueNum, brokers, null, nsAddr);
@@ -116,7 +120,7 @@ public class StaticTopicIT extends BaseConf {
         {
             Set<String> brokers = ImmutableSet.of(broker2Name);
             MQAdminTestUtils.remappingStaticTopicWithCommand(topic, brokers, null, nsAddr);
-            Thread.sleep(1000);
+            awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), consumer.getConsumer(), defaultMQAdminExt);
             sendMessagesAndCheck(producer, brokers, topic, queueNum, msgEachQueue, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
             consumeMessagesAndCheck(producer, consumer, topic, queueNum, msgEachQueue, 0, 2);
         }
@@ -171,7 +175,7 @@ public class StaticTopicIT extends BaseConf {
         }
         Assert.assertEquals(0, producer.getSendErrorMsg().size());
         //leave the time to build the cq
-        Thread.sleep(100);
+        Assert.assertTrue(awaitDispatchMs(500));
         for(MessageQueue messageQueue: messageQueueList) {
             Assert.assertEquals(0, defaultMQAdminExt.minOffset(messageQueue));
             Assert.assertEquals(msgEachQueue + baseOffset, defaultMQAdminExt.maxOffset(messageQueue));
@@ -292,10 +296,45 @@ public class StaticTopicIT extends BaseConf {
                 Assert.assertEquals(broker2Name, mappingOne.getBname());
                 Assert.assertEquals(TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE, mappingOne.getItems().get(mappingOne.getItems().size() - 1).getLogicOffset());
             }
-            Thread.sleep(500);
+            awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), consumer.getConsumer(), defaultMQAdminExt);
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
             consumeMessagesAndCheck(producer, consumer, topic, queueNum, msgEachQueue, 0, 2);
         }
+    }
+
+
+    public boolean awaitRefreshStaticTopicMetadata(long timeMs, String topic, DefaultMQProducer producer, DefaultMQPushConsumer consumer, DefaultMQAdminExt adminExt) throws Exception {
+        long start = System.currentTimeMillis();
+        MQClientInstance currentInstance = null;
+        while (System.currentTimeMillis() - start <= timeMs) {
+            boolean allOk = true;
+            if (producer != null) {
+                currentInstance = producer.getDefaultMQProducerImpl().getmQClientFactory();
+                currentInstance.updateTopicRouteInfoFromNameServer(topic);
+                if (!MQAdminTestUtils.checkStaticTopic(topic, adminExt, currentInstance)) {
+                    allOk = false;
+                }
+            }
+            if (consumer != null) {
+                currentInstance = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory();
+                currentInstance.updateTopicRouteInfoFromNameServer(topic);
+                if (!MQAdminTestUtils.checkStaticTopic(topic, adminExt, currentInstance)) {
+                    allOk = false;
+                }
+            }
+            if (adminExt != null) {
+                currentInstance = adminExt.getDefaultMQAdminExtImpl().getMqClientInstance();
+                currentInstance.updateTopicRouteInfoFromNameServer(topic);
+                if (!MQAdminTestUtils.checkStaticTopic(topic, adminExt, currentInstance)) {
+                    allOk = false;
+                }
+            }
+            if (allOk) {
+                return true;
+            }
+            Thread.sleep(100);
+        }
+        return false;
     }
 
 
@@ -308,7 +347,7 @@ public class StaticTopicIT extends BaseConf {
         long start = System.currentTimeMillis();
 
         int queueNum = 10;
-        int msgEachQueue = 10;
+        int msgEachQueue = 100;
         //create static topic
         {
             Set<String> targetBrokers = ImmutableSet.of(broker1Name);
@@ -336,7 +375,7 @@ public class StaticTopicIT extends BaseConf {
             Set<String> targetBrokers = ImmutableSet.of(brokers.get(i));
             MQAdminTestUtils.remappingStaticTopic(topic, targetBrokers, defaultMQAdminExt);
             //make the metadata
-            Thread.sleep(500);
+            awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), null, defaultMQAdminExt);
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, (i + 1) * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
         }
 
@@ -367,7 +406,7 @@ public class StaticTopicIT extends BaseConf {
             Set<String> targetBrokers = ImmutableSet.of(broker1Name);
             MQAdminTestUtils.createStaticTopic(topic, queueNum, targetBrokers, defaultMQAdminExt);
             //leave the time to refresh the metadata
-            Thread.sleep(500);
+            awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), null, defaultMQAdminExt);
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, 0);
         }
 
@@ -376,7 +415,7 @@ public class StaticTopicIT extends BaseConf {
             Set<String> targetBrokers = ImmutableSet.of(broker2Name);
             MQAdminTestUtils.remappingStaticTopic(topic, targetBrokers, defaultMQAdminExt);
             //leave the time to refresh the metadata
-            Thread.sleep(500);
+            awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), null, defaultMQAdminExt);
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, 1 * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
         }
 
@@ -385,7 +424,7 @@ public class StaticTopicIT extends BaseConf {
             Set<String> targetBrokers = ImmutableSet.of(broker3Name);
             MQAdminTestUtils.remappingStaticTopic(topic, targetBrokers, defaultMQAdminExt);
             //leave the time to refresh the metadata
-            Thread.sleep(500);
+            awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), null, defaultMQAdminExt);
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, 2 * TopicQueueMappingUtils.DEFAULT_BLOCK_SEQ_SIZE);
         }
 
@@ -467,7 +506,7 @@ public class StaticTopicIT extends BaseConf {
                 Assert.assertEquals(-1, mappingOne.getItems().get(mappingOne.getItems().size() - 1).getLogicOffset());
             }
             //leave the time to refresh the metadata
-            Thread.sleep(500);
+            awaitRefreshStaticTopicMetadata(3000, topic, producer.getProducer(), null, defaultMQAdminExt);
             //here the gen should be 0
             sendMessagesAndCheck(producer, targetBrokers, topic, queueNum, msgEachQueue, 0);
         }
