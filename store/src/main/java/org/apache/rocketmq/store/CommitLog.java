@@ -604,9 +604,9 @@ public class CommitLog {
         return keyBuilder.toString();
     }
 
-    public void updateMaxMessageSize(PutMessageThreadLocal putMessageThreadLocal){
+    public void updateMaxMessageSize(PutMessageThreadLocal putMessageThreadLocal) {
         int newMaxMessageSize = this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize();
-        if(putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize){
+        if (putMessageThreadLocal.getEncoder().getMaxMessageBodySize() != newMaxMessageSize) {
             putMessageThreadLocal.getEncoder().updateEncoderBufferCapacity(newMaxMessageSize);
         }
     }
@@ -1703,11 +1703,11 @@ public class CommitLog {
             return this.byteBuf.nioBuffer();
         }
 
-        public int getMaxMessageBodySize(){
+        public int getMaxMessageBodySize() {
             return this.maxMessageBodySize;
         }
 
-        public void updateEncoderBufferCapacity(int newMaxMessageBodySize){
+        public void updateEncoderBufferCapacity(int newMaxMessageBodySize) {
             this.maxMessageBodySize = newMaxMessageBodySize;
             //Reserve 64kb for encoding buffer outside body
             this.maxMessageSize = Integer.MAX_VALUE - newMaxMessageBodySize >= 64 * 1024 ?

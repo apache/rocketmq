@@ -793,8 +793,8 @@ public class DLedgerCommitLog extends CommitLog {
             this.maxMessageBodySize = size;
         }
 
-        public void updateMaxMessageBodySize(int newMaxMessageBodySize){
-            if(newMaxMessageBodySize != this.maxMessageBodySize && newMaxMessageBodySize > 0){
+        public void updateMaxMessageBodySize(int newMaxMessageBodySize) {
+            if (newMaxMessageBodySize != this.maxMessageBodySize && newMaxMessageBodySize > 0) {
                 this.maxMessageBodySize = newMaxMessageBodySize;
             }
         }
