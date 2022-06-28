@@ -130,7 +130,7 @@ public interface ConsumeQueueInterface {
      * Do dispatch.
      * @param request the request containing dispatch information.
      */
-    void dispatch(DispatchRequest request);
+    void putMessagePositionInfoWrapper(DispatchRequest request);
 
     /**
      * Assign queue offset.

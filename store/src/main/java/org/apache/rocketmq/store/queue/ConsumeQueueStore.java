@@ -88,7 +88,7 @@ public class ConsumeQueueStore {
      * @param request dispatch request
      */
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
-        consumeQueue.dispatch(request);
+        consumeQueue.putMessagePositionInfoWrapper(request);
     }
 
     public void putMessagePositionInfoWrapper(DispatchRequest dispatchRequest) {
@@ -455,7 +455,7 @@ public class ConsumeQueueStore {
         }
     }
 
-    public void truncateDirtyFiles(long phyOffset) {
+    public void truncateDirty(long phyOffset) {
         for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueueInterface logic : maps.values()) {
                 this.truncateDirtyLogicFiles(logic, phyOffset);

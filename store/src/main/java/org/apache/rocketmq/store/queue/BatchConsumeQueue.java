@@ -445,7 +445,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     @Override
-    public void dispatch(DispatchRequest request) {
+    public void putMessagePositionInfoWrapper(DispatchRequest request) {
         final int maxRetries = 30;
         boolean canWrite = this.messageStore.getRunningFlags().isCQWriteable();
         if (request.getMsgBaseOffset() < 0 || request.getBatchSize() < 0) {
