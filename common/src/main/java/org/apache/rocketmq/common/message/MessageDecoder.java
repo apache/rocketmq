@@ -40,6 +40,8 @@ public class MessageDecoder {
     public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
     public final static int MESSAGE_STORE_TIMESTAMP_POSITION = 56;
     public final static int MESSAGE_MAGIC_CODE = -626843481;
+    // End of file empty MAGIC CODE cbd43194
+    protected final static int BLANK_MAGIC_CODE = -875286124;
     public static final char NAME_VALUE_SEPARATOR = 1;
     public static final char PROPERTY_SEPARATOR = 2;
     public static final int PHY_POS_POSITION = 4 + 4 + 4 + 4 + 4 + 8;
