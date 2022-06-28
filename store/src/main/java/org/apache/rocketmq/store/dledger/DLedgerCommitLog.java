@@ -436,9 +436,6 @@ public class DLedgerCommitLog extends CommitLog {
         AppendMessageResult appendResult;
         AppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult = null;
-        this.messageSerializer.updateMaxMessageBodySize(
-                this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize()
-        );
 
         boolean isMultiDispatch = multiDispatch.isMultiDispatchMsg(msg);
         if (!isMultiDispatch) {
@@ -566,9 +563,6 @@ public class DLedgerCommitLog extends CommitLog {
         AppendMessageResult appendResult;
         BatchAppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
-        this.messageSerializer.updateMaxMessageBodySize(
-                this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize()
-        );
 
         encodeResult = this.messageSerializer.serialize(messageExtBatch);
         if (encodeResult.status != AppendMessageStatus.PUT_OK) {
@@ -791,12 +785,6 @@ public class DLedgerCommitLog extends CommitLog {
 
         MessageSerializer(final int size) {
             this.maxMessageBodySize = size;
-        }
-
-        public void updateMaxMessageBodySize(int newMaxMessageBodySize) {
-            if (newMaxMessageBodySize != this.maxMessageBodySize && newMaxMessageBodySize > 0) {
-                this.maxMessageBodySize = newMaxMessageBodySize;
-            }
         }
 
         public EncodeResult serialize(final MessageExtBrokerInner msgInner) {
