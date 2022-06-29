@@ -170,7 +170,7 @@ public class MQAdminTestUtils {
         return false;
     }
 
-    //should only be test, if some middle operation failed, it dose not backup the brokerConfigMap
+    //Check if the client metadata is consistent with server metadata
     public static boolean checkStaticTopic(String topic, DefaultMQAdminExt defaultMQAdminExt, MQClientInstance clientInstance) throws Exception {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
         assert !brokerConfigMap.isEmpty();
