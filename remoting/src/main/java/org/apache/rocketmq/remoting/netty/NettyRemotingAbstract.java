@@ -567,15 +567,12 @@ public abstract class NettyRemotingAbstract {
     }
 
     class NettyEventExecutor extends ServiceThread {
-        private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<NettyEvent>();
         private final int maxSize = 10000;
+        private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<NettyEvent>();
 
         public void putNettyEvent(final NettyEvent event) {
-            int currentSize = this.eventQueue.size();
-            if (currentSize <= maxSize) {
-                this.eventQueue.add(event);
-            } else {
-                log.warn("event queue size [{}] over the limit [{}], so drop this event {}", currentSize, maxSize, event.toString());
+            if (!eventQueue.offer(event)) {
+                log.warn("event queue is full now with the limit [{}], so drop this event {}", maxSize, event.toString());
             }
         }
 
