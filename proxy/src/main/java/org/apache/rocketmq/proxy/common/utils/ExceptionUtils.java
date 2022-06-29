@@ -31,6 +31,9 @@ public class ExceptionUtils {
     }
 
     public static String getErrorDetailMessage(Throwable t) {
+        if (t == null) {
+            return null;
+        }
         StringBuilder sb = new StringBuilder();
         sb.append(t.getMessage()).append(". ").append(t.getClass().getSimpleName());
 

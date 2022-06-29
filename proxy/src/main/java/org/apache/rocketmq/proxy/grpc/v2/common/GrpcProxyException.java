@@ -30,11 +30,9 @@ public class GrpcProxyException extends RuntimeException {
     private static final Map<ProxyExceptionCode, Code> CODE_MAPPING = new HashMap<>();
 
     static {
-        CODE_MAPPING.put(ProxyExceptionCode.INVALID_BROKER_NAME, Code.INVALID_RECEIPT_HANDLE);
+        CODE_MAPPING.put(ProxyExceptionCode.INVALID_BROKER_NAME, Code.BAD_REQUEST);
         CODE_MAPPING.put(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, Code.INVALID_RECEIPT_HANDLE);
-        CODE_MAPPING.put(ProxyExceptionCode.RECEIPT_HANDLE_EXPIRED, Code.RECEIPT_HANDLE_EXPIRED);
         CODE_MAPPING.put(ProxyExceptionCode.FORBIDDEN, Code.FORBIDDEN);
-        CODE_MAPPING.put(ProxyExceptionCode.ILLEGAL_MESSAGE, Code.ILLEGAL_MESSAGE);
         CODE_MAPPING.put(ProxyExceptionCode.INTERNAL_SERVER_ERROR, Code.INTERNAL_SERVER_ERROR);
         CODE_MAPPING.put(ProxyExceptionCode.MESSAGE_PROPERTY_DOES_NOT_MATCH_MESSAGE_TYPE, Code.MESSAGE_PROPERTY_DOES_NOT_MATCH_MESSAGE_TYPE);
     }

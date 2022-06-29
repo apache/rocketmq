@@ -25,6 +25,7 @@ import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.SendResultEntry;
 import com.google.common.collect.Maps;
 import com.google.common.hash.Hashing;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Duration;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -71,6 +73,8 @@ public class SendMessageActivity extends AbstractMessingActivity {
             List<apache.rocketmq.v2.Message> messageList = request.getMessagesList();
             apache.rocketmq.v2.Message message = messageList.get(0);
             Resource topic = message.getTopic();
+            validateTopic(topic);
+
             future = this.messagingProcessor.sendMessage(
                 ctx,
                 new SendMessageQueueSelector(request),
@@ -101,6 +105,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
     protected Message buildMessage(apache.rocketmq.v2.Message protoMessage, String producerGroup) {
         String topicName = GrpcConverter.wrapResourceWithNamespace(protoMessage.getTopic());
 
+        validateMessageBodySize(protoMessage.getBody());
         Message messageExt = new Message();
         messageExt.setTopic(topicName);
         messageExt.setBody(protoMessage.getBody().toByteArray());
@@ -125,33 +130,94 @@ public class SendMessageActivity extends AbstractMessingActivity {
         return sysFlag;
     }
 
+    protected void validateMessageBodySize(ByteString body) {
+        int max = ConfigurationManager.getProxyConfig().getMaxMessageSize();
+        if (max <= 0) {
+            return;
+        }
+        if (body.size() > max) {
+            throw new GrpcProxyException(Code.MESSAGE_BODY_TOO_LARGE, "message body cannot exceed the max " + max);
+        }
+    }
+
+    protected void validateTag(String tag) {
+        if (StringUtils.isNotEmpty(tag)) {
+            if (StringUtils.isBlank(tag)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot be the char sequence of whitespace");
+            }
+            if (tag.contains("|")) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain '|'");
+            }
+        }
+    }
+
+    protected void validateMessageKey(String key) {
+        if (StringUtils.isNotEmpty(key)) {
+            if (StringUtils.isBlank(key)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_KEY, "key cannot be the char sequence of whitespace");
+            }
+        }
+    }
+
+    protected void validateMessageGroup(String messageGroup) {
+        if (StringUtils.isNotEmpty(messageGroup)) {
+            if (StringUtils.isBlank(messageGroup)) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group cannot be the char sequence of whitespace");
+            }
+            int maxSize = ConfigurationManager.getProxyConfig().getMaxMessageGroupSize();
+            if (maxSize <= 0) {
+                return;
+            }
+            if (messageGroup.length() >= maxSize) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group exceed the max size " + maxSize);
+            }
+        }
+    }
+
+    protected void validateMessagePropertySize(Map<String, String> property) {
+        int maxSize = ConfigurationManager.getProxyConfig().getMaxUserPropertySize();
+        if (maxSize <= 0) {
+            return;
+        }
+        int curSize = 0;
+        for (Map.Entry<String, String> entry : property.entrySet()) {
+            curSize += entry.getKey().length();
+            curSize += entry.getValue().length();
+            if (curSize > maxSize) {
+                throw new GrpcProxyException(Code.MESSAGE_PROPERTIES_TOO_LARGE, "the size of message properties cannot exceed the max " + maxSize);
+            }
+        }
+    }
+
     protected Map<String, String> buildMessageProperty(apache.rocketmq.v2.Message message, String producerGroup) {
         org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
         // set user properties
         Map<String, String> userProperties = message.getUserPropertiesMap();
-        for (String key : userProperties.keySet()) {
-            if (MessageConst.STRING_HASH_SET.contains(key)) {
-                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "property is used by system: " + key);
+        for (Map.Entry<String, String> userPropertiesEntry : userProperties.entrySet()) {
+            if (MessageConst.STRING_HASH_SET.contains(userPropertiesEntry.getKey())) {
+                throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "property is used by system: " + userPropertiesEntry.getKey());
             }
         }
         MessageAccessor.setProperties(messageWithHeader, Maps.newHashMap(userProperties));
 
         // set tag
         String tag = message.getSystemProperties().getTag();
-        if (!"".equals(tag)) {
-            messageWithHeader.setTags(tag);
-        }
+        validateTag(tag);
+        messageWithHeader.setTags(tag);
 
         // set keys
         List<String> keysList = message.getSystemProperties().getKeysList();
+        for (String key : keysList) {
+            validateMessageKey(key);
+        }
         if (keysList.size() > 0) {
             messageWithHeader.setKeys(keysList);
         }
 
         // set message id
         String messageId = message.getSystemProperties().getMessageId();
-        if ("".equals(messageId)) {
-            throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_ID, "message id is empty");
+        if (StringUtils.isBlank(messageId)) {
+            throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_ID, "message id cannot be empty");
         }
         MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, messageId);
 
@@ -180,7 +246,8 @@ public class SendMessageActivity extends AbstractMessingActivity {
         MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_PRODUCER_GROUP, producerGroup);
         // set message group
         String messageGroup = message.getSystemProperties().getMessageGroup();
-        if (!messageGroup.isEmpty()) {
+        if (StringUtils.isNotEmpty(messageGroup)) {
+            validateMessageGroup(messageGroup);
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_SHARDING_KEY, messageGroup);
         }
         // set trace context
@@ -188,6 +255,8 @@ public class SendMessageActivity extends AbstractMessingActivity {
         if (!traceContext.isEmpty()) {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRACE_CONTEXT, traceContext);
         }
+
+        validateMessagePropertySize(messageWithHeader.getProperties());
         return messageWithHeader.getProperties();
     }
 

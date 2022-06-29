@@ -47,7 +47,6 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
-import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
 
 public class RouteActivity extends AbstractMessingActivity {
 
@@ -59,6 +58,7 @@ public class RouteActivity extends AbstractMessingActivity {
     public CompletableFuture<QueryRouteResponse> queryRoute(ProxyContext ctx, QueryRouteRequest request) {
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         try {
+            validateTopic(request.getTopic());
             List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
 
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
@@ -86,13 +86,7 @@ public class RouteActivity extends AbstractMessingActivity {
                 .build();
             future.complete(response);
         } catch (Throwable t) {
-            if (TopicRouteHelper.isTopicNotExistError(t)) {
-                future.complete(QueryRouteResponse.newBuilder()
-                    .setStatus(ResponseBuilder.buildStatus(Code.TOPIC_NOT_FOUND, t.getMessage()))
-                    .build());
-            } else {
-                future.completeExceptionally(t);
-            }
+            future.completeExceptionally(t);
         }
         return future;
     }
@@ -102,6 +96,7 @@ public class RouteActivity extends AbstractMessingActivity {
         CompletableFuture<QueryAssignmentResponse> future = new CompletableFuture<>();
 
         try {
+            validateTopic(request.getTopic());
             List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
 
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(

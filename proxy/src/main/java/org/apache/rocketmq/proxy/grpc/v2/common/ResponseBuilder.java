@@ -19,16 +19,32 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.client.common.ClientErrorCode;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
+import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 
 public class ResponseBuilder {
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    public static final Map<Integer, Code> RESPONSE_CODE_MAPPING = new ConcurrentHashMap<>();
+
+    static {
+        RESPONSE_CODE_MAPPING.put(ResponseCode.SUCCESS, Code.OK);
+        RESPONSE_CODE_MAPPING.put(ResponseCode.SYSTEM_BUSY, Code.TOO_MANY_REQUESTS);
+        RESPONSE_CODE_MAPPING.put(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, Code.NOT_IMPLEMENTED);
+        RESPONSE_CODE_MAPPING.put(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST, Code.CONSUMER_GROUP_NOT_FOUND);
+        RESPONSE_CODE_MAPPING.put(ClientErrorCode.ACCESS_BROKER_TIMEOUT, Code.PROXY_TIMEOUT);
+    }
 
     public static Status buildStatus(Throwable t) {
         t = ExceptionUtils.getRealException(t);
@@ -39,6 +55,20 @@ public class ResponseBuilder {
         if (t instanceof GrpcProxyException) {
             GrpcProxyException grpcProxyException = (GrpcProxyException) t;
             return ResponseBuilder.buildStatus(grpcProxyException.getCode(), grpcProxyException.getMessage());
+        }
+        if (TopicRouteHelper.isTopicNotExistError(t)) {
+            return ResponseBuilder.buildStatus(Code.TOPIC_NOT_FOUND, t.getMessage());
+        }
+        if (t instanceof MQBrokerException) {
+            MQBrokerException mqBrokerException = (MQBrokerException) t;
+            return ResponseBuilder.buildStatus(buildCode(mqBrokerException.getResponseCode()), mqBrokerException.getErrorMessage());
+        }
+        if (t instanceof MQClientException) {
+            MQClientException mqClientException = (MQClientException) t;
+            return ResponseBuilder.buildStatus(buildCode(mqClientException.getResponseCode()), mqClientException.getErrorMessage());
+        }
+        if (t instanceof RemotingTimeoutException) {
+            return ResponseBuilder.buildStatus(Code.PROXY_TIMEOUT, t.getMessage());
         }
 
         log.error("internal server error", t);
@@ -64,59 +94,6 @@ public class ResponseBuilder {
     }
 
     public static Code buildCode(int remotingResponseCode) {
-        switch (remotingResponseCode) {
-            case ResponseCode.SUCCESS:
-            case ResponseCode.NO_MESSAGE:
-            case ResponseCode.PULL_RETRY_IMMEDIATELY: {
-                return Code.OK;
-            }
-            case ResponseCode.SYSTEM_BUSY:
-            case ResponseCode.POLLING_FULL: {
-                return Code.TOO_MANY_REQUESTS;
-            }
-            case ResponseCode.REQUEST_CODE_NOT_SUPPORTED: {
-                return Code.UNRECOGNIZED;
-            }
-            case ResponseCode.MESSAGE_ILLEGAL: {
-                return Code.ILLEGAL_MESSAGE;
-            }
-            case ResponseCode.VERSION_NOT_SUPPORTED: {
-                return Code.VERSION_UNSUPPORTED;
-            }
-            case ResponseCode.SLAVE_NOT_AVAILABLE: {
-                return Code.HA_NOT_AVAILABLE;
-            }
-            case ResponseCode.PULL_OFFSET_MOVED: {
-                return Code.ILLEGAL_MESSAGE_OFFSET;
-            }
-            case ResponseCode.NO_PERMISSION: {
-                return Code.FORBIDDEN;
-            }
-            case ResponseCode.TOPIC_NOT_EXIST: {
-                return Code.TOPIC_NOT_FOUND;
-            }
-            case ResponseCode.PULL_NOT_FOUND: {
-                return Code.MESSAGE_NOT_FOUND;
-            }
-            case ResponseCode.FLUSH_DISK_TIMEOUT: {
-                return Code.MASTER_PERSISTENCE_TIMEOUT;
-            }
-            case ResponseCode.FLUSH_SLAVE_TIMEOUT: {
-                return Code.SLAVE_PERSISTENCE_TIMEOUT;
-            }
-            case ResponseCode.POLLING_TIMEOUT: {
-                return Code.GATEWAY_TIMEOUT;
-            }
-            default: {
-                return Code.INTERNAL_SERVER_ERROR;
-            }
-        }
-    }
-
-    public static String buildMessage(int responseCode, String remark) {
-        if (remark != null) {
-            return "ResponseCode: " + responseCode + " " + remark;
-        }
-        return "ResponseCode: " + responseCode;
+        return RESPONSE_CODE_MAPPING.getOrDefault(remotingResponseCode, Code.INTERNAL_SERVER_ERROR);
     }
 }

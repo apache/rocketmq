@@ -36,9 +36,9 @@ public abstract class AbstractProcessor extends AbstractStartAndShutdown {
         this.serviceManager = serviceManager;
     }
 
-    protected void checkReceiptHandle(ReceiptHandle handle) {
+    protected void validateReceiptHandle(ReceiptHandle handle) {
         if (handle.isExpired()) {
-            throw new ProxyException(ProxyExceptionCode.RECEIPT_HANDLE_EXPIRED, "receipt handle is expired");
+            throw new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "receipt handle is expired");
         }
     }
 

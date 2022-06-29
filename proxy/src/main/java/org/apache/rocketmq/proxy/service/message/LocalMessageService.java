@@ -143,7 +143,7 @@ public class LocalMessageService implements MessageService {
                     break;
                 }
                 default: {
-                    throw new ProxyException(ProxyExceptionCode.ILLEGAL_MESSAGE, r.getRemark());
+                    throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, r.getRemark());
                 }
             }
             sendResult.setSendStatus(sendStatus);

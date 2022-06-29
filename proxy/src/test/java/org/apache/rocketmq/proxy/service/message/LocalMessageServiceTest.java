@@ -227,7 +227,7 @@ public class LocalMessageServiceTest extends InitConfigAndLoggerTest {
         CompletableFuture<List<SendResult>> future = localMessageService.sendMessage(proxyContext, null, messagesList, sendMessageRequestHeader, 1000L);
         ExecutionException exception = catchThrowableOfType(future::get, ExecutionException.class);
         assertThat(exception.getCause()).isInstanceOf(ProxyException.class);
-        assertThat(((ProxyException) exception.getCause()).getCode()).isEqualTo(ProxyExceptionCode.ILLEGAL_MESSAGE);
+        assertThat(((ProxyException) exception.getCause()).getCode()).isEqualTo(ProxyExceptionCode.INTERNAL_SERVER_ERROR);
     }
 
     @Test

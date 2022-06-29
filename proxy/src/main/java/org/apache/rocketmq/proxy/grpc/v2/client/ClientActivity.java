@@ -105,6 +105,7 @@ public class ClientActivity extends AbstractMessingActivity {
             switch (clientSettings.getClientType()) {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
+                        validateTopic(topic);
                         String topicName = GrpcConverter.wrapResourceWithNamespace(topic);
                         GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, topicName, clientId);
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
@@ -116,9 +117,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 }
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER: {
-                    if (!request.hasGroup()) {
-                        throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, "group cannot be empty for consumer");
-                    }
+                    validateConsumerGroup(request.getGroup());
                     String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
                     GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, consumerGroup, clientId);
                     ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
@@ -174,9 +173,7 @@ public class ClientActivity extends AbstractMessingActivity {
                     break;
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER:
-                    if (!request.hasGroup()) {
-                        throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, "group cannot be empty for consumer");
-                    }
+                    validateConsumerGroup(request.getGroup());
                     String consumerGroup = GrpcConverter.wrapResourceWithNamespace(request.getGroup());
                     GrpcClientChannel channel = this.grpcChannelManager.removeChannel(consumerGroup, clientId);
                     if (channel != null) {
@@ -219,10 +216,8 @@ public class ClientActivity extends AbstractMessingActivity {
                             break;
                         }
                     }
-                } catch (Exception e) {
-                    responseObserver.onNext(TelemetryCommand.newBuilder()
-                        .setStatus(ResponseBuilder.buildStatus(e))
-                        .build());
+                } catch (Throwable t) {
+                    responseObserver.onNext(convertToTelemetryCommand(t));
                 }
             }
 
@@ -236,6 +231,10 @@ public class ClientActivity extends AbstractMessingActivity {
                 responseObserver.onCompleted();
             }
         };
+    }
+
+    protected TelemetryCommand convertToTelemetryCommand(Throwable t) {
+        return TelemetryCommand.newBuilder().setStatus(ResponseBuilder.buildStatus(t)).build();
     }
 
     protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request,

@@ -40,6 +40,7 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
         ForwardMessageToDeadLetterQueueRequest request) {
         CompletableFuture<ForwardMessageToDeadLetterQueueResponse> future = new CompletableFuture<>();
         try {
+            validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
             ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
 
             return this.messagingProcessor.forwardMessageToDeadLetterQueue(

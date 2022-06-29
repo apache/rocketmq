@@ -52,6 +52,8 @@ public class AckMessageActivity extends AbstractMessingActivity {
         CompletableFuture<AckMessageResponse> future = new CompletableFuture<>();
 
         try {
+            validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
+
             CompletableFuture<AckMessageResultEntry>[] futures = new CompletableFuture[request.getEntriesCount()];
             for (int i = 0; i < request.getEntriesCount(); i++) {
                 futures[i] = processAckMessage(ctx, request, request.getEntries(i));
@@ -90,10 +92,6 @@ public class AckMessageActivity extends AbstractMessingActivity {
     protected CompletableFuture<AckMessageResultEntry> processAckMessage(ProxyContext ctx, AckMessageRequest request,
         AckMessageEntry ackMessageEntry) {
         CompletableFuture<AckMessageResultEntry> future = new CompletableFuture<>();
-        AckMessageResultEntry.Builder failResult = AckMessageResultEntry.newBuilder()
-            .setStatus(ResponseBuilder.buildStatus(Code.INTERNAL_SERVER_ERROR, "ack message failed"))
-            .setMessageId(ackMessageEntry.getMessageId())
-            .setReceiptHandle(ackMessageEntry.getReceiptHandle());
 
         try {
             ReceiptHandle receiptHandle = ReceiptHandle.decode(ackMessageEntry.getReceiptHandle());
@@ -110,14 +108,22 @@ public class AckMessageActivity extends AbstractMessingActivity {
                     receiptHandleProcessor.removeReceiptHandle(ctx.getClientID(), group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
                 }
                 future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result));
-            }).exceptionally(throwable -> {
-                future.complete(failResult.setStatus(ResponseBuilder.buildStatus(throwable)).build());
+            }).exceptionally(t -> {
+                future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, t));
                 return null;
             });
         } catch (Throwable t) {
-            future.complete(failResult.setStatus(ResponseBuilder.buildStatus(t)).build());
+            future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, t));
         }
         return future;
+    }
+
+    protected AckMessageResultEntry convertToAckMessageResultEntry(ProxyContext ctx, AckMessageEntry ackMessageEntry, Throwable throwable) {
+        return AckMessageResultEntry.newBuilder()
+            .setStatus(ResponseBuilder.buildStatus(throwable))
+            .setMessageId(ackMessageEntry.getMessageId())
+            .setReceiptHandle(ackMessageEntry.getReceiptHandle())
+            .build();
     }
 
     protected AckMessageResultEntry convertToAckMessageResultEntry(ProxyContext ctx, AckMessageEntry ackMessageEntry,

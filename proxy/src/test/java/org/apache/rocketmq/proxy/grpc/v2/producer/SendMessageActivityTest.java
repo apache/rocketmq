@@ -30,6 +30,7 @@ import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -53,6 +54,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -333,5 +335,275 @@ public class SendMessageActivityTest extends BaseActivityTest {
 
         assertEquals(firstSelect, thirdSelect);
         assertNotEquals(firstSelect, secondSelect);
+    }
+
+    @Test
+    public void testParameterValidate() {
+        // too large message body
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[4 * 1024 * 1024 + 1]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.MESSAGE_BODY_TOO_LARGE, e.getCode());
+                throw e;
+            }
+        });
+
+        // black tag
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setTag("   ")
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_TAG, e.getCode());
+                throw e;
+            }
+        });
+
+        // tag with '|'
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setTag("|")
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_TAG, e.getCode());
+                throw e;
+            }
+        });
+
+        // blank message key
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .addKeys("  ")
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_KEY, e.getCode());
+                throw e;
+            }
+        });
+
+        // blank message group
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageGroup("  ")
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_GROUP, e.getCode());
+                throw e;
+            }
+        });
+
+        // long message group
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageGroup(createStr(1025))
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_GROUP, e.getCode());
+                throw e;
+            }
+        });
+
+        // too large message property
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .putUserProperties("key", createStr(16 * 1024))
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.MESSAGE_PROPERTIES_TOO_LARGE, e.getCode());
+                throw e;
+            }
+        });
+
+        // set system properties
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("msgId")
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .putUserProperties(MessageConst.PROPERTY_TRACE_SWITCH, "false")
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, e.getCode());
+                throw e;
+            }
+        });
+
+        // empty message id
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId(" ")
+                                .setQueueId(0)
+                                .setMessageType(MessageType.NORMAL)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(RemotingUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.ILLEGAL_MESSAGE_ID, e.getCode());
+                throw e;
+            }
+        });
+    }
+
+    private static String createStr(int len) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < len; i++) {
+            sb.append("a");
+        }
+        return sb.toString();
     }
 }
