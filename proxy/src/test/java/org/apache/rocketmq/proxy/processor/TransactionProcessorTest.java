@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.processor;
 
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.service.transaction.EndTransactionRequestData;
@@ -52,7 +53,7 @@ public class TransactionProcessorTest extends BaseProcessorTest {
     }
 
     protected void testEndTransaction(int sysFlag, TransactionStatus transactionStatus) throws Throwable {
-        doNothing().when(this.messageService).endTransactionOneway(any(), any(), any(), anyLong());
+        when(this.messageService.endTransactionOneway(any(), any(), any(), anyLong())).thenReturn(CompletableFuture.completedFuture(null));
         ArgumentCaptor<Integer> commitOrRollbackCaptor = ArgumentCaptor.forClass(Integer.class);
         when(transactionService.genEndTransactionRequestHeader(anyString(), commitOrRollbackCaptor.capture(), anyBoolean(), anyString(), anyString()))
             .thenReturn(new EndTransactionRequestData("brokerName", new EndTransactionRequestHeader()));

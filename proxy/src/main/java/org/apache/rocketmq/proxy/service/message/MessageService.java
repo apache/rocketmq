@@ -63,12 +63,12 @@ public interface MessageService {
         long timeoutMillis
     );
 
-    void endTransactionOneway(
+    CompletableFuture<Void> endTransactionOneway(
         ProxyContext ctx,
         String brokerName,
         EndTransactionRequestHeader requestHeader,
         long timeoutMillis
-    ) throws MQBrokerException, RemotingException, InterruptedException;
+    );
 
     CompletableFuture<PopResult> popMessage(
         ProxyContext ctx,

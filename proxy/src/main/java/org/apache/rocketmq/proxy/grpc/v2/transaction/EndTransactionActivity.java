@@ -60,16 +60,16 @@ public class EndTransactionActivity extends AbstractMessingActivity {
                 default:
                     break;
             }
-            this.messagingProcessor.endTransaction(
+            future = this.messagingProcessor.endTransaction(
                 ctx,
                 request.getTransactionId(),
                 request.getMessageId(),
                 GrpcConverter.wrapResourceWithNamespace(request.getTopic()),
                 transactionStatus,
-                request.getSource().equals(TransactionSource.SOURCE_SERVER_CHECK));
-            future.complete(EndTransactionResponse.newBuilder()
-                .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
-                .build());
+                request.getSource().equals(TransactionSource.SOURCE_SERVER_CHECK))
+                .thenApply(r -> EndTransactionResponse.newBuilder()
+                    .setStatus(ResponseBuilder.buildStatus(Code.OK, Code.OK.name()))
+                    .build());
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

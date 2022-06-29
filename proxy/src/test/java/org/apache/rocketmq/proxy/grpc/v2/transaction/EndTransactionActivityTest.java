@@ -25,6 +25,7 @@ import apache.rocketmq.v2.TransactionResolution;
 import apache.rocketmq.v2.TransactionSource;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.processor.TransactionStatus;
@@ -38,6 +39,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class EndTransactionActivityTest extends BaseActivityTest {
@@ -66,9 +68,9 @@ public class EndTransactionActivityTest extends BaseActivityTest {
     public void testEndTransaction() throws Throwable {
         ArgumentCaptor<TransactionStatus> transactionStatusCaptor = ArgumentCaptor.forClass(TransactionStatus.class);
         ArgumentCaptor<Boolean> fromTransactionCheckCaptor = ArgumentCaptor.forClass(Boolean.class);
-        doNothing().when(this.messagingProcessor).endTransaction(any(), any(), anyString(), anyString(),
+        when(this.messagingProcessor.endTransaction(any(), any(), anyString(), anyString(),
             transactionStatusCaptor.capture(),
-            fromTransactionCheckCaptor.capture());
+            fromTransactionCheckCaptor.capture())).thenReturn(CompletableFuture.completedFuture(null));
 
         EndTransactionResponse response = this.endTransactionActivity.endTransaction(
             createContext(),

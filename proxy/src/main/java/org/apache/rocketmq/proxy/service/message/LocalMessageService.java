@@ -175,17 +175,20 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
-    public void endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
-        long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
+    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
+        long timeoutMillis) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
         SimpleChannel channel = channelManager.createChannel(ctx);
         ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
         RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
         try {
             brokerController.getEndTransactionProcessor()
                 .processRequest(channelHandlerContext, command);
+            future.complete(null);
         } catch (Exception e) {
-            log.error("Fail to process endTransaction command", e);
+            future.completeExceptionally(e);
         }
+        return future;
     }
 
     @Override
