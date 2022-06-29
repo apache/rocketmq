@@ -226,7 +226,12 @@ public class SendMessageActivity extends AbstractMessingActivity {
         if (messageType.equals(MessageType.TRANSACTION)) {
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
 
-            Duration transactionResolveDelay = message.getSystemProperties().getOrphanedTransactionRecoveryDuration();
+            Duration transactionResolveDelay;
+            if (!message.getSystemProperties().hasOrphanedTransactionRecoveryDuration()) {
+                transactionResolveDelay = Durations.fromSeconds(ConfigurationManager.getProxyConfig().getDefaultTransactionCheckImmunityTimeInSecond());
+            } else {
+                transactionResolveDelay = message.getSystemProperties().getOrphanedTransactionRecoveryDuration();
+            }
 
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS,
                 String.valueOf(Durations.toSeconds(transactionResolveDelay)));

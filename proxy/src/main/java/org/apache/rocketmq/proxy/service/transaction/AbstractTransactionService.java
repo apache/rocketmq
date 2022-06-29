@@ -80,15 +80,15 @@ public abstract class AbstractTransactionService implements TransactionService, 
     }
 
     protected long parseCheckImmunityTime(Message message) {
-        long checkImmunityTime = ConfigurationManager.getProxyConfig().getDefaultTransactionCheckImmunityTimeInMills();
+        long checkImmunityTime = ConfigurationManager.getProxyConfig().getDefaultTransactionCheckImmunityTimeInSecond();
         String checkImmunityTimeStr = message.getProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
         if (StringUtils.isNotBlank(checkImmunityTimeStr)) {
             try {
-                checkImmunityTime = Duration.ofSeconds(Long.parseLong(checkImmunityTimeStr)).toMillis();
+                checkImmunityTime = Long.parseLong(checkImmunityTimeStr);
             } catch (Exception ignored) {
             }
         }
-        return checkImmunityTime;
+        return Duration.ofSeconds(checkImmunityTime).toMillis();
     }
 
     protected abstract String getBrokerNameByAddr(String brokerAddr);
